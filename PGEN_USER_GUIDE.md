@@ -67,6 +67,9 @@ In practical terms:
   - `sv_preprocessor_quality`
   - `sv_stimuli_quality` replay-shadow telemetry
   - `vhdl_stimuli_quality` replay-shadow telemetry
+  - `sv_declared_shadow_promotion` replay-shadow telemetry
+  - `sv_parse_full_ratio_promotion` replay-shadow telemetry
+  - `vhdl_strict_promotion` replay-shadow telemetry
 
 ## 3) Fast Start
 
@@ -2441,6 +2444,11 @@ Aggregate gate tuning:
 - `PGEN_SOTA_POLICY_FILE` (override machine policy file path)
 - `PGEN_SOTA_EXIT_STATE_DIR` (override output state dir)
 
+Aggregate promotion telemetry now includes replay-shadow alternate-entry counters for:
+- `sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_*`
+- `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_*`
+- `vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_*`
+
 HDL readiness tuning:
 - `PGEN_HDL_FRONTEND_STRICT` (`1`/`0`, default `0`)
 - `PGEN_HDL_FRONTEND_STIMULI_COUNT` (default `8`)
@@ -2653,6 +2661,10 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_DECLARED_SHADOW_PARSEABLE_ONLY` (`0`/`1`, default `1`)
 - `PGEN_SV_DECLARED_SHADOW_PROMOTION_STATE_DIR` (default `rust/target/sv_declared_shadow_promotion_gate`)
+  - standalone summary/report telemetry now includes:
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)
   - controls standalone `sv_parse_full_ratio_promotion_gate` behavior.
   - `auto`: run strict-ratio trials and emit recommendation without failing on ineligible outcomes.
@@ -2667,6 +2679,10 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STIMULI_MODE` (`sv_file`/`sv_parseable_file`/`sv_snippet`/`sv_pp_file`/`sv_pp_snippet`/`sv_semantic_file`, default `sv_file`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default `20`)
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_STATE_DIR` (default `rust/target/sv_parse_full_ratio_promotion_gate`)
+  - standalone summary/report telemetry now includes:
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILE` (single LRM profile override, for example `2017` or `2023`)
 - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES` (CSV LRM profile matrix override, for example `2017,2023`)
 - `PGEN_SV_STIMULI_QUALITY_DECLARED_IDENTIFIER_SUITE` (override declared-identifier deterministic contract corpus path)
@@ -2721,6 +2737,10 @@ Optional VHDL strict-promotion gate tuning:
 - `PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO` (`0-100`, default `0`)
 - `PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY` (`0`/`1`, default `1`)
 - `PGEN_VHDL_STRICT_PROMOTION_STATE_DIR` (default `rust/target/vhdl_strict_promotion_gate`)
+  - standalone summary/report telemetry now includes:
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`
 
 Optional SV syntax-closure gate tuning:
 - `PGEN_SV_SYNTAX_CLOSURE_CONTRACT` (default `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`)

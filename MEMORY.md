@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: surface-aggregate-alternate-entry-telemetry)
+Last updated: 2026-03-11 (+0100, task: promote-alternate-entry-telemetry-into-promotion-gates)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -65,6 +65,12 @@ Use this file to resume work without replaying full chat history.
       - `closed_loop_replay_targets=20`
       - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
       - `parseability_generation_acceptance_rate_percent=100.00`
+- Promotion-gate alternate-entry telemetry surface:
+  - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into:
+    - per-trial JSON,
+    - aggregate promotion report JSON,
+    - standalone `summary.txt`
+  - `sota_exit_gate` now surfaces those promotion-stage alternate-entry counters directly in aggregate sign-off output.
 - Aggregate VHDL replay-budget policy surface:
   - `rust/config/sota_exit_policy.env` now defines `PGEN_SOTA_POLICY_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=5000`,
   - aggregate runtime may override it with `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`,

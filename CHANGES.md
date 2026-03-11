@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-11 - Promote Alternate-Entry Telemetry Into Promotion Gates
+### ✅ Achievement Summary
+Promotion-trial telemetry now carries the same replay-shadow alternate-entry counters that were already visible in the main quality gates and aggregate sign-off. Standalone promotion reports, standalone promotion summaries, and aggregate `sota_exit_gate` output all expose those counters for declared-shadow, parse-full-ratio, and VHDL strict promotion.
+
+### Scope of Changes
+- Hardened promotion gate report schemas and summaries:
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh)
+    - per-trial JSON now copies replay-shadow `target_drive_validation` totals,
+    - aggregate promotion report JSON now includes `closed_loop_parseability_shadow.target_drive_validation`,
+    - `summary.txt` now exposes the same alternate-entry totals directly.
+- Hardened aggregate sign-off surfacing:
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+    - now parses and prints promotion-stage replay-shadow alternate-entry totals for:
+      - `sv_declared_shadow_promotion`
+      - `sv_parse_full_ratio_promotion`
+      - `vhdl_strict_promotion`
+- Synced operator docs/state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
 ## 2026-03-11 - Surface Alternate-Entry Telemetry in Aggregate SOTA Sign-Off
 ### ✅ Achievement Summary
 Top-level aggregate sign-off now surfaces the new target-drive alternate-entry counters instead of stopping at per-gate visibility. `sota_exit_gate` now exposes those counters directly for the SV preprocessor quality stage and for the SV/VHDL replay-shadow quality stages.

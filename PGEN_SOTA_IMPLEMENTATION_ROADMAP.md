@@ -1006,6 +1006,10 @@ Toolbox baseline to leverage end-to-end:
       - SV replay shadow: `alternate_entry_attempts_total=205`, `accepted_outputs_total=16`, `rejected_outputs_total=189`
       - VHDL replay shadow: `alternate_entry_attempts_total=185`, `accepted_outputs_total=1`, `rejected_outputs_total=184`
       - aggregate run finished with `required_failures=0` and `all_failures=0`
+  - Progress (2026-03-11): extended the same alternate-entry observability into promotion-trial evidence:
+    - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into per-trial JSON, aggregate promotion report JSON, and `summary.txt`,
+    - `sota_exit_gate` now surfaces those promotion-stage alternate-entry counters directly in aggregate sign-off output,
+    - this closes the last remaining alternate-entry visibility gap between raw parseability reports, gate summaries, promotion evidence, and aggregate release sign-off.
   - Progress (2026-03-10): hardened shared target guidance so persistently low-yield branches are de-emphasized generically instead of only clamping zero-success branches:
     - `StimuliGenerator` target-branch throttling is now driven by accepted-success ratio history (`selected_counts` vs `success_counts`) with no grammar-specific logic,
     - new regression tests prove:

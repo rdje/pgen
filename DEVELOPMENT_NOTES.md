@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Promotion Gates Now Expose Alternate-Entry Replay-Shadow Counters
+### Context
+After the main gates and aggregate sign-off surfaced alternate-entry probe churn, promotion-trial reports were still a blind spot. Reviewers could see replay-shadow acceptance totals for declared-shadow, parse-full-ratio, and VHDL strict promotion, but not whether those attempts were being spent on alternate non-entry probes.
+
+### Implementation
+- Hardened promotion trial report schemas and summaries:
+  - `sv_declared_shadow_promotion_gate`
+  - `sv_parse_full_ratio_promotion_gate`
+  - `vhdl_strict_promotion_gate`
+  - all three now copy replay-shadow `target_drive_validation` totals into:
+    - per-trial JSON entries,
+    - aggregate promotion report JSON under `closed_loop_parseability_shadow.target_drive_validation`,
+    - standalone `summary.txt`.
+- Hardened aggregate sign-off:
+  - `sota_exit_gate` now parses those new promotion-report fields and prints them in aggregate `summary.txt`.
+
+### Notes
+- This closes the remaining alternate-entry observability gap called out in the previous note.
+- Promotion telemetry is now aligned with the main quality-gate telemetry surface instead of requiring manual drilling into raw replay-shadow report JSON.
+
 ## 2026-03-11 - Aggregate Sign-Off Now Surfaces Alternate-Entry Counters
 ### Context
 After surfacing alternate-entry telemetry inside the individual gates, the remaining visibility gap was top-level sign-off. A reviewer reading `sota_exit_gate` still saw replay-shadow acceptance totals but not whether those retries were dominated by alternate non-entry probes.
@@ -30,7 +50,7 @@ After surfacing alternate-entry telemetry inside the individual gates, the remai
 
 ### Notes
 - This closes the observability path from raw target-driven report JSON all the way up to aggregate sign-off for the main HDL quality surfaces.
-- Promotion-trial reports do not yet expose alternate-entry totals in their own schemas; that remains a separate follow-up if we want the same visibility for promotion gates.
+- Promotion-trial reports are now covered by a separate follow-up entry above.
 
 ## 2026-03-11 - Gate Surfaces Now Expose Alternate-Entry Target-Drive Totals
 ### Context

@@ -341,6 +341,9 @@ SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="<un
 SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="<unset>"
 SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="<unset>"
 SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="<unset>"
+SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="<unset>"
+SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="<unset>"
+SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="<unset>"
@@ -357,6 +360,9 @@ SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="<u
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="<unset>"
+SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="<unset>"
 VHDL_STRICT_PROMOTION_REPORT_JSON="<unset>"
 VHDL_STRICT_PROMOTION_RECOMMENDATION="<unset>"
 VHDL_STRICT_PROMOTION_ELIGIBLE="<unset>"
@@ -371,6 +377,9 @@ VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="<unset>"
 VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="<unset>"
 VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="<unset>"
 VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="<unset>"
+VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="<unset>"
+VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="<unset>"
+VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="<unset>"
 SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR="<unset>"
 SV_PREPROCESSOR_QUALITY_SUMMARY_CSV="<unset>"
 SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON="<unset>"
@@ -971,6 +980,9 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
         declared_shadow_closed_loop_parseability_shadow_accepted_total="$(jq -er '.closed_loop_parseability_shadow.observed.accepted_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         declared_shadow_closed_loop_parseability_shadow_rejected_total="$(jq -er '.closed_loop_parseability_shadow.observed.rejected_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         declared_shadow_closed_loop_parseability_shadow_acceptance_rate_percent="$(jq -er '.closed_loop_parseability_shadow.observed.acceptance_rate_percent // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        declared_shadow_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_attempts_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        declared_shadow_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_accepted_outputs_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        declared_shadow_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_rejected_outputs_total // "unknown"' "$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         SV_DECLARED_SHADOW_PROMOTION_REPORT_JSON="$SV_DECLARED_SHADOW_PROMOTION_STAGE_REPORT_JSON"
         SV_DECLARED_SHADOW_PROMOTION_RECOMMENDATION="$declared_shadow_recommendation"
         SV_DECLARED_SHADOW_PROMOTION_ELIGIBLE="$declared_shadow_eligible"
@@ -988,6 +1000,9 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
         SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$declared_shadow_closed_loop_parseability_shadow_accepted_total"
         SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$declared_shadow_closed_loop_parseability_shadow_rejected_total"
         SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$declared_shadow_closed_loop_parseability_shadow_acceptance_rate_percent"
+        SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$declared_shadow_closed_loop_parseability_shadow_alternate_entry_attempts_total"
+        SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$declared_shadow_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
+        SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$declared_shadow_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
     else
         SV_DECLARED_SHADOW_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -1009,6 +1024,9 @@ if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
     echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_accepted_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL"
     echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_rejected_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL"
     echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_acceptance_rate_percent: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT"
+    echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
+    echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
+    echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
 fi
 
 if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
@@ -1061,6 +1079,9 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         promotion_closed_loop_parseability_shadow_accepted_total="$(jq -er '.closed_loop_parseability_shadow.observed.accepted_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_closed_loop_parseability_shadow_rejected_total="$(jq -er '.closed_loop_parseability_shadow.observed.rejected_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         promotion_closed_loop_parseability_shadow_acceptance_rate_percent="$(jq -er '.closed_loop_parseability_shadow.observed.acceptance_rate_percent // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_attempts_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_accepted_outputs_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_rejected_outputs_total // "unknown"' "$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="$SV_PARSE_FULL_RATIO_PROMOTION_STAGE_REPORT_JSON"
         SV_PARSE_FULL_RATIO_PROMOTION_RECOMMENDATION="$promotion_recommendation"
         SV_PARSE_FULL_RATIO_PROMOTION_PRIMARY_NON_RATIO_BLOCKER="$promotion_primary_blocker"
@@ -1077,6 +1098,9 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$promotion_closed_loop_parseability_shadow_accepted_total"
         SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$promotion_closed_loop_parseability_shadow_rejected_total"
         SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$promotion_closed_loop_parseability_shadow_acceptance_rate_percent"
+        SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total"
+        SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
+        SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
     else
         SV_PARSE_FULL_RATIO_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -1097,6 +1121,9 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
     echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_accepted_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL"
     echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_rejected_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL"
     echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_acceptance_rate_percent: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT"
+    echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
+    echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
+    echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
 fi
 
 if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
@@ -1227,6 +1254,9 @@ if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
         vhdl_promotion_closed_loop_parseability_shadow_accepted_total="$(jq -er '.closed_loop_parseability_shadow.observed.accepted_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         vhdl_promotion_closed_loop_parseability_shadow_rejected_total="$(jq -er '.closed_loop_parseability_shadow.observed.rejected_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         vhdl_promotion_closed_loop_parseability_shadow_acceptance_rate_percent="$(jq -er '.closed_loop_parseability_shadow.observed.acceptance_rate_percent // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_attempts_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_accepted_outputs_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
+        vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(jq -er '.closed_loop_parseability_shadow.target_drive_validation.alternate_entry_rejected_outputs_total // "unknown"' "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" 2>/dev/null || echo "unknown")"
         VHDL_STRICT_PROMOTION_REPORT_JSON="$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON"
         VHDL_STRICT_PROMOTION_RECOMMENDATION="$vhdl_promotion_recommendation"
         VHDL_STRICT_PROMOTION_ELIGIBLE="$vhdl_promotion_eligible"
@@ -1241,6 +1271,9 @@ if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
         VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_accepted_total"
         VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_rejected_total"
         VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$vhdl_promotion_closed_loop_parseability_shadow_acceptance_rate_percent"
+        VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total"
+        VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
+        VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$vhdl_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"
     else
         VHDL_STRICT_PROMOTION_REPORT_JSON="<missing>"
     fi
@@ -1259,6 +1292,9 @@ if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_accepted_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL"
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_rejected_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL"
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_acceptance_rate_percent: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT"
+    echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
+    echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
+    echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
 fi
 
 {
@@ -1292,6 +1328,9 @@ fi
         echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_accepted_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL"
         echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_rejected_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL"
         echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_acceptance_rate_percent: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT"
+        echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
+        echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
+        echo "sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_DECLARED_SHADOW_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
     fi
     if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         echo
@@ -1397,6 +1436,9 @@ fi
         echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_accepted_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL"
         echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_rejected_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL"
         echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_acceptance_rate_percent: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT"
+        echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
+        echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
+        echo "sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
     fi
     if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
         echo
@@ -1448,6 +1490,9 @@ fi
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_accepted_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL"
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_rejected_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL"
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_acceptance_rate_percent: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT"
+        echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
+        echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
+        echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
     fi
 } >"$SUMMARY_TXT"
 
