@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-11 - Target-Driven Replay Now Backs Off Low-Yield Alternate Probing
+### Context
+The new `target_drive_validation` split made it clear when replay-shadow churn was being spent on alternate non-entry probes rather than entry-shaped outputs. The remaining issue was behavioral: the shared loop still used the same stagnation schedule even after alternate probes had already become dominant and low-yield.
+
+### Implementation
+- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+  - validator-backed replay now keeps explicit dependency probes, but it stops falling back to generic non-entry probes once alternate-entry attempts materially dominate and remain low-yield,
+  - validator-backed replay also raises the probe threshold under the same condition, so entry-shaped outputs get more of the remaining replay budget,
+  - the rule is generic and derives entirely from target-driven validation history; no grammar-specific heuristics were introduced.
+
+### Notes
+- Bounded evidence improved in both HDL paths without replay-debt regression:
+  - SV replay-shadow acceptance `27.85% -> 28.30%` with replay debt still `4876 -> 3785`
+  - VHDL replay-shadow acceptance `20.00% -> 23.08%` with replay debt still `254 -> 12`
+- This closes the first behavior loop that actually consumes the new primary-vs-alternate split, instead of only reporting it.
+
 ## 2026-03-11 - Parseability Reports Now Split Primary vs Alternate Entry Validation
 ### Context
 The report contract already exposed alternate-entry probe churn, but it still left the primary-entry side implicit. Downstream analysis had to subtract alternate-entry totals from the overall parseability summary to estimate true entry-shaped parseability debt.

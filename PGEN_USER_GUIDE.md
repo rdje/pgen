@@ -634,6 +634,7 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
 - rejected outputs are excluded from returned samples,
 - branch-selection history is still retained so the generator can throttle repeatedly failing target branches instead of forgetting them.
 - once a branch has enough history, that throttle is driven by accepted-success yield (`selected_counts` versus `success_counts`), so branches that are selected often and rarely accepted are de-emphasized generically instead of only clamping zero-success branches.
+- when alternate non-entry probes become both dominant and low-yield, validator-backed replay backs off generic non-entry probing and increases probe threshold so remaining budget is spent more on primary-entry validation than helper-rule churn.
 - `--parseability-report-json` now also includes `target_drive_validation` for this mode, with:
   - `primary_entry_attempts`
   - `primary_entry_accepted_outputs`

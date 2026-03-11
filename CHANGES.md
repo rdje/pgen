@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-11 - Bias Target-Driven Replay Back Toward Primary Entry Under Alternate Churn
+### ✅ Achievement Summary
+The shared validator-backed target-driven loop now reacts to the primary-vs-alternate entry split instead of treating all stagnation the same. When low-yield alternate probes dominate, replay backs off non-entry probing and spends more effort on true entry-shaped parseability debt.
+
+### Scope of Changes
+- Hardened shared target-driven replay scheduling:
+  - [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs)
+    - validator-backed replay now keeps explicit dependency probes but blocks generic non-entry fallback once low-yield alternate attempts dominate,
+    - validator-backed replay also raises probe threshold under the same pressure so helper-rule probing is less frequent when primary entry rejects remain active,
+    - added regression coverage for:
+      - validation-aware non-entry fallback suppression,
+      - dependency probe preservation under alternate churn,
+      - validation-aware probe-threshold backoff.
+
+### Validation Evidence
+- Rust regression coverage stayed green:
+  - `cargo test --manifest-path rust/Cargo.toml target_probe_ -- --nocapture`
+  - `cargo test --manifest-path rust/Cargo.toml target_driven_generation -- --nocapture`
+- Bounded HDL evidence improved without replay-debt regression:
+  - SV bounded replay-shadow acceptance improved `27.85% -> 28.30%` while replay debt stayed `4876 -> 3785`; alternate-entry probe churn reduced `484 -> 482`
+  - VHDL bounded replay-shadow acceptance improved `20.00% -> 23.08%` while replay debt stayed `254 -> 12`; alternate-entry probe churn reduced `185 -> 174`
+
 ## 2026-03-11 - Split Target-Drive Parseability Telemetry Into Primary vs Alternate Entry
 ### ✅ Achievement Summary
 The generic parseability report contract now exposes the primary-entry side of validator-backed target-driven replay directly instead of only the alternate-entry side. That makes entry-shaped parseability debt machine-readable without forcing downstream tools to infer it by subtraction.

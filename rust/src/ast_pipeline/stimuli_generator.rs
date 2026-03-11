@@ -1248,9 +1248,14 @@ impl<'a> StimuliGenerator<'a> {
                 stagnant_iterations = stagnant_iterations.saturating_add(1);
             }
 
-            let probe_threshold = self.target_probe_threshold(&pending);
+            let probe_threshold =
+                self.target_probe_threshold_for_validation(&pending, &validation_summary);
             let generation_entry = if stagnant_iterations >= probe_threshold {
-                self.select_target_probe_rule(&pending, &resolved_entry)
+                self.select_target_probe_rule_for_validation(
+                    &pending,
+                    &resolved_entry,
+                    &validation_summary,
+                )
                     .unwrap_or_else(|| resolved_entry.clone())
             } else {
                 resolved_entry.clone()
@@ -1367,6 +1372,57 @@ impl<'a> StimuliGenerator<'a> {
             })
     }
 
+    fn select_target_probe_rule_for_validation(
+        &self,
+        pending: &[TargetCoverageStatus],
+        resolved_entry: &str,
+        validation_summary: &TargetDriveValidationSummary,
+    ) -> Option<String> {
+        let dependency_probe = pending.iter().find_map(|status| {
+            status.depends_on.iter().find_map(|rule_name| {
+                if rule_name != resolved_entry
+                    && self.rule_target_deficit(rule_name.as_str()) > 0
+                    && self.grammar_tree.contains_key(rule_name.as_str())
+                {
+                    Some(rule_name.clone())
+                } else {
+                    None
+                }
+            })
+        });
+        if dependency_probe.is_some() {
+            return dependency_probe;
+        }
+
+        if Self::validation_prefers_primary_entry(validation_summary) {
+            return None;
+        }
+
+        pending
+            .iter()
+            .find_map(|status| {
+                if matches!(status.target_type, StimuliCoverageTargetType::Branch)
+                    && status.rule_name != resolved_entry
+                    && self.grammar_tree.contains_key(status.rule_name.as_str())
+                {
+                    Some(status.rule_name.clone())
+                } else {
+                    None
+                }
+            })
+            .or_else(|| {
+                pending.iter().find_map(|status| {
+                    if status.rule_name != resolved_entry
+                        && self.grammar_tree.contains_key(status.rule_name.as_str())
+                    {
+                        Some(status.rule_name.clone())
+                    } else {
+                        None
+                    }
+                })
+            })
+    }
+
     fn target_probe_threshold(&self, pending: &[TargetCoverageStatus]) -> usize {
         let mut threshold = 32usize;
         for status in pending {
@@ -1404,6 +1460,42 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         threshold
+    }
+
+    fn validation_prefers_primary_entry(validation_summary: &TargetDriveValidationSummary) -> bool {
+        let alternate_attempts = validation_summary.alternate_entry_attempts;
+        if alternate_attempts < 8 {
+            return false;
+        }
+
+        let primary_attempts = validation_summary.validated_outputs;
+        let alternate_dominates = alternate_attempts
+            >= primary_attempts.saturating_mul(2).max(8);
+        if !alternate_dominates {
+            return false;
+        }
+
+        Self::target_branch_failure_throttle(
+            u64::try_from(alternate_attempts).unwrap_or(u64::MAX),
+            u64::try_from(validation_summary.alternate_entry_accepted_outputs).unwrap_or(u64::MAX),
+        ) > 1
+    }
+
+    fn target_probe_threshold_for_validation(
+        &self,
+        pending: &[TargetCoverageStatus],
+        validation_summary: &TargetDriveValidationSummary,
+    ) -> usize {
+        let base = self.target_probe_threshold(pending);
+        if !Self::validation_prefers_primary_entry(validation_summary) {
+            return base;
+        }
+
+        let mut threshold = base.saturating_add(8);
+        if validation_summary.rejected_outputs > validation_summary.accepted_outputs {
+            threshold = threshold.saturating_add(8);
+        }
+        threshold.min(64)
     }
 
     #[cfg(test)]
@@ -5703,6 +5795,58 @@ mod tests {
     }
 
     #[test]
+    fn target_probe_threshold_for_validation_backs_off_under_alternate_churn() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        grammar_tree.insert("helper".to_string(), token("quoted_string", "H"));
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 895);
+        generator.target_plan.rule_thresholds.insert("helper".to_string(), 1);
+        let group = generator
+            .coverage
+            .branch_groups
+            .get_mut("start::root")
+            .expect("branch group should exist");
+        group.selected_counts = vec![0, 64];
+        group.success_counts = vec![0, 1];
+
+        let pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            current_successes: 1,
+            required_successes: 2,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["helper".to_string()],
+        }];
+        let validation = TargetDriveValidationSummary {
+            validated_outputs: 4,
+            accepted_outputs: 1,
+            rejected_outputs: 3,
+            alternate_entry_attempts: 16,
+            alternate_entry_accepted_outputs: 1,
+            alternate_entry_rejected_outputs: 15,
+        };
+
+        assert_eq!(generator.target_probe_threshold(&pending), 8);
+        assert_eq!(
+            generator.target_probe_threshold_for_validation(&pending, &validation),
+            24,
+            "validation-aware replay should back off helper probing when low-yield alternate attempts dominate and primary entry rejects are present"
+        );
+    }
+
+    #[test]
     fn target_probe_prefers_unresolved_dependency_rule_over_legacy_branch_fallback() {
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
@@ -5743,6 +5887,109 @@ mod tests {
             generator.select_target_probe_rule(&pending, "start"),
             Some("helper".to_string()),
             "new probing should prioritize unresolved dependency rules"
+        );
+    }
+
+    #[test]
+    fn target_probe_validation_returns_to_primary_entry_under_low_yield_alternate_churn() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "S"), token("quoted_string", "T")],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "H"), token("quoted_string", "I")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let generator = simple_generator(&grammar_tree, &rule_order, 893);
+        let pending = vec![TargetCoverageStatus {
+            id: "branch::helper::root::1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "helper".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: Vec::new(),
+        }];
+        let validation = TargetDriveValidationSummary {
+            validated_outputs: 4,
+            accepted_outputs: 4,
+            rejected_outputs: 0,
+            alternate_entry_attempts: 16,
+            alternate_entry_accepted_outputs: 1,
+            alternate_entry_rejected_outputs: 15,
+        };
+
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("helper".to_string()),
+            "base probing still falls back to non-entry rules without validation context"
+        );
+        assert_eq!(
+            generator.select_target_probe_rule_for_validation(&pending, "start", &validation),
+            None,
+            "validation-aware probing should return to primary entry when low-yield alternate attempts dominate"
+        );
+    }
+
+    #[test]
+    fn target_probe_validation_keeps_dependency_probe_under_alternate_churn() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("rule_reference", "helper"), token("quoted_string", "S")],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "H"), token("quoted_string", "I")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 894);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper".to_string(), 1);
+        let pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["helper".to_string()],
+        }];
+        let validation = TargetDriveValidationSummary {
+            validated_outputs: 4,
+            accepted_outputs: 4,
+            rejected_outputs: 0,
+            alternate_entry_attempts: 16,
+            alternate_entry_accepted_outputs: 1,
+            alternate_entry_rejected_outputs: 15,
+        };
+
+        assert_eq!(
+            generator.select_target_probe_rule_for_validation(&pending, "start", &validation),
+            Some("helper".to_string()),
+            "validation-aware probing must preserve explicit dependency probes even when alternate churn is high"
         );
     }
 

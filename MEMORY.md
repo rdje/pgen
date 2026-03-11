@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: split-target-drive-primary-vs-alternate-entry-telemetry)
+Last updated: 2026-03-11 (+0100, task: bias-target-driven-replay-back-toward-primary-entry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -152,6 +152,15 @@ Use this file to resume work without replaying full chat history.
     - `target_drive_validation.alternate_entry_attempts=0`
     - `target_drive_validation.alternate_entry_accepted_outputs=0`
     - `target_drive_validation.alternate_entry_rejected_outputs=0`
+- Shared replay behavior now consumes that split:
+  - validator-backed target-driven replay preserves explicit dependency probes but suppresses generic non-entry fallback once alternate-entry attempts materially dominate and stay low-yield,
+  - validator-backed target-driven replay also raises probe threshold under the same condition so replay budget shifts back toward primary-entry validation,
+  - bounded evidence after the change:
+    - SV replay-shadow acceptance improved `27.85% -> 28.30%` with replay debt unchanged at `4876 -> 3785`
+    - VHDL replay-shadow acceptance improved `20.00% -> 23.08%` with replay debt unchanged at `254 -> 12`
+    - alternate-entry churn also dropped:
+      - SV: `484 -> 482`
+      - VHDL: `185 -> 174`
 - Target-driven alternate-entry telemetry is now surfaced in gate-visible artifacts:
   - `annotation_stimuli_quality_gate`, `ebnf_stimuli_quality_gate`, and `sv_preprocessor_quality_gate` now copy stage-2 alternate-entry totals into aggregate parseability report JSON and `summary.csv` / `summary.txt`,
   - `vhdl_stimuli_quality_gate` now surfaces closed-loop replay-shadow alternate-entry totals directly in `summary.txt`,
@@ -3594,8 +3603,8 @@ Use this file to resume work without replaying full chat history.
    - parser-trust follow-up inside the same area:
      - keep the new shared dependency-aware target probing, which materially improved bounded SV replay debt (`3925 -> 3785`) and bounded VHDL replay debt (`26 -> 12`),
      - next shared-engine direction is now narrower:
-       - use the now-explicit `target_drive_validation.primary_entry_*` vs `alternate_entry_*` split to tune replay weighting toward true entry-shaped parseability debt instead of helper-rule probe churn,
-       - recover some SV replay-shadow acceptance from the current `27.85%` bounded level without giving back the replay-debt gain,
+       - continue tuning shared replay weighting now that the first primary-vs-alternate-entry backoff is in place,
+       - recover more SV replay-shadow acceptance from the new `28.30%` bounded level without giving back the replay-debt gain,
        - continue avoiding grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
    - likely next useful parser-trust increment inside the non-annotation loop:

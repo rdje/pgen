@@ -996,6 +996,12 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-11): promoted the primary-entry side of that split into the same report contract:
     - `target_drive_validation` now also exposes `primary_entry_attempts`, `primary_entry_accepted_outputs`, `primary_entry_rejected_outputs`, and `primary_entry_acceptance_rate_percent`,
     - downstream analysis no longer has to infer entry-shaped parseability debt indirectly from overall summary totals minus alternate-entry counts.
+  - Progress (2026-03-11): used that split to change shared replay behavior, not just telemetry:
+    - validator-backed target-driven replay now preserves explicit dependency probes but stops falling back to generic non-entry probes when alternate-entry attempts materially dominate and stay low-yield,
+    - validator-backed target-driven replay also raises probe threshold under the same condition, shifting budget back toward primary entry validation without grammar-specific heuristics,
+    - bounded evidence improved in both HDL paths with no replay-debt regression:
+      - SV replay-shadow acceptance `27.85% -> 28.30%` while replay debt stayed `4876 -> 3785`
+      - VHDL replay-shadow acceptance `20.00% -> 23.08%` while replay debt stayed `254 -> 12`
   - Progress (2026-03-11): surfaced target-driven alternate-entry telemetry in gate-visible artifacts instead of leaving it only in raw parseability JSON:
     - `annotation_stimuli_quality_gate`, `ebnf_stimuli_quality_gate`, and `sv_preprocessor_quality_gate` now expose stage-2 target-drive alternate-entry totals in their aggregate parseability report JSON and `summary.csv` / `summary.txt`,
     - `vhdl_stimuli_quality_gate` and `sv_stimuli_quality_gate` now surface closed-loop replay-shadow alternate-entry totals directly in gate `summary.txt`,
