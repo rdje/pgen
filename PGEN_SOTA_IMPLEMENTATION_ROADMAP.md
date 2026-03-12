@@ -1015,6 +1015,19 @@ Toolbox baseline to leverage end-to-end:
       - SV replay shadow: `alternate_entry_attempts_total=205`, `accepted_outputs_total=16`, `rejected_outputs_total=189`
       - VHDL replay shadow: `alternate_entry_attempts_total=185`, `accepted_outputs_total=1`, `rejected_outputs_total=184`
       - aggregate run finished with `required_failures=0` and `all_failures=0`
+  - Progress (2026-03-12): surfaced the primary-entry side of that split into the same main quality and aggregate surfaces:
+    - `sv_preprocessor_quality_gate` summary/report artifacts now expose both:
+      - `target_drive_primary_entry_*`
+      - `target_drive_alternate_entry_*`
+    - `sv_stimuli_quality_gate` and `vhdl_stimuli_quality_gate` summary/report artifacts now expose both:
+      - `closed_loop_parseability_shadow_primary_entry_*`
+      - `closed_loop_parseability_shadow_alternate_entry_*`
+    - `sota_exit_gate` now surfaces the same primary-vs-alternate counters for those three main HDL quality paths,
+    - bounded green evidence:
+      - SV preprocessor: primary `246/141/105`, alternate `65/46/19`
+      - SV replay shadow: primary `318/90/228`, alternate `482/28/454`
+      - VHDL replay shadow: primary `26/6/20`, alternate `174/1/173`
+      - aggregate run finished with `required_failures=0` and `all_failures=0`
   - Progress (2026-03-11): extended the same alternate-entry observability into promotion-trial evidence:
     - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into per-trial JSON, aggregate promotion report JSON, and `summary.txt`,
     - `sota_exit_gate` now surfaces those promotion-stage alternate-entry counters directly in aggregate sign-off output,

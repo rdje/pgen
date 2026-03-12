@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-11 (+0100, task: bias-target-driven-replay-back-toward-primary-entry)
+Last updated: 2026-03-12 (+0100, task: surface-primary-entry-telemetry-in-main-hdl-gates)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -65,6 +65,38 @@ Use this file to resume work without replaying full chat history.
       - `closed_loop_replay_targets=20`
       - `closed_loop_parseability_shadow_acceptance_rate_percent=29.03`
       - `parseability_generation_acceptance_rate_percent=100.00`
+- Main HDL primary-vs-alternate target-drive surface:
+  - the main HDL quality/preprocessor gates now expose both sides of validator-backed target-drive telemetry at the operator-facing summary layer:
+    - `sv_preprocessor_quality_gate`:
+      - `target_drive_primary_entry_attempts_total=246`
+      - `target_drive_primary_entry_accepted_outputs_total=141`
+      - `target_drive_primary_entry_rejected_outputs_total=105`
+      - `target_drive_alternate_entry_attempts_total=65`
+      - `target_drive_alternate_entry_accepted_outputs_total=46`
+      - `target_drive_alternate_entry_rejected_outputs_total=19`
+    - `sv_stimuli_quality_gate` replay shadow:
+      - `closed_loop_parseability_shadow_primary_entry_attempts_total=318`
+      - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=90`
+      - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=228`
+      - `closed_loop_parseability_shadow_alternate_entry_attempts_total=482`
+      - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=28`
+      - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=454`
+    - `vhdl_stimuli_quality_gate` replay shadow:
+      - `closed_loop_parseability_shadow_primary_entry_attempts_total=26`
+      - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=6`
+      - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=20`
+      - `closed_loop_parseability_shadow_alternate_entry_attempts_total=174`
+      - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=1`
+      - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=173`
+  - `sota_exit_gate` now surfaces the same primary-vs-alternate counters for those three main HDL quality paths in aggregate `summary.txt`,
+  - focused bounded aggregate proof used isolated state dir `/tmp/pgen_sota_exit_primary_entry_surface` with only:
+    - `differential_baseline_contract`
+    - `sv_preprocessor_quality_gate`
+    - `sv_stimuli_quality_gate`
+    - `vhdl_stimuli_quality_gate`
+  - observed bounded aggregate result:
+    - `required_failures=0`
+    - `all_failures=0`
 - Promotion-gate alternate-entry telemetry surface:
   - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into:
     - per-trial JSON,
@@ -197,6 +229,10 @@ Use this file to resume work without replaying full chat history.
       - `alternate_entry_attempts_total=185`
       - `alternate_entry_accepted_outputs_total=1`
       - `alternate_entry_rejected_outputs_total=184`
+- Validation caveat for parser-adapter gates:
+  - do not run bounded `sv_stimuli_quality_gate` and `vhdl_stimuli_quality_gate` proofs in parallel when parseability-backed stages are active,
+  - both rebuild the same `ast_pipeline` binary with different generated-parser adapters, so parallel runs can produce false `No matching compiled generated parser is available` failures in later sample-generation stages,
+  - serial bounded validation avoids that artifact.
 - Stimuli-module parity parseability surface:
   - `stimuli_module_parity_gate` now treats parser-backed acceptance effort as part of the parity contract instead of an implicit precondition,
   - for parseability-required grammars it emits and compares:
@@ -3607,8 +3643,10 @@ Use this file to resume work without replaying full chat history.
        - recover more SV replay-shadow acceptance from the new `28.30%` bounded level without giving back the replay-debt gain,
        - continue avoiding grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
-   - likely next useful parser-trust increment inside the non-annotation loop:
-     - promote the new parseability-effort report into any remaining reporting surfaces beyond the now-covered aggregate readiness/quality/parity paths, especially places that still collapse parser-backed effort into binary success only.
+   - main HDL quality/preprocessor and aggregate sign-off surfaces now expose both primary-entry and alternate-entry telemetry,
+   - likely next useful parser-trust increment inside the non-annotation loop is narrower:
+     - extend the same primary-entry surfacing into any remaining promotion/reporting surfaces only if that distinction becomes operationally useful,
+     - otherwise keep prioritizing replay-quality behavior improvements over more observability-only work.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.
 4. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.

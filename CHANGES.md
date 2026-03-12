@@ -1,4 +1,62 @@
 # CHANGES.md
+## 2026-03-12 - Surface Primary-Entry Parseability Telemetry in Main HDL Aggregate Gates
+### ✅ Achievement Summary
+The main HDL quality surfaces no longer expose only alternate-entry probe churn. SV preprocessor quality, SV replay-shadow quality, VHDL replay-shadow quality, and aggregate `sota_exit_gate` sign-off now surface the primary-entry side of validator-backed target-drive telemetry too, so true entry-shaped parseability rejection is visible alongside helper-rule probe churn.
+
+### Scope of Changes
+- Hardened main quality-gate summaries and aggregate reports:
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh)
+    - stage summary CSV/JSON now surfaces:
+      - `target_drive_primary_entry_attempts_total`
+      - `target_drive_primary_entry_accepted_outputs_total`
+      - `target_drive_primary_entry_rejected_outputs_total`
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh)
+    - closed-loop replay-shadow summaries and report JSON now surface:
+      - `closed_loop_parseability_shadow_primary_entry_attempts_total`
+      - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total`
+      - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total`
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+    - aggregate sign-off now parses and prints the same primary-entry counters beside the existing alternate-entry totals for:
+      - `sv_preprocessor_quality`
+      - `sv_stimuli_quality`
+      - `vhdl_stimuli_quality`
+- Synced operator docs/state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- `bash -n rust/scripts/sv_preprocessor_quality_gate.sh` ✅
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh` ✅
+- `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh` ✅
+- `bash -n rust/scripts/sota_exit_gate.sh` ✅
+- bounded preprocessor proof:
+  - `target_drive_primary_entry_attempts_total=246`
+  - `target_drive_primary_entry_accepted_outputs_total=141`
+  - `target_drive_primary_entry_rejected_outputs_total=105`
+  - `target_drive_alternate_entry_attempts_total=65`
+  - `target_drive_alternate_entry_accepted_outputs_total=46`
+  - `target_drive_alternate_entry_rejected_outputs_total=19`
+- bounded SV proof:
+  - `closed_loop_parseability_shadow_primary_entry_attempts_total=318`
+  - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=90`
+  - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=228`
+  - `closed_loop_parseability_shadow_alternate_entry_attempts_total=482`
+  - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=28`
+  - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=454`
+- bounded VHDL proof:
+  - `closed_loop_parseability_shadow_primary_entry_attempts_total=26`
+  - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=6`
+  - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=20`
+  - `closed_loop_parseability_shadow_alternate_entry_attempts_total=174`
+  - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=1`
+  - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=173`
+- bounded aggregate proof with only `differential_baseline_contract`, `sv_preprocessor_quality_gate`, `sv_stimuli_quality_gate`, and `vhdl_stimuli_quality_gate` enabled:
+  - `required_failures=0`
+  - `all_failures=0`
+
 ## 2026-03-11 - Bias Target-Driven Replay Back Toward Primary Entry Under Alternate Churn
 ### ✅ Achievement Summary
 The shared validator-backed target-driven loop now reacts to the primary-vs-alternate entry split instead of treating all stagnation the same. When low-yield alternate probes dominate, replay backs off non-entry probing and spends more effort on true entry-shaped parseability debt.

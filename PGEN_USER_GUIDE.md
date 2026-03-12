@@ -67,11 +67,12 @@ In practical terms:
   - `alternate_entry_accepted_outputs`
   - `alternate_entry_rejected_outputs`
   - `alternate_entry_acceptance_rate_percent`
-- target-driven quality gates surface those alternate-entry counters in their stage summaries or aggregate report artifacts so helper-rule probe churn is observable instead of inferred.
-- aggregate `sota_exit_gate` summary now surfaces those counters for:
+- the main target-driven quality gates now surface both primary-entry and alternate-entry counters in stage summaries or aggregate report artifacts so true entry-shaped rejection and helper-rule probe churn are both observable without opening raw JSON.
+- aggregate `sota_exit_gate` summary now surfaces those primary-vs-alternate counters for:
   - `sv_preprocessor_quality`
   - `sv_stimuli_quality` replay-shadow telemetry
   - `vhdl_stimuli_quality` replay-shadow telemetry
+- promotion-stage aggregate telemetry currently surfaces replay-shadow alternate-entry counters for:
   - `sv_declared_shadow_promotion` replay-shadow telemetry
   - `sv_parse_full_ratio_promotion` replay-shadow telemetry
   - `vhdl_strict_promotion` replay-shadow telemetry
@@ -2460,6 +2461,14 @@ Aggregate promotion telemetry now includes replay-shadow alternate-entry counter
 - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_*`
 - `vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_*`
 
+Aggregate main-quality telemetry now includes both primary-entry and alternate-entry counters for:
+- `sv_preprocessor_quality_target_drive_primary_entry_*`
+- `sv_preprocessor_quality_target_drive_alternate_entry_*`
+- `sv_stimuli_quality_closed_loop_parseability_shadow_primary_entry_*`
+- `sv_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_*`
+- `vhdl_stimuli_quality_closed_loop_parseability_shadow_primary_entry_*`
+- `vhdl_stimuli_quality_closed_loop_parseability_shadow_alternate_entry_*`
+
 HDL readiness tuning:
 - `PGEN_HDL_FRONTEND_STRICT` (`1`/`0`, default `0`)
 - `PGEN_HDL_FRONTEND_STIMULI_COUNT` (default `8`)
@@ -2500,6 +2509,13 @@ Optional SV preprocessor quality-gate tuning:
 - `PGEN_SV_PREPROCESSOR_REFERENCE_INCLUDE_DIRS` (optional CSV include-dir list, consumed by runner shim)
 - `PGEN_SV_PREPROCESSOR_REFERENCE_DEFINES` (optional CSV macro define list, consumed by runner shim)
 - `PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR` (default `rust/target/sv_preprocessor_quality_gate`)
+  - stage summary telemetry now includes:
+    - `target_drive_primary_entry_attempts_total`
+    - `target_drive_primary_entry_accepted_outputs_total`
+    - `target_drive_primary_entry_rejected_outputs_total`
+    - `target_drive_alternate_entry_attempts_total`
+    - `target_drive_alternate_entry_accepted_outputs_total`
+    - `target_drive_alternate_entry_rejected_outputs_total`
 
 `sv_preprocessor_quality_gate` trusted-reference differential taxonomy:
 - gate emits differential report JSON at:
@@ -2718,6 +2734,13 @@ Optional SV stimuli quality-gate tuning:
 - `PGEN_SV_STIMULI_REALISTIC_CORPUS` (override realistic-corpus manifest path)
 - `PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES` (integer `>=0`, default `0` meaning run all corpus cases)
 - `PGEN_SV_STIMULI_QUALITY_STATE_DIR` (default `rust/target/sv_stimuli_quality_gate`)
+  - standalone summary/report telemetry now includes:
+    - `closed_loop_parseability_shadow_primary_entry_attempts_total`
+    - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total`
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`
 
 Optional VHDL stimuli quality-gate tuning:
 - `PGEN_VHDL_STIMULI_QUALITY_CONTRACT` (default `rust/test_data/grammar_quality/vhdl_core_v0_contract.json`)
@@ -2733,6 +2756,13 @@ Optional VHDL stimuli quality-gate tuning:
 - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS` (override realistic-corpus manifest path)
 - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES` (integer `>=0`, default `0` meaning run all corpus cases)
 - `PGEN_VHDL_STIMULI_QUALITY_STATE_DIR` (default `rust/target/vhdl_stimuli_quality_gate`)
+  - standalone summary/report telemetry now includes:
+    - `closed_loop_parseability_shadow_primary_entry_attempts_total`
+    - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total`
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total`
+    - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`
 
 Optional VHDL strict-promotion gate tuning:
 - `PGEN_VHDL_STRICT_PROMOTION_MODE` (`auto`/`0`/`1`, default `auto`)

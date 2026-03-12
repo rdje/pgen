@@ -378,6 +378,9 @@ closed_loop_parseability_shadow_parser_rejections_total=0
 closed_loop_parseability_shadow_generation_errors_total=0
 closed_loop_parseability_shadow_empty_generations_total=0
 closed_loop_parseability_shadow_acceptance_rate_percent="0.00"
+closed_loop_parseability_shadow_primary_entry_attempts_total=0
+closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=0
+closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_attempts_total=0
 closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=0
 closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=0
@@ -464,6 +467,9 @@ if [[ "$closed_loop_enabled" -eq 1 ]]; then
         closed_loop_parseability_shadow_generation_errors_total="$(parseability_summary_field_u64 "$closed_loop_parseability_shadow_report_json" "generation_errors")"
         closed_loop_parseability_shadow_empty_generations_total="$(parseability_summary_field_u64 "$closed_loop_parseability_shadow_report_json" "empty_generations")"
         closed_loop_parseability_shadow_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$closed_loop_parseability_shadow_report_json")"
+        closed_loop_parseability_shadow_primary_entry_attempts_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "primary_entry_attempts")"
+        closed_loop_parseability_shadow_primary_entry_accepted_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "primary_entry_accepted_outputs")"
+        closed_loop_parseability_shadow_primary_entry_rejected_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "primary_entry_rejected_outputs")"
         closed_loop_parseability_shadow_alternate_entry_attempts_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_attempts")"
         closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_accepted_outputs")"
         closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total="$(parseability_target_drive_field_u64 "$closed_loop_parseability_shadow_report_json" "alternate_entry_rejected_outputs")"
@@ -800,6 +806,9 @@ jq -n \
     echo "closed_loop_parseability_shadow_generation_errors_total: $closed_loop_parseability_shadow_generation_errors_total"
     echo "closed_loop_parseability_shadow_empty_generations_total: $closed_loop_parseability_shadow_empty_generations_total"
     echo "closed_loop_parseability_shadow_acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent"
+    echo "closed_loop_parseability_shadow_primary_entry_attempts_total: $closed_loop_parseability_shadow_primary_entry_attempts_total"
+    echo "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total: $closed_loop_parseability_shadow_primary_entry_accepted_outputs_total"
+    echo "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total: $closed_loop_parseability_shadow_primary_entry_rejected_outputs_total"
     echo "closed_loop_parseability_shadow_alternate_entry_attempts_total: $closed_loop_parseability_shadow_alternate_entry_attempts_total"
     echo "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total"
     echo "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total"

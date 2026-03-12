@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-12 - Main HDL Gate Surfaces Now Show Primary vs Alternate Entry Debt
+### Context
+The raw parseability report and the engine-level contract already split primary-entry validation from alternate-entry probing, but the main HDL quality surfaces still exposed only the alternate side. That left reviewers reading `summary.txt` or aggregate `sota_exit_gate` output unable to see true entry-shaped rejection without opening raw JSON and inferring it indirectly.
+
+### Implementation
+- Hardened main gate-visible reporting surfaces:
+  - `sv_preprocessor_quality_gate` now carries `target_drive_primary_entry_*` alongside the existing alternate-entry totals in summary/report artifacts.
+  - `sv_stimuli_quality_gate` and `vhdl_stimuli_quality_gate` now carry `closed_loop_parseability_shadow_primary_entry_*` alongside the existing alternate-entry totals.
+  - `sota_exit_gate` now harvests and prints those primary-entry totals for the same three main HDL quality paths.
+
+### Validation
+- `bash -n` passed on:
+  - `rust/scripts/sv_preprocessor_quality_gate.sh`
+  - `rust/scripts/sv_stimuli_quality_gate.sh`
+  - `rust/scripts/vhdl_stimuli_quality_gate.sh`
+  - `rust/scripts/sota_exit_gate.sh`
+- bounded proofs stayed green with:
+  - SV preprocessor:
+    - primary `246/141/105`
+    - alternate `65/46/19`
+  - SV replay shadow:
+    - primary `318/90/228`
+    - alternate `482/28/454`
+  - VHDL replay shadow:
+    - primary `26/6/20`
+    - alternate `174/1/173`
+  - bounded aggregate replay:
+    - `required_failures=0`
+    - `all_failures=0`
+
+### Notes
+- This closes the primary-vs-alternate visibility gap for the main HDL quality/preprocessor surfaces and aggregate sign-off.
+- Promotion-stage aggregate telemetry still exposes alternate-entry replay-shadow totals; extending primary-entry surfacing there is optional future work, not a blocker for the main quality path.
+- Validation should keep SV/VHDL parser-adapter gate proofs serial. Running them in parallel can produce false `No matching compiled generated parser is available` failures because both gates rebuild the same `ast_pipeline` binary with different generated-parser adapters.
+
 ## 2026-03-11 - Target-Driven Replay Now Backs Off Low-Yield Alternate Probing
 ### Context
 The new `target_drive_validation` split made it clear when replay-shadow churn was being spent on alternate non-entry probes rather than entry-shaped outputs. The remaining issue was behavioral: the shared loop still used the same stagnation schedule even after alternate probes had already become dominant and low-yield.
