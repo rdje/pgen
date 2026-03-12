@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-12 - SV Realistic Corpus Version 39 Promotion
+### Context
+`version: 38` had promoted the direct twenty-seven-child / pentacosa cases but still lacked the matching deep-include package-width pair. The clean next task was to restore that symmetry with the same objective evidence model: deterministic local include files, direct dual-profile preprocess+`parse_full` proof, and a bounded full gate rerun.
+
+### Implementation
+- Added deep-include support files for the new package-width slice:
+  - `preprocess_deep_include_package_width_twenty_seven_child_defs.svh`
+  - `preprocess_deep_include_package_width_twenty_seven_child_mid.svh`
+  - `preprocess_deep_include_package_width_twenty_seven_child_leaf.svh`
+- Added and promoted the two new required-pass entry cases:
+  - `preprocess_deep_include_package_width_twenty_seven_child_pipeline`
+  - `preprocess_deep_include_package_width_pentacosa_bridge_wildcard`
+- Promoted `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`:
+  - `version: 38 -> 39`
+  - declared cases: `291 -> 293`
+
+### Validation
+- Direct dual-profile proof passed:
+  - preprocess + `parse_full` replay for the two new cases completed `4/4` across `sv_2017` and `sv_2023`.
+- Bounded full gate rerun stayed green:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v39 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed evidence:
+    - `closed_loop_profiles_passed=2/2`
+    - `realistic_corpus_cases_declared=293`
+    - `realistic_corpus_cases_executed=586`
+    - `realistic_corpus_observed_parse_pass_total=586`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_warning_total=2`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This closes the immediate symmetry gap left by `version: 38`.
+- The next clean SV realistic-corpus frontier is the next full family step beyond this repaired slice, most likely `twenty_eight_child` / `hexacosa_bridge`.
+
 ## 2026-03-12 - SV Realistic Corpus Version 38 Promotion
 ### Context
 After the last shared replay-quality increment, the safest next parser-trust task was another objective SystemVerilog realistic-corpus promotion rather than another speculative replay heuristic tweak. The corpus was at `version: 37` / `284` declared all-pass cases, and the next parser-supported slice was a smaller seven-case promotion centered on twenty-seven-child pipelines and pentacosa-bridge imported-width composition.

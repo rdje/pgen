@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-03-12 - Expand SV Realistic Corpus to Version 39
+### ✅ Achievement Summary
+The checked-in Nexsim-oriented SystemVerilog realistic corpus now restores the missing deep-include package-width symmetry for the new twenty-seven-child / pentacosa slice. The two promoted cases passed direct dual-profile preprocess+`parse_full` replay `4/4`, and the bounded full `sv_stimuli_quality_gate` rerun stayed green with the expanded corpus at `293` declared cases and `586/586` observed dual-profile parse passes.
+
+### Scope of Changes
+- Added deep-include support files for the new slice:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_defs.svh](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_defs.svh)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_mid.svh](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_mid.svh)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_leaf.svh](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_leaf.svh)
+- Added the two promoted required-pass entry cases:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_seven_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_pentacosa_bridge_wildcard.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_pentacosa_bridge_wildcard.sv)
+- Promoted the manifest:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json)
+    - `version: 38 -> 39`
+    - declared cases: `291 -> 293`
+- Synced state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- direct dual-profile preprocess + `parse_full` replay of the new slice: `4/4` ✅
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v39 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - `closed_loop_profiles_passed=2/2`
+  - `realistic_corpus_cases_declared=293`
+  - `realistic_corpus_cases_executed=586`
+  - `realistic_corpus_observed_parse_pass_total=586`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
 ## 2026-03-12 - Expand SV Realistic Corpus to Version 38
 ### ✅ Achievement Summary
 The checked-in Nexsim-oriented SystemVerilog realistic corpus now covers a deeper twenty-seven-child / pentacosa-bridge slice with seven new deterministic all-pass cases. The promotion stayed objective: the new slice passed direct dual-profile preprocess+`parse_full` replay `14/14`, and the bounded full `sv_stimuli_quality_gate` rerun stayed green with the expanded corpus at `291` declared cases and `582/582` observed dual-profile parse passes.

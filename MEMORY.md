@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-12 (+0100, task: expand-sv-realistic-corpus-to-version-38)
+Last updated: 2026-03-12 (+0100, task: expand-sv-realistic-corpus-to-version-39)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -127,8 +127,8 @@ Use this file to resume work without replaying full chat history.
     - VHDL replay debt stayed `12`
     - VHDL parseability generation stayed `66.67%`
 - SystemVerilog realistic corpus promotion state:
-  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 38` with `291` declared deterministic all-pass cases,
-  - the latest seven-case promotion added:
+  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 39` with `293` declared deterministic all-pass cases,
+  - the latest repaired promotion state adds or confirms the twenty-seven-child / pentacosa family:
     - `module_local_import_multi_width_twenty_seven_child_pipeline`
     - `package_import_multi_width_twenty_seven_child_pipeline`
     - `preprocess_macro_import_multi_width_twenty_seven_child_pipeline`
@@ -136,12 +136,14 @@ Use this file to resume work without replaying full chat history.
     - `preprocess_macro_port_name_multi_width_twenty_seven_child`
     - `multi_module_imported_width_pentacosa_bridge_named_port`
     - `multi_module_imported_width_pentacosa_bridge_wildcard`
-  - focused adapter-backed direct validation passed `14/14` across `sv_2017` and `sv_2023`,
+    - `preprocess_deep_include_package_width_twenty_seven_child_pipeline`
+    - `preprocess_deep_include_package_width_pentacosa_bridge_wildcard`
+  - focused adapter-backed direct validation for the latest two-case increment passed `4/4` across `sv_2017` and `sv_2023`,
   - bounded full `sv_stimuli_quality_gate` refresh stayed green with:
     - `closed_loop_profiles_passed=2/2`
-    - `realistic_corpus_cases_declared=291`
-    - `realistic_corpus_cases_executed=582`
-    - `realistic_corpus_observed_parse_pass_total=582`
+    - `realistic_corpus_cases_declared=293`
+    - `realistic_corpus_cases_executed=586`
+    - `realistic_corpus_observed_parse_pass_total=586`
     - `realistic_corpus_observed_parse_fail_total=0`
     - `realistic_corpus_preprocess_warning_total=2`
     - `realistic_corpus_preprocess_error_total=0`
@@ -3679,12 +3681,12 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding beyond the new `291`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
+   - keep expanding beyond the new `293`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
    - likely next probe targets:
-     - restore the missing deep-include package-width twenty-seven-child / pentacosa-wildcard symmetry so the new slice matches the earlier nine-family pattern,
+     - move to the next complete family step after the repaired twenty-seven-child / pentacosa slice, likely `twenty_eight_child` / `hexacosa_bridge`,
      - richer multi-module width/import compositions that propagate through still more than one downstream bridge or stage family,
      - deeper include-chain variants that combine package-width state with more than twenty-seven child stages or mixed wildcard/named-port reuse across multiple modules,
-     - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
+      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
    - parser-trust follow-up inside the same area:
     - keep the new shared dependency-aware target probing, which now materially improved bounded SV replay debt twice (`3925 -> 3785 -> 3629`) and bounded VHDL replay debt (`26 -> 12`),
     - next shared-engine direction is now narrower:
