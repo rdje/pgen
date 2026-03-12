@@ -1002,6 +1002,12 @@ Toolbox baseline to leverage end-to-end:
     - bounded evidence improved in both HDL paths with no replay-debt regression:
       - SV replay-shadow acceptance `27.85% -> 28.30%` while replay debt stayed `4876 -> 3785`
       - VHDL replay-shadow acceptance `20.00% -> 23.08%` while replay debt stayed `254 -> 12`
+  - Progress (2026-03-12): refined that same shared replay path so dependency escapes are leverage-ranked and marginal ones are suppressed under dominant alternate churn:
+    - validator-backed replay now ranks dependency probes by unresolved dependency-rule deficit, blocked remaining successes, blocked target count, zero-hit preference, and target priority,
+    - validator-backed replay still preserves clearly worthwhile dependency probes under alternate churn, but it no longer preserves marginal one-off helper escapes unconditionally,
+    - bounded evidence improved again without grammar-specific heuristics:
+      - SV replay-shadow acceptance `28.30% -> 28.53%` while replay debt improved `3785 -> 3629`
+      - VHDL replay-shadow acceptance `23.08% -> 25.00%` while replay debt stayed `12`
   - Progress (2026-03-11): surfaced target-driven alternate-entry telemetry in gate-visible artifacts instead of leaving it only in raw parseability JSON:
     - `annotation_stimuli_quality_gate`, `ebnf_stimuli_quality_gate`, and `sv_preprocessor_quality_gate` now expose stage-2 target-drive alternate-entry totals in their aggregate parseability report JSON and `summary.csv` / `summary.txt`,
     - `vhdl_stimuli_quality_gate` and `sv_stimuli_quality_gate` now surface closed-loop replay-shadow alternate-entry totals directly in gate `summary.txt`,

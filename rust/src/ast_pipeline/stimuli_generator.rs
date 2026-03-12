@@ -592,6 +592,16 @@ pub struct TargetDriveValidationSummary {
     pub alternate_entry_rejected_outputs: usize,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct DependencyProbeCandidate {
+    rule_name: String,
+    blocked_targets: usize,
+    blocked_remaining_successes: u64,
+    max_target_priority: u64,
+    dependency_rule_deficit: u64,
+    dependency_rule_successes: u64,
+}
+
 impl TargetDriveSummary {
     pub fn summary_line(&self) -> String {
         format!(
@@ -1215,7 +1225,11 @@ impl<'a> StimuliGenerator<'a> {
         targets: &[StimuliCoverageTarget],
         max_attempts: usize,
         mut output_filter: F,
-    ) -> Result<(Vec<String>, TargetDriveSummary, TargetDriveValidationSummary)>
+    ) -> Result<(
+        Vec<String>,
+        TargetDriveSummary,
+        TargetDriveValidationSummary,
+    )>
     where
         F: FnMut(&str) -> Result<bool>,
     {
@@ -1256,7 +1270,7 @@ impl<'a> StimuliGenerator<'a> {
                     &resolved_entry,
                     &validation_summary,
                 )
-                    .unwrap_or_else(|| resolved_entry.clone())
+                .unwrap_or_else(|| resolved_entry.clone())
             } else {
                 resolved_entry.clone()
             };
@@ -1295,10 +1309,9 @@ impl<'a> StimuliGenerator<'a> {
                             validation_summary.accepted_outputs.saturating_add(1);
                         outputs.push(sample);
                     } else {
-                        validation_summary.alternate_entry_accepted_outputs =
-                            validation_summary
-                                .alternate_entry_accepted_outputs
-                                .saturating_add(1);
+                        validation_summary.alternate_entry_accepted_outputs = validation_summary
+                            .alternate_entry_accepted_outputs
+                            .saturating_add(1);
                     }
                 }
                 Err(_) => {
@@ -1333,20 +1346,8 @@ impl<'a> StimuliGenerator<'a> {
         pending: &[TargetCoverageStatus],
         resolved_entry: &str,
     ) -> Option<String> {
-        pending
-            .iter()
-            .find_map(|status| {
-                status.depends_on.iter().find_map(|rule_name| {
-                    if rule_name != resolved_entry
-                        && self.rule_target_deficit(rule_name.as_str()) > 0
-                        && self.grammar_tree.contains_key(rule_name.as_str())
-                    {
-                        Some(rule_name.clone())
-                    } else {
-                        None
-                    }
-                })
-            })
+        self.best_dependency_probe_candidate(pending, resolved_entry)
+            .map(|candidate| candidate.rule_name)
             .or_else(|| {
                 pending.iter().find_map(|status| {
                     if matches!(status.target_type, StimuliCoverageTargetType::Branch)
@@ -1378,20 +1379,12 @@ impl<'a> StimuliGenerator<'a> {
         resolved_entry: &str,
         validation_summary: &TargetDriveValidationSummary,
     ) -> Option<String> {
-        let dependency_probe = pending.iter().find_map(|status| {
-            status.depends_on.iter().find_map(|rule_name| {
-                if rule_name != resolved_entry
-                    && self.rule_target_deficit(rule_name.as_str()) > 0
-                    && self.grammar_tree.contains_key(rule_name.as_str())
-                {
-                    Some(rule_name.clone())
-                } else {
-                    None
-                }
-            })
-        });
-        if dependency_probe.is_some() {
-            return dependency_probe;
+        if let Some(candidate) = self.best_dependency_probe_candidate(pending, resolved_entry) {
+            if !Self::validation_prefers_primary_entry(validation_summary)
+                || Self::validation_dependency_probe_is_worthy(&candidate)
+            {
+                return Some(candidate.rule_name);
+            }
         }
 
         if Self::validation_prefers_primary_entry(validation_summary) {
@@ -1423,6 +1416,68 @@ impl<'a> StimuliGenerator<'a> {
             })
     }
 
+    fn best_dependency_probe_candidate(
+        &self,
+        pending: &[TargetCoverageStatus],
+        resolved_entry: &str,
+    ) -> Option<DependencyProbeCandidate> {
+        let mut candidates: HashMap<String, DependencyProbeCandidate> = HashMap::new();
+        for status in pending {
+            for rule_name in &status.depends_on {
+                if rule_name == resolved_entry
+                    || !self.grammar_tree.contains_key(rule_name.as_str())
+                {
+                    continue;
+                }
+                let dependency_rule_deficit = self.rule_target_deficit(rule_name.as_str());
+                if dependency_rule_deficit == 0 {
+                    continue;
+                }
+                let dependency_rule_successes = self
+                    .coverage
+                    .rule_success_hits
+                    .get(rule_name)
+                    .copied()
+                    .unwrap_or(0);
+                let entry = candidates.entry(rule_name.clone()).or_insert_with(|| {
+                    DependencyProbeCandidate {
+                        rule_name: rule_name.clone(),
+                        dependency_rule_deficit,
+                        dependency_rule_successes,
+                        ..DependencyProbeCandidate::default()
+                    }
+                });
+                entry.blocked_targets = entry.blocked_targets.saturating_add(1);
+                entry.blocked_remaining_successes = entry
+                    .blocked_remaining_successes
+                    .saturating_add(status.remaining_successes);
+                entry.max_target_priority = entry.max_target_priority.max(status.priority_score);
+                entry.dependency_rule_deficit =
+                    entry.dependency_rule_deficit.max(dependency_rule_deficit);
+                entry.dependency_rule_successes = entry
+                    .dependency_rule_successes
+                    .min(dependency_rule_successes);
+            }
+        }
+
+        candidates.into_values().max_by(|left, right| {
+            left.dependency_rule_deficit
+                .cmp(&right.dependency_rule_deficit)
+                .then_with(|| {
+                    left.blocked_remaining_successes
+                        .cmp(&right.blocked_remaining_successes)
+                })
+                .then_with(|| left.blocked_targets.cmp(&right.blocked_targets))
+                .then_with(|| {
+                    right
+                        .dependency_rule_successes
+                        .cmp(&left.dependency_rule_successes)
+                })
+                .then_with(|| left.max_target_priority.cmp(&right.max_target_priority))
+                .then_with(|| right.rule_name.cmp(&left.rule_name))
+        })
+    }
+
     fn target_probe_threshold(&self, pending: &[TargetCoverageStatus]) -> usize {
         let mut threshold = 32usize;
         for status in pending {
@@ -1436,7 +1491,11 @@ impl<'a> StimuliGenerator<'a> {
             let Some(group) = self.coverage.branch_groups.get(&group_key) else {
                 continue;
             };
-            let selected_hits = group.selected_counts.get(branch_index).copied().unwrap_or(0);
+            let selected_hits = group
+                .selected_counts
+                .get(branch_index)
+                .copied()
+                .unwrap_or(0);
             let success_hits = group.success_counts.get(branch_index).copied().unwrap_or(0);
             let throttle = Self::target_branch_failure_throttle(selected_hits, success_hits);
             let has_probeable_dependency = status.depends_on.iter().any(|rule_name| {
@@ -1469,8 +1528,7 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         let primary_attempts = validation_summary.validated_outputs;
-        let alternate_dominates = alternate_attempts
-            >= primary_attempts.saturating_mul(2).max(8);
+        let alternate_dominates = alternate_attempts >= primary_attempts.saturating_mul(2).max(8);
         if !alternate_dominates {
             return false;
         }
@@ -1479,6 +1537,13 @@ impl<'a> StimuliGenerator<'a> {
             u64::try_from(alternate_attempts).unwrap_or(u64::MAX),
             u64::try_from(validation_summary.alternate_entry_accepted_outputs).unwrap_or(u64::MAX),
         ) > 1
+    }
+
+    fn validation_dependency_probe_is_worthy(candidate: &DependencyProbeCandidate) -> bool {
+        candidate.dependency_rule_successes == 0
+            || candidate.dependency_rule_deficit >= 2
+            || candidate.blocked_targets >= 2
+            || candidate.blocked_remaining_successes >= 2
     }
 
     fn target_probe_threshold_for_validation(
@@ -5665,11 +5730,10 @@ mod tests {
         assert_eq!(validation.accepted_outputs, samples.len());
         assert!(samples.iter().all(|sample| sample == "L"));
         assert!(
-            summary
-                .unresolved_targets
-                .iter()
-                .any(|status| matches!(status.target_type, StimuliCoverageTargetType::Branch)
-                    && status.branch_index == Some(1)),
+            summary.unresolved_targets.iter().any(|status| matches!(
+                status.target_type,
+                StimuliCoverageTargetType::Branch
+            ) && status.branch_index == Some(1)),
             "rejected branch must remain unresolved"
         );
 
@@ -5769,7 +5833,10 @@ mod tests {
         let rule_order = vec!["start".to_string(), "helper".to_string()];
 
         let mut generator = simple_generator(&grammar_tree, &rule_order, 891);
-        generator.target_plan.rule_thresholds.insert("helper".to_string(), 1);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper".to_string(), 1);
         let group = generator
             .coverage
             .branch_groups
@@ -5807,7 +5874,10 @@ mod tests {
         let rule_order = vec!["start".to_string(), "helper".to_string()];
 
         let mut generator = simple_generator(&grammar_tree, &rule_order, 895);
-        generator.target_plan.rule_thresholds.insert("helper".to_string(), 1);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper".to_string(), 1);
         let group = generator
             .coverage
             .branch_groups
@@ -5852,7 +5922,10 @@ mod tests {
         grammar_tree.insert(
             "start".to_string(),
             ASTNode::Or {
-                alternatives: vec![token("rule_reference", "helper"), token("quoted_string", "X")],
+                alternatives: vec![
+                    token("rule_reference", "helper"),
+                    token("quoted_string", "X"),
+                ],
             },
         );
         grammar_tree.insert("helper".to_string(), token("quoted_string", "H"));
@@ -5948,7 +6021,10 @@ mod tests {
         grammar_tree.insert(
             "start".to_string(),
             ASTNode::Or {
-                alternatives: vec![token("rule_reference", "helper"), token("quoted_string", "S")],
+                alternatives: vec![
+                    token("rule_reference", "helper"),
+                    token("quoted_string", "S"),
+                ],
             },
         );
         grammar_tree.insert(
@@ -5990,6 +6066,136 @@ mod tests {
             generator.select_target_probe_rule_for_validation(&pending, "start", &validation),
             Some("helper".to_string()),
             "validation-aware probing must preserve explicit dependency probes even when alternate churn is high"
+        );
+    }
+
+    #[test]
+    fn target_probe_prefers_more_impactful_dependency_candidate() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper_a"),
+                    token("rule_reference", "helper_b"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert("helper_a".to_string(), token("quoted_string", "A"));
+        grammar_tree.insert("helper_b".to_string(), token("quoted_string", "B"));
+        let rule_order = vec![
+            "start".to_string(),
+            "helper_a".to_string(),
+            "helper_b".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 896);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper_a".to_string(), 1);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper_b".to_string(), 3);
+
+        let pending = vec![
+            TargetCoverageStatus {
+                id: "branch::start::root::0".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "start".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(0),
+                current_successes: 0,
+                required_successes: 1,
+                remaining_successes: 1,
+                priority_score: 100,
+                reason: "selected_but_failed".to_string(),
+                depends_on: vec!["helper_a".to_string()],
+            },
+            TargetCoverageStatus {
+                id: "branch::start::root::1".to_string(),
+                target_type: StimuliCoverageTargetType::Branch,
+                rule_name: "start".to_string(),
+                node_path: Some("root".to_string()),
+                branch_index: Some(1),
+                current_successes: 0,
+                required_successes: 2,
+                remaining_successes: 2,
+                priority_score: 90,
+                reason: "selected_but_failed".to_string(),
+                depends_on: vec!["helper_b".to_string()],
+            },
+        ];
+
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("helper_b".to_string()),
+            "dependency probing should prioritize the candidate with larger unresolved leverage, not just the first listed dependency"
+        );
+    }
+
+    #[test]
+    fn target_probe_validation_suppresses_marginal_dependency_under_alternate_churn() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "H"), token("quoted_string", "I")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 897);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper".to_string(), 2);
+        generator
+            .coverage
+            .rule_success_hits
+            .insert("helper".to_string(), 1);
+        let pending = vec![TargetCoverageStatus {
+            id: "branch::start::root::1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "start".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "selected_but_failed".to_string(),
+            depends_on: vec!["helper".to_string()],
+        }];
+        let validation = TargetDriveValidationSummary {
+            validated_outputs: 4,
+            accepted_outputs: 1,
+            rejected_outputs: 3,
+            alternate_entry_attempts: 16,
+            alternate_entry_accepted_outputs: 1,
+            alternate_entry_rejected_outputs: 15,
+        };
+
+        assert_eq!(
+            generator.select_target_probe_rule(&pending, "start"),
+            Some("helper".to_string()),
+            "base probing should still recognize the unresolved dependency candidate"
+        );
+        assert_eq!(
+            generator.select_target_probe_rule_for_validation(&pending, "start", &validation),
+            None,
+            "validation-aware probing should suppress marginal dependency probes once alternate churn dominates and the dependency is no longer zero-hit or multi-target critical"
         );
     }
 

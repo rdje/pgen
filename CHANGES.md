@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-03-12 - Rank Dependency Probes and Suppress Marginal Replay Fallback
+### ✅ Achievement Summary
+The shared validator-backed target-driven replay loop now chooses dependency probes by leverage instead of by first occurrence, and under dominant low-yield alternate churn it suppresses only marginal dependency probes rather than preserving every helper escape unconditionally. This stays EBNF-agnostic and materially improves bounded HDL replay evidence without giving back replay-debt gains.
+
+### Scope of Changes
+- Hardened shared replay behavior in:
+  - [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs)
+- Added generic dependency-probe ranking:
+  - dependency candidates are now aggregated and ranked by unresolved dependency-rule deficit, blocked remaining successes, blocked target count, zero-hit preference, and target priority.
+- Added validation-aware marginal-probe suppression:
+  - when alternate-entry churn already dominates, replay still preserves clearly worthwhile dependency probes:
+    - zero-hit dependency rules,
+    - higher-deficit dependency rules,
+    - multi-target / multi-success blockers,
+  - but it no longer preserves one-off marginal dependency probes just because they are explicit dependencies.
+- Added Rust regression coverage for:
+  - impactful dependency ranking,
+  - marginal dependency suppression under alternate churn,
+  - existing dependency-preservation and threshold-backoff behavior.
+- Synced state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- `cargo fmt --manifest-path rust/Cargo.toml` ✅
+- `CARGO_TARGET_DIR=/tmp/pgen_target_probe_lib cargo test --manifest-path rust/Cargo.toml --lib target_probe_ -- --nocapture` ✅
+- `CARGO_TARGET_DIR=/tmp/pgen_target_driven_lib cargo test --manifest-path rust/Cargo.toml --lib target_driven_generation -- --nocapture` ✅
+- `CARGO_TARGET_DIR=/tmp/pgen_parseability_bin cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parseability_ -- --nocapture` ✅
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
+### Observed Bounded Evidence
+- SystemVerilog:
+  - replay-shadow acceptance improved `28.30% -> 28.53%`
+  - replay target debt improved `3785 -> 3629`
+  - primary-entry replay-shadow counters improved slightly to `319/91/228`
+  - alternate-entry churn dropped slightly to `481/28/453`
+- VHDL:
+  - replay-shadow acceptance improved `23.08% -> 25.00%`
+  - replay target debt stayed `12`
+  - parser-backed sample generation stayed `66.67%`
+
 ## 2026-03-12 - Surface Primary-Entry Parseability Telemetry in Promotion Gates
 ### ✅ Achievement Summary
 Promotion-stage parser-trust reporting no longer exposes only alternate-entry replay-shadow churn. The SystemVerilog declared-shadow promotion gate, SystemVerilog parse-full ratio promotion gate, VHDL strict-promotion gate, and aggregate `sota_exit_gate` summary now surface the primary-entry side too, so true entry-shaped promotion debt is visible without opening raw JSON and reconstructing it indirectly.

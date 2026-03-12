@@ -116,6 +116,16 @@ Use this file to resume work without replaying full chat history.
   - observed bounded aggregate result:
     - `required_failures=0`
     - `all_failures=0`
+- Shared replay-quality follow-up after the first primary-vs-alternate backoff:
+  - validator-backed replay now ranks dependency probes by unresolved dependency-rule deficit, blocked remaining successes, blocked target count, zero-hit preference, and target priority,
+  - under dominant low-yield alternate churn it still preserves worthwhile dependency probes, but it now suppresses marginal one-off helper escapes instead of preserving every explicit dependency probe,
+  - bounded evidence improved again without grammar-specific heuristics:
+    - SV replay-shadow acceptance `28.30% -> 28.53%`
+    - SV replay debt `3785 -> 3629`
+    - SV replay-shadow primary `319/91/228`, alternate `481/28/453`
+    - VHDL replay-shadow acceptance `23.08% -> 25.00%`
+    - VHDL replay debt stayed `12`
+    - VHDL parseability generation stayed `66.67%`
 - Promotion-gate alternate-entry telemetry surface:
   - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into:
     - per-trial JSON,
@@ -3656,11 +3666,11 @@ Use this file to resume work without replaying full chat history.
      - deeper include-chain variants that combine package-width state with more than twenty-one child stages or mixed wildcard/named-port reuse across multiple modules,
      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
    - parser-trust follow-up inside the same area:
-     - keep the new shared dependency-aware target probing, which materially improved bounded SV replay debt (`3925 -> 3785`) and bounded VHDL replay debt (`26 -> 12`),
-     - next shared-engine direction is now narrower:
-       - continue tuning shared replay weighting now that the first primary-vs-alternate-entry backoff is in place,
-       - recover more SV replay-shadow acceptance from the new `28.30%` bounded level without giving back the replay-debt gain,
-       - continue avoiding grammar-specific heuristics.
+    - keep the new shared dependency-aware target probing, which now materially improved bounded SV replay debt twice (`3925 -> 3785 -> 3629`) and bounded VHDL replay debt (`26 -> 12`),
+    - next shared-engine direction is now narrower:
+      - continue tuning shared replay weighting now that dependency ranking plus marginal-probe suppression are in place,
+      - recover more SV replay-shadow acceptance from the new `28.53%` bounded level without giving back the replay-debt gain,
+      - continue avoiding grammar-specific heuristics.
 2. Continue Rust-native EBNF migration hardening:
    - main HDL quality/preprocessor and aggregate sign-off surfaces now expose both primary-entry and alternate-entry telemetry,
    - likely next useful parser-trust increment inside the non-annotation loop is narrower:

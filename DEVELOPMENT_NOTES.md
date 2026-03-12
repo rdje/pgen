@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-12 - Shared Replay Now Drops Marginal Dependency Escapes Under Alternate Churn
+### Context
+The first primary-vs-alternate replay tuning step improved bounded HDL evidence, but it still preserved every explicit dependency probe whenever a pending target referenced one. That was too coarse: once alternate-entry churn was already dominating, one-off helper escapes with only marginal remaining leverage were still being retried even though the same replay budget was better spent on entry-shaped validation.
+
+### Implementation
+- Hardened shared replay behavior in `rust/src/ast_pipeline/stimuli_generator.rs`:
+  - dependency probes are now aggregated and ranked by:
+    - dependency-rule deficit,
+    - blocked remaining successes,
+    - blocked target count,
+    - zero-hit preference,
+    - target priority.
+  - validation-aware replay still preserves worthwhile dependency probes under alternate churn, but only when they are clearly leverage-bearing:
+    - zero-hit,
+    - larger outstanding deficit,
+    - or blocking multiple remaining target successes.
+  - marginal one-off dependency probes are now suppressed once alternate-entry churn is already dominant.
+- Added regression coverage for:
+  - best-candidate dependency ranking,
+  - marginal dependency suppression under alternate churn,
+  - preservation of worthwhile dependency probes.
+
+### Validation
+- Rust regression coverage passed:
+  - `CARGO_TARGET_DIR=/tmp/pgen_target_probe_lib cargo test --manifest-path rust/Cargo.toml --lib target_probe_ -- --nocapture`
+  - `CARGO_TARGET_DIR=/tmp/pgen_target_driven_lib cargo test --manifest-path rust/Cargo.toml --lib target_driven_generation -- --nocapture`
+  - `CARGO_TARGET_DIR=/tmp/pgen_parseability_bin cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parseability_ -- --nocapture`
+- bounded HDL gate proofs stayed green:
+  - SV:
+    - replay-shadow acceptance `28.30% -> 28.53%`
+    - replay debt `3785 -> 3629`
+    - primary `319/91/228`
+    - alternate `481/28/453`
+  - VHDL:
+    - replay-shadow acceptance `23.08% -> 25.00%`
+    - replay debt stayed `12`
+    - parseability generation stayed `66.67%`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` passed.
+
+### Notes
+- This is the second shared replay-quality increment that consumes the primary-vs-alternate split as behavior, not just telemetry.
+- The change remains EBNF-agnostic; it relies only on target deficits and validator-backed replay history, not on SV/VHDL-specific rules.
+
 ## 2026-03-12 - Promotion-Stage Aggregate Reporting Now Shows Primary vs Alternate Entry Debt
 ### Context
 The engine contract and main HDL quality surfaces already split primary-entry validation from alternate-entry probing, but the promotion-trial gates still exposed only the alternate side. That left promotion review and aggregate release sign-off unable to distinguish true entry-shaped replay-shadow rejection from helper-rule churn without opening raw report JSON.
