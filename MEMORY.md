@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-12 (+0100, task: surface-primary-entry-telemetry-in-promotion-gates)
+Last updated: 2026-03-12 (+0100, task: expand-sv-realistic-corpus-to-version-38)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -126,6 +126,25 @@ Use this file to resume work without replaying full chat history.
     - VHDL replay-shadow acceptance `23.08% -> 25.00%`
     - VHDL replay debt stayed `12`
     - VHDL parseability generation stayed `66.67%`
+- SystemVerilog realistic corpus promotion state:
+  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 38` with `291` declared deterministic all-pass cases,
+  - the latest seven-case promotion added:
+    - `module_local_import_multi_width_twenty_seven_child_pipeline`
+    - `package_import_multi_width_twenty_seven_child_pipeline`
+    - `preprocess_macro_import_multi_width_twenty_seven_child_pipeline`
+    - `preprocess_macro_module_name_multi_width_twenty_seven_child`
+    - `preprocess_macro_port_name_multi_width_twenty_seven_child`
+    - `multi_module_imported_width_pentacosa_bridge_named_port`
+    - `multi_module_imported_width_pentacosa_bridge_wildcard`
+  - focused adapter-backed direct validation passed `14/14` across `sv_2017` and `sv_2023`,
+  - bounded full `sv_stimuli_quality_gate` refresh stayed green with:
+    - `closed_loop_profiles_passed=2/2`
+    - `realistic_corpus_cases_declared=291`
+    - `realistic_corpus_cases_executed=582`
+    - `realistic_corpus_observed_parse_pass_total=582`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_warning_total=2`
+    - `realistic_corpus_preprocess_error_total=0`
 - Promotion-gate alternate-entry telemetry surface:
   - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into:
     - per-trial JSON,
@@ -3660,10 +3679,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding beyond the new `284`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
+   - keep expanding beyond the new `291`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
    - likely next probe targets:
+     - restore the missing deep-include package-width twenty-seven-child / pentacosa-wildcard symmetry so the new slice matches the earlier nine-family pattern,
      - richer multi-module width/import compositions that propagate through still more than one downstream bridge or stage family,
-     - deeper include-chain variants that combine package-width state with more than twenty-one child stages or mixed wildcard/named-port reuse across multiple modules,
+     - deeper include-chain variants that combine package-width state with more than twenty-seven child stages or mixed wildcard/named-port reuse across multiple modules,
      - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
    - parser-trust follow-up inside the same area:
     - keep the new shared dependency-aware target probing, which now materially improved bounded SV replay debt twice (`3925 -> 3785 -> 3629`) and bounded VHDL replay debt (`26 -> 12`),

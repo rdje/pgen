@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-12 - Expand SV Realistic Corpus to Version 38
+### ✅ Achievement Summary
+The checked-in Nexsim-oriented SystemVerilog realistic corpus now covers a deeper twenty-seven-child / pentacosa-bridge slice with seven new deterministic all-pass cases. The promotion stayed objective: the new slice passed direct dual-profile preprocess+`parse_full` replay `14/14`, and the bounded full `sv_stimuli_quality_gate` rerun stayed green with the expanded corpus at `291` declared cases and `582/582` observed dual-profile parse passes.
+
+### Scope of Changes
+- Added new required-pass realistic corpus fixtures:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_seven_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_seven_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_seven_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_seven_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_seven_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_seven_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_seven_child.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_seven_child.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_seven_child.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_seven_child.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentacosa_bridge_named_port.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentacosa_bridge_named_port.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentacosa_bridge_wildcard.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentacosa_bridge_wildcard.sv)
+- Fixed the one fixture typo discovered during promotion:
+  - `width_chainBridge` -> `width_chain_bridge` in [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentacosa_bridge_named_port.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentacosa_bridge_named_port.sv)
+- Promoted the manifest:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json)
+    - `version: 37 -> 38`
+    - declared cases: `284 -> 291`
+- Synced state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- direct dual-profile preprocess + `parse_full` replay of the new slice: `14/14` ✅
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v38 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - `closed_loop_profiles_passed=2/2`
+  - `realistic_corpus_cases_declared=291`
+  - `realistic_corpus_cases_executed=582`
+  - `realistic_corpus_observed_parse_pass_total=582`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
 ## 2026-03-12 - Rank Dependency Probes and Suppress Marginal Replay Fallback
 ### ✅ Achievement Summary
 The shared validator-backed target-driven replay loop now chooses dependency probes by leverage instead of by first occurrence, and under dominant low-yield alternate churn it suppresses only marginal dependency probes rather than preserving every helper escape unconditionally. This stays EBNF-agnostic and materially improves bounded HDL replay evidence without giving back replay-debt gains.

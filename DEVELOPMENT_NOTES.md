@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-12 - SV Realistic Corpus Version 38 Promotion
+### Context
+After the last shared replay-quality increment, the safest next parser-trust task was another objective SystemVerilog realistic-corpus promotion rather than another speculative replay heuristic tweak. The corpus was at `version: 37` / `284` declared all-pass cases, and the next parser-supported slice was a smaller seven-case promotion centered on twenty-seven-child pipelines and pentacosa-bridge imported-width composition.
+
+### Implementation
+- Added seven new required-pass realistic corpus fixtures:
+  - module-local multi-width twenty-seven-child pipeline,
+  - package-import multi-width twenty-seven-child pipeline,
+  - macro-import twenty-seven-child pipeline,
+  - macro-expanded module-name twenty-seven-child chain,
+  - macro-expanded port-name twenty-seven-child chain,
+  - imported-width pentacosa-bridge named-port composition,
+  - imported-width pentacosa-bridge wildcard composition.
+- Fixed the one concrete typo surfaced during review:
+  - `width_chainBridge` corrected to `width_chain_bridge` in the new named-port bridge fixture.
+- Promoted `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`:
+  - `version: 37 -> 38`
+  - declared cases: `284 -> 291`
+
+### Validation
+- Direct adapter-backed dual-profile proof passed:
+  - preprocess + `parse_full` replay for the new seven-case slice completed `14/14` across `sv_2017` and `sv_2023`.
+- Bounded full gate rerun stayed green:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v38 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed evidence:
+    - `closed_loop_profiles_passed=2/2`
+    - `realistic_corpus_cases_declared=291`
+    - `realistic_corpus_cases_executed=582`
+    - `realistic_corpus_observed_parse_pass_total=582`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_warning_total=2`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This promotion kept the evidence objective: no shared generator/parser heuristics were changed.
+- The next symmetrical SV corpus frontier is restoring the missing deep-include package-width twenty-seven-child / pentacosa-wildcard side or moving on to the next `twenty_eight_child` / `hexacosa_bridge` slice.
+
 ## 2026-03-12 - Shared Replay Now Drops Marginal Dependency Escapes Under Alternate Churn
 ### Context
 The first primary-vs-alternate replay tuning step improved bounded HDL evidence, but it still preserved every explicit dependency probe whenever a pending target referenced one. That was too coarse: once alternate-entry churn was already dominating, one-off helper escapes with only marginal remaining leverage were still being retried even though the same replay budget was better spent on entry-shaped validation.
