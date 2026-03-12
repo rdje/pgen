@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-12 (+0100, task: surface-primary-entry-telemetry-in-main-hdl-gates)
+Last updated: 2026-03-12 (+0100, task: surface-primary-entry-telemetry-in-promotion-gates)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -78,6 +78,25 @@ Use this file to resume work without replaying full chat history.
       - `closed_loop_parseability_shadow_primary_entry_attempts_total=318`
       - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=90`
       - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=228`
+  - promotion-stage gates and aggregate sign-off now expose the same primary-vs-alternate replay-shadow split:
+    - `sv_declared_shadow_promotion_gate`:
+      - primary `73/22/51`
+      - alternate `27/4/23`
+    - `sv_parse_full_ratio_promotion_gate`:
+      - observed ratio `100`
+      - primary `73/22/51`
+      - alternate `27/4/23`
+    - `vhdl_strict_promotion_gate`:
+      - observed ratio `100`
+      - primary `0/0/0`
+      - alternate `0/0/0`
+    - `sota_exit_gate` now parses and prints:
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_primary_entry_*`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_*`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_primary_entry_*`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_*`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_primary_entry_*`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_*`
       - `closed_loop_parseability_shadow_alternate_entry_attempts_total=482`
       - `closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=28`
       - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=454`
@@ -3645,8 +3664,7 @@ Use this file to resume work without replaying full chat history.
 2. Continue Rust-native EBNF migration hardening:
    - main HDL quality/preprocessor and aggregate sign-off surfaces now expose both primary-entry and alternate-entry telemetry,
    - likely next useful parser-trust increment inside the non-annotation loop is narrower:
-     - extend the same primary-entry surfacing into any remaining promotion/reporting surfaces only if that distinction becomes operationally useful,
-     - otherwise keep prioritizing replay-quality behavior improvements over more observability-only work.
+      - keep prioritizing replay-quality behavior improvements over more observability-only work now that both main-quality and promotion/reporting surfaces expose the full primary-vs-alternate split.
 3. Keep roadmap + UG + memory synced after every gate/contract increment.
 4. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.

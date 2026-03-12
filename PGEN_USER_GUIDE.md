@@ -72,7 +72,7 @@ In practical terms:
   - `sv_preprocessor_quality`
   - `sv_stimuli_quality` replay-shadow telemetry
   - `vhdl_stimuli_quality` replay-shadow telemetry
-- promotion-stage aggregate telemetry currently surfaces replay-shadow alternate-entry counters for:
+- promotion-stage aggregate telemetry now surfaces both primary-entry and alternate-entry replay-shadow counters for:
   - `sv_declared_shadow_promotion` replay-shadow telemetry
   - `sv_parse_full_ratio_promotion` replay-shadow telemetry
   - `vhdl_strict_promotion` replay-shadow telemetry
@@ -2456,9 +2456,12 @@ Aggregate gate tuning:
 - `PGEN_SOTA_POLICY_FILE` (override machine policy file path)
 - `PGEN_SOTA_EXIT_STATE_DIR` (override output state dir)
 
-Aggregate promotion telemetry now includes replay-shadow alternate-entry counters for:
+Aggregate promotion telemetry now includes replay-shadow primary-entry and alternate-entry counters for:
+- `sv_declared_shadow_promotion_closed_loop_parseability_shadow_primary_entry_*`
 - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_*`
+- `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_primary_entry_*`
 - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_*`
+- `vhdl_strict_promotion_closed_loop_parseability_shadow_primary_entry_*`
 - `vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_*`
 
 Aggregate main-quality telemetry now includes both primary-entry and alternate-entry counters for:
@@ -3078,7 +3081,13 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_attempts_total`
       - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_accepted_total`
       - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_rejected_total`
-      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`.
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_primary_entry_attempts_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_primary_entry_accepted_outputs_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_primary_entry_rejected_outputs_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+      - `sv_declared_shadow_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`.
 - parse-full ratio promotion trial gate:
   - target:
     - `make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
@@ -3148,7 +3157,13 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_attempts_total`
       - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_accepted_total`
       - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_rejected_total`
-      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`.
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_primary_entry_attempts_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_primary_entry_accepted_outputs_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_primary_entry_rejected_outputs_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+      - `sv_parse_full_ratio_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`.
     - aggregate summary artifact also persists these fields in:
       - `rust/target/sota_exit_gate/summary.txt`
       under section:
@@ -3213,7 +3228,13 @@ make -C rust SHELL=/bin/bash sv_stimuli_quality_gate
       - `vhdl_strict_promotion_closed_loop_parseability_shadow_attempts_total`
       - `vhdl_strict_promotion_closed_loop_parseability_shadow_accepted_total`
       - `vhdl_strict_promotion_closed_loop_parseability_shadow_rejected_total`
-      - `vhdl_strict_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`.
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_acceptance_rate_percent`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_primary_entry_attempts_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_primary_entry_accepted_outputs_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_primary_entry_rejected_outputs_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total`
+      - `vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total`.
 - profile behavior:
   - contract defines supported/required LRM profiles (`2017`, `2023`) for one common `systemverilog.ebnf`,
   - runtime profile selection now activates real grammar-profile filtering (`sv_2017`, `sv_2023`) rather than metadata-only aliases,

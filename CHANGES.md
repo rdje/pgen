@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-03-12 - Surface Primary-Entry Parseability Telemetry in Promotion Gates
+### ✅ Achievement Summary
+Promotion-stage parser-trust reporting no longer exposes only alternate-entry replay-shadow churn. The SystemVerilog declared-shadow promotion gate, SystemVerilog parse-full ratio promotion gate, VHDL strict-promotion gate, and aggregate `sota_exit_gate` summary now surface the primary-entry side too, so true entry-shaped promotion debt is visible without opening raw JSON and reconstructing it indirectly.
+
+### Scope of Changes
+- Hardened promotion-gate summaries and report JSON:
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh)
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh)
+  - all three now carry:
+    - `closed_loop_parseability_shadow_primary_entry_attempts_total`
+    - `closed_loop_parseability_shadow_primary_entry_accepted_outputs_total`
+    - `closed_loop_parseability_shadow_primary_entry_rejected_outputs_total`
+    - alongside the existing `closed_loop_parseability_shadow_alternate_entry_*` totals.
+- Hardened aggregate sign-off:
+  - [/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+    - aggregate `summary.txt` now prints the same primary-vs-alternate replay-shadow counters for:
+      - `sv_declared_shadow_promotion`
+      - `sv_parse_full_ratio_promotion`
+      - `vhdl_strict_promotion`
+- Synced operator docs/state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh` ✅
+- `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh` ✅
+- `bash -n rust/scripts/vhdl_strict_promotion_gate.sh` ✅
+- `bash -n rust/scripts/sota_exit_gate.sh` ✅
+- bounded declared-shadow promotion proof:
+  - primary `73/22/51`
+  - alternate `27/4/23`
+- bounded parse-full promotion proof:
+  - observed ratio `min=max=avg=100`
+  - primary `73/22/51`
+  - alternate `27/4/23`
+- bounded VHDL strict-promotion proof:
+  - observed ratio `min=max=avg=100`
+  - primary `0/0/0`
+  - alternate `0/0/0`
+
 ## 2026-03-12 - Surface Primary-Entry Parseability Telemetry in Main HDL Aggregate Gates
 ### ✅ Achievement Summary
 The main HDL quality surfaces no longer expose only alternate-entry probe churn. SV preprocessor quality, SV replay-shadow quality, VHDL replay-shadow quality, and aggregate `sota_exit_gate` sign-off now surface the primary-entry side of validator-backed target-drive telemetry too, so true entry-shaped parseability rejection is visible alongside helper-rule probe churn.

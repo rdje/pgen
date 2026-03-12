@@ -1030,8 +1030,17 @@ Toolbox baseline to leverage end-to-end:
       - aggregate run finished with `required_failures=0` and `all_failures=0`
   - Progress (2026-03-11): extended the same alternate-entry observability into promotion-trial evidence:
     - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into per-trial JSON, aggregate promotion report JSON, and `summary.txt`,
-    - `sota_exit_gate` now surfaces those promotion-stage alternate-entry counters directly in aggregate sign-off output,
-    - this closes the last remaining alternate-entry visibility gap between raw parseability reports, gate summaries, promotion evidence, and aggregate release sign-off.
+    - `sota_exit_gate` now surfaces those promotion-stage alternate-entry counters directly in aggregate sign-off output.
+  - Progress (2026-03-12): promoted the primary-entry side of that split into the same promotion-trial and aggregate surfaces:
+    - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now aggregate both:
+      - `closed_loop_parseability_shadow_primary_entry_*`
+      - `closed_loop_parseability_shadow_alternate_entry_*`
+    - `sota_exit_gate` now surfaces those primary-vs-alternate promotion counters directly in aggregate sign-off output,
+    - bounded green standalone evidence:
+      - declared-shadow promotion: primary `73/22/51`, alternate `27/4/23`
+      - parse-full ratio promotion: primary `73/22/51`, alternate `27/4/23`
+      - VHDL strict promotion: primary `0/0/0`, alternate `0/0/0`
+    - this closes the remaining primary-vs-alternate visibility gap between raw parseability reports, main quality summaries, promotion evidence, and aggregate release sign-off.
   - Progress (2026-03-10): hardened shared target guidance so persistently low-yield branches are de-emphasized generically instead of only clamping zero-success branches:
     - `StimuliGenerator` target-branch throttling is now driven by accepted-success ratio history (`selected_counts` vs `success_counts`) with no grammar-specific logic,
     - new regression tests prove:

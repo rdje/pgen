@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-12 - Promotion-Stage Aggregate Reporting Now Shows Primary vs Alternate Entry Debt
+### Context
+The engine contract and main HDL quality surfaces already split primary-entry validation from alternate-entry probing, but the promotion-trial gates still exposed only the alternate side. That left promotion review and aggregate release sign-off unable to distinguish true entry-shaped replay-shadow rejection from helper-rule churn without opening raw report JSON.
+
+### Implementation
+- Hardened promotion-stage reporting surfaces:
+  - `sv_declared_shadow_promotion_gate`
+  - `sv_parse_full_ratio_promotion_gate`
+  - `vhdl_strict_promotion_gate`
+  - each now carries `closed_loop_parseability_shadow_primary_entry_*` alongside the existing alternate-entry totals in per-trial JSON, aggregate promotion report JSON, and `summary.txt`.
+- Hardened aggregate sign-off:
+  - `sota_exit_gate` now harvests and prints the same primary-vs-alternate replay-shadow counters for all three promotion stages.
+
+### Validation
+- `bash -n` passed on:
+  - `rust/scripts/sv_declared_shadow_promotion_gate.sh`
+  - `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+  - `rust/scripts/vhdl_strict_promotion_gate.sh`
+  - `rust/scripts/sota_exit_gate.sh`
+- bounded standalone proofs stayed green with:
+  - declared-shadow promotion:
+    - primary `73/22/51`
+    - alternate `27/4/23`
+  - parse-full ratio promotion:
+    - observed ratio `100`
+    - primary `73/22/51`
+    - alternate `27/4/23`
+  - VHDL strict promotion:
+    - observed ratio `100`
+    - primary `0/0/0`
+    - alternate `0/0/0`
+
+### Notes
+- Promotion-stage observability is now aligned with the main HDL quality/preprocessor surfaces: both sides of validator-backed target-drive replay are visible everywhere that parser-trust decisions are made.
+
 ## 2026-03-12 - Main HDL Gate Surfaces Now Show Primary vs Alternate Entry Debt
 ### Context
 The raw parseability report and the engine-level contract already split primary-entry validation from alternate-entry probing, but the main HDL quality surfaces still exposed only the alternate side. That left reviewers reading `summary.txt` or aggregate `sota_exit_gate` output unable to see true entry-shaped rejection without opening raw JSON and inferring it indirectly.
