@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-12 - SV Realistic Corpus Version 40 Promotion
+### Context
+Once `version: 39` restored the missing deep-include package-width symmetry for the twenty-seven-child / pentacosa slice, the clean next parser-trust task was the next complete family step rather than another partial repair. That meant promoting the full `twenty_eight_child` / `hexacosa_bridge` family across direct import/use, deep-include package-width reuse, and macro-expanded forms.
+
+### Implementation
+- Added the nine promoted required-pass entry cases:
+  - imported-width hexacosa named-port and wildcard composition,
+  - module-local and package-import twenty-eight-child pipelines,
+  - deep-include package-width twenty-eight-child pipeline and hexacosa wildcard reuse,
+  - macro-import, macro-module-name, and macro-port-name twenty-eight-child forms.
+- Added the supporting deep-include package-width files:
+  - `preprocess_deep_include_package_width_twenty_eight_child_defs.svh`
+  - `preprocess_deep_include_package_width_twenty_eight_child_mid.svh`
+  - `preprocess_deep_include_package_width_twenty_eight_child_leaf.svh`
+- Promoted `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`:
+  - `version: 39 -> 40`
+  - declared cases: `293 -> 302`
+
+### Validation
+- Direct dual-profile proof passed:
+  - preprocess + `parse_full` replay for the nine new cases completed `18/18` across `sv_2017` and `sv_2023`.
+- Bounded full gate rerun stayed green:
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v40 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - observed evidence:
+    - `closed_loop_profiles_passed=2/2`
+    - `realistic_corpus_cases_declared=302`
+    - `realistic_corpus_cases_executed=604`
+    - `realistic_corpus_observed_parse_pass_total=604`
+    - `realistic_corpus_observed_parse_fail_total=0`
+    - `realistic_corpus_preprocess_warning_total=2`
+    - `realistic_corpus_preprocess_error_total=0`
+
+### Notes
+- This keeps the SV realistic-corpus expansion objective: no shared parser/generator code changed.
+- The next clean frontier is the following full family step after this one, most likely `twenty_nine_child` / `heptacosa_bridge`.
+
 ## 2026-03-12 - SV Realistic Corpus Version 39 Promotion
 ### Context
 `version: 38` had promoted the direct twenty-seven-child / pentacosa cases but still lacked the matching deep-include package-width pair. The clean next task was to restore that symmetry with the same objective evidence model: deterministic local include files, direct dual-profile preprocess+`parse_full` proof, and a bounded full gate rerun.

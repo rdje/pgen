@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-12 - Expand SV Realistic Corpus to Version 40
+### ✅ Achievement Summary
+The checked-in Nexsim-oriented SystemVerilog realistic corpus now covers the next full family step after the repaired twenty-seven-child / pentacosa slice. The new `twenty_eight_child` / `hexacosa_bridge` promotion passed direct dual-profile preprocess+`parse_full` replay `18/18`, and the bounded full `sv_stimuli_quality_gate` rerun stayed green with the expanded corpus at `302` declared cases and `604/604` observed dual-profile parse passes.
+
+### Scope of Changes
+- Added new required-pass realistic corpus fixtures:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexacosa_bridge_named_port.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexacosa_bridge_named_port.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexacosa_bridge_wildcard.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexacosa_bridge_wildcard.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_eight_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_eight_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_eight_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_eight_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hexacosa_bridge_wildcard.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hexacosa_bridge_wildcard.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_eight_child_pipeline.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_eight_child_pipeline.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_eight_child.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_eight_child.sv)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_eight_child.sv](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_eight_child.sv)
+- Added deep-include support files for the new package-width family:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_defs.svh](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_defs.svh)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_mid.svh](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_mid.svh)
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_leaf.svh](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_eight_child_leaf.svh)
+- Promoted the manifest:
+  - [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json)
+    - `version: 39 -> 40`
+    - declared cases: `293 -> 302`
+- Synced state:
+  - [/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [/Users/richarddje/Documents/github/pgen/MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+
+### Validation Results
+- direct dual-profile preprocess + `parse_full` replay of the new slice: `18/18` ✅
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v40 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate` ✅
+  - `closed_loop_profiles_passed=2/2`
+  - `realistic_corpus_cases_declared=302`
+  - `realistic_corpus_cases_executed=604`
+  - `realistic_corpus_observed_parse_pass_total=604`
+  - `realistic_corpus_observed_parse_fail_total=0`
+  - `realistic_corpus_preprocess_warning_total=2`
+  - `realistic_corpus_preprocess_error_total=0`
+
 ## 2026-03-12 - Expand SV Realistic Corpus to Version 39
 ### ✅ Achievement Summary
 The checked-in Nexsim-oriented SystemVerilog realistic corpus now restores the missing deep-include package-width symmetry for the new twenty-seven-child / pentacosa slice. The two promoted cases passed direct dual-profile preprocess+`parse_full` replay `4/4`, and the bounded full `sv_stimuli_quality_gate` rerun stayed green with the expanded corpus at `293` declared cases and `586/586` observed dual-profile parse passes.
