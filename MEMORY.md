@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-12 (+0100, task: expand-sv-realistic-corpus-to-version-40)
+Last updated: 2026-03-12 (+0100, task: expand-sv-realistic-corpus-to-version-41)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -127,23 +127,23 @@ Use this file to resume work without replaying full chat history.
     - VHDL replay debt stayed `12`
     - VHDL parseability generation stayed `66.67%`
 - SystemVerilog realistic corpus promotion state:
-  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 40` with `302` declared deterministic all-pass cases,
-  - the latest complete-family promotion adds or confirms the twenty-eight-child / hexacosa family:
-    - `module_local_import_multi_width_twenty_eight_child_pipeline`
-    - `package_import_multi_width_twenty_eight_child_pipeline`
-    - `preprocess_macro_import_multi_width_twenty_eight_child_pipeline`
-    - `preprocess_macro_module_name_multi_width_twenty_eight_child`
-    - `preprocess_macro_port_name_multi_width_twenty_eight_child`
-    - `multi_module_imported_width_hexacosa_bridge_named_port`
-    - `multi_module_imported_width_hexacosa_bridge_wildcard`
-    - `preprocess_deep_include_package_width_twenty_eight_child_pipeline`
-    - `preprocess_deep_include_package_width_hexacosa_bridge_wildcard`
+  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 41` with `311` declared deterministic all-pass cases,
+  - the latest complete-family promotion adds or confirms the twenty-nine-child / heptacosa family:
+    - `module_local_import_multi_width_twenty_nine_child_pipeline`
+    - `package_import_multi_width_twenty_nine_child_pipeline`
+    - `preprocess_macro_import_multi_width_twenty_nine_child_pipeline`
+    - `preprocess_macro_module_name_multi_width_twenty_nine_child`
+    - `preprocess_macro_port_name_multi_width_twenty_nine_child`
+    - `multi_module_imported_width_heptacosa_bridge_named_port`
+    - `multi_module_imported_width_heptacosa_bridge_wildcard`
+    - `preprocess_deep_include_package_width_twenty_nine_child_pipeline`
+    - `preprocess_deep_include_package_width_heptacosa_bridge_wildcard`
   - focused adapter-backed direct validation for the latest nine-case increment passed `18/18` across `sv_2017` and `sv_2023`,
   - bounded full `sv_stimuli_quality_gate` refresh stayed green with:
     - `closed_loop_profiles_passed=2/2`
-    - `realistic_corpus_cases_declared=302`
-    - `realistic_corpus_cases_executed=604`
-    - `realistic_corpus_observed_parse_pass_total=604`
+    - `realistic_corpus_cases_declared=311`
+    - `realistic_corpus_cases_executed=622`
+    - `realistic_corpus_observed_parse_pass_total=622`
     - `realistic_corpus_observed_parse_fail_total=0`
     - `realistic_corpus_preprocess_warning_total=2`
     - `realistic_corpus_preprocess_error_total=0`
@@ -3681,11 +3681,11 @@ Use this file to resume work without replaying full chat history.
 
 ## Next Likely Tasks (Priority)
 1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
-   - keep expanding beyond the new `302`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
+   - keep expanding beyond the new `311`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
    - likely next probe targets:
-     - move to the next complete family step after the promoted twenty-eight-child / hexacosa slice, likely `twenty_nine_child` / `heptacosa_bridge`,
+     - move to the next complete family step after the promoted twenty-nine-child / heptacosa slice, likely `thirty_child` / `octacosa_bridge`,
      - richer multi-module width/import compositions that propagate through still more than one downstream bridge or stage family,
-     - deeper include-chain variants that combine package-width state with more than twenty-eight child stages or mixed wildcard/named-port reuse across multiple modules,
+     - deeper include-chain variants that combine package-width state with more than twenty-nine child stages or mixed wildcard/named-port reuse across multiple modules,
       - additional profile-sensitive realistic families beyond the current preprocess/macro/include matrix.
    - parser-trust follow-up inside the same area:
     - keep the new shared dependency-aware target probing, which now materially improved bounded SV replay debt twice (`3925 -> 3785 -> 3629`) and bounded VHDL replay debt (`26 -> 12`),
