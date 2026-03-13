@@ -225,6 +225,7 @@ impl Design {
                     }
                 }
                 ModuleItem::ParameterDecl(_)
+                | ModuleItem::TypedefDecl(_)
                 | ModuleItem::GenvarDecl(_)
                 | ModuleItem::NetDecl(_)
                 | ModuleItem::ContinuousAssign(_)
@@ -392,6 +393,7 @@ fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
             ModuleItem::ParameterDecl(parameter) => {
                 names.insert(parameter.name.clone());
             }
+            ModuleItem::TypedefDecl(_) => {}
             ModuleItem::GenvarDecl(genvar) => {
                 names.extend(genvar.names.iter().cloned());
             }
@@ -441,6 +443,7 @@ fn collect_declared_types_from_items(items: &[ModuleItem]) -> HashMap<String, Da
                 types.extend(collect_declared_types_from_items(&generate_for.body_items));
             }
             ModuleItem::ParameterDecl(_)
+            | ModuleItem::TypedefDecl(_)
             | ModuleItem::GenvarDecl(_)
             | ModuleItem::ContinuousAssign(_)
             | ModuleItem::ModuleInstantiation(_)
@@ -506,6 +509,10 @@ pub enum DataType {
     Builtin {
         keyword: String,
     },
+    Packed {
+        data_type: Box<DataType>,
+        packed_range: PackedRange,
+    },
     Struct {
         packed: bool,
         fields: Vec<StructField>,
@@ -514,18 +521,25 @@ pub enum DataType {
 
 impl DataType {
     fn field_type(&self, name: &str) -> Option<&DataType> {
-        let DataType::Struct { fields, .. } = self else {
-            return None;
-        };
-
-        for field in fields {
-            if field.names.iter().any(|field_name| field_name == name) {
-                return Some(&field.data_type);
+        match self {
+            DataType::Struct { fields, .. } => {
+                for field in fields {
+                    if field.names.iter().any(|field_name| field_name == name) {
+                        return Some(&field.data_type);
+                    }
+                }
+                None
             }
+            DataType::Packed { data_type, .. } => data_type.field_type(name),
+            DataType::Builtin { .. } => None,
         }
-
-        None
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypedefDecl {
+    pub name: String,
+    pub data_type: DataType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1068,6 +1082,7 @@ impl GenerateFor {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleItem {
     ParameterDecl(ParameterDecl),
+    TypedefDecl(TypedefDecl),
     GenvarDecl(GenvarDecl),
     NetDecl(NetDecl),
     ContinuousAssign(ContinuousAssign),
@@ -1755,6 +1770,7 @@ struct Parser<'a> {
     input: &'a str,
     tokens: Vec<Token>,
     index: usize,
+    type_aliases: HashMap<String, DataType>,
 }
 
 impl<'a> Parser<'a> {
@@ -1763,6 +1779,7 @@ impl<'a> Parser<'a> {
             input,
             tokens,
             index: 0,
+            type_aliases: HashMap::new(),
         }
     }
 
@@ -1775,6 +1792,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_module(&mut self) -> Result<Module, FrontendError> {
+        self.type_aliases.clear();
         self.expect_keyword("module")?;
         let name = self.expect_identifier()?;
         let parameters = if self.consume_symbol('#') {
@@ -1796,6 +1814,7 @@ impl<'a> Parser<'a> {
             items.extend(self.parse_item_group(false)?);
         }
         self.expect_keyword("endmodule")?;
+        self.type_aliases.clear();
 
         Ok(Module {
             name,
@@ -1904,6 +1923,15 @@ impl<'a> Parser<'a> {
         if self.peek_keyword("parameter") || self.peek_keyword("localparam") {
             return self.parse_parameter_items();
         }
+        if self.peek_keyword("typedef") {
+            if allow_generate_constructs {
+                return Err(FrontendError::new(
+                    "typedef declarations inside generate bodies are not yet supported",
+                    self.current().start,
+                ));
+            }
+            return Ok(vec![ModuleItem::TypedefDecl(self.parse_typedef_decl()?)]);
+        }
         if self.peek_keyword("genvar") {
             return Ok(vec![ModuleItem::GenvarDecl(self.parse_genvar_decl()?)]);
         }
@@ -1911,6 +1939,7 @@ impl<'a> Parser<'a> {
             || self.peek_keyword("wire")
             || self.peek_keyword("reg")
             || self.peek_keyword("struct")
+            || self.peek_typedef_name()
         {
             return Ok(vec![ModuleItem::NetDecl(self.parse_net_decl()?)]);
         }
@@ -1987,6 +2016,23 @@ impl<'a> Parser<'a> {
         Ok(GenvarDecl { names })
     }
 
+    fn parse_typedef_decl(&mut self) -> Result<TypedefDecl, FrontendError> {
+        self.expect_keyword("typedef")?;
+        let mut data_type = self.parse_optional_data_type()?.ok_or_else(|| {
+            FrontendError::new("expected typedef data type", self.current().start)
+        })?;
+        if let Some(packed_range) = self.parse_optional_packed_range()? {
+            data_type = DataType::Packed {
+                data_type: Box::new(data_type),
+                packed_range,
+            };
+        }
+        let name = self.expect_identifier()?;
+        self.expect_symbol(';')?;
+        self.type_aliases.insert(name.clone(), data_type.clone());
+        Ok(TypedefDecl { name, data_type })
+    }
+
     fn parse_net_decl(&mut self) -> Result<NetDecl, FrontendError> {
         let (kind, data_type) = if self.consume_keyword("logic") {
             (
@@ -2015,6 +2061,14 @@ impl<'a> Parser<'a> {
                 Some(
                     self.parse_optional_data_type()?
                         .ok_or_else(|| FrontendError::new("expected struct data type", 0))?,
+                ),
+            )
+        } else if self.peek_typedef_name() {
+            (
+                NetKind::Typed,
+                Some(
+                    self.parse_optional_data_type()?
+                        .ok_or_else(|| FrontendError::new("expected named data type", 0))?,
                 ),
             )
         } else {
@@ -2303,6 +2357,9 @@ impl<'a> Parser<'a> {
         if is_data_type_keyword(&keyword) {
             self.advance();
             Ok(Some(DataType::Builtin { keyword }))
+        } else if let Some(data_type) = self.type_aliases.get(&keyword).cloned() {
+            self.advance();
+            Ok(Some(data_type))
         } else {
             Ok(None)
         }
@@ -2599,11 +2656,18 @@ impl<'a> Parser<'a> {
         self.peek_keyword("input") || self.peek_keyword("output") || self.peek_keyword("inout")
     }
 
+    fn peek_typedef_name(&self) -> bool {
+        matches!(self.current_ident(), Some(value) if self.type_aliases.contains_key(value))
+    }
+
     fn looks_like_module_instantiation(&self) -> bool {
         let Some(name) = self.current_ident() else {
             return false;
         };
         if is_keyword(name) {
+            return false;
+        }
+        if self.type_aliases.contains_key(name) {
             return false;
         }
 
@@ -2657,6 +2721,7 @@ fn is_keyword(value: &str) -> bool {
             | "parameter"
             | "reg"
             | "struct"
+            | "typedef"
             | "wire"
     )
 }
@@ -3215,6 +3280,51 @@ mod tests {
     }
 
     #[test]
+    fn parses_typedef_struct_declarations_and_named_uses() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            typedef struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg_t;
+            cfg_t cfg;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        match &module.items[0] {
+            ModuleItem::TypedefDecl(typedef_decl) => {
+                assert_eq!(typedef_decl.name, "cfg_t");
+                match &typedef_decl.data_type {
+                    DataType::Struct { packed, fields } => {
+                        assert!(*packed);
+                        assert_eq!(fields.len(), 2);
+                    }
+                    other => panic!("expected typedef struct data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected typedef declaration, got {other:?}"),
+        }
+
+        match &module.items[1] {
+            ModuleItem::NetDecl(net) => {
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Struct { fields, .. } => {
+                        assert_eq!(fields[0].names, vec!["data".to_string()]);
+                        assert_eq!(fields[1].names, vec!["valid".to_string()]);
+                    }
+                    other => panic!("expected resolved struct data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn elaboration_accepts_known_struct_members() {
         let design = parse_design(
             r#"
@@ -3231,6 +3341,40 @@ mod tests {
                 logic [7:0] data;
                 logic valid;
             } cfg;
+            child u_child (.a(cfg.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_typedef_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            typedef struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg_t;
+            cfg_t cfg;
             child u_child (.a(cfg.data), .y(y));
             endmodule
             "#,
@@ -3273,6 +3417,40 @@ mod tests {
         let error = design
             .elaborate_top("top", &HashMap::new())
             .expect_err("elaboration should reject unknown struct members");
+        assert!(
+            error
+                .message
+                .contains("unknown member 'missing' on parent-scope identifier 'cfg'")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_typedef_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            typedef struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg_t;
+            cfg_t cfg;
+            child u_child (.a(cfg.missing), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown typedef-backed struct members");
         assert!(
             error
                 .message

@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Typedef-Backed Named Type Coverage
+### Context
+The previous `rtl_frontend` type work could only validate structure when the aggregate type was written inline on the declaration itself. That left the next obvious synthesizable subset gap: simple module-local typedefs like `typedef struct packed { ... } cfg_t; cfg_t cfg;`.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added a parser-side typedef alias table scoped to the current module parse,
+  - added `TypedefDecl` AST coverage for module-local typedef declarations,
+  - taught declaration parsing to recognize typedef-backed named types before falling through to instantiation parsing,
+  - resolved named types into the existing aggregate-aware type model so typedef-backed member validation reuses the same semantic lookup path as inline structs.
+- Added focused tests for:
+  - typedef struct parsing,
+  - named declaration parsing after typedef introduction,
+  - acceptance/rejection of typedef-backed struct-member actuals during elaboration.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `20/20` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This is still a narrow subset: typedef visibility is currently module-local and does not attempt package/import or generate-scope type rules.
+- The next clean increment is broader named-type scope and richer declaration forms so structural validation can keep scaling without parser-side ad hoc alias handling.
+
 ## 2026-03-13 - Add Struct-Aware RTL Member Validation
 ### Context
 The previous `rtl_frontend` increments could preserve member-path actual text, but they still had to validate those paths by declared root only. That meant `cfg.data` and `cfg.missing` were indistinguishable unless the exact dotted path appeared in the symbol table.

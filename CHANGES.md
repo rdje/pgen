@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Typedef-Backed Named Type Coverage
+### ✅ Achievement Summary
+`rtl_frontend` now supports a first named-type slice instead of requiring all structural declarations to be inline. Module-local `typedef` declarations can now resolve later named-type net declarations, and typedef-backed struct member paths participate in the same semantic validation path as inline structs.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added module-local `typedef` parsing for the current handwritten type subset,
+  - added parser-side named type resolution so typedef-backed declarations are treated as declarations rather than mistaken for module instantiations,
+  - added a minimal packed-type wrapper so typedefs can carry packed-range type shapes,
+  - added `TypedefDecl` AST coverage and kept typedef-backed member validation on the resolved underlying type.
+- Added focused tests for:
+  - typedef struct declaration parsing,
+  - named-type declaration parsing after typedefs,
+  - accepting valid typedef-backed struct-member actuals,
+  - rejecting unknown typedef-backed struct-member actuals.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the new typedef-backed baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`20/20`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add Struct-Aware RTL Member Validation
 ### ✅ Achievement Summary
 `rtl_frontend` now has its first semantic declaration/type validation step instead of relying only on root-visible names for member-path actuals. Inline `struct`-typed declarations can now drive real member lookup, so valid paths like `cfg.data` pass while invalid paths like `cfg.missing` are rejected.

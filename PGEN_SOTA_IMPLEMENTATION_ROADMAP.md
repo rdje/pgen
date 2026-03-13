@@ -1897,6 +1897,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - inline `struct`-typed net declarations in the handwritten parser,
     - struct-aware member-path legality checks that can reject unknown members such as `cfg.missing` when the root type is known,
     - backward-compatible fallback to root-visible validation when no richer type metadata exists for the parent root.
+  - Progress (2026-03-13): extended `rtl_frontend` named-type coverage so the current subset now supports:
+    - module-local `typedef` declarations for the handwritten type subset,
+    - named type resolution for later declaration parsing without misclassifying typedef-backed nets as module instantiations,
+    - typedef-backed struct-member legality checks such as `cfg_t cfg; cfg.data`.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,
