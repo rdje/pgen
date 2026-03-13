@@ -1,5 +1,10 @@
 # CLI Reference - PGEN Test Automation System
 
+> Historical note
+> This document describes an older `sync_tests` CLI workflow that is not the primary
+> current interface. The active user-facing CLI surface is centered on `ast_pipeline`
+> and `test_runner`, documented in `README.md` and `PGEN_USER_GUIDE.md`.
+
 **Complete Command-Line Tool Documentation**
 
 ---

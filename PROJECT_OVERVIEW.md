@@ -1,5 +1,10 @@
 # Project Overview: Multi-Language EBNF Parser Generator
 
+> Historical note
+> This document captures an earlier multi-language project framing and directory map.
+> The current actively maintained product surface is the Rust-first pipeline documented in
+> `README.md`, `PGEN_USER_GUIDE.md`, and `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`.
+
 ## Project Purpose
 
 This project implements a multi-language EBNF (Extended Backus-Naur Form) parser generator with comprehensive AST transformation pipeline. The system converts EBNF grammar specifications into executable parsers across multiple programming languages while preserving semantic and logging annotations.

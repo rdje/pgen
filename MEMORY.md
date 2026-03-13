@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-13 (+0100, task: expand-sv-realistic-corpus-to-version-47)
+Last updated: 2026-03-13 (+0100, task: close-semantic-hint-drift-and-start-rtl-frontend-baseline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,6 +24,29 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Crash-resume continuity state:
+  - the pre-crash worktree already contained the semantic-hint regression fix in `rust/src/ast_pipeline/stimuli_generator.rs`,
+  - the pre-crash worktree also already contained the doc-currentness cleanup:
+    - `README.md` now marks authoritative docs,
+    - `CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, `QUICKSTART_AI_ONBOARDING.md`, `rust/docs/TECHNICAL_ARCHITECTURE.md`, and `rust/docs/CLI_REFERENCE.md` are explicitly marked as historical/reference docs.
+- Phase S now has an executable frontend baseline instead of only a roadmap note:
+  - `rtl_const_expr/` is the standalone constant-expression parser/evaluator,
+  - `rtl_frontend/` now depends on `rtl_const_expr` and parses a narrow synthesizable subset:
+    - module headers with optional parameter/ANSI port lists,
+    - parameter/localparam declarations,
+    - packed ranges,
+    - net declarations and continuous assigns,
+    - `always_comb` / `always @(*)` procedural blocks,
+    - explicit `generate` `if` / `for` constructs.
+  - frontend helpers currently support:
+    - constant-environment evaluation,
+    - packed-range width resolution,
+    - generate-if condition evaluation,
+    - bounded generate-for unrolling.
+- Latest targeted validation for the resumed task:
+  - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
+  - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed,
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
 - Latest commit: run `git log -1 --oneline` at resume time (do not rely on stale hash text).

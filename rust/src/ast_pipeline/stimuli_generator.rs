@@ -2914,11 +2914,11 @@ impl<'a> StimuliGenerator<'a> {
         }
         let constraints = self.rule_value_constraints(current_rule);
         if let Some(semantic_hint) = self.semantic_hint_for_rule(current_rule) {
-            if self.regex_candidate_satisfies_contract(trimmed, &semantic_hint, &constraints) {
+            if self.value_satisfies_constraints(&semantic_hint, &constraints) {
                 self.trace(
                     TraceLevel::Debug,
                     format_args!(
-                        "Regex generation chose semantic hint for rule='{}': '{}'",
+                        "Regex generation chose semantic hint override for rule='{}': '{}'",
                         current_rule, semantic_hint
                     ),
                 );
@@ -2927,7 +2927,7 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::Debug,
                 format_args!(
-                    "Regex generation rejected semantic hint for rule='{}': '{}'",
+                    "Regex generation rejected semantic hint override for rule='{}' because it violates explicit semantic constraints: '{}'",
                     current_rule, semantic_hint
                 ),
             );

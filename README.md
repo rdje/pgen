@@ -39,6 +39,8 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `generated/`: version-controlled canonical generated artifacts used by compile-time includes and clean-checkout gates
 - `rust/target/generated_logs/`: scratch generation/debug logs kept out of `generated/`
 - `rust/src/`: Rust AST pipeline, generators, parser registry, embedding API
+- `rtl_const_expr/`: standalone constant-expression parser/evaluator baseline crate for planned RTL frontend/elaboration work
+- `rtl_frontend/`: initial synthesizable-RTL frontend baseline crate wired to `rtl_const_expr` for module-structure parsing and elaboration-oriented constant handling
 - `rust/build.rs`: compile-time generated-parser include path resolver; emits relative `include!(env!(...))` paths from `rust/src/` so clean checkouts and relocated worktrees do not depend on absolute filesystem paths
 - `rust/config/branch_protection_policy.json`: tracked minimum branch-protection required-check contract
 - `rust/scripts/`: executable quality gates and policy runners
@@ -77,6 +79,23 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
 - EBNF closed-loop quality (Rust path):
   - `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+
+## Documentation Status
+- Current authoritative docs for the active Rust-first platform:
+  - `README.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `rust/docs/EMBEDDING_API_CONTRACT.md`
+- Historical/reference docs are still tracked for context, but some describe superseded workflows or earlier project phases.
+- In particular, treat these as archival unless they are explicitly refreshed:
+  - `CURRENT_STATUS.md`
+  - `PROJECT_OVERVIEW.md`
+  - `QUICKSTART_AI_ONBOARDING.md`
+  - `rust/docs/TECHNICAL_ARCHITECTURE.md`
+  - `rust/docs/CLI_REFERENCE.md`
+- The complete markdown index below is a repository navigation index, not a claim that every listed document is equally current.
 
 ## Documentation Structure
 - Project governance and status:

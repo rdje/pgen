@@ -1,0 +1,11 @@
+[package]
+name = "rtl_frontend"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "rtl_frontend"
+path = "src/lib.rs"
+
+[dependencies]
+rtl_const_expr = { path = "../rtl_const_expr" }

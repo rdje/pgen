@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Resume Crash State, Close Semantic-Hint Drift, and Start RTL Frontend Baseline
+### Context
+The interrupted worktree already contained two high-value but still-uncommitted fixes: the semantic-hint regression in Rust stimuli generation and the documentation-drift cleanup that distinguished active docs from archival ones. The next logical roadmap move after those fixes was to stop leaving `rtl_const_expr` isolated and instead wire it into an initial frontend boundary for Phase S.
+
+### Implementation
+- Closed the semantic-hint regression in `rust/src/ast_pipeline/stimuli_generator.rs`:
+  - semantic transform hints and named raw literal hints now bypass the source regex when they are being used as semantic overrides,
+  - explicit semantic constraints still apply, so overrides remain contract-bounded rather than unconstrained.
+- Tightened doc currentness signaling:
+  - `README.md` now identifies the current authoritative docs,
+  - the stale high-risk entrypoints now carry historical-note banners so they are less likely to be misread as the active command/API surface.
+- Added `rtl_frontend/` as the first executable frontend-side Phase S crate on top of `rtl_const_expr/`:
+  - the parser intentionally targets a narrow synthesizable subset rather than full SystemVerilog,
+  - the initial AST covers module headers, parameters/localparams, ANSI ports, packed ranges, net declarations, continuous assigns, basic procedural blocks, and explicit generate constructs,
+  - constant-bearing frontend nodes use `rtl_const_expr::Expr`,
+  - elaboration helpers were added for parameter/localparam evaluation, width resolution, generate-if enablement checks, and bounded generate-for unrolling.
+- Synced `README.md` and `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` so the repo navigation and the roadmap both describe the same current Phase S baseline.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed after the semantic-hint fix.
+- `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed for the standalone expression evaluator.
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed for the new frontend baseline crate.
+
+### Notes
+- Phase S is still very incomplete: `rtl_frontend` is a boundary-establishing subset parser, not a full SV frontend.
+- The next clean increment is to broaden `rtl_frontend` item coverage and start shaping an elaboration contract around instantiated modules rather than only standalone declarations/constructs.
+
 ## 2026-03-13 - SV Realistic Corpus Version 47 Promotion
 ### Context
 Once `version: 46` promoted the full thirty-four-child / dotriaconta family, the clean next parser-trust task remained the same objective corpus-expansion pattern rather than another speculative generator tweak. That meant promoting the full `thirty_five_child` / `tritriaconta_bridge` family across direct import/use, deep-include package-width reuse, and macro-expanded forms.

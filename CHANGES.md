@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-13 - Close Semantic-Hint Regression and Start RTL Frontend Baseline
+### ✅ Achievement Summary
+The outstanding semantic-hint regression in Rust stimuli generation is closed, the most misleading historical docs are now explicitly marked as archival, and Phase S has moved from roadmap-only planning into an executable frontend baseline with a new `rtl_frontend` crate wired to `rtl_const_expr`.
+
+### Scope of Changes
+- Closed the failing semantic-hint path in `rust/src/ast_pipeline/stimuli_generator.rs`:
+  - transform-derived and raw-literal semantic hints now act as semantic overrides instead of being incorrectly filtered through the source regex,
+  - explicit semantic value constraints such as `@enum`, `@range`, and `@len` still gate those overrides.
+- Reduced documentation drift:
+  - `README.md` now marks the current authoritative docs vs archival references,
+  - `CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, `QUICKSTART_AI_ONBOARDING.md`, `rust/docs/TECHNICAL_ARCHITECTURE.md`, and `rust/docs/CLI_REFERENCE.md` now carry historical-note banners,
+  - `README.md` key paths now include both `rtl_const_expr/` and the new `rtl_frontend/` crate.
+- Started the planned RTL frontend boundary:
+  - added standalone crate `rtl_const_expr/` for constant-expression parsing/evaluation,
+  - added standalone crate `rtl_frontend/` that depends on `rtl_const_expr`,
+  - `rtl_frontend` currently parses module headers, parameter/localparam declarations, ANSI ports, packed ranges, net declarations, continuous assigns, `always_comb` / `always @(*)` blocks, and explicit `generate` `if` / `for` constructs,
+  - the frontend exposes elaboration-oriented helpers for constant-environment evaluation, packed-range width resolution, generate-if condition evaluation, and bounded generate-for unrolling.
+- Synced living project state:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` now records the initial `rtl_frontend` Phase S progress,
+  - `DEVELOPMENT_NOTES.md` and `MEMORY.md` now capture the resumed-crash state and the new frontend baseline.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --lib --quiet` ✅
+- `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` ✅
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅
+
 ## 2026-03-13 - Expand SV Realistic Corpus to Version 47
 ### ✅ Achievement Summary
 The checked-in Nexsim-oriented SystemVerilog realistic corpus now covers the next full family step after the promoted thirty-four-child / dotriaconta slice. The new `thirty_five_child` / `tritriaconta_bridge` promotion passed direct dual-profile preprocess+`parse_full` replay `18/18`, and the manifest is now at `365` declared deterministic all-pass cases.

@@ -1,0 +1,8 @@
+[package]
+name = "rtl_const_expr"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rtl_const_expr"
+path = "src/lib.rs"

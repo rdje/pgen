@@ -1874,17 +1874,27 @@ Objective: make AST visibility first-class for generator and generated-parser de
     - regex onboarding flow (generation-input AST + deterministic stimuli/coverage/gap loop with gap-driven replay).
 
 ### Phase S (Planned): RTLSyn Parser Stack Minimum Viable Coverage
-Objective: capture the minimum parser/evaluator surface required by the planned RTLSyn flow. This is a roadmap amendment only, not an active implementation phase yet.
+Objective: capture the minimum parser/evaluator surface required by the planned RTLSyn flow. Initial foundational work has started, but the phase is still far from complete.
 
 - [ ] Add an RTL frontend parser crate for the synthesizable RTL subset only:
   - SystemVerilog frontend scope should cover the planned synthesis-facing subset rather than full SV,
   - required baseline includes modules, ports, declarations, continuous assigns, procedural blocks, parameters/localparams, and generate constructs,
   - this remains the most critical parser family because the frontend boundary is already backend-pluggable for future PGEN integration.
+  - Progress (2026-03-13): added initial standalone crate `rtl_frontend` wired to `rtl_const_expr` with:
+    - handwritten parser coverage for module headers, parameter/localparam declarations, ANSI ports, packed ranges, net declarations, continuous assigns, `always_comb` / `always @(*)` blocks, and explicit `generate` `if` / `for` constructs,
+    - AST nodes that carry `rtl_const_expr::Expr` for parameter defaults, packed ranges, assignment expressions, and generate conditions/steps,
+    - elaboration-oriented helpers for constant-environment evaluation, packed-range width resolution, generate-if condition evaluation, and bounded generate-for unrolling,
+    - executable unit tests proving parameter/localparam evaluation, port-width resolution, and generate-construct parsing/unrolling.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,
   - required for generate conditions and generate-loop evaluation,
   - treat this as mandatory for meaningful elaboration completeness.
+  - Progress (2026-03-13): added standalone baseline crate `rtl_const_expr` with:
+    - integer literal parsing for decimal and sized based forms (`8'hff`, `4'b1010`),
+    - identifier lookup against a caller-provided symbol table,
+    - unary, arithmetic, shift, comparison, equality, bitwise, logical, and ternary operators,
+    - executable unit tests covering precedence, symbol resolution, based literals, ternary evaluation, and failure cases.
 - [ ] Add a Liberty parser crate:
   - required to extract cell Boolean functions,
   - required to extract timing arcs,

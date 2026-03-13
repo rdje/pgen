@@ -1,5 +1,10 @@
 # QUICKSTART: PGEn Round-Trip Testing Framework
 
+> Historical note
+> This file contains earlier onboarding material and mixed historical snapshots.
+> Current commands, gates, and contracts live in `README.md`, `PGEN_USER_GUIDE.md`,
+> `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and `rust/docs/EMBEDDING_API_CONTRACT.md`.
+
 ## 🚀 **Quick Start - Validate Parser Correctness**
 
 Get started with PGEn's mathematical parser validation in under 5 minutes.
