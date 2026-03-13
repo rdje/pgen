@@ -127,26 +127,18 @@ Use this file to resume work without replaying full chat history.
     - VHDL replay debt stayed `12`
     - VHDL parseability generation stayed `66.67%`
 - SystemVerilog realistic corpus promotion state:
-  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 42` with `320` declared deterministic all-pass cases,
-  - the latest complete-family promotion adds or confirms the thirty-child / octacosa family:
-    - `module_local_import_multi_width_thirty_child_pipeline`
-    - `package_import_multi_width_thirty_child_pipeline`
-    - `preprocess_macro_import_multi_width_thirty_child_pipeline`
-    - `preprocess_macro_module_name_multi_width_thirty_child`
-    - `preprocess_macro_port_name_multi_width_thirty_child`
-    - `multi_module_imported_width_octacosa_bridge_named_port`
-    - `multi_module_imported_width_octacosa_bridge_wildcard`
-    - `preprocess_deep_include_package_width_thirty_child_pipeline`
-    - `preprocess_deep_include_package_width_octacosa_bridge_wildcard`
-  - focused adapter-backed direct validation for the latest nine-case increment passed `18/18` across `sv_2017` and `sv_2023`,
-  - bounded full `sv_stimuli_quality_gate` refresh stayed green with:
-    - `closed_loop_profiles_passed=2/2`
-    - `realistic_corpus_cases_declared=320`
-    - `realistic_corpus_cases_executed=640`
-    - `realistic_corpus_observed_parse_pass_total=640`
-    - `realistic_corpus_observed_parse_fail_total=0`
-    - `realistic_corpus_preprocess_warning_total=2`
-    - `realistic_corpus_preprocess_error_total=0`
+  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 43` with `329` declared deterministic all-pass cases,
+  - the latest complete-family promotion adds or confirms the thirty-one-child / enneacosa family:
+    - `module_local_import_multi_width_thirty_one_child_pipeline`
+    - `package_import_multi_width_thirty_one_child_pipeline`
+    - `preprocess_macro_import_multi_width_thirty_one_child_pipeline`
+    - `preprocess_macro_module_name_multi_width_thirty_one_child`
+    - `preprocess_macro_port_name_multi_width_thirty_one_child`
+    - `multi_module_imported_width_enneacosa_bridge_named_port`
+    - `multi_module_imported_width_enneacosa_bridge_wildcard`
+    - `preprocess_deep_include_package_width_thirty_one_child_pipeline`
+    - `preprocess_deep_include_package_width_enneacosa_bridge_wildcard`
+  - focused adapter-backed direct validation for the latest nine-case increment passed `18/18` across `sv_2017` and `sv_2023`
 - Promotion-gate alternate-entry telemetry surface:
   - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into:
     - per-trial JSON,

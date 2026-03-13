@@ -1492,6 +1492,19 @@ Toolbox baseline to leverage end-to-end:
       - `realistic_corpus_cases_executed=640`,
       - `realistic_corpus_observed_parse_pass_total=640`,
       - `realistic_corpus_observed_parse_fail_total=0`.
+  - Progress (2026-03-13): expanded the checked-in Nexsim realistic corpus to `329` declared deterministic all-pass cases (`version: 43`) by promoting the next complete thirty-one-child / enneacosa family:
+    - added required-pass cases for:
+      - multi-module imported-width enneacosa-bridge named-port composition,
+      - multi-module imported-width enneacosa-bridge wildcard composition,
+      - module-local import multi-width thirty-one-child pipeline composition,
+      - package-import multi-width thirty-one-child pipeline composition,
+      - deeper include-chain package-width thirty-one-child pipeline composition,
+      - deeper include-chain package-width enneacosa-bridge wildcard reuse,
+      - macro-expanded multi-width import thirty-one-child pipeline composition,
+      - macro-expanded module-name multi-width thirty-one-child composition,
+      - macro-expanded port-name multi-width thirty-one-child composition,
+    - direct dual-profile preprocess + parse-full validation for the new cases remained green:
+      - `18/18` passes across `sv_2017` and `sv_2023`.
   - Progress (2026-03-09): expanded the checked-in Nexsim realistic corpus to `275` declared deterministic all-pass cases (`version: 36`) with richer imported-width tricosa-bridge composition, twenty-five-child pipelines, deeper include-chain tricosa-bridge reuse, and width-aware macro twenty-five-child families:
     - added required-pass cases for:
       - multi-module imported-width tricosa-bridge named-port composition,
