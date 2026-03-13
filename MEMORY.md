@@ -127,17 +127,17 @@ Use this file to resume work without replaying full chat history.
     - VHDL replay debt stayed `12`
     - VHDL parseability generation stayed `66.67%`
 - SystemVerilog realistic corpus promotion state:
-  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 45` with `347` declared deterministic all-pass cases,
-  - the latest complete-family promotion adds or confirms the thirty-three-child / hentriaconta family:
-    - `module_local_import_multi_width_thirty_three_child_pipeline`
-    - `package_import_multi_width_thirty_three_child_pipeline`
-    - `preprocess_macro_import_multi_width_thirty_three_child_pipeline`
-    - `preprocess_macro_module_name_multi_width_thirty_three_child`
-    - `preprocess_macro_port_name_multi_width_thirty_three_child`
-    - `multi_module_imported_width_hentriaconta_bridge_named_port`
-    - `multi_module_imported_width_hentriaconta_bridge_wildcard`
-    - `preprocess_deep_include_package_width_thirty_three_child_pipeline`
-    - `preprocess_deep_include_package_width_hentriaconta_bridge_wildcard`
+  - manifest [/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json) is now `version: 46` with `356` declared deterministic all-pass cases,
+  - the latest complete-family promotion adds or confirms the thirty-four-child / dotriaconta family:
+    - `module_local_import_multi_width_thirty_four_child_pipeline`
+    - `package_import_multi_width_thirty_four_child_pipeline`
+    - `preprocess_macro_import_multi_width_thirty_four_child_pipeline`
+    - `preprocess_macro_module_name_multi_width_thirty_four_child`
+    - `preprocess_macro_port_name_multi_width_thirty_four_child`
+    - `multi_module_imported_width_dotriaconta_bridge_named_port`
+    - `multi_module_imported_width_dotriaconta_bridge_wildcard`
+    - `preprocess_deep_include_package_width_thirty_four_child_pipeline`
+    - `preprocess_deep_include_package_width_dotriaconta_bridge_wildcard`
   - focused adapter-backed direct validation for the latest nine-case increment passed `18/18` across `sv_2017` and `sv_2023`
 - Promotion-gate alternate-entry telemetry surface:
   - `sv_declared_shadow_promotion_gate`, `sv_parse_full_ratio_promotion_gate`, and `vhdl_strict_promotion_gate` now copy replay-shadow `target_drive_validation` totals into:
