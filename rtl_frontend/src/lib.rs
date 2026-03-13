@@ -61,6 +61,12 @@ pub struct ElaboratedInstance {
     pub child_instances: Vec<ElaboratedInstance>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ElaborationConfig {
+    max_depth: usize,
+    max_generate_iterations: usize,
+}
+
 impl Design {
     pub fn module(&self, name: &str) -> Option<&Module> {
         self.modules.iter().find(|module| module.name == name)
@@ -81,18 +87,23 @@ impl Design {
         max_depth: usize,
         max_generate_iterations: usize,
     ) -> Result<ElaboratedModule, FrontendError> {
+        let config = ElaborationConfig {
+            max_depth,
+            max_generate_iterations,
+        };
         let module = self.module(module_name).ok_or_else(|| {
             FrontendError::new(format!("unknown top module '{}'", module_name), 0)
         })?;
         let parameters = module.evaluate_constant_env(overrides)?;
+        let visible_names = module.visible_connection_names();
         let path = module.name.clone();
         let child_instances = self.elaborate_items(
             &module.items,
             &parameters,
+            &visible_names,
             &path,
             0,
-            max_depth,
-            max_generate_iterations,
+            &config,
         )?;
         Ok(ElaboratedModule {
             module_name: module.name.clone(),
@@ -106,10 +117,10 @@ impl Design {
         &self,
         items: &[ModuleItem],
         symbols: &HashMap<String, i64>,
+        visible_names: &HashSet<String>,
         scope_path: &str,
         depth: usize,
-        max_depth: usize,
-        max_generate_iterations: usize,
+        config: &ElaborationConfig,
     ) -> Result<Vec<ElaboratedInstance>, FrontendError> {
         let mut instances = Vec::new();
 
@@ -119,20 +130,23 @@ impl Design {
                     instances.push(self.elaborate_instance(
                         instantiation,
                         symbols,
+                        visible_names,
                         scope_path,
                         depth,
-                        max_depth,
-                        max_generate_iterations,
+                        config,
                     )?);
                 }
                 ModuleItem::GenerateRegion(region) => {
                     instances.extend(self.elaborate_items(
                         &region.items,
                         symbols,
+                        &merge_visible_names(
+                            visible_names,
+                            &collect_visible_names_from_items(&region.items),
+                        ),
                         scope_path,
                         depth,
-                        max_depth,
-                        max_generate_iterations,
+                        config,
                     )?);
                 }
                 ModuleItem::GenerateIf(generate_if) => {
@@ -152,23 +166,32 @@ impl Design {
                     };
 
                     if !body_items.is_empty() {
+                        let nested_visible_names = merge_visible_names(
+                            visible_names,
+                            &collect_visible_names_from_items(body_items),
+                        );
                         let nested_scope = join_path(scope_path, label.unwrap_or(fallback_scope));
                         instances.extend(self.elaborate_items(
                             body_items,
                             symbols,
+                            &nested_visible_names,
                             &nested_scope,
                             depth,
-                            max_depth,
-                            max_generate_iterations,
+                            config,
                         )?);
                     }
                 }
                 ModuleItem::GenerateFor(generate_for) => {
                     for iteration in
-                        generate_for.iteration_values(symbols, max_generate_iterations)?
+                        generate_for.iteration_values(symbols, config.max_generate_iterations)?
                     {
                         let mut nested_symbols = symbols.clone();
                         nested_symbols.insert(generate_for.index_name.clone(), iteration);
+                        let mut nested_visible_names = merge_visible_names(
+                            visible_names,
+                            &collect_visible_names_from_items(&generate_for.body_items),
+                        );
+                        nested_visible_names.insert(generate_for.index_name.clone());
                         let scope_name = match &generate_for.label {
                             Some(label) => format!("{label}[{iteration}]"),
                             None => format!("__gen_for_{}[{iteration}]", generate_for.index_name),
@@ -177,10 +200,10 @@ impl Design {
                         instances.extend(self.elaborate_items(
                             &generate_for.body_items,
                             &nested_symbols,
+                            &nested_visible_names,
                             &nested_scope,
                             depth,
-                            max_depth,
-                            max_generate_iterations,
+                            config,
                         )?);
                     }
                 }
@@ -199,16 +222,16 @@ impl Design {
         &self,
         instantiation: &ModuleInstantiation,
         parent_symbols: &HashMap<String, i64>,
+        parent_visible_names: &HashSet<String>,
         scope_path: &str,
         depth: usize,
-        max_depth: usize,
-        max_generate_iterations: usize,
+        config: &ElaborationConfig,
     ) -> Result<ElaboratedInstance, FrontendError> {
-        if depth >= max_depth {
+        if depth >= config.max_depth {
             return Err(FrontendError::new(
                 format!(
                     "elaboration depth exceeded max_depth={} while elaborating '{}'",
-                    max_depth, instantiation.instance_name
+                    config.max_depth, instantiation.instance_name
                 ),
                 0,
             ));
@@ -227,15 +250,17 @@ impl Design {
         let parameter_overrides =
             instantiation.resolve_parameter_overrides(module, parent_symbols)?;
         let parameters = module.evaluate_constant_env(&parameter_overrides)?;
-        let port_bindings = instantiation.resolve_port_bindings(module)?;
+        let port_bindings =
+            instantiation.resolve_port_bindings(module, parent_visible_names, parent_symbols)?;
+        let child_visible_names = module.visible_connection_names();
         let path = join_path(scope_path, &instantiation.instance_name);
         let child_instances = self.elaborate_items(
             &module.items,
             &parameters,
+            &child_visible_names,
             &path,
             depth + 1,
-            max_depth,
-            max_generate_iterations,
+            config,
         )?;
 
         Ok(ElaboratedInstance {
@@ -296,6 +321,60 @@ impl Module {
 
         parameters
     }
+
+    fn visible_connection_names(&self) -> HashSet<String> {
+        let mut names = HashSet::new();
+
+        for parameter in &self.parameters {
+            names.insert(parameter.name.clone());
+        }
+        for port in &self.ports {
+            names.insert(port.name.clone());
+        }
+
+        names.extend(collect_visible_names_from_items(&self.items));
+        names
+    }
+}
+
+fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
+    let mut names = HashSet::new();
+
+    for item in items {
+        match item {
+            ModuleItem::ParameterDecl(parameter) => {
+                names.insert(parameter.name.clone());
+            }
+            ModuleItem::GenvarDecl(genvar) => {
+                names.extend(genvar.names.iter().cloned());
+            }
+            ModuleItem::NetDecl(net) => {
+                names.extend(net.names.iter().cloned());
+            }
+            ModuleItem::GenerateRegion(region) => {
+                names.extend(collect_visible_names_from_items(&region.items));
+            }
+            ModuleItem::GenerateIf(generate_if) => {
+                names.extend(collect_visible_names_from_items(&generate_if.then_items));
+                names.extend(collect_visible_names_from_items(&generate_if.else_items));
+            }
+            ModuleItem::GenerateFor(generate_for) => {
+                names.insert(generate_for.index_name.clone());
+                names.extend(collect_visible_names_from_items(&generate_for.body_items));
+            }
+            ModuleItem::ContinuousAssign(_)
+            | ModuleItem::ModuleInstantiation(_)
+            | ModuleItem::ProceduralBlock(_) => {}
+        }
+    }
+
+    names
+}
+
+fn merge_visible_names(base: &HashSet<String>, extra: &HashSet<String>) -> HashSet<String> {
+    let mut merged = base.clone();
+    merged.extend(extra.iter().cloned());
+    merged
 }
 
 fn apply_parameter_decl(
@@ -422,13 +501,57 @@ pub enum ParameterOverride {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PortActual {
+    Signal(String),
+    BitSelect {
+        signal: String,
+        index: Expr,
+    },
+    PartSelect {
+        signal: String,
+        msb: Expr,
+        lsb: Expr,
+    },
+    Concat(Vec<PortActual>),
+    Constant(Expr),
+}
+
+impl PortActual {
+    fn validate(
+        &self,
+        visible_names: &HashSet<String>,
+        symbols: &HashMap<String, i64>,
+    ) -> Result<(), FrontendError> {
+        match self {
+            PortActual::Signal(name) => validate_known_identifier(name, visible_names, symbols),
+            PortActual::BitSelect { signal, index } => {
+                validate_known_identifier(signal, visible_names, symbols)?;
+                validate_expr_identifiers(index, visible_names, symbols)
+            }
+            PortActual::PartSelect { signal, msb, lsb } => {
+                validate_known_identifier(signal, visible_names, symbols)?;
+                validate_expr_identifiers(msb, visible_names, symbols)?;
+                validate_expr_identifiers(lsb, visible_names, symbols)
+            }
+            PortActual::Concat(items) => {
+                for item in items {
+                    item.validate(visible_names, symbols)?;
+                }
+                Ok(())
+            }
+            PortActual::Constant(expr) => validate_expr_identifiers(expr, visible_names, symbols),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortConnection {
     Ordered {
-        actual: Option<String>,
+        actual: Option<PortActual>,
     },
     Named {
         port: String,
-        actual: Option<String>,
+        actual: Option<PortActual>,
     },
     Wildcard,
 }
@@ -444,7 +567,7 @@ pub struct ModuleInstantiation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedPortBinding {
     pub port_name: String,
-    pub actual: Option<String>,
+    pub actual: Option<PortActual>,
 }
 
 impl ModuleInstantiation {
@@ -544,6 +667,8 @@ impl ModuleInstantiation {
     pub fn resolve_port_bindings(
         &self,
         module: &Module,
+        parent_visible_names: &HashSet<String>,
+        parent_symbols: &HashMap<String, i64>,
     ) -> Result<Vec<ResolvedPortBinding>, FrontendError> {
         let mut bindings = Vec::new();
         let mut bound_ports = HashSet::new();
@@ -574,6 +699,9 @@ impl ModuleInstantiation {
                             0,
                         ));
                     };
+                    if let Some(actual) = actual {
+                        actual.validate(parent_visible_names, parent_symbols)?;
+                    }
                     bindings.push(ResolvedPortBinding {
                         port_name: port.name.clone(),
                         actual: actual.clone(),
@@ -610,6 +738,9 @@ impl ModuleInstantiation {
                             0,
                         ));
                     }
+                    if let Some(actual) = actual {
+                        actual.validate(parent_visible_names, parent_symbols)?;
+                    }
                     bindings.push(ResolvedPortBinding {
                         port_name: port.clone(),
                         actual: actual.clone(),
@@ -643,9 +774,11 @@ impl ModuleInstantiation {
         if wildcard_seen {
             for port in &module.ports {
                 if bound_ports.insert(port.name.clone()) {
+                    let actual = PortActual::Signal(port.name.clone());
+                    actual.validate(parent_visible_names, parent_symbols)?;
                     bindings.push(ResolvedPortBinding {
                         port_name: port.name.clone(),
-                        actual: Some(port.name.clone()),
+                        actual: Some(actual),
                     });
                 }
             }
@@ -802,6 +935,285 @@ fn join_path(base: &str, segment: &str) -> String {
 
 fn map_eval_error(err: EvalError) -> FrontendError {
     FrontendError::new(err.message, err.position)
+}
+
+fn validate_known_identifier(
+    name: &str,
+    visible_names: &HashSet<String>,
+    symbols: &HashMap<String, i64>,
+) -> Result<(), FrontendError> {
+    if visible_names.contains(name) || symbols.contains_key(name) {
+        Ok(())
+    } else {
+        Err(FrontendError::new(
+            format!("unknown parent-scope identifier '{}'", name),
+            0,
+        ))
+    }
+}
+
+fn validate_expr_identifiers(
+    expr: &Expr,
+    visible_names: &HashSet<String>,
+    symbols: &HashMap<String, i64>,
+) -> Result<(), FrontendError> {
+    let mut identifiers = HashSet::new();
+    collect_expr_identifiers(expr, &mut identifiers);
+    for identifier in identifiers {
+        validate_known_identifier(&identifier, visible_names, symbols)?;
+    }
+    Ok(())
+}
+
+fn collect_expr_identifiers(expr: &Expr, identifiers: &mut HashSet<String>) {
+    match expr {
+        Expr::Literal(_) => {}
+        Expr::Ident(name) => {
+            identifiers.insert(name.clone());
+        }
+        Expr::Unary { expr, .. } => collect_expr_identifiers(expr, identifiers),
+        Expr::Binary { left, right, .. } => {
+            collect_expr_identifiers(left, identifiers);
+            collect_expr_identifiers(right, identifiers);
+        }
+        Expr::Ternary {
+            condition,
+            then_expr,
+            else_expr,
+        } => {
+            collect_expr_identifiers(condition, identifiers);
+            collect_expr_identifiers(then_expr, identifiers);
+            collect_expr_identifiers(else_expr, identifiers);
+        }
+    }
+}
+
+fn parse_port_actual(input: &str) -> Result<PortActual, FrontendError> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err(FrontendError::new("expected port actual", 0));
+    }
+
+    if trimmed.starts_with('{') && trimmed.ends_with('}') && is_wrapped_by(trimmed, '{', '}') {
+        let inner = trimmed[1..trimmed.len() - 1].trim();
+        if inner.is_empty() {
+            return Err(FrontendError::new(
+                "empty concatenation is not supported",
+                0,
+            ));
+        }
+        let mut parts = Vec::new();
+        for part in split_top_level(inner, ',')? {
+            parts.push(parse_port_actual(part)?);
+        }
+        return Ok(PortActual::Concat(parts));
+    }
+
+    if let Some((signal, inner)) = split_signal_suffix(trimmed)? {
+        if let Some((msb, lsb)) = split_top_level_once(inner, ':')? {
+            return Ok(PortActual::PartSelect {
+                signal,
+                msb: parse_expression(msb).map_err(map_eval_error)?,
+                lsb: parse_expression(lsb).map_err(map_eval_error)?,
+            });
+        }
+        return Ok(PortActual::BitSelect {
+            signal,
+            index: parse_expression(inner).map_err(map_eval_error)?,
+        });
+    }
+
+    let expr = parse_expression(trimmed).map_err(map_eval_error)?;
+    Ok(match expr {
+        Expr::Ident(name) => PortActual::Signal(name),
+        other => PortActual::Constant(other),
+    })
+}
+
+fn split_signal_suffix(input: &str) -> Result<Option<(String, &str)>, FrontendError> {
+    let trimmed = input.trim();
+    if !trimmed.ends_with(']') {
+        return Ok(None);
+    }
+
+    let mut bracket_depth = 0usize;
+    let mut suffix_start = None;
+    for (idx, ch) in trimmed.char_indices().rev() {
+        match ch {
+            ']' => bracket_depth += 1,
+            '[' => {
+                bracket_depth = bracket_depth.saturating_sub(1);
+                if bracket_depth == 0 {
+                    suffix_start = Some(idx);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let Some(suffix_start) = suffix_start else {
+        return Err(FrontendError::new(
+            format!("unbalanced bracket suffix in '{}'", trimmed),
+            0,
+        ));
+    };
+
+    let signal = trimmed[..suffix_start].trim();
+    let inner = trimmed[suffix_start + 1..trimmed.len() - 1].trim();
+    if signal.is_empty() || !is_identifier_path(signal) {
+        return Ok(None);
+    }
+    if inner.is_empty() {
+        return Err(FrontendError::new(
+            format!("empty bracket selector in '{}'", trimmed),
+            0,
+        ));
+    }
+
+    Ok(Some((signal.to_string(), inner)))
+}
+
+fn is_identifier_path(input: &str) -> bool {
+    let mut segments = input.split('.');
+    let Some(first) = segments.next() else {
+        return false;
+    };
+    if !is_identifier_segment(first) {
+        return false;
+    }
+    segments.all(is_identifier_segment)
+}
+
+fn is_identifier_segment(input: &str) -> bool {
+    let mut chars = input.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    if !is_ident_start(first) {
+        return false;
+    }
+    chars.all(is_ident_continue)
+}
+
+fn is_wrapped_by(input: &str, open: char, close: char) -> bool {
+    if !input.starts_with(open) || !input.ends_with(close) {
+        return false;
+    }
+
+    let mut depth = 0usize;
+    for (idx, ch) in input.char_indices() {
+        if ch == open {
+            depth += 1;
+        } else if ch == close {
+            depth = depth.saturating_sub(1);
+            if depth == 0 && idx + ch.len_utf8() != input.len() {
+                return false;
+            }
+        }
+    }
+    depth == 0
+}
+
+fn split_top_level(input: &str, delimiter: char) -> Result<Vec<&str>, FrontendError> {
+    let mut parts = Vec::new();
+    let mut start = 0usize;
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut brace_depth = 0usize;
+    let mut ternary_depth = 0usize;
+
+    for (idx, ch) in input.char_indices() {
+        match ch {
+            '(' => paren_depth += 1,
+            ')' => paren_depth = paren_depth.saturating_sub(1),
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            '{' => brace_depth += 1,
+            '}' => brace_depth = brace_depth.saturating_sub(1),
+            '?' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
+                ternary_depth += 1;
+            }
+            ':' if paren_depth == 0
+                && bracket_depth == 0
+                && brace_depth == 0
+                && ternary_depth > 0 =>
+            {
+                ternary_depth -= 1;
+            }
+            _ => {}
+        }
+
+        if ch == delimiter
+            && paren_depth == 0
+            && bracket_depth == 0
+            && brace_depth == 0
+            && ternary_depth == 0
+        {
+            parts.push(input[start..idx].trim());
+            start = idx + ch.len_utf8();
+        }
+    }
+
+    parts.push(input[start..].trim());
+    if parts.iter().any(|part| part.is_empty()) {
+        return Err(FrontendError::new(
+            format!("empty top-level segment in '{}'", input),
+            0,
+        ));
+    }
+    Ok(parts)
+}
+
+fn split_top_level_once(
+    input: &str,
+    delimiter: char,
+) -> Result<Option<(&str, &str)>, FrontendError> {
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut brace_depth = 0usize;
+    let mut ternary_depth = 0usize;
+
+    for (idx, ch) in input.char_indices() {
+        match ch {
+            '(' => paren_depth += 1,
+            ')' => paren_depth = paren_depth.saturating_sub(1),
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            '{' => brace_depth += 1,
+            '}' => brace_depth = brace_depth.saturating_sub(1),
+            '?' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
+                ternary_depth += 1;
+            }
+            ':' if paren_depth == 0
+                && bracket_depth == 0
+                && brace_depth == 0
+                && ternary_depth > 0 =>
+            {
+                ternary_depth -= 1;
+            }
+            _ => {}
+        }
+
+        if ch == delimiter
+            && paren_depth == 0
+            && bracket_depth == 0
+            && brace_depth == 0
+            && ternary_depth == 0
+        {
+            let left = input[..idx].trim();
+            let right = input[idx + ch.len_utf8()..].trim();
+            if left.is_empty() || right.is_empty() {
+                return Err(FrontendError::new(
+                    format!("empty top-level segment in '{}'", input),
+                    0,
+                ));
+            }
+            return Ok(Some((left, right)));
+        }
+    }
+
+    Ok(None)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1383,12 +1795,12 @@ impl<'a> Parser<'a> {
                 } else {
                     let port = self.expect_identifier()?;
                     self.expect_symbol('(')?;
-                    let actual = self.parse_optional_raw_text_until(&[')'])?;
+                    let actual = self.parse_optional_port_actual_until(&[')'])?;
                     self.expect_symbol(')')?;
                     connections.push(PortConnection::Named { port, actual });
                 }
             } else {
-                let actual = self.parse_optional_raw_text_until(&[',', ')'])?;
+                let actual = self.parse_optional_port_actual_until(&[',', ')'])?;
                 connections.push(PortConnection::Ordered { actual });
             }
 
@@ -1586,10 +1998,10 @@ impl<'a> Parser<'a> {
         Ok(Some(PackedRange { msb, lsb }))
     }
 
-    fn parse_optional_raw_text_until(
+    fn parse_optional_port_actual_until(
         &mut self,
         terminators: &[char],
-    ) -> Result<Option<String>, FrontendError> {
+    ) -> Result<Option<PortActual>, FrontendError> {
         if self.current_is_terminator(terminators) {
             return Ok(None);
         }
@@ -1597,7 +2009,7 @@ impl<'a> Parser<'a> {
         if text.is_empty() {
             Ok(None)
         } else {
-            Ok(Some(text))
+            parse_port_actual(&text).map(Some)
         }
     }
 
@@ -1907,8 +2319,8 @@ fn is_data_type_keyword(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        GenerateFor, GenerateIf, ModuleItem, ParameterOverride, PortConnection, ProceduralKind,
-        Statement, parse_design, parse_module,
+        GenerateFor, GenerateIf, ModuleItem, ParameterOverride, PortActual, PortConnection,
+        ProceduralKind, Statement, parse_design, parse_module,
     };
     use std::collections::HashMap;
 
@@ -2113,7 +2525,7 @@ mod tests {
                 match &instantiation.port_connections[0] {
                     PortConnection::Named { port, actual } => {
                         assert_eq!(port, "a");
-                        assert_eq!(actual.as_deref(), Some("a"));
+                        assert_eq!(actual, &Some(PortActual::Signal("a".to_string())));
                     }
                     other => panic!("expected named port connection, got {other:?}"),
                 }
@@ -2172,6 +2584,10 @@ mod tests {
             elaborated.child_instances[0].parameters.get("OFFSET"),
             Some(&9)
         );
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("a".to_string()))
+        );
 
         assert_eq!(elaborated.child_instances[1].path, "top.gated_scope.gated");
         assert_eq!(
@@ -2224,8 +2640,9 @@ mod tests {
         };
 
         let child = design.module("child").expect("child module should exist");
+        let visible_names = top.visible_connection_names();
         let bindings = instantiation
-            .resolve_port_bindings(child)
+            .resolve_port_bindings(child, &visible_names, &HashMap::new())
             .expect("wildcard binding resolution should succeed");
 
         assert_eq!(
@@ -2233,17 +2650,90 @@ mod tests {
             vec![
                 super::ResolvedPortBinding {
                     port_name: "a".to_string(),
-                    actual: Some("a".to_string()),
+                    actual: Some(PortActual::Signal("a".to_string())),
                 },
                 super::ResolvedPortBinding {
                     port_name: "b".to_string(),
-                    actual: Some("b".to_string()),
+                    actual: Some(PortActual::Signal("b".to_string())),
                 },
                 super::ResolvedPortBinding {
                     port_name: "y".to_string(),
-                    actual: Some("y".to_string()),
+                    actual: Some(PortActual::Signal("y".to_string())),
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn elaboration_preserves_typed_parent_actuals() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic [7:0] y
+            );
+            endmodule
+
+            module top #(parameter IDX = 3) (
+                input logic [7:0] a,
+                input logic [7:0] b,
+                output logic [7:0] y
+            );
+            logic [7:0] bus;
+            child u_child (.a(bus[IDX]), .y({a, b}));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+        let bindings = &elaborated.child_instances[0].port_bindings;
+
+        assert_eq!(
+            bindings[0].actual,
+            Some(PortActual::BitSelect {
+                signal: "bus".to_string(),
+                index: rtl_const_expr::parse_expression("IDX").unwrap(),
+            })
+        );
+        assert_eq!(
+            bindings[1].actual,
+            Some(PortActual::Concat(vec![
+                PortActual::Signal("a".to_string()),
+                PortActual::Signal("b".to_string()),
+            ]))
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_parent_actual_identifiers() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                input logic a,
+                output logic y
+            );
+            child u_child (.a(missing_signal), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown actual names");
+        assert!(
+            error
+                .message
+                .contains("unknown parent-scope identifier 'missing_signal'")
         );
     }
 }

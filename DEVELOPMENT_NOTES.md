@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add Typed Parent-Scope Port-Actual Validation
+### Context
+The previous `rtl_frontend` elaboration increment could resolve child ports and instance parameter overrides, but port actuals were still carried as raw text. That meant elaboration could not distinguish a legal signal connection from an undeclared parent reference, and it could not preserve useful structure like selects or concatenations.
+
+### Implementation
+- Replaced raw-string port actuals with typed `PortActual` nodes that currently cover:
+  - signal identifiers,
+  - bit selects,
+  - part selects,
+  - concatenations,
+  - constant expressions.
+- Added parsing helpers for top-level actual-expression splitting and bracket-suffix detection so instance connections can be parsed without needing a full SV expression parser.
+- Added parent-scope legality validation:
+  - parent visible names are now collected from module parameters, ports, declarations, and explicit generate bodies,
+  - elaboration validates actual references against those names plus the current constant-symbol environment,
+  - wildcard bindings now expand into typed signal actuals and are validated through the same path.
+- Added focused tests for:
+  - typed actual preservation through elaboration,
+  - rejection of undeclared parent-side connection identifiers.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `10/10` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+
+### Notes
+- This is still a subset parser; the actual-expression support is intentionally narrow and centered on synthesis-relevant binding shapes.
+- The next clean increment is broader parent-side legality and shape support for instance actuals such as member access, nested indexed expressions, and richer expression forms in ordered bindings.
+
 ## 2026-03-13 - Add First-Pass RTL Instance Elaboration
 ### Context
 The initial `rtl_frontend` baseline established the frontend/elaboration boundary, but it still stopped short of the first thing that makes elaboration meaningful: instantiated child modules. The next clean increment was therefore to parse module instantiations and expose a minimal design-level elaboration API instead of waiting for a much larger full-SV frontend pass.

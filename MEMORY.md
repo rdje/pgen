@@ -36,20 +36,23 @@ Use this file to resume work without replaying full chat history.
     - parameter/localparam declarations,
     - packed ranges,
     - net declarations and continuous assigns,
-    - module instantiations with named/positional parameter overrides and named/positional/wildcard port bindings,
+    - module instantiations with named/positional parameter overrides and typed named/positional/wildcard port bindings,
     - `always_comb` / `always @(*)` procedural blocks,
     - explicit `generate` `if` / `for` constructs.
   - frontend helpers currently support:
     - constant-environment evaluation,
     - packed-range width resolution,
     - child instance parameter-override and port-binding resolution,
+    - typed parent-side actual parsing (`signal`, select, part-select, concat, constant),
+    - parent-scope connection legality validation across module + explicit generate scopes,
     - generate-if condition evaluation,
     - bounded generate-for unrolling,
     - design-level top elaboration into child-instance trees.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed,
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`8/8`).
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`10/10`).
+  - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
 - Latest commit: run `git log -1 --oneline` at resume time (do not rely on stale hash text).

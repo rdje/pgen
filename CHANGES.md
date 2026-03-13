@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-13 - Add Typed Parent-Scope Port-Actual Validation
+### ✅ Achievement Summary
+`rtl_frontend` now validates instance port actuals against the parent scope during elaboration, instead of treating them as opaque strings. Port bindings now preserve typed actual structure for identifiers, selects, part-selects, concatenations, and constant expressions.
+
+### Scope of Changes
+- Expanded `rtl_frontend/src/lib.rs`:
+  - replaced raw-string port actuals with typed `PortActual` nodes,
+  - added parsing support for:
+    - identifier actuals,
+    - bit-select and part-select actuals,
+    - concatenation actuals,
+    - constant-expression actuals,
+  - added parent-scope legality checks during `resolve_port_bindings(...)` / `elaborate_top(...)`,
+  - added parent visible-name collection across module and explicit generate scopes so connection validation has real local context.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the typed actual + legality baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`10/10`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+
 ## 2026-03-13 - Add First-Pass RTL Instance Elaboration
 ### ✅ Achievement Summary
 The new `rtl_frontend` crate now crosses the first real elaboration boundary: it no longer stops at standalone module-shape parsing, and can now parse module instantiations and elaborate a top module into child-instance structure with evaluated parameter overrides and resolved port bindings.

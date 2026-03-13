@@ -1883,8 +1883,8 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
   - Progress (2026-03-13): added initial standalone crate `rtl_frontend` wired to `rtl_const_expr` with:
     - handwritten parser coverage for module headers, parameter/localparam declarations, ANSI ports, packed ranges, net declarations, continuous assigns, module instantiations, `always_comb` / `always @(*)` blocks, and explicit `generate` `if` / `for` constructs,
     - AST nodes that carry `rtl_const_expr::Expr` for parameter defaults, packed ranges, assignment expressions, and generate conditions/steps,
-    - elaboration-oriented helpers for constant-environment evaluation, packed-range width resolution, instance parameter-override resolution, port-binding resolution, generate-if condition evaluation, bounded generate-for unrolling, and design-level top elaboration,
-    - executable unit tests proving parameter/localparam evaluation, port-width resolution, instance parsing/binding, generate-construct parsing/unrolling, and first-pass elaboration of child instances.
+    - elaboration-oriented helpers for constant-environment evaluation, packed-range width resolution, instance parameter-override resolution, typed parent-side port-actual parsing, parent-scope connection legality checks, port-binding resolution, generate-if condition evaluation, bounded generate-for unrolling, and design-level top elaboration,
+    - executable unit tests proving parameter/localparam evaluation, port-width resolution, instance parsing/binding, typed actual preservation, parent-scope legality rejection, generate-construct parsing/unrolling, and first-pass elaboration of child instances.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

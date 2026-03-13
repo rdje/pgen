@@ -40,7 +40,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `rust/target/generated_logs/`: scratch generation/debug logs kept out of `generated/`
 - `rust/src/`: Rust AST pipeline, generators, parser registry, embedding API
 - `rtl_const_expr/`: standalone constant-expression parser/evaluator baseline crate for planned RTL frontend/elaboration work
-- `rtl_frontend/`: initial synthesizable-RTL frontend baseline crate wired to `rtl_const_expr` for module/instance parsing and first-pass elaboration helpers
+- `rtl_frontend/`: initial synthesizable-RTL frontend baseline crate wired to `rtl_const_expr` for module/instance parsing, typed port actuals, and first-pass elaboration helpers
 - `rust/build.rs`: compile-time generated-parser include path resolver; emits relative `include!(env!(...))` paths from `rust/src/` so clean checkouts and relocated worktrees do not depend on absolute filesystem paths
 - `rust/config/branch_protection_policy.json`: tracked minimum branch-protection required-check contract
 - `rust/scripts/`: executable quality gates and policy runners
