@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Packed-Union Width Validation
+### ✅ Achievement Summary
+`rtl_frontend` no longer treats packed unions as syntax-only declarations. During elaboration it now validates that every field in a packed union resolves to the same bit width, and it rejects mismatched inline or typedef-backed packed unions with a concrete error.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added recursive type-validation and bit-width helpers for the current aggregate type model,
+  - validated port/parameter/item data types during elaboration once parameter values are known,
+  - enforced packed-union field-width equality for both direct and typedef-backed uses.
+- Added focused tests for:
+  - rejection of inline packed unions with mismatched field widths,
+  - rejection of typedef-backed packed unions with mismatched field widths.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the packed-union validation baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`46/46`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add RTL Union Type Coverage
 ### ✅ Achievement Summary
 `rtl_frontend` now supports union data types in the current handwritten subset. Inline unions, typedef-backed union named types, package/header-imported union typedefs, and union-backed member validation all work through the same aggregate-aware path.

@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Packed-Union Width Validation
+### Context
+The previous union increment added parsing, visibility, and member access, but packed unions still had a major semantic hole: there was no check that their fields were width-compatible. That made packed unions parseable but not trustworthy. The next clean increment was therefore packed-union width validation.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added recursive aggregate-type validation and bit-width helpers over the current type model,
+  - validated module header/item data types during elaboration after parameter environments are known,
+  - enforced equal field widths for packed unions and surfaced a concrete diagnostic naming the mismatched fields and widths.
+- Added focused tests for:
+  - inline packed-union width mismatches,
+  - typedef-backed packed-union width mismatches.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `46/46` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment validates packed-union field-width coherence, but it still does not add richer packed-aggregate layout diagnostics beyond width equality.
+- The next clean increment is likely either another declaration/type family or a deeper semantic pass over the current aggregate types.
+
 ## 2026-03-14 - Add RTL Union Type Coverage
 ### Context
 The current handwritten type surface had reached structs plus enums, but it still lacked the other common aggregate family used in synthesizable RTL declarations: unions. The next clean increment was therefore union coverage instead of jumping into a broader procedural or namespace subsystem.

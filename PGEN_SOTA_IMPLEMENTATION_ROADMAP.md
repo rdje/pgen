@@ -1937,6 +1937,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - inline union data types such as `union packed { logic [7:0] data; logic [7:0] byte; } payload;`,
     - typedef-backed union named types plus package/header-import visibility,
     - union-backed member validation such as `payload.data`.
+  - Progress (2026-03-14): extended `rtl_frontend` aggregate semantics so the current subset now also supports:
+    - elaboration-time packed-union field-width validation,
+    - rejection of packed unions whose fields do not collapse to the same bit width,
+    - the same packed-union width check for typedef-backed uses after named-type resolution.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

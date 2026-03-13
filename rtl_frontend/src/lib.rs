@@ -150,6 +150,7 @@ impl Design {
             &imported_constants,
             overrides,
         )?;
+        module.validate_header_types(&full_symbols)?;
         let parameters = module.extract_owned_constant_env(&full_symbols);
         let visible_scope = module.visible_connection_scope();
         let path = module.name.clone();
@@ -181,6 +182,7 @@ impl Design {
         let mut instances = Vec::new();
 
         for item in items {
+            validate_module_item_types(item, symbols)?;
             match item {
                 ModuleItem::ModuleInstantiation(instantiation) => {
                     instances.extend(self.elaborate_instance(
@@ -307,6 +309,7 @@ impl Design {
             &imported_constants,
             &parameter_overrides,
         )?;
+        module.validate_header_types(&full_symbols)?;
         let parameters = module.extract_owned_constant_env(&full_symbols);
         let port_bindings = instantiation.resolve_port_bindings(
             module,
@@ -503,6 +506,20 @@ impl Module {
         Ok(symbols)
     }
 
+    fn validate_header_types(&self, symbols: &HashMap<String, i64>) -> Result<(), FrontendError> {
+        for parameter in &self.parameters {
+            if let Some(data_type) = &parameter.data_type {
+                data_type.validate(symbols)?;
+            }
+        }
+        for port in &self.ports {
+            if let Some(data_type) = &port.data_type {
+                data_type.validate(symbols)?;
+            }
+        }
+        Ok(())
+    }
+
     fn extract_owned_constant_env(&self, symbols: &HashMap<String, i64>) -> HashMap<String, i64> {
         let mut env = HashMap::new();
 
@@ -521,6 +538,37 @@ impl Module {
 
         env
     }
+}
+
+fn validate_module_item_types(
+    item: &ModuleItem,
+    symbols: &HashMap<String, i64>,
+) -> Result<(), FrontendError> {
+    match item {
+        ModuleItem::ParameterDecl(parameter) => {
+            if let Some(data_type) = &parameter.data_type {
+                data_type.validate(symbols)?;
+            }
+        }
+        ModuleItem::TypedefDecl(typedef_decl) => {
+            typedef_decl.data_type.validate(symbols)?;
+        }
+        ModuleItem::NetDecl(net) => {
+            if let Some(data_type) = &net.data_type {
+                data_type.validate(symbols)?;
+            }
+        }
+        ModuleItem::ImportDecl(_)
+        | ModuleItem::GenvarDecl(_)
+        | ModuleItem::ContinuousAssign(_)
+        | ModuleItem::ModuleInstantiation(_)
+        | ModuleItem::ProceduralBlock(_)
+        | ModuleItem::GenerateRegion(_)
+        | ModuleItem::GenerateIf(_)
+        | ModuleItem::GenerateFor(_) => {}
+    }
+
+    Ok(())
 }
 
 fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
@@ -706,6 +754,118 @@ impl DataType {
             DataType::Builtin { .. } | DataType::Enum { .. } => None,
         }
     }
+
+    fn validate(&self, symbols: &HashMap<String, i64>) -> Result<(), FrontendError> {
+        match self {
+            DataType::Builtin { .. } => Ok(()),
+            DataType::Packed {
+                data_type,
+                packed_range,
+            } => {
+                data_type.validate(symbols)?;
+                let _ = packed_range.width(symbols)?;
+                let _ = data_type.bit_width(symbols)?;
+                Ok(())
+            }
+            DataType::Enum {
+                base_type,
+                variants,
+            } => {
+                base_type.validate(symbols)?;
+                let _ = base_type.bit_width(symbols)?;
+                for variant in variants {
+                    if let Some(value) = &variant.value {
+                        let _ = value.eval(symbols).map_err(map_eval_error)?;
+                    }
+                }
+                Ok(())
+            }
+            DataType::Union { packed, fields } => {
+                let mut expected_width = None;
+                let mut expected_name = None;
+                for field in fields {
+                    field.validate(symbols)?;
+                    if *packed {
+                        let width = field.bit_width(symbols)?;
+                        match expected_width {
+                            None => {
+                                expected_width = Some(width);
+                                expected_name = field.names.first().cloned();
+                            }
+                            Some(expected_width) if expected_width != width => {
+                                return Err(FrontendError::new(
+                                    format!(
+                                        "packed union field '{}' width {} does not match field '{}' width {}",
+                                        field.first_name(),
+                                        width,
+                                        expected_name.as_deref().unwrap_or("<unnamed>"),
+                                        expected_width
+                                    ),
+                                    0,
+                                ));
+                            }
+                            Some(_) => {}
+                        }
+                    }
+                }
+                Ok(())
+            }
+            DataType::Struct { packed, fields } => {
+                for field in fields {
+                    field.validate(symbols)?;
+                }
+                if *packed {
+                    for field in fields {
+                        let _ = field.bit_width(symbols)?;
+                    }
+                }
+                Ok(())
+            }
+        }
+    }
+
+    fn bit_width(&self, symbols: &HashMap<String, i64>) -> Result<i64, FrontendError> {
+        match self {
+            DataType::Builtin { keyword } => match keyword.as_str() {
+                "bit" | "logic" | "reg" | "wire" => Ok(1),
+                "int" | "integer" => Ok(32),
+                _ => Err(FrontendError::new(
+                    format!("unsupported width query for builtin type '{}'", keyword),
+                    0,
+                )),
+            },
+            DataType::Packed {
+                data_type,
+                packed_range,
+            } => Ok(data_type.bit_width(symbols)? * packed_range.width(symbols)?),
+            DataType::Enum { base_type, .. } => base_type.bit_width(symbols),
+            DataType::Union { packed, fields } => {
+                if !packed {
+                    return Err(FrontendError::new(
+                        "cannot compute width of unpacked union type",
+                        0,
+                    ));
+                }
+                let Some(first_field) = fields.first() else {
+                    return Err(FrontendError::new("packed union has no fields", 0));
+                };
+                first_field.bit_width(symbols)
+            }
+            DataType::Struct { packed, fields } => {
+                if !packed {
+                    return Err(FrontendError::new(
+                        "cannot compute width of unpacked struct type",
+                        0,
+                    ));
+                }
+                let mut total = 0i64;
+                for field in fields {
+                    total += field.bit_width(symbols)?;
+                }
+                Ok(total)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -761,6 +921,31 @@ pub struct StructField {
     pub data_type: DataType,
     pub packed_range: Option<PackedRange>,
     pub names: Vec<String>,
+}
+
+impl StructField {
+    fn validate(&self, symbols: &HashMap<String, i64>) -> Result<(), FrontendError> {
+        self.data_type.validate(symbols)?;
+        if let Some(range) = &self.packed_range {
+            let _ = range.width(symbols)?;
+        }
+        Ok(())
+    }
+
+    fn bit_width(&self, symbols: &HashMap<String, i64>) -> Result<i64, FrontendError> {
+        let mut width = self.data_type.bit_width(symbols)?;
+        if let Some(range) = &self.packed_range {
+            width *= range.width(symbols)?;
+        }
+        Ok(width)
+    }
+
+    fn first_name(&self) -> &str {
+        self.names
+            .first()
+            .map(String::as_str)
+            .unwrap_or("<unnamed>")
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -4756,6 +4941,59 @@ mod tests {
         assert_eq!(
             elaborated.child_instances[0].port_bindings[0].actual,
             Some(PortActual::Signal("payload.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_packed_union_width_mismatches() {
+        let design = parse_design(
+            r#"
+            module top (
+                output logic y
+            );
+            union packed {
+                logic [7:0] data;
+                logic [15:0] word;
+            } payload;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject packed-union width mismatches");
+        assert!(
+            error
+                .message
+                .contains("packed union field 'word' width 16 does not match field 'data' width 8")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_typedef_backed_packed_union_width_mismatches() {
+        let design = parse_design(
+            r#"
+            module top (
+                output logic y
+            );
+            typedef union packed {
+                logic [7:0] data;
+                logic [15:0] word;
+            } payload_t;
+            payload_t payload;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject typedef-backed packed-union width mismatches");
+        assert!(
+            error
+                .message
+                .contains("packed union field 'word' width 16 does not match field 'data' width 8")
         );
     }
 
