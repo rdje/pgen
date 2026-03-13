@@ -67,6 +67,30 @@ struct ElaborationConfig {
     max_generate_iterations: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct VisibleScope {
+    names: HashSet<String>,
+    types: HashMap<String, DataType>,
+}
+
+impl VisibleScope {
+    fn merged_with_items(&self, items: &[ModuleItem]) -> Self {
+        Self {
+            names: merge_visible_names(&self.names, &collect_visible_names_from_items(items)),
+            types: merge_declared_types(&self.types, &collect_declared_types_from_items(items)),
+        }
+    }
+
+    fn with_name(&self, name: &str) -> Self {
+        let mut names = self.names.clone();
+        names.insert(name.to_string());
+        Self {
+            names,
+            types: self.types.clone(),
+        }
+    }
+}
+
 impl Design {
     pub fn module(&self, name: &str) -> Option<&Module> {
         self.modules.iter().find(|module| module.name == name)
@@ -95,12 +119,12 @@ impl Design {
             FrontendError::new(format!("unknown top module '{}'", module_name), 0)
         })?;
         let parameters = module.evaluate_constant_env(overrides)?;
-        let visible_names = module.visible_connection_names();
+        let visible_scope = module.visible_connection_scope();
         let path = module.name.clone();
         let child_instances = self.elaborate_items(
             &module.items,
             &parameters,
-            &visible_names,
+            &visible_scope,
             &path,
             0,
             &config,
@@ -117,7 +141,7 @@ impl Design {
         &self,
         items: &[ModuleItem],
         symbols: &HashMap<String, i64>,
-        visible_names: &HashSet<String>,
+        visible_scope: &VisibleScope,
         scope_path: &str,
         depth: usize,
         config: &ElaborationConfig,
@@ -130,20 +154,18 @@ impl Design {
                     instances.extend(self.elaborate_instance(
                         instantiation,
                         symbols,
-                        visible_names,
+                        visible_scope,
                         scope_path,
                         depth,
                         config,
                     )?);
                 }
                 ModuleItem::GenerateRegion(region) => {
+                    let nested_visible_scope = visible_scope.merged_with_items(&region.items);
                     instances.extend(self.elaborate_items(
                         &region.items,
                         symbols,
-                        &merge_visible_names(
-                            visible_names,
-                            &collect_visible_names_from_items(&region.items),
-                        ),
+                        &nested_visible_scope,
                         scope_path,
                         depth,
                         config,
@@ -166,15 +188,12 @@ impl Design {
                     };
 
                     if !body_items.is_empty() {
-                        let nested_visible_names = merge_visible_names(
-                            visible_names,
-                            &collect_visible_names_from_items(body_items),
-                        );
+                        let nested_visible_scope = visible_scope.merged_with_items(body_items);
                         let nested_scope = join_path(scope_path, label.unwrap_or(fallback_scope));
                         instances.extend(self.elaborate_items(
                             body_items,
                             symbols,
-                            &nested_visible_names,
+                            &nested_visible_scope,
                             &nested_scope,
                             depth,
                             config,
@@ -187,11 +206,9 @@ impl Design {
                     {
                         let mut nested_symbols = symbols.clone();
                         nested_symbols.insert(generate_for.index_name.clone(), iteration);
-                        let mut nested_visible_names = merge_visible_names(
-                            visible_names,
-                            &collect_visible_names_from_items(&generate_for.body_items),
-                        );
-                        nested_visible_names.insert(generate_for.index_name.clone());
+                        let nested_visible_scope = visible_scope
+                            .merged_with_items(&generate_for.body_items)
+                            .with_name(&generate_for.index_name);
                         let scope_name = match &generate_for.label {
                             Some(label) => format!("{label}[{iteration}]"),
                             None => format!("__gen_for_{}[{iteration}]", generate_for.index_name),
@@ -200,7 +217,7 @@ impl Design {
                         instances.extend(self.elaborate_items(
                             &generate_for.body_items,
                             &nested_symbols,
-                            &nested_visible_names,
+                            &nested_visible_scope,
                             &nested_scope,
                             depth,
                             config,
@@ -222,7 +239,7 @@ impl Design {
         &self,
         instantiation: &ModuleInstantiation,
         parent_symbols: &HashMap<String, i64>,
-        parent_visible_names: &HashSet<String>,
+        parent_scope: &VisibleScope,
         scope_path: &str,
         depth: usize,
         config: &ElaborationConfig,
@@ -250,9 +267,13 @@ impl Design {
         let parameter_overrides =
             instantiation.resolve_parameter_overrides(module, parent_symbols)?;
         let parameters = module.evaluate_constant_env(&parameter_overrides)?;
-        let port_bindings =
-            instantiation.resolve_port_bindings(module, parent_visible_names, parent_symbols)?;
-        let child_visible_names = module.visible_connection_names();
+        let port_bindings = instantiation.resolve_port_bindings(
+            module,
+            &parent_scope.names,
+            &parent_scope.types,
+            parent_symbols,
+        )?;
+        let child_visible_scope = module.visible_connection_scope();
         let mut instances = Vec::new();
 
         for element_name in instantiation.element_instance_names(parent_symbols)? {
@@ -260,7 +281,7 @@ impl Design {
             let child_instances = self.elaborate_items(
                 &module.items,
                 &parameters,
-                &child_visible_names,
+                &child_visible_scope,
                 &path,
                 depth + 1,
                 config,
@@ -341,6 +362,26 @@ impl Module {
         names.extend(collect_visible_names_from_items(&self.items));
         names
     }
+
+    fn visible_connection_types(&self) -> HashMap<String, DataType> {
+        let mut types = HashMap::new();
+
+        for port in &self.ports {
+            if let Some(data_type) = &port.data_type {
+                types.insert(port.name.clone(), data_type.clone());
+            }
+        }
+
+        types.extend(collect_declared_types_from_items(&self.items));
+        types
+    }
+
+    fn visible_connection_scope(&self) -> VisibleScope {
+        VisibleScope {
+            names: self.visible_connection_names(),
+            types: self.visible_connection_types(),
+        }
+    }
 }
 
 fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
@@ -377,9 +418,51 @@ fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
     names
 }
 
+fn collect_declared_types_from_items(items: &[ModuleItem]) -> HashMap<String, DataType> {
+    let mut types = HashMap::new();
+
+    for item in items {
+        match item {
+            ModuleItem::NetDecl(net) => {
+                if let Some(data_type) = &net.data_type {
+                    for name in &net.names {
+                        types.insert(name.clone(), data_type.clone());
+                    }
+                }
+            }
+            ModuleItem::GenerateRegion(region) => {
+                types.extend(collect_declared_types_from_items(&region.items));
+            }
+            ModuleItem::GenerateIf(generate_if) => {
+                types.extend(collect_declared_types_from_items(&generate_if.then_items));
+                types.extend(collect_declared_types_from_items(&generate_if.else_items));
+            }
+            ModuleItem::GenerateFor(generate_for) => {
+                types.extend(collect_declared_types_from_items(&generate_for.body_items));
+            }
+            ModuleItem::ParameterDecl(_)
+            | ModuleItem::GenvarDecl(_)
+            | ModuleItem::ContinuousAssign(_)
+            | ModuleItem::ModuleInstantiation(_)
+            | ModuleItem::ProceduralBlock(_) => {}
+        }
+    }
+
+    types
+}
+
 fn merge_visible_names(base: &HashSet<String>, extra: &HashSet<String>) -> HashSet<String> {
     let mut merged = base.clone();
     merged.extend(extra.iter().cloned());
+    merged
+}
+
+fn merge_declared_types(
+    base: &HashMap<String, DataType>,
+    extra: &HashMap<String, DataType>,
+) -> HashMap<String, DataType> {
+    let mut merged = base.clone();
+    merged.extend(extra.clone());
     merged
 }
 
@@ -419,8 +502,37 @@ fn apply_parameter_decl(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DataType {
-    pub keyword: String,
+pub enum DataType {
+    Builtin {
+        keyword: String,
+    },
+    Struct {
+        packed: bool,
+        fields: Vec<StructField>,
+    },
+}
+
+impl DataType {
+    fn field_type(&self, name: &str) -> Option<&DataType> {
+        let DataType::Struct { fields, .. } = self else {
+            return None;
+        };
+
+        for field in fields {
+            if field.names.iter().any(|field_name| field_name == name) {
+                return Some(&field.data_type);
+            }
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructField {
+    pub data_type: DataType,
+    pub packed_range: Option<PackedRange>,
+    pub names: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -498,11 +610,13 @@ pub enum NetKind {
     Logic,
     Wire,
     Reg,
+    Typed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NetDecl {
     pub kind: NetKind,
+    pub data_type: Option<DataType>,
     pub packed_range: Option<PackedRange>,
     pub names: Vec<String>,
 }
@@ -548,30 +662,35 @@ impl PortActual {
     fn validate(
         &self,
         visible_names: &HashSet<String>,
+        visible_types: &HashMap<String, DataType>,
         symbols: &HashMap<String, i64>,
     ) -> Result<(), FrontendError> {
         match self {
-            PortActual::Signal(name) => validate_known_identifier(name, visible_names, symbols),
+            PortActual::Signal(name) => {
+                validate_known_identifier(name, visible_names, visible_types, symbols)
+            }
             PortActual::BitSelect { signal, index } => {
-                validate_known_identifier(signal, visible_names, symbols)?;
-                validate_expr_identifiers(index, visible_names, symbols)
+                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(index, visible_names, visible_types, symbols)
             }
             PortActual::PartSelect { signal, msb, lsb } => {
-                validate_known_identifier(signal, visible_names, symbols)?;
-                validate_expr_identifiers(msb, visible_names, symbols)?;
-                validate_expr_identifiers(lsb, visible_names, symbols)
+                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(msb, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(lsb, visible_names, visible_types, symbols)
             }
             PortActual::Concat(items) => {
                 for item in items {
-                    item.validate(visible_names, symbols)?;
+                    item.validate(visible_names, visible_types, symbols)?;
                 }
                 Ok(())
             }
             PortActual::Repeat { count, value } => {
-                validate_expr_identifiers(count, visible_names, symbols)?;
-                value.validate(visible_names, symbols)
+                validate_expr_identifiers(count, visible_names, visible_types, symbols)?;
+                value.validate(visible_names, visible_types, symbols)
             }
-            PortActual::Expression(expr) => validate_expr_identifiers(expr, visible_names, symbols),
+            PortActual::Expression(expr) => {
+                validate_expr_identifiers(expr, visible_names, visible_types, symbols)
+            }
         }
     }
 }
@@ -716,6 +835,7 @@ impl ModuleInstantiation {
         &self,
         module: &Module,
         parent_visible_names: &HashSet<String>,
+        parent_visible_types: &HashMap<String, DataType>,
         parent_symbols: &HashMap<String, i64>,
     ) -> Result<Vec<ResolvedPortBinding>, FrontendError> {
         let mut bindings = Vec::new();
@@ -748,7 +868,11 @@ impl ModuleInstantiation {
                         ));
                     };
                     if let Some(actual) = actual {
-                        actual.validate(parent_visible_names, parent_symbols)?;
+                        actual.validate(
+                            parent_visible_names,
+                            parent_visible_types,
+                            parent_symbols,
+                        )?;
                     }
                     bindings.push(ResolvedPortBinding {
                         port_name: port.name.clone(),
@@ -787,7 +911,11 @@ impl ModuleInstantiation {
                         ));
                     }
                     if let Some(actual) = actual {
-                        actual.validate(parent_visible_names, parent_symbols)?;
+                        actual.validate(
+                            parent_visible_names,
+                            parent_visible_types,
+                            parent_symbols,
+                        )?;
                     }
                     bindings.push(ResolvedPortBinding {
                         port_name: port.clone(),
@@ -823,7 +951,7 @@ impl ModuleInstantiation {
             for port in &module.ports {
                 if bound_ports.insert(port.name.clone()) {
                     let actual = PortActual::Signal(port.name.clone());
-                    actual.validate(parent_visible_names, parent_symbols)?;
+                    actual.validate(parent_visible_names, parent_visible_types, parent_symbols)?;
                     bindings.push(ResolvedPortBinding {
                         port_name: port.name.clone(),
                         actual: Some(actual),
@@ -988,34 +1116,76 @@ fn map_eval_error(err: EvalError) -> FrontendError {
 fn validate_known_identifier(
     name: &str,
     visible_names: &HashSet<String>,
+    visible_types: &HashMap<String, DataType>,
     symbols: &HashMap<String, i64>,
 ) -> Result<(), FrontendError> {
-    let root = identifier_root(name);
-    if visible_names.contains(name)
-        || symbols.contains_key(name)
-        || visible_names.contains(root)
-        || symbols.contains_key(root)
-    {
-        Ok(())
-    } else {
-        Err(FrontendError::new(
-            format!("unknown parent-scope identifier '{}'", name),
-            0,
-        ))
+    if visible_names.contains(name) || symbols.contains_key(name) {
+        return Ok(());
     }
+
+    if let Some(result) = validate_typed_member_path(name, visible_types) {
+        return result;
+    }
+
+    let root = identifier_root(name);
+    if visible_names.contains(root) || symbols.contains_key(root) {
+        return Ok(());
+    }
+
+    Err(FrontendError::new(
+        format!("unknown parent-scope identifier '{}'", name),
+        0,
+    ))
 }
 
 fn validate_expr_identifiers(
     expr: &Expr,
     visible_names: &HashSet<String>,
+    visible_types: &HashMap<String, DataType>,
     symbols: &HashMap<String, i64>,
 ) -> Result<(), FrontendError> {
     let mut identifiers = HashSet::new();
     collect_expr_identifiers(expr, &mut identifiers);
     for identifier in identifiers {
-        validate_known_identifier(&identifier, visible_names, symbols)?;
+        validate_known_identifier(&identifier, visible_names, visible_types, symbols)?;
     }
     Ok(())
+}
+
+fn validate_typed_member_path(
+    name: &str,
+    visible_types: &HashMap<String, DataType>,
+) -> Option<Result<(), FrontendError>> {
+    let mut segments = name.split('.');
+    let root = segments.next()?;
+    let mut current = visible_types.get(root)?;
+    let mut resolved_struct_member = false;
+
+    for segment in segments {
+        let Some(next) = current.field_type(segment) else {
+            return match current {
+                DataType::Struct { .. } => Some(Err(FrontendError::new(
+                    format!(
+                        "unknown member '{}' on parent-scope identifier '{}'",
+                        segment, root
+                    ),
+                    0,
+                ))),
+                _ if resolved_struct_member => Some(Err(FrontendError::new(
+                    format!(
+                        "cannot resolve member '{}' through non-aggregate parent-scope identifier '{}'",
+                        segment, root
+                    ),
+                    0,
+                ))),
+                _ => None,
+            };
+        };
+        resolved_struct_member = true;
+        current = next;
+    }
+
+    Some(Ok(()))
 }
 
 fn collect_expr_identifiers(expr: &Expr, identifiers: &mut HashSet<String>) {
@@ -1674,7 +1844,7 @@ impl<'a> Parser<'a> {
         flavor: ParameterFlavor,
         expr_terminators: &[char],
     ) -> Result<ParameterDecl, FrontendError> {
-        let data_type = self.parse_optional_data_type();
+        let data_type = self.parse_optional_data_type()?;
         let name = self.expect_identifier()?;
         let value = if self.consume_symbol('=') {
             Some(self.parse_expression_until(expr_terminators)?)
@@ -1698,7 +1868,7 @@ impl<'a> Parser<'a> {
 
         loop {
             let direction = self.parse_port_direction()?;
-            let data_type = self.parse_optional_data_type();
+            let data_type = self.parse_optional_data_type()?;
             let packed_range = self.parse_optional_packed_range()?;
 
             loop {
@@ -1737,7 +1907,11 @@ impl<'a> Parser<'a> {
         if self.peek_keyword("genvar") {
             return Ok(vec![ModuleItem::GenvarDecl(self.parse_genvar_decl()?)]);
         }
-        if self.peek_keyword("logic") || self.peek_keyword("wire") || self.peek_keyword("reg") {
+        if self.peek_keyword("logic")
+            || self.peek_keyword("wire")
+            || self.peek_keyword("reg")
+            || self.peek_keyword("struct")
+        {
             return Ok(vec![ModuleItem::NetDecl(self.parse_net_decl()?)]);
         }
         if self.peek_keyword("assign") {
@@ -1814,12 +1988,35 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_net_decl(&mut self) -> Result<NetDecl, FrontendError> {
-        let kind = if self.consume_keyword("logic") {
-            NetKind::Logic
+        let (kind, data_type) = if self.consume_keyword("logic") {
+            (
+                NetKind::Logic,
+                Some(DataType::Builtin {
+                    keyword: "logic".to_string(),
+                }),
+            )
         } else if self.consume_keyword("wire") {
-            NetKind::Wire
+            (
+                NetKind::Wire,
+                Some(DataType::Builtin {
+                    keyword: "wire".to_string(),
+                }),
+            )
         } else if self.consume_keyword("reg") {
-            NetKind::Reg
+            (
+                NetKind::Reg,
+                Some(DataType::Builtin {
+                    keyword: "reg".to_string(),
+                }),
+            )
+        } else if self.peek_keyword("struct") {
+            (
+                NetKind::Typed,
+                Some(
+                    self.parse_optional_data_type()?
+                        .ok_or_else(|| FrontendError::new("expected struct data type", 0))?,
+                ),
+            )
         } else {
             return Err(FrontendError::new(
                 "expected net declaration",
@@ -1836,6 +2033,7 @@ impl<'a> Parser<'a> {
 
         Ok(NetDecl {
             kind,
+            data_type,
             packed_range,
             names,
         })
@@ -2094,14 +2292,46 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_optional_data_type(&mut self) -> Option<DataType> {
-        let keyword = self.current_ident()?.to_string();
+    fn parse_optional_data_type(&mut self) -> Result<Option<DataType>, FrontendError> {
+        if self.peek_keyword("struct") {
+            return self.parse_struct_data_type().map(Some);
+        }
+
+        let Some(keyword) = self.current_ident().map(str::to_string) else {
+            return Ok(None);
+        };
         if is_data_type_keyword(&keyword) {
             self.advance();
-            Some(DataType { keyword })
+            Ok(Some(DataType::Builtin { keyword }))
         } else {
-            None
+            Ok(None)
         }
+    }
+
+    fn parse_struct_data_type(&mut self) -> Result<DataType, FrontendError> {
+        self.expect_keyword("struct")?;
+        let packed = self.consume_keyword("packed");
+        self.expect_symbol('{')?;
+
+        let mut fields = Vec::new();
+        while !self.consume_symbol('}') {
+            let data_type = self.parse_optional_data_type()?.ok_or_else(|| {
+                FrontendError::new("expected struct field data type", self.current().start)
+            })?;
+            let packed_range = self.parse_optional_packed_range()?;
+            let mut names = vec![self.expect_identifier()?];
+            while self.consume_symbol(',') {
+                names.push(self.expect_identifier()?);
+            }
+            self.expect_symbol(';')?;
+            fields.push(StructField {
+                data_type,
+                packed_range,
+                names,
+            });
+        }
+
+        Ok(DataType::Struct { packed, fields })
     }
 
     fn parse_optional_packed_range(&mut self) -> Result<Option<PackedRange>, FrontendError> {
@@ -2423,8 +2653,10 @@ fn is_keyword(value: &str) -> bool {
             | "logic"
             | "module"
             | "output"
+            | "packed"
             | "parameter"
             | "reg"
+            | "struct"
             | "wire"
     )
 }
@@ -2436,8 +2668,8 @@ fn is_data_type_keyword(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        GenerateFor, GenerateIf, ModuleItem, ParameterOverride, PortActual, PortConnection,
-        ProceduralKind, Statement, parse_design, parse_module,
+        DataType, GenerateFor, GenerateIf, ModuleItem, NetKind, ParameterOverride, PortActual,
+        PortConnection, ProceduralKind, Statement, parse_design, parse_module,
     };
     use std::collections::HashMap;
 
@@ -2835,8 +3067,9 @@ mod tests {
 
         let child = design.module("child").expect("child module should exist");
         let visible_names = top.visible_connection_names();
+        let visible_types = top.visible_connection_types();
         let bindings = instantiation
-            .resolve_port_bindings(child, &visible_names, &HashMap::new())
+            .resolve_port_bindings(child, &visible_names, &visible_types, &HashMap::new())
             .expect("wildcard binding resolution should succeed");
 
         assert_eq!(
@@ -2945,6 +3178,105 @@ mod tests {
                     "a".to_string(),
                 )])),
             })
+        );
+    }
+
+    #[test]
+    fn parses_struct_typed_net_declarations() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        match &module.items[0] {
+            ModuleItem::NetDecl(net) => {
+                assert_eq!(net.kind, NetKind::Typed);
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Struct { packed, fields } => {
+                        assert!(*packed);
+                        assert_eq!(fields.len(), 2);
+                        assert_eq!(fields[0].names, vec!["data".to_string()]);
+                        assert_eq!(fields[1].names, vec!["valid".to_string()]);
+                    }
+                    other => panic!("expected struct data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn elaboration_accepts_known_struct_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            child u_child (.a(cfg.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_struct_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            child u_child (.a(cfg.missing), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown struct members");
+        assert!(
+            error
+                .message
+                .contains("unknown member 'missing' on parent-scope identifier 'cfg'")
         );
     }
 

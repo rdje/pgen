@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add Struct-Aware RTL Member Validation
+### Context
+The previous `rtl_frontend` increments could preserve member-path actual text, but they still had to validate those paths by declared root only. That meant `cfg.data` and `cfg.missing` were indistinguishable unless the exact dotted path appeared in the symbol table.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - replaced the previous flat `DataType` string with a minimal enum that can represent builtin types plus inline `struct` types,
+  - added struct-field parsing for inline `struct` declarations in the handwritten frontend subset,
+  - carried declared type metadata through a visibility-scope helper during elaboration,
+  - upgraded member-path validation so known struct roots perform real field lookup before falling back to root-visible validation.
+- Added focused tests for:
+  - struct-typed net declaration parsing,
+  - successful elaboration through valid struct-member actuals,
+  - failure on unknown struct-member actuals.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `17/17` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This is still a narrow subset implementation: only inline `struct` declarations are modeled, not typedef-driven or package-scoped type resolution.
+- The next clean increment is named-type/typedef coverage plus broader declaration forms so structural validation can move beyond inline aggregates.
+
 ## 2026-03-13 - Add RTL Instance-Array Elaboration
 ### Context
 The previous `rtl_frontend` work could parse and elaborate single instance declarations, but it still stopped short of a common synthesizable shape: one-dimensional instance arrays. That left Phase S without a way to represent repeated structural instantiations except through explicit `generate` loops.

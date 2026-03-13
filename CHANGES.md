@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-13 - Add Struct-Aware RTL Member Validation
+### ✅ Achievement Summary
+`rtl_frontend` now has its first semantic declaration/type validation step instead of relying only on root-visible names for member-path actuals. Inline `struct`-typed declarations can now drive real member lookup, so valid paths like `cfg.data` pass while invalid paths like `cfg.missing` are rejected.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - replaced the old single-string `DataType` model with a minimal aggregate-aware type model,
+  - added inline `struct` data-type parsing for the handwritten frontend subset,
+  - carried declared type metadata through the elaboration visibility scope,
+  - upgraded member-path validation to use struct field lookup when type information is available while preserving the old root-visible fallback for legacy/untyped cases.
+- Added focused tests for:
+  - parsing struct-typed net declarations,
+  - accepting valid struct-member actuals,
+  - rejecting unknown struct-member actuals.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the new struct-aware baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`17/17`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Instance-Array Elaboration
 ### ✅ Achievement Summary
 `rtl_frontend` now handles one-dimensional instance arrays in its synthesizable subset. A single parsed instantiation like `lane[0:LANES-1]` now elaborates into multiple indexed child instances with stable hierarchical paths.

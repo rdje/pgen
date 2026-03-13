@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-13 (+0100, task: add-rtl-instance-array-elaboration)
+Last updated: 2026-03-13 (+0100, task: add-struct-aware-rtl-member-validation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -44,15 +44,16 @@ Use this file to resume work without replaying full chat history.
     - packed-range width resolution,
     - child instance parameter-override and port-binding resolution,
     - one-dimensional instance-array expansion with parent-evaluated ranges,
+    - inline `struct`-typed declaration parsing and struct-aware member-path lookup when type metadata is available,
     - typed parent-side actual parsing (`signal`, select, part-select, concat, repeat, expression),
-    - parent-scope connection legality validation across module + explicit generate scopes, including dotted/member-path actuals validated by declared root or exact symbol-table match,
+    - parent-scope connection legality validation across module + explicit generate scopes, including typed struct-member lookup plus backward-compatible dotted/member-path fallback by declared root or exact symbol-table match,
     - generate-if condition evaluation,
     - bounded generate-for unrolling,
     - design-level top elaboration into child-instance trees.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`11/11`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`14/14`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`17/17`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
@@ -3706,8 +3707,8 @@ Use this file to resume work without replaying full chat history.
 1. Continue Phase S RTL frontend build-out:
    - broaden the synthesizable subset beyond current module/instance/actual-expression coverage,
    - likely next frontend steps:
-     - richer declaration/data-type coverage so member-paths and connection legality can be validated structurally instead of by root-only visibility,
-     - more complete instantiation forms beyond the new one-dimensional instance-array baseline,
+     - named-type/typedef coverage so structural validation is not limited to inline aggregate declarations,
+     - broader declaration forms beyond the current inline-struct + one-dimensional instance-array baseline,
      - early lowering/elaboration contracts that can feed the planned RTLSyn path instead of stopping at typed instance trees.
 2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
    - keep expanding beyond the new `365`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
