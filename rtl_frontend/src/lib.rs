@@ -70,6 +70,13 @@ struct ElaborationConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+struct ElaborationState {
+    config: ElaborationConfig,
+    package_envs: HashMap<String, HashMap<String, i64>>,
+    package_symbols: HashMap<String, i64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct VisibleScope {
     names: HashSet<String>,
     types: HashMap<String, DataType>,
@@ -98,6 +105,10 @@ impl Design {
         self.modules.iter().find(|module| module.name == name)
     }
 
+    pub fn package(&self, name: &str) -> Option<&PackageDecl> {
+        self.packages.iter().find(|package| package.name == name)
+    }
+
     pub fn elaborate_top(
         &self,
         module_name: &str,
@@ -113,23 +124,36 @@ impl Design {
         max_depth: usize,
         max_generate_iterations: usize,
     ) -> Result<ElaboratedModule, FrontendError> {
-        let config = ElaborationConfig {
-            max_depth,
-            max_generate_iterations,
-        };
         let module = self.module(module_name).ok_or_else(|| {
             FrontendError::new(format!("unknown top module '{}'", module_name), 0)
         })?;
-        let parameters = module.evaluate_constant_env(overrides)?;
+        let package_envs = self.evaluate_package_constant_envs()?;
+        let package_symbols = flatten_package_constant_envs(&package_envs);
+        let state = ElaborationState {
+            config: ElaborationConfig {
+                max_depth,
+                max_generate_iterations,
+            },
+            package_envs,
+            package_symbols,
+        };
+        let imported_constants =
+            self.resolve_imported_constant_symbols(module.all_imports(), &state.package_envs)?;
+        let full_symbols = module.evaluate_full_constant_env(
+            &state.package_symbols,
+            &imported_constants,
+            overrides,
+        )?;
+        let parameters = module.extract_owned_constant_env(&full_symbols);
         let visible_scope = module.visible_connection_scope();
         let path = module.name.clone();
         let child_instances = self.elaborate_items(
             &module.items,
-            &parameters,
+            &full_symbols,
             &visible_scope,
             &path,
             0,
-            &config,
+            &state,
         )?;
         Ok(ElaboratedModule {
             module_name: module.name.clone(),
@@ -146,7 +170,7 @@ impl Design {
         visible_scope: &VisibleScope,
         scope_path: &str,
         depth: usize,
-        config: &ElaborationConfig,
+        state: &ElaborationState,
     ) -> Result<Vec<ElaboratedInstance>, FrontendError> {
         let mut instances = Vec::new();
 
@@ -159,7 +183,7 @@ impl Design {
                         visible_scope,
                         scope_path,
                         depth,
-                        config,
+                        state,
                     )?);
                 }
                 ModuleItem::GenerateRegion(region) => {
@@ -170,7 +194,7 @@ impl Design {
                         &nested_visible_scope,
                         scope_path,
                         depth,
-                        config,
+                        state,
                     )?);
                 }
                 ModuleItem::GenerateIf(generate_if) => {
@@ -198,13 +222,13 @@ impl Design {
                             &nested_visible_scope,
                             &nested_scope,
                             depth,
-                            config,
+                            state,
                         )?);
                     }
                 }
                 ModuleItem::GenerateFor(generate_for) => {
-                    for iteration in
-                        generate_for.iteration_values(symbols, config.max_generate_iterations)?
+                    for iteration in generate_for
+                        .iteration_values(symbols, state.config.max_generate_iterations)?
                     {
                         let mut nested_symbols = symbols.clone();
                         nested_symbols.insert(generate_for.index_name.clone(), iteration);
@@ -222,7 +246,7 @@ impl Design {
                             &nested_visible_scope,
                             &nested_scope,
                             depth,
-                            config,
+                            state,
                         )?);
                     }
                 }
@@ -246,13 +270,13 @@ impl Design {
         parent_scope: &VisibleScope,
         scope_path: &str,
         depth: usize,
-        config: &ElaborationConfig,
+        state: &ElaborationState,
     ) -> Result<Vec<ElaboratedInstance>, FrontendError> {
-        if depth >= config.max_depth {
+        if depth >= state.config.max_depth {
             return Err(FrontendError::new(
                 format!(
                     "elaboration depth exceeded max_depth={} while elaborating '{}'",
-                    config.max_depth, instantiation.instance_name
+                    state.config.max_depth, instantiation.instance_name
                 ),
                 0,
             ));
@@ -270,7 +294,14 @@ impl Design {
 
         let parameter_overrides =
             instantiation.resolve_parameter_overrides(module, parent_symbols)?;
-        let parameters = module.evaluate_constant_env(&parameter_overrides)?;
+        let imported_constants =
+            self.resolve_imported_constant_symbols(module.all_imports(), &state.package_envs)?;
+        let full_symbols = module.evaluate_full_constant_env(
+            &state.package_symbols,
+            &imported_constants,
+            &parameter_overrides,
+        )?;
+        let parameters = module.extract_owned_constant_env(&full_symbols);
         let port_bindings = instantiation.resolve_port_bindings(
             module,
             &parent_scope.names,
@@ -284,11 +315,11 @@ impl Design {
             let path = join_path(scope_path, &element_name);
             let child_instances = self.elaborate_items(
                 &module.items,
-                &parameters,
+                &full_symbols,
                 &child_visible_scope,
                 &path,
                 depth + 1,
-                config,
+                state,
             )?;
 
             instances.push(ElaboratedInstance {
@@ -302,6 +333,55 @@ impl Design {
         }
 
         Ok(instances)
+    }
+
+    fn evaluate_package_constant_envs(
+        &self,
+    ) -> Result<HashMap<String, HashMap<String, i64>>, FrontendError> {
+        let mut envs = HashMap::new();
+        let mut visible_symbols = HashMap::new();
+
+        for package in &self.packages {
+            let env = package.evaluate_constant_env(&visible_symbols)?;
+            for (name, value) in &env {
+                visible_symbols.insert(format!("{}::{name}", package.name), *value);
+            }
+            envs.insert(package.name.clone(), env);
+        }
+
+        Ok(envs)
+    }
+
+    fn resolve_imported_constant_symbols<'a>(
+        &self,
+        imports: impl IntoIterator<Item = &'a ImportDecl>,
+        package_envs: &HashMap<String, HashMap<String, i64>>,
+    ) -> Result<HashMap<String, i64>, FrontendError> {
+        let mut symbols = HashMap::new();
+
+        for import_decl in imports {
+            let package_constants = package_envs.get(&import_decl.package).ok_or_else(|| {
+                FrontendError::new(
+                    format!(
+                        "unknown package '{}' in import declaration",
+                        import_decl.package
+                    ),
+                    0,
+                )
+            })?;
+            match &import_decl.imported_name {
+                None => {
+                    symbols.extend(package_constants.clone());
+                }
+                Some(name) => {
+                    if let Some(value) = package_constants.get(name) {
+                        symbols.insert(name.clone(), *value);
+                    }
+                }
+            }
+        }
+
+        Ok(symbols)
     }
 }
 
@@ -319,21 +399,8 @@ impl Module {
         &self,
         overrides: &HashMap<String, i64>,
     ) -> Result<HashMap<String, i64>, FrontendError> {
-        let mut symbols = HashMap::new();
-        for (name, value) in overrides {
-            symbols.insert(name.clone(), *value);
-        }
-
-        for parameter in &self.parameters {
-            apply_parameter_decl(&mut symbols, overrides, parameter)?;
-        }
-        for item in &self.items {
-            if let ModuleItem::ParameterDecl(parameter) = item {
-                apply_parameter_decl(&mut symbols, overrides, parameter)?;
-            }
-        }
-
-        Ok(symbols)
+        self.evaluate_full_constant_env(&HashMap::new(), &HashMap::new(), overrides)
+            .map(|symbols| self.extract_owned_constant_env(&symbols))
     }
 
     fn overrideable_parameters(&self) -> Vec<&ParameterDecl> {
@@ -386,6 +453,61 @@ impl Module {
             names: self.visible_connection_names(),
             types: self.visible_connection_types(),
         }
+    }
+
+    fn all_imports(&self) -> impl Iterator<Item = &ImportDecl> {
+        self.header_imports
+            .iter()
+            .chain(self.items.iter().filter_map(|item| {
+                if let ModuleItem::ImportDecl(import_decl) = item {
+                    Some(import_decl)
+                } else {
+                    None
+                }
+            }))
+    }
+
+    fn evaluate_full_constant_env(
+        &self,
+        seed_symbols: &HashMap<String, i64>,
+        imported_constants: &HashMap<String, i64>,
+        overrides: &HashMap<String, i64>,
+    ) -> Result<HashMap<String, i64>, FrontendError> {
+        let mut symbols = seed_symbols.clone();
+        symbols.extend(imported_constants.clone());
+        for (name, value) in overrides {
+            symbols.insert(name.clone(), *value);
+        }
+
+        for parameter in &self.parameters {
+            apply_parameter_decl(&mut symbols, overrides, parameter)?;
+        }
+        for item in &self.items {
+            if let ModuleItem::ParameterDecl(parameter) = item {
+                apply_parameter_decl(&mut symbols, overrides, parameter)?;
+            }
+        }
+
+        Ok(symbols)
+    }
+
+    fn extract_owned_constant_env(&self, symbols: &HashMap<String, i64>) -> HashMap<String, i64> {
+        let mut env = HashMap::new();
+
+        for parameter in &self.parameters {
+            if let Some(value) = symbols.get(&parameter.name) {
+                env.insert(parameter.name.clone(), *value);
+            }
+        }
+        for item in &self.items {
+            if let ModuleItem::ParameterDecl(parameter) = item
+                && let Some(value) = symbols.get(&parameter.name)
+            {
+                env.insert(parameter.name.clone(), *value);
+            }
+        }
+
+        env
     }
 }
 
@@ -475,6 +597,18 @@ fn merge_declared_types(
     merged
 }
 
+fn flatten_package_constant_envs(
+    package_envs: &HashMap<String, HashMap<String, i64>>,
+) -> HashMap<String, i64> {
+    let mut symbols = HashMap::new();
+    for (package_name, constants) in package_envs {
+        for (name, value) in constants {
+            symbols.insert(format!("{package_name}::{name}"), *value);
+        }
+    }
+    symbols
+}
+
 fn apply_parameter_decl(
     symbols: &mut HashMap<String, i64>,
     overrides: &HashMap<String, i64>,
@@ -552,6 +686,29 @@ pub struct TypedefDecl {
 pub struct PackageDecl {
     pub name: String,
     pub typedefs: Vec<TypedefDecl>,
+    pub constants: Vec<ParameterDecl>,
+}
+
+impl PackageDecl {
+    fn evaluate_constant_env(
+        &self,
+        seed_symbols: &HashMap<String, i64>,
+    ) -> Result<HashMap<String, i64>, FrontendError> {
+        let mut symbols = seed_symbols.clone();
+        let overrides = HashMap::new();
+        for constant in &self.constants {
+            apply_parameter_decl(&mut symbols, &overrides, constant)?;
+        }
+
+        let mut env = HashMap::new();
+        for constant in &self.constants {
+            if let Some(value) = symbols.get(&constant.name) {
+                env.insert(constant.name.clone(), *value);
+            }
+        }
+
+        Ok(env)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1335,6 +1492,7 @@ fn split_repetition_count_and_value(input: &str) -> Result<Option<(&str, &str)>,
             ':' if paren_depth == 0
                 && bracket_depth == 0
                 && brace_depth == 0
+                && !is_double_colon_at(input, idx)
                 && ternary_depth > 0 =>
             {
                 ternary_depth -= 1;
@@ -1457,6 +1615,7 @@ fn split_top_level(input: &str, delimiter: char) -> Result<Vec<&str>, FrontendEr
             ':' if paren_depth == 0
                 && bracket_depth == 0
                 && brace_depth == 0
+                && !is_double_colon_at(input, idx)
                 && ternary_depth > 0 =>
             {
                 ternary_depth -= 1;
@@ -1469,6 +1628,7 @@ fn split_top_level(input: &str, delimiter: char) -> Result<Vec<&str>, FrontendEr
             && bracket_depth == 0
             && brace_depth == 0
             && ternary_depth == 0
+            && !(delimiter == ':' && is_double_colon_at(input, idx))
         {
             parts.push(input[start..idx].trim());
             start = idx + ch.len_utf8();
@@ -1508,6 +1668,7 @@ fn split_top_level_once(
             ':' if paren_depth == 0
                 && bracket_depth == 0
                 && brace_depth == 0
+                && !is_double_colon_at(input, idx)
                 && ternary_depth > 0 =>
             {
                 ternary_depth -= 1;
@@ -1520,6 +1681,7 @@ fn split_top_level_once(
             && bracket_depth == 0
             && brace_depth == 0
             && ternary_depth == 0
+            && !(delimiter == ':' && is_double_colon_at(input, idx))
         {
             let left = input[..idx].trim();
             let right = input[idx + ch.len_utf8()..].trim();
@@ -1534,6 +1696,12 @@ fn split_top_level_once(
     }
 
     Ok(None)
+}
+
+fn is_double_colon_at(input: &str, idx: usize) -> bool {
+    let bytes = input.as_bytes();
+    bytes.get(idx) == Some(&b':')
+        && (bytes.get(idx + 1) == Some(&b':') || idx > 0 && bytes.get(idx - 1) == Some(&b':'))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1792,6 +1960,7 @@ struct Parser<'a> {
     index: usize,
     global_type_aliases: HashMap<String, DataType>,
     package_type_aliases: HashMap<String, HashMap<String, DataType>>,
+    package_constant_names: HashMap<String, HashSet<String>>,
     type_aliases: HashMap<String, DataType>,
 }
 
@@ -1803,6 +1972,7 @@ impl<'a> Parser<'a> {
             index: 0,
             global_type_aliases: HashMap::new(),
             package_type_aliases: HashMap::new(),
+            package_constant_names: HashMap::new(),
             type_aliases: HashMap::new(),
         }
     }
@@ -1879,34 +2049,7 @@ impl<'a> Parser<'a> {
         &mut self,
         terminator: char,
     ) -> Result<Vec<ParameterDecl>, FrontendError> {
-        let mut params = Vec::new();
-        if self.consume_symbol(terminator) {
-            return Ok(params);
-        }
-
-        let mut current_flavor: Option<ParameterFlavor> = None;
-        loop {
-            if self.consume_keyword("parameter") {
-                current_flavor = Some(ParameterFlavor::Parameter);
-            } else if self.consume_keyword("localparam") {
-                current_flavor = Some(ParameterFlavor::Localparam);
-            }
-
-            let Some(flavor) = current_flavor.clone() else {
-                return Err(FrontendError::new(
-                    "expected parameter/localparam declaration",
-                    self.current().start,
-                ));
-            };
-
-            params.push(self.parse_parameter_decl(flavor, &[',', terminator])?);
-            if !self.consume_symbol(',') {
-                break;
-            }
-        }
-
-        self.expect_symbol(terminator)?;
-        Ok(params)
+        self.parse_parameter_decl_sequence(terminator)
     }
 
     fn parse_parameter_decl(
@@ -2039,9 +2182,23 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_parameter_items(&mut self) -> Result<Vec<ModuleItem>, FrontendError> {
-        let mut items = Vec::new();
-        let mut current_flavor: Option<ParameterFlavor> = None;
+        Ok(self
+            .parse_parameter_decl_sequence(';')?
+            .into_iter()
+            .map(ModuleItem::ParameterDecl)
+            .collect())
+    }
 
+    fn parse_parameter_decl_sequence(
+        &mut self,
+        terminator: char,
+    ) -> Result<Vec<ParameterDecl>, FrontendError> {
+        let mut params = Vec::new();
+        if self.consume_symbol(terminator) {
+            return Ok(params);
+        }
+
+        let mut current_flavor: Option<ParameterFlavor> = None;
         loop {
             if self.consume_keyword("parameter") {
                 current_flavor = Some(ParameterFlavor::Parameter);
@@ -2056,15 +2213,14 @@ impl<'a> Parser<'a> {
                 ));
             };
 
-            let decl = self.parse_parameter_decl(flavor, &[',', ';'])?;
-            items.push(ModuleItem::ParameterDecl(decl));
+            params.push(self.parse_parameter_decl(flavor, &[',', terminator])?);
             if !self.consume_symbol(',') {
                 break;
             }
         }
 
-        self.expect_symbol(';')?;
-        Ok(items)
+        self.expect_symbol(terminator)?;
+        Ok(params)
     }
 
     fn parse_genvar_decl(&mut self) -> Result<GenvarDecl, FrontendError> {
@@ -2085,8 +2241,19 @@ impl<'a> Parser<'a> {
 
         let mut typedefs = Vec::new();
         let mut package_aliases = HashMap::new();
+        let mut constants = Vec::new();
+        let mut constant_names = HashSet::new();
         while !self.peek_keyword("endpackage") {
-            if !self.peek_keyword("typedef") {
+            if self.peek_keyword("typedef") {
+                let typedef_decl = self.parse_typedef_decl()?;
+                package_aliases.insert(typedef_decl.name.clone(), typedef_decl.data_type.clone());
+                typedefs.push(typedef_decl);
+            } else if self.peek_keyword("parameter") || self.peek_keyword("localparam") {
+                for constant in self.parse_parameter_decl_sequence(';')? {
+                    constant_names.insert(constant.name.clone());
+                    constants.push(constant);
+                }
+            } else {
                 return Err(FrontendError::new(
                     format!(
                         "unsupported package item starting with {}",
@@ -2095,17 +2262,20 @@ impl<'a> Parser<'a> {
                     self.current().start,
                 ));
             }
-            let typedef_decl = self.parse_typedef_decl()?;
-            package_aliases.insert(typedef_decl.name.clone(), typedef_decl.data_type.clone());
-            typedefs.push(typedef_decl);
         }
 
         self.expect_keyword("endpackage")?;
         self.package_type_aliases
             .insert(name.clone(), package_aliases);
+        self.package_constant_names
+            .insert(name.clone(), constant_names);
         self.type_aliases = self.global_type_aliases.clone();
 
-        Ok(PackageDecl { name, typedefs })
+        Ok(PackageDecl {
+            name,
+            typedefs,
+            constants,
+        })
     }
 
     fn parse_typedef_decl(&mut self) -> Result<TypedefDecl, FrontendError> {
@@ -2147,18 +2317,33 @@ impl<'a> Parser<'a> {
                     0,
                 )
             })?;
+        let constant_names = self
+            .package_constant_names
+            .get(&package)
+            .cloned()
+            .unwrap_or_default();
         match &imported_name {
             None => {
                 self.type_aliases.extend(aliases);
             }
             Some(name) => {
-                let data_type = aliases.get(name).cloned().ok_or_else(|| {
-                    FrontendError::new(
-                        format!("unknown type '{}::{}' in import declaration", package, name),
+                let mut found = false;
+                if let Some(data_type) = aliases.get(name).cloned() {
+                    self.type_aliases.insert(name.clone(), data_type);
+                    found = true;
+                }
+                if constant_names.contains(name) {
+                    found = true;
+                }
+                if !found {
+                    return Err(FrontendError::new(
+                        format!(
+                            "unknown import '{}::{}' in import declaration",
+                            package, name
+                        ),
                         0,
-                    )
-                })?;
-                self.type_aliases.insert(name.clone(), data_type);
+                    ));
+                }
             }
         }
 
@@ -2649,7 +2834,8 @@ impl<'a> Parser<'a> {
 
             if top_level {
                 if let TokenKind::Symbol(':') = token.kind {
-                    if ternary_depth > 0 {
+                    if self.current_is_double_colon() {
+                    } else if ternary_depth > 0 {
                         ternary_depth -= 1;
                     } else if terminators.contains(&':') {
                         break;
@@ -2805,6 +2991,16 @@ impl<'a> Parser<'a> {
         matches!(self.current().kind, TokenKind::Symbol(ch) if terminators.contains(&ch))
     }
 
+    fn current_is_double_colon(&self) -> bool {
+        matches!(self.current().kind, TokenKind::Symbol(':'))
+            && (matches!(self.peek_kind(1), Some(TokenKind::Symbol(':')))
+                || self.index > 0
+                    && matches!(
+                        self.tokens.get(self.index - 1).map(|token| &token.kind),
+                        Some(TokenKind::Symbol(':'))
+                    ))
+    }
+
     fn expect_identifier(&mut self) -> Result<String, FrontendError> {
         match &self.current().kind {
             TokenKind::Ident(value) if !is_keyword(value) => {
@@ -2831,10 +3027,12 @@ impl<'a> Parser<'a> {
         let Some(package) = self.current_ident() else {
             return false;
         };
-        self.package_type_aliases.contains_key(package)
-            && matches!(self.peek_kind(1), Some(TokenKind::Symbol(':')))
+        let Some(aliases) = self.package_type_aliases.get(package) else {
+            return false;
+        };
+        matches!(self.peek_kind(1), Some(TokenKind::Symbol(':')))
             && matches!(self.peek_kind(2), Some(TokenKind::Symbol(':')))
-            && matches!(self.peek_kind(3), Some(TokenKind::Ident(_)))
+            && matches!(self.peek_kind(3), Some(TokenKind::Ident(name)) if aliases.contains_key(name))
     }
 
     fn looks_like_module_instantiation(&self) -> bool {
@@ -2847,7 +3045,8 @@ impl<'a> Parser<'a> {
         if self.type_aliases.contains_key(name) {
             return false;
         }
-        if self.package_type_aliases.contains_key(name)
+        if (self.package_type_aliases.contains_key(name)
+            || self.package_constant_names.contains_key(name))
             && matches!(self.peek_kind(1), Some(TokenKind::Symbol(':')))
         {
             return false;
@@ -3266,6 +3465,141 @@ mod tests {
             }
             other => panic!("expected header-imported struct port type, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn elaborate_top_supports_package_qualified_constants() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                localparam WIDTH = 8;
+                parameter DEPTH = WIDTH + 2;
+            endpackage
+
+            module child #(parameter W = 1) (
+                input logic [W-1:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top #(
+                parameter LANES = cfg_pkg::WIDTH / 4
+            ) (
+                input logic [cfg_pkg::DEPTH-1:0] data,
+                output logic y
+            );
+            localparam TOTAL = cfg_pkg::DEPTH + LANES;
+            child #(.W(TOTAL)) u_child (.a(data[cfg_pkg::DEPTH-1:0]), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        assert_eq!(design.packages.len(), 1);
+        assert_eq!(design.packages[0].constants.len(), 2);
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("LANES"), Some(&2));
+        assert_eq!(elaborated.parameters.get("TOTAL"), Some(&12));
+        assert_eq!(elaborated.child_instances[0].parameters.get("W"), Some(&12));
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::PartSelect {
+                signal: "data".to_string(),
+                msb: rtl_const_expr::parse_expression("cfg_pkg::DEPTH - 1").unwrap(),
+                lsb: rtl_const_expr::parse_expression("0").unwrap(),
+            })
+        );
+    }
+
+    #[test]
+    fn elaborate_top_supports_header_imported_package_constants() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                localparam WIDTH = 8;
+                localparam DEPTH = WIDTH + 1;
+            endpackage
+
+            module child #(parameter W = 1) (
+                input logic [W-1:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top import cfg_pkg::*; #(
+                parameter LANES = WIDTH / 4
+            ) (
+                input logic [DEPTH-1:0] data,
+                output logic y
+            );
+            localparam TOTAL = DEPTH + LANES;
+            child #(.W(TOTAL)) u_child (.a(data[WIDTH-1:0]), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("LANES"), Some(&2));
+        assert_eq!(elaborated.parameters.get("TOTAL"), Some(&11));
+        assert_eq!(elaborated.child_instances[0].parameters.get("W"), Some(&11));
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::PartSelect {
+                signal: "data".to_string(),
+                msb: rtl_const_expr::parse_expression("WIDTH - 1").unwrap(),
+                lsb: rtl_const_expr::parse_expression("0").unwrap(),
+            })
+        );
+    }
+
+    #[test]
+    fn elaborate_top_supports_named_package_constant_imports() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                localparam WIDTH = 8;
+            endpackage
+
+            module child #(parameter W = 1) (
+                input logic [W-1:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                input logic [8:0] data,
+                output logic y
+            );
+            import cfg_pkg::WIDTH;
+            localparam TOTAL = WIDTH + 1;
+            child #(.W(TOTAL)) u_child (.a(data[WIDTH:0]), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("TOTAL"), Some(&9));
+        assert_eq!(elaborated.child_instances[0].parameters.get("W"), Some(&9));
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::PartSelect {
+                signal: "data".to_string(),
+                msb: rtl_const_expr::parse_expression("WIDTH").unwrap(),
+                lsb: rtl_const_expr::parse_expression("0").unwrap(),
+            })
+        );
     }
 
     #[test]

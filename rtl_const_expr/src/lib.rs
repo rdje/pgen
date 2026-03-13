@@ -444,7 +444,24 @@ impl<'a> Lexer<'a> {
 
     fn lex_ident(&mut self) -> Token {
         let start = self.index;
-        let text = self.take_while(is_ident_continue);
+        let mut text = String::new();
+        while let Some(ch) = self.peek_char() {
+            if is_ident_continue(ch) {
+                text.push(ch);
+                self.index += ch.len_utf8();
+                continue;
+            }
+            if ch == ':'
+                && self.peek_char_n(1) == Some(':')
+                && matches!(self.peek_char_n(2), Some(next) if is_ident_start(next))
+            {
+                text.push(':');
+                text.push(':');
+                self.index += 2;
+                continue;
+            }
+            break;
+        }
         Token {
             kind: TokenKind::Ident(text),
             position: start,
@@ -490,6 +507,10 @@ impl<'a> Lexer<'a> {
 
     fn peek_char(&self) -> Option<char> {
         self.input.get(self.index..)?.chars().next()
+    }
+
+    fn peek_char_n(&self, offset: usize) -> Option<char> {
+        self.input.get(self.index..)?.chars().nth(offset)
     }
 }
 
@@ -752,6 +773,31 @@ mod tests {
         assert_eq!(
             evaluate_expression("cfg.width * cfg.lanes", &symbols).unwrap(),
             16
+        );
+    }
+
+    #[test]
+    fn package_qualified_identifiers_resolve_from_symbol_table() {
+        let symbols = HashMap::from([
+            ("cfg_pkg::WIDTH".to_string(), 8),
+            ("cfg_pkg::LANES".to_string(), 2),
+        ]);
+        assert_eq!(
+            evaluate_expression("cfg_pkg::WIDTH * cfg_pkg::LANES", &symbols).unwrap(),
+            16
+        );
+    }
+
+    #[test]
+    fn ternary_expressions_still_parse_with_package_qualified_identifiers() {
+        let symbols = HashMap::from([
+            ("SEL".to_string(), 1),
+            ("cfg_pkg::A".to_string(), 3),
+            ("cfg_pkg::B".to_string(), 7),
+        ]);
+        assert_eq!(
+            evaluate_expression("SEL ? cfg_pkg::A : cfg_pkg::B", &symbols).unwrap(),
+            3
         );
     }
 

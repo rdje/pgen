@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Package Constant Scope
+### Context
+The previous `rtl_frontend` package work only handled named-type visibility. That was enough for typedef-backed declarations, but it still left a real elaboration gap: package-backed constants could not flow into parameter defaults, packed ranges, or instance expressions unless they were rewritten by hand. The next clean increment was therefore package constant scope rather than more import syntax alone.
+
+### Implementation
+- Extended [rtl_const_expr/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_const_expr/src/lib.rs):
+  - taught identifier lexing to keep `pkg::NAME` as a single identifier token,
+  - preserved ternary parsing semantics while adding `::` support,
+  - added focused evaluator tests for package-qualified symbol lookup.
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - extended `PackageDecl` to retain `parameter` / `localparam` declarations as package constants alongside typedefs,
+  - added design-level package constant evaluation plus flattening into package-qualified symbols for elaboration-time expression evaluation,
+  - resolved wildcard and named package constant imports into module elaboration-time seed environments,
+  - updated frontend expression slicing and raw-text split helpers so `::` is not misread as a ternary/range colon during packed-range and part-select parsing.
+- Added focused tests for:
+  - package-qualified constants in module parameter defaults and packed ranges,
+  - header wildcard-imported constants driving parameter evaluation and part-select bindings,
+  - named package constant imports inside module bodies.
+
+### Validation
+- `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed with `13/13` tests green.
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `31/31` tests green.
+- `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- Package imports now contribute both named types and constant values to the current handwritten Phase S subset, but the scope is still intentionally narrow:
+  - packages are still limited to typedefs plus constant declarations,
+  - there is still no broader package item/body coverage beyond that subset.
+- The next clean increment is broader declaration/elaboration structure rather than more namespace-only plumbing.
+
 ## 2026-03-13 - Add RTL Module-Header Package Imports
 ### Context
 The previous `rtl_frontend` import work only applied after the module header, which meant package-backed named types still could not be used in ANSI port lists unless they were package-qualified directly. The next clean increment was therefore header imports.

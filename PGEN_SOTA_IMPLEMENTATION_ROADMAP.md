@@ -1917,6 +1917,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - module-header imports before ANSI port lists,
     - header-import-backed type resolution for ANSI port declarations,
     - header-import-backed named types remaining visible for later module body declarations in the same module parse.
+  - Progress (2026-03-13): extended `rtl_frontend` package scope beyond typedef-only coverage so the current subset now supports:
+    - top-level package `parameter` / `localparam` declarations evaluated through `rtl_const_expr`,
+    - package-qualified constant expressions such as `cfg_pkg::WIDTH` in module parameters, packed ranges, and elaboration-time override/binding expressions,
+    - wildcard and named package constant imports flowing into module-header/body elaboration-time constant environments.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,
@@ -1927,6 +1931,7 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - identifier lookup against a caller-provided symbol table,
     - unary, arithmetic, shift, comparison, equality, bitwise, logical, and ternary operators,
     - executable unit tests covering precedence, symbol resolution, based literals, ternary evaluation, and failure cases.
+  - Progress (2026-03-13): extended `rtl_const_expr` identifier support so the baseline evaluator now also accepts package-qualified names such as `cfg_pkg::WIDTH` without colliding with ternary `?:` parsing.
 - [ ] Add a Liberty parser crate:
   - required to extract cell Boolean functions,
   - required to extract timing arcs,

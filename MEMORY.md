@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-13 (+0100, task: add-rtl-module-header-package-imports)
+Last updated: 2026-03-13 (+0100, task: add-rtl-package-constant-scope)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -31,6 +31,7 @@ Use this file to resume work without replaying full chat history.
     - `CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, `QUICKSTART_AI_ONBOARDING.md`, `rust/docs/TECHNICAL_ARCHITECTURE.md`, and `rust/docs/CLI_REFERENCE.md` are explicitly marked as historical/reference docs.
 - Phase S now has an executable frontend baseline instead of only a roadmap note:
   - `rtl_const_expr/` is the standalone constant-expression parser/evaluator,
+  - `rtl_const_expr/` now supports dotted and package-qualified (`pkg::NAME`) identifiers without breaking ternary parsing,
   - `rtl_frontend/` now depends on `rtl_const_expr` and parses a narrow synthesizable subset:
     - module headers with optional parameter/ANSI port lists,
     - parameter/localparam declarations,
@@ -46,7 +47,7 @@ Use this file to resume work without replaying full chat history.
     - one-dimensional instance-array expansion with parent-evaluated ranges,
     - inline `struct`-typed declaration parsing and struct-aware member-path lookup when type metadata is available,
     - file-scope plus module-local typedef parsing and named type resolution for later module headers/declarations in the handwritten subset,
-    - top-level package typedef parsing, package-qualified type references, and module-body/header wildcard/named imports for named-type visibility,
+    - top-level package typedef and constant parsing, package-qualified type/constant references, and module-body/header wildcard/named imports for named-type and constant visibility,
     - typed parent-side actual parsing (`signal`, select, part-select, concat, repeat, expression),
     - parent-scope connection legality validation across module + explicit generate scopes, including typed struct-member lookup plus backward-compatible dotted/member-path fallback by declared root or exact symbol-table match,
     - generate-if condition evaluation,
@@ -54,8 +55,8 @@ Use this file to resume work without replaying full chat history.
     - design-level top elaboration into child-instance trees.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
-  - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`11/11`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`28/28`),
+  - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`13/13`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`31/31`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
@@ -3709,7 +3710,7 @@ Use this file to resume work without replaying full chat history.
 1. Continue Phase S RTL frontend build-out:
    - broaden the synthesizable subset beyond current module/instance/actual-expression coverage,
    - likely next frontend steps:
-     - richer package/import scope beyond the current typedef-only packages and module-body/header wildcard/named import baseline,
+     - broader declaration/elaboration structure beyond the current typedef+package-constant packages and module-body/header wildcard/named import baseline,
      - broader declaration forms beyond the current inline-struct + typedef + one-dimensional instance-array baseline,
      - early lowering/elaboration contracts that can feed the planned RTLSyn path instead of stopping at typed instance trees.
 2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:

@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Package Constant Scope
+### ✅ Achievement Summary
+`rtl_frontend` no longer stops at typedef-only package scope. Packages can now carry constant declarations, package-qualified and imported package constants can drive module parameters/ranges/elaboration, and `rtl_const_expr` now understands `pkg::NAME` identifiers directly.
+
+### Scope of Changes
+- Expanded [rtl_const_expr/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_const_expr/src/lib.rs):
+  - extended identifier lexing to accept package-qualified names like `cfg_pkg::WIDTH`,
+  - preserved ternary `?:` parsing while adding `::` support,
+  - added focused evaluator tests for package-qualified identifiers.
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - extended `PackageDecl` to retain package constants in addition to typedefs,
+  - added package-constant evaluation and package-qualified/imported constant seeding for top/module elaboration,
+  - taught package import parsing to validate and carry constant imports as well as type imports,
+  - hardened frontend expression and part-select splitting so `::` does not get mistaken for a ternary or range separator.
+- Added focused tests for:
+  - package-qualified constants in module parameters, packed ranges, and elaboration,
+  - header wildcard-imported package constants in parameter lists and instance bindings,
+  - named package constant imports inside module bodies.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the package-constant baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` ✅ (`13/13`)
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`31/31`)
+- `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` ✅
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Module-Header Package Imports
 ### ✅ Achievement Summary
 `rtl_frontend` now supports package imports in module headers instead of limiting imports to the module body. Header imports can resolve ANSI port types and keep those imported named types visible for later declarations inside the same module.
