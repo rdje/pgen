@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Extend RTL Actual-Expression Coverage
+### Context
+The previous `rtl_frontend` increment could type-check plain identifiers, selects, part-selects, and concatenations, but it still had two important gaps: dotted/member-path actuals were rejected unless the full dotted name was declared, and the generic fallback node was named as if it only represented constants even though ordered/named bindings can carry broader expressions.
+
+### Implementation
+- Extended `rtl_frontend/src/lib.rs`:
+  - renamed the generic fallback actual node to `Expression`,
+  - added `PortActual::Repeat` so replication-style concatenations like `{LANES{a}}` survive parsing/elaboration as structured data,
+  - updated parent-scope identifier validation to accept either:
+    - an exact dotted symbol-table match, or
+    - a declared root identifier such as `cfg` for actuals like `cfg.data` / `cfg.data[IDX]`.
+- Extended `rtl_const_expr/src/lib.rs` so dotted identifiers parse as single identifiers inside the constant-expression layer.
+- Added focused tests for:
+  - dotted/member-path selects,
+  - repetition actual preservation,
+  - member-path expression actual preservation through elaboration,
+  - dotted identifier lookup in the standalone constant-expression evaluator.
+
+### Validation
+- `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed with `11/11` tests green.
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `12/12` tests green.
+- `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- The actual-expression surface is still intentionally narrow; this is not a full SV expression frontend.
+- The next clean increment is broader elaboration coverage around instance arrays, richer declaration/data-type support, and eventually enough structure to feed a real RTLSyn lowering path.
+
 ## 2026-03-13 - Add Typed Parent-Scope Port-Actual Validation
 ### Context
 The previous `rtl_frontend` elaboration increment could resolve child ports and instance parameter overrides, but port actuals were still carried as raw text. That meant elaboration could not distinguish a legal signal connection from an undeclared parent reference, and it could not preserve useful structure like selects or concatenations.

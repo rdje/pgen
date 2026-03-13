@@ -404,7 +404,10 @@ impl<'a> Lexer<'a> {
             self.index += 1;
             let digits = self.take_while(is_based_digit_char);
             if digits.is_empty() {
-                return Err(EvalError::new("expected digits after base specifier", self.index));
+                return Err(EvalError::new(
+                    "expected digits after base specifier",
+                    self.index,
+                ));
             }
 
             let base = match base_char.to_ascii_lowercase() {
@@ -430,9 +433,9 @@ impl<'a> Lexer<'a> {
         }
 
         let cleaned = strip_underscores(&size_text);
-        let value = cleaned.parse::<i64>().map_err(|_| {
-            EvalError::new(format!("invalid decimal integer '{}'", cleaned), start)
-        })?;
+        let value = cleaned
+            .parse::<i64>()
+            .map_err(|_| EvalError::new(format!("invalid decimal integer '{}'", cleaned), start))?;
         Ok(Token {
             kind: TokenKind::Integer(value),
             position: start,
@@ -654,10 +657,7 @@ pub fn parse_expression(input: &str) -> Result<Expr, EvalError> {
     Parser::new(tokens).parse()
 }
 
-pub fn evaluate_expression(
-    input: &str,
-    symbols: &HashMap<String, i64>,
-) -> Result<i64, EvalError> {
+pub fn evaluate_expression(input: &str, symbols: &HashMap<String, i64>) -> Result<i64, EvalError> {
     parse_expression(input)?.eval(symbols)
 }
 
@@ -711,7 +711,7 @@ fn is_ident_start(ch: char) -> bool {
 }
 
 fn is_ident_continue(ch: char) -> bool {
-    is_ident_start(ch) || ch.is_ascii_digit() || ch == '$'
+    is_ident_start(ch) || ch.is_ascii_digit() || ch == '$' || ch == '.'
 }
 
 fn is_based_digit_char(ch: char) -> bool {
@@ -720,45 +720,60 @@ fn is_based_digit_char(ch: char) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{Expr, parse_expression};
+    use super::{parse_expression, Expr};
     use crate::evaluate_expression;
     use std::collections::HashMap;
 
     #[test]
     fn arithmetic_precedence_works() {
-        assert_eq!(evaluate_expression("2 + 3 * 4", &HashMap::new()).unwrap(), 14);
+        assert_eq!(
+            evaluate_expression("2 + 3 * 4", &HashMap::new()).unwrap(),
+            14
+        );
     }
 
     #[test]
     fn parentheses_override_precedence() {
-        assert_eq!(evaluate_expression("(2 + 3) * 4", &HashMap::new()).unwrap(), 20);
+        assert_eq!(
+            evaluate_expression("(2 + 3) * 4", &HashMap::new()).unwrap(),
+            20
+        );
     }
 
     #[test]
     fn identifiers_resolve_from_symbol_table() {
-        let symbols = HashMap::from([
-            ("WIDTH".to_string(), 8),
-            ("LANES".to_string(), 2),
-        ]);
+        let symbols = HashMap::from([("WIDTH".to_string(), 8), ("LANES".to_string(), 2)]);
         assert_eq!(evaluate_expression("WIDTH * LANES", &symbols).unwrap(), 16);
     }
 
     #[test]
+    fn dotted_identifiers_resolve_from_symbol_table() {
+        let symbols = HashMap::from([("cfg.width".to_string(), 8), ("cfg.lanes".to_string(), 2)]);
+        assert_eq!(
+            evaluate_expression("cfg.width * cfg.lanes", &symbols).unwrap(),
+            16
+        );
+    }
+
+    #[test]
     fn based_literals_are_supported() {
-        assert_eq!(evaluate_expression("8'hff + 4'b0001", &HashMap::new()).unwrap(), 256);
+        assert_eq!(
+            evaluate_expression("8'hff + 4'b0001", &HashMap::new()).unwrap(),
+            256
+        );
     }
 
     #[test]
     fn shift_and_bitwise_precedence_works() {
-        assert_eq!(evaluate_expression("1 << 3 | 2", &HashMap::new()).unwrap(), 10);
+        assert_eq!(
+            evaluate_expression("1 << 3 | 2", &HashMap::new()).unwrap(),
+            10
+        );
     }
 
     #[test]
     fn comparisons_and_logical_ops_return_zero_or_one() {
-        let symbols = HashMap::from([
-            ("WIDTH".to_string(), 8),
-            ("ENABLE".to_string(), 1),
-        ]);
+        let symbols = HashMap::from([("WIDTH".to_string(), 8), ("ENABLE".to_string(), 1)]);
         assert_eq!(
             evaluate_expression("(WIDTH > 4) && ENABLE", &symbols).unwrap(),
             1
@@ -767,10 +782,7 @@ mod tests {
 
     #[test]
     fn ternary_expression_selects_branch() {
-        let symbols = HashMap::from([
-            ("ENABLE".to_string(), 0),
-            ("WIDTH".to_string(), 8),
-        ]);
+        let symbols = HashMap::from([("ENABLE".to_string(), 0), ("WIDTH".to_string(), 8)]);
         assert_eq!(
             evaluate_expression("ENABLE ? WIDTH : 1", &symbols).unwrap(),
             1

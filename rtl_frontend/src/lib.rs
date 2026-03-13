@@ -513,7 +513,11 @@ pub enum PortActual {
         lsb: Expr,
     },
     Concat(Vec<PortActual>),
-    Constant(Expr),
+    Repeat {
+        count: Expr,
+        value: Box<PortActual>,
+    },
+    Expression(Expr),
 }
 
 impl PortActual {
@@ -539,7 +543,11 @@ impl PortActual {
                 }
                 Ok(())
             }
-            PortActual::Constant(expr) => validate_expr_identifiers(expr, visible_names, symbols),
+            PortActual::Repeat { count, value } => {
+                validate_expr_identifiers(count, visible_names, symbols)?;
+                value.validate(visible_names, symbols)
+            }
+            PortActual::Expression(expr) => validate_expr_identifiers(expr, visible_names, symbols),
         }
     }
 }
@@ -942,7 +950,12 @@ fn validate_known_identifier(
     visible_names: &HashSet<String>,
     symbols: &HashMap<String, i64>,
 ) -> Result<(), FrontendError> {
-    if visible_names.contains(name) || symbols.contains_key(name) {
+    let root = identifier_root(name);
+    if visible_names.contains(name)
+        || symbols.contains_key(name)
+        || visible_names.contains(root)
+        || symbols.contains_key(root)
+    {
         Ok(())
     } else {
         Err(FrontendError::new(
@@ -1002,11 +1015,20 @@ fn parse_port_actual(input: &str) -> Result<PortActual, FrontendError> {
                 0,
             ));
         }
-        let mut parts = Vec::new();
-        for part in split_top_level(inner, ',')? {
-            parts.push(parse_port_actual(part)?);
+        let parts = split_top_level(inner, ',')?;
+        if parts.len() == 1
+            && let Some((count_text, body_text)) = split_repetition_count_and_value(inner)?
+        {
+            return Ok(PortActual::Repeat {
+                count: parse_expression(count_text).map_err(map_eval_error)?,
+                value: Box::new(parse_port_actual(body_text)?),
+            });
         }
-        return Ok(PortActual::Concat(parts));
+        let mut parsed_parts = Vec::new();
+        for part in parts {
+            parsed_parts.push(parse_port_actual(part)?);
+        }
+        return Ok(PortActual::Concat(parsed_parts));
     }
 
     if let Some((signal, inner)) = split_signal_suffix(trimmed)? {
@@ -1026,8 +1048,57 @@ fn parse_port_actual(input: &str) -> Result<PortActual, FrontendError> {
     let expr = parse_expression(trimmed).map_err(map_eval_error)?;
     Ok(match expr {
         Expr::Ident(name) => PortActual::Signal(name),
-        other => PortActual::Constant(other),
+        other => PortActual::Expression(other),
     })
+}
+
+fn split_repetition_count_and_value(input: &str) -> Result<Option<(&str, &str)>, FrontendError> {
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut brace_depth = 0usize;
+    let mut ternary_depth = 0usize;
+
+    for (idx, ch) in input.char_indices() {
+        match ch {
+            '(' => paren_depth += 1,
+            ')' => paren_depth = paren_depth.saturating_sub(1),
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            '{' if paren_depth == 0
+                && bracket_depth == 0
+                && brace_depth == 0
+                && ternary_depth == 0 =>
+            {
+                let count = input[..idx].trim();
+                let body = input[idx..].trim();
+                if count.is_empty() {
+                    return Ok(None);
+                }
+                if !is_wrapped_by(body, '{', '}') {
+                    return Err(FrontendError::new(
+                        format!("malformed repetition actual '{}'", input),
+                        0,
+                    ));
+                }
+                return Ok(Some((count, body)));
+            }
+            '{' => brace_depth += 1,
+            '}' => brace_depth = brace_depth.saturating_sub(1),
+            '?' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
+                ternary_depth += 1;
+            }
+            ':' if paren_depth == 0
+                && bracket_depth == 0
+                && brace_depth == 0
+                && ternary_depth > 0 =>
+            {
+                ternary_depth -= 1;
+            }
+            _ => {}
+        }
+    }
+
+    Ok(None)
 }
 
 fn split_signal_suffix(input: &str) -> Result<Option<(String, &str)>, FrontendError> {
@@ -1083,6 +1154,10 @@ fn is_identifier_path(input: &str) -> bool {
         return false;
     }
     segments.all(is_identifier_segment)
+}
+
+fn identifier_root(input: &str) -> &str {
+    input.split('.').next().unwrap_or(input)
 }
 
 fn is_identifier_segment(input: &str) -> bool {
@@ -2704,6 +2779,88 @@ mod tests {
                 PortActual::Signal("a".to_string()),
                 PortActual::Signal("b".to_string()),
             ]))
+        );
+    }
+
+    #[test]
+    fn elaboration_preserves_member_path_and_repeat_actuals() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter IDX = 1,
+                parameter LANES = 2
+            ) (
+                input logic [7:0] a,
+                output logic [15:0] y
+            );
+            logic cfg;
+            child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+        let bindings = &elaborated.child_instances[0].port_bindings;
+
+        assert_eq!(
+            bindings[0].actual,
+            Some(PortActual::BitSelect {
+                signal: "cfg.data".to_string(),
+                index: rtl_const_expr::parse_expression("IDX").unwrap(),
+            })
+        );
+        assert_eq!(
+            bindings[1].actual,
+            Some(PortActual::Repeat {
+                count: rtl_const_expr::parse_expression("LANES").unwrap(),
+                value: Box::new(PortActual::Concat(vec![PortActual::Signal(
+                    "a".to_string(),
+                )])),
+            })
+        );
+    }
+
+    #[test]
+    fn elaboration_preserves_expression_actuals_with_member_paths() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic [7:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter SEL = 1
+            ) (
+                output logic [7:0] y
+            );
+            logic cfg, backup;
+            child u_child (.a(SEL ? cfg.data : backup.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+        let bindings = &elaborated.child_instances[0].port_bindings;
+
+        assert_eq!(
+            bindings[0].actual,
+            Some(PortActual::Expression(
+                rtl_const_expr::parse_expression("SEL ? cfg.data : backup.data").unwrap()
+            ))
         );
     }
 

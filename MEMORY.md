@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-13 (+0100, task: close-semantic-hint-drift-and-start-rtl-frontend-baseline)
+Last updated: 2026-03-13 (+0100, task: extend-rtl-actual-expression-coverage)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -43,15 +43,16 @@ Use this file to resume work without replaying full chat history.
     - constant-environment evaluation,
     - packed-range width resolution,
     - child instance parameter-override and port-binding resolution,
-    - typed parent-side actual parsing (`signal`, select, part-select, concat, constant),
-    - parent-scope connection legality validation across module + explicit generate scopes,
+    - typed parent-side actual parsing (`signal`, select, part-select, concat, repeat, expression),
+    - parent-scope connection legality validation across module + explicit generate scopes, including dotted/member-path actuals validated by declared root or exact symbol-table match,
     - generate-if condition evaluation,
     - bounded generate-for unrolling,
     - design-level top elaboration into child-instance trees.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
-  - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed,
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`10/10`).
+  - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`11/11`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`12/12`),
+  - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
 - Worktree: verify with `git status -sb` before resuming; commit workflow is required after each completed task.
@@ -3701,7 +3702,13 @@ Use this file to resume work without replaying full chat history.
     - `realistic_corpus_preprocess_error_total=0`
 
 ## Next Likely Tasks (Priority)
-1. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
+1. Continue Phase S RTL frontend build-out:
+   - broaden the synthesizable subset beyond current module/instance/actual-expression coverage,
+   - likely next frontend steps:
+     - instance arrays and more complete instantiation forms,
+     - richer declaration/data-type coverage so member-path actuals can eventually be validated structurally instead of by declared root only,
+     - early lowering/elaboration contracts that can feed the planned RTLSyn path instead of stopping at typed instance trees.
+2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
    - keep expanding beyond the new `365`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.
    - likely next probe targets:
      - move to the next complete family step after the promoted thirty-five-child / `tritriaconta_bridge` slice, likely `thirty_six_child` / the next bridge-family increment,
@@ -3714,12 +3721,12 @@ Use this file to resume work without replaying full chat history.
       - continue tuning shared replay weighting now that dependency ranking plus marginal-probe suppression are in place,
       - recover more SV replay-shadow acceptance from the new `28.53%` bounded level without giving back the replay-debt gain,
       - continue avoiding grammar-specific heuristics.
-2. Continue Rust-native EBNF migration hardening:
+3. Continue Rust-native EBNF migration hardening:
    - main HDL quality/preprocessor and aggregate sign-off surfaces now expose both primary-entry and alternate-entry telemetry,
    - likely next useful parser-trust increment inside the non-annotation loop is narrower:
       - keep prioritizing replay-quality behavior improvements over more observability-only work now that both main-quality and promotion/reporting surfaces expose the full primary-vs-alternate split.
-3. Keep roadmap + UG + memory synced after every gate/contract increment.
-4. Paused operational follow-up:
+4. Keep roadmap + UG + memory synced after every gate/contract increment.
+5. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.
 
 ## Known Gaps / Risks

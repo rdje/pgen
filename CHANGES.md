@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-13 - Extend RTL Actual-Expression Coverage
+### ✅ Achievement Summary
+`rtl_frontend` now preserves richer instance actual shapes during elaboration instead of collapsing them into overly generic forms. Parent-side binding validation now accepts dotted/member-path references by declared root, and typed actuals now include repetition-style concatenations plus general expression actuals.
+
+### Scope of Changes
+- Expanded `rtl_frontend/src/lib.rs`:
+  - renamed the generic fallback actual from constant-only semantics to `Expression`,
+  - added `PortActual::Repeat` for replication-style concatenations such as `{LANES{a}}`,
+  - extended parent-scope identifier validation so dotted actuals are accepted by exact symbol-table match or by a declared root identifier,
+  - preserved member-path expression actuals instead of treating them as opaque text.
+- Extended `rtl_const_expr/src/lib.rs`:
+  - dotted identifiers now lex/parse as single symbol-table keys so frontend elaboration can carry member-path expressions through the constant-expression layer.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the richer actual-expression baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` ✅ (`11/11`)
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`12/12`)
+- `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` ✅
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add Typed Parent-Scope Port-Actual Validation
 ### ✅ Achievement Summary
 `rtl_frontend` now validates instance port actuals against the parent scope during elaboration, instead of treating them as opaque strings. Port bindings now preserve typed actual structure for identifiers, selects, part-selects, concatenations, and constant expressions.
