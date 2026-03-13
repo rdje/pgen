@@ -556,6 +556,7 @@ pub struct PackageDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportDecl {
     pub package: String,
+    pub imported_name: Option<String>,
     pub wildcard: bool,
 }
 
@@ -2117,7 +2118,11 @@ impl<'a> Parser<'a> {
         let package = self.expect_identifier()?;
         self.expect_symbol(':')?;
         self.expect_symbol(':')?;
-        self.expect_symbol('*')?;
+        let imported_name = if self.consume_symbol('*') {
+            None
+        } else {
+            Some(self.expect_identifier()?)
+        };
         self.expect_symbol(';')?;
 
         let aliases = self
@@ -2130,11 +2135,26 @@ impl<'a> Parser<'a> {
                     0,
                 )
             })?;
-        self.type_aliases.extend(aliases);
+        match &imported_name {
+            None => {
+                self.type_aliases.extend(aliases);
+            }
+            Some(name) => {
+                let data_type = aliases.get(name).cloned().ok_or_else(|| {
+                    FrontendError::new(
+                        format!("unknown type '{}::{}' in import declaration", package, name),
+                        0,
+                    )
+                })?;
+                self.type_aliases.insert(name.clone(), data_type);
+            }
+        }
 
+        let wildcard = imported_name.is_none();
         Ok(ImportDecl {
             package,
-            wildcard: true,
+            imported_name,
+            wildcard,
         })
     }
 
@@ -3151,6 +3171,50 @@ mod tests {
     }
 
     #[test]
+    fn parse_design_supports_named_package_imports_for_later_declarations() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module top (
+                output logic y
+            );
+            import cfg_pkg::cfg_t;
+            cfg_t cfg;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        match &design.modules[0].items[0] {
+            ModuleItem::ImportDecl(import_decl) => {
+                assert_eq!(import_decl.package, "cfg_pkg");
+                assert_eq!(import_decl.imported_name.as_deref(), Some("cfg_t"));
+                assert!(!import_decl.wildcard);
+            }
+            other => panic!("expected import declaration, got {other:?}"),
+        }
+
+        match &design.modules[0].items[1] {
+            ModuleItem::NetDecl(net) => {
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Struct { fields, .. } => {
+                        assert_eq!(fields[0].names, vec!["data".to_string()]);
+                        assert_eq!(fields[1].names, vec!["valid".to_string()]);
+                    }
+                    other => panic!("expected named-import struct net type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn generate_if_condition_evaluates_from_symbols() {
         let generate_if = GenerateIf {
             condition: rtl_const_expr::parse_expression("WIDTH > 1").unwrap(),
@@ -3725,6 +3789,44 @@ mod tests {
                 output logic y
             );
             import cfg_pkg::*;
+            cfg_t cfg;
+            child u_child (.a(cfg.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_named_package_import_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            import cfg_pkg::cfg_t;
             cfg_t cfg;
             child u_child (.a(cfg.data), .y(y));
             endmodule

@@ -1909,6 +1909,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - top-level `package ... endpackage` declarations that currently carry typedefs,
     - package-qualified type references such as `cfg_pkg::cfg_t` in later module headers/declarations,
     - module-body wildcard imports (`import cfg_pkg::*;`) for later declaration parsing.
+  - Progress (2026-03-13): extended `rtl_frontend` import coverage so the current subset now supports:
+    - explicit named imports such as `import cfg_pkg::cfg_t;`,
+    - named-import-backed later declarations without requiring wildcard imports,
+    - reuse of the existing struct-aware validation path for named-import-backed member references.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

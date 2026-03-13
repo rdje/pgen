@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Named Package Imports
+### ✅ Achievement Summary
+`rtl_frontend` now supports explicit named package imports in addition to wildcard imports. Modules can import a specific type like `cfg_pkg::cfg_t` and use it in later declarations and struct-member validation without importing the entire package namespace.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - extended `ImportDecl` to represent explicit named imports as well as wildcard imports,
+  - updated import parsing to accept `import pkg::TypeName;`,
+  - resolved named imports into the existing type-alias environment so later declarations reuse the current typedef-backed validation path.
+- Added focused tests for:
+  - parsing named package imports,
+  - named-import-backed later declarations,
+  - elaboration through named-import-backed struct-member actuals.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the named-import baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`26/26`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Package Typedef Scope And Imports
 ### ✅ Achievement Summary
 `rtl_frontend` now has a first package-style named-type scope instead of stopping at file-scope and module-local aliases. Top-level packages can carry typedefs, later modules can reference those types with package qualification, and module-body wildcard imports can bring them into later declaration parsing.

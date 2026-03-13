@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Named Package Imports
+### Context
+The previous `rtl_frontend` package step only supported wildcard imports, which was enough to prove package-backed type scope but still broader than many real uses. The next clean increment was therefore explicit named imports like `import cfg_pkg::cfg_t;`.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - expanded `ImportDecl` so it can represent either a wildcard import or a specific imported type name,
+  - updated import parsing to accept both `import pkg::*;` and `import pkg::TypeName;`,
+  - resolved named imports into the same type-alias environment already used by typedefs and wildcard imports.
+- Added focused tests for:
+  - parsing named package imports,
+  - later declaration parsing through named imports,
+  - elaboration through named-import-backed struct-member actuals.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `26/26` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This still stops short of the full SV import surface; imports are module-body only in the current handwritten subset.
+- The next clean increment is broader package/import expressiveness, likely module-header imports or richer package contents.
+
 ## 2026-03-13 - Add RTL Package Typedef Scope And Imports
 ### Context
 The previous `rtl_frontend` type-scope work reached file-scope typedefs, but it still lacked the first real namespace step that HDL code actually leans on: top-level packages and package-backed type visibility.
