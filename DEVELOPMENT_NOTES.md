@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add File-Scope RTL Typedef Visibility
+### Context
+The previous `rtl_frontend` typedef work stopped at module-local aliases. That was enough for declarations inside one module body, but it still blocked a common next shape: file-scope typedefs used by later module headers and declarations.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added file-scope typedef parsing in `parse_design(...)`,
+  - added a persistent global alias table for typedefs that survive across later module parses,
+  - reseeded each module parse from the file-scope alias table so later ANSI ports and declarations can resolve named types without leaking module-local aliases globally,
+  - recorded parsed file-scope typedefs on `Design`.
+- Added focused tests for:
+  - file-scope typedef parsing before later modules,
+  - later-module ANSI port and declaration resolution through file-scope typedefs,
+  - elaboration through file-scope typedef-backed member paths.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `22/22` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This is still parser-local scope handling, not full package/import/type namespace support.
+- The next clean increment is package-style named-type scope or other richer non-local type visibility, rather than adding more ad hoc alias cases.
+
 ## 2026-03-13 - Add RTL Typedef-Backed Named Type Coverage
 ### Context
 The previous `rtl_frontend` type work could only validate structure when the aggregate type was written inline on the declaration itself. That left the next obvious synthesizable subset gap: simple module-local typedefs like `typedef struct packed { ... } cfg_t; cfg_t cfg;`.

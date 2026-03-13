@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-13 - Add File-Scope RTL Typedef Visibility
+### ✅ Achievement Summary
+`rtl_frontend` now carries typedef-backed named types across later modules instead of limiting them to a single module body. File-scope typedefs can now feed later module ANSI port lists and declarations, and the resulting named types still participate in struct-member validation.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added file-scope typedef collection in `parse_design(...)`,
+  - extended parser state with a persistent global typedef alias table plus per-module reseeding,
+  - stored parsed file-scope typedefs on `Design`,
+  - preserved module-local alias isolation while making file-scope aliases visible to later modules and their headers.
+- Added focused tests for:
+  - parsing file-scope typedefs before later modules,
+  - using file-scope typedefs in later ANSI port lists and net declarations,
+  - elaboration through file-scope typedef-backed struct-member actuals.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the broader typedef-visibility baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`22/22`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Typedef-Backed Named Type Coverage
 ### ✅ Achievement Summary
 `rtl_frontend` now supports a first named-type slice instead of requiring all structural declarations to be inline. Module-local `typedef` declarations can now resolve later named-type net declarations, and typedef-backed struct member paths participate in the same semantic validation path as inline structs.

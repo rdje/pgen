@@ -1901,6 +1901,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - module-local `typedef` declarations for the handwritten type subset,
     - named type resolution for later declaration parsing without misclassifying typedef-backed nets as module instantiations,
     - typedef-backed struct-member legality checks such as `cfg_t cfg; cfg.data`.
+  - Progress (2026-03-13): extended `rtl_frontend` typedef visibility so the current subset now supports:
+    - file-scope `typedef` declarations before later modules,
+    - use of those typedefs in later module ANSI port lists and declarations,
+    - preservation of module-local typedef isolation by reseeding module parse scope from file-scope aliases.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

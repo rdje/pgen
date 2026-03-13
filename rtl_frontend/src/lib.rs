@@ -40,6 +40,7 @@ impl Error for FrontendError {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Design {
+    pub typedefs: Vec<TypedefDecl>,
     pub modules: Vec<Module>,
 }
 
@@ -1770,6 +1771,7 @@ struct Parser<'a> {
     input: &'a str,
     tokens: Vec<Token>,
     index: usize,
+    global_type_aliases: HashMap<String, DataType>,
     type_aliases: HashMap<String, DataType>,
 }
 
@@ -1779,20 +1781,30 @@ impl<'a> Parser<'a> {
             input,
             tokens,
             index: 0,
+            global_type_aliases: HashMap::new(),
             type_aliases: HashMap::new(),
         }
     }
 
     fn parse_design(mut self) -> Result<Design, FrontendError> {
+        let mut typedefs = Vec::new();
         let mut modules = Vec::new();
         while !self.is_end() {
-            modules.push(self.parse_module()?);
+            if self.peek_keyword("typedef") {
+                self.type_aliases = self.global_type_aliases.clone();
+                let typedef_decl = self.parse_typedef_decl()?;
+                self.global_type_aliases
+                    .insert(typedef_decl.name.clone(), typedef_decl.data_type.clone());
+                typedefs.push(typedef_decl);
+            } else {
+                modules.push(self.parse_module()?);
+            }
         }
-        Ok(Design { modules })
+        Ok(Design { typedefs, modules })
     }
 
     fn parse_module(&mut self) -> Result<Module, FrontendError> {
-        self.type_aliases.clear();
+        self.type_aliases = self.global_type_aliases.clone();
         self.expect_keyword("module")?;
         let name = self.expect_identifier()?;
         let parameters = if self.consume_symbol('#') {
@@ -1814,7 +1826,7 @@ impl<'a> Parser<'a> {
             items.extend(self.parse_item_group(false)?);
         }
         self.expect_keyword("endmodule")?;
-        self.type_aliases.clear();
+        self.type_aliases = self.global_type_aliases.clone();
 
         Ok(Module {
             name,
@@ -2873,6 +2885,66 @@ mod tests {
     }
 
     #[test]
+    fn parse_design_supports_file_scope_typedefs_for_later_modules() {
+        let design = parse_design(
+            r#"
+            typedef struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg_t;
+
+            module child (
+                input cfg_t cfg,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            cfg_t cfg;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        assert_eq!(design.typedefs.len(), 1);
+        assert_eq!(design.typedefs[0].name, "cfg_t");
+        match &design.typedefs[0].data_type {
+            DataType::Struct { packed, fields } => {
+                assert!(*packed);
+                assert_eq!(fields.len(), 2);
+            }
+            other => panic!("expected file-scope typedef struct, got {other:?}"),
+        }
+
+        match design.modules[0].ports[0]
+            .data_type
+            .as_ref()
+            .expect("child port type should exist")
+        {
+            DataType::Struct { fields, .. } => {
+                assert_eq!(fields[0].names, vec!["data".to_string()]);
+                assert_eq!(fields[1].names, vec!["valid".to_string()]);
+            }
+            other => panic!("expected resolved child port struct type, got {other:?}"),
+        }
+
+        match &design.modules[1].items[0] {
+            ModuleItem::NetDecl(net) => {
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Struct { fields, .. } => {
+                        assert_eq!(fields[0].names, vec!["data".to_string()]);
+                        assert_eq!(fields[1].names, vec!["valid".to_string()]);
+                    }
+                    other => panic!("expected resolved top net struct type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn generate_if_condition_evaluates_from_symbols() {
         let generate_if = GenerateIf {
             condition: rtl_const_expr::parse_expression("WIDTH > 1").unwrap(),
@@ -3374,6 +3446,41 @@ mod tests {
                 logic [7:0] data;
                 logic valid;
             } cfg_t;
+            cfg_t cfg;
+            child u_child (.a(cfg.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_file_scope_typedef_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            typedef struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg_t;
+
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
             cfg_t cfg;
             child u_child (.a(cfg.data), .y(y));
             endmodule
