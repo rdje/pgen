@@ -1889,6 +1889,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - dotted/member-path actuals and member-path selects using root-aware parent-scope legality checks,
     - repetition-style concatenations such as `{LANES{a}}`,
     - richer fallback expression actuals without mislabeling them as constant-only forms.
+  - Progress (2026-03-13): extended `rtl_frontend` instantiation/elaboration coverage so the current subset now supports:
+    - one-dimensional instance arrays with parent-evaluated ranges such as `lane[0:LANES-1]`,
+    - indexed elaboration paths like `top.lane[0]` / `top.lane[1]`,
+    - shared parameter/binding resolution across each expanded array element.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-13 (+0100, task: extend-rtl-actual-expression-coverage)
+Last updated: 2026-03-13 (+0100, task: add-rtl-instance-array-elaboration)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -43,6 +43,7 @@ Use this file to resume work without replaying full chat history.
     - constant-environment evaluation,
     - packed-range width resolution,
     - child instance parameter-override and port-binding resolution,
+    - one-dimensional instance-array expansion with parent-evaluated ranges,
     - typed parent-side actual parsing (`signal`, select, part-select, concat, repeat, expression),
     - parent-scope connection legality validation across module + explicit generate scopes, including dotted/member-path actuals validated by declared root or exact symbol-table match,
     - generate-if condition evaluation,
@@ -51,7 +52,7 @@ Use this file to resume work without replaying full chat history.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`11/11`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`12/12`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`14/14`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
@@ -3705,8 +3706,8 @@ Use this file to resume work without replaying full chat history.
 1. Continue Phase S RTL frontend build-out:
    - broaden the synthesizable subset beyond current module/instance/actual-expression coverage,
    - likely next frontend steps:
-     - instance arrays and more complete instantiation forms,
-     - richer declaration/data-type coverage so member-path actuals can eventually be validated structurally instead of by declared root only,
+     - richer declaration/data-type coverage so member-paths and connection legality can be validated structurally instead of by root-only visibility,
+     - more complete instantiation forms beyond the new one-dimensional instance-array baseline,
      - early lowering/elaboration contracts that can feed the planned RTLSyn path instead of stopping at typed instance trees.
 2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
    - keep expanding beyond the new `365`-case realistic corpus baseline, especially additional Nexsim integration families and parser-supported preprocess forms that are not yet promoted.

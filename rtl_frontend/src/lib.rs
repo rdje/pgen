@@ -127,7 +127,7 @@ impl Design {
         for item in items {
             match item {
                 ModuleItem::ModuleInstantiation(instantiation) => {
-                    instances.push(self.elaborate_instance(
+                    instances.extend(self.elaborate_instance(
                         instantiation,
                         symbols,
                         visible_names,
@@ -226,7 +226,7 @@ impl Design {
         scope_path: &str,
         depth: usize,
         config: &ElaborationConfig,
-    ) -> Result<ElaboratedInstance, FrontendError> {
+    ) -> Result<Vec<ElaboratedInstance>, FrontendError> {
         if depth >= config.max_depth {
             return Err(FrontendError::new(
                 format!(
@@ -253,24 +253,30 @@ impl Design {
         let port_bindings =
             instantiation.resolve_port_bindings(module, parent_visible_names, parent_symbols)?;
         let child_visible_names = module.visible_connection_names();
-        let path = join_path(scope_path, &instantiation.instance_name);
-        let child_instances = self.elaborate_items(
-            &module.items,
-            &parameters,
-            &child_visible_names,
-            &path,
-            depth + 1,
-            config,
-        )?;
+        let mut instances = Vec::new();
 
-        Ok(ElaboratedInstance {
-            module_name: module.name.clone(),
-            instance_name: instantiation.instance_name.clone(),
-            path,
-            parameters,
-            port_bindings,
-            child_instances,
-        })
+        for element_name in instantiation.element_instance_names(parent_symbols)? {
+            let path = join_path(scope_path, &element_name);
+            let child_instances = self.elaborate_items(
+                &module.items,
+                &parameters,
+                &child_visible_names,
+                &path,
+                depth + 1,
+                config,
+            )?;
+
+            instances.push(ElaboratedInstance {
+                module_name: module.name.clone(),
+                instance_name: element_name,
+                path,
+                parameters: parameters.clone(),
+                port_bindings: port_bindings.clone(),
+                child_instances,
+            });
+        }
+
+        Ok(instances)
     }
 }
 
@@ -429,6 +435,24 @@ impl PackedRange {
         let lsb = self.lsb.eval(symbols).map_err(map_eval_error)?;
         Ok((msb - lsb).abs() + 1)
     }
+
+    pub fn indices(&self, symbols: &HashMap<String, i64>) -> Result<Vec<i64>, FrontendError> {
+        let msb = self.msb.eval(symbols).map_err(map_eval_error)?;
+        let lsb = self.lsb.eval(symbols).map_err(map_eval_error)?;
+        let mut values = Vec::new();
+
+        if msb <= lsb {
+            for value in msb..=lsb {
+                values.push(value);
+            }
+        } else {
+            for value in (lsb..=msb).rev() {
+                values.push(value);
+            }
+        }
+
+        Ok(values)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -568,6 +592,7 @@ pub enum PortConnection {
 pub struct ModuleInstantiation {
     pub module_name: String,
     pub instance_name: String,
+    pub instance_range: Option<PackedRange>,
     pub parameter_overrides: Vec<ParameterOverride>,
     pub port_connections: Vec<PortConnection>,
 }
@@ -579,6 +604,21 @@ pub struct ResolvedPortBinding {
 }
 
 impl ModuleInstantiation {
+    pub fn element_instance_names(
+        &self,
+        parent_symbols: &HashMap<String, i64>,
+    ) -> Result<Vec<String>, FrontendError> {
+        let Some(range) = &self.instance_range else {
+            return Ok(vec![self.instance_name.clone()]);
+        };
+
+        let mut names = Vec::new();
+        for index in range.indices(parent_symbols)? {
+            names.push(format!("{}[{index}]", self.instance_name));
+        }
+        Ok(names)
+    }
+
     pub fn resolve_parameter_overrides(
         &self,
         module: &Module,
@@ -1813,11 +1853,13 @@ impl<'a> Parser<'a> {
         let mut items = Vec::new();
         loop {
             let instance_name = self.expect_identifier()?;
+            let instance_range = self.parse_optional_packed_range()?;
             self.expect_symbol('(')?;
             let port_connections = self.parse_port_connections()?;
             items.push(ModuleItem::ModuleInstantiation(ModuleInstantiation {
                 module_name: module_name.clone(),
                 instance_name,
+                instance_range,
                 parameter_overrides: parameter_overrides.clone(),
                 port_connections,
             }));
@@ -2610,6 +2652,44 @@ mod tests {
     }
 
     #[test]
+    fn parses_module_instantiation_arrays() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                input logic a,
+                output logic y
+            );
+            child lanes[1:0] (.a(a), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let top = &design.modules[1];
+        match &top.items[0] {
+            ModuleItem::ModuleInstantiation(instantiation) => {
+                assert_eq!(instantiation.instance_name, "lanes");
+                assert_eq!(
+                    instantiation
+                        .instance_range
+                        .as_ref()
+                        .expect("instance array range should exist")
+                        .indices(&HashMap::new())
+                        .unwrap(),
+                    vec![1, 0]
+                );
+            }
+            other => panic!("expected module instantiation, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn elaborate_top_resolves_child_parameters_and_generate_instances() {
         let design = parse_design(
             r#"
@@ -2683,6 +2763,45 @@ mod tests {
         assert_eq!(
             elaborated.child_instances[3].parameters.get("WIDTH"),
             Some(&2)
+        );
+    }
+
+    #[test]
+    fn elaborate_top_expands_instance_arrays() {
+        let design = parse_design(
+            r#"
+            module child #(parameter WIDTH = 1) (
+                input logic a,
+                output logic y
+            );
+            endmodule
+
+            module top #(parameter LANES = 2) (
+                input logic a,
+                output logic y
+            );
+            child #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.child_instances.len(), 2);
+        assert_eq!(elaborated.child_instances[0].instance_name, "lane[0]");
+        assert_eq!(elaborated.child_instances[0].path, "top.lane[0]");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("WIDTH"),
+            Some(&2)
+        );
+        assert_eq!(elaborated.child_instances[1].instance_name, "lane[1]");
+        assert_eq!(elaborated.child_instances[1].path, "top.lane[1]");
+        assert_eq!(
+            elaborated.child_instances[1].port_bindings[0].actual,
+            Some(PortActual::Signal("a".to_string()))
         );
     }
 

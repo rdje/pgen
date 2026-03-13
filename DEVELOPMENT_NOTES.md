@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Instance-Array Elaboration
+### Context
+The previous `rtl_frontend` work could parse and elaborate single instance declarations, but it still stopped short of a common synthesizable shape: one-dimensional instance arrays. That left Phase S without a way to represent repeated structural instantiations except through explicit `generate` loops.
+
+### Implementation
+- Extended `rtl_frontend/src/lib.rs`:
+  - added optional `instance_range` support on `ModuleInstantiation`,
+  - extended `PackedRange` with an `indices(...)` helper so array ranges can be evaluated in the parent constant environment,
+  - updated module-instantiation parsing to accept `instance_name[msb:lsb](...)`,
+  - updated elaboration so one parsed instantiation can expand into multiple `ElaboratedInstance` records with indexed names and paths.
+- Added focused tests for:
+  - direct parsing of instance arrays,
+  - elaboration of parent-parameterized ranges such as `lane[0:LANES-1]`.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `14/14` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This is still intentionally narrow: only one-dimensional instance arrays in the current handwritten subset are supported.
+- The next clean increment is richer declaration/data-type structure so member-path and instance legality can be validated more semantically, not only by visible-name/root checks.
+
 ## 2026-03-13 - Extend RTL Actual-Expression Coverage
 ### Context
 The previous `rtl_frontend` increment could type-check plain identifiers, selects, part-selects, and concatenations, but it still had two important gaps: dotted/member-path actuals were rejected unless the full dotted name was declared, and the generic fallback node was named as if it only represented constants even though ordered/named bindings can carry broader expressions.

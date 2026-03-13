@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Instance-Array Elaboration
+### ✅ Achievement Summary
+`rtl_frontend` now handles one-dimensional instance arrays in its synthesizable subset. A single parsed instantiation like `lane[0:LANES-1]` now elaborates into multiple indexed child instances with stable hierarchical paths.
+
+### Scope of Changes
+- Expanded `rtl_frontend/src/lib.rs`:
+  - added optional instance-array ranges on `ModuleInstantiation`,
+  - extended `PackedRange` with index expansion helpers for elaboration-time array ranges,
+  - updated module-instantiation parsing to accept a one-dimensional range between the instance name and port list,
+  - updated elaboration so one parsed instantiation can expand into multiple `ElaboratedInstance` values with indexed `instance_name` / `path` values.
+- Added focused tests for:
+  - parsing instance-array syntax,
+  - elaborating parent-parameterized ranges into indexed child instances.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the new instance-array baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`14/14`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Extend RTL Actual-Expression Coverage
 ### ✅ Achievement Summary
 `rtl_frontend` now preserves richer instance actual shapes during elaboration instead of collapsing them into overly generic forms. Parent-side binding validation now accepts dotted/member-path references by declared root, and typed actuals now include repetition-style concatenations plus general expression actuals.
