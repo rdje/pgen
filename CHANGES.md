@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Module-Header Package Imports
+### ✅ Achievement Summary
+`rtl_frontend` now supports package imports in module headers instead of limiting imports to the module body. Header imports can resolve ANSI port types and keep those imported named types visible for later declarations inside the same module.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `header_imports` on `Module`,
+  - added parser support for module-header imports before ANSI port lists,
+  - reused the existing import/type-alias path so header imports feed both port parsing and later body declarations.
+- Added focused tests for:
+  - header named imports resolving ANSI port types,
+  - header named imports keeping imported types visible for later declarations and elaboration.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the header-import baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`28/28`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Named Package Imports
 ### ✅ Achievement Summary
 `rtl_frontend` now supports explicit named package imports in addition to wildcard imports. Modules can import a specific type like `cfg_pkg::cfg_t` and use it in later declarations and struct-member validation without importing the entire package namespace.

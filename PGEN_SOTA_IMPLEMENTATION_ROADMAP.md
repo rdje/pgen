@@ -1913,6 +1913,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - explicit named imports such as `import cfg_pkg::cfg_t;`,
     - named-import-backed later declarations without requiring wildcard imports,
     - reuse of the existing struct-aware validation path for named-import-backed member references.
+  - Progress (2026-03-13): extended `rtl_frontend` header scope coverage so the current subset now supports:
+    - module-header imports before ANSI port lists,
+    - header-import-backed type resolution for ANSI port declarations,
+    - header-import-backed named types remaining visible for later module body declarations in the same module parse.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

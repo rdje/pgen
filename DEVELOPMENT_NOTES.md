@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Module-Header Package Imports
+### Context
+The previous `rtl_frontend` import work only applied after the module header, which meant package-backed named types still could not be used in ANSI port lists unless they were package-qualified directly. The next clean increment was therefore header imports.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `header_imports` on `Module`,
+  - added parser support for import declarations between the module name/parameter list and the ANSI port list,
+  - reused the existing import alias flow so header imports seed ANSI port parsing and remain visible for later body declarations in the same module.
+- Added focused tests for:
+  - header named imports resolving ANSI port types,
+  - header named imports preserving imported type visibility for later declarations and elaboration.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `28/28` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This is still a narrow placement subset; imports are now supported in module headers and module bodies, but not yet across the full SV import-placement surface.
+- The next clean increment is richer package/import expressiveness, likely broader package contents or additional legal import-placement forms.
+
 ## 2026-03-13 - Add RTL Named Package Imports
 ### Context
 The previous `rtl_frontend` package step only supported wildcard imports, which was enough to prove package-backed type scope but still broader than many real uses. The next clean increment was therefore explicit named imports like `import cfg_pkg::cfg_t;`.

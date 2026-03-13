@@ -308,6 +308,7 @@ impl Design {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub name: String,
+    pub header_imports: Vec<ImportDecl>,
     pub parameters: Vec<ParameterDecl>,
     pub ports: Vec<PortDecl>,
     pub items: Vec<ModuleItem>,
@@ -1834,12 +1835,14 @@ impl<'a> Parser<'a> {
         self.type_aliases = self.global_type_aliases.clone();
         self.expect_keyword("module")?;
         let name = self.expect_identifier()?;
+        let mut header_imports = self.parse_header_imports()?;
         let parameters = if self.consume_symbol('#') {
             self.expect_symbol('(')?;
             self.parse_parameter_list(')')?
         } else {
             Vec::new()
         };
+        header_imports.extend(self.parse_header_imports()?);
 
         let ports = if self.consume_symbol('(') {
             self.parse_port_list()?
@@ -1857,10 +1860,19 @@ impl<'a> Parser<'a> {
 
         Ok(Module {
             name,
+            header_imports,
             parameters,
             ports,
             items,
         })
+    }
+
+    fn parse_header_imports(&mut self) -> Result<Vec<ImportDecl>, FrontendError> {
+        let mut imports = Vec::new();
+        while self.peek_keyword("import") {
+            imports.push(self.parse_import_decl()?);
+        }
+        Ok(imports)
     }
 
     fn parse_parameter_list(
@@ -3215,6 +3227,48 @@ mod tests {
     }
 
     #[test]
+    fn parse_design_supports_header_named_package_imports_for_port_lists() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module top import cfg_pkg::cfg_t; (
+                input cfg_t cfg,
+                output logic y
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        assert_eq!(design.modules.len(), 1);
+        assert_eq!(design.modules[0].header_imports.len(), 1);
+        assert_eq!(design.modules[0].header_imports[0].package, "cfg_pkg");
+        assert_eq!(
+            design.modules[0].header_imports[0].imported_name.as_deref(),
+            Some("cfg_t")
+        );
+        assert!(!design.modules[0].header_imports[0].wildcard);
+
+        match design.modules[0].ports[0]
+            .data_type
+            .as_ref()
+            .expect("port type should exist")
+        {
+            DataType::Struct { fields, .. } => {
+                assert_eq!(fields[0].names, vec!["data".to_string()]);
+                assert_eq!(fields[1].names, vec!["valid".to_string()]);
+            }
+            other => panic!("expected header-imported struct port type, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn generate_if_condition_evaluates_from_symbols() {
         let generate_if = GenerateIf {
             condition: rtl_const_expr::parse_expression("WIDTH > 1").unwrap(),
@@ -3827,6 +3881,43 @@ mod tests {
                 output logic y
             );
             import cfg_pkg::cfg_t;
+            cfg_t cfg;
+            child u_child (.a(cfg.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_header_named_package_import_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top import cfg_pkg::cfg_t; (
+                output logic y
+            );
             cfg_t cfg;
             child u_child (.a(cfg.data), .y(y));
             endmodule
