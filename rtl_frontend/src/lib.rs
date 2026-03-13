@@ -79,7 +79,13 @@ struct ElaborationState {
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct VisibleScope {
     names: HashSet<String>,
-    types: HashMap<String, DataType>,
+    types: HashMap<String, DeclType>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DeclType {
+    data_type: DataType,
+    unpacked_dimensions: usize,
 }
 
 impl VisibleScope {
@@ -435,12 +441,18 @@ impl Module {
         names
     }
 
-    fn visible_connection_types(&self) -> HashMap<String, DataType> {
+    fn visible_connection_types(&self) -> HashMap<String, DeclType> {
         let mut types = HashMap::new();
 
         for port in &self.ports {
             if let Some(data_type) = &port.data_type {
-                types.insert(port.name.clone(), data_type.clone());
+                types.insert(
+                    port.name.clone(),
+                    DeclType {
+                        data_type: data_type.clone(),
+                        unpacked_dimensions: port.unpacked_dimensions.len(),
+                    },
+                );
             }
         }
 
@@ -547,14 +559,20 @@ fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
     names
 }
 
-fn collect_declared_types_from_items(items: &[ModuleItem]) -> HashMap<String, DataType> {
+fn collect_declared_types_from_items(items: &[ModuleItem]) -> HashMap<String, DeclType> {
     let mut types = HashMap::new();
 
     for item in items {
         match item {
             ModuleItem::NetDecl(net) => {
                 if let Some(data_type) = &net.data_type {
-                    types.insert(net.name.clone(), data_type.clone());
+                    types.insert(
+                        net.name.clone(),
+                        DeclType {
+                            data_type: data_type.clone(),
+                            unpacked_dimensions: net.unpacked_dimensions.len(),
+                        },
+                    );
                 }
             }
             ModuleItem::GenerateRegion(region) => {
@@ -587,9 +605,9 @@ fn merge_visible_names(base: &HashSet<String>, extra: &HashSet<String>) -> HashS
 }
 
 fn merge_declared_types(
-    base: &HashMap<String, DataType>,
-    extra: &HashMap<String, DataType>,
-) -> HashMap<String, DataType> {
+    base: &HashMap<String, DeclType>,
+    extra: &HashMap<String, DeclType>,
+) -> HashMap<String, DeclType> {
     let mut merged = base.clone();
     merged.extend(extra.clone());
     merged
@@ -881,7 +899,7 @@ impl PortActual {
     fn validate(
         &self,
         visible_names: &HashSet<String>,
-        visible_types: &HashMap<String, DataType>,
+        visible_types: &HashMap<String, DeclType>,
         symbols: &HashMap<String, i64>,
     ) -> Result<(), FrontendError> {
         match self {
@@ -1050,11 +1068,11 @@ impl ModuleInstantiation {
         Ok(overrides)
     }
 
-    pub fn resolve_port_bindings(
+    fn resolve_port_bindings(
         &self,
         module: &Module,
         parent_visible_names: &HashSet<String>,
-        parent_visible_types: &HashMap<String, DataType>,
+        parent_visible_types: &HashMap<String, DeclType>,
         parent_symbols: &HashMap<String, i64>,
     ) -> Result<Vec<ResolvedPortBinding>, FrontendError> {
         let mut bindings = Vec::new();
@@ -1337,14 +1355,14 @@ fn map_eval_error(err: EvalError) -> FrontendError {
 fn validate_known_identifier(
     name: &str,
     visible_names: &HashSet<String>,
-    visible_types: &HashMap<String, DataType>,
+    visible_types: &HashMap<String, DeclType>,
     symbols: &HashMap<String, i64>,
 ) -> Result<(), FrontendError> {
     if visible_names.contains(name) || symbols.contains_key(name) {
         return Ok(());
     }
 
-    if let Some(result) = validate_typed_member_path(name, visible_types) {
+    if let Some(result) = validate_typed_signal_path(name, visible_names, visible_types, symbols) {
         return result;
     }
 
@@ -1362,7 +1380,7 @@ fn validate_known_identifier(
 fn validate_expr_identifiers(
     expr: &Expr,
     visible_names: &HashSet<String>,
-    visible_types: &HashMap<String, DataType>,
+    visible_types: &HashMap<String, DeclType>,
     symbols: &HashMap<String, i64>,
 ) -> Result<(), FrontendError> {
     let mut identifiers = HashSet::new();
@@ -1373,37 +1391,73 @@ fn validate_expr_identifiers(
     Ok(())
 }
 
-fn validate_typed_member_path(
+fn validate_typed_signal_path(
     name: &str,
-    visible_types: &HashMap<String, DataType>,
+    visible_names: &HashSet<String>,
+    visible_types: &HashMap<String, DeclType>,
+    symbols: &HashMap<String, i64>,
 ) -> Option<Result<(), FrontendError>> {
-    let mut segments = name.split('.');
-    let root = segments.next()?;
-    let mut current = visible_types.get(root)?;
+    let path = parse_signal_path(name).ok()??;
+    let declared = visible_types.get(&path.root)?;
+    let mut current = &declared.data_type;
+    let mut unpacked_dimensions = declared.unpacked_dimensions;
     let mut resolved_struct_member = false;
 
-    for segment in segments {
-        let Some(next) = current.field_type(segment) else {
-            return match current {
-                DataType::Struct { .. } => Some(Err(FrontendError::new(
+    for op in &path.ops {
+        match op {
+            SignalPathOp::Member(segment) => {
+                if unpacked_dimensions > 0 {
+                    return Some(Err(FrontendError::new(
+                        format!(
+                            "cannot resolve member '{}' through unpacked-array parent-scope identifier '{}'",
+                            segment, path.root
+                        ),
+                        0,
+                    )));
+                }
+                let Some(next) = current.field_type(segment) else {
+                    return match current {
+                        DataType::Struct { .. } => Some(Err(FrontendError::new(
+                            format!(
+                                "unknown member '{}' on parent-scope identifier '{}'",
+                                segment, path.root
+                            ),
+                            0,
+                        ))),
+                        _ if resolved_struct_member || unpacked_dimensions > 0 => {
+                            Some(Err(FrontendError::new(
+                                format!(
+                                    "cannot resolve member '{}' through non-aggregate parent-scope identifier '{}'",
+                                    segment, path.root
+                                ),
+                                0,
+                            )))
+                        }
+                        _ => None,
+                    };
+                };
+                resolved_struct_member = true;
+                current = next;
+            }
+            SignalPathOp::Index(index) => {
+                if let Err(err) =
+                    validate_expr_identifiers(index, visible_names, visible_types, symbols)
+                {
+                    return Some(Err(err));
+                }
+                if unpacked_dimensions > 0 {
+                    unpacked_dimensions -= 1;
+                    continue;
+                }
+                return Some(Err(FrontendError::new(
                     format!(
-                        "unknown member '{}' on parent-scope identifier '{}'",
-                        segment, root
+                        "cannot index non-array parent-scope identifier '{}'",
+                        path.root
                     ),
                     0,
-                ))),
-                _ if resolved_struct_member => Some(Err(FrontendError::new(
-                    format!(
-                        "cannot resolve member '{}' through non-aggregate parent-scope identifier '{}'",
-                        segment, root
-                    ),
-                    0,
-                ))),
-                _ => None,
-            };
-        };
-        resolved_struct_member = true;
-        current = next;
+                )));
+            }
+        }
     }
 
     Some(Ok(()))
@@ -1474,6 +1528,10 @@ fn parse_port_actual(input: &str) -> Result<PortActual, FrontendError> {
             signal,
             index: parse_expression(inner).map_err(map_eval_error)?,
         });
+    }
+
+    if parse_signal_path(trimmed)?.is_some() {
+        return Ok(PortActual::Signal(trimmed.to_string()));
     }
 
     let expr = parse_expression(trimmed).map_err(map_eval_error)?;
@@ -1564,7 +1622,7 @@ fn split_signal_suffix(input: &str) -> Result<Option<(String, &str)>, FrontendEr
 
     let signal = trimmed[..suffix_start].trim();
     let inner = trimmed[suffix_start + 1..trimmed.len() - 1].trim();
-    if signal.is_empty() || !is_identifier_path(signal) {
+    if signal.is_empty() || parse_signal_path(signal)?.is_none() {
         return Ok(None);
     }
     if inner.is_empty() {
@@ -1577,30 +1635,126 @@ fn split_signal_suffix(input: &str) -> Result<Option<(String, &str)>, FrontendEr
     Ok(Some((signal.to_string(), inner)))
 }
 
-fn is_identifier_path(input: &str) -> bool {
-    let mut segments = input.split('.');
-    let Some(first) = segments.next() else {
-        return false;
-    };
-    if !is_identifier_segment(first) {
-        return false;
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SignalPath {
+    root: String,
+    ops: Vec<SignalPathOp>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum SignalPathOp {
+    Member(String),
+    Index(Expr),
+}
+
+fn parse_signal_path(input: &str) -> Result<Option<SignalPath>, FrontendError> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
     }
-    segments.all(is_identifier_segment)
+
+    let mut cursor = 0usize;
+    let Some((root, next)) = parse_signal_identifier_segment(trimmed, cursor) else {
+        return Ok(None);
+    };
+    cursor = next;
+    let mut ops = Vec::new();
+
+    while cursor < trimmed.len() {
+        let rest = &trimmed[cursor..];
+        if rest.starts_with('.') {
+            cursor += 1;
+            let Some((member, next)) = parse_signal_identifier_segment(trimmed, cursor) else {
+                return Err(FrontendError::new(
+                    format!("expected member name in signal path '{}'", trimmed),
+                    cursor,
+                ));
+            };
+            ops.push(SignalPathOp::Member(member.to_string()));
+            cursor = next;
+            continue;
+        }
+        if rest.starts_with('[') {
+            let (index_text, next) = extract_bracket_segment(trimmed, cursor)?;
+            let index = parse_expression(index_text).map_err(map_eval_error)?;
+            ops.push(SignalPathOp::Index(index));
+            cursor = next;
+            continue;
+        }
+        return Ok(None);
+    }
+
+    Ok(Some(SignalPath {
+        root: root.to_string(),
+        ops,
+    }))
+}
+
+fn parse_signal_identifier_segment(input: &str, start: usize) -> Option<(&str, usize)> {
+    let rest = input.get(start..)?;
+    let mut chars = rest.char_indices();
+    let (_, first) = chars.next()?;
+    if !is_ident_start(first) {
+        return None;
+    }
+
+    let mut end = start + first.len_utf8();
+    for (offset, ch) in chars {
+        if !is_ident_continue(ch) {
+            break;
+        }
+        end = start + offset + ch.len_utf8();
+    }
+
+    Some((&input[start..end], end))
+}
+
+fn extract_bracket_segment(input: &str, start: usize) -> Result<(&str, usize), FrontendError> {
+    let bytes = input.as_bytes();
+    if bytes.get(start) != Some(&b'[') {
+        return Err(FrontendError::new(
+            format!("expected '[' in signal path '{}'", input),
+            start,
+        ));
+    }
+
+    let mut depth = 0usize;
+    let mut end = None;
+    for (offset, ch) in input[start..].char_indices() {
+        match ch {
+            '[' => depth += 1,
+            ']' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    end = Some(start + offset);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let Some(end) = end else {
+        return Err(FrontendError::new(
+            format!("unbalanced bracket expression in signal path '{}'", input),
+            start,
+        ));
+    };
+    let inner = input[start + 1..end].trim();
+    if inner.is_empty() {
+        return Err(FrontendError::new(
+            format!("empty bracket selector in '{}'", input),
+            start,
+        ));
+    }
+    Ok((inner, end + 1))
 }
 
 fn identifier_root(input: &str) -> &str {
-    input.split('.').next().unwrap_or(input)
-}
-
-fn is_identifier_segment(input: &str) -> bool {
-    let mut chars = input.chars();
-    let Some(first) = chars.next() else {
-        return false;
-    };
-    if !is_ident_start(first) {
-        return false;
-    }
-    chars.all(is_ident_continue)
+    input
+        .find(['.', '['])
+        .map(|index| &input[..index])
+        .unwrap_or(input)
 }
 
 fn is_wrapped_by(input: &str, open: char, close: char) -> bool {
@@ -4213,6 +4367,80 @@ mod tests {
     }
 
     #[test]
+    fn elaboration_accepts_unpacked_array_struct_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top #(
+                parameter IDX = 1
+            ) (
+                output logic y
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfgs [0:1];
+            child u_child (.a(cfgs[IDX].data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfgs[IDX].data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_preserves_bitselects_through_unpacked_array_struct_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic a,
+                output logic y
+            );
+            endmodule
+
+            module top #(
+                parameter IDX = 1,
+                parameter BIT = 3
+            ) (
+                output logic y
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfgs [0:1];
+            child u_child (.a(cfgs[IDX].data[BIT]), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::BitSelect {
+                signal: "cfgs[IDX].data".to_string(),
+                index: rtl_const_expr::parse_expression("BIT").unwrap(),
+            })
+        );
+    }
+
+    #[test]
     fn elaboration_accepts_typedef_backed_struct_members() {
         let design = parse_design(
             r#"
@@ -4425,6 +4653,37 @@ mod tests {
                 .message
                 .contains("unknown member 'missing' on parent-scope identifier 'cfg'")
         );
+    }
+
+    #[test]
+    fn elaboration_rejects_unindexed_unpacked_array_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfgs [0:1];
+            child u_child (.a(cfgs.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unindexed unpacked-array members");
+        assert!(error.message.contains(
+            "cannot resolve member 'data' through unpacked-array parent-scope identifier 'cfgs'"
+        ));
     }
 
     #[test]

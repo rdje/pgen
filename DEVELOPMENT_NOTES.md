@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Indexed Array-Of-Struct Member Validation
+### Context
+The previous `rtl_frontend` increment added unpacked-array declarations, but those declarations still behaved like second-class citizens during member validation. The parser could represent `cfgs [0:1]`, yet elaboration still only understood bare struct roots like `cfg.data`. The next clean increment was therefore indexed array-of-struct member validation.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - replaced the visible-scope type map with declaration-shape metadata so validation can see both base type and unpacked-array depth,
+  - added signal-path parsing for `root.member`, `root[index]`, and mixed chains like `cfgs[IDX].data`,
+  - extended typed validation to consume unpacked-array indices before struct-member lookup and to reject member access through unindexed unpacked-array roots.
+- Added focused tests for:
+  - `cfgs[IDX].data`,
+  - `cfgs[IDX].data[BIT]`,
+  - rejection of `cfgs.data` when `cfgs` is an unpacked array of structs.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `36/36` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment improves semantic validation for the current unpacked-array subset; it does not yet turn unpacked-array/member chains into a richer dedicated AST node family.
+- The next clean increment is likely broader declaration/type surface again, for example more aggregate shapes or declaration families beyond the current struct/typedef-focused subset.
+
 ## 2026-03-13 - Add RTL Unpacked Array Declarations
 ### Context
 The previous `rtl_frontend` baseline could handle packed ranges on ports and declarations, but it still rejected a common synthesizable shape: unpacked arrays like `logic [7:0] banks [0:DEPTH-1];`. The next clean increment was therefore declaration-shape coverage for unpacked arrays rather than another namespace or expression-only tweak.

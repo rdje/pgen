@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Indexed Array-Of-Struct Member Validation
+### ✅ Achievement Summary
+`rtl_frontend` now validates struct-member access through indexed unpacked-array elements instead of stopping at bare struct roots. Array-of-struct actuals like `cfgs[IDX].data` and `cfgs[IDX].data[BIT]` are preserved and accepted, while invalid forms like `cfgs.data` are now rejected.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - threaded declaration-shape metadata through visible-scope type collection so validation can distinguish bare structs from unpacked arrays of structs,
+  - added signal-path parsing for member/index chains used by typed actual validation,
+  - extended typed member validation to walk indexed unpacked-array elements before struct-field lookup.
+- Added focused tests for:
+  - indexed unpacked-array struct members such as `cfgs[IDX].data`,
+  - bit-select preservation through indexed array-of-struct members such as `cfgs[IDX].data[BIT]`,
+  - rejection of unindexed member access through unpacked-array roots.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the indexed array-of-struct validation baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`36/36`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Unpacked Array Declarations
 ### ✅ Achievement Summary
 `rtl_frontend` now supports unpacked-array declarations for the current handwritten subset. ANSI ports and net declarations can carry unpacked dimensions, multi-declarator net statements are preserved as per-name AST items, and elaboration still accepts array-element actuals like `banks[IDX]`.

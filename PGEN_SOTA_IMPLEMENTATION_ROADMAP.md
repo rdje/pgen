@@ -1925,6 +1925,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - unpacked-array dimensions on ANSI port declarations,
     - unpacked-array dimensions on net declarations with per-declarator AST items,
     - elaboration-time validation/preservation of unpacked-array element actuals such as `banks[IDX]`.
+  - Progress (2026-03-13): extended `rtl_frontend` struct/member validation so the current subset now also supports:
+    - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
+    - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,
+    - rejection of invalid member access through unpacked-array roots that were not indexed first.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

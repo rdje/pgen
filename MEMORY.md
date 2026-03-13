@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-13 (+0100, task: add-rtl-unpacked-array-declarations)
+Last updated: 2026-03-13 (+0100, task: add-rtl-indexed-array-of-struct-member-validation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -45,10 +45,10 @@ Use this file to resume work without replaying full chat history.
     - packed-range width resolution,
     - child instance parameter-override and port-binding resolution,
     - one-dimensional instance-array expansion with parent-evaluated ranges,
-    - inline `struct`-typed declaration parsing and struct-aware member-path lookup when type metadata is available,
+    - inline `struct`-typed declaration parsing and struct-aware member-path lookup when type metadata is available, including indexed unpacked-array element member access,
     - file-scope plus module-local typedef parsing and named type resolution for later module headers/declarations in the handwritten subset,
     - top-level package typedef and constant parsing, package-qualified type/constant references, and module-body/header wildcard/named imports for named-type and constant visibility,
-    - typed parent-side actual parsing (`signal`, select, part-select, concat, repeat, expression), including element actuals sourced from unpacked-array declarations,
+    - typed parent-side actual parsing (`signal`, select, part-select, concat, repeat, expression), including element actuals sourced from unpacked-array declarations and indexed array-of-struct member paths,
     - parent-scope connection legality validation across module + explicit generate scopes, including typed struct-member lookup plus backward-compatible dotted/member-path fallback by declared root or exact symbol-table match,
     - generate-if condition evaluation,
     - bounded generate-for unrolling,
@@ -56,7 +56,7 @@ Use this file to resume work without replaying full chat history.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`13/13`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`33/33`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`36/36`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
@@ -3710,7 +3710,7 @@ Use this file to resume work without replaying full chat history.
 1. Continue Phase S RTL frontend build-out:
    - broaden the synthesizable subset beyond current module/instance/actual-expression coverage,
    - likely next frontend steps:
-     - broader declaration/elaboration structure beyond the current typedef+package-constant packages and packed+unpacked port/net baseline,
+     - broader declaration/elaboration structure beyond the current typedef+package-constant packages and packed+unpacked port/net plus indexed array-of-struct-member baseline,
      - broader declaration forms beyond the current inline-struct + typedef + one-dimensional instance-array baseline,
      - early lowering/elaboration contracts that can feed the planned RTLSyn path instead of stopping at typed instance trees.
 2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:
