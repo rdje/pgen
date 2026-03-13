@@ -673,6 +673,10 @@ pub enum DataType {
         base_type: Box<DataType>,
         variants: Vec<EnumVariant>,
     },
+    Union {
+        packed: bool,
+        fields: Vec<StructField>,
+    },
     Struct {
         packed: bool,
         fields: Vec<StructField>,
@@ -683,6 +687,14 @@ impl DataType {
     fn field_type(&self, name: &str) -> Option<&DataType> {
         match self {
             DataType::Struct { fields, .. } => {
+                for field in fields {
+                    if field.names.iter().any(|field_name| field_name == name) {
+                        return Some(&field.data_type);
+                    }
+                }
+                None
+            }
+            DataType::Union { fields, .. } => {
                 for field in fields {
                     if field.names.iter().any(|field_name| field_name == name) {
                         return Some(&field.data_type);
@@ -1428,6 +1440,13 @@ fn validate_typed_signal_path(
                 let Some(next) = current.field_type(segment) else {
                     return match current {
                         DataType::Struct { .. } => Some(Err(FrontendError::new(
+                            format!(
+                                "unknown member '{}' on parent-scope identifier '{}'",
+                                segment, path.root
+                            ),
+                            0,
+                        ))),
+                        DataType::Union { .. } => Some(Err(FrontendError::new(
                             format!(
                                 "unknown member '{}' on parent-scope identifier '{}'",
                                 segment, path.root
@@ -2337,6 +2356,7 @@ impl<'a> Parser<'a> {
             || self.peek_keyword("wire")
             || self.peek_keyword("reg")
             || self.peek_keyword("enum")
+            || self.peek_keyword("union")
             || self.peek_keyword("struct")
             || self.peek_typedef_name()
             || self.peek_package_qualified_type()
@@ -2579,6 +2599,14 @@ impl<'a> Parser<'a> {
                 Some(
                     self.parse_optional_data_type()?
                         .ok_or_else(|| FrontendError::new("expected enum data type", 0))?,
+                ),
+            )
+        } else if self.peek_keyword("union") {
+            (
+                NetKind::Typed,
+                Some(
+                    self.parse_optional_data_type()?
+                        .ok_or_else(|| FrontendError::new("expected union data type", 0))?,
                 ),
             )
         } else if self.peek_keyword("struct") {
@@ -2889,6 +2917,9 @@ impl<'a> Parser<'a> {
         if self.peek_keyword("enum") {
             return self.parse_enum_data_type().map(Some);
         }
+        if self.peek_keyword("union") {
+            return self.parse_union_data_type().map(Some);
+        }
         if self.peek_keyword("struct") {
             return self.parse_struct_data_type().map(Some);
         }
@@ -2948,6 +2979,32 @@ impl<'a> Parser<'a> {
             base_type: Box::new(base_type),
             variants,
         })
+    }
+
+    fn parse_union_data_type(&mut self) -> Result<DataType, FrontendError> {
+        self.expect_keyword("union")?;
+        let packed = self.consume_keyword("packed");
+        self.expect_symbol('{')?;
+
+        let mut fields = Vec::new();
+        while !self.consume_symbol('}') {
+            let data_type = self.parse_optional_data_type()?.ok_or_else(|| {
+                FrontendError::new("expected union field data type", self.current().start)
+            })?;
+            let packed_range = self.parse_optional_packed_range()?;
+            let mut names = vec![self.expect_identifier()?];
+            while self.consume_symbol(',') {
+                names.push(self.expect_identifier()?);
+            }
+            self.expect_symbol(';')?;
+            fields.push(StructField {
+                data_type,
+                packed_range,
+                names,
+            });
+        }
+
+        Ok(DataType::Union { packed, fields })
     }
 
     fn parse_struct_data_type(&mut self) -> Result<DataType, FrontendError> {
@@ -3366,6 +3423,7 @@ fn is_keyword(value: &str) -> bool {
             | "reg"
             | "struct"
             | "typedef"
+            | "union"
             | "wire"
             | "endpackage"
     )
@@ -4397,6 +4455,39 @@ mod tests {
     }
 
     #[test]
+    fn parses_inline_union_typed_net_declarations() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            union packed {
+                logic [7:0] data;
+                logic [7:0] byte;
+            } payload;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        match &module.items[0] {
+            ModuleItem::NetDecl(net) => {
+                assert_eq!(net.kind, NetKind::Typed);
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Union { packed, fields } => {
+                        assert!(*packed);
+                        assert_eq!(fields.len(), 2);
+                        assert_eq!(fields[0].names, vec!["data".to_string()]);
+                        assert_eq!(fields[1].names, vec!["byte".to_string()]);
+                    }
+                    other => panic!("expected union data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn parses_typedef_struct_declarations_and_named_uses() {
         let module = parse_module(
             r#"
@@ -4489,6 +4580,51 @@ mod tests {
     }
 
     #[test]
+    fn parses_typedef_union_declarations_and_named_uses() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            typedef union packed {
+                logic [7:0] data;
+                logic [7:0] byte;
+            } payload_t;
+            payload_t payload;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        match &module.items[0] {
+            ModuleItem::TypedefDecl(typedef_decl) => {
+                assert_eq!(typedef_decl.name, "payload_t");
+                match &typedef_decl.data_type {
+                    DataType::Union { packed, fields } => {
+                        assert!(*packed);
+                        assert_eq!(fields.len(), 2);
+                    }
+                    other => panic!("expected typedef union data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected typedef declaration, got {other:?}"),
+        }
+
+        match &module.items[1] {
+            ModuleItem::NetDecl(net) => {
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Union { fields, .. } => {
+                        assert_eq!(fields[0].names, vec!["data".to_string()]);
+                        assert_eq!(fields[1].names, vec!["byte".to_string()]);
+                    }
+                    other => panic!("expected resolved union data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn parse_design_supports_header_imported_enum_typedefs_for_port_lists() {
         let design = parse_design(
             r#"
@@ -4523,6 +4659,41 @@ mod tests {
     }
 
     #[test]
+    fn parse_design_supports_header_imported_union_typedefs_for_port_lists() {
+        let design = parse_design(
+            r#"
+            package payload_pkg;
+                typedef union packed {
+                    logic [7:0] data;
+                    logic [7:0] byte;
+                } payload_t;
+            endpackage
+
+            module top import payload_pkg::payload_t; (
+                input payload_t payload,
+                output logic y
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        match design.modules[0].ports[0]
+            .data_type
+            .as_ref()
+            .expect("port type should exist")
+        {
+            DataType::Union { packed, fields } => {
+                assert!(*packed);
+                assert_eq!(fields.len(), 2);
+                assert_eq!(fields[0].names, vec!["data".to_string()]);
+                assert_eq!(fields[1].names, vec!["byte".to_string()]);
+            }
+            other => panic!("expected header-imported union type, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn elaboration_accepts_known_struct_members() {
         let design = parse_design(
             r#"
@@ -4552,6 +4723,39 @@ mod tests {
         assert_eq!(
             elaborated.child_instances[0].port_bindings[0].actual,
             Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_union_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            union packed {
+                logic [7:0] data;
+                logic [7:0] byte;
+            } payload;
+            child u_child (.a(payload.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("payload.data".to_string()))
         );
     }
 
@@ -4841,6 +5045,39 @@ mod tests {
             error
                 .message
                 .contains("unknown member 'missing' on parent-scope identifier 'cfg'")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_union_members() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            union packed {
+                logic [7:0] data;
+                logic [7:0] byte;
+            } payload;
+            child u_child (.a(payload.missing), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown union members");
+        assert!(
+            error
+                .message
+                .contains("unknown member 'missing' on parent-scope identifier 'payload'")
         );
     }
 

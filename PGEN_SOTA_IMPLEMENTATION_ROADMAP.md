@@ -1933,6 +1933,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - inline enum data types such as `enum logic [1:0] { IDLE = 0, BUSY = 1 } state;`,
     - typedef-backed enum named types such as `typedef enum logic [1:0] { ... } state_t;`,
     - package/header-import visibility for enum typedefs in later port/declaration parsing.
+  - Progress (2026-03-14): extended `rtl_frontend` aggregate/type-family coverage so the current subset now also supports:
+    - inline union data types such as `union packed { logic [7:0] data; logic [7:0] byte; } payload;`,
+    - typedef-backed union named types plus package/header-import visibility,
+    - union-backed member validation such as `payload.data`.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

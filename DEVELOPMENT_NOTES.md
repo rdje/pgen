@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Union Type Coverage
+### Context
+The current handwritten type surface had reached structs plus enums, but it still lacked the other common aggregate family used in synthesizable RTL declarations: unions. The next clean increment was therefore union coverage instead of jumping into a broader procedural or namespace subsystem.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `DataType::Union` to the current type model,
+  - added parser support for inline union data types with optional `packed`,
+  - reused the current typedef/file-scope/package/header-import alias plumbing so union typedefs resolve like the other named types,
+  - reused the aggregate field lookup path so union-backed member validation falls out of the same typed actual validation flow used for structs.
+- Added focused tests for:
+  - inline union net declarations,
+  - typedef-backed union named uses,
+  - header-imported union typedefs in ANSI port declarations,
+  - acceptance and rejection of union-backed member actuals.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `44/44` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment adds union parsing and union-backed member validation, but it does not yet add any width/coherence validation for packed-union field compatibility.
+- The next clean increment is likely another declaration/type family or a deeper semantic layer on the current aggregate types.
+
 ## 2026-03-14 - Add RTL Enum Type Coverage
 ### Context
 The current handwritten type surface had moved well beyond raw builtins, but it was still overly struct-centric. A common next synthesizable type family was still missing: enums. The next clean increment was therefore enum coverage rather than jumping immediately to a much broader aggregate family.

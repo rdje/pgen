@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Union Type Coverage
+### ✅ Achievement Summary
+`rtl_frontend` now supports union data types in the current handwritten subset. Inline unions, typedef-backed union named types, package/header-imported union typedefs, and union-backed member validation all work through the same aggregate-aware path.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `DataType::Union` coverage to the current type model,
+  - added parser support for inline union data types with optional `packed`,
+  - reused the existing typedef/file-scope/package/header-import visibility path for union named types,
+  - extended aggregate field lookup so union-backed member validation reuses the current typed actual validation flow.
+- Added focused tests for:
+  - inline union net declarations,
+  - typedef-backed union named uses,
+  - header-imported union typedefs in ANSI port lists,
+  - acceptance/rejection of union-backed member actuals.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the union-type baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`44/44`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add RTL Enum Type Coverage
 ### ✅ Achievement Summary
 `rtl_frontend` now supports enum data types in the current handwritten subset. Inline enum declarations, typedef-backed enum named types, and header-imported enum typedefs all parse and resolve through the existing named-type machinery.
