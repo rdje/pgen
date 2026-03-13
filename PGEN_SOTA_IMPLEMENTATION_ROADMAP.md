@@ -1949,6 +1949,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - `always_ff` blocks with preserved edge-trigger event controls such as `@(posedge clk or negedge rst_n)`,
     - `always_latch` blocks as a distinct procedural kind alongside `always_comb` and `always @(*)`,
     - parser-side retention of event-control edges/expressions for future sequential semantics work.
+  - Progress (2026-03-14): extended `rtl_frontend` procedural semantics so the current subset now also supports:
+    - elaboration-time validation of identifiers referenced from procedural event controls, conditions, and assignment values,
+    - elaboration-time rejection of `always_ff` blocks that use blocking assignments,
+    - procedural validation wired through the same visible-scope/type metadata path already used for typed parent-side connection checking.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Procedural Semantic Validation
+### Context
+The previous procedural increment added parser coverage for `always_ff` and `always_latch`, but procedural blocks were still effectively opaque during elaboration. That meant the frontend could retain sequential syntax without checking whether those blocks referenced known identifiers or followed even a minimal sequential assignment policy. The next clean increment was therefore a first procedural semantic pass.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - threaded `ModuleItem::ProceduralBlock` through the elaboration-time validation path instead of leaving it as a no-op,
+  - added recursive statement validation for procedural `if` conditions, assignment targets, and assignment values using the existing visible-scope/type metadata,
+  - enforced a first `always_ff` semantic rule by rejecting blocking assignments while still validating event-control identifiers such as `posedge clk`.
+- Added focused tests for:
+  - successful elaboration of a well-formed `always_ff` block,
+  - rejection of blocking assignments in `always_ff`,
+  - rejection of unknown identifiers in `always_ff` event controls,
+  - rejection of unknown identifiers in `always_latch` bodies.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `55/55` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment adds a real procedural semantic baseline, but it does not yet enforce richer sequential/latch contracts such as single-writer checks, full `always_comb` sensitivity semantics, or broader assignment-target legality.
+- The next clean increment is likely another procedural semantic rule or a new synthesizable declaration/type-family slice.
+
 ## 2026-03-14 - Add RTL Sequential Procedural Coverage
 ### Context
 The current procedural subset had combinational coverage, but it still stopped short of the two synthesizable block forms that usually matter most after `always_comb`: edge-triggered sequential logic and latch blocks. The next clean increment was therefore to add a minimal `always_ff` / `always_latch` slice rather than another isolated type tweak.

@@ -182,7 +182,7 @@ impl Design {
         let mut instances = Vec::new();
 
         for item in items {
-            validate_module_item_types(item, symbols)?;
+            validate_module_item_types(item, visible_scope, symbols)?;
             match item {
                 ModuleItem::ModuleInstantiation(instantiation) => {
                     instances.extend(self.elaborate_instance(
@@ -542,6 +542,7 @@ impl Module {
 
 fn validate_module_item_types(
     item: &ModuleItem,
+    visible_scope: &VisibleScope,
     symbols: &HashMap<String, i64>,
 ) -> Result<(), FrontendError> {
     match item {
@@ -558,17 +559,122 @@ fn validate_module_item_types(
                 data_type.validate(symbols)?;
             }
         }
+        ModuleItem::ProceduralBlock(block) => {
+            validate_procedural_block(block, visible_scope, symbols)?;
+        }
         ModuleItem::ImportDecl(_)
         | ModuleItem::GenvarDecl(_)
         | ModuleItem::ContinuousAssign(_)
         | ModuleItem::ModuleInstantiation(_)
-        | ModuleItem::ProceduralBlock(_)
         | ModuleItem::GenerateRegion(_)
         | ModuleItem::GenerateIf(_)
         | ModuleItem::GenerateFor(_) => {}
     }
 
     Ok(())
+}
+
+fn validate_procedural_block(
+    block: &ProceduralBlock,
+    visible_scope: &VisibleScope,
+    symbols: &HashMap<String, i64>,
+) -> Result<(), FrontendError> {
+    match block.kind {
+        ProceduralKind::AlwaysFf => {
+            let event_control = block.event_control.as_ref().ok_or_else(|| {
+                FrontendError::new("always_ff block is missing required event control", 0)
+            })?;
+            if event_control.is_empty() {
+                return Err(FrontendError::new(
+                    "always_ff block requires at least one event-control item",
+                    0,
+                ));
+            }
+            for item in event_control {
+                validate_expr_identifiers(
+                    &item.expr,
+                    &visible_scope.names,
+                    &visible_scope.types,
+                    symbols,
+                )?;
+            }
+            validate_statement(
+                &block.statement,
+                visible_scope,
+                symbols,
+                ProceduralPolicy {
+                    allow_blocking_assignments: false,
+                },
+            )
+        }
+        ProceduralKind::AlwaysComb | ProceduralKind::AlwaysStar | ProceduralKind::AlwaysLatch => {
+            validate_statement(
+                &block.statement,
+                visible_scope,
+                symbols,
+                ProceduralPolicy {
+                    allow_blocking_assignments: true,
+                },
+            )
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ProceduralPolicy {
+    allow_blocking_assignments: bool,
+}
+
+fn validate_statement(
+    statement: &Statement,
+    visible_scope: &VisibleScope,
+    symbols: &HashMap<String, i64>,
+    policy: ProceduralPolicy,
+) -> Result<(), FrontendError> {
+    match statement {
+        Statement::Block { statements, .. } => {
+            for statement in statements {
+                validate_statement(statement, visible_scope, symbols, policy)?;
+            }
+            Ok(())
+        }
+        Statement::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            validate_expr_identifiers(
+                condition,
+                &visible_scope.names,
+                &visible_scope.types,
+                symbols,
+            )?;
+            validate_statement(then_branch, visible_scope, symbols, policy)?;
+            if let Some(else_branch) = else_branch {
+                validate_statement(else_branch, visible_scope, symbols, policy)?;
+            }
+            Ok(())
+        }
+        Statement::Assignment {
+            target,
+            kind,
+            value,
+        } => {
+            validate_known_identifier(target, &visible_scope.names, &visible_scope.types, symbols)?;
+            validate_expr_identifiers(value, &visible_scope.names, &visible_scope.types, symbols)?;
+            if *kind == AssignmentKind::Blocking && !policy.allow_blocking_assignments {
+                return Err(FrontendError::new(
+                    format!(
+                        "always_ff block does not allow blocking assignment to '{}'",
+                        target
+                    ),
+                    0,
+                ));
+            }
+            Ok(())
+        }
+        Statement::Empty => Ok(()),
+    }
 }
 
 fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
@@ -3915,6 +4021,110 @@ mod tests {
             Statement::Block { statements, .. } => assert_eq!(statements.len(), 1),
             other => panic!("expected block statement, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn elaboration_accepts_well_formed_always_ff_blocks() {
+        let design = parse_design(
+            r#"
+            module top (
+                input logic clk,
+                input logic rst_n,
+                input logic d,
+                output logic q
+            );
+            always_ff @(posedge clk or negedge rst_n) begin
+                if (!rst_n)
+                    q <= 0;
+                else
+                    q <= d;
+            end
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should accept well-formed always_ff blocks");
+    }
+
+    #[test]
+    fn elaboration_rejects_blocking_assignments_in_always_ff_blocks() {
+        let design = parse_design(
+            r#"
+            module top (
+                input logic clk,
+                output logic q
+            );
+            always_ff @(posedge clk) begin
+                q = 1;
+            end
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject blocking assignments in always_ff");
+        assert!(
+            error
+                .message
+                .contains("always_ff block does not allow blocking assignment to 'q'")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_identifiers_in_always_ff_event_controls() {
+        let design = parse_design(
+            r#"
+            module top (
+                output logic q
+            );
+            always_ff @(posedge clk_missing) begin
+                q <= 1;
+            end
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown always_ff event-control identifiers");
+        assert!(
+            error
+                .message
+                .contains("unknown parent-scope identifier 'clk_missing'")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_identifiers_in_always_latch_blocks() {
+        let design = parse_design(
+            r#"
+            module top (
+                input logic en,
+                output logic q
+            );
+            always_latch begin
+                if (en)
+                    q <= missing;
+            end
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown identifiers in latch bodies");
+        assert!(
+            error
+                .message
+                .contains("unknown parent-scope identifier 'missing'")
+        );
     }
 
     #[test]

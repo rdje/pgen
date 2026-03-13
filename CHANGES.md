@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Procedural Semantic Validation
+### ✅ Achievement Summary
+`rtl_frontend` no longer treats procedural blocks as syntax-only module items during elaboration. Procedural event controls and expressions now participate in scope-aware identifier validation, and `always_ff` blocks are rejected if they use blocking assignments.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - threaded procedural blocks into the existing elaboration-time item validation pass,
+  - added recursive statement validation for `if` conditions, assignment targets, and assignment values,
+  - enforced a first sequential semantic rule by rejecting blocking assignments inside `always_ff` blocks.
+- Added focused tests for:
+  - acceptance of well-formed `always_ff` blocks,
+  - rejection of blocking assignments inside `always_ff`,
+  - rejection of unknown identifiers in `always_ff` event controls,
+  - rejection of unknown identifiers in `always_latch` bodies.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the procedural semantic-validation baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`55/55`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add RTL Sequential Procedural Coverage
 ### ✅ Achievement Summary
 `rtl_frontend` now recognizes the first sequential/latch procedural slice in the handwritten subset. `always_ff` blocks retain their edge-trigger event controls, `always_latch` blocks parse as their own procedural kind, and the existing statement machinery now covers a more realistic synthesizable procedural surface.
