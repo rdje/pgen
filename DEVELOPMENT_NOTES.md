@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Concatenated Assignment Targets
+### Context
+The previous assignment-target increment broadened LHS parsing to typed member/select forms, but it still stopped at a single target. That left a common synthesizable form uncovered: concatenated left-hand sides such as `{cfg.data[BIT], cfg.valid}`. The next clean increment was therefore recursive concatenation support on top of the existing typed LHS machinery.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `AssignmentTarget::Concat` so continuous and procedural assignments share one recursive LHS model,
+  - extended assignment-target parsing to accept brace-wrapped concatenations of typed member/select targets,
+  - reused the existing visible-scope/type-aware target validation flow so concatenated LHS elements are checked one-by-one during elaboration.
+- Added focused tests for:
+  - concatenated continuous-assign target parsing,
+  - elaboration acceptance of concatenated procedural assignment targets,
+  - rejection of invalid aggregate members inside concatenated assign targets.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `61/61` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment adds recursive concatenated LHS support, but it still does not model richer assignment-target families such as assignment patterns or other more exotic SV lvalue forms.
+- The next clean increment is likely either richer assignment semantics or another synthesizable declaration/type-family slice.
+
 ## 2026-03-14 - Add RTL Typed Assignment Targets
 ### Context
 The previous procedural semantic increment made assignments semantically visible, but both procedural statements and continuous assigns still only parsed bare identifier left-hand sides. That meant the frontend could validate a lot of right-hand-side structure while still dropping common synthesizable LHS forms like `cfg.data[BIT]`. The next clean increment was therefore typed assignment-target coverage.

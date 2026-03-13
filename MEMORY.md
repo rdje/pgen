@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-rtl-typed-assignment-targets)
+Last updated: 2026-03-14 (+0100, task: add-rtl-concatenated-assignment-targets)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -62,7 +62,7 @@ Use this file to resume work without replaying full chat history.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`13/13`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`58/58`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`61/61`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).

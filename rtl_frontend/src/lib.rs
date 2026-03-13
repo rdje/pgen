@@ -676,7 +676,7 @@ fn validate_statement(
                 return Err(FrontendError::new(
                     format!(
                         "always_ff block does not allow blocking assignment to '{}'",
-                        target.base_name()
+                        target.describe()
                     ),
                     0,
                 ));
@@ -1213,6 +1213,7 @@ pub enum AssignmentTarget {
         msb: Expr,
         lsb: Expr,
     },
+    Concat(Vec<AssignmentTarget>),
 }
 
 impl AssignmentTarget {
@@ -1235,14 +1236,21 @@ impl AssignmentTarget {
                 validate_expr_identifiers(msb, visible_names, visible_types, symbols)?;
                 validate_expr_identifiers(lsb, visible_names, visible_types, symbols)
             }
+            AssignmentTarget::Concat(items) => {
+                for item in items {
+                    item.validate(visible_names, visible_types, symbols)?;
+                }
+                Ok(())
+            }
         }
     }
 
-    fn base_name(&self) -> &str {
+    fn describe(&self) -> String {
         match self {
             AssignmentTarget::Signal(name)
             | AssignmentTarget::BitSelect { signal: name, .. }
-            | AssignmentTarget::PartSelect { signal: name, .. } => name,
+            | AssignmentTarget::PartSelect { signal: name, .. } => name.clone(),
+            AssignmentTarget::Concat(_) => "{...}".to_string(),
         }
     }
 }
@@ -1939,6 +1947,23 @@ fn parse_assignment_target(input: &str) -> Result<AssignmentTarget, FrontendErro
     let trimmed = input.trim();
     if trimmed.is_empty() {
         return Err(FrontendError::new("expected assignment target", 0));
+    }
+
+    if trimmed.starts_with('{') && trimmed.ends_with('}') && is_wrapped_by(trimmed, '{', '}') {
+        let inner = trimmed[1..trimmed.len() - 1].trim();
+        if inner.is_empty() {
+            return Err(FrontendError::new(
+                "empty assignment-target concatenation is not supported",
+                0,
+            ));
+        }
+
+        let parts = split_top_level(inner, ',')?;
+        let mut parsed_parts = Vec::new();
+        for part in parts {
+            parsed_parts.push(parse_assignment_target(part)?);
+        }
+        return Ok(AssignmentTarget::Concat(parsed_parts));
     }
 
     if let Some((signal, inner)) = split_signal_suffix(trimmed)? {
@@ -4197,6 +4222,46 @@ mod tests {
     }
 
     #[test]
+    fn parses_concatenated_continuous_assign_targets() {
+        let module = parse_module(
+            r#"
+            module top #(
+                parameter BIT = 1
+            ) (
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            assign {cfg.data[BIT], cfg.valid} = d;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        let assign = module
+            .items
+            .iter()
+            .find_map(|item| match item {
+                ModuleItem::ContinuousAssign(assign) => Some(assign),
+                _ => None,
+            })
+            .expect("continuous assign should exist");
+
+        assert_eq!(
+            assign.target,
+            AssignmentTarget::Concat(vec![
+                AssignmentTarget::BitSelect {
+                    signal: "cfg.data".to_string(),
+                    index: rtl_const_expr::parse_expression("BIT").unwrap(),
+                },
+                AssignmentTarget::Signal("cfg.valid".to_string()),
+            ])
+        );
+    }
+
+    #[test]
     fn elaboration_accepts_well_formed_always_ff_blocks() {
         let design = parse_design(
             r#"
@@ -4248,6 +4313,33 @@ mod tests {
         design
             .elaborate_top("top", &HashMap::new())
             .expect("elaboration should accept typed procedural assignment targets");
+    }
+
+    #[test]
+    fn elaboration_accepts_concatenated_procedural_assignment_targets() {
+        let design = parse_design(
+            r#"
+            module top #(
+                parameter IDX = 1,
+                parameter BIT = 2
+            ) (
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfgs [0:1];
+            always_comb begin
+                {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;
+            end
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should accept concatenated procedural assignment targets");
     }
 
     #[test]
@@ -4321,6 +4413,33 @@ mod tests {
         let error = design
             .elaborate_top("top", &HashMap::new())
             .expect_err("elaboration should reject unknown members in assign targets");
+        assert!(
+            error
+                .message
+                .contains("unknown member 'missing' on parent-scope identifier 'cfg'")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_members_in_concat_assign_targets() {
+        let design = parse_design(
+            r#"
+            module top (
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            assign {cfg.data, cfg.missing} = d;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown members in concatenated assign targets");
         assert!(
             error
                 .message

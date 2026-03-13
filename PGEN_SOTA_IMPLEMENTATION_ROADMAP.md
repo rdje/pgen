@@ -1957,6 +1957,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - typed `assign` and procedural LHS parsing for signal/member-path, bit-select, and part-select targets,
     - elaboration-time validation of typed LHS targets such as `cfg.data[BIT]` and `cfgs[IDX].data[BIT]`,
     - continuous-assign diagnostics for invalid typed targets such as unknown aggregate members.
+  - Progress (2026-03-14): extended `rtl_frontend` assignment-target coverage further so the current subset now also supports:
+    - concatenated assignment targets such as `{cfg.data[BIT], cfg.valid}` on both `assign` and procedural statements,
+    - elaboration-time validation of concatenated typed LHS targets including indexed/member-path elements,
+    - rejection of invalid aggregate members inside concatenated assignment targets.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

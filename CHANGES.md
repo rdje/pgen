@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Concatenated Assignment Targets
+### ✅ Achievement Summary
+`rtl_frontend` now supports concatenated assignment targets on both `assign` statements and procedural assignments. Left-hand sides like `{cfg.data[BIT], cfg.valid}` are preserved in the AST and validated element-by-element during elaboration.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `AssignmentTarget::Concat` on top of the existing typed LHS model,
+  - extended assignment-target parsing so brace-wrapped concatenations can contain typed member/select targets recursively,
+  - validated concatenated LHS elements through the same visible-scope/type-aware signal-path checks used by the rest of the frontend.
+- Added focused tests for:
+  - concatenated continuous-assign target retention,
+  - elaboration acceptance of concatenated procedural assignment targets,
+  - rejection of invalid aggregate members inside concatenated assign targets.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the concatenated-assignment-target baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`61/61`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add RTL Typed Assignment Targets
 ### ✅ Achievement Summary
 `rtl_frontend` now supports typed assignment targets on both `assign` statements and procedural assignments. Left-hand sides can preserve signal/member paths, bit-selects, and part-selects, and those targets now participate in elaboration-time validation instead of being limited to bare identifiers.
