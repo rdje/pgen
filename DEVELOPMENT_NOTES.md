@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Typed Assignment Targets
+### Context
+The previous procedural semantic increment made assignments semantically visible, but both procedural statements and continuous assigns still only parsed bare identifier left-hand sides. That meant the frontend could validate a lot of right-hand-side structure while still dropping common synthesizable LHS forms like `cfg.data[BIT]`. The next clean increment was therefore typed assignment-target coverage.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - introduced a shared typed assignment-target representation for continuous and procedural assignments,
+  - broadened assignment parsing so left-hand sides can now preserve signal/member paths, bit-selects, and part-selects,
+  - wired typed assignment-target validation through the existing visible-scope/type-aware signal-path checks for both `assign` and procedural statements.
+- Added focused tests for:
+  - typed continuous-assign target parsing,
+  - elaboration acceptance of typed procedural assignment targets,
+  - rejection of invalid aggregate-member continuous-assign targets.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `58/58` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment broadens LHS parsing/validation, but it still does not support richer assignment targets such as concatenation assignments or the full RHS expression surface for indexed/member selects.
+- The next clean increment is likely either richer assignment semantics or another synthesizable declaration/type-family slice.
+
 ## 2026-03-14 - Add RTL Procedural Semantic Validation
 ### Context
 The previous procedural increment added parser coverage for `always_ff` and `always_latch`, but procedural blocks were still effectively opaque during elaboration. That meant the frontend could retain sequential syntax without checking whether those blocks referenced known identifiers or followed even a minimal sequential assignment policy. The next clean increment was therefore a first procedural semantic pass.

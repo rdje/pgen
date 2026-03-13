@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Typed Assignment Targets
+### ✅ Achievement Summary
+`rtl_frontend` now supports typed assignment targets on both `assign` statements and procedural assignments. Left-hand sides can preserve signal/member paths, bit-selects, and part-selects, and those targets now participate in elaboration-time validation instead of being limited to bare identifiers.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - introduced a shared typed assignment-target model for continuous and procedural assignments,
+  - added parser support for LHS forms such as `cfg.data[BIT]`, `cfgs[IDX].data[BIT]`, and similar part-select targets,
+  - validated typed assignment targets through the existing visible-scope/type-aware signal-path machinery for both `assign` and procedural statements.
+- Added focused tests for:
+  - typed continuous-assign target retention,
+  - elaboration acceptance of typed procedural assignment targets,
+  - rejection of unknown aggregate members in continuous-assign targets.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the typed-assignment-target baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`58/58`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add RTL Procedural Semantic Validation
 ### ✅ Achievement Summary
 `rtl_frontend` no longer treats procedural blocks as syntax-only module items during elaboration. Procedural event controls and expressions now participate in scope-aware identifier validation, and `always_ff` blocks are rejected if they use blocking assignments.

@@ -559,12 +559,22 @@ fn validate_module_item_types(
                 data_type.validate(symbols)?;
             }
         }
+        ModuleItem::ContinuousAssign(assign) => {
+            assign
+                .target
+                .validate(&visible_scope.names, &visible_scope.types, symbols)?;
+            validate_expr_identifiers(
+                &assign.value,
+                &visible_scope.names,
+                &visible_scope.types,
+                symbols,
+            )?;
+        }
         ModuleItem::ProceduralBlock(block) => {
             validate_procedural_block(block, visible_scope, symbols)?;
         }
         ModuleItem::ImportDecl(_)
         | ModuleItem::GenvarDecl(_)
-        | ModuleItem::ContinuousAssign(_)
         | ModuleItem::ModuleInstantiation(_)
         | ModuleItem::GenerateRegion(_)
         | ModuleItem::GenerateIf(_)
@@ -660,13 +670,13 @@ fn validate_statement(
             kind,
             value,
         } => {
-            validate_known_identifier(target, &visible_scope.names, &visible_scope.types, symbols)?;
+            target.validate(&visible_scope.names, &visible_scope.types, symbols)?;
             validate_expr_identifiers(value, &visible_scope.names, &visible_scope.types, symbols)?;
             if *kind == AssignmentKind::Blocking && !policy.allow_blocking_assignments {
                 return Err(FrontendError::new(
                     format!(
                         "always_ff block does not allow blocking assignment to '{}'",
-                        target
+                        target.base_name()
                     ),
                     0,
                 ));
@@ -1181,7 +1191,7 @@ pub struct GenvarDecl {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContinuousAssign {
-    pub target: String,
+    pub target: AssignmentTarget,
     pub value: Expr,
 }
 
@@ -1189,6 +1199,52 @@ pub struct ContinuousAssign {
 pub enum ParameterOverride {
     Ordered(Expr),
     Named { name: String, value: Expr },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AssignmentTarget {
+    Signal(String),
+    BitSelect {
+        signal: String,
+        index: Expr,
+    },
+    PartSelect {
+        signal: String,
+        msb: Expr,
+        lsb: Expr,
+    },
+}
+
+impl AssignmentTarget {
+    fn validate(
+        &self,
+        visible_names: &HashSet<String>,
+        visible_types: &HashMap<String, DeclType>,
+        symbols: &HashMap<String, i64>,
+    ) -> Result<(), FrontendError> {
+        match self {
+            AssignmentTarget::Signal(name) => {
+                validate_known_identifier(name, visible_names, visible_types, symbols)
+            }
+            AssignmentTarget::BitSelect { signal, index } => {
+                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(index, visible_names, visible_types, symbols)
+            }
+            AssignmentTarget::PartSelect { signal, msb, lsb } => {
+                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(msb, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(lsb, visible_names, visible_types, symbols)
+            }
+        }
+    }
+
+    fn base_name(&self) -> &str {
+        match self {
+            AssignmentTarget::Signal(name)
+            | AssignmentTarget::BitSelect { signal: name, .. }
+            | AssignmentTarget::PartSelect { signal: name, .. } => name,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1562,7 +1618,7 @@ pub enum Statement {
         else_branch: Option<Box<Statement>>,
     },
     Assignment {
-        target: String,
+        target: AssignmentTarget,
         kind: AssignmentKind,
         value: Expr,
     },
@@ -1877,6 +1933,36 @@ fn parse_port_actual(input: &str) -> Result<PortActual, FrontendError> {
         Expr::Ident(name) => PortActual::Signal(name),
         other => PortActual::Expression(other),
     })
+}
+
+fn parse_assignment_target(input: &str) -> Result<AssignmentTarget, FrontendError> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err(FrontendError::new("expected assignment target", 0));
+    }
+
+    if let Some((signal, inner)) = split_signal_suffix(trimmed)? {
+        if let Some((msb, lsb)) = split_top_level_once(inner, ':')? {
+            return Ok(AssignmentTarget::PartSelect {
+                signal,
+                msb: parse_expression(msb).map_err(map_eval_error)?,
+                lsb: parse_expression(lsb).map_err(map_eval_error)?,
+            });
+        }
+        return Ok(AssignmentTarget::BitSelect {
+            signal,
+            index: parse_expression(inner).map_err(map_eval_error)?,
+        });
+    }
+
+    if parse_signal_path(trimmed)?.is_some() {
+        return Ok(AssignmentTarget::Signal(trimmed.to_string()));
+    }
+
+    Err(FrontendError::new(
+        format!("unsupported assignment target '{}'", trimmed),
+        0,
+    ))
 }
 
 fn split_repetition_count_and_value(input: &str) -> Result<Option<(&str, &str)>, FrontendError> {
@@ -3070,8 +3156,13 @@ impl<'a> Parser<'a> {
 
     fn parse_continuous_assign(&mut self) -> Result<ContinuousAssign, FrontendError> {
         self.expect_keyword("assign")?;
-        let target = self.expect_identifier()?;
-        self.expect_symbol('=')?;
+        let (target, kind) = self.parse_assignment_target_and_kind()?;
+        if kind != AssignmentKind::Blocking {
+            return Err(FrontendError::new(
+                "continuous assign requires '=' assignment operator",
+                self.current().start,
+            ));
+        }
         let value = self.parse_expression_until(&[';'])?;
         self.expect_symbol(';')?;
         Ok(ContinuousAssign { target, value })
@@ -3145,13 +3236,7 @@ impl<'a> Parser<'a> {
             return self.parse_if_statement();
         }
 
-        let target = self.expect_identifier()?;
-        let kind = if self.consume_operator("<=") {
-            AssignmentKind::NonBlocking
-        } else {
-            self.expect_symbol('=')?;
-            AssignmentKind::Blocking
-        };
+        let (target, kind) = self.parse_assignment_target_and_kind()?;
         let value = self.parse_expression_until(&[';'])?;
         self.expect_symbol(';')?;
         Ok(Statement::Assignment {
@@ -3186,6 +3271,65 @@ impl<'a> Parser<'a> {
             then_branch: Box::new(then_branch),
             else_branch,
         })
+    }
+
+    fn parse_assignment_target_and_kind(
+        &mut self,
+    ) -> Result<(AssignmentTarget, AssignmentKind), FrontendError> {
+        if self.is_end() {
+            return Err(FrontendError::new(
+                "expected assignment target, found end of input",
+                0,
+            ));
+        }
+
+        let start = self.current().start;
+        let mut end = start;
+        let mut paren_depth = 0usize;
+        let mut bracket_depth = 0usize;
+        let mut brace_depth = 0usize;
+
+        while !self.is_end() {
+            let token = self.current();
+            let top_level = paren_depth == 0 && bracket_depth == 0 && brace_depth == 0;
+
+            if top_level {
+                let kind = match token.kind {
+                    TokenKind::Operator("<=") => Some(AssignmentKind::NonBlocking),
+                    TokenKind::Symbol('=') => Some(AssignmentKind::Blocking),
+                    _ => None,
+                };
+                if let Some(kind) = kind {
+                    let text = self
+                        .input
+                        .get(start..end)
+                        .unwrap_or_default()
+                        .trim()
+                        .to_string();
+                    if text.is_empty() {
+                        return Err(FrontendError::new("expected assignment target", start));
+                    }
+                    let target = parse_assignment_target(&text)?;
+                    self.advance();
+                    return Ok((target, kind));
+                }
+            }
+
+            match token.kind {
+                TokenKind::Symbol('(') => paren_depth += 1,
+                TokenKind::Symbol(')') => paren_depth = paren_depth.saturating_sub(1),
+                TokenKind::Symbol('[') => bracket_depth += 1,
+                TokenKind::Symbol(']') => bracket_depth = bracket_depth.saturating_sub(1),
+                TokenKind::Symbol('{') => brace_depth += 1,
+                TokenKind::Symbol('}') => brace_depth = brace_depth.saturating_sub(1),
+                _ => {}
+            }
+
+            end = token.end;
+            self.advance();
+        }
+
+        Err(FrontendError::new("expected assignment operator", end))
     }
 
     fn parse_generate_region(&mut self) -> Result<GenerateRegion, FrontendError> {
@@ -3666,15 +3810,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn consume_operator(&mut self, operator: &str) -> bool {
-        if matches!(self.current().kind, TokenKind::Operator(value) if value == operator) {
-            self.advance();
-            true
-        } else {
-            false
-        }
-    }
-
     fn current_is_terminator(&self, terminators: &[char]) -> bool {
         matches!(self.current().kind, TokenKind::Symbol(ch) if terminators.contains(&ch))
     }
@@ -3814,8 +3949,9 @@ fn is_data_type_keyword(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        DataType, EventEdge, GenerateFor, GenerateIf, ModuleItem, NetKind, ParameterOverride,
-        PortActual, PortConnection, ProceduralKind, Statement, parse_design, parse_module,
+        AssignmentTarget, DataType, EventEdge, GenerateFor, GenerateIf, ModuleItem, NetKind,
+        ParameterOverride, PortActual, PortConnection, ProceduralKind, Statement, parse_design,
+        parse_module,
     };
     use std::collections::HashMap;
 
@@ -4024,6 +4160,43 @@ mod tests {
     }
 
     #[test]
+    fn parses_typed_continuous_assign_targets() {
+        let module = parse_module(
+            r#"
+            module top #(
+                parameter BIT = 1
+            ) (
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            assign cfg.data[BIT] = d;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        let assign = module
+            .items
+            .iter()
+            .find_map(|item| match item {
+                ModuleItem::ContinuousAssign(assign) => Some(assign),
+                _ => None,
+            })
+            .expect("continuous assign should exist");
+
+        assert_eq!(
+            assign.target,
+            AssignmentTarget::BitSelect {
+                signal: "cfg.data".to_string(),
+                index: rtl_const_expr::parse_expression("BIT").unwrap(),
+            }
+        );
+    }
+
+    #[test]
     fn elaboration_accepts_well_formed_always_ff_blocks() {
         let design = parse_design(
             r#"
@@ -4047,6 +4220,34 @@ mod tests {
         design
             .elaborate_top("top", &HashMap::new())
             .expect("elaboration should accept well-formed always_ff blocks");
+    }
+
+    #[test]
+    fn elaboration_accepts_typed_procedural_assignment_targets() {
+        let design = parse_design(
+            r#"
+            module top #(
+                parameter IDX = 1,
+                parameter BIT = 2
+            ) (
+                input logic clk,
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfgs [0:1];
+            always_ff @(posedge clk) begin
+                cfgs[IDX].data[BIT] <= d;
+            end
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should accept typed procedural assignment targets");
     }
 
     #[test]
@@ -4097,6 +4298,33 @@ mod tests {
             error
                 .message
                 .contains("unknown parent-scope identifier 'clk_missing'")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_members_in_continuous_assign_targets() {
+        let design = parse_design(
+            r#"
+            module top (
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            assign cfg.missing = d;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown members in assign targets");
+        assert!(
+            error
+                .message
+                .contains("unknown member 'missing' on parent-scope identifier 'cfg'")
         );
     }
 

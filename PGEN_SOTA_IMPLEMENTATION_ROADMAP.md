@@ -1953,6 +1953,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - elaboration-time validation of identifiers referenced from procedural event controls, conditions, and assignment values,
     - elaboration-time rejection of `always_ff` blocks that use blocking assignments,
     - procedural validation wired through the same visible-scope/type metadata path already used for typed parent-side connection checking.
+  - Progress (2026-03-14): extended `rtl_frontend` assignment-target coverage so the current subset now also supports:
+    - typed `assign` and procedural LHS parsing for signal/member-path, bit-select, and part-select targets,
+    - elaboration-time validation of typed LHS targets such as `cfg.data[BIT]` and `cfgs[IDX].data[BIT]`,
+    - continuous-assign diagnostics for invalid typed targets such as unknown aggregate members.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

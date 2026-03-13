@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-rtl-procedural-semantic-validation)
+Last updated: 2026-03-14 (+0100, task: add-rtl-typed-assignment-targets)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -50,6 +50,7 @@ Use this file to resume work without replaying full chat history.
     - builtin integral atom type declarations (`byte`, `shortint`, `longint`) plus enum base-width handling for those builtins,
     - procedural coverage for `always_ff` edge-trigger event controls and `always_latch` blocks in addition to `always_comb` / `always @(*)`,
     - elaboration-time procedural validation for event-control/statement identifiers plus `always_ff` nonblocking-assignment enforcement,
+    - typed `assign` and procedural assignment targets for signal/member/select/part-select LHS forms with elaboration-time target validation,
     - packed-union width-coherence validation during elaboration,
     - file-scope plus module-local typedef parsing and named type resolution for later module headers/declarations in the handwritten subset,
     - top-level package typedef and constant parsing, package-qualified type/constant references, and module-body/header wildcard/named imports for named-type and constant visibility,
@@ -61,7 +62,7 @@ Use this file to resume work without replaying full chat history.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`13/13`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`55/55`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`58/58`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
