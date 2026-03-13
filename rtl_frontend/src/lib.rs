@@ -525,7 +525,7 @@ fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
                 names.extend(genvar.names.iter().cloned());
             }
             ModuleItem::NetDecl(net) => {
-                names.extend(net.names.iter().cloned());
+                names.insert(net.name.clone());
             }
             ModuleItem::GenerateRegion(region) => {
                 names.extend(collect_visible_names_from_items(&region.items));
@@ -554,9 +554,7 @@ fn collect_declared_types_from_items(items: &[ModuleItem]) -> HashMap<String, Da
         match item {
             ModuleItem::NetDecl(net) => {
                 if let Some(data_type) = &net.data_type {
-                    for name in &net.names {
-                        types.insert(name.clone(), data_type.clone());
-                    }
+                    types.insert(net.name.clone(), data_type.clone());
                 }
             }
             ModuleItem::GenerateRegion(region) => {
@@ -783,6 +781,7 @@ pub struct PortDecl {
     pub direction: PortDirection,
     pub data_type: Option<DataType>,
     pub packed_range: Option<PackedRange>,
+    pub unpacked_dimensions: Vec<PackedRange>,
     pub name: String,
 }
 
@@ -792,6 +791,16 @@ impl PortDecl {
             .as_ref()
             .map(|range| range.width(symbols))
             .transpose()
+    }
+
+    pub fn unpacked_shape(
+        &self,
+        symbols: &HashMap<String, i64>,
+    ) -> Result<Vec<i64>, FrontendError> {
+        self.unpacked_dimensions
+            .iter()
+            .map(|range| range.width(symbols))
+            .collect()
     }
 }
 
@@ -808,7 +817,27 @@ pub struct NetDecl {
     pub kind: NetKind,
     pub data_type: Option<DataType>,
     pub packed_range: Option<PackedRange>,
-    pub names: Vec<String>,
+    pub unpacked_dimensions: Vec<PackedRange>,
+    pub name: String,
+}
+
+impl NetDecl {
+    pub fn width(&self, symbols: &HashMap<String, i64>) -> Result<Option<i64>, FrontendError> {
+        self.packed_range
+            .as_ref()
+            .map(|range| range.width(symbols))
+            .transpose()
+    }
+
+    pub fn unpacked_shape(
+        &self,
+        symbols: &HashMap<String, i64>,
+    ) -> Result<Vec<i64>, FrontendError> {
+        self.unpacked_dimensions
+            .iter()
+            .map(|range| range.width(symbols))
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2086,10 +2115,12 @@ impl<'a> Parser<'a> {
 
             loop {
                 let name = self.expect_identifier()?;
+                let unpacked_dimensions = self.parse_unpacked_dimensions()?;
                 ports.push(PortDecl {
                     direction: direction.clone(),
                     data_type: data_type.clone(),
                     packed_range: packed_range.clone(),
+                    unpacked_dimensions,
                     name,
                 });
 
@@ -2145,7 +2176,7 @@ impl<'a> Parser<'a> {
             || self.peek_typedef_name()
             || self.peek_package_qualified_type()
         {
-            return Ok(vec![ModuleItem::NetDecl(self.parse_net_decl()?)]);
+            return self.parse_net_decls();
         }
         if self.peek_keyword("assign") {
             return Ok(vec![ModuleItem::ContinuousAssign(
@@ -2355,7 +2386,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parse_net_decl(&mut self) -> Result<NetDecl, FrontendError> {
+    fn parse_net_decls(&mut self) -> Result<Vec<ModuleItem>, FrontendError> {
         let (kind, data_type) = if self.consume_keyword("logic") {
             (
                 NetKind::Logic,
@@ -2408,18 +2439,24 @@ impl<'a> Parser<'a> {
         };
 
         let packed_range = self.parse_optional_packed_range()?;
-        let mut names = vec![self.expect_identifier()?];
-        while self.consume_symbol(',') {
-            names.push(self.expect_identifier()?);
+        let mut declarations = Vec::new();
+        loop {
+            let name = self.expect_identifier()?;
+            let unpacked_dimensions = self.parse_unpacked_dimensions()?;
+            declarations.push(ModuleItem::NetDecl(NetDecl {
+                kind: kind.clone(),
+                data_type: data_type.clone(),
+                packed_range: packed_range.clone(),
+                unpacked_dimensions,
+                name,
+            }));
+            if !self.consume_symbol(',') {
+                break;
+            }
         }
         self.expect_symbol(';')?;
 
-        Ok(NetDecl {
-            kind,
-            data_type,
-            packed_range,
-            names,
-        })
+        Ok(declarations)
     }
 
     fn parse_module_instantiations(&mut self) -> Result<Vec<ModuleItem>, FrontendError> {
@@ -2752,6 +2789,14 @@ impl<'a> Parser<'a> {
         let lsb = self.parse_expression_until(&[']'])?;
         self.expect_symbol(']')?;
         Ok(Some(PackedRange { msb, lsb }))
+    }
+
+    fn parse_unpacked_dimensions(&mut self) -> Result<Vec<PackedRange>, FrontendError> {
+        let mut dimensions = Vec::new();
+        while let Some(range) = self.parse_optional_packed_range()? {
+            dimensions.push(range);
+        }
+        Ok(dimensions)
     }
 
     fn parse_optional_port_actual_until(
@@ -3465,6 +3510,86 @@ mod tests {
             }
             other => panic!("expected header-imported struct port type, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn parses_unpacked_array_ports_and_nets() {
+        let module = parse_module(
+            r#"
+            module top #(
+                parameter DEPTH = 4
+            ) (
+                input logic [7:0] a [0:DEPTH-1],
+                input logic [7:0] b [1:DEPTH],
+                output logic y
+            );
+            logic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        let env = module
+            .evaluate_constant_env(&HashMap::new())
+            .expect("constant env should resolve");
+
+        assert_eq!(module.ports[0].width(&env).unwrap(), Some(8));
+        assert_eq!(module.ports[0].unpacked_shape(&env).unwrap(), vec![4]);
+        assert_eq!(module.ports[1].unpacked_shape(&env).unwrap(), vec![4]);
+        assert!(module.ports[2].unpacked_shape(&env).unwrap().is_empty());
+
+        match &module.items[0] {
+            ModuleItem::NetDecl(net) => {
+                assert_eq!(net.name, "bank0");
+                assert_eq!(net.width(&env).unwrap(), Some(8));
+                assert_eq!(net.unpacked_shape(&env).unwrap(), vec![4]);
+            }
+            other => panic!("expected first unpacked net declaration, got {other:?}"),
+        }
+
+        match &module.items[1] {
+            ModuleItem::NetDecl(net) => {
+                assert_eq!(net.name, "bank1");
+                assert_eq!(net.unpacked_shape(&env).unwrap(), vec![4]);
+            }
+            other => panic!("expected second unpacked net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn elaboration_accepts_unpacked_array_element_actuals() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top #(
+                parameter DEPTH = 2,
+                parameter IDX = 1
+            ) (
+                output logic y
+            );
+            logic [7:0] banks [0:DEPTH-1];
+            child u_child (.a(banks[IDX]), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::BitSelect {
+                signal: "banks".to_string(),
+                index: rtl_const_expr::parse_expression("IDX").unwrap(),
+            })
+        );
     }
 
     #[test]

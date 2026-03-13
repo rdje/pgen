@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Unpacked Array Declarations
+### ✅ Achievement Summary
+`rtl_frontend` now supports unpacked-array declarations for the current handwritten subset. ANSI ports and net declarations can carry unpacked dimensions, multi-declarator net statements are preserved as per-name AST items, and elaboration still accepts array-element actuals like `banks[IDX]`.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - extended `PortDecl` and `NetDecl` with unpacked-dimension metadata and shape helpers,
+  - updated port parsing to accept unpacked dimensions after each declarator name,
+  - updated net parsing to emit one `NetDecl` item per declarator so per-name unpacked dimensions are represented faithfully.
+- Added focused tests for:
+  - ANSI ports and net declarations carrying unpacked dimensions,
+  - unpacked-dimension evaluation from parameterized ranges,
+  - elaboration preserving array-element actuals sourced from unpacked-array declarations.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the unpacked-array baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`33/33`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Package Constant Scope
 ### ✅ Achievement Summary
 `rtl_frontend` no longer stops at typedef-only package scope. Packages can now carry constant declarations, package-qualified and imported package constants can drive module parameters/ranges/elaboration, and `rtl_const_expr` now understands `pkg::NAME` identifiers directly.

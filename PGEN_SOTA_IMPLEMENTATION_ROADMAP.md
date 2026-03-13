@@ -1921,6 +1921,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - top-level package `parameter` / `localparam` declarations evaluated through `rtl_const_expr`,
     - package-qualified constant expressions such as `cfg_pkg::WIDTH` in module parameters, packed ranges, and elaboration-time override/binding expressions,
     - wildcard and named package constant imports flowing into module-header/body elaboration-time constant environments.
+  - Progress (2026-03-13): extended `rtl_frontend` declaration coverage so the current subset now also supports:
+    - unpacked-array dimensions on ANSI port declarations,
+    - unpacked-array dimensions on net declarations with per-declarator AST items,
+    - elaboration-time validation/preservation of unpacked-array element actuals such as `banks[IDX]`.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

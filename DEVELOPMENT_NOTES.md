@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Unpacked Array Declarations
+### Context
+The previous `rtl_frontend` baseline could handle packed ranges on ports and declarations, but it still rejected a common synthesizable shape: unpacked arrays like `logic [7:0] banks [0:DEPTH-1];`. The next clean increment was therefore declaration-shape coverage for unpacked arrays rather than another namespace or expression-only tweak.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added unpacked-dimension metadata plus shape helpers to `PortDecl` and `NetDecl`,
+  - updated ANSI port parsing to accept unpacked dimensions after each port declarator name,
+  - updated net parsing to emit one `NetDecl` item per declarator so per-name unpacked dimensions are represented directly in the AST instead of being flattened onto a shared statement node.
+- Added focused tests for:
+  - unpacked-array ANSI ports and parameterized unpacked dimensions,
+  - multi-declarator unpacked net declarations,
+  - elaboration preserving array-element actuals like `banks[IDX]`.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `33/33` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This is still a narrow unpacked-array slice:
+  - the new support covers ANSI ports and net declarations in the handwritten subset,
+  - broader declaration families and richer aggregate/unpacked interactions are still open follow-on work.
+- The next clean increment is likely broader declaration/type structure beyond the current packed+unpacked port/net baseline.
+
 ## 2026-03-13 - Add RTL Package Constant Scope
 ### Context
 The previous `rtl_frontend` package work only handled named-type visibility. That was enough for typedef-backed declarations, but it still left a real elaboration gap: package-backed constants could not flow into parameter defaults, packed ranges, or instance expressions unless they were rewritten by hand. The next clean increment was therefore package constant scope rather than more import syntax alone.
