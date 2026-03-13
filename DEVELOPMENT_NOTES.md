@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - SV Realistic Corpus Version 47 Promotion
+### Context
+Once `version: 46` promoted the full thirty-four-child / dotriaconta family, the clean next parser-trust task remained the same objective corpus-expansion pattern rather than another speculative generator tweak. That meant promoting the full `thirty_five_child` / `tritriaconta_bridge` family across direct import/use, deep-include package-width reuse, and macro-expanded forms.
+
+### Implementation
+- Added the nine promoted required-pass entry cases:
+  - imported-width tritriaconta named-port and wildcard composition,
+  - module-local and package-import thirty-five-child pipelines,
+  - deep-include package-width thirty-five-child pipeline and tritriaconta wildcard reuse,
+  - macro-import, macro-module-name, and macro-port-name thirty-five-child forms.
+- Added the supporting deep-include package-width files:
+  - `preprocess_deep_include_package_width_thirty_five_child_defs.svh`
+  - `preprocess_deep_include_package_width_thirty_five_child_mid.svh`
+  - `preprocess_deep_include_package_width_thirty_five_child_leaf.svh`
+- Promoted `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`:
+  - `version: 46 -> 47`
+  - declared cases: `356 -> 365`
+
+### Validation
+- Direct dual-profile proof passed:
+  - preprocess + `parse_full` replay for the nine new cases completed `18/18` across `sv_2017` and `sv_2023`.
+
+### Notes
+- This keeps the SV realistic-corpus expansion objective: no shared parser/generator code changed.
+- The next clean frontier is the following full family step after this one, most likely `thirty_six_child` / the next bridge-family increment after `tritriaconta_bridge`.
+
 ## 2026-03-13 - SV Realistic Corpus Version 46 Promotion
 ### Context
 Once `version: 45` promoted the full thirty-three-child / hentriaconta family, the clean next parser-trust task remained the same objective corpus-expansion pattern rather than another speculative generator tweak. That meant promoting the full `thirty_four_child` / `dotriaconta_bridge` family across direct import/use, deep-include package-width reuse, and macro-expanded forms.

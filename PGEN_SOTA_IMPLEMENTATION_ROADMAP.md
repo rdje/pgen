@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-11
+Last updated: 2026-03-13
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -1542,6 +1542,19 @@ Toolbox baseline to leverage end-to-end:
       - macro-expanded multi-width import thirty-four-child pipeline composition,
       - macro-expanded module-name multi-width thirty-four-child composition,
       - macro-expanded port-name multi-width thirty-four-child composition,
+    - direct dual-profile preprocess + parse-full validation for the new cases remained green:
+      - `18/18` passes across `sv_2017` and `sv_2023`.
+  - Progress (2026-03-13): expanded the checked-in Nexsim realistic corpus to `365` declared deterministic all-pass cases (`version: 47`) by promoting the next complete thirty-five-child / tritriaconta family:
+    - added required-pass cases for:
+      - multi-module imported-width tritriaconta-bridge named-port composition,
+      - multi-module imported-width tritriaconta-bridge wildcard composition,
+      - module-local import multi-width thirty-five-child pipeline composition,
+      - package-import multi-width thirty-five-child pipeline composition,
+      - deeper include-chain package-width thirty-five-child pipeline composition,
+      - deeper include-chain package-width tritriaconta-bridge wildcard reuse,
+      - macro-expanded multi-width import thirty-five-child pipeline composition,
+      - macro-expanded module-name multi-width thirty-five-child composition,
+      - macro-expanded port-name multi-width thirty-five-child composition,
     - direct dual-profile preprocess + parse-full validation for the new cases remained green:
       - `18/18` passes across `sv_2017` and `sv_2023`.
   - Progress (2026-03-09): expanded the checked-in Nexsim realistic corpus to `275` declared deterministic all-pass cases (`version: 36`) with richer imported-width tricosa-bridge composition, twenty-five-child pipelines, deeper include-chain tricosa-bridge reuse, and width-aware macro twenty-five-child families:
