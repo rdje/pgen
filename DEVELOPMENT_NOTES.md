@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Builtin Integral Type Coverage
+### Context
+The previous packed-union validation increment had the width machinery needed for more realistic builtin atom types, but standalone declarations still only recognized a narrow set of declaration starters. The next clean increment was therefore to let builtin integral atom types flow through the same handwritten declaration and validation path.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - broadened declaration-start detection and net-declaration parsing so builtin data types such as `byte`, `shortint`, and `longint` can start standalone declarations,
+  - reused the current builtin-width path so `enum byte { ... }` resolves through the same base-type machinery as the existing enum subset,
+  - kept these atom types context-sensitive instead of making them newly reserved identifiers, which preserves existing subset examples that still use names like `byte`.
+- Added focused tests for:
+  - standalone builtin integral declarations,
+  - inline enums with `byte` base types,
+  - builtin-backed packed-union width mismatches.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `49/49` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment broadens builtin integral declaration/type coverage, but it still does not model the full signedness/default-value semantics of the wider SV integer family.
+- The next clean increment is another declaration/type-family or semantic-elaboration slice beyond the current builtin+aggregate baseline.
+
 ## 2026-03-14 - Add RTL Packed-Union Width Validation
 ### Context
 The previous union increment added parsing, visibility, and member access, but packed unions still had a major semantic hole: there was no check that their fields were width-compatible. That made packed unions parseable but not trustworthy. The next clean increment was therefore packed-union width validation.

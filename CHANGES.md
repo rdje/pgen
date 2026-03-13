@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Builtin Integral Type Coverage
+### ✅ Achievement Summary
+`rtl_frontend` now treats builtin integral atom types as first-class declaration starters in the handwritten subset. Standalone `byte`, `shortint`, and `longint` declarations parse correctly, enum base-width handling understands them, and packed-union validation can now reject builtin-width mismatches like `byte` vs `shortint`.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - broadened declaration-start detection so builtin data types no longer require typedef/package paths to parse as declarations,
+  - reused the current builtin-width machinery for enum base types and packed-union validation,
+  - kept builtin atom types context-sensitive instead of newly reserving them as identifiers, which avoids regressing existing subset examples.
+- Added focused tests for:
+  - standalone `byte` / `shortint` / `longint` declarations,
+  - inline enums with `byte` base types,
+  - packed-union builtin-width mismatches.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the builtin-integral baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`49/49`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add RTL Packed-Union Width Validation
 ### ✅ Achievement Summary
 `rtl_frontend` no longer treats packed unions as syntax-only declarations. During elaboration it now validates that every field in a packed union resolves to the same bit width, and it rejects mismatched inline or typedef-backed packed unions with a concrete error.

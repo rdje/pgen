@@ -828,7 +828,10 @@ impl DataType {
         match self {
             DataType::Builtin { keyword } => match keyword.as_str() {
                 "bit" | "logic" | "reg" | "wire" => Ok(1),
+                "byte" => Ok(8),
+                "shortint" => Ok(16),
                 "int" | "integer" => Ok(32),
+                "longint" => Ok(64),
                 _ => Err(FrontendError::new(
                     format!("unsupported width query for builtin type '{}'", keyword),
                     0,
@@ -2537,9 +2540,7 @@ impl<'a> Parser<'a> {
         if self.peek_keyword("genvar") {
             return Ok(vec![ModuleItem::GenvarDecl(self.parse_genvar_decl()?)]);
         }
-        if self.peek_keyword("logic")
-            || self.peek_keyword("wire")
-            || self.peek_keyword("reg")
+        if matches!(self.current_ident(), Some(value) if is_data_type_keyword(value))
             || self.peek_keyword("enum")
             || self.peek_keyword("union")
             || self.peek_keyword("struct")
@@ -2777,6 +2778,14 @@ impl<'a> Parser<'a> {
                 Some(DataType::Builtin {
                     keyword: "reg".to_string(),
                 }),
+            )
+        } else if matches!(self.current_ident(), Some(value) if is_data_type_keyword(value)) {
+            (
+                NetKind::Typed,
+                Some(
+                    self.parse_optional_data_type()?
+                        .ok_or_else(|| FrontendError::new("expected builtin data type", 0))?,
+                ),
             )
         } else if self.peek_keyword("enum") {
             (
@@ -3615,7 +3624,10 @@ fn is_keyword(value: &str) -> bool {
 }
 
 fn is_data_type_keyword(value: &str) -> bool {
-    matches!(value, "bit" | "int" | "integer" | "logic" | "reg" | "wire")
+    matches!(
+        value,
+        "bit" | "byte" | "shortint" | "int" | "integer" | "longint" | "logic" | "reg" | "wire"
+    )
 }
 
 #[cfg(test)]
@@ -4640,6 +4652,80 @@ mod tests {
     }
 
     #[test]
+    fn parses_builtin_integral_typed_net_declarations() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            byte lane;
+            shortint offset;
+            longint cycles;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        assert_eq!(module.items.len(), 3);
+        for (item, expected_keyword) in module
+            .items
+            .iter()
+            .zip(["byte", "shortint", "longint"].into_iter())
+        {
+            match item {
+                ModuleItem::NetDecl(net) => {
+                    assert_eq!(net.kind, NetKind::Typed);
+                    match net.data_type.as_ref().expect("net type should exist") {
+                        DataType::Builtin { keyword } => assert_eq!(keyword, expected_keyword),
+                        other => panic!("expected builtin data type, got {other:?}"),
+                    }
+                }
+                other => panic!("expected net declaration, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn parses_inline_enum_with_byte_base_type() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            enum byte {
+                IDLE = 0,
+                BUSY = 1
+            } state;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        match &module.items[0] {
+            ModuleItem::NetDecl(net) => {
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Enum {
+                        base_type,
+                        variants,
+                    } => {
+                        assert_eq!(
+                            base_type.as_ref(),
+                            &DataType::Builtin {
+                                keyword: "byte".to_string()
+                            }
+                        );
+                        assert_eq!(variants.len(), 2);
+                        assert_eq!(variants[0].name, "IDLE");
+                        assert_eq!(variants[1].name, "BUSY");
+                    }
+                    other => panic!("expected enum data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn parses_inline_union_typed_net_declarations() {
         let module = parse_module(
             r#"
@@ -4990,6 +5076,32 @@ mod tests {
         let error = design
             .elaborate_top("top", &HashMap::new())
             .expect_err("elaboration should reject typedef-backed packed-union width mismatches");
+        assert!(
+            error
+                .message
+                .contains("packed union field 'word' width 16 does not match field 'data' width 8")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_builtin_integral_packed_union_width_mismatches() {
+        let design = parse_design(
+            r#"
+            module top (
+                output logic y
+            );
+            union packed {
+                byte data;
+                shortint word;
+            } payload;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject builtin packed-union width mismatches");
         assert!(
             error
                 .message

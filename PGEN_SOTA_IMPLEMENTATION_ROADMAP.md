@@ -1941,6 +1941,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - elaboration-time packed-union field-width validation,
     - rejection of packed unions whose fields do not collapse to the same bit width,
     - the same packed-union width check for typedef-backed uses after named-type resolution.
+  - Progress (2026-03-14): extended `rtl_frontend` builtin integral coverage so the current subset now also supports:
+    - standalone declaration parsing for builtin integral atom types such as `byte lane;`, `shortint offset;`, and `longint cycles;`,
+    - inline enum base types backed by builtin integral atom types such as `enum byte { ... } state;`,
+    - packed-union width validation driven by builtin integral widths like `byte` = 8 and `shortint` = 16.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

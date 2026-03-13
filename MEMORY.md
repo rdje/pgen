@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-rtl-packed-union-width-validation)
+Last updated: 2026-03-14 (+0100, task: add-rtl-builtin-integral-type-coverage)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -47,6 +47,7 @@ Use this file to resume work without replaying full chat history.
     - one-dimensional instance-array expansion with parent-evaluated ranges,
     - inline `struct`-typed declaration parsing and struct-aware member-path lookup when type metadata is available, including indexed unpacked-array element member access,
     - inline enum and union data types plus typedef-backed/package-imported enum/union named-type visibility,
+    - builtin integral atom type declarations (`byte`, `shortint`, `longint`) plus enum base-width handling for those builtins,
     - packed-union width-coherence validation during elaboration,
     - file-scope plus module-local typedef parsing and named type resolution for later module headers/declarations in the handwritten subset,
     - top-level package typedef and constant parsing, package-qualified type/constant references, and module-body/header wildcard/named imports for named-type and constant visibility,
@@ -58,7 +59,7 @@ Use this file to resume work without replaying full chat history.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`13/13`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`46/46`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`49/49`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
