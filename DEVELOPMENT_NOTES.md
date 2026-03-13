@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add First-Pass RTL Instance Elaboration
+### Context
+The initial `rtl_frontend` baseline established the frontend/elaboration boundary, but it still stopped short of the first thing that makes elaboration meaningful: instantiated child modules. The next clean increment was therefore to parse module instantiations and expose a minimal design-level elaboration API instead of waiting for a much larger full-SV frontend pass.
+
+### Implementation
+- Extended `rtl_frontend/src/lib.rs` with instance-aware AST nodes:
+  - `ModuleInstantiation`,
+  - `ParameterOverride`,
+  - `PortConnection`,
+  - `ResolvedPortBinding`,
+  - `ElaboratedModule` / `ElaboratedInstance`.
+- Added parser support for instance syntax:
+  - module instantiation items now parse inside normal module bodies and explicit generate scopes,
+  - parameter overrides support named and positional forms,
+  - port bindings support named, positional, and wildcard forms.
+- Added first-pass design elaboration:
+  - `Design::module(...)` resolves child modules by name,
+  - `Design::elaborate_top(...)` evaluates the top parameter environment and recursively elaborates child instances,
+  - elaboration currently walks explicit `generate` `if` / `for` scopes, carrying loop symbols and producing stable hierarchical instance paths.
+- Added focused tests for:
+  - instance parsing,
+  - wildcard port-binding expansion,
+  - parameter-override evaluation into child modules,
+  - top elaboration through generate-conditioned child instances.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `8/8` tests green.
+
+### Notes
+- This is still intentionally narrow: the new elaboration path assumes the small frontend subset and does not yet attempt full expression legality, full net semantics, or full SV instance grammar coverage.
+- The next likely increment is to broaden instance actual-expression support and start validating parent-side connection legality, not just child-side port-name legality.
+
 ## 2026-03-13 - Resume Crash State, Close Semantic-Hint Drift, and Start RTL Frontend Baseline
 ### Context
 The interrupted worktree already contained two high-value but still-uncommitted fixes: the semantic-hint regression in Rust stimuli generation and the documentation-drift cleanup that distinguished active docs from archival ones. The next logical roadmap move after those fixes was to stop leaving `rtl_const_expr` isolated and instead wire it into an initial frontend boundary for Phase S.

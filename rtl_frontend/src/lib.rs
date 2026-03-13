@@ -11,7 +11,7 @@
 //! frontend/elaboration boundary and wire constant-expression parsing into it.
 
 use rtl_const_expr::{EvalError, Expr, parse_expression};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
 
@@ -44,6 +44,212 @@ pub struct Design {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElaboratedModule {
+    pub module_name: String,
+    pub path: String,
+    pub parameters: HashMap<String, i64>,
+    pub child_instances: Vec<ElaboratedInstance>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElaboratedInstance {
+    pub module_name: String,
+    pub instance_name: String,
+    pub path: String,
+    pub parameters: HashMap<String, i64>,
+    pub port_bindings: Vec<ResolvedPortBinding>,
+    pub child_instances: Vec<ElaboratedInstance>,
+}
+
+impl Design {
+    pub fn module(&self, name: &str) -> Option<&Module> {
+        self.modules.iter().find(|module| module.name == name)
+    }
+
+    pub fn elaborate_top(
+        &self,
+        module_name: &str,
+        overrides: &HashMap<String, i64>,
+    ) -> Result<ElaboratedModule, FrontendError> {
+        self.elaborate_top_with_limits(module_name, overrides, 64, 64)
+    }
+
+    pub fn elaborate_top_with_limits(
+        &self,
+        module_name: &str,
+        overrides: &HashMap<String, i64>,
+        max_depth: usize,
+        max_generate_iterations: usize,
+    ) -> Result<ElaboratedModule, FrontendError> {
+        let module = self.module(module_name).ok_or_else(|| {
+            FrontendError::new(format!("unknown top module '{}'", module_name), 0)
+        })?;
+        let parameters = module.evaluate_constant_env(overrides)?;
+        let path = module.name.clone();
+        let child_instances = self.elaborate_items(
+            &module.items,
+            &parameters,
+            &path,
+            0,
+            max_depth,
+            max_generate_iterations,
+        )?;
+        Ok(ElaboratedModule {
+            module_name: module.name.clone(),
+            path,
+            parameters,
+            child_instances,
+        })
+    }
+
+    fn elaborate_items(
+        &self,
+        items: &[ModuleItem],
+        symbols: &HashMap<String, i64>,
+        scope_path: &str,
+        depth: usize,
+        max_depth: usize,
+        max_generate_iterations: usize,
+    ) -> Result<Vec<ElaboratedInstance>, FrontendError> {
+        let mut instances = Vec::new();
+
+        for item in items {
+            match item {
+                ModuleItem::ModuleInstantiation(instantiation) => {
+                    instances.push(self.elaborate_instance(
+                        instantiation,
+                        symbols,
+                        scope_path,
+                        depth,
+                        max_depth,
+                        max_generate_iterations,
+                    )?);
+                }
+                ModuleItem::GenerateRegion(region) => {
+                    instances.extend(self.elaborate_items(
+                        &region.items,
+                        symbols,
+                        scope_path,
+                        depth,
+                        max_depth,
+                        max_generate_iterations,
+                    )?);
+                }
+                ModuleItem::GenerateIf(generate_if) => {
+                    let enabled = generate_if.is_enabled(symbols)?;
+                    let (label, body_items, fallback_scope) = if enabled {
+                        (
+                            generate_if.then_label.as_deref(),
+                            generate_if.then_items.as_slice(),
+                            "__gen_if_true",
+                        )
+                    } else {
+                        (
+                            generate_if.else_label.as_deref(),
+                            generate_if.else_items.as_slice(),
+                            "__gen_if_false",
+                        )
+                    };
+
+                    if !body_items.is_empty() {
+                        let nested_scope = join_path(scope_path, label.unwrap_or(fallback_scope));
+                        instances.extend(self.elaborate_items(
+                            body_items,
+                            symbols,
+                            &nested_scope,
+                            depth,
+                            max_depth,
+                            max_generate_iterations,
+                        )?);
+                    }
+                }
+                ModuleItem::GenerateFor(generate_for) => {
+                    for iteration in
+                        generate_for.iteration_values(symbols, max_generate_iterations)?
+                    {
+                        let mut nested_symbols = symbols.clone();
+                        nested_symbols.insert(generate_for.index_name.clone(), iteration);
+                        let scope_name = match &generate_for.label {
+                            Some(label) => format!("{label}[{iteration}]"),
+                            None => format!("__gen_for_{}[{iteration}]", generate_for.index_name),
+                        };
+                        let nested_scope = join_path(scope_path, &scope_name);
+                        instances.extend(self.elaborate_items(
+                            &generate_for.body_items,
+                            &nested_symbols,
+                            &nested_scope,
+                            depth,
+                            max_depth,
+                            max_generate_iterations,
+                        )?);
+                    }
+                }
+                ModuleItem::ParameterDecl(_)
+                | ModuleItem::GenvarDecl(_)
+                | ModuleItem::NetDecl(_)
+                | ModuleItem::ContinuousAssign(_)
+                | ModuleItem::ProceduralBlock(_) => {}
+            }
+        }
+
+        Ok(instances)
+    }
+
+    fn elaborate_instance(
+        &self,
+        instantiation: &ModuleInstantiation,
+        parent_symbols: &HashMap<String, i64>,
+        scope_path: &str,
+        depth: usize,
+        max_depth: usize,
+        max_generate_iterations: usize,
+    ) -> Result<ElaboratedInstance, FrontendError> {
+        if depth >= max_depth {
+            return Err(FrontendError::new(
+                format!(
+                    "elaboration depth exceeded max_depth={} while elaborating '{}'",
+                    max_depth, instantiation.instance_name
+                ),
+                0,
+            ));
+        }
+
+        let module = self.module(&instantiation.module_name).ok_or_else(|| {
+            FrontendError::new(
+                format!(
+                    "unknown module '{}' instantiated as '{}'",
+                    instantiation.module_name, instantiation.instance_name
+                ),
+                0,
+            )
+        })?;
+
+        let parameter_overrides =
+            instantiation.resolve_parameter_overrides(module, parent_symbols)?;
+        let parameters = module.evaluate_constant_env(&parameter_overrides)?;
+        let port_bindings = instantiation.resolve_port_bindings(module)?;
+        let path = join_path(scope_path, &instantiation.instance_name);
+        let child_instances = self.elaborate_items(
+            &module.items,
+            &parameters,
+            &path,
+            depth + 1,
+            max_depth,
+            max_generate_iterations,
+        )?;
+
+        Ok(ElaboratedInstance {
+            module_name: module.name.clone(),
+            instance_name: instantiation.instance_name.clone(),
+            path,
+            parameters,
+            port_bindings,
+            child_instances,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub name: String,
     pub parameters: Vec<ParameterDecl>,
@@ -72,6 +278,24 @@ impl Module {
 
         Ok(symbols)
     }
+
+    fn overrideable_parameters(&self) -> Vec<&ParameterDecl> {
+        let mut parameters: Vec<&ParameterDecl> = self
+            .parameters
+            .iter()
+            .filter(|decl| decl.flavor == ParameterFlavor::Parameter)
+            .collect();
+
+        for item in &self.items {
+            if let ModuleItem::ParameterDecl(decl) = item
+                && decl.flavor == ParameterFlavor::Parameter
+            {
+                parameters.push(decl);
+            }
+        }
+
+        parameters
+    }
 }
 
 fn apply_parameter_decl(
@@ -79,11 +303,11 @@ fn apply_parameter_decl(
     overrides: &HashMap<String, i64>,
     decl: &ParameterDecl,
 ) -> Result<(), FrontendError> {
-    if decl.flavor == ParameterFlavor::Parameter {
-        if let Some(value) = overrides.get(&decl.name) {
-            symbols.insert(decl.name.clone(), *value);
-            return Ok(());
-        }
+    if decl.flavor == ParameterFlavor::Parameter
+        && let Some(value) = overrides.get(&decl.name)
+    {
+        symbols.insert(decl.name.clone(), *value);
+        return Ok(());
     }
 
     let Some(expr) = decl.value.as_ref() else {
@@ -189,6 +413,246 @@ pub struct GenvarDecl {
 pub struct ContinuousAssign {
     pub target: String,
     pub value: Expr,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParameterOverride {
+    Ordered(Expr),
+    Named { name: String, value: Expr },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PortConnection {
+    Ordered {
+        actual: Option<String>,
+    },
+    Named {
+        port: String,
+        actual: Option<String>,
+    },
+    Wildcard,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModuleInstantiation {
+    pub module_name: String,
+    pub instance_name: String,
+    pub parameter_overrides: Vec<ParameterOverride>,
+    pub port_connections: Vec<PortConnection>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedPortBinding {
+    pub port_name: String,
+    pub actual: Option<String>,
+}
+
+impl ModuleInstantiation {
+    pub fn resolve_parameter_overrides(
+        &self,
+        module: &Module,
+        parent_symbols: &HashMap<String, i64>,
+    ) -> Result<HashMap<String, i64>, FrontendError> {
+        let parameter_targets = module.overrideable_parameters();
+        let mut overrides = HashMap::new();
+        let mut saw_named = false;
+        let mut saw_ordered = false;
+        let mut ordered_index = 0usize;
+
+        for override_entry in &self.parameter_overrides {
+            match override_entry {
+                ParameterOverride::Ordered(expr) => {
+                    if saw_named {
+                        return Err(FrontendError::new(
+                            format!(
+                                "cannot mix positional and named parameter overrides on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    saw_ordered = true;
+                    let Some(target) = parameter_targets.get(ordered_index) else {
+                        return Err(FrontendError::new(
+                            format!(
+                                "too many positional parameter overrides on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    };
+                    let value = expr.eval(parent_symbols).map_err(|err| {
+                        FrontendError::new(
+                            format!(
+                                "failed to evaluate positional parameter override {} on instance '{}': {}",
+                                ordered_index + 1,
+                                self.instance_name,
+                                err.message
+                            ),
+                            err.position,
+                        )
+                    })?;
+                    overrides.insert(target.name.clone(), value);
+                    ordered_index += 1;
+                }
+                ParameterOverride::Named { name, value } => {
+                    if saw_ordered {
+                        return Err(FrontendError::new(
+                            format!(
+                                "cannot mix positional and named parameter overrides on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    saw_named = true;
+                    if overrides.contains_key(name) {
+                        return Err(FrontendError::new(
+                            format!(
+                                "duplicate named parameter override '{}' on instance '{}'",
+                                name, self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    if !parameter_targets.iter().any(|decl| decl.name == *name) {
+                        return Err(FrontendError::new(
+                            format!(
+                                "unknown parameter '{}' on instance '{}' of module '{}'",
+                                name, self.instance_name, module.name
+                            ),
+                            0,
+                        ));
+                    }
+                    let evaluated = value.eval(parent_symbols).map_err(|err| {
+                        FrontendError::new(
+                            format!(
+                                "failed to evaluate named parameter override '{}' on instance '{}': {}",
+                                name, self.instance_name, err.message
+                            ),
+                            err.position,
+                        )
+                    })?;
+                    overrides.insert(name.clone(), evaluated);
+                }
+            }
+        }
+
+        Ok(overrides)
+    }
+
+    pub fn resolve_port_bindings(
+        &self,
+        module: &Module,
+    ) -> Result<Vec<ResolvedPortBinding>, FrontendError> {
+        let mut bindings = Vec::new();
+        let mut bound_ports = HashSet::new();
+        let mut ordered_index = 0usize;
+        let mut saw_named = false;
+        let mut saw_ordered = false;
+        let mut wildcard_seen = false;
+
+        for connection in &self.port_connections {
+            match connection {
+                PortConnection::Ordered { actual } => {
+                    if saw_named {
+                        return Err(FrontendError::new(
+                            format!(
+                                "cannot mix positional and named port connections on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    saw_ordered = true;
+                    let Some(port) = module.ports.get(ordered_index) else {
+                        return Err(FrontendError::new(
+                            format!(
+                                "too many positional port connections on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    };
+                    bindings.push(ResolvedPortBinding {
+                        port_name: port.name.clone(),
+                        actual: actual.clone(),
+                    });
+                    bound_ports.insert(port.name.clone());
+                    ordered_index += 1;
+                }
+                PortConnection::Named { port, actual } => {
+                    if saw_ordered {
+                        return Err(FrontendError::new(
+                            format!(
+                                "cannot mix positional and named port connections on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    saw_named = true;
+                    if !module.ports.iter().any(|decl| decl.name == *port) {
+                        return Err(FrontendError::new(
+                            format!(
+                                "unknown port '{}' on instance '{}' of module '{}'",
+                                port, self.instance_name, module.name
+                            ),
+                            0,
+                        ));
+                    }
+                    if !bound_ports.insert(port.clone()) {
+                        return Err(FrontendError::new(
+                            format!(
+                                "duplicate binding for port '{}' on instance '{}'",
+                                port, self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    bindings.push(ResolvedPortBinding {
+                        port_name: port.clone(),
+                        actual: actual.clone(),
+                    });
+                }
+                PortConnection::Wildcard => {
+                    if saw_ordered {
+                        return Err(FrontendError::new(
+                            format!(
+                                "cannot mix positional and wildcard/named port connections on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    saw_named = true;
+                    if wildcard_seen {
+                        return Err(FrontendError::new(
+                            format!(
+                                "duplicate wildcard port connection on instance '{}'",
+                                self.instance_name
+                            ),
+                            0,
+                        ));
+                    }
+                    wildcard_seen = true;
+                }
+            }
+        }
+
+        if wildcard_seen {
+            for port in &module.ports {
+                if bound_ports.insert(port.name.clone()) {
+                    bindings.push(ResolvedPortBinding {
+                        port_name: port.name.clone(),
+                        actual: Some(port.name.clone()),
+                    });
+                }
+            }
+        }
+
+        Ok(bindings)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -298,6 +762,7 @@ pub enum ModuleItem {
     GenvarDecl(GenvarDecl),
     NetDecl(NetDecl),
     ContinuousAssign(ContinuousAssign),
+    ModuleInstantiation(ModuleInstantiation),
     ProceduralBlock(ProceduralBlock),
     GenerateRegion(GenerateRegion),
     GenerateIf(GenerateIf),
@@ -324,6 +789,14 @@ pub fn parse_module(input: &str) -> Result<Module, FrontendError> {
             ),
             0,
         )),
+    }
+}
+
+fn join_path(base: &str, segment: &str) -> String {
+    if base.is_empty() {
+        segment.to_string()
+    } else {
+        format!("{base}.{segment}")
     }
 }
 
@@ -745,6 +1218,9 @@ impl<'a> Parser<'a> {
                 self.parse_continuous_assign()?,
             )]);
         }
+        if self.looks_like_module_instantiation() {
+            return self.parse_module_instantiations();
+        }
         if self.peek_keyword("always_comb") || self.peek_keyword("always") {
             return Ok(vec![ModuleItem::ProceduralBlock(
                 self.parse_procedural_block()?,
@@ -836,6 +1312,93 @@ impl<'a> Parser<'a> {
             packed_range,
             names,
         })
+    }
+
+    fn parse_module_instantiations(&mut self) -> Result<Vec<ModuleItem>, FrontendError> {
+        let module_name = self.expect_identifier()?;
+        let parameter_overrides = if self.consume_symbol('#') {
+            self.expect_symbol('(')?;
+            self.parse_parameter_overrides()?
+        } else {
+            Vec::new()
+        };
+
+        let mut items = Vec::new();
+        loop {
+            let instance_name = self.expect_identifier()?;
+            self.expect_symbol('(')?;
+            let port_connections = self.parse_port_connections()?;
+            items.push(ModuleItem::ModuleInstantiation(ModuleInstantiation {
+                module_name: module_name.clone(),
+                instance_name,
+                parameter_overrides: parameter_overrides.clone(),
+                port_connections,
+            }));
+            if !self.consume_symbol(',') {
+                break;
+            }
+        }
+        self.expect_symbol(';')?;
+        Ok(items)
+    }
+
+    fn parse_parameter_overrides(&mut self) -> Result<Vec<ParameterOverride>, FrontendError> {
+        let mut overrides = Vec::new();
+        if self.consume_symbol(')') {
+            return Ok(overrides);
+        }
+
+        loop {
+            if self.consume_symbol('.') {
+                let name = self.expect_identifier()?;
+                self.expect_symbol('(')?;
+                let value = self.parse_expression_until(&[')'])?;
+                self.expect_symbol(')')?;
+                overrides.push(ParameterOverride::Named { name, value });
+            } else {
+                overrides.push(ParameterOverride::Ordered(
+                    self.parse_expression_until(&[',', ')'])?,
+                ));
+            }
+
+            if !self.consume_symbol(',') {
+                break;
+            }
+        }
+
+        self.expect_symbol(')')?;
+        Ok(overrides)
+    }
+
+    fn parse_port_connections(&mut self) -> Result<Vec<PortConnection>, FrontendError> {
+        let mut connections = Vec::new();
+        if self.consume_symbol(')') {
+            return Ok(connections);
+        }
+
+        loop {
+            if self.consume_symbol('.') {
+                if self.consume_symbol('*') {
+                    connections.push(PortConnection::Wildcard);
+                } else {
+                    let port = self.expect_identifier()?;
+                    self.expect_symbol('(')?;
+                    let actual = self.parse_optional_raw_text_until(&[')'])?;
+                    self.expect_symbol(')')?;
+                    connections.push(PortConnection::Named { port, actual });
+                }
+            } else {
+                let actual = self.parse_optional_raw_text_until(&[',', ')'])?;
+                connections.push(PortConnection::Ordered { actual });
+            }
+
+            if !self.consume_symbol(',') {
+                break;
+            }
+        }
+
+        self.expect_symbol(')')?;
+        Ok(connections)
     }
 
     fn parse_continuous_assign(&mut self) -> Result<ContinuousAssign, FrontendError> {
@@ -1023,6 +1586,65 @@ impl<'a> Parser<'a> {
         Ok(Some(PackedRange { msb, lsb }))
     }
 
+    fn parse_optional_raw_text_until(
+        &mut self,
+        terminators: &[char],
+    ) -> Result<Option<String>, FrontendError> {
+        if self.current_is_terminator(terminators) {
+            return Ok(None);
+        }
+        let text = self.parse_raw_text_until(terminators)?;
+        if text.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(text))
+        }
+    }
+
+    fn parse_raw_text_until(&mut self, terminators: &[char]) -> Result<String, FrontendError> {
+        if self.is_end() {
+            return Ok(String::new());
+        }
+
+        let start = self.current().start;
+        let mut end = start;
+        let mut paren_depth = 0usize;
+        let mut bracket_depth = 0usize;
+        let mut brace_depth = 0usize;
+
+        while !self.is_end() {
+            let token = self.current();
+            let top_level = paren_depth == 0 && bracket_depth == 0 && brace_depth == 0;
+
+            if top_level
+                && let TokenKind::Symbol(ch) = token.kind
+                && terminators.contains(&ch)
+            {
+                break;
+            }
+
+            match token.kind {
+                TokenKind::Symbol('(') => paren_depth += 1,
+                TokenKind::Symbol(')') => paren_depth = paren_depth.saturating_sub(1),
+                TokenKind::Symbol('[') => bracket_depth += 1,
+                TokenKind::Symbol(']') => bracket_depth = bracket_depth.saturating_sub(1),
+                TokenKind::Symbol('{') => brace_depth += 1,
+                TokenKind::Symbol('}') => brace_depth = brace_depth.saturating_sub(1),
+                _ => {}
+            }
+
+            end = token.end;
+            self.advance();
+        }
+
+        Ok(self
+            .input
+            .get(start..end)
+            .unwrap_or_default()
+            .trim()
+            .to_string())
+    }
+
     fn parse_expression_until(&mut self, terminators: &[char]) -> Result<Expr, FrontendError> {
         if self.is_end() {
             return Err(FrontendError::new(
@@ -1049,10 +1671,10 @@ impl<'a> Parser<'a> {
                     } else if terminators.contains(&':') {
                         break;
                     }
-                } else if let TokenKind::Symbol(ch) = token.kind {
-                    if terminators.contains(&ch) {
-                        break;
-                    }
+                } else if let TokenKind::Symbol(ch) = token.kind
+                    && terminators.contains(&ch)
+                {
+                    break;
                 }
             }
 
@@ -1123,6 +1745,12 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn peek_kind(&self, offset: usize) -> Option<&TokenKind> {
+        self.tokens
+            .get(self.index + offset)
+            .map(|token| &token.kind)
+    }
+
     fn is_end(&self) -> bool {
         matches!(self.current().kind, TokenKind::End)
     }
@@ -1190,6 +1818,10 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn current_is_terminator(&self, terminators: &[char]) -> bool {
+        matches!(self.current().kind, TokenKind::Symbol(ch) if terminators.contains(&ch))
+    }
+
     fn expect_identifier(&mut self) -> Result<String, FrontendError> {
         match &self.current().kind {
             TokenKind::Ident(value) if !is_keyword(value) => {
@@ -1206,6 +1838,20 @@ impl<'a> Parser<'a> {
 
     fn peek_direction_keyword(&self) -> bool {
         self.peek_keyword("input") || self.peek_keyword("output") || self.peek_keyword("inout")
+    }
+
+    fn looks_like_module_instantiation(&self) -> bool {
+        let Some(name) = self.current_ident() else {
+            return false;
+        };
+        if is_keyword(name) {
+            return false;
+        }
+
+        matches!(
+            self.peek_kind(1),
+            Some(TokenKind::Ident(_)) | Some(TokenKind::Symbol('#'))
+        )
     }
 
     fn describe_current(&self) -> String {
@@ -1261,7 +1907,8 @@ fn is_data_type_keyword(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        GenerateFor, GenerateIf, ModuleItem, ProceduralKind, Statement, parse_design, parse_module,
+        GenerateFor, GenerateIf, ModuleItem, ParameterOverride, PortConnection, ProceduralKind,
+        Statement, parse_design, parse_module,
     };
     use std::collections::HashMap;
 
@@ -1429,6 +2076,174 @@ mod tests {
         assert_eq!(
             generate_for.iteration_values(&symbols, 8).unwrap(),
             vec![0, 2, 4]
+        );
+    }
+
+    #[test]
+    fn parses_module_instantiations_with_named_overrides() {
+        let design = parse_design(
+            r#"
+            module child #(parameter WIDTH = 4) (
+                input logic [WIDTH-1:0] a,
+                output logic [WIDTH-1:0] y
+            );
+            endmodule
+
+            module top #(parameter TOP_W = 8) (
+                input logic [TOP_W-1:0] a,
+                output logic [TOP_W-1:0] y
+            );
+            child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let top = &design.modules[1];
+        match &top.items[0] {
+            ModuleItem::ModuleInstantiation(instantiation) => {
+                assert_eq!(instantiation.module_name, "child");
+                assert_eq!(instantiation.instance_name, "u_child");
+                assert_eq!(instantiation.parameter_overrides.len(), 1);
+                assert_eq!(instantiation.port_connections.len(), 2);
+                match &instantiation.parameter_overrides[0] {
+                    ParameterOverride::Named { name, .. } => assert_eq!(name, "WIDTH"),
+                    other => panic!("expected named parameter override, got {other:?}"),
+                }
+                match &instantiation.port_connections[0] {
+                    PortConnection::Named { port, actual } => {
+                        assert_eq!(port, "a");
+                        assert_eq!(actual.as_deref(), Some("a"));
+                    }
+                    other => panic!("expected named port connection, got {other:?}"),
+                }
+            }
+            other => panic!("expected module instantiation, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn elaborate_top_resolves_child_parameters_and_generate_instances() {
+        let design = parse_design(
+            r#"
+            module leaf #(
+                parameter WIDTH = 1,
+                parameter OFFSET = WIDTH + 1
+            ) (
+                input logic [WIDTH-1:0] a,
+                output logic [OFFSET-1:0] y
+            );
+            endmodule
+
+            module top #(
+                parameter TOP_W = 8,
+                parameter USE_LEAF = 1
+            ) (
+                input logic [TOP_W-1:0] a,
+                output logic [TOP_W:0] y
+            );
+            leaf #(.WIDTH(TOP_W)) direct (.a(a), .y(y));
+            generate
+                if (USE_LEAF) begin : gated_scope
+                    leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));
+                end
+                for (genvar i = 0; i < 2; i = i + 1) begin : lanes
+                    leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));
+                end
+            endgenerate
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("top elaboration should succeed");
+
+        assert_eq!(elaborated.parameters.get("TOP_W"), Some(&8));
+        assert_eq!(elaborated.child_instances.len(), 4);
+
+        assert_eq!(elaborated.child_instances[0].path, "top.direct");
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("WIDTH"),
+            Some(&8)
+        );
+        assert_eq!(
+            elaborated.child_instances[0].parameters.get("OFFSET"),
+            Some(&9)
+        );
+
+        assert_eq!(elaborated.child_instances[1].path, "top.gated_scope.gated");
+        assert_eq!(
+            elaborated.child_instances[1].parameters.get("WIDTH"),
+            Some(&7)
+        );
+        assert_eq!(
+            elaborated.child_instances[1].parameters.get("OFFSET"),
+            Some(&8)
+        );
+
+        assert_eq!(elaborated.child_instances[2].path, "top.lanes[0].lane");
+        assert_eq!(
+            elaborated.child_instances[2].parameters.get("WIDTH"),
+            Some(&1)
+        );
+        assert_eq!(elaborated.child_instances[3].path, "top.lanes[1].lane");
+        assert_eq!(
+            elaborated.child_instances[3].parameters.get("WIDTH"),
+            Some(&2)
+        );
+    }
+
+    #[test]
+    fn wildcard_port_connections_expand_against_child_ports() {
+        let design = parse_design(
+            r#"
+            module child (
+                input logic a,
+                input logic b,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                input logic a,
+                input logic b,
+                output logic y
+            );
+            child u_child (.*);
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let top = &design.modules[1];
+        let instantiation = match &top.items[0] {
+            ModuleItem::ModuleInstantiation(instantiation) => instantiation,
+            other => panic!("expected module instantiation, got {other:?}"),
+        };
+
+        let child = design.module("child").expect("child module should exist");
+        let bindings = instantiation
+            .resolve_port_bindings(child)
+            .expect("wildcard binding resolution should succeed");
+
+        assert_eq!(
+            bindings,
+            vec![
+                super::ResolvedPortBinding {
+                    port_name: "a".to_string(),
+                    actual: Some("a".to_string()),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "b".to_string(),
+                    actual: Some("b".to_string()),
+                },
+                super::ResolvedPortBinding {
+                    port_name: "y".to_string(),
+                    actual: Some("y".to_string()),
+                },
+            ]
         );
     }
 }

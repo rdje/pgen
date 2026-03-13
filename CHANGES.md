@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-13 - Add First-Pass RTL Instance Elaboration
+### ✅ Achievement Summary
+The new `rtl_frontend` crate now crosses the first real elaboration boundary: it no longer stops at standalone module-shape parsing, and can now parse module instantiations and elaborate a top module into child-instance structure with evaluated parameter overrides and resolved port bindings.
+
+### Scope of Changes
+- Expanded `rtl_frontend/src/lib.rs`:
+  - added AST support for module instantiations, parameter overrides, port connections, and resolved port bindings,
+  - added parser support for:
+    - instance declarations,
+    - named and positional parameter overrides,
+    - named, positional, and wildcard port connections,
+  - added design-level elaboration helpers that:
+    - resolve child modules by name,
+    - evaluate instance parameter overrides against parent constant symbols,
+    - compute child parameter environments,
+    - resolve port bindings against child port declarations,
+    - recurse through explicit `generate` `if` / `for` scopes while elaborating child instances.
+- Synced roadmap/navigation state:
+  - `README.md` now describes `rtl_frontend` as module/instance parsing plus first-pass elaboration,
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now record the elaboration increment.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`8/8`)
+
 ## 2026-03-13 - Close Semantic-Hint Regression and Start RTL Frontend Baseline
 ### ✅ Achievement Summary
 The outstanding semantic-hint regression in Rust stimuli generation is closed, the most misleading historical docs are now explicitly marked as archival, and Phase S has moved from roadmap-only planning into an executable frontend baseline with a new `rtl_frontend` crate wired to `rtl_const_expr`.
