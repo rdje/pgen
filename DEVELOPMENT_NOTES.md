@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-13 - Add RTL Package Typedef Scope And Imports
+### Context
+The previous `rtl_frontend` type-scope work reached file-scope typedefs, but it still lacked the first real namespace step that HDL code actually leans on: top-level packages and package-backed type visibility.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added top-level `package ... endpackage` parsing for typedef-only package contents,
+  - added module-body wildcard import parsing (`import pkg::*;`),
+  - added package-qualified type resolution for later module headers/declarations,
+  - threaded package alias tables into the existing named-type resolution path so imported/package-qualified types reuse the same struct-aware validation machinery.
+- Added focused tests for:
+  - package typedef parsing,
+  - package-qualified later-module port parsing,
+  - module-body import-driven named declaration parsing,
+  - elaboration through package-import-backed struct-member actuals.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `24/24` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This is still a narrow package slice: packages currently only carry typedefs, and imports are currently module-body wildcard imports rather than the full SV import surface.
+- The next clean increment is richer package/import scope, such as broader package contents or more explicit import forms, rather than another parser-local alias tweak.
+
 ## 2026-03-13 - Add File-Scope RTL Typedef Visibility
 ### Context
 The previous `rtl_frontend` typedef work stopped at module-local aliases. That was enough for declarations inside one module body, but it still blocked a common next shape: file-scope typedefs used by later module headers and declarations.

@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-13 - Add RTL Package Typedef Scope And Imports
+### ✅ Achievement Summary
+`rtl_frontend` now has a first package-style named-type scope instead of stopping at file-scope and module-local aliases. Top-level packages can carry typedefs, later modules can reference those types with package qualification, and module-body wildcard imports can bring them into later declaration parsing.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added top-level `PackageDecl` parsing for packages that currently contain typedefs,
+  - added `ImportDecl` parsing for module-body wildcard imports,
+  - added package-qualified type resolution such as `cfg_pkg::cfg_t`,
+  - extended parser state with package alias tables so imported/package-qualified named types feed the existing struct-aware validation path.
+- Added focused tests for:
+  - package typedef parsing before later modules,
+  - package-qualified types in later module ANSI ports,
+  - module-body wildcard imports feeding later declarations,
+  - elaboration through package-import-backed struct-member actuals.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the new package-typedef baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`24/24`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add File-Scope RTL Typedef Visibility
 ### ✅ Achievement Summary
 `rtl_frontend` now carries typedef-backed named types across later modules instead of limiting them to a single module body. File-scope typedefs can now feed later module ANSI port lists and declarations, and the resulting named types still participate in struct-member validation.

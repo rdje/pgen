@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-13 (+0100, task: add-file-scope-rtl-typedef-visibility)
+Last updated: 2026-03-13 (+0100, task: add-rtl-package-typedef-scope-and-imports)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -46,6 +46,7 @@ Use this file to resume work without replaying full chat history.
     - one-dimensional instance-array expansion with parent-evaluated ranges,
     - inline `struct`-typed declaration parsing and struct-aware member-path lookup when type metadata is available,
     - file-scope plus module-local typedef parsing and named type resolution for later module headers/declarations in the handwritten subset,
+    - top-level package typedef parsing, package-qualified type references, and module-body wildcard imports for named-type visibility,
     - typed parent-side actual parsing (`signal`, select, part-select, concat, repeat, expression),
     - parent-scope connection legality validation across module + explicit generate scopes, including typed struct-member lookup plus backward-compatible dotted/member-path fallback by declared root or exact symbol-table match,
     - generate-if condition evaluation,
@@ -54,7 +55,7 @@ Use this file to resume work without replaying full chat history.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`11/11`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`22/22`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`24/24`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).
@@ -3708,7 +3709,7 @@ Use this file to resume work without replaying full chat history.
 1. Continue Phase S RTL frontend build-out:
    - broaden the synthesizable subset beyond current module/instance/actual-expression coverage,
    - likely next frontend steps:
-     - package/import-style named-type scope beyond the current file-scope + module-local typedef baseline,
+     - richer package/import scope beyond the current typedef-only packages and wildcard import baseline,
      - broader declaration forms beyond the current inline-struct + typedef + one-dimensional instance-array baseline,
      - early lowering/elaboration contracts that can feed the planned RTLSyn path instead of stopping at typed instance trees.
 2. Continue Phase P/Phase Q SV closure with broader deterministic semantic evidence:

@@ -41,6 +41,7 @@ impl Error for FrontendError {}
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Design {
     pub typedefs: Vec<TypedefDecl>,
+    pub packages: Vec<PackageDecl>,
     pub modules: Vec<Module>,
 }
 
@@ -227,6 +228,7 @@ impl Design {
                 }
                 ModuleItem::ParameterDecl(_)
                 | ModuleItem::TypedefDecl(_)
+                | ModuleItem::ImportDecl(_)
                 | ModuleItem::GenvarDecl(_)
                 | ModuleItem::NetDecl(_)
                 | ModuleItem::ContinuousAssign(_)
@@ -395,6 +397,7 @@ fn collect_visible_names_from_items(items: &[ModuleItem]) -> HashSet<String> {
                 names.insert(parameter.name.clone());
             }
             ModuleItem::TypedefDecl(_) => {}
+            ModuleItem::ImportDecl(_) => {}
             ModuleItem::GenvarDecl(genvar) => {
                 names.extend(genvar.names.iter().cloned());
             }
@@ -445,6 +448,7 @@ fn collect_declared_types_from_items(items: &[ModuleItem]) -> HashMap<String, Da
             }
             ModuleItem::ParameterDecl(_)
             | ModuleItem::TypedefDecl(_)
+            | ModuleItem::ImportDecl(_)
             | ModuleItem::GenvarDecl(_)
             | ModuleItem::ContinuousAssign(_)
             | ModuleItem::ModuleInstantiation(_)
@@ -541,6 +545,18 @@ impl DataType {
 pub struct TypedefDecl {
     pub name: String,
     pub data_type: DataType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageDecl {
+    pub name: String,
+    pub typedefs: Vec<TypedefDecl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportDecl {
+    pub package: String,
+    pub wildcard: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1084,6 +1100,7 @@ impl GenerateFor {
 pub enum ModuleItem {
     ParameterDecl(ParameterDecl),
     TypedefDecl(TypedefDecl),
+    ImportDecl(ImportDecl),
     GenvarDecl(GenvarDecl),
     NetDecl(NetDecl),
     ContinuousAssign(ContinuousAssign),
@@ -1772,6 +1789,7 @@ struct Parser<'a> {
     tokens: Vec<Token>,
     index: usize,
     global_type_aliases: HashMap<String, DataType>,
+    package_type_aliases: HashMap<String, HashMap<String, DataType>>,
     type_aliases: HashMap<String, DataType>,
 }
 
@@ -1782,12 +1800,14 @@ impl<'a> Parser<'a> {
             tokens,
             index: 0,
             global_type_aliases: HashMap::new(),
+            package_type_aliases: HashMap::new(),
             type_aliases: HashMap::new(),
         }
     }
 
     fn parse_design(mut self) -> Result<Design, FrontendError> {
         let mut typedefs = Vec::new();
+        let mut packages = Vec::new();
         let mut modules = Vec::new();
         while !self.is_end() {
             if self.peek_keyword("typedef") {
@@ -1796,11 +1816,17 @@ impl<'a> Parser<'a> {
                 self.global_type_aliases
                     .insert(typedef_decl.name.clone(), typedef_decl.data_type.clone());
                 typedefs.push(typedef_decl);
+            } else if self.peek_keyword("package") {
+                packages.push(self.parse_package_decl()?);
             } else {
                 modules.push(self.parse_module()?);
             }
         }
-        Ok(Design { typedefs, modules })
+        Ok(Design {
+            typedefs,
+            packages,
+            modules,
+        })
     }
 
     fn parse_module(&mut self) -> Result<Module, FrontendError> {
@@ -1935,6 +1961,15 @@ impl<'a> Parser<'a> {
         if self.peek_keyword("parameter") || self.peek_keyword("localparam") {
             return self.parse_parameter_items();
         }
+        if self.peek_keyword("import") {
+            if allow_generate_constructs {
+                return Err(FrontendError::new(
+                    "import declarations inside generate bodies are not yet supported",
+                    self.current().start,
+                ));
+            }
+            return Ok(vec![ModuleItem::ImportDecl(self.parse_import_decl()?)]);
+        }
         if self.peek_keyword("typedef") {
             if allow_generate_constructs {
                 return Err(FrontendError::new(
@@ -1952,6 +1987,7 @@ impl<'a> Parser<'a> {
             || self.peek_keyword("reg")
             || self.peek_keyword("struct")
             || self.peek_typedef_name()
+            || self.peek_package_qualified_type()
         {
             return Ok(vec![ModuleItem::NetDecl(self.parse_net_decl()?)]);
         }
@@ -2028,6 +2064,37 @@ impl<'a> Parser<'a> {
         Ok(GenvarDecl { names })
     }
 
+    fn parse_package_decl(&mut self) -> Result<PackageDecl, FrontendError> {
+        self.type_aliases = self.global_type_aliases.clone();
+        self.expect_keyword("package")?;
+        let name = self.expect_identifier()?;
+        self.expect_symbol(';')?;
+
+        let mut typedefs = Vec::new();
+        let mut package_aliases = HashMap::new();
+        while !self.peek_keyword("endpackage") {
+            if !self.peek_keyword("typedef") {
+                return Err(FrontendError::new(
+                    format!(
+                        "unsupported package item starting with {}",
+                        self.describe_current()
+                    ),
+                    self.current().start,
+                ));
+            }
+            let typedef_decl = self.parse_typedef_decl()?;
+            package_aliases.insert(typedef_decl.name.clone(), typedef_decl.data_type.clone());
+            typedefs.push(typedef_decl);
+        }
+
+        self.expect_keyword("endpackage")?;
+        self.package_type_aliases
+            .insert(name.clone(), package_aliases);
+        self.type_aliases = self.global_type_aliases.clone();
+
+        Ok(PackageDecl { name, typedefs })
+    }
+
     fn parse_typedef_decl(&mut self) -> Result<TypedefDecl, FrontendError> {
         self.expect_keyword("typedef")?;
         let mut data_type = self.parse_optional_data_type()?.ok_or_else(|| {
@@ -2043,6 +2110,32 @@ impl<'a> Parser<'a> {
         self.expect_symbol(';')?;
         self.type_aliases.insert(name.clone(), data_type.clone());
         Ok(TypedefDecl { name, data_type })
+    }
+
+    fn parse_import_decl(&mut self) -> Result<ImportDecl, FrontendError> {
+        self.expect_keyword("import")?;
+        let package = self.expect_identifier()?;
+        self.expect_symbol(':')?;
+        self.expect_symbol(':')?;
+        self.expect_symbol('*')?;
+        self.expect_symbol(';')?;
+
+        let aliases = self
+            .package_type_aliases
+            .get(&package)
+            .cloned()
+            .ok_or_else(|| {
+                FrontendError::new(
+                    format!("unknown package '{}' in import declaration", package),
+                    0,
+                )
+            })?;
+        self.type_aliases.extend(aliases);
+
+        Ok(ImportDecl {
+            package,
+            wildcard: true,
+        })
     }
 
     fn parse_net_decl(&mut self) -> Result<NetDecl, FrontendError> {
@@ -2082,6 +2175,13 @@ impl<'a> Parser<'a> {
                     self.parse_optional_data_type()?
                         .ok_or_else(|| FrontendError::new("expected named data type", 0))?,
                 ),
+            )
+        } else if self.peek_package_qualified_type() {
+            (
+                NetKind::Typed,
+                Some(self.parse_optional_data_type()?.ok_or_else(|| {
+                    FrontendError::new("expected package-qualified data type", 0)
+                })?),
             )
         } else {
             return Err(FrontendError::new(
@@ -2362,6 +2462,9 @@ impl<'a> Parser<'a> {
         if self.peek_keyword("struct") {
             return self.parse_struct_data_type().map(Some);
         }
+        if self.peek_package_qualified_type() {
+            return self.parse_package_qualified_data_type().map(Some);
+        }
 
         let Some(keyword) = self.current_ident().map(str::to_string) else {
             return Ok(None);
@@ -2401,6 +2504,26 @@ impl<'a> Parser<'a> {
         }
 
         Ok(DataType::Struct { packed, fields })
+    }
+
+    fn parse_package_qualified_data_type(&mut self) -> Result<DataType, FrontendError> {
+        let package = self.expect_identifier()?;
+        self.expect_symbol(':')?;
+        self.expect_symbol(':')?;
+        let name = self.expect_identifier()?;
+
+        let package_aliases = self.package_type_aliases.get(&package).ok_or_else(|| {
+            FrontendError::new(
+                format!("unknown package '{}'", package),
+                self.current().start,
+            )
+        })?;
+        package_aliases.get(&name).cloned().ok_or_else(|| {
+            FrontendError::new(
+                format!("unknown type '{}::{}'", package, name),
+                self.current().start,
+            )
+        })
     }
 
     fn parse_optional_packed_range(&mut self) -> Result<Option<PackedRange>, FrontendError> {
@@ -2672,6 +2795,16 @@ impl<'a> Parser<'a> {
         matches!(self.current_ident(), Some(value) if self.type_aliases.contains_key(value))
     }
 
+    fn peek_package_qualified_type(&self) -> bool {
+        let Some(package) = self.current_ident() else {
+            return false;
+        };
+        self.package_type_aliases.contains_key(package)
+            && matches!(self.peek_kind(1), Some(TokenKind::Symbol(':')))
+            && matches!(self.peek_kind(2), Some(TokenKind::Symbol(':')))
+            && matches!(self.peek_kind(3), Some(TokenKind::Ident(_)))
+    }
+
     fn looks_like_module_instantiation(&self) -> bool {
         let Some(name) = self.current_ident() else {
             return false;
@@ -2680,6 +2813,11 @@ impl<'a> Parser<'a> {
             return false;
         }
         if self.type_aliases.contains_key(name) {
+            return false;
+        }
+        if self.package_type_aliases.contains_key(name)
+            && matches!(self.peek_kind(1), Some(TokenKind::Symbol(':')))
+        {
             return false;
         }
 
@@ -2722,6 +2860,7 @@ fn is_keyword(value: &str) -> bool {
             | "for"
             | "generate"
             | "genvar"
+            | "import"
             | "if"
             | "inout"
             | "input"
@@ -2730,11 +2869,13 @@ fn is_keyword(value: &str) -> bool {
             | "module"
             | "output"
             | "packed"
+            | "package"
             | "parameter"
             | "reg"
             | "struct"
             | "typedef"
             | "wire"
+            | "endpackage"
     )
 }
 
@@ -2938,6 +3079,71 @@ mod tests {
                         assert_eq!(fields[1].names, vec!["valid".to_string()]);
                     }
                     other => panic!("expected resolved top net struct type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_design_supports_package_typedefs_for_later_modules() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module child (
+                input cfg_pkg::cfg_t cfg,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            import cfg_pkg::*;
+            cfg_t cfg;
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        assert_eq!(design.packages.len(), 1);
+        assert_eq!(design.packages[0].name, "cfg_pkg");
+        assert_eq!(design.packages[0].typedefs.len(), 1);
+
+        match design.modules[0].ports[0]
+            .data_type
+            .as_ref()
+            .expect("child port type should exist")
+        {
+            DataType::Struct { fields, .. } => {
+                assert_eq!(fields[0].names, vec!["data".to_string()]);
+                assert_eq!(fields[1].names, vec!["valid".to_string()]);
+            }
+            other => panic!("expected package-qualified struct port type, got {other:?}"),
+        }
+
+        match &design.modules[1].items[0] {
+            ModuleItem::ImportDecl(import_decl) => {
+                assert_eq!(import_decl.package, "cfg_pkg");
+                assert!(import_decl.wildcard);
+            }
+            other => panic!("expected import declaration, got {other:?}"),
+        }
+
+        match &design.modules[1].items[1] {
+            ModuleItem::NetDecl(net) => {
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Struct { fields, .. } => {
+                        assert_eq!(fields[0].names, vec!["data".to_string()]);
+                        assert_eq!(fields[1].names, vec!["valid".to_string()]);
+                    }
+                    other => panic!("expected imported struct net type, got {other:?}"),
                 }
             }
             other => panic!("expected net declaration, got {other:?}"),
@@ -3481,6 +3687,44 @@ mod tests {
             module top (
                 output logic y
             );
+            cfg_t cfg;
+            child u_child (.a(cfg.data), .y(y));
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let elaborated = design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should succeed");
+
+        assert_eq!(
+            elaborated.child_instances[0].port_bindings[0].actual,
+            Some(PortActual::Signal("cfg.data".to_string()))
+        );
+    }
+
+    #[test]
+    fn elaboration_accepts_package_import_backed_struct_members() {
+        let design = parse_design(
+            r#"
+            package cfg_pkg;
+                typedef struct packed {
+                    logic [7:0] data;
+                    logic valid;
+                } cfg_t;
+            endpackage
+
+            module child (
+                input logic [7:0] a,
+                output logic y
+            );
+            endmodule
+
+            module top (
+                output logic y
+            );
+            import cfg_pkg::*;
             cfg_t cfg;
             child u_child (.a(cfg.data), .y(y));
             endmodule

@@ -1905,6 +1905,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - file-scope `typedef` declarations before later modules,
     - use of those typedefs in later module ANSI port lists and declarations,
     - preservation of module-local typedef isolation by reseeding module parse scope from file-scope aliases.
+  - Progress (2026-03-13): extended `rtl_frontend` package-style type scope so the current subset now supports:
+    - top-level `package ... endpackage` declarations that currently carry typedefs,
+    - package-qualified type references such as `cfg_pkg::cfg_t` in later module headers/declarations,
+    - module-body wildcard imports (`import cfg_pkg::*;`) for later declaration parsing.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,
