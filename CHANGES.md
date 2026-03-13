@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Enum Type Coverage
+### ✅ Achievement Summary
+`rtl_frontend` now supports enum data types in the current handwritten subset. Inline enum declarations, typedef-backed enum named types, and header-imported enum typedefs all parse and resolve through the existing named-type machinery.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `DataType::Enum` plus `EnumVariant` coverage for the current type model,
+  - added parser support for inline enum data types with optional base type / packed range and explicit variant values,
+  - reused the existing typedef/file-scope/package-import visibility path so enum typedefs behave like other named types in later declarations and ANSI port lists.
+- Added focused tests for:
+  - inline enum net declarations,
+  - typedef-backed enum named uses,
+  - header-imported enum typedefs in ANSI port lists.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the enum-type baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`39/39`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-13 - Add RTL Indexed Array-Of-Struct Member Validation
 ### ✅ Achievement Summary
 `rtl_frontend` now validates struct-member access through indexed unpacked-array elements instead of stopping at bare struct roots. Array-of-struct actuals like `cfgs[IDX].data` and `cfgs[IDX].data[BIT]` are preserved and accepted, while invalid forms like `cfgs.data` are now rejected.

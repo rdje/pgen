@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Enum Type Coverage
+### Context
+The current handwritten type surface had moved well beyond raw builtins, but it was still overly struct-centric. A common next synthesizable type family was still missing: enums. The next clean increment was therefore enum coverage rather than jumping immediately to a much broader aggregate family.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `DataType::Enum` and `EnumVariant` to the current type model,
+  - added parser support for inline enum data types with optional explicit base type / packed range and optional explicit variant values,
+  - reused the existing typedef/file-scope/package/header-import type-alias plumbing so enum typedefs resolve in later declarations and ANSI port lists without a separate visibility mechanism.
+- Added focused tests for:
+  - inline enum net declarations,
+  - typedef-backed enum named uses,
+  - header-imported enum typedefs in ANSI port declarations.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `39/39` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment adds enum type parsing and visibility, but it does not yet treat enum literals as first-class constant symbols in elaboration-time environments.
+- The next clean increment is likely another type/declaration family beyond the current struct+enum subset.
+
 ## 2026-03-13 - Add RTL Indexed Array-Of-Struct Member Validation
 ### Context
 The previous `rtl_frontend` increment added unpacked-array declarations, but those declarations still behaved like second-class citizens during member validation. The parser could represent `cfgs [0:1]`, yet elaboration still only understood bare struct roots like `cfg.data`. The next clean increment was therefore indexed array-of-struct member validation.

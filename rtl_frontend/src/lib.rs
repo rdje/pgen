@@ -669,6 +669,10 @@ pub enum DataType {
         data_type: Box<DataType>,
         packed_range: PackedRange,
     },
+    Enum {
+        base_type: Box<DataType>,
+        variants: Vec<EnumVariant>,
+    },
     Struct {
         packed: bool,
         fields: Vec<StructField>,
@@ -687,9 +691,15 @@ impl DataType {
                 None
             }
             DataType::Packed { data_type, .. } => data_type.field_type(name),
-            DataType::Builtin { .. } => None,
+            DataType::Builtin { .. } | DataType::Enum { .. } => None,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumVariant {
+    pub name: String,
+    pub value: Option<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -2326,6 +2336,7 @@ impl<'a> Parser<'a> {
         if self.peek_keyword("logic")
             || self.peek_keyword("wire")
             || self.peek_keyword("reg")
+            || self.peek_keyword("enum")
             || self.peek_keyword("struct")
             || self.peek_typedef_name()
             || self.peek_package_qualified_type()
@@ -2561,6 +2572,14 @@ impl<'a> Parser<'a> {
                 Some(DataType::Builtin {
                     keyword: "reg".to_string(),
                 }),
+            )
+        } else if self.peek_keyword("enum") {
+            (
+                NetKind::Typed,
+                Some(
+                    self.parse_optional_data_type()?
+                        .ok_or_else(|| FrontendError::new("expected enum data type", 0))?,
+                ),
             )
         } else if self.peek_keyword("struct") {
             (
@@ -2867,6 +2886,9 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_optional_data_type(&mut self) -> Result<Option<DataType>, FrontendError> {
+        if self.peek_keyword("enum") {
+            return self.parse_enum_data_type().map(Some);
+        }
         if self.peek_keyword("struct") {
             return self.parse_struct_data_type().map(Some);
         }
@@ -2886,6 +2908,46 @@ impl<'a> Parser<'a> {
         } else {
             Ok(None)
         }
+    }
+
+    fn parse_enum_data_type(&mut self) -> Result<DataType, FrontendError> {
+        self.expect_keyword("enum")?;
+        let mut base_type = self
+            .parse_optional_data_type()?
+            .unwrap_or_else(|| DataType::Builtin {
+                keyword: "int".to_string(),
+            });
+        if let Some(packed_range) = self.parse_optional_packed_range()? {
+            base_type = DataType::Packed {
+                data_type: Box::new(base_type),
+                packed_range,
+            };
+        }
+
+        self.expect_symbol('{')?;
+        let mut variants = Vec::new();
+        loop {
+            let name = self.expect_identifier()?;
+            let value = if self.consume_symbol('=') {
+                Some(self.parse_expression_until(&[',', '}'])?)
+            } else {
+                None
+            };
+            variants.push(EnumVariant { name, value });
+
+            if self.consume_symbol('}') {
+                break;
+            }
+            self.expect_symbol(',')?;
+            if self.consume_symbol('}') {
+                break;
+            }
+        }
+
+        Ok(DataType::Enum {
+            base_type: Box::new(base_type),
+            variants,
+        })
     }
 
     fn parse_struct_data_type(&mut self) -> Result<DataType, FrontendError> {
@@ -4289,6 +4351,52 @@ mod tests {
     }
 
     #[test]
+    fn parses_inline_enum_typed_net_declarations() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            enum logic [1:0] {
+                IDLE = 0,
+                BUSY = 1
+            } state;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        match &module.items[0] {
+            ModuleItem::NetDecl(net) => {
+                assert_eq!(net.kind, NetKind::Typed);
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Enum {
+                        base_type,
+                        variants,
+                    } => {
+                        match base_type.as_ref() {
+                            DataType::Packed { data_type, .. } => match data_type.as_ref() {
+                                DataType::Builtin { keyword } => assert_eq!(keyword, "logic"),
+                                other => panic!("expected logic enum base type, got {other:?}"),
+                            },
+                            other => panic!("expected packed enum base type, got {other:?}"),
+                        }
+                        assert_eq!(variants.len(), 2);
+                        assert_eq!(variants[0].name, "IDLE");
+                        assert_eq!(
+                            variants[0].value,
+                            Some(rtl_const_expr::parse_expression("0").unwrap())
+                        );
+                        assert_eq!(variants[1].name, "BUSY");
+                    }
+                    other => panic!("expected enum data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn parses_typedef_struct_declarations_and_named_uses() {
         let module = parse_module(
             r#"
@@ -4330,6 +4438,87 @@ mod tests {
                 }
             }
             other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_typedef_enum_declarations_and_named_uses() {
+        let module = parse_module(
+            r#"
+            module top (
+                output logic y
+            );
+            typedef enum logic [1:0] {
+                IDLE = 0,
+                BUSY = 1
+            } state_t;
+            state_t state;
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        match &module.items[0] {
+            ModuleItem::TypedefDecl(typedef_decl) => {
+                assert_eq!(typedef_decl.name, "state_t");
+                match &typedef_decl.data_type {
+                    DataType::Enum { variants, .. } => {
+                        assert_eq!(variants.len(), 2);
+                        assert_eq!(variants[0].name, "IDLE");
+                        assert_eq!(variants[1].name, "BUSY");
+                    }
+                    other => panic!("expected typedef enum data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected typedef declaration, got {other:?}"),
+        }
+
+        match &module.items[1] {
+            ModuleItem::NetDecl(net) => {
+                match net.data_type.as_ref().expect("net type should exist") {
+                    DataType::Enum { variants, .. } => {
+                        assert_eq!(variants.len(), 2);
+                        assert_eq!(variants[0].name, "IDLE");
+                        assert_eq!(variants[1].name, "BUSY");
+                    }
+                    other => panic!("expected resolved enum data type, got {other:?}"),
+                }
+            }
+            other => panic!("expected net declaration, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_design_supports_header_imported_enum_typedefs_for_port_lists() {
+        let design = parse_design(
+            r#"
+            package state_pkg;
+                typedef enum logic [1:0] {
+                    IDLE = 0,
+                    BUSY = 1
+                } state_t;
+            endpackage
+
+            module top import state_pkg::state_t; (
+                input state_t state,
+                output logic y
+            );
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        match design.modules[0].ports[0]
+            .data_type
+            .as_ref()
+            .expect("port type should exist")
+        {
+            DataType::Enum { variants, .. } => {
+                assert_eq!(variants.len(), 2);
+                assert_eq!(variants[0].name, "IDLE");
+                assert_eq!(variants[1].name, "BUSY");
+            }
+            other => panic!("expected header-imported enum type, got {other:?}"),
         }
     }
 

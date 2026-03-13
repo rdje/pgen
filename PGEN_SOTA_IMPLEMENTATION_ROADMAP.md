@@ -1929,6 +1929,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - struct-member access through indexed unpacked-array elements such as `cfgs[IDX].data`,
     - bit-select preservation through indexed unpacked-array member paths such as `cfgs[IDX].data[BIT]`,
     - rejection of invalid member access through unpacked-array roots that were not indexed first.
+  - Progress (2026-03-14): extended `rtl_frontend` type-family coverage so the current subset now also supports:
+    - inline enum data types such as `enum logic [1:0] { IDLE = 0, BUSY = 1 } state;`,
+    - typedef-backed enum named types such as `typedef enum logic [1:0] { ... } state_t;`,
+    - package/header-import visibility for enum typedefs in later port/declaration parsing.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,
