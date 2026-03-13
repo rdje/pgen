@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Sequential Procedural Coverage
+### ✅ Achievement Summary
+`rtl_frontend` now recognizes the first sequential/latch procedural slice in the handwritten subset. `always_ff` blocks retain their edge-trigger event controls, `always_latch` blocks parse as their own procedural kind, and the existing statement machinery now covers a more realistic synthesizable procedural surface.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `AlwaysFf` and `AlwaysLatch` procedural kinds,
+  - introduced a minimal event-control AST that preserves `posedge` / `negedge` plus the associated event expression for `always_ff`,
+  - extended the module-item parser so `always_ff` / `always_latch` flow through the same procedural-block path as `always_comb` and `always @(*)`.
+- Added focused tests for:
+  - `always_ff @(posedge clk or negedge rst_n)` parsing and event-control retention,
+  - `always_latch` parsing.
+- Synced living docs:
+  - `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the sequential procedural baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`51/51`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add RTL Builtin Integral Type Coverage
 ### ✅ Achievement Summary
 `rtl_frontend` now treats builtin integral atom types as first-class declaration starters in the handwritten subset. Standalone `byte`, `shortint`, and `longint` declarations parse correctly, enum base-width handling understands them, and packed-union validation can now reject builtin-width mismatches like `byte` vs `shortint`.

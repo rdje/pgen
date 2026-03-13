@@ -1945,6 +1945,10 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - standalone declaration parsing for builtin integral atom types such as `byte lane;`, `shortint offset;`, and `longint cycles;`,
     - inline enum base types backed by builtin integral atom types such as `enum byte { ... } state;`,
     - packed-union width validation driven by builtin integral widths like `byte` = 8 and `shortint` = 16.
+  - Progress (2026-03-14): extended `rtl_frontend` procedural coverage so the current subset now also supports:
+    - `always_ff` blocks with preserved edge-trigger event controls such as `@(posedge clk or negedge rst_n)`,
+    - `always_latch` blocks as a distinct procedural kind alongside `always_comb` and `always @(*)`,
+    - parser-side retention of event-control edges/expressions for future sequential semantics work.
 - [ ] Add a constant-expression parser/evaluator in the frontend/elaboration path:
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,

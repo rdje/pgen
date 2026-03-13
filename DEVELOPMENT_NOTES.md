@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Sequential Procedural Coverage
+### Context
+The current procedural subset had combinational coverage, but it still stopped short of the two synthesizable block forms that usually matter most after `always_comb`: edge-triggered sequential logic and latch blocks. The next clean increment was therefore to add a minimal `always_ff` / `always_latch` slice rather than another isolated type tweak.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - added `AlwaysFf` and `AlwaysLatch` to the procedural-kind model,
+  - introduced a small event-control representation that preserves `posedge` / `negedge` and the associated event expression for `always_ff`,
+  - extended procedural parsing so `always_ff` and `always_latch` now share the current statement/block parser instead of needing a separate ad hoc path.
+- Added focused tests for:
+  - `always_ff @(posedge clk or negedge rst_n)` parsing with retained event-control items,
+  - `always_latch` parsing.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `51/51` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment preserves parser-side event-control structure for `always_ff`, but it does not yet impose sequential-specific semantic rules such as single-event-control restrictions or nonblocking-assignment policy checks.
+- The next clean increment is likely a deeper procedural semantic pass or another synthesizable declaration/type-family slice.
+
 ## 2026-03-14 - Add RTL Builtin Integral Type Coverage
 ### Context
 The previous packed-union validation increment had the width machinery needed for more realistic builtin atom types, but standalone declarations still only recognized a narrow set of declaration starters. The next clean increment was therefore to let builtin integral atom types flow through the same handwritten declaration and validation path.

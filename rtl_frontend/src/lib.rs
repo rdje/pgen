@@ -1415,11 +1415,26 @@ impl ModuleInstantiation {
 pub enum ProceduralKind {
     AlwaysComb,
     AlwaysStar,
+    AlwaysLatch,
+    AlwaysFf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EventEdge {
+    Posedge,
+    Negedge,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EventControlItem {
+    pub edge: Option<EventEdge>,
+    pub expr: Expr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProceduralBlock {
     pub kind: ProceduralKind,
+    pub event_control: Option<Vec<EventControlItem>>,
     pub statement: Statement,
 }
 
@@ -2557,7 +2572,11 @@ impl<'a> Parser<'a> {
         if self.looks_like_module_instantiation() {
             return self.parse_module_instantiations();
         }
-        if self.peek_keyword("always_comb") || self.peek_keyword("always") {
+        if self.peek_keyword("always_comb")
+            || self.peek_keyword("always")
+            || self.peek_keyword("always_ff")
+            || self.peek_keyword("always_latch")
+        {
             return Ok(vec![ModuleItem::ProceduralBlock(
                 self.parse_procedural_block()?,
             )]);
@@ -2953,8 +2972,15 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_procedural_block(&mut self) -> Result<ProceduralBlock, FrontendError> {
-        let kind = if self.consume_keyword("always_comb") {
-            ProceduralKind::AlwaysComb
+        let (kind, event_control) = if self.consume_keyword("always_comb") {
+            (ProceduralKind::AlwaysComb, None)
+        } else if self.consume_keyword("always_latch") {
+            (ProceduralKind::AlwaysLatch, None)
+        } else if self.consume_keyword("always_ff") {
+            (
+                ProceduralKind::AlwaysFf,
+                Some(self.parse_event_control_list()?),
+            )
         } else {
             self.expect_keyword("always")?;
             self.expect_symbol('@')?;
@@ -2964,11 +2990,42 @@ impl<'a> Parser<'a> {
             } else {
                 self.expect_symbol('*')?;
             }
-            ProceduralKind::AlwaysStar
+            (ProceduralKind::AlwaysStar, None)
         };
 
         let statement = self.parse_statement()?;
-        Ok(ProceduralBlock { kind, statement })
+        Ok(ProceduralBlock {
+            kind,
+            event_control,
+            statement,
+        })
+    }
+
+    fn parse_event_control_list(&mut self) -> Result<Vec<EventControlItem>, FrontendError> {
+        self.expect_symbol('@')?;
+        self.expect_symbol('(')?;
+
+        let mut items = Vec::new();
+        loop {
+            let edge = if self.consume_keyword("posedge") {
+                Some(EventEdge::Posedge)
+            } else if self.consume_keyword("negedge") {
+                Some(EventEdge::Negedge)
+            } else {
+                None
+            };
+            let expr =
+                self.parse_expression_until_with_keyword_terminators(&[',', ')'], &["or"])?;
+            items.push(EventControlItem { edge, expr });
+
+            if self.consume_symbol(',') || self.consume_keyword("or") {
+                continue;
+            }
+            break;
+        }
+
+        self.expect_symbol(')')?;
+        Ok(items)
     }
 
     fn parse_statement(&mut self) -> Result<Statement, FrontendError> {
@@ -3326,6 +3383,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression_until(&mut self, terminators: &[char]) -> Result<Expr, FrontendError> {
+        self.parse_expression_until_with_keyword_terminators(terminators, &[])
+    }
+
+    fn parse_expression_until_with_keyword_terminators(
+        &mut self,
+        terminators: &[char],
+        keyword_terminators: &[&str],
+    ) -> Result<Expr, FrontendError> {
         if self.is_end() {
             return Err(FrontendError::new(
                 "expected expression, found end of input",
@@ -3345,6 +3410,11 @@ impl<'a> Parser<'a> {
             let top_level = paren_depth == 0 && bracket_depth == 0 && brace_depth == 0;
 
             if top_level {
+                if let Some(keyword) = self.current_ident()
+                    && keyword_terminators.contains(&keyword)
+                {
+                    break;
+                }
                 if let TokenKind::Symbol(':') = token.kind {
                     if self.current_is_double_colon() {
                     } else if ternary_depth > 0 {
@@ -3594,6 +3664,8 @@ fn is_keyword(value: &str) -> bool {
         value,
         "always"
             | "always_comb"
+            | "always_ff"
+            | "always_latch"
             | "assign"
             | "begin"
             | "else"
@@ -3610,10 +3682,13 @@ fn is_keyword(value: &str) -> bool {
             | "localparam"
             | "logic"
             | "module"
+            | "negedge"
+            | "or"
             | "output"
             | "packed"
             | "package"
             | "parameter"
+            | "posedge"
             | "reg"
             | "struct"
             | "typedef"
@@ -3633,8 +3708,8 @@ fn is_data_type_keyword(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        DataType, GenerateFor, GenerateIf, ModuleItem, NetKind, ParameterOverride, PortActual,
-        PortConnection, ProceduralKind, Statement, parse_design, parse_module,
+        DataType, EventEdge, GenerateFor, GenerateIf, ModuleItem, NetKind, ParameterOverride,
+        PortActual, PortConnection, ProceduralKind, Statement, parse_design, parse_module,
     };
     use std::collections::HashMap;
 
@@ -3748,6 +3823,94 @@ mod tests {
             .expect("procedural block should exist");
 
         assert_eq!(block.kind, ProceduralKind::AlwaysStar);
+        assert_eq!(block.event_control, None);
+        match &block.statement {
+            Statement::Block { statements, .. } => assert_eq!(statements.len(), 1),
+            other => panic!("expected block statement, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_always_ff_blocks_with_edge_event_controls() {
+        let module = parse_module(
+            r#"
+            module seq (
+                input logic clk,
+                input logic rst_n,
+                input logic d,
+                output logic q
+            );
+            always_ff @(posedge clk or negedge rst_n) begin
+                if (!rst_n)
+                    q <= 0;
+                else
+                    q <= d;
+            end
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        let block = module
+            .items
+            .iter()
+            .find_map(|item| match item {
+                ModuleItem::ProceduralBlock(block) => Some(block),
+                _ => None,
+            })
+            .expect("procedural block should exist");
+
+        assert_eq!(block.kind, ProceduralKind::AlwaysFf);
+        let event_control = block
+            .event_control
+            .as_ref()
+            .expect("always_ff should retain event control");
+        assert_eq!(event_control.len(), 2);
+        assert_eq!(event_control[0].edge, Some(EventEdge::Posedge));
+        assert_eq!(
+            event_control[0].expr,
+            rtl_const_expr::parse_expression("clk").unwrap()
+        );
+        assert_eq!(event_control[1].edge, Some(EventEdge::Negedge));
+        assert_eq!(
+            event_control[1].expr,
+            rtl_const_expr::parse_expression("rst_n").unwrap()
+        );
+        match &block.statement {
+            Statement::Block { statements, .. } => assert_eq!(statements.len(), 1),
+            other => panic!("expected block statement, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parses_always_latch_blocks() {
+        let module = parse_module(
+            r#"
+            module latchy (
+                input logic en,
+                input logic d,
+                output logic q
+            );
+            always_latch begin
+                if (en)
+                    q <= d;
+            end
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        let block = module
+            .items
+            .iter()
+            .find_map(|item| match item {
+                ModuleItem::ProceduralBlock(block) => Some(block),
+                _ => None,
+            })
+            .expect("procedural block should exist");
+
+        assert_eq!(block.kind, ProceduralKind::AlwaysLatch);
+        assert_eq!(block.event_control, None);
         match &block.statement {
             Statement::Block { statements, .. } => assert_eq!(statements.len(), 1),
             other => panic!("expected block statement, got {other:?}"),
