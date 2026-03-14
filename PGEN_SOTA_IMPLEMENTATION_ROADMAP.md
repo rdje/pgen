@@ -1752,6 +1752,18 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `covered_reachable_rules=70/70`
       - `covered_reachable_branches=48/48`
     - this is still not `Done`; it sharpens the objective evidence for the remaining exhaustive-closure gap.
+  - Progress (2026-03-14): materially reduced preprocessor parser-rejection debt in the shared quality gate:
+    - `grammars/systemverilog_preprocessor.ebnf` now separates line-comment-bearing `trivia` from `inline_trivia` used by directive keywords, identifiers, literals, punctuation, and other same-line lexical tokens,
+    - `sv_preprocessor_quality_gate` now runs parseability stages with `--enforce-word-boundary-spacing` so adjacent directive/identifier words do not merge into invalid tokens during stimuli generation,
+    - aggregate measurable state improved to:
+      - `attempts=38`
+      - `accepted=33`
+      - `rejected=5`
+      - `parseability_counterexamples_captured_total=5`
+      - `final_targets=0`
+      - `covered_reachable_rules=69/69`
+      - `covered_reachable_branches=47/47`
+    - this keeps the parser-family row at `Mostly Done`, but it significantly narrows the bounded gap that still separates current quality proof from formal exhaustive closure.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

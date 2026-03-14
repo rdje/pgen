@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-03-14 - Reduce SV Preprocessor Parser-Rejection Debt
+### ✅ Achievement Summary
+The SystemVerilog preprocessor quality gate now rejects far fewer generated samples for parser-backed validation. The key fix was grammatical, not just statistical: line comments no longer masquerade as generic inline trivia inside same-line directive tokens, and the gate now enables the existing word-boundary-spacing policy during parseability validation to prevent merged directive/identifier samples like `` `defineFOO ``.
+
+### Scope of Changes
+- Updated [grammars/systemverilog_preprocessor.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_preprocessor.ebnf):
+  - added `inline_trivia := (space_or_tab | block_comment)*`,
+  - kept `trivia` for broader comment-aware contexts,
+  - moved directive keywords, identifiers, literals, punctuation, and same-line text atoms off `trivia` and onto `inline_trivia`.
+- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh):
+  - enabled `--enforce-word-boundary-spacing` for parseability-bearing stages,
+  - kept the aggregate parseability/counterexample reporting path intact.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the improved proof numbers,
+  - kept parser-family statuses unchanged because the proof surface is still bounded rather than formally exhaustive.
+
+### Validation Results
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed
+  - aggregate measurable state improved to:
+    - `attempts=38`
+    - `accepted=33`
+    - `rejected=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
+- improvement relative to the immediately prior aggregate proof surface:
+  - attempts dropped from `74` to `38`
+  - parser rejections dropped from `33` to `5`
+  - acceptance rose from `55.41%` to `86.84%`
+
 ## 2026-03-14 - Preserve SV Preprocessor Parseability Counterexamples In Aggregate Proof
 ### ✅ Achievement Summary
 The SystemVerilog preprocessor proof surface is now more objective and inspectable without overstating closure. Parseability reports no longer stop at totals alone: the Rust parseability path now preserves bounded parser-rejection counterexamples, and `sv_preprocessor_quality_gate` now carries those examples into its aggregate `systemverilog_preprocessor_parseability_report.json`.

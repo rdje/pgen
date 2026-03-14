@@ -323,12 +323,12 @@ if [[ "$PARSEABILITY_MODE" != "0" ]]; then
 fi
 
 if [[ "$parseability_enabled" -eq 1 ]]; then
-    parseability_args+=(--validate-parseability)
-    parseability_args_stage0a=(--validate-parseability --parseability-report-json "$stage0a_parseability_json")
-    parseability_args_stage0b=(--validate-parseability --parseability-report-json "$stage0b_parseability_json")
-    parseability_args_stage1=(--validate-parseability --parseability-report-json "$stage1_parseability_json")
-    parseability_args_stage2=(--validate-parseability --parseability-report-json "$stage2_parseability_json")
-    parseability_args_stage3=(--validate-parseability --parseability-report-json "$stage3_parseability_json")
+    parseability_args+=(--validate-parseability --enforce-word-boundary-spacing)
+    parseability_args_stage0a=(--validate-parseability --enforce-word-boundary-spacing --parseability-report-json "$stage0a_parseability_json")
+    parseability_args_stage0b=(--validate-parseability --enforce-word-boundary-spacing --parseability-report-json "$stage0b_parseability_json")
+    parseability_args_stage1=(--validate-parseability --enforce-word-boundary-spacing --parseability-report-json "$stage1_parseability_json")
+    parseability_args_stage2=(--validate-parseability --enforce-word-boundary-spacing --parseability-report-json "$stage2_parseability_json")
+    parseability_args_stage3=(--validate-parseability --enforce-word-boundary-spacing --parseability-report-json "$stage3_parseability_json")
     parseability_report_json="$WORK_DIR/${GRAMMAR_NAME}_parseability_report.json"
 fi
 

@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Reduce SV Preprocessor Parser-Rejection Debt
+### Context
+The previous task made the remaining preprocessor parseability gap inspectable, and the new counterexamples pointed to two concrete issues instead of generic “bad luck” generation:
+- line comments were still permitted as generic `trivia` inside same-line directive tokens, which creates impossible sequences because `//...` swallows whatever follows on that line,
+- adjacent directive/identifier regex tokens could still merge into invalid combined text unless the existing word-boundary-spacing policy was enabled.
+
+### Implementation
+- Updated [grammars/systemverilog_preprocessor.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_preprocessor.ebnf):
+  - introduced `inline_trivia := (space_or_tab | block_comment)*`,
+  - retained broader `trivia` for comment-aware contexts that are not same-line lexical joins,
+  - switched directive keywords, identifiers, literals, punctuation, `condition_text`, macro-body/default text atoms, and directive-tail/non-directive text atoms onto `inline_trivia`.
+- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh):
+  - enabled `--enforce-word-boundary-spacing` for all parseability-reporting stages.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the improved aggregate proof numbers,
+  - kept the parser-family row at `Mostly Done`.
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed
+  - aggregate proof surface moved to:
+    - `attempts=38`
+    - `accepted=33`
+    - `rejected=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
+- immediate before/after comparison on the same tracked gate:
+  - attempts: `74 -> 38`
+  - parser rejections: `33 -> 5`
+  - acceptance rate: `55.41% -> 86.84%`
+
+### Notes
+- I also tested a tighter follow-on experiment around `directive_tail` / mandatory `elsif` conditions, but that was not kept in this task because it started trading acceptance against coverage shape rather than giving the same clear net win.
+- This increment significantly narrows the remaining bounded proof gap, but it is still not an exhaustive closure proof.
+
 ## 2026-03-14 - Preserve SV Preprocessor Parseability Counterexamples In Aggregate Proof
 ### Context
 The current `systemverilog_preprocessor` row is intentionally only `Mostly Done`, and the next useful step was to make the remaining proof gap more objective rather than arguing from aggregate counts alone. The stage-level parseability reports already knew which generated samples the parser rejected, but the aggregate preprocessor gate report was rebuilding JSON from totals and throwing that evidence away. That made closure triage harder than it needed to be.

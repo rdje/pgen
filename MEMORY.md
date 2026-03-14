@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: preserve-sv-preprocessor-parseability-counterexamples)
+Last updated: 2026-03-14 (+0100, task: reduce-sv-preprocessor-parser-rejection-debt)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -71,14 +71,18 @@ Use this file to resume work without replaying full chat history.
   - `rust/src/main.rs` parseability reports now preserve bounded parser-rejection counterexamples with original + shrunk samples,
   - `rust/scripts/sv_preprocessor_quality_gate.sh` now carries those stage-level counterexamples into the aggregate `systemverilog_preprocessor_parseability_report.json`,
   - current aggregate preprocessor state from the gate is:
-    - `attempts=74`
-    - `accepted=41`
-    - `rejected=33`
-    - `parseability_counterexamples_captured_total=15`
+    - `attempts=38`
+    - `accepted=33`
+    - `rejected=5`
+    - `parseability_counterexamples_captured_total=5`
     - `final_targets=0`
-    - `covered_reachable_rules=70/70`
-    - `covered_reachable_branches=48/48`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
   - this sharpens the remaining closure gap without changing parser-family status; `systemverilog_preprocessor` remains `Mostly Done`.
+- The main cause of the acceptance lift was now tracked and fixed in-repo:
+  - `grammars/systemverilog_preprocessor.ebnf` now uses `inline_trivia` for same-line lexical tokens instead of allowing line comments everywhere via `trivia`,
+  - `sv_preprocessor_quality_gate` now enables `--enforce-word-boundary-spacing` during parseability stages,
+  - together those changes reduced parser-backed rejection debt from `33` to `5` in the aggregate gate while keeping `final_targets=0`.
 - Return-annotation closure now has an explicit aggregate proof target:
   - `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`
   - bundles the repo-wide shaping audit, return full-contract gate, and auto-derived return-annotation exhaustiveness proof.

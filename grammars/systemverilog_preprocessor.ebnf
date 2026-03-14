@@ -71,7 +71,7 @@ condition_atom := macro_token_paste
                 | logical_and
                 | bang
 
-condition_text := trivia /[^`(),?:!|&\r\n]+/
+condition_text := inline_trivia /[^`(),?:!|&\r\n]+/
 
 # ---------------------------------------------------------------------------
 # Macro declaration support
@@ -90,7 +90,7 @@ macro_default_atom := macro_token_paste
                     | question
                     | colon
 
-macro_default_text := trivia /[^`(),?:\r\n]+/
+macro_default_text := inline_trivia /[^`(),?:\r\n]+/
 
 macro_body := macro_body_fragment+
 macro_body_fragment := macro_token_paste
@@ -103,10 +103,10 @@ macro_body_fragment := macro_token_paste
                      | question
                      | colon
 
-macro_body_text := trivia /[^`(),?:\r\n]+/
+macro_body_text := inline_trivia /[^`(),?:\r\n]+/
 macro_reference := bt_identifier
-macro_token_paste := trivia /``/
-macro_stringize := trivia /`"/
+macro_token_paste := inline_trivia /``/
+macro_stringize := inline_trivia /`"/
 
 # ---------------------------------------------------------------------------
 # Passthrough lines
@@ -114,58 +114,59 @@ macro_stringize := trivia /`"/
 
 pp_non_directive_line := non_directive_text newline?
 pp_blank_line := newline
-non_directive_text := trivia /[^`\r\n][^\r\n]*/
-directive_tail := trivia /[^\r\n]+/
+non_directive_text := inline_trivia /[^`\r\n][^\r\n]*/
+directive_tail := inline_trivia /[^\r\n]+/
 
 # ---------------------------------------------------------------------------
 # Identifiers and literals
 # ---------------------------------------------------------------------------
 
 macro_name := identifier
-identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
-bt_identifier := trivia /`[a-zA-Z_][a-zA-Z0-9_$]*/
+identifier := inline_trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
+bt_identifier := inline_trivia /`[a-zA-Z_][a-zA-Z0-9_$]*/
 
-unsigned_number := trivia /[0-9][0-9_]*/
-quoted_string := trivia /"([^"\\]|\\.)*"/
-angle_path := trivia /<[^>\r\n]+>/
-time_unit := trivia /(s|ms|us|ns|ps|fs)\b/
+unsigned_number := inline_trivia /[0-9][0-9_]*/
+quoted_string := inline_trivia /"([^"\\]|\\.)*"/
+angle_path := inline_trivia /<[^>\r\n]+>/
+time_unit := inline_trivia /(s|ms|us|ns|ps|fs)\b/
 
 # ---------------------------------------------------------------------------
 # Trivia and punctuation
 # ---------------------------------------------------------------------------
 
+inline_trivia := (space_or_tab | block_comment)*
 trivia := (space_or_tab | line_comment | block_comment)*
 space_or_tab := /[ \t]+/
 line_comment := /\/\/[^\r\n]*/
 block_comment := /\/\*([^*]|\*+[^*/])*\*+\//
 
-newline := trivia /\r?\n/
+newline := inline_trivia /\r?\n/
 
-slash := trivia "/"
-assign := trivia "="
-comma := trivia ","
-colon := trivia ":"
-question := trivia "?"
-bang := trivia "!"
-logical_or := trivia "||"
-logical_and := trivia "&&"
-lparen := trivia "("
-rparen := trivia ")"
+slash := inline_trivia "/"
+assign := inline_trivia "="
+comma := inline_trivia ","
+colon := inline_trivia ":"
+question := inline_trivia "?"
+bang := inline_trivia "!"
+logical_or := inline_trivia "||"
+logical_and := inline_trivia "&&"
+lparen := inline_trivia "("
+rparen := inline_trivia ")"
 
 # ---------------------------------------------------------------------------
 # Directive keywords
 # ---------------------------------------------------------------------------
 
-kw_define := trivia /`define\b/
-kw_undef := trivia /`undef\b/
-kw_include := trivia /`include\b/
-kw_ifdef := trivia /`ifdef\b/
-kw_ifndef := trivia /`ifndef\b/
-kw_elsif := trivia /`elsif\b/
-kw_else := trivia /`else\b/
-kw_endif := trivia /`endif\b/
-kw_timescale := trivia /`timescale\b/
-kw_default_nettype := trivia /`default_nettype\b/
-kw_celldefine := trivia /`celldefine\b/
-kw_endcelldefine := trivia /`endcelldefine\b/
-kw_none := trivia /none\b/
+kw_define := inline_trivia /`define\b/
+kw_undef := inline_trivia /`undef\b/
+kw_include := inline_trivia /`include\b/
+kw_ifdef := inline_trivia /`ifdef\b/
+kw_ifndef := inline_trivia /`ifndef\b/
+kw_elsif := inline_trivia /`elsif\b/
+kw_else := inline_trivia /`else\b/
+kw_endif := inline_trivia /`endif\b/
+kw_timescale := inline_trivia /`timescale\b/
+kw_default_nettype := inline_trivia /`default_nettype\b/
+kw_celldefine := inline_trivia /`celldefine\b/
+kw_endcelldefine := inline_trivia /`endcelldefine\b/
+kw_none := inline_trivia /none\b/
