@@ -68,6 +68,7 @@ Interpretation note:
 - parser-family maturity is tracked separately in `LIVE_ACHIEVEMENT_STATUS.md`,
 - a readiness-kickoff phase can therefore be `Done` while a parser family is still only `In Progress` for professional-grade closure.
 - `LIVE_ACHIEVEMENT_STATUS.md` uses the stricter definition of `Done` above, so a row must not be promoted to `Done` while a plausible curated/manual proof gap remains.
+- concrete consequence: a closed parser roadmap phase such as `Phase P` or `Phase Q` can still map to parser-family status `Mostly Done` if the gate surface proves strong quality but not formally exhaustive grammar-level closure.
 
 ## Live Tracking Rule
 - `LIVE_ACHIEVEMENT_STATUS.md` is the authoritative live progress surface for current closure state.

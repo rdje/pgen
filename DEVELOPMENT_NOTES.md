@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Demote SV Parser Family Statuses To Match Objective Proof
+### Context
+The user correctly challenged the live tracker on the two SV parser-family rows. On inspection, the repo absolutely does have concrete evidence there: `sv_stimuli_quality_gate`, `sv_preprocessor_quality_gate`, stimuli generation, coverage/gap tracking, target-driven replay, parseability reports, semantic suites, realistic-corpus runs, and differential gates. But the stricter tracker doctrine now says `Done` requires a formally exhaustive proof surface with no plausible grammar-level gap. The current SV gates are high-quality and measurable, but they still prove bounded quality/non-regression rather than full exhaustive closure.
+
+### Implementation
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - changed `systemverilog` main parser (`Phase P` Nexsim scope) from `Done` to `Mostly Done`,
+  - changed `systemverilog_preprocessor` frontend (`Phase Q`) from `Done` to `Mostly Done`,
+  - rewrote both evidence cells to name the concrete gate surfaces that really exist today,
+  - rewrote both left-to-close cells to name the missing deliverable precisely: exhaustive grammar-level proof, not just strong gate telemetry.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added an explicit interpretation note that a closed parser roadmap phase can still correspond to parser-family `Mostly Done` when the stronger live-tracker proof bar is not yet met.
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the correction so future summaries do not collapse “phase complete” into “formal parser-family closure.”
+
+### Validation
+- Documentation/tracker correction only.
+- Evidence cited in the new rows comes from already-tracked executable gates:
+  - `sv_stimuli_quality_gate`
+  - `sv_preprocessor_quality_gate`
+  - their associated parseability, realistic-corpus, and differential artifacts as recorded in the roadmap.
+
+### Notes
+- The user’s objection was substantively correct.
+- The old wording was not pure fabrication, but it was still too strong for the stricter tracker semantics now in force.
+
 ## 2026-03-14 - Close Return-Annotation Exhaustiveness Proof
 ### Context
 The user-set closure bar for `Done` is now explicit: no plausible proof gap is acceptable when grammar-derived exhaustiveness is possible. The remaining blocker for `return_annotation` was therefore not implementation breadth but proof shape. The curated full-construct suite was useful, but it was still curated. The required next step was to derive closure from the grammar-driven stimuli/gap machinery itself and then audit the generated parser output all the way into typed return AST.

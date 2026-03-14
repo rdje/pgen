@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-14 - Demote SV Parser Family Statuses To Match Objective Proof
+### ✅ Achievement Summary
+The live tracker no longer overstates the SystemVerilog parser-family rows. The repo does have serious measurable proof for both `systemverilog` and `systemverilog_preprocessor`, including stimuli generation, coverage/gap loops, target-driven replay, parseability telemetry, and differential hardening. But under the stricter project meaning of `Done`, that evidence is still not the same thing as a formally exhaustive proof surface with no plausible grammar-level gap. Both rows were therefore corrected from `Done` to `Mostly Done`.
+
+### Scope of Changes
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - demoted `systemverilog` main parser from `Done` to `Mostly Done`,
+  - demoted `systemverilog_preprocessor` from `Done` to `Mostly Done`,
+  - clarified the exact objective evidence currently present for each row,
+  - made the missing closure item explicit: exhaustive grammar-level proof rather than bounded quality/no-regression proof,
+  - updated the `Immediate Next Gap` row to reflect parser-family proof normalization.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - clarified that closed roadmap phases can still correspond to parser-family `Mostly Done` status when the stronger live-tracker proof bar is not yet met.
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the rationale so future handoffs do not silently drift back to phase-complete equals parser-done wording.
+
+### Validation Results
+- Documentation/tracker correction only; no new code execution was required beyond the already tracked gate evidence cited in the updated rows.
+
 ## 2026-03-14 - Close Return-Annotation Exhaustiveness Proof
 ### ✅ Achievement Summary
 `return_annotation` full Rust AST-pipeline support is now back to `Done`, but this time on the stricter bar the project now requires. The closing proof is no longer a curated construct list; it is an auto-derived grammar-driven exhaustiveness gate backed by parser/stimuli closure, stimuli-module parity, and generated-parse-tree to typed-AST audit evidence.

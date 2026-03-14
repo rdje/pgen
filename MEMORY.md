@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: close-return-annotation-exhaustiveness-proof)
+Last updated: 2026-03-14 (+0100, task: normalize-sv-parser-family-statuses)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -62,6 +62,11 @@ Use this file to resume work without replaying full chat history.
   - `return_annotation` full Rust AST-pipeline support is tracked separately from cross-grammar return-AST shaping adoption,
   - `return_annotation` support is now `Done`,
   - cross-grammar return-AST shaping adoption remains `Mostly Done`.
+- Parser-family proof normalization is now explicit:
+  - `systemverilog` and `systemverilog_preprocessor` both have strong executable proof surfaces,
+  - that proof includes stimuli generation, coverage/gap tracking, target-driven replay, parseability telemetry, and differential/corpus evidence,
+  - but neither row currently has a return-annotation-grade exhaustive grammar-level closure proof,
+  - so both parser-family rows are now `Mostly Done` rather than `Done` in the live tracker even though `Phase P` and `Phase Q` remain closed.
 - Return-annotation closure now has an explicit aggregate proof target:
   - `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`
   - bundles the repo-wide shaping audit, return full-contract gate, and auto-derived return-annotation exhaustiveness proof.
@@ -86,8 +91,8 @@ Use this file to resume work without replaying full chat history.
   - when live status does not change, the completion message must still show the current snapshot and explicitly say it is unchanged.
 - Parser-family maturity tracking:
   - phase closure and parser-family maturity are now tracked separately,
-  - `systemverilog` main parser is `Done` for the tracked Phase `P` Nexsim contract,
-  - `systemverilog_preprocessor` is `Done` for the tracked Phase `Q` contract,
+  - `systemverilog` main parser is now `Mostly Done` in parser-family terms despite closed `Phase P`,
+  - `systemverilog_preprocessor` is now `Mostly Done` in parser-family terms despite closed `Phase Q`,
   - `vhdl` is `In Progress`,
   - `regex` is `In Progress`.
 - Crash-resume continuity state:
