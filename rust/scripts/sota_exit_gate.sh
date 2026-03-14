@@ -394,6 +394,8 @@ SV_PREPROCESSOR_QUALITY_DIFF_MISMATCH_COUNT="<unset>"
 SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH="<unset>"
 SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED="<unset>"
 SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED="<unset>"
+SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR="<unset>"
+SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="<unset>"
 EBNF_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 EBNF_STIMULI_QUALITY_SUMMARY_CSV="<unset>"
 EBNF_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
@@ -401,6 +403,8 @@ EBNF_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
 HDL_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
 HDL_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
 SV_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
+SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR="<unset>"
+SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<unset>"
 SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="<unset>"
 SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="<unset>"
 SV_STIMULI_QUALITY_DIFF_REPORT_JSON="<unset>"
@@ -790,6 +794,25 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
         SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED="unknown"
     fi
 
+    SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_preprocessor_aggregate_contract_gate"
+    SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="${SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    if [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+        run_check "sv_preprocessor_aggregate_contract_gate" "required" "strict SV preprocessor aggregate contract proof over produced artifacts" \
+            env \
+                PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="$SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_preprocessor_aggregate_contract_gate
+    else
+        run_check "sv_preprocessor_aggregate_contract_gate" "informational" "report-only SV preprocessor aggregate contract proof over produced artifacts" \
+            env \
+                PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="$SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_preprocessor_aggregate_contract_gate
+    fi
+    if [[ ! -f "$SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT" ]]; then
+        SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
+    fi
+
     echo "sv_preprocessor_quality_state_dir: $SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR"
     echo "sv_preprocessor_quality_summary_csv: $SV_PREPROCESSOR_QUALITY_SUMMARY_CSV"
     echo "sv_preprocessor_quality_differential_report_json: $SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON"
@@ -810,6 +833,7 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
     echo "sv_preprocessor_quality_diff_taxonomy_output_mismatch: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH"
     echo "sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED"
     echo "sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED"
+    echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT"
 fi
 
 if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
@@ -939,6 +963,25 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="${SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT:-unknown}"
     SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="${SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON:-<missing>}"
 
+    SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_aggregate_contract_gate"
+    SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="${SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
+        run_check "sv_parser_aggregate_contract_gate" "required" "strict SV parser aggregate contract proof over produced artifacts" \
+            env \
+                PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="$SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_parser_aggregate_contract_gate
+    else
+        run_check "sv_parser_aggregate_contract_gate" "informational" "report-only SV parser aggregate contract proof over produced artifacts" \
+            env \
+                PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="$SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_parser_aggregate_contract_gate
+    fi
+    if [[ ! -f "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT" ]]; then
+        SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
+    fi
+
     echo "sv_stimuli_quality_state_dir: $SV_STIMULI_QUALITY_STAGE_STATE_DIR"
     echo "sv_stimuli_quality_parse_full_quality_report_json: $SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON"
     echo "sv_stimuli_quality_parse_full_pass_ratio_percent: $SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT"
@@ -946,6 +989,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     echo "sv_stimuli_quality_diff_mismatch_count: $SV_STIMULI_QUALITY_DIFF_MISMATCH_COUNT"
     echo "sv_stimuli_quality_performance_report_json: $SV_STIMULI_QUALITY_PERF_REPORT_JSON"
     echo "sv_stimuli_quality_performance_enabled: $SV_STIMULI_QUALITY_PERF_ENABLED"
+    echo "sv_stimuli_quality_aggregate_contract_summary_txt: $SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT"
 fi
 
 if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
@@ -1422,6 +1466,7 @@ fi
         echo "sv_stimuli_quality_parseability_generation_rejected_total: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL"
         echo "sv_stimuli_quality_parseability_generation_acceptance_rate_percent: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT"
         echo "sv_stimuli_quality_parseability_generation_report_json: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON"
+        echo "sv_stimuli_quality_aggregate_contract_summary_txt: $SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT"
     fi
     if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" ]]; then
         echo
@@ -1479,6 +1524,7 @@ fi
         echo "sv_preprocessor_quality_diff_taxonomy_output_mismatch: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_OUTPUT_MISMATCH"
         echo "sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED"
         echo "sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED"
+        echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT"
     fi
     if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         echo

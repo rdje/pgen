@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: reduce-sv-preprocessor-parser-rejection-debt)
+Last updated: 2026-03-14 (+0100, task: reuse-sv-aggregate-contract-gates-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -67,6 +67,29 @@ Use this file to resume work without replaying full chat history.
   - that proof includes stimuli generation, coverage/gap tracking, target-driven replay, parseability telemetry, and differential/corpus evidence,
   - but neither row currently has a return-annotation-grade exhaustive grammar-level closure proof,
   - so both parser-family rows are now `Mostly Done` rather than `Done` in the live tracker even though `Phase P` and `Phase Q` remain closed.
+- Aggregate sign-off now composes the dedicated SV-family contract gates instead of treating them as separate evidence islands:
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now accepts `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
+  - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh` now accepts `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,
+  - `rust/scripts/sota_exit_gate.sh` now reuses those modes over the just-produced SV quality-stage artifacts,
+  - aggregate telemetry now exposes:
+    - `sv_stimuli_quality_aggregate_contract_summary_txt`
+    - `sv_preprocessor_quality_aggregate_contract_summary_txt`
+  - focused reuse-mode validation passed with the currently tracked summaries:
+    - main SV reusable contract summary:
+      - `generation_parser_rejections_total=7`
+      - `generation_counterexamples_count=5`
+      - `shadow_parser_rejections_total=1179`
+      - `shadow_counterexamples_count=5`
+      - `shadow_counterexamples_captured_total=5`
+    - preprocessor reusable contract summary:
+      - `parseability_attempts_total=38`
+      - `parseability_accepted_total=33`
+      - `parseability_rejected_total=5`
+      - `parseability_parser_rejections_total=5`
+      - `parseability_counterexamples_captured_total=5`
+      - `final_targets=0`
+      - `covered_reachable_rules=69/69`
+      - `covered_reachable_branches=47/47`
 - The `systemverilog_preprocessor` proof surface is now easier to inspect objectively:
   - `rust/src/main.rs` parseability reports now preserve bounded parser-rejection counterexamples with original + shrunk samples,
   - `rust/scripts/sv_preprocessor_quality_gate.sh` now carries those stage-level counterexamples into the aggregate `systemverilog_preprocessor_parseability_report.json`,

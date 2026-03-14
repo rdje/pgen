@@ -11,6 +11,7 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 
 BASE_CONTRACT_FILE="${PGEN_SV_PARSER_AGGREGATE_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_core_v0_contract.json}"
 SV_GATE_SCRIPT="$RUST_DIR/scripts/sv_stimuli_quality_gate.sh"
+EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -57,58 +58,70 @@ extract_json_number() {
 }
 
 require_tool jq
-require_file "$BASE_CONTRACT_FILE"
-require_file "$SV_GATE_SCRIPT"
+if [[ -z "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
+    require_file "$BASE_CONTRACT_FILE"
+    require_file "$SV_GATE_SCRIPT"
+fi
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
 
-generation_contract="$WORK_DIR/systemverilog_generation_only_contract.json"
-shadow_contract="$WORK_DIR/systemverilog_shadow_enabled_contract.json"
+generation_contract="<existing_artifact_mode>"
+shadow_contract="<existing_artifact_mode>"
+generation_state_dir="<existing_artifact_mode>"
+shadow_state_dir="<existing_artifact_mode>"
 
-jq '
-    .closed_loop.enabled = true
-    | .closed_loop.parseability_shadow_enabled = false
-    | .nexsim_realistic_corpus.enforce = false
-    | .performance_budgets.enforce = false
-    | .parse_full_quality.enforce_min_pass_ratio = false
-' "$BASE_CONTRACT_FILE" >"$generation_contract"
+if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
+    generation_report_json="$EXISTING_SV_STIMULI_QUALITY_STATE_DIR/work/systemverilog_parseability_generation_report.json"
+    shadow_report_json="$EXISTING_SV_STIMULI_QUALITY_STATE_DIR/work/systemverilog_closed_loop_parseability_shadow_report.json"
+else
+    generation_contract="$WORK_DIR/systemverilog_generation_only_contract.json"
+    shadow_contract="$WORK_DIR/systemverilog_shadow_enabled_contract.json"
 
-jq '
-    .closed_loop.enabled = true
-    | .closed_loop.parseability_shadow_enabled = true
-    | .nexsim_realistic_corpus.enforce = false
-    | .performance_budgets.enforce = false
-    | .parse_full_quality.enforce_min_pass_ratio = false
-' "$BASE_CONTRACT_FILE" >"$shadow_contract"
+    jq '
+        .closed_loop.enabled = true
+        | .closed_loop.parseability_shadow_enabled = false
+        | .nexsim_realistic_corpus.enforce = false
+        | .performance_budgets.enforce = false
+        | .parse_full_quality.enforce_min_pass_ratio = false
+    ' "$BASE_CONTRACT_FILE" >"$generation_contract"
 
-generation_state_dir="$WORK_DIR/generation_state"
-shadow_state_dir="$WORK_DIR/shadow_state"
+    jq '
+        .closed_loop.enabled = true
+        | .closed_loop.parseability_shadow_enabled = true
+        | .nexsim_realistic_corpus.enforce = false
+        | .performance_budgets.enforce = false
+        | .parse_full_quality.enforce_min_pass_ratio = false
+    ' "$BASE_CONTRACT_FILE" >"$shadow_contract"
 
-run_logged "generation_only_aggregate_probe" \
-    env \
-        PGEN_SV_STIMULI_QUALITY_CONTRACT="$generation_contract" \
-        PGEN_SV_STIMULI_QUALITY_STATE_DIR="$generation_state_dir" \
-        PGEN_SV_STIMULI_QUALITY_COUNT=1 \
-        PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 \
-        PGEN_SV_STIMULI_DIFF_MODE=0 \
-        PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 \
-        PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 \
-        "$SV_GATE_SCRIPT"
+    generation_state_dir="$WORK_DIR/generation_state"
+    shadow_state_dir="$WORK_DIR/shadow_state"
 
-run_logged "shadow_enabled_aggregate_probe" \
-    env \
-        PGEN_SV_STIMULI_QUALITY_CONTRACT="$shadow_contract" \
-        PGEN_SV_STIMULI_QUALITY_STATE_DIR="$shadow_state_dir" \
-        PGEN_SV_STIMULI_QUALITY_COUNT=1 \
-        PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 \
-        PGEN_SV_STIMULI_DIFF_MODE=0 \
-        PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 \
-        PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 \
-        "$SV_GATE_SCRIPT"
+    run_logged "generation_only_aggregate_probe" \
+        env \
+            PGEN_SV_STIMULI_QUALITY_CONTRACT="$generation_contract" \
+            PGEN_SV_STIMULI_QUALITY_STATE_DIR="$generation_state_dir" \
+            PGEN_SV_STIMULI_QUALITY_COUNT=1 \
+            PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 \
+            PGEN_SV_STIMULI_DIFF_MODE=0 \
+            PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 \
+            PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 \
+            "$SV_GATE_SCRIPT"
 
-generation_report_json="$generation_state_dir/work/systemverilog_parseability_generation_report.json"
-shadow_report_json="$shadow_state_dir/work/systemverilog_closed_loop_parseability_shadow_report.json"
+    run_logged "shadow_enabled_aggregate_probe" \
+        env \
+            PGEN_SV_STIMULI_QUALITY_CONTRACT="$shadow_contract" \
+            PGEN_SV_STIMULI_QUALITY_STATE_DIR="$shadow_state_dir" \
+            PGEN_SV_STIMULI_QUALITY_COUNT=1 \
+            PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 \
+            PGEN_SV_STIMULI_DIFF_MODE=0 \
+            PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 \
+            PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 \
+            "$SV_GATE_SCRIPT"
+
+    generation_report_json="$generation_state_dir/work/systemverilog_parseability_generation_report.json"
+    shadow_report_json="$shadow_state_dir/work/systemverilog_closed_loop_parseability_shadow_report.json"
+fi
 
 require_nonempty_file "$generation_report_json"
 require_nonempty_file "$shadow_report_json"
@@ -176,6 +189,7 @@ shadow_counterexamples_captured_total="$(extract_json_number "$shadow_report_jso
 {
     echo "SV Parser Aggregate Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "existing_sv_stimuli_quality_state_dir: ${EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-<unset>}"
     echo "base_contract_file: $BASE_CONTRACT_FILE"
     echo "generation_contract_file: $generation_contract"
     echo "shadow_contract_file: $shadow_contract"

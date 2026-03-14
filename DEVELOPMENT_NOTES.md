@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Reuse SV Aggregate Contract Gates In Aggregate Sign-Off
+### Context
+The two dedicated SV-family aggregate-report contract gates already gave us repeatable proof for the main bounded evidence surfaces, but that proof still lived slightly beside aggregate release sign-off. The next useful step was to make `sota_exit_gate` reuse and surface those exact contract checks over the artifacts it already produces, instead of making operators cross-reference standalone focused runs.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - added `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
+  - gate now skips focused probe reruns when a quality-stage state dir is provided and validates:
+    - `systemverilog_parseability_generation_report.json`
+    - `systemverilog_closed_loop_parseability_shadow_report.json`
+    directly from that state dir.
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - added `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,
+  - gate now skips rerunning `sv_preprocessor_quality_gate` when a stage dir is provided and validates:
+    - `systemverilog_preprocessor_parseability_report.json`
+    - `systemverilog_preprocessor_gap_stage3.json`
+    directly from that state dir.
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - after `sv_stimuli_quality_gate`, aggregate sign-off now runs `sv_parser_aggregate_contract_gate` in reuse mode,
+  - after `sv_preprocessor_quality_gate`, aggregate sign-off now runs `sv_preprocessor_aggregate_contract_gate` in reuse mode,
+  - aggregate telemetry now emits both contract-summary paths so sign-off artifacts directly point to the contract-proof files.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate proof integration,
+  - kept parser-family status rows unchanged.
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed with reusable summary:
+    - `generation_parser_rejections_total=7`
+    - `generation_counterexamples_count=5`
+    - `shadow_parser_rejections_total=1179`
+    - `shadow_counterexamples_count=5`
+    - `shadow_counterexamples_captured_total=5`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_aggregate_contract_gate/work/quality_state make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed with reusable summary:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
+
+### Notes
+- This improves aggregate proof composability and operator visibility, not closure semantics; the live status rows remain `Mostly Done`.
+- I intentionally validated the new reuse mode directly rather than rerunning the full heavy quality probes again.
+
 ## 2026-03-14 - Reduce SV Preprocessor Parser-Rejection Debt
 ### Context
 The previous task made the remaining preprocessor parseability gap inspectable, and the new counterexamples pointed to two concrete issues instead of generic “bad luck” generation:

@@ -180,6 +180,7 @@ Interpretation note:
 - [x] Align aggregate SOTA policy with measured SV parse-full evidence by keeping random-stimuli parse-full ratio in promotion mode until the required ratchet converges, instead of asserting a premature hard `100%` release threshold.
 - [x] Surface parser-backed EBNF/SV/VHDL quality telemetry directly in aggregate `sota_exit_gate` artifacts so release sign-off sees parseability-generation and replay-shadow evidence without drilling into nested stage directories.
 - [x] Surface parser-backed EBNF/HDL readiness tables directly in aggregate `sota_exit_gate` artifacts so readiness parseability effort is visible at sign-off level, not only inside readiness-stage state dirs.
+- [x] Reuse the dedicated SV-family aggregate contract gates from aggregate `sota_exit_gate` artifacts instead of rerunning heavy quality probes, and surface their summary paths directly in aggregate telemetry.
 
 ### Phase J (New): Semantic Steering Control Surface + Return Completeness
 - [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).
@@ -423,6 +424,9 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-14): tightened aggregate parser-backed evidence in `sv_stimuli_quality_gate` so `systemverilog_parseability_generation_report.json` now preserves bounded shrunk parseability counterexamples with `profile`, `sample_index`, and `seed` metadata instead of only totals. Focused validation with a temporary shadow-disabled contract (`profile=2017`, `sample_count=1`) recorded `requested_total=1`, `attempts_total=8`, `accepted_total=1`, `rejected_total=7`, `parser_rejections_total=7`, and `counterexamples_count=5` in the aggregate report.
   - Progress (2026-03-14): extended the same evidence retention to the replay-shadow aggregate surface so `systemverilog_closed_loop_parseability_shadow_report.json` now preserves bounded shrunk counterexamples instead of only totals. Focused validation (`profile=2017`, `sample_count=1`, shadow enabled) recorded `requested_total=1641`, `attempts_total=1641`, `accepted_total=462`, `rejected_total=1179`, `parser_rejections_total=1179`, and `counterexamples_count=5` in the aggregate shadow report.
   - Progress (2026-03-14): added repeatable aggregate-report contract gate `sv_parser_aggregate_contract_gate` so the focused generation-only and shadow-enabled main-SV report surfaces are no longer proven only by ad hoc commands. The gate asserts bounded-counterexample presence/shape for both aggregate JSON artifacts and currently records `generation_parser_rejections_total=7`, `generation_counterexamples_count=5`, `shadow_parser_rejections_total=1179`, `shadow_counterexamples_count=5`, and `shadow_counterexamples_captured_total=5`.
+  - Progress (2026-03-14): wired `sv_parser_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
+    - aggregate sign-off now revalidates the contract directly over the already-produced `sv_stimuli_quality_gate` state dir instead of rerunning focused probes,
+    - aggregate telemetry now surfaces `sv_stimuli_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded-counterexample contract proof.
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
@@ -1776,6 +1780,9 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `final_targets=0`
     - `covered_reachable_rules=69/69`
     - `covered_reachable_branches=47/47`
+  - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
+    - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
+    - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

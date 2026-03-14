@@ -10,6 +10,7 @@ LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
 
 QUALITY_GATE_SCRIPT="$RUST_DIR/scripts/sv_preprocessor_quality_gate.sh"
+EXISTING_QUALITY_STATE_DIR="${PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -56,18 +57,22 @@ extract_json_number() {
 }
 
 require_tool jq
-require_file "$QUALITY_GATE_SCRIPT"
+if [[ -z "$EXISTING_QUALITY_STATE_DIR" ]]; then
+    require_file "$QUALITY_GATE_SCRIPT"
+fi
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
 
-quality_state_dir="$WORK_DIR/quality_state"
+quality_state_dir="${EXISTING_QUALITY_STATE_DIR:-$WORK_DIR/quality_state}"
 
-run_logged "preprocessor_quality_probe" \
-    env \
-        PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR="$quality_state_dir" \
-        PGEN_SV_PREPROCESSOR_DIFF_MODE=0 \
-        "$QUALITY_GATE_SCRIPT"
+if [[ -z "$EXISTING_QUALITY_STATE_DIR" ]]; then
+    run_logged "preprocessor_quality_probe" \
+        env \
+            PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR="$quality_state_dir" \
+            PGEN_SV_PREPROCESSOR_DIFF_MODE=0 \
+            "$QUALITY_GATE_SCRIPT"
+fi
 
 parseability_report_json="$quality_state_dir/work/systemverilog_preprocessor_parseability_report.json"
 gap_stage3_json="$quality_state_dir/work/systemverilog_preprocessor_gap_stage3.json"
@@ -128,6 +133,7 @@ reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.reachable
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "existing_quality_state_dir: ${EXISTING_QUALITY_STATE_DIR:-<unset>}"
     echo "quality_state_dir: $quality_state_dir"
     echo "parseability_report_json: $parseability_report_json"
     echo "gap_stage3_json: $gap_stage3_json"

@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-03-14 - Reuse SV Aggregate Contract Gates In Aggregate Sign-Off
+### ✅ Achievement Summary
+The aggregate release gate now consumes the dedicated SystemVerilog parser-family contract gates instead of leaving them as standalone evidence only. `sota_exit_gate` reuses already-produced quality-stage artifacts, reruns the lightweight contract checks over those artifacts, and surfaces the contract summary paths directly in aggregate telemetry.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - added existing-artifact mode via `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
+  - allows the gate to validate aggregate JSON proof artifacts without rerunning focused generation/shadow probes.
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - added existing-artifact mode via `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,
+  - allows the gate to validate aggregate preprocessor proof artifacts without rerunning the full quality gate.
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - runs both aggregate contract gates immediately after their corresponding SV quality stages,
+  - reuses the just-produced stage state dirs,
+  - surfaces:
+    - `sv_stimuli_quality_aggregate_contract_summary_txt`
+    - `sv_preprocessor_quality_aggregate_contract_summary_txt`
+    in the operator-facing aggregate telemetry.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate proof surface,
+  - kept status labels unchanged because this improves sign-off proof integration rather than closing the remaining exhaustive-proof gap.
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current reusable summary:
+    - `generation_parser_rejections_total=7`
+    - `generation_counterexamples_count=5`
+    - `shadow_parser_rejections_total=1179`
+    - `shadow_counterexamples_count=5`
+    - `shadow_counterexamples_captured_total=5`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_aggregate_contract_gate/work/quality_state make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - current reusable summary:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
+
 ## 2026-03-14 - Reduce SV Preprocessor Parser-Rejection Debt
 ### ✅ Achievement Summary
 The SystemVerilog preprocessor quality gate now rejects far fewer generated samples for parser-backed validation. The key fix was grammatical, not just statistical: line comments no longer masquerade as generic inline trivia inside same-line directive tokens, and the gate now enables the existing word-boundary-spacing policy during parseability validation to prevent merged directive/identifier samples like `` `defineFOO ``.
