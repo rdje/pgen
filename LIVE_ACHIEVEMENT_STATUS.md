@@ -28,10 +28,21 @@ This file is the authoritative live tracking view for "where we are now".
 
 ### Major Roadmap Phases
 
+Phase completion tracks whether a roadmap phase delivered its stated contract. It does not automatically mean every parser family touched by those phases is equally mature; parser-family maturity is normalized separately below.
+
 | Area | Status | Evidence | Left To Close |
 |---|---|---|---|
 | Phases A-R | Done | Roadmap phases `A` through `R` currently show only completed checklist items. | Nothing material inside the currently tracked phase checklists. |
 | Phase S overall: RTLSyn parser stack minimum viable coverage | In Progress | `rtl_const_expr` and `rtl_frontend` are active, executable crates with ongoing implementation and passing tests, but the phase now has an explicit EBNF-only closure rule. | Replace bootstrap handwritten parser coverage with tracked EBNF-backed generated parser paths and start the still-missing companion parser crates. |
+
+### Parser Family Status
+
+| Area | Status | Evidence | Left To Close |
+|---|---|---|---|
+| `systemverilog` main parser (`Phase P` Nexsim scope) | Done | Phase `P` is closed for the tracked Nexsim-facing contract: dual-profile `sv_2017` / `sv_2023` grammar support, required strict `sv_stimuli_quality_gate`, semantic contract suites, tracked `100%` parse-full floor under the phase contract, realistic-corpus proof, embedding API profile contract, and aggregate SOTA enforcement are all in place. | Nothing material inside the currently tracked Phase `P` scope. If the project later wants a broader "full IEEE 1800 beyond current Nexsim contract" target, that should be introduced as a new roadmap phase instead of silently reopening Phase `P`. |
+| `systemverilog_preprocessor` frontend (`Phase Q`) | Done | Phase `Q` is closed: dedicated preprocessor EBNF, deterministic preprocessing engine, source maps/event logs, parser-backed quality gate, curated/template differential gates, and required aggregate policy enforcement are all tracked. | Nothing material inside the currently tracked Phase `Q` scope. |
+| `vhdl` parser family | In Progress | Executable `grammars/vhdl.ebnf`, readiness gate coverage, parser-backed `vhdl_stimuli_quality_gate`, realistic-corpus proof, strict-promotion telemetry, and required aggregate policy are landed, but the roadmap only delivered a Phase `O` readiness kickoff rather than a dedicated VHDL production-closure phase comparable to SystemVerilog Phase `P`. | Define and execute a dedicated VHDL full-closure phase if the target is a professional parser at SystemVerilog-grade rigor: broader syntax/semantic closure, stronger realistic-corpus proof, differential/reference hardening, and explicit embedder-facing closure criteria. |
+| `regex` parser family | In Progress | `regex.ebnf` participates in the Rust-native EBNF frontend readiness and dual-run parity work, and the raw-AST parity audit is closed in favor of the Rust frontend, but there is no dedicated regex parser-quality/realistic-corpus/embedding closure program comparable to the SystemVerilog flow. | Add a dedicated regex closure phase if the target is a professional parser rather than grammar-readiness only: parser-quality gates, corpus-backed proof, and explicit embedding/diagnostic closure criteria. |
 
 ### Phase S Detailed Breakdown
 

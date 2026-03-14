@@ -38,6 +38,11 @@ Engine generalization rule:
 - `In Progress`
 - `Not Started`
 
+Interpretation note:
+- phase completion means the stated deliverable for that roadmap phase is closed,
+- parser-family maturity is tracked separately in `LIVE_ACHIEVEMENT_STATUS.md`,
+- a readiness-kickoff phase can therefore be `Done` while a parser family is still only `In Progress` for professional-grade closure.
+
 ## Live Tracking Rule
 - `LIVE_ACHIEVEMENT_STATUS.md` is the authoritative live progress surface for current closure state.
 - Update it before every commit whenever a task changes what is done, what is left, or what the next most important gap is.

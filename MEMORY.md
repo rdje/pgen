@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: clarify-phase-s-rationale-and-live-status-display-policy)
+Last updated: 2026-03-14 (+0100, task: track-parser-family-maturity-separately-from-phase-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -38,6 +38,12 @@ Use this file to resume work without replaying full chat history.
   - only `Done`, `Mostly Done`, `In Progress`, and `Not Started` are allowed,
   - the file must be reviewed/updated before each commit whenever closure state changes,
   - when live status changes, the changed snapshot must be both logged in `LIVE_ACHIEVEMENT_STATUS.md` and surfaced in the user-facing completion message for that task.
+- Parser-family maturity tracking:
+  - phase closure and parser-family maturity are now tracked separately,
+  - `systemverilog` main parser is `Done` for the tracked Phase `P` Nexsim contract,
+  - `systemverilog_preprocessor` is `Done` for the tracked Phase `Q` contract,
+  - `vhdl` is `In Progress`,
+  - `regex` is `In Progress`.
 - Crash-resume continuity state:
   - the pre-crash worktree already contained the semantic-hint regression fix in `rust/src/ast_pipeline/stimuli_generator.rs`,
   - the pre-crash worktree also already contained the doc-currentness cleanup:

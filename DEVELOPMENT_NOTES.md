@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Track Parser Family Maturity Separately From Phase Closure
+### Context
+The roadmap already showed Phases `A-R` as complete, but that did not answer a more precise operational question: how mature are the concrete parser families themselves? That was causing phase completion to be misread as universal parser closure, even though some phases are readiness kickoffs while others are full product-grade closure programs. The required fix was to track parser-family maturity explicitly with the same four-state model used elsewhere.
+
+### Implementation
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - added a dedicated parser-family status section,
+  - classified `systemverilog` main parser as `Done` within the tracked Phase `P` Nexsim scope,
+  - classified `systemverilog_preprocessor` as `Done` within the tracked Phase `Q` scope,
+  - classified `vhdl` as `In Progress` because the current roadmap only closes readiness kickoff, not a full production-closure phase,
+  - classified `regex` as `In Progress` because it has readiness/parity work but no dedicated professional-grade closure program.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added an interpretation note that phase closure and parser-family maturity are different tracking surfaces.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the parser-family status split for crash recovery and future handoff.
+
+### Validation
+- Documentation/status-tracking change only; no code/test execution was required.
+
+### Notes
+- This change is intentionally conservative for `vhdl` and `regex`: the current evidence is real, but it does not yet justify silently calling those parser families "Done" at the same bar as the tracked SystemVerilog Nexsim flow.
+- `systemverilog` being `Done` here means done for the current tracked roadmap contract, not necessarily "every possible IEEE 1800 construct anyone might ever want."
+
 ## 2026-03-14 - Require Live Status Display When It Changes
 ### Context
 The project already had a four-state live tracker, but the communication contract was still incomplete: a status row could change in the tracker without the completion message making that change obvious. For a long-running roadmap, that is too easy to lose track of. The required refinement was therefore to bind live-status changes to both tracked documentation and user-facing reporting.

@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-14 - Track Parser Family Maturity Separately From Phase Closure
+### ✅ Achievement Summary
+The live tracker now distinguishes roadmap-phase completion from parser-family maturity. That makes the current state explicit for `systemverilog`, `systemverilog_preprocessor`, `vhdl`, and `regex` instead of forcing readers to infer parser readiness from phase names alone.
+
+### Scope of Changes
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - added a parser-family status section with explicit four-state rows for `systemverilog`, `systemverilog_preprocessor`, `vhdl`, and `regex`,
+  - clarified that phase completion and parser-family maturity are not the same concept.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added an interpretation note explaining that a completed roadmap phase can still leave a parser family short of full professional-grade closure.
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new parser-family status tracking model for continuity.
+
+### Validation Results
+- Documentation/status-tracking change only; no code/test execution was required.
+
 ## 2026-03-14 - Require Live Status Display When It Changes
 ### ✅ Achievement Summary
 The live tracking workflow now has an explicit communication rule: whenever the four-state live status changes, that change must be logged in the tracker and also displayed in the user-facing completion message. This prevents progress drift between the tracked `.md` files and the actual reported status.
