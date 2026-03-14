@@ -239,6 +239,7 @@ help:
 	@echo "  sv_preprocessor_curated_differential_gate - Run curated expected-artifact differential corpus and classify expected-vs-bug taxonomy deltas"
 	@echo "  sv_preprocessor_template_differential_gate - Run dynamic template-based preprocessor oracle differential (fully offline)"
 	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
+	@echo "  sv_parser_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused SystemVerilog parser evidence surfaces"
 	@echo "  sv_declared_shadow_promotion_gate - Run strict declared-shadow promotion trials and emit runtime-enforcement readiness report"
 	@echo "  sv_parse_full_ratio_promotion_gate - Run strict parse-full ratio promotion trials and emit threshold-ratchet readiness report"
 	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
@@ -522,6 +523,12 @@ sv_stimuli_quality_gate:
 	@echo "🧪 Running SystemVerilog stimuli closed-loop quality gate..."
 	cd $(RUST_DIR) && ./scripts/sv_stimuli_quality_gate.sh
 	@echo "✅ SystemVerilog stimuli closed-loop quality gate passed."
+
+.PHONY: sv_parser_aggregate_contract_gate
+sv_parser_aggregate_contract_gate:
+	@echo "🧪 Running SystemVerilog aggregate-report contract gate..."
+	cd $(RUST_DIR) && ./scripts/sv_parser_aggregate_contract_gate.sh
+	@echo "✅ SystemVerilog aggregate-report contract gate passed."
 
 .PHONY: sv_declared_shadow_promotion_gate
 sv_declared_shadow_promotion_gate:

@@ -3901,3 +3901,23 @@ Use this file to resume work without replaying full chat history.
 - Live-status effect:
   - `systemverilog`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-14 - Repeatable main-SV aggregate report contract gate
+
+- Added:
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- Purpose:
+  - make the focused main-SV aggregate report proof repeatable rather than ad hoc
+  - validate both aggregate parser-backed JSON surfaces:
+    - generation-only aggregate report
+    - replay-shadow aggregate report
+- Gate summary currently records:
+  - `generation_parser_rejections_total=7`
+  - `generation_counterexamples_count=5`
+  - `shadow_parser_rejections_total=1179`
+  - `shadow_counterexamples_count=5`
+  - `shadow_counterexamples_captured_total=5`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

@@ -18007,6 +18007,48 @@ Strengthen the main `systemverilog` parser-family proof surface further by retai
 
 ---
 
+## 2026-03-14: Add repeatable SV aggregate-report contract gate
+
+### Goal
+Turn the main `systemverilog` aggregate-report checks into a repeatable objective gate so the strengthened proof surface is enforced by one tracked command instead of ad hoc focused shell runs.
+
+### Changes
+- Added new gate script:
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh`
+- Added new Make target:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- The gate runs two focused `sv_stimuli_quality_gate` probes:
+  - generation-only aggregate proof
+  - shadow-enabled aggregate proof
+- The gate asserts:
+  - generation aggregate report preserves bounded counterexamples with
+    - `stage`
+    - `sample`
+    - `shrunk_sample`
+    - `profile`
+    - `sample_index`
+    - `seed`
+  - replay-shadow aggregate report preserves bounded counterexamples plus
+    - `counterexamples_captured_total`
+    - per-profile `counterexamples_captured`
+- Synced status/continuity docs:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- Gate summary:
+  - `generation_parser_rejections_total=7`
+  - `generation_counterexamples_count=5`
+  - `shadow_parser_rejections_total=1179`
+  - `shadow_counterexamples_count=5`
+  - `shadow_counterexamples_captured_total=5`
+
+---
+
 ## 2026-02-28: Extended Phase R dump-format/safety contract to parser-returned AST dumps
 
 ### Goal

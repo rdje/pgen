@@ -18293,3 +18293,45 @@ Extend the same objective-evidence tightening from aggregate parseability genera
   - `counterexamples_captured_total=5`
   - `counterexamples_count=5`
 - Verified aggregate replay-shadow report now preserves the counterexample payloads instead of only totals.
+
+---
+
+## 2026-03-14: Repeatable main-SV aggregate report contract gate
+
+### Goal
+Replace ad hoc focused verification for the main `systemverilog` aggregate report surfaces with a single tracked gate that proves both aggregate parser-backed JSON artifacts preserve inspectable bounded counterexamples.
+
+### Changes
+- Added new script:
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh`
+- Added new Make target:
+  - `sv_parser_aggregate_contract_gate`
+- Gate behavior:
+  - synthesizes a focused generation-only contract from `systemverilog_core_v0_contract.json`
+  - synthesizes a focused shadow-enabled contract from the same base
+  - runs `sv_stimuli_quality_gate` twice under deterministic focused settings:
+    - `count=1`
+    - `profiles=2017`
+    - differential/perf/realistic corpus disabled
+  - validates aggregate generation report shape:
+    - bounded counterexamples exist when parser rejections are present
+    - each retained counterexample carries `stage`, `sample`, `shrunk_sample`, `profile`, `sample_index`, `seed`
+  - validates aggregate replay-shadow report shape:
+    - bounded counterexamples exist when parser rejections are present
+    - `counterexamples_captured_total` is present
+    - each profile carries `counterexamples_captured`
+- Synced continuity docs:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `CHANGES.md`
+  - `MEMORY.md`
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- Gate summary:
+  - `generation_parser_rejections_total=7`
+  - `generation_counterexamples_count=5`
+  - `shadow_parser_rejections_total=1179`
+  - `shadow_counterexamples_count=5`
+  - `shadow_counterexamples_captured_total=5`
