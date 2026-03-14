@@ -18335,3 +18335,44 @@ Replace ad hoc focused verification for the main `systemverilog` aggregate repor
   - `shadow_parser_rejections_total=1179`
   - `shadow_counterexamples_count=5`
   - `shadow_counterexamples_captured_total=5`
+
+---
+
+## 2026-03-14: Repeatable SV preprocessor aggregate report contract gate
+
+### Goal
+Make the main preprocessor aggregate evidence surface repeatable and machine-checked, so `systemverilog_preprocessor` no longer depends on manual artifact inspection for its strongest bounded proof.
+
+### Changes
+- Added new script:
+  - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- Added new Make target:
+  - `sv_preprocessor_aggregate_contract_gate`
+- Gate behavior:
+  - runs `sv_preprocessor_quality_gate` in an isolated state dir with differential disabled for deterministic local proof,
+  - validates aggregate parseability report shape:
+    - bounded `counterexamples`
+    - non-empty counterexamples when parser rejections are present
+    - stage summaries for `stage0_baseline`, `stage1_gap_priority`, `stage2_target_drive`, `stage3_recompute_gap`
+  - validates final-stage gap closure:
+    - `final_targets=0`
+    - `covered_reachable_rules == reachable_rules`
+    - `covered_reachable_branches == reachable_branches`
+- Synced continuity docs:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `CHANGES.md`
+  - `MEMORY.md`
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- Gate summary:
+  - `parseability_attempts_total=38`
+  - `parseability_accepted_total=33`
+  - `parseability_rejected_total=5`
+  - `parseability_parser_rejections_total=5`
+  - `parseability_counterexamples_captured_total=5`
+  - `final_targets=0`
+  - `covered_reachable_rules=69/69`
+  - `covered_reachable_branches=47/47`

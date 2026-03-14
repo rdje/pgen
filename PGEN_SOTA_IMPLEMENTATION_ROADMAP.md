@@ -1767,6 +1767,15 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `covered_reachable_rules=69/69`
       - `covered_reachable_branches=47/47`
     - this keeps the parser-family row at `Mostly Done`, but it significantly narrows the bounded gap that still separates current quality proof from formal exhaustive closure.
+  - Progress (2026-03-14): added repeatable aggregate-report contract gate `sv_preprocessor_aggregate_contract_gate` so the preprocessor parser-family row no longer depends on ad hoc report inspection for its main measurable evidence surface. The gate validates the aggregate parseability report shape plus final-stage zero-target/full-reachable-coverage invariants and currently records:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

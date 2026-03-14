@@ -3921,3 +3921,24 @@ Use this file to resume work without replaying full chat history.
 - Live-status effect:
   - `systemverilog`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-14 - Repeatable SV preprocessor aggregate report contract gate
+
+- Added:
+  - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- Purpose:
+  - make the main preprocessor aggregate evidence surface repeatable
+  - validate aggregate parseability report shape plus final-stage gap closure
+- Gate summary currently records:
+  - `parseability_attempts_total=38`
+  - `parseability_accepted_total=33`
+  - `parseability_rejected_total=5`
+  - `parseability_parser_rejections_total=5`
+  - `parseability_counterexamples_captured_total=5`
+  - `final_targets=0`
+  - `covered_reachable_rules=69/69`
+  - `covered_reachable_branches=47/47`
+- Live-status effect:
+  - `systemverilog_preprocessor`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

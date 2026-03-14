@@ -18049,6 +18049,43 @@ Turn the main `systemverilog` aggregate-report checks into a repeatable objectiv
 
 ---
 
+## 2026-03-14: Add SV preprocessor aggregate report contract gate
+
+### Goal
+Give the `systemverilog_preprocessor` parser family the same repeatable aggregate-proof treatment as the main `systemverilog` parser family, so the preprocessor row is backed by a dedicated contract gate instead of only general quality-gate artifacts.
+
+### Changes
+- Added new gate script:
+  - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- Added new Make target:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- The gate runs `sv_preprocessor_quality_gate` in an isolated state dir and asserts:
+  - aggregate parseability report shape is valid and bounded,
+  - counterexamples are present when parser rejections are present,
+  - stage summaries are present for stage0/1/2/3,
+  - final stage gap has `final_targets=0`,
+  - final stage reachable rules/branches are fully covered.
+- Synced status/continuity docs:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- Gate summary:
+  - `parseability_attempts_total=38`
+  - `parseability_accepted_total=33`
+  - `parseability_rejected_total=5`
+  - `parseability_parser_rejections_total=5`
+  - `parseability_counterexamples_captured_total=5`
+  - `final_targets=0`
+  - `covered_reachable_rules=69/69`
+  - `covered_reachable_branches=47/47`
+
+---
+
 ## 2026-02-28: Extended Phase R dump-format/safety contract to parser-returned AST dumps
 
 ### Goal
