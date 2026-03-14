@@ -16,7 +16,8 @@ Run this workflow after each completed task/activity.
   - Authoritative live progress tracker.
   - Must use only `Done`, `Mostly Done`, `In Progress`, and `Not Started`.
   - Must be reviewed and updated before every commit whenever actual closure or remaining scope changes.
-  - If any live-status row changes, the changed snapshot must also be summarized in the user-facing completion message for that task.
+  - The current live-status snapshot must be summarized in every user-facing completion message produced by the commit workflow.
+  - If any live-status row changes, the completion message must also state how the task affected that snapshot.
 - `git_message_brief.txt` (must remain untracked)
   - Short, concise commit message file.
   - Used with `git commit -F git_message_brief.txt`.
@@ -49,10 +50,16 @@ Run this workflow after each completed task/activity.
      - what is `In Progress`,
      - what is `Not Started`,
      - or what the next most important remaining gap is.
+   - In every commit-workflow completion message:
+     - display the current live-status snapshot from `LIVE_ACHIEVEMENT_STATUS.md`,
+     - make it clear whether the task changed that snapshot or left it unchanged.
    - When any live-status row changes:
      - update `LIVE_ACHIEVEMENT_STATUS.md` before commit,
      - summarize the changed status snapshot in the user-facing completion message,
-     - if no live status changed, say so rather than implying a status update happened.
+     - explicitly state the effect of the completed task on the tracker.
+   - When no live-status row changes:
+     - still display the current live-status snapshot in the completion message,
+     - explicitly say that the tracker is unchanged rather than implying a status update happened.
    - `README.md` sync is required when:
      - project objective/scope changes,
      - canonical generation flow changes,

@@ -63,7 +63,9 @@ Use this file to resume work without replaying full chat history.
   - `LIVE_ACHIEVEMENT_STATUS.md` is now the authoritative current-state tracker,
   - only `Done`, `Mostly Done`, `In Progress`, and `Not Started` are allowed,
   - the file must be reviewed/updated before each commit whenever closure state changes,
-  - when live status changes, the changed snapshot must be both logged in `LIVE_ACHIEVEMENT_STATUS.md` and surfaced in the user-facing completion message for that task.
+  - every commit-workflow completion message must display the current live-status snapshot,
+  - when live status changes, the changed snapshot must be both logged in `LIVE_ACHIEVEMENT_STATUS.md` and surfaced in the user-facing completion message for that task,
+  - when live status does not change, the completion message must still show the current snapshot and explicitly say it is unchanged.
 - Parser-family maturity tracking:
   - phase closure and parser-family maturity are now tracked separately,
   - `systemverilog` main parser is `Done` for the tracked Phase `P` Nexsim contract,

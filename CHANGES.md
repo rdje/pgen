@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-14 - Always Display Live Status During Commit Workflow
+### ✅ Achievement Summary
+The commit workflow now requires every completion message to display the current live-status snapshot from the tracker, even when the task did not change any status row. That makes the effect of each completed task on project status explicit instead of inferred.
+
+### Scope of Changes
+- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+  - made live-status display mandatory for every commit-workflow completion message,
+  - required the completion message to state whether the tracker changed or remained unchanged.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - aligned the update policy so the current snapshot must always be shown during commit closeout, not only when rows change.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md) and [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md):
+  - recorded the stricter reporting rule for future crash recovery and handoff continuity.
+
+### Validation Results
+- Documentation/process change only; no code/test execution was required.
+
 ## 2026-03-14 - Add Cross-Grammar Return-AST Shaping Baseline And EBNF-Backed `rtl_const_expr`
 ### ✅ Achievement Summary
 The project now records the annotation split much more explicitly and enforces it in active code paths: return annotations shape parser return AST, semantic annotations steer parser generation, all tracked non-annotation grammars now expose standalone return-annotation entries, and `rtl_const_expr` now has its first tracked EBNF-backed generated parser path.

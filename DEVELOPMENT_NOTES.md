@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Always Display Live Status During Commit Workflow
+### Context
+The project already required live-status updates to be logged before commit when rows changed, but the completion message could still omit the current tracker snapshot on tasks that left status unchanged. That made it harder to tell whether a task truly moved the tracker or simply preserved it. The required refinement was to make live-status display mandatory on every commit closeout.
+
+### Implementation
+- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+  - every commit-workflow completion message must now display the current live-status snapshot,
+  - completion messages must explicitly say whether the tracker changed or remained unchanged.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - aligned the tracker policy with the new reporting rule so the snapshot is always surfaced during commit closeout.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stricter live-status display requirement for future crash recovery.
+
+### Validation
+- Documentation/process change only; no code/test execution was required.
+
+### Notes
+- This does not alter any current status row by itself.
+- It changes the reporting contract so every completed task shows exactly where the tracker stands at commit time.
+
 ## 2026-03-14 - Add Cross-Grammar Return-AST Shaping Baseline And EBNF-Backed `rtl_const_expr`
 ### Context
 The project doctrine was already clear at a high level, but the implementation surface was not yet aligned tightly enough: several tracked grammars still had no explicit return annotations, the distinction between return-vs-semantic annotations was not spelled out in one authoritative place, and Phase S still lacked a first concrete EBNF-backed generated parser path beyond the annotation grammars themselves. The next clean increment was therefore to make the AST-shaping contract explicit across the grammar corpus and to start real EBNF-backed closure for `rtl_const_expr`.

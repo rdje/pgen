@@ -20,6 +20,7 @@ This file is the authoritative live tracking view for "where we are now".
 ## Update Policy
 - Review and update this file before every commit when a task changes actual project closure, remaining scope, or the next most important gap.
 - When any live-status row changes, log that change here before commit and explicitly surface the changed snapshot in the user-facing completion message for that task.
+- Even when no row changes, the commit-workflow completion message must still display the current live-status snapshot so task impact on the tracker stays visible.
 - When a task does not change live status, say that status is unchanged rather than implying drift.
 - Use only the four statuses above.
 - Keep "Evidence" concrete and "Left To Close" explicit.
