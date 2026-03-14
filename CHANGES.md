@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-14 - Add SV Roundtrip Coverage Contract Checks
+### ✅ Achievement Summary
+The main SystemVerilog aggregate contract gate now proves more than bounded counterexample retention. It also machine-checks focused parser/stimuli roundtrip behavior over the closed-loop coverage and gap artifacts, so the gate now objectively enforces deterministic initial replay plus measurable gap-driven coverage improvement.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now requires exact JSON equality between:
+    - `profile_2017_initial_coverage.json` and `profile_2017_initial_replay_coverage.json`
+    - `profile_2017_initial_gap.json` and `profile_2017_initial_replay_gap.json`
+  - now requires focused replay invariants:
+    - replay target debt must not increase,
+    - covered reachable rules must not regress,
+    - covered reachable branches must not regress,
+    - reachable rule and branch universes must stay stable,
+    - replay-shadow aggregate `observed` totals must agree with `target_drive_validation` totals.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger roundtrip proof surface,
+  - kept status labels unchanged because grammar-level exhaustive closure is still open.
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current focused reusable proof summary:
+    - `generation_parser_rejections_total=7`
+    - `generation_counterexamples_count=5`
+    - `shadow_parser_rejections_total=1179`
+    - `shadow_counterexamples_count=5`
+    - `shadow_counterexamples_captured_total=5`
+    - `focused_initial_target_count=2366`
+    - `focused_replay_target_count=1290`
+    - `focused_initial_covered_reachable_rules=46`
+    - `focused_replay_covered_reachable_rules=697`
+    - `focused_initial_covered_reachable_branches=22`
+    - `focused_replay_covered_reachable_branches=447`
+- `git diff --check`
+  - passed
+
 ## 2026-03-14 - Add Parser-Located Main-SV Replay Counterexamples
 ### ✅ Achievement Summary
 The main SystemVerilog parser’s replay-shadow aggregate report is now held to the same parser-located evidence standard as the generation-side aggregate report. Bounded retained counterexamples must now include the generated parser’s error string plus failure byte, line, and column, so the replay-shadow debt is directly actionable instead of being just bounded and counted.

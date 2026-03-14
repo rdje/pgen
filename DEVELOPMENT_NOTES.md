@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add SV Roundtrip Coverage Contract Checks
+### Context
+The main SV aggregate contract gate was already proving bounded parser-backed counterexample retention and parser-location detail, but it was still underusing the strongest evidence already present in the focused quality-state artifacts: deterministic initial replay, gap-driven target reduction, and roundtrip coverage movement. Since the user explicitly wants generated parsers exercised through stimuli plus coverage/gap, the next clean increment was to promote those invariants into the tracked gate itself.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - added portable JSON equality checks for focused initial replay artifacts,
+  - now requires exact match between initial coverage and initial replay coverage,
+  - now requires exact match between initial gap and initial replay gap,
+  - now requires replay target debt to stay non-increasing,
+  - now requires covered reachable rules/branches to stay non-decreasing,
+  - now requires reachable rule/branch universes to remain stable across focused replay,
+  - now requires replay-shadow aggregate `observed` totals and `target_drive_validation` totals to agree.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger roundtrip proof surface,
+  - kept status labels unchanged because exhaustive grammar-level closure is still the remaining blocker.
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current focused reusable proof summary:
+    - `focused_initial_target_count=2366`
+    - `focused_replay_target_count=1290`
+    - `focused_initial_covered_reachable_rules=46`
+    - `focused_replay_covered_reachable_rules=697`
+    - `focused_initial_covered_reachable_branches=22`
+    - `focused_replay_covered_reachable_branches=447`
+
+### Notes
+- This is a real parser/stimuli roundtrip proof increment, not just metadata tightening.
+- The remaining gap is still exhaustive closure for `grammars/systemverilog.ebnf`, not whether the focused closed-loop slice is objectively measured.
+
 ## 2026-03-14 - Add Parser-Located Main-SV Replay Counterexamples
 ### Context
 The main SV generation-side aggregate report already had parser-location detail, and the replay-shadow artifact already carried that data in practice. The remaining gap was contractual: the tracked wrapper gate still did not require those fields on the shadow side, so the richer evidence was present but not yet enforced.

@@ -57,6 +57,16 @@ extract_json_number() {
     jq -er "${expr} | numbers" "$path"
 }
 
+assert_same_json() {
+    local left_path="$1"
+    local right_path="$2"
+    local label="$3"
+    if ! jq -es '.[0] == .[1]' "$left_path" "$right_path" >/dev/null; then
+        echo "error: JSON mismatch for ${label}: '$left_path' vs '$right_path'" >&2
+        exit 1
+    fi
+}
+
 require_tool jq
 if [[ -z "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
     require_file "$BASE_CONTRACT_FILE"
@@ -126,6 +136,21 @@ fi
 require_nonempty_file "$generation_report_json"
 require_nonempty_file "$shadow_report_json"
 
+closed_loop_initial_coverage_json="$(dirname "$shadow_report_json")/profile_2017_initial_coverage.json"
+closed_loop_initial_replay_coverage_json="$(dirname "$shadow_report_json")/profile_2017_initial_replay_coverage.json"
+closed_loop_initial_gap_json="$(dirname "$shadow_report_json")/profile_2017_initial_gap.json"
+closed_loop_initial_replay_gap_json="$(dirname "$shadow_report_json")/profile_2017_initial_replay_gap.json"
+closed_loop_replay_gap_json="$(dirname "$shadow_report_json")/profile_2017_replay_gap.json"
+
+require_nonempty_file "$closed_loop_initial_coverage_json"
+require_nonempty_file "$closed_loop_initial_replay_coverage_json"
+require_nonempty_file "$closed_loop_initial_gap_json"
+require_nonempty_file "$closed_loop_initial_replay_gap_json"
+require_nonempty_file "$closed_loop_replay_gap_json"
+
+assert_same_json "$closed_loop_initial_coverage_json" "$closed_loop_initial_replay_coverage_json" "sv parser aggregate initial coverage replay"
+assert_same_json "$closed_loop_initial_gap_json" "$closed_loop_initial_replay_gap_json" "sv parser aggregate initial gap replay"
+
 if ! jq -e '
     .grammar_name == "systemverilog"
     and .enabled == true
@@ -188,6 +213,66 @@ if ! jq -e '
     exit 1
 fi
 
+if ! jq -e '
+    (.observed.attempts_total | numbers)
+        == (
+            (.observed.accepted_total | numbers)
+            + (.observed.rejected_total | numbers)
+            + (.observed.generation_errors_total | numbers)
+            + (.observed.empty_generations_total | numbers)
+        )
+    and (.target_drive_validation.primary_entry_attempts_total | numbers) == (.observed.attempts_total | numbers)
+    and (.target_drive_validation.primary_entry_accepted_outputs_total | numbers) == (.observed.accepted_total | numbers)
+    and (.target_drive_validation.primary_entry_rejected_outputs_total | numbers) == (.observed.rejected_total | numbers)
+    and (
+        (.target_drive_validation.alternate_entry_attempts_total | numbers)
+        == (
+            (.target_drive_validation.alternate_entry_accepted_outputs_total | numbers)
+            + (.target_drive_validation.alternate_entry_rejected_outputs_total | numbers)
+        )
+    )
+' "$shadow_report_json" >/dev/null; then
+    echo "error: replay-shadow aggregate report totals are internally inconsistent: $shadow_report_json" >&2
+    cat "$shadow_report_json" >&2
+    exit 1
+fi
+
+initial_target_count="$(extract_json_number "$closed_loop_initial_gap_json" '((.targets // []) | length)')"
+replay_target_count="$(extract_json_number "$closed_loop_replay_gap_json" '((.targets // []) | length)')"
+initial_covered_reachable_rules="$(extract_json_number "$closed_loop_initial_gap_json" '.summary.covered_reachable_rules')"
+replay_covered_reachable_rules="$(extract_json_number "$closed_loop_replay_gap_json" '.summary.covered_reachable_rules')"
+initial_reachable_rules="$(extract_json_number "$closed_loop_initial_gap_json" '.summary.reachable_rules')"
+replay_reachable_rules="$(extract_json_number "$closed_loop_replay_gap_json" '.summary.reachable_rules')"
+initial_covered_reachable_branches="$(extract_json_number "$closed_loop_initial_gap_json" '.summary.covered_reachable_branches')"
+replay_covered_reachable_branches="$(extract_json_number "$closed_loop_replay_gap_json" '.summary.covered_reachable_branches')"
+initial_reachable_branches="$(extract_json_number "$closed_loop_initial_gap_json" '.summary.reachable_branches')"
+replay_reachable_branches="$(extract_json_number "$closed_loop_replay_gap_json" '.summary.reachable_branches')"
+
+if (( replay_target_count > initial_target_count )); then
+    echo "error: replay target debt increased: initial=$initial_target_count replay=$replay_target_count" >&2
+    exit 1
+fi
+
+if (( replay_covered_reachable_rules < initial_covered_reachable_rules )); then
+    echo "error: replay reachable-rule coverage regressed: initial=$initial_covered_reachable_rules replay=$replay_covered_reachable_rules" >&2
+    exit 1
+fi
+
+if (( replay_covered_reachable_branches < initial_covered_reachable_branches )); then
+    echo "error: replay reachable-branch coverage regressed: initial=$initial_covered_reachable_branches replay=$replay_covered_reachable_branches" >&2
+    exit 1
+fi
+
+if (( replay_reachable_rules != initial_reachable_rules )); then
+    echo "error: reachable-rule universe drifted across focused replay: initial=$initial_reachable_rules replay=$replay_reachable_rules" >&2
+    exit 1
+fi
+
+if (( replay_reachable_branches != initial_reachable_branches )); then
+    echo "error: reachable-branch universe drifted across focused replay: initial=$initial_reachable_branches replay=$replay_reachable_branches" >&2
+    exit 1
+fi
+
 generation_parser_rejections="$(extract_json_number "$generation_report_json" '.observed.parser_rejections_total')"
 generation_counterexamples_count="$(extract_json_number "$generation_report_json" '((.counterexamples // []) | length)')"
 shadow_parser_rejections="$(extract_json_number "$shadow_report_json" '.observed.parser_rejections_total')"
@@ -208,6 +293,12 @@ shadow_counterexamples_captured_total="$(extract_json_number "$shadow_report_jso
     echo "shadow_parser_rejections_total: $shadow_parser_rejections"
     echo "shadow_counterexamples_count: $shadow_counterexamples_count"
     echo "shadow_counterexamples_captured_total: $shadow_counterexamples_captured_total"
+    echo "focused_initial_target_count: $initial_target_count"
+    echo "focused_replay_target_count: $replay_target_count"
+    echo "focused_initial_covered_reachable_rules: $initial_covered_reachable_rules"
+    echo "focused_replay_covered_reachable_rules: $replay_covered_reachable_rules"
+    echo "focused_initial_covered_reachable_branches: $initial_covered_reachable_branches"
+    echo "focused_replay_covered_reachable_branches: $replay_covered_reachable_branches"
 } | tee "$SUMMARY_TXT"
 
 echo "✅ SV parser aggregate contract gate passed."

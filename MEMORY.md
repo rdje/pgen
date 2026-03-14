@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-parser-located-main-sv-replay-counterexamples)
+Last updated: 2026-03-14 (+0100, task: add-sv-roundtrip-coverage-contract-checks)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -86,6 +86,19 @@ Use this file to resume work without replaying full chat history.
     - `failure_line=1`
     - `failure_column=2`
     - `shrunk_sample="*"`
+- The main SV aggregate contract gate now also proves focused parser/stimuli roundtrip invariants over coverage/gap artifacts:
+  - exact replay identity is required between:
+    - `profile_2017_initial_coverage.json`
+    - `profile_2017_initial_replay_coverage.json`
+    - `profile_2017_initial_gap.json`
+    - `profile_2017_initial_replay_gap.json`
+  - replay target debt must not increase:
+    - current focused proof: `2366 -> 1290`
+  - covered reachable rules must not regress:
+    - current focused proof: `46 -> 697`
+  - covered reachable branches must not regress:
+    - current focused proof: `22 -> 447`
+  - replay-shadow aggregate totals must stay internally consistent with `target_drive_validation`.
 - Aggregate sign-off now composes the dedicated SV-family contract gates instead of treating them as separate evidence islands:
   - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now accepts `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
   - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh` now accepts `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,

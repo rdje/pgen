@@ -453,6 +453,26 @@ Toolbox baseline to leverage end-to-end:
       - `failure_column=2`
       - `shrunk_sample="*"`
     - `sv_parser_aggregate_contract_gate` now enforces that richer replay-shadow counterexample shape in addition to the generation-side shape.
+  - Progress (2026-03-14): upgraded `sv_parser_aggregate_contract_gate` from “aggregate report shape only” to a focused parser/stimuli roundtrip contract:
+    - the gate now requires exact equality between:
+      - `profile_2017_initial_coverage.json`
+      - `profile_2017_initial_replay_coverage.json`
+      and between:
+      - `profile_2017_initial_gap.json`
+      - `profile_2017_initial_replay_gap.json`
+    - it also now requires:
+      - non-increasing replay target debt,
+      - non-decreasing covered reachable rules,
+      - non-decreasing covered reachable branches,
+      - stable reachable rule/branch universes across focused replay,
+      - internal consistency between replay-shadow aggregate `observed` totals and `target_drive_validation` totals,
+    - current focused reusable proof summary records:
+      - `focused_initial_target_count=2366`
+      - `focused_replay_target_count=1290`
+      - `focused_initial_covered_reachable_rules=46`
+      - `focused_replay_covered_reachable_rules=697`
+      - `focused_initial_covered_reachable_branches=22`
+      - `focused_replay_covered_reachable_branches=447`
   - Progress (2026-03-14): wired `sv_parser_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_stimuli_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_stimuli_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded-counterexample contract proof.
