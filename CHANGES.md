@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-14 - Tighten `Done` Semantics And Demote Return-Annotation Support To `Mostly Done`
+### ✅ Achievement Summary
+The project now uses a stricter definition of `Done`: a claim is only `Done` when its proof surface is formally exhaustive and leaves no plausible coverage gap. Under that stricter standard, `return_annotation` full Rust AST-pipeline support was demoted from `Done` back to `Mostly Done` because its current construct suite is still curated rather than auto-derived from `grammars/return_annotation.ebnf`.
+
+### Scope of Changes
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - tightened the meaning of `Done` and `Mostly Done`,
+  - added an explicit rule forbidding `Done` when grammar-derived exhaustiveness is expected but the proof still depends on curated/manual construct lists,
+  - demoted `return_annotation` full Rust AST-pipeline support from `Done` to `Mostly Done`,
+  - clarified that the remaining closure work is an auto-derived exhaustiveness check plus objective parser/stimuli roundtrip and coverage proof.
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+  - recorded the stricter `Done` meaning for return-annotation closure,
+  - made the auto-derived-from-grammar proof requirement explicit,
+  - documented that curated construct suites are strong evidence but not formal closure.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - added the general parser deliverable proof doctrine,
+  - clarified that a serious parser deliverable needs an EBNF-backed parser path plus a stimuli path (in-memory and/or generated module),
+  - clarified that roundtrip, parser coverage, and stimuli coverage/gap proof are required for professional closure claims.
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the rationale for the demotion and the new proof standard for future recovery/handoff.
+
+### Validation Results
+- Documentation/policy change only; no code/test execution was required.
+
 ## 2026-03-14 - Add Explicit Return-Annotation Support Gate
 ### ✅ Achievement Summary
 Return-annotation support is now packaged as a single explicit proof target instead of being spread implicitly across separate tests and the shared annotation stimuli gate. That makes the “100% return-annotation support” claim directly executable.

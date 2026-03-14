@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-cross-grammar-return-ast-shaping-baseline)
+Last updated: 2026-03-14 (+0100, task: tighten-done-semantics-and-demote-return-support)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -32,12 +32,23 @@ Use this file to resume work without replaying full chat history.
 - Return-annotation completeness doctrine is now restated normatively:
   - `grammars/return_annotation.ebnf` is the complete source of truth,
   - every construct captured there is required to stay supported by the Rust AST pipeline with no exceptions.
+- Closure semantics are now stricter:
+  - `Done` now explicitly means "formally exhaustive with no possible coverage gap in the proof surface",
+  - curated/manual proof manifests can support `Mostly Done`, but not `Done`, when grammar-derived exhaustiveness is expected.
 - Return-annotation completeness now has an explicit tracked proof surface:
   - `rust/test_data/return_annotation/full_construct_grammar_contract.json` enumerates the construct families,
   - the generated return-corpus test exercises that suite end to end through parser + typed-AST conversion.
+- The current remaining return-annotation blocker is now tracked explicitly:
+  - `rust/test_data/return_annotation/full_construct_grammar_contract.json` is still curated rather than auto-derived from `grammars/return_annotation.ebnf`,
+  - so return-annotation support remains `Mostly Done` instead of `Done` in the live tracker until the exhaustiveness proof is grammar-derived.
 - Return closed-loop quality proof is now explicitly part of the tracked story:
   - `make -C rust SHELL=/opt/homebrew/bin/bash annotation_stimuli_quality_gate` is now recorded as required proof for return-annotation quality,
   - on 2026-03-14 the return side reached `initial_targets=6`, `resolved=6`, `final_targets=0`, `target_attempts=51`, `parseability_attempts=99`, `accepted=99`, `alternate_entry_attempts=1`.
+- General parser-deliverable proof doctrine is now explicit in tracked docs:
+  - a serious deliverable grammar is expected to have an EBNF-backed generated parser path plus a stimuli path,
+  - the stimuli path may be the in-memory generator, an emitted `generated/<grammar>_stimuli.rs` module, or both,
+  - when both stimuli forms exist, parity between them is part of the contract,
+  - professional closure claims now explicitly require parser/stimuli roundtrip proof, parser coverage proof, and stimuli coverage/gap proof.
 - Cross-grammar AST-shaping baseline:
   - every tracked `grammars/*.ebnf` file except `return_annotation.ebnf` and `semantic_annotation.ebnf` now exposes at least one explicit standalone return annotation line,
   - `rust/src/parser_registry.rs` now contains a regression test that audits that repository-wide contract and validates those standalone annotation payloads with the generated `return_annotation` parser.
@@ -46,7 +57,7 @@ Use this file to resume work without replaying full chat history.
   - this is the tracked way PGEN breaks the annotation-parser chicken-and-egg cycle.
 - Live tracking now includes an annotation-status slice:
   - `return_annotation` full Rust AST-pipeline support is tracked separately from cross-grammar return-AST shaping adoption,
-  - `return_annotation` support is now `Done`,
+  - `return_annotation` support is now `Mostly Done`,
   - cross-grammar return-AST shaping adoption remains `Mostly Done`.
 - Return-annotation closure now has an explicit aggregate proof target:
   - `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`

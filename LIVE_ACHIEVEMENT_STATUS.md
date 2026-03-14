@@ -12,8 +12,8 @@ Provide a precise, always-current progress surface for the project using exactly
 This file is the authoritative live tracking view for "where we are now".
 
 ## Status Rules
-- `Done`: exit criteria for the tracked area are implemented, validated, and no material roadmap gap remains for that area.
-- `Mostly Done`: the core implementation is landed and validated, but bounded follow-up work is still required before closure.
+- `Done`: the tracked claim is backed by a formally exhaustive, machine-checkable proof surface with no plausible coverage gap remaining for that claim.
+- `Mostly Done`: the core implementation is landed and validated with strong executable evidence, but closure still depends on bounded follow-up work such as auto-derived exhaustiveness, stronger coverage proof, or removal of curated/manual proof gaps.
 - `In Progress`: meaningful implementation has started, but core capabilities or validation are still missing.
 - `Not Started`: no meaningful implementation has landed yet.
 
@@ -24,6 +24,7 @@ This file is the authoritative live tracking view for "where we are now".
 - When a task does not change live status, say that status is unchanged rather than implying drift.
 - Use only the four statuses above.
 - Keep "Evidence" concrete and "Left To Close" explicit.
+- Do not mark a row `Done` if its proof surface still depends on a curated/manual construct list where grammar-derived exhaustiveness is expected.
 
 ## Live Snapshot
 
@@ -49,7 +50,7 @@ Phase completion tracks whether a roadmap phase delivered its stated contract. I
 
 | Area | Status | Evidence | Left To Close |
 |---|---|---|---|
-| `return_annotation` full Rust AST-pipeline support | Done | `grammars/return_annotation.ebnf` remains the source of truth, `generated/return_annotation_parser.rs` parses the full grammar surface, `rust/src/ast_pipeline/unified_return_ast.rs` converts generated parse trees into typed AST, `rust/test_data/return_annotation/full_construct_grammar_contract.json` tracks construct coverage, the return side of `annotation_stimuli_quality_gate` reached `initial_targets=6`, `resolved=6`, `final_targets=0` on 2026-03-14, and `make -C rust SHELL=/bin/bash return_annotation_support_gate` now aggregates the repo-wide audit plus contract and stimuli proofs. | Nothing material in the currently tracked return-annotation support contract beyond normal no-regression maintenance when the grammar evolves. |
+| `return_annotation` full Rust AST-pipeline support | Mostly Done | `grammars/return_annotation.ebnf` remains the source of truth, `generated/return_annotation_parser.rs` parses the full grammar surface, `rust/src/ast_pipeline/unified_return_ast.rs` converts generated parse trees into typed AST, the return side of `annotation_stimuli_quality_gate` reached `initial_targets=6`, `resolved=6`, `final_targets=0` on 2026-03-14, and `make -C rust SHELL=/bin/bash return_annotation_support_gate` aggregates the repo-wide audit plus contract and stimuli proofs. The remaining proof gap is that `rust/test_data/return_annotation/full_construct_grammar_contract.json` is still curated rather than auto-derived from `grammars/return_annotation.ebnf`, so the current evidence is strong but not formally exhaustive. | Auto-derive the construct/proof surface from `grammars/return_annotation.ebnf`, then close the remaining exhaustiveness gap with objective parser-plus-stimuli roundtrip/coverage evidence so this row can meet the stricter `Done` definition. |
 | Cross-grammar return-AST shaping adoption | Mostly Done | Every tracked `grammars/*.ebnf` file except `return_annotation.ebnf` and `semantic_annotation.ebnf` now contains at least one standalone return-annotation line, and `rust/src/parser_registry.rs` audits that contract against the generated `return_annotation` parser. | Deepen deliberate AST shaping beyond the current minimum-baseline presence as individual grammars mature, while keeping the repository-wide audit green. |
 
 ### Phase S Detailed Breakdown

@@ -32,6 +32,30 @@ Engine generalization rule:
 - grammar- or profile-specific behavior belongs in the grammar, contract, corpus, or profile layer unless there is a defensible engine-level reason to generalize it,
 - if a fix only makes sense for one specific EBNF, treat it as grammar debt or contract debt, not as a shared generator improvement.
 
+## Parser Deliverable Proof Doctrine
+For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.
+
+Required deliverable shape:
+- tracked grammar source: `grammars/foolang.ebnf`
+- generated parser path: `generated/foolang_parser.rs`
+- stimuli path:
+  - the default in-memory generator is acceptable,
+  - an emitted Rust stimuli module (`generated/foolang_stimuli.rs`) is also acceptable,
+  - when both are claimed, parity between them is required.
+
+Required proof shape:
+- parser acceptance/rejection proof,
+- roundtrip proof between generated stimuli and generated parser,
+- parser coverage proof,
+- stimuli-generation coverage/gap proof,
+- deterministic replay proof,
+- machine-checkable artifacts/gates behind every closure claim.
+
+Closure rule for `Done`:
+- `Done` means "formally exhaustive with no possible coverage gap in the proof surface",
+- therefore curated/manual construct suites can support `Mostly Done`, but they do not by themselves justify `Done`,
+- when grammar-derived exhaustiveness is possible, closure requires an auto-derived proof surface rather than a hand-maintained approximation.
+
 ## Status Legend
 - `Done`
 - `Mostly Done`
@@ -42,6 +66,7 @@ Interpretation note:
 - phase completion means the stated deliverable for that roadmap phase is closed,
 - parser-family maturity is tracked separately in `LIVE_ACHIEVEMENT_STATUS.md`,
 - a readiness-kickoff phase can therefore be `Done` while a parser family is still only `In Progress` for professional-grade closure.
+- `LIVE_ACHIEVEMENT_STATUS.md` uses the stricter definition of `Done` above, so a row must not be promoted to `Done` while a plausible curated/manual proof gap remains.
 
 ## Live Tracking Rule
 - `LIVE_ACHIEVEMENT_STATUS.md` is the authoritative live progress surface for current closure state.

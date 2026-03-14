@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Tighten `Done` Semantics And Demote Return-Annotation Support To `Mostly Done`
+### Context
+The new `return_annotation_support_gate` materially improved the proof surface, but the user correctly challenged whether that justified the tracker row being `Done`. On re-analysis, the answer was no under the intended meaning of `Done`: the current proof is strong, repeatable, and executable, but `rust/test_data/return_annotation/full_construct_grammar_contract.json` is still curated rather than auto-derived from `grammars/return_annotation.ebnf`. That leaves a bounded coverage-gap risk, which is incompatible with a strict "formal closure only" definition of `Done`.
+
+### Implementation
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - changed the status-rule definition of `Done` to require a formally exhaustive, machine-checkable proof surface with no plausible coverage gap,
+  - strengthened `Mostly Done` to cover strong-but-not-yet-exhaustive proof states,
+  - added an explicit anti-drift rule forbidding `Done` when grammar-derived exhaustiveness is expected but the proof still depends on curated/manual construct lists,
+  - demoted `return_annotation` full Rust AST-pipeline support from `Done` to `Mostly Done`,
+  - made the remaining closure work explicit: auto-derived construct/proof extraction from `grammars/return_annotation.ebnf` plus parser/stimuli roundtrip/coverage proof.
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+  - documented the formal closure rule for return-annotation support,
+  - clarified that the current construct suite is useful evidence but not formal closure,
+  - recorded the current-state note that this area remains `Mostly Done` until the proof becomes grammar-derived and exhaustiveness-safe.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - added a general parser deliverable proof doctrine,
+  - made the parser/stimuli pair explicit,
+  - made roundtrip, parser coverage, stimuli coverage/gap proof, and machine-checkable evidence part of the project-level closure bar.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - synced the new tracker semantics and the demotion rationale for crash recovery.
+
+### Validation
+- Documentation/policy change only; no code/test execution was required.
+
+### Notes
+- This change does not weaken the return-annotation contract. It makes the wording about closure stricter and more honest.
+- The existing gate remains valuable; it is now correctly framed as strong evidence on the path to `Done`, not as the final exhaustive proof by itself.
+
 ## 2026-03-14 - Add Explicit Return-Annotation Support Gate
 ### Context
 The repo already had the ingredients for strong return-annotation confidence, but they were distributed across several separate proof surfaces: `parser_registry` for repo-wide shaping audit, `return_full_contract_gate` for runtime/round-trip/parity, and `annotation_stimuli_quality_gate` for closed-loop generation. That was strong, but still too implicit for a “100% support, no exception” contract. The required next step was to package those proofs into one explicit aggregate gate and then update the live tracker accordingly.

@@ -41,10 +41,27 @@ That contract covers:
 
 Executable proof surface:
 - focused aggregate support gate: `make -C rust SHELL=/bin/bash return_annotation_support_gate`
-- tracked construct suite: `rust/test_data/return_annotation/full_construct_grammar_contract.json`
+- current tracked construct suite: `rust/test_data/return_annotation/full_construct_grammar_contract.json`
 - focused generated-pipeline check: `generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`
 - focused registry/grammar audit: `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry --quiet`
 - required closed-loop stimuli gate: `make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate`
+
+Formal closure rule for this area:
+- in this project, `Done` means "formally exhaustive with no possible coverage gap in the proof surface",
+- therefore a curated/manual construct list is useful evidence but is not sufficient by itself for `Done`,
+- closure requires the construct/proof surface to be auto-derived from `grammars/return_annotation.ebnf`,
+- closure also requires objective parser-plus-stimuli proof rather than parser-only acceptance:
+  - parser acceptance/rejection coverage,
+  - typed-AST mapping coverage,
+  - runtime-intent conformance coverage,
+  - parser/stimuli roundtrip coverage,
+  - stimuli-generation coverage/gap convergence,
+  - deterministic replay coverage.
+
+Current tracked state note (2026-03-14):
+- return-annotation support in the Rust AST pipeline is strong and executable, but it remains `Mostly Done` in the live tracker rather than `Done`,
+- the specific blocker is that `rust/test_data/return_annotation/full_construct_grammar_contract.json` is still curated instead of auto-derived from `grammars/return_annotation.ebnf`,
+- until that auto-derived exhaustiveness check exists, the proof surface still has a bounded but real coverage-gap risk.
 
 Binding policy note (2026-02-20):
 - Built-in annotation parser support is no longer treated as an open-ended "limited subset" target.
@@ -56,9 +73,11 @@ Binding policy note (2026-02-20):
   - construct-level parse acceptance/rejection coverage,
   - typed-AST mapping coverage,
   - runtime-intent conformance coverage,
+  - parser/stimuli roundtrip coverage,
   - deterministic replay coverage,
   - comparable bootstrap/generated parity coverage,
   - EBNF-based stimuli quality coverage (construct-complete generation, gap-target convergence, deterministic replay, and failure shrinking).
+  - When a grammar also has an emitted stimuli module artifact (`generated/<grammar>_stimuli.rs`), parity between the in-memory stimuli path and the generated module path is part of the proof surface.
 
 ## Scope Layers
 PGEN annotation behavior is defined in three layers:
