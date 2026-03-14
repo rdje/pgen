@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-counterexample-triage-artifacts)
+Last updated: 2026-03-15 (+0100, task: add-sv-parser-counterexample-triage-artifacts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -99,6 +99,21 @@ Use this file to resume work without replaying full chat history.
   - covered reachable branches must not regress:
     - current focused proof: `22 -> 447`
   - replay-shadow aggregate totals must stay internally consistent with `target_drive_validation`.
+- The main SV aggregate contract gate now also emits deterministic debt-triage artifacts over both bounded parser-rejection surfaces:
+  - generation-side triage artifacts:
+    - `systemverilog_parseability_generation_counterexample_triage.json`
+    - `systemverilog_parseability_generation_counterexample_triage.txt`
+  - replay-shadow triage artifacts:
+    - `systemverilog_closed_loop_parseability_shadow_counterexample_triage.json`
+    - `systemverilog_closed_loop_parseability_shadow_counterexample_triage.txt`
+  - current focused generation-side triage summary:
+    - one stage bucket: `generate_parseable_stimuli`
+    - five unique shrunk samples: `I`, `U`, `e`, `g`, `m`
+    - five unique failure locations
+  - current focused replay-shadow triage summary:
+    - one stage bucket: `target_drive_output_filter`
+    - four unique shrunk samples: `*`, `P`, `e`, `m`
+    - four unique failure locations
 - The SV preprocessor aggregate contract gate now also proves deterministic parser/stimuli replay and staged gap/coverage closure over stored quality artifacts:
   - exact replay identity is required for stage0 baseline A/B:
     - sample corpus

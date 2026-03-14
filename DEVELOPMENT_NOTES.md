@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Add SV Parser Counterexample Triage Artifacts
+### Context
+The main SystemVerilog aggregate contract gate was already preserving bounded parser counterexamples plus parser-location detail on both the generation-side and replay-shadow report surfaces. But those failures still required manual inspection of the raw report JSON arrays. Since the project doctrine now expects objective, repeatable parser/stimuli proof with measurable gap debt, the next clean increment was to emit deterministic triage artifacts directly from the aggregate contract gate so the remaining bounded main-SV debt is summarized instead of merely stored.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now derives deterministic generation-side triage artifacts from `systemverilog_parseability_generation_report.json`:
+    - `systemverilog_parseability_generation_counterexample_triage.json`
+    - `systemverilog_parseability_generation_counterexample_triage.txt`
+  - now derives deterministic replay-shadow triage artifacts from `systemverilog_closed_loop_parseability_shadow_report.json`:
+    - `systemverilog_closed_loop_parseability_shadow_counterexample_triage.json`
+    - `systemverilog_closed_loop_parseability_shadow_counterexample_triage.txt`
+  - both triage surfaces group the bounded debt by:
+    - stage
+    - parser error string
+    - shrunk sample
+    - failure line/column
+    - sample preview
+  - the aggregate summary now also records the count of unique shrunk samples and unique failure locations for both generation-side and replay-shadow debt.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger bounded-debt observability for the main SV parser family,
+  - kept status labels unchanged because exhaustive closure is still the real remaining gap.
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current generation-side triage surface shows:
+    - one stage bucket: `generate_parseable_stimuli`
+    - five unique shrunk-sample buckets: `I`, `U`, `e`, `g`, `m`
+    - five unique failure locations
+  - current replay-shadow triage surface shows:
+    - one stage bucket: `target_drive_output_filter`
+    - four unique shrunk-sample buckets: `*`, `P`, `e`, `m`
+    - four unique failure locations
+
+### Notes
+- This increment makes the remaining bounded main-SV failures easier to attack surgically in a later task without changing the status label prematurely.
+- The gate still stops short of grammar-level exhaustive closure; it is now simply better instrumented and easier to interrogate objectively.
+
 ## 2026-03-15 - Add SV Preprocessor Counterexample Triage Artifacts
 ### Context
 After the roundtrip and staged-coverage contract work, the preprocessor row still had a bounded but real parser-rejection surface: five parser-backed rejections in the aggregate parseability report. Those failures were objectively measured, but still inconvenient to reason about because the only durable artifact was the raw counterexample array. The next clean increment was to emit a deterministic triage artifact from the aggregate contract gate itself so the remaining debt is summarized rather than just recorded.

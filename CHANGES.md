@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-03-15 - Add SV Parser Counterexample Triage Artifacts
+### ✅ Achievement Summary
+The main SystemVerilog aggregate contract gate now emits deterministic debt-triage artifacts for both of its bounded parser-rejection surfaces. That means the remaining measurable parser debt is no longer buried only inside the aggregate JSON reports; it is now summarized objectively by stage, parser error, shrunk sample, failure location, and sample preview for both generation-side and replay-shadow counterexamples.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now writes generation-side triage artifacts:
+    - `systemverilog_parseability_generation_counterexample_triage.json`
+    - `systemverilog_parseability_generation_counterexample_triage.txt`
+  - now writes replay-shadow triage artifacts:
+    - `systemverilog_closed_loop_parseability_shadow_counterexample_triage.json`
+    - `systemverilog_closed_loop_parseability_shadow_counterexample_triage.txt`
+  - triage data is derived deterministically from the aggregate parseability reports and grouped by:
+    - `stage`
+    - `parser_error`
+    - `shrunk_sample`
+    - `failure_line` / `failure_column`
+    - `sample_preview`
+  - the aggregate summary now also surfaces:
+    - `generation_counterexample_unique_shrunk_samples`
+    - `generation_counterexample_unique_failure_locations`
+    - `shadow_counterexample_unique_shrunk_samples`
+    - `shadow_counterexample_unique_failure_locations`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger bounded-debt observability for the main SV parser family,
+  - kept status labels unchanged because exhaustive grammar-level closure is still the real blocker.
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current generation-side triage summary:
+    - `stage_count[generate_parseable_stimuli]: 5`
+    - `shrunk_sample_count["I"]: 1`
+    - `shrunk_sample_count["U"]: 1`
+    - `shrunk_sample_count["e"]: 1`
+    - `shrunk_sample_count["g"]: 1`
+    - `shrunk_sample_count["m"]: 1`
+    - `failure_location[3:2]: 1`
+    - `failure_location[4:4]: 1`
+    - `failure_location[2:7]: 1`
+    - `failure_location[1:20]: 1`
+    - `failure_location[1:25]: 1`
+  - current replay-shadow triage summary:
+    - `stage_count[target_drive_output_filter]: 5`
+    - `shrunk_sample_count["*"]: 1`
+    - `shrunk_sample_count["P"]: 1`
+    - `shrunk_sample_count["e"]: 1`
+    - `shrunk_sample_count["m"]: 2`
+    - `failure_location[2:1]: 1`
+    - `failure_location[1:2]: 2`
+    - `failure_location[3:2]: 1`
+    - `failure_location[1:3]: 1`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add SV Preprocessor Counterexample Triage Artifacts
 ### ✅ Achievement Summary
 The SystemVerilog preprocessor aggregate contract gate now emits deterministic debt-triage artifacts for its remaining bounded parser rejections. That means the still-open rejection surface is no longer just “five raw counterexamples somewhere in JSON”; it is now summarized objectively by stage, parser error, shrunk sample, failure location, and sample preview.
