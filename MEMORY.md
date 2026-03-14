@@ -3860,3 +3860,23 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=$PWD/rust/scripts/sv_preprocessor_reference_runner.sh PGEN_SV_PREPROCESSOR_REFERENCE_BACKEND=auto make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
 - Aggregate gate:
   - `make -C rust SHELL=/bin/bash sota_exit_gate`
+
+## 2026-03-14 - Main SV aggregate parseability counterexample retention
+
+- `rust/scripts/sv_stimuli_quality_gate.sh` now preserves bounded shrunk parseability counterexamples in the aggregate `systemverilog_parseability_generation_report.json`, not only in per-sample parseability reports.
+- Focused validation used a temporary contract that disabled replay-shadow overhead while keeping parser-backed generation parseability enabled:
+  - `PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_parseability_generation_only_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_generation_only`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Observed focused aggregate metrics:
+  - `requested_total=1`
+  - `attempts_total=8`
+  - `accepted_total=1`
+  - `rejected_total=7`
+  - `parser_rejections_total=7`
+  - `counterexamples_count=5`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

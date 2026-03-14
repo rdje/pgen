@@ -1938,6 +1938,7 @@ parseability_generation_attempts_total=0
 parseability_generation_parser_rejections_total=0
 parseability_generation_errors_total=0
 parseability_generation_empty_generations_total=0
+parseability_generation_counterexamples_captured_total=0
 realistic_cases_declared=0
 realistic_cases_executed=0
 realistic_expected_pass_total=0
@@ -1963,6 +1964,7 @@ realistic_report_json="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_report.
 realistic_cases_jsonl="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_cases.jsonl"
 closed_loop_parseability_shadow_report_json="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_report.json"
 closed_loop_parseability_shadow_profiles_jsonl="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_profiles.jsonl"
+parseability_generation_counterexamples_jsonl="$WORK_DIR/${grammar_name}_parseability_generation_counterexamples.jsonl"
 closed_loop_parseability_shadow_primary_entry_attempts_total=0
 closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=0
 closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=0
@@ -1973,6 +1975,7 @@ if [[ "$declared_shadow_enabled" -eq 1 ]]; then
     : >"$declared_shadow_cases_jsonl"
 fi
 : >"$closed_loop_parseability_shadow_profiles_jsonl"
+: >"$parseability_generation_counterexamples_jsonl"
 profile_count="${#run_profiles[@]}"
 total_samples=$((sample_count * profile_count))
 
@@ -2287,6 +2290,16 @@ for profile_idx in "${!run_profiles[@]}"; do
             parseability_generation_parser_rejections_total=$((parseability_generation_parser_rejections_total + parseability_parser_rejections))
             parseability_generation_errors_total=$((parseability_generation_errors_total + parseability_generation_errors))
             parseability_generation_empty_generations_total=$((parseability_generation_empty_generations_total + parseability_empty_generations))
+            sample_parseability_counterexamples="$(jq -er '((.counterexamples // []) | length) | numbers' "$parseability_report_json")"
+            parseability_generation_counterexamples_captured_total=$((parseability_generation_counterexamples_captured_total + sample_parseability_counterexamples))
+            if (( sample_parseability_counterexamples > 0 )); then
+                jq -c \
+                    --arg profile "$lrm_profile" \
+                    --argjson sample_index "$idx" \
+                    --argjson seed "$seed" \
+                    '(.counterexamples // [])[] | . + {profile: $profile, sample_index: $sample_index, seed: $seed}' \
+                    "$parseability_report_json" >>"$parseability_generation_counterexamples_jsonl"
+            fi
         fi
 
         preprocess_started_ms="$(now_ms)"
@@ -2970,6 +2983,10 @@ fi
 parse_full_quality_report_json="$WORK_DIR/${grammar_name}_parse_full_quality_report.json"
 parseability_generation_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$parseability_generation_accepted_total" "$parseability_generation_attempts_total")"
 parseability_generation_report_json="$WORK_DIR/${grammar_name}_parseability_generation_report.json"
+parseability_generation_counterexamples_json="[]"
+if [[ -s "$parseability_generation_counterexamples_jsonl" ]]; then
+    parseability_generation_counterexamples_json="$(jq -s '.[0:20]' "$parseability_generation_counterexamples_jsonl")"
+fi
 closed_loop_parseability_shadow_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$closed_loop_parseability_shadow_accepted_total" "$closed_loop_parseability_shadow_attempts_total")"
 closed_loop_parseability_shadow_profiles_json="[]"
 if [[ -s "$closed_loop_parseability_shadow_profiles_jsonl" ]]; then
@@ -3032,6 +3049,7 @@ jq -n \
     --argjson generation_errors_total "$parseability_generation_errors_total" \
     --argjson empty_generations_total "$parseability_generation_empty_generations_total" \
     --argjson acceptance_rate_percent "$parseability_generation_acceptance_rate_percent" \
+    --argjson counterexamples "$parseability_generation_counterexamples_json" \
     '{
         grammar_name: $grammar_name,
         enabled: ($enabled == 1),
@@ -3045,7 +3063,8 @@ jq -n \
             generation_errors_total: $generation_errors_total,
             empty_generations_total: $empty_generations_total,
             acceptance_rate_percent: $acceptance_rate_percent
-        }
+        },
+        counterexamples: $counterexamples
     }' >"$parseability_generation_report_json"
 
 jq -n \
@@ -3259,6 +3278,7 @@ jq -n \
     echo "parseability_generation_parser_rejections_total: $parseability_generation_parser_rejections_total"
     echo "parseability_generation_generation_errors_total: $parseability_generation_errors_total"
     echo "parseability_generation_empty_generations_total: $parseability_generation_empty_generations_total"
+    echo "parseability_generation_counterexamples_captured_total: $parseability_generation_counterexamples_captured_total"
     echo "parseability_generation_acceptance_rate_percent: $parseability_generation_acceptance_rate_percent"
     echo "parseability_generation_report_json: $parseability_generation_report_json"
     echo "parse_full_quality_enforced: $parse_full_quality_contract_enforced"

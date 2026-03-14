@@ -18210,3 +18210,45 @@ for both generation-input and parser-returned AST dump paths.
 - `bash -n rust/scripts/ast_dump_contract_gate.sh`
 - `make -C rust SHELL=/bin/bash ast_dump_contract_gate`
 - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+---
+
+## 2026-03-14: Main SV aggregate parseability counterexample retention
+
+### Goal
+Improve the measurability of the main `systemverilog` parser-family proof surface by preserving bounded shrunk parseability counterexamples in the aggregate `sv_stimuli_quality_gate` artifact, not only in per-sample parseability reports.
+
+### Changes
+- Updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+  - aggregate parseability-generation path now writes bounded per-sample counterexamples into:
+    - `systemverilog_parseability_generation_counterexamples.jsonl`
+  - aggregate report:
+    - `systemverilog_parseability_generation_report.json`
+    now includes bounded `counterexamples` entries carrying:
+    - `stage`
+    - `sample`
+    - `shrunk_sample`
+    - `profile`
+    - `sample_index`
+    - `seed`
+- Synced status/roadmap continuity:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `CHANGES.md`
+  - `MEMORY.md`
+
+### Validation
+- Focused gate run with a temporary contract that disables replay-shadow overhead while preserving parser-backed parseability generation:
+  - `PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_parseability_generation_only_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_generation_only`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Observed aggregate metrics:
+  - `requested_total=1`
+  - `attempts_total=8`
+  - `accepted_total=1`
+  - `rejected_total=7`
+  - `parser_rejections_total=7`
+  - `counterexamples_count=5`
+- Verified aggregate report now preserves the counterexample payloads instead of only totals.

@@ -17925,6 +17925,48 @@ Advance Phase R by making generation-input AST dumps deterministic for replay/di
 
 ---
 
+## 2026-03-14: Preserve aggregate SV parseability counterexamples
+
+### Goal
+Strengthen the objective proof surface for the main `systemverilog` parser family without overstating closure by retaining bounded shrunk parseability counterexamples in the aggregate `sv_stimuli_quality_gate` artifact, not just in per-sample reports.
+
+### Changes
+- Updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+  - aggregate parseability generation path now collects bounded per-sample counterexamples into:
+    - `systemverilog_parseability_generation_counterexamples.jsonl`
+  - aggregate report:
+    - `systemverilog_parseability_generation_report.json`
+    now preserves a bounded `counterexamples` array with:
+    - `stage`
+    - `sample`
+    - `shrunk_sample`
+    - `profile`
+    - `sample_index`
+    - `seed`
+- Synced status/continuity docs:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+
+### Validation
+- Focused gate:
+  - `PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_parseability_generation_only_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_generation_only`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Observed in aggregate report:
+  - `requested_total=1`
+  - `attempts_total=8`
+  - `accepted_total=1`
+  - `rejected_total=7`
+  - `parser_rejections_total=7`
+  - `counterexamples_count=5`
+  - each retained counterexample carried `profile=2017`, `sample_index=0`, and `seed=12001`
+
+---
+
 ## 2026-02-28: Extended Phase R dump-format/safety contract to parser-returned AST dumps
 
 ### Goal
