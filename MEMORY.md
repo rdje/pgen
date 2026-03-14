@@ -50,7 +50,7 @@ Use this file to resume work without replaying full chat history.
     - builtin integral atom type declarations (`byte`, `shortint`, `longint`) plus enum base-width handling for those builtins,
     - procedural coverage for `always_ff` edge-trigger event controls and `always_latch` blocks in addition to `always_comb` / `always @(*)`,
     - elaboration-time procedural validation for event-control/statement identifiers plus `always_ff` nonblocking-assignment enforcement,
-    - typed `assign` and procedural assignment targets for signal/member/select/part-select LHS forms with elaboration-time target validation,
+    - typed `assign` and procedural assignment targets for signal/member/select/part-select LHS forms plus concatenated LHS forms such as `{cfg.data[BIT], cfg.valid}` with elaboration-time target validation,
     - packed-union width-coherence validation during elaboration,
     - file-scope plus module-local typedef parsing and named type resolution for later module headers/declarations in the handwritten subset,
     - top-level package typedef and constant parsing, package-qualified type/constant references, and module-body/header wildcard/named imports for named-type and constant visibility,
