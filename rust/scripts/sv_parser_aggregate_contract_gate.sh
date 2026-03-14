@@ -176,6 +176,10 @@ if ! jq -e '
         has("stage")
         and has("sample")
         and has("shrunk_sample")
+        and has("parser_error")
+        and has("failure_position")
+        and has("failure_line")
+        and has("failure_column")
         and has("profile")
     )
 ' "$shadow_report_json" >/dev/null; then

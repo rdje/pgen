@@ -438,6 +438,21 @@ Toolbox baseline to leverage end-to-end:
       - `failure_column=2`
       - `shrunk_sample="g"`
     - `sv_parser_aggregate_contract_gate` now enforces that richer generation-side counterexample shape.
+  - Progress (2026-03-14): upgraded the main-SV replay-shadow aggregate counterexamples from “sample blobs only” to parser-located evidence too:
+    - `systemverilog_closed_loop_parseability_shadow_report.json` counterexamples are now contract-checked for:
+      - `parser_error`
+      - `failure_position`
+      - `failure_line`
+      - `failure_column`
+      in addition to the existing bounded counterexample payload and `profile`,
+    - direct contract validation against the focused shadow artifact passed,
+    - current first shadow-side example:
+      - `parser_error="Parser did not consume full input at position 1"`
+      - `failure_position=1`
+      - `failure_line=1`
+      - `failure_column=2`
+      - `shrunk_sample="*"`
+    - `sv_parser_aggregate_contract_gate` now enforces that richer replay-shadow counterexample shape in addition to the generation-side shape.
   - Progress (2026-03-14): wired `sv_parser_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_stimuli_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_stimuli_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded-counterexample contract proof.

@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add Parser-Located Main-SV Replay Counterexamples
+### Context
+The main SV generation-side aggregate report already had parser-location detail, and the replay-shadow artifact already carried that data in practice. The remaining gap was contractual: the tracked wrapper gate still did not require those fields on the shadow side, so the richer evidence was present but not yet enforced.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - replay-shadow aggregate counterexamples must now include:
+    - `parser_error`
+    - `failure_position`
+    - `failure_line`
+    - `failure_column`
+  - the generation-side richer contract remains enforced too, so both main-SV aggregate report surfaces are now parser-located.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - removed stale “generation-side only” wording,
+  - kept status labels unchanged because this improves bounded-debt observability rather than supplying exhaustive grammar-level closure.
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- direct replay-shadow contract assertion against [systemverilog_closed_loop_parseability_shadow_report.json](/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state/work/systemverilog_closed_loop_parseability_shadow_report.json)
+  - passed
+  - current first replay-shadow counterexample:
+    - `parser_error="Parser did not consume full input at position 1"`
+    - `failure_position=1`
+    - `failure_line=1`
+    - `failure_column=2`
+    - `shrunk_sample="*"`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed with:
+    - `generation_parser_rejections_total=7`
+    - `generation_counterexamples_count=5`
+    - `shadow_parser_rejections_total=1179`
+    - `shadow_counterexamples_count=5`
+    - `shadow_counterexamples_captured_total=5`
+
+### Notes
+- This closes the main-SV parser-location symmetry across the two aggregate report surfaces.
+- The remaining blocker for `Done` is still exhaustive grammar-level closure, not bounded-debt inspectability.
+
 ## 2026-03-14 - Add Parser-Located Main-SV Generation Counterexamples
 ### Context
 The preprocessor side now preserves parser-located counterexamples, but the main SV parser-family row still had generation-side aggregate counterexamples that stopped at sample text plus shrink metadata. Since the focused main-SV generation probe already keeps profile, seed, and sample index, the next clean increment was to require the parser-location fields there too rather than waiting for the slower replay-shadow half.

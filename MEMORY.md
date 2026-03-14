@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-parser-located-main-sv-generation-counterexamples)
+Last updated: 2026-03-14 (+0100, task: add-parser-located-main-sv-replay-counterexamples)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -67,19 +67,25 @@ Use this file to resume work without replaying full chat history.
   - that proof includes stimuli generation, coverage/gap tracking, target-driven replay, parseability telemetry, and differential/corpus evidence,
   - but neither row currently has a return-annotation-grade exhaustive grammar-level closure proof,
   - so both parser-family rows are now `Mostly Done` rather than `Done` in the live tracker even though `Phase P` and `Phase Q` remain closed.
-- The main SV generation-side bounded-debt artifact is now parser-located, not sample-only:
-  - `sv_parser_aggregate_contract_gate` generation-side counterexamples now require:
+- The main SV bounded-debt artifacts are now parser-located on both aggregate report surfaces, not sample-only:
+  - `sv_parser_aggregate_contract_gate` generation-side counterexamples require:
     - `parser_error`
     - `failure_position`
     - `failure_line`
     - `failure_column`
+  - `sv_parser_aggregate_contract_gate` replay-shadow counterexamples now require the same parser-location fields.
   - current focused generation-side example:
     - `parser_error="Parser did not consume full input at position 111"`
     - `failure_position=111`
     - `failure_line=3`
     - `failure_column=2`
     - `shrunk_sample="g"`
-  - shadow-side aggregate counterexamples still need the same upgrade in a later increment.
+  - current focused replay-shadow example:
+    - `parser_error="Parser did not consume full input at position 1"`
+    - `failure_position=1`
+    - `failure_line=1`
+    - `failure_column=2`
+    - `shrunk_sample="*"`
 - Aggregate sign-off now composes the dedicated SV-family contract gates instead of treating them as separate evidence islands:
   - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now accepts `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
   - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh` now accepts `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,

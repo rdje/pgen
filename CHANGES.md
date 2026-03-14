@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-14 - Add Parser-Located Main-SV Replay Counterexamples
+### ✅ Achievement Summary
+The main SystemVerilog parser’s replay-shadow aggregate report is now held to the same parser-located evidence standard as the generation-side aggregate report. Bounded retained counterexamples must now include the generated parser’s error string plus failure byte, line, and column, so the replay-shadow debt is directly actionable instead of being just bounded and counted.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - replay-shadow aggregate counterexamples are now required to include:
+    - `parser_error`
+    - `failure_position`
+    - `failure_line`
+    - `failure_column`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that both main-SV aggregate report surfaces now keep parser-location detail,
+  - kept status labels unchanged because exhaustive grammar-level closure is still open.
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- direct replay-shadow contract check against the focused roundtrip artifact:
+  - `systemverilog_closed_loop_parseability_shadow_report.json` satisfied the richer contract shape
+  - current first counterexample now carries:
+    - `parser_error="Parser did not consume full input at position 1"`
+    - `failure_position=1`
+    - `failure_line=1`
+    - `failure_column=2`
+    - `shrunk_sample="*"`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current reusable gate summary remained:
+    - `generation_parser_rejections_total=7`
+    - `generation_counterexamples_count=5`
+    - `shadow_parser_rejections_total=1179`
+    - `shadow_counterexamples_count=5`
+    - `shadow_counterexamples_captured_total=5`
+
 ## 2026-03-14 - Add Parser-Located Main-SV Generation Counterexamples
 ### ✅ Achievement Summary
 The main SystemVerilog parser’s generation-side aggregate report is now more objective: captured counterexamples no longer stop at sample text, shrink result, profile, seed, and sample index. They now also retain the generated parser’s error string plus failure byte, line, and column, and the aggregate SV parser contract gate enforces that richer generation-side shape.
