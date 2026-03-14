@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-14 - Close Return-Annotation Exhaustiveness Proof
+### ✅ Achievement Summary
+`return_annotation` full Rust AST-pipeline support is now back to `Done`, but this time on the stricter bar the project now requires. The closing proof is no longer a curated construct list; it is an auto-derived grammar-driven exhaustiveness gate backed by parser/stimuli closure, stimuli-module parity, and generated-parse-tree to typed-AST audit evidence.
+
+### Scope of Changes
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `return_annotation_exhaustiveness_gate`,
+  - made `return_annotation_support_gate` depend on that new auto-derived closure proof instead of only the shared annotation stimuli gate.
+- Updated [rust/scripts/annotation_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh):
+  - added grammar filtering so the return side can be audited in isolation when proving formal closure.
+- Added [rust/scripts/return_annotation_exhaustiveness_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/return_annotation_exhaustiveness_gate.sh):
+  - enforces grammar-driven reachable-rule/reachable-branch closure,
+  - enforces parseability acceptance with zero parser rejections/generation errors/empty generations,
+  - enforces return stimuli-module parity,
+  - enforces generated parse-tree to typed-AST audit over the closed-loop sample corpus.
+- Added [rust/src/bin/return_annotation_generated_audit.rs](/Users/richarddje/Documents/github/pgen/rust/src/bin/return_annotation_generated_audit.rs):
+  - validates that generated parser outputs from the closed-loop sample corpus convert successfully into typed return AST.
+- Updated [rust/src/ast_pipeline/unified_return_ast.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_return_ast.rs):
+  - hardened generated parse-tree to typed-AST conversion with text fallbacks for terminal/transformed-terminal shapes and nested postfix/spread edge cases exposed by the new gate.
+- Added [rust/test_data/grammar_quality/return_annotation_stimuli_module_parity_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/return_annotation_stimuli_module_parity_contract.json):
+  - isolates `return_annotation` for generated-module vs in-memory stimuli parity proof.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [README.md](/Users/richarddje/Documents/github/pgen/README.md), [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - promoted the live tracker row from `Mostly Done` to `Done`,
+  - recorded why this promotion is now defensible under the stricter proof doctrine.
+
+### Validation Results
+- `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`
+  - passed end to end
+  - included `return_annotation_exhaustiveness_gate` summary:
+    - `initial_targets=6`
+    - `final_targets=0`
+    - `covered_reachable_rules=29/29`
+    - `covered_reachable_branches=38/38`
+    - `parseability_accepted=99/99`
+- `cargo test --manifest-path rust/Cargo.toml --lib unified_return_ast --quiet`
+  - passed `19/19`
+
 ## 2026-03-14 - Tighten `Done` Semantics And Demote Return-Annotation Support To `Mostly Done`
 ### ✅ Achievement Summary
 The project now uses a stricter definition of `Done`: a claim is only `Done` when its proof surface is formally exhaustive and leaves no plausible coverage gap. Under that stricter standard, `return_annotation` full Rust AST-pipeline support was demoted from `Done` back to `Mostly Done` because its current construct suite is still curated rather than auto-derived from `grammars/return_annotation.ebnf`.

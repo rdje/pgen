@@ -250,6 +250,7 @@ help:
 	@echo "  annotation_stimuli_quality_gate - Enforce strict closed-loop stimuli/coverage/gap checks (no-regression) for annotation grammars"
 	@echo "  ebnf_stimuli_quality_gate - Enforce strict closed-loop parser/stimuli quality checks for non-annotation tracked EBNFs"
 	@echo "  stimuli_module_parity_gate - Enforce in-memory vs generated stimuli-module parity (samples + coverage + gap)"
+	@echo "  return_annotation_exhaustiveness_gate - Enforce auto-derived return-annotation closure proof (coverage + parity + typed AST)"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
 	@echo "  sc08_contract_gate - Enforce SC-08 value-domain Tier-4 contract slices + differential taxonomy checks"
@@ -783,8 +784,14 @@ return_annotation_support_gate:
 	@echo "🧱 Running return annotation support gate..."
 	cd $(RUST_DIR) && cargo test --features generated_parsers --lib parser_registry --quiet
 	@$(MAKE) -C $(RUST_DIR) return_full_contract_gate
-	@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate
+	@$(MAKE) -C $(RUST_DIR) return_annotation_exhaustiveness_gate
 	@echo "✅ Return annotation support gate passed."
+
+.PHONY: return_annotation_exhaustiveness_gate
+return_annotation_exhaustiveness_gate:
+	@echo "🧮 Running return annotation exhaustiveness gate..."
+	cd $(RUST_DIR) && ./scripts/return_annotation_exhaustiveness_gate.sh
+	@echo "✅ Return annotation exhaustiveness gate passed."
 
 .PHONY: return_runtime_semantics_gate
 return_runtime_semantics_gate:

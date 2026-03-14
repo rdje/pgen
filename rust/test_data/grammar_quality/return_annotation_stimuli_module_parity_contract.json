@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "description": "Focused parity contract for return_annotation in-memory stimuli generation vs generated Rust stimuli-module artifacts.",
+  "grammars": [
+    {
+      "id": "return_annotation",
+      "grammar_name": "return_annotation",
+      "ebnf_path": "grammars/return_annotation.ebnf",
+      "seed": 7101,
+      "require_parseability": true
+    }
+  ]
+}

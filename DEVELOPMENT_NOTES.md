@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Close Return-Annotation Exhaustiveness Proof
+### Context
+The user-set closure bar for `Done` is now explicit: no plausible proof gap is acceptable when grammar-derived exhaustiveness is possible. The remaining blocker for `return_annotation` was therefore not implementation breadth but proof shape. The curated full-construct suite was useful, but it was still curated. The required next step was to derive closure from the grammar-driven stimuli/gap machinery itself and then audit the generated parser output all the way into typed return AST.
+
+### Implementation
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `return_annotation_exhaustiveness_gate`,
+  - changed `return_annotation_support_gate` so it now requires:
+    - the repo-wide parser-registry return-shaping audit,
+    - `return_full_contract_gate`,
+    - and the new grammar-driven exhaustiveness gate.
+- Updated [rust/scripts/annotation_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh):
+  - added `PGEN_ANNOTATION_STIMULI_QUALITY_FILTER=all|return|semantic`,
+  - so the return side can be proven independently without weakening the shared gate.
+- Added [rust/scripts/return_annotation_exhaustiveness_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/return_annotation_exhaustiveness_gate.sh):
+  - reuses the return side of the annotation stimuli closed loop as the grammar-derived coverage engine,
+  - requires stage-3 gap closure (`targets == 0`),
+  - requires full reachable rule/branch closure,
+  - requires parseability acceptance with zero parser rejections/generation errors/empty generations,
+  - requires `return_annotation` in-memory vs generated stimuli-module parity,
+  - requires generated parser output from the resulting sample corpus to convert into typed return AST.
+- Added [rust/src/bin/return_annotation_generated_audit.rs](/Users/richarddje/Documents/github/pgen/rust/src/bin/return_annotation_generated_audit.rs):
+  - loads the unique sample corpus emitted by the exhaustiveness flow,
+  - parses each sample with `generated/return_annotation_parser.rs`,
+  - converts the parse tree through `UnifiedReturnAST::parse_generated_return_annotation(...)`,
+  - and asserts that the typed AST is serializable.
+- Updated [rust/src/ast_pipeline/unified_return_ast.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_return_ast.rs):
+  - added generated-text fallbacks for terminal/transformed-terminal nodes,
+  - added postfix-text fallbacks for property/index access,
+  - relaxed bootstrap spread parsing so valid generated forms like `$2::1**` survive fallback reparsing,
+  - added focused regression coverage for that nested-spread shape.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [README.md](/Users/richarddje/Documents/github/pgen/README.md), [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - promoted `return_annotation` full Rust AST-pipeline support from `Mostly Done` to `Done`,
+  - documented that the curated full-construct suite is now supplementary rather than the closure dependency.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib unified_return_ast --quiet`
+  - `19/19` passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_exhaustiveness_gate`
+  - passed with:
+    - `initial_targets=6`
+    - `final_targets=0`
+    - `reachable_rules=29`
+    - `covered_reachable_rules=29`
+    - `reachable_branches=38`
+    - `covered_reachable_branches=38`
+    - `parseability_attempts=99`
+    - `parseability_accepted=99`
+- `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`
+  - passed end to end
+
+### Notes
+- This promotion is intentionally not based on the older curated construct manifest alone.
+- The gate improvement also exposed and fixed real generated-parse-tree conversion gaps in `UnifiedReturnAST`, which is exactly the kind of hidden issue the stricter proof doctrine is meant to flush out.
+
 ## 2026-03-14 - Tighten `Done` Semantics And Demote Return-Annotation Support To `Mostly Done`
 ### Context
 The new `return_annotation_support_gate` materially improved the proof surface, but the user correctly challenged whether that justified the tracker row being `Done`. On re-analysis, the answer was no under the intended meaning of `Done`: the current proof is strong, repeatable, and executable, but `rust/test_data/return_annotation/full_construct_grammar_contract.json` is still curated rather than auto-derived from `grammars/return_annotation.ebnf`. That leaves a bounded coverage-gap risk, which is incompatible with a strict "formal closure only" definition of `Done`.

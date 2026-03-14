@@ -55,6 +55,7 @@ Closure rule for `Done`:
 - `Done` means "formally exhaustive with no possible coverage gap in the proof surface",
 - therefore curated/manual construct suites can support `Mostly Done`, but they do not by themselves justify `Done`,
 - when grammar-derived exhaustiveness is possible, closure requires an auto-derived proof surface rather than a hand-maintained approximation.
+- current example: `return_annotation` reached this bar on 2026-03-14 only after `return_annotation_support_gate` began requiring the grammar-driven `return_annotation_exhaustiveness_gate` in addition to contract, roundtrip, parity, and typed-AST audit proof.
 
 ## Status Legend
 - `Done`

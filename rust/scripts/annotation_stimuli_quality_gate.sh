@@ -14,6 +14,7 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 SAMPLE_COUNT="${PGEN_ANNOTATION_STIMULI_QUALITY_COUNT:-24}"
 GAP_THRESHOLD="${PGEN_ANNOTATION_STIMULI_QUALITY_GAP_THRESHOLD:-1}"
 TARGET_MAX_ATTEMPTS="${PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-6000}"
+FILTER="${PGEN_ANNOTATION_STIMULI_QUALITY_FILTER:-all}"
 
 RETURN_SEED_BASE="${PGEN_ANNOTATION_STIMULI_QUALITY_RETURN_SEED:-8101}"
 SEMANTIC_SEED_BASE="${PGEN_ANNOTATION_STIMULI_QUALITY_SEMANTIC_SEED:-8201}"
@@ -30,6 +31,13 @@ if ! [[ "$TARGET_MAX_ATTEMPTS" =~ ^[0-9]+$ ]] || [[ "$TARGET_MAX_ATTEMPTS" -lt 1
     echo "error: PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS must be an integer >= 1" >&2
     exit 2
 fi
+case "$FILTER" in
+    all|return|semantic) ;;
+    *)
+        echo "error: PGEN_ANNOTATION_STIMULI_QUALITY_FILTER must be one of: all, return, semantic" >&2
+        exit 2
+        ;;
+esac
 
 mkdir -p "$LOG_DIR" "$WORK_DIR"
 
@@ -468,6 +476,7 @@ echo "state_dir: $STATE_DIR"
 echo "sample_count: $SAMPLE_COUNT"
 echo "gap_threshold: $GAP_THRESHOLD"
 echo "target_max_attempts: $TARGET_MAX_ATTEMPTS"
+echo "filter: $FILTER"
 echo "return_seed_base: $RETURN_SEED_BASE"
 echo "semantic_seed_base: $SEMANTIC_SEED_BASE"
 
@@ -481,8 +490,12 @@ if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     exit 1
 fi
 
-closed_loop_for_grammar "return" "return_annotation" "$RETURN_JSON" "$RETURN_SEED_BASE"
-closed_loop_for_grammar "semantic" "semantic_annotation" "$SEMANTIC_JSON" "$SEMANTIC_SEED_BASE"
+if [[ "$FILTER" == "all" || "$FILTER" == "return" ]]; then
+    closed_loop_for_grammar "return" "return_annotation" "$RETURN_JSON" "$RETURN_SEED_BASE"
+fi
+if [[ "$FILTER" == "all" || "$FILTER" == "semantic" ]]; then
+    closed_loop_for_grammar "semantic" "semantic_annotation" "$SEMANTIC_JSON" "$SEMANTIC_SEED_BASE"
+fi
 
 {
     echo "PGEN Annotation Stimuli Quality Gate Summary"
@@ -490,6 +503,7 @@ closed_loop_for_grammar "semantic" "semantic_annotation" "$SEMANTIC_JSON" "$SEMA
     echo "sample_count: $SAMPLE_COUNT"
     echo "gap_threshold: $GAP_THRESHOLD"
     echo "target_max_attempts: $TARGET_MAX_ATTEMPTS"
+    echo "filter: $FILTER"
     echo
     if command -v column >/dev/null 2>&1; then
         column -s, -t "$SUMMARY_CSV"

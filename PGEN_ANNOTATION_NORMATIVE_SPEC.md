@@ -41,7 +41,14 @@ That contract covers:
 
 Executable proof surface:
 - focused aggregate support gate: `make -C rust SHELL=/bin/bash return_annotation_support_gate`
-- current tracked construct suite: `rust/test_data/return_annotation/full_construct_grammar_contract.json`
+- auto-derived exhaustiveness gate inside that aggregate:
+  - `make -C rust SHELL=/bin/bash return_annotation_exhaustiveness_gate`
+  - requires grammar-driven stage-target closure from the return stimuli generator,
+  - requires full reachable rule/branch closure,
+  - requires parseability acceptance with zero parser rejections/generation errors/empty generations,
+  - requires in-memory vs generated stimuli-module parity for `return_annotation`,
+  - requires generated parse-tree to typed-AST audit over the closed-loop sample corpus.
+- supplementary curated regression suite: `rust/test_data/return_annotation/full_construct_grammar_contract.json`
 - focused generated-pipeline check: `generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`
 - focused registry/grammar audit: `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry --quiet`
 - required closed-loop stimuli gate: `make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate`
@@ -59,9 +66,11 @@ Formal closure rule for this area:
   - deterministic replay coverage.
 
 Current tracked state note (2026-03-14):
-- return-annotation support in the Rust AST pipeline is strong and executable, but it remains `Mostly Done` in the live tracker rather than `Done`,
-- the specific blocker is that `rust/test_data/return_annotation/full_construct_grammar_contract.json` is still curated instead of auto-derived from `grammars/return_annotation.ebnf`,
-- until that auto-derived exhaustiveness check exists, the proof surface still has a bounded but real coverage-gap risk.
+- return-annotation support in the Rust AST pipeline is now tracked as `Done`,
+- the prior blocker was removed by making the closure proof grammar-driven instead of curated:
+  - `return_annotation_exhaustiveness_gate` now derives its closure from the return stimuli generator's reachable-rule/reachable-branch gap reports for `grammars/return_annotation.ebnf`,
+  - and `return_annotation_support_gate` now requires that exhaustiveness proof plus contract, roundtrip, parity, and typed-AST audit evidence.
+- `rust/test_data/return_annotation/full_construct_grammar_contract.json` remains valuable regression coverage, but it is supplementary evidence rather than the formal closure dependency.
 
 Binding policy note (2026-02-20):
 - Built-in annotation parser support is no longer treated as an open-ended "limited subset" target.
