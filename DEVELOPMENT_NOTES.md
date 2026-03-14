@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Make Phase S EBNF-Only for Final Closure
+### Context
+Phase S had accumulated substantial handwritten bootstrap progress in `rtl_frontend` and `rtl_const_expr`, but the project’s top-level doctrine is that PGEN deliverables are EBNF-backed parsers. That meant the roadmap language was still too permissive: it described parser crates, but did not explicitly forbid handwritten parsers from counting as final Phase S closure. The required correction was to make that rule explicit and realign the live tracker to match it.
+
+### Implementation
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added a Phase S closure rule requiring tracked EBNF plus PGEN-generated parser paths for every parser family in the phase,
+  - clarified that handwritten parsers are bootstrap/prototyping scaffolding only.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - downgraded `rtl_const_expr` and `rtl_frontend` from `Mostly Done` to `In Progress`,
+  - changed the immediate next gap from parser-surface expansion alone to EBNF-backed closure for the current handwritten baselines.
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the EBNF-only parser doctrine in the project entrypoint and continuity file.
+
+### Validation
+- Documentation/policy change only; no code/test execution was required.
+
+### Notes
+- This change does not discard the current handwritten Phase S work; it reclassifies it as bootstrap scaffolding rather than final closure.
+- The next implementation work for Phase S should now be chosen with EBNF-backed migration in mind, not just feature expansion of the handwritten parsers.
+
 ## 2026-03-14 - Add RTL Structured Assignment Values
 ### Context
 The previous assignment-target work broadened what the frontend could represent on the left-hand side, but assignment values still fell back to `rtl_const_expr::Expr`. That left a real dataflow gap: expressions like `{cfg.data[BIT], d}` or `cfgs[IDX].data[BIT]` on the RHS did not have the same structured/frontend-aware representation as port actuals. The next clean increment was therefore structured assignment-value coverage.

@@ -1880,9 +1880,16 @@ Objective: make AST visibility first-class for generator and generated-parser de
 ### Phase S (Planned): RTLSyn Parser Stack Minimum Viable Coverage
 Objective: capture the minimum parser/evaluator surface required by the planned RTLSyn flow. Initial foundational work has started, but the phase is still far from complete.
 
+Phase S closure rule:
+- every parser family in this phase shall be represented by tracked EBNF and generated through PGEN,
+- there are no exceptions to this rule for final Phase S closure,
+- handwritten parsers may be used as bootstrap/prototyping scaffolding only,
+- handwritten parser coverage does not count as final closure for this phase.
+
 - [ ] Add an RTL frontend parser crate for the synthesizable RTL subset only:
   - SystemVerilog frontend scope should cover the planned synthesis-facing subset rather than full SV,
   - required baseline includes modules, ports, declarations, continuous assigns, procedural blocks, parameters/localparams, and generate constructs,
+  - final closure requires a tracked RTL-subset EBNF and a PGEN-generated parser path for that subset; the current handwritten frontend is only a bootstrap baseline,
   - this remains the most critical parser family because the frontend boundary is already backend-pluggable for future PGEN integration.
   - Progress (2026-03-13): added initial standalone crate `rtl_frontend` wired to `rtl_const_expr` with:
     - handwritten parser coverage for module headers, parameter/localparam declarations, ANSI ports, packed ranges, net declarations, continuous assigns, module instantiations, `always_comb` / `always @(*)` blocks, and explicit `generate` `if` / `for` constructs,
@@ -1973,6 +1980,7 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
   - required for parameter/localparam evaluation,
   - required for width expressions and part-select arithmetic,
   - required for generate conditions and generate-loop evaluation,
+  - final closure requires the parser side to be EBNF-backed and generated through PGEN; handwritten parsing/evaluation is only a bootstrap baseline,
   - treat this as mandatory for meaningful elaboration completeness.
   - Progress (2026-03-13): added standalone baseline crate `rtl_const_expr` with:
     - integer literal parsing for decimal and sized based forms (`8'hff`, `4'b1010`),
@@ -1984,6 +1992,7 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
   - required to extract cell Boolean functions,
   - required to extract timing arcs,
   - required to extract area/power attributes,
+  - final closure requires a tracked Liberty EBNF and a PGEN-generated parser path,
   - mandatory for real technology mapping and timing-driven flow closure.
 - [ ] Add an SDC parser crate for the planned timing-constraint subset:
   - minimum subset is:
@@ -1992,6 +2001,7 @@ Objective: capture the minimum parser/evaluator surface required by the planned 
     - `set_output_delay`
     - `set_false_path`
     - `set_multicycle_path`
+  - final closure requires a tracked SDC EBNF and a PGEN-generated parser path,
   - mandatory for constraint-driven STA and mapping.
 - [ ] Planned later, not day-1 mandatory:
   - gate-level Verilog netlist reader for stronger equivalence/debug loops,

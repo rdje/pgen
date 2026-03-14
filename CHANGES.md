@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-14 - Make Phase S EBNF-Only for Final Closure
+### ✅ Achievement Summary
+Phase S now has an explicit no-compromise closure rule: every parser family in the RTLSyn stack must ultimately be backed by tracked EBNF and generated through PGEN. Handwritten parsers remain acceptable only as bootstrap/prototyping scaffolding and no longer count as final closure.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added an explicit Phase S closure rule requiring tracked EBNF plus PGEN-generated parser paths,
+  - clarified that `rtl_frontend`, `rtl_const_expr`, Liberty, and SDC parser deliverables all inherit that rule.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - realigned `rtl_const_expr` and `rtl_frontend` from `Mostly Done` to `In Progress`,
+  - changed the immediate next gap to EBNF-backed closure for the current handwritten baselines.
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the EBNF-only parser doctrine and marked the current Phase S crates as bootstrap baselines rather than final closure artifacts.
+
+### Validation Results
+- Documentation/policy change only; no code/test execution was required.
+
 ## 2026-03-14 - Add RTL Structured Assignment Values
 ### ✅ Achievement Summary
 `rtl_frontend` now supports structured RHS values on `assign` and procedural statements. Assignment values can preserve signal/member paths, selects, concatenations, and repetition forms instead of being limited to the constant-expression parser’s shape.

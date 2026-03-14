@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-rtl-structured-assignment-values)
+Last updated: 2026-03-14 (+0100, task: make-phase-s-ebnf-only-for-final-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,10 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Phase S closure doctrine:
+  - every parser family in Phase S must ultimately be backed by tracked EBNF and generated through PGEN,
+  - handwritten Phase S parsers count only as bootstrap/prototyping scaffolding,
+  - current handwritten progress in `rtl_frontend` and `rtl_const_expr` remains useful but does not by itself satisfy final Phase S closure.
 - Live progress tracking policy:
   - `LIVE_ACHIEVEMENT_STATUS.md` is now the authoritative current-state tracker,
   - only `Done`, `Mostly Done`, `In Progress`, and `Not Started` are allowed,
