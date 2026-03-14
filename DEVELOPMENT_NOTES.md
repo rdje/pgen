@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add RTL Structured Assignment Values
+### Context
+The previous assignment-target work broadened what the frontend could represent on the left-hand side, but assignment values still fell back to `rtl_const_expr::Expr`. That left a real dataflow gap: expressions like `{cfg.data[BIT], d}` or `cfgs[IDX].data[BIT]` on the RHS did not have the same structured/frontend-aware representation as port actuals. The next clean increment was therefore structured assignment-value coverage.
+
+### Implementation
+- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - introduced a dedicated structured assignment-value model for continuous and procedural assignments,
+  - reused the current port-actual parsing shape so assignment RHS values can preserve signal/member paths, selects, concatenations, and repetition forms,
+  - validated structured assignment values through the existing visible-scope/type-aware identifier checks during elaboration.
+- Added focused tests for:
+  - structured continuous-assign value parsing,
+  - elaboration acceptance of structured procedural assignment values,
+  - rejection of invalid aggregate members inside structured assignment values.
+
+### Validation
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed with `64/64` tests green.
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed cleanly.
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` completed successfully.
+
+### Notes
+- This increment broadens structured RHS/dataflow coverage, but it still does not model richer mixed operator expressions that combine structured/member/select operands within one frontend-aware expression tree.
+- The next clean increment is likely that broader mixed-expression layer or another synthesizable declaration/type-family slice.
+
 ## 2026-03-14 - Add Live Four-State Achievement Tracking
 ### Context
 The project had a living roadmap and continuity docs, but it still lacked a single explicit progress surface with stable states that could be updated before each commit. That made it too easy for progress reporting to drift into narrative status instead of precise closure tracking. The next clean operational increment was therefore to add a live four-state achievement tracker and bind it to the commit workflow.

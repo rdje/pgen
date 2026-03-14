@@ -36,7 +36,7 @@ This file is the authoritative live tracking view for "where we are now".
 | Area | Status | Evidence | Left To Close |
 |---|---|---|---|
 | `rtl_const_expr` baseline evaluator | Mostly Done | Standalone crate exists, is integrated into `rtl_frontend`, and supports literals, operators, ternary, dotted identifiers, and package-qualified names. | Broaden constant-expression coverage to the remaining RTL cases needed by the planned frontend/elaboration stack. |
-| `rtl_frontend` synthesizable subset baseline | Mostly Done | Current subset covers modules, params/localparams, ANSI ports, typedef/package scope, instantiations, generate, aggregate types, procedural forms, typed/concatenated assignment targets, and elaboration-time validation. | Expand the remaining parser/elaboration surface, especially richer RHS expression forms, broader lvalue families, and deeper procedural/dataflow semantics. |
+| `rtl_frontend` synthesizable subset baseline | Mostly Done | Current subset covers modules, params/localparams, ANSI ports, typedef/package scope, instantiations, generate, aggregate types, procedural forms, typed/concatenated assignment targets, structured assignment values, and elaboration-time validation. | Expand the remaining parser/elaboration surface, especially richer mixed operator/value-expression forms and deeper procedural/dataflow semantics. |
 | Liberty parser crate | Not Started | Roadmap item still open; no crate/worktree implementation is tracked yet. | Add the crate and land the minimum timing/Boolean/area extraction subset. |
 | SDC parser crate | Not Started | Roadmap item still open; no crate/worktree implementation is tracked yet. | Add the crate and land the planned minimum constraint subset. |
 | Later auxiliary readers (`gate-level` netlist reader, config reader, optional SDF) | Not Started | Still listed as later/non-day-1 items in Phase S only. | Start only after the core parser-stack MVP is materially closer to closure. |
@@ -45,4 +45,4 @@ This file is the authoritative live tracking view for "where we are now".
 
 | Area | Status | Evidence | Left To Close |
 |---|---|---|---|
-| `rtl_frontend` post-LHS expansion work | In Progress | LHS parsing/validation now covers typed and concatenated assignment targets. | Broaden the remaining assignment/dataflow surface, with richer RHS expression support the clearest next frontend gap. |
+| `rtl_frontend` post-structured-RHS work | In Progress | Assignment parsing/validation now covers typed and concatenated LHS targets plus structured RHS values (signal/member/select/concat/repeat forms). | Broaden the remaining dataflow expression surface, especially mixed operator expressions over structured/member/select operands. |

@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-14 - Add RTL Structured Assignment Values
+### ✅ Achievement Summary
+`rtl_frontend` now supports structured RHS values on `assign` and procedural statements. Assignment values can preserve signal/member paths, selects, concatenations, and repetition forms instead of being limited to the constant-expression parser’s shape.
+
+### Scope of Changes
+- Expanded [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+  - introduced a dedicated structured assignment-value model,
+  - reused the existing port-actual parsing shape so assignment RHS values can preserve signal/member/select/concat/repeat structure,
+  - validated structured RHS values through the same visible-scope/type-aware identifier checks used elsewhere in the frontend.
+- Added focused tests for:
+  - structured continuous-assign value retention,
+  - elaboration acceptance of structured procedural assignment values,
+  - rejection of invalid aggregate members inside structured assignment values.
+- Synced living docs:
+  - `LIVE_ACHIEVEMENT_STATUS.md`, `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `DEVELOPMENT_NOTES.md`, and `MEMORY.md` now describe the structured-assignment-value baseline.
+
+### Validation Results
+- `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` ✅ (`64/64`)
+- `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` ✅
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` ✅
+
 ## 2026-03-14 - Add Live Four-State Achievement Tracking
 ### ✅ Achievement Summary
 The project now has an explicit live progress surface using exactly four states: `Done`, `Mostly Done`, `In Progress`, and `Not Started`. That status model is now tracked in-repo and tied directly into the commit workflow so progress can be monitored precisely instead of informally.

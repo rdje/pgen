@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-live-four-state-achievement-tracking)
+Last updated: 2026-03-14 (+0100, task: add-rtl-structured-assignment-values)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -56,6 +56,7 @@ Use this file to resume work without replaying full chat history.
     - procedural coverage for `always_ff` edge-trigger event controls and `always_latch` blocks in addition to `always_comb` / `always @(*)`,
     - elaboration-time procedural validation for event-control/statement identifiers plus `always_ff` nonblocking-assignment enforcement,
     - typed `assign` and procedural assignment targets for signal/member/select/part-select LHS forms plus concatenated LHS forms such as `{cfg.data[BIT], cfg.valid}` with elaboration-time target validation,
+    - structured assignment RHS values for signal/member/select/concat/repeat forms with elaboration-time identifier validation,
     - packed-union width-coherence validation during elaboration,
     - file-scope plus module-local typedef parsing and named type resolution for later module headers/declarations in the handwritten subset,
     - top-level package typedef and constant parsing, package-qualified type/constant references, and module-body/header wildcard/named imports for named-type and constant visibility,
@@ -67,7 +68,7 @@ Use this file to resume work without replaying full chat history.
 - Latest targeted validation for the resumed task:
   - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed,
   - `cargo test --manifest-path rtl_const_expr/Cargo.toml --quiet` passed (`13/13`),
-  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`61/61`),
+  - `cargo test --manifest-path rtl_frontend/Cargo.toml --quiet` passed (`64/64`),
   - `cargo clippy --manifest-path rtl_const_expr/Cargo.toml --all-targets -- -D warnings` passed,
   - `cargo clippy --manifest-path rtl_frontend/Cargo.toml --all-targets -- -D warnings` passed.
 - Branch: `main` (ahead of `origin/main`; run `git status -sb` for exact count).

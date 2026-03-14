@@ -563,12 +563,9 @@ fn validate_module_item_types(
             assign
                 .target
                 .validate(&visible_scope.names, &visible_scope.types, symbols)?;
-            validate_expr_identifiers(
-                &assign.value,
-                &visible_scope.names,
-                &visible_scope.types,
-                symbols,
-            )?;
+            assign
+                .value
+                .validate(&visible_scope.names, &visible_scope.types, symbols)?;
         }
         ModuleItem::ProceduralBlock(block) => {
             validate_procedural_block(block, visible_scope, symbols)?;
@@ -671,7 +668,7 @@ fn validate_statement(
             value,
         } => {
             target.validate(&visible_scope.names, &visible_scope.types, symbols)?;
-            validate_expr_identifiers(value, &visible_scope.names, &visible_scope.types, symbols)?;
+            value.validate(&visible_scope.names, &visible_scope.types, symbols)?;
             if *kind == AssignmentKind::Blocking && !policy.allow_blocking_assignments {
                 return Err(FrontendError::new(
                     format!(
@@ -1192,7 +1189,7 @@ pub struct GenvarDecl {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContinuousAssign {
     pub target: AssignmentTarget,
-    pub value: Expr,
+    pub value: ValueExpr,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1251,6 +1248,83 @@ impl AssignmentTarget {
             | AssignmentTarget::BitSelect { signal: name, .. }
             | AssignmentTarget::PartSelect { signal: name, .. } => name.clone(),
             AssignmentTarget::Concat(_) => "{...}".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ValueExpr {
+    Signal(String),
+    BitSelect {
+        signal: String,
+        index: Expr,
+    },
+    PartSelect {
+        signal: String,
+        msb: Expr,
+        lsb: Expr,
+    },
+    Concat(Vec<ValueExpr>),
+    Repeat {
+        count: Expr,
+        value: Box<ValueExpr>,
+    },
+    Expression(Expr),
+}
+
+impl ValueExpr {
+    fn validate(
+        &self,
+        visible_names: &HashSet<String>,
+        visible_types: &HashMap<String, DeclType>,
+        symbols: &HashMap<String, i64>,
+    ) -> Result<(), FrontendError> {
+        match self {
+            ValueExpr::Signal(name) => {
+                validate_known_identifier(name, visible_names, visible_types, symbols)
+            }
+            ValueExpr::BitSelect { signal, index } => {
+                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(index, visible_names, visible_types, symbols)
+            }
+            ValueExpr::PartSelect { signal, msb, lsb } => {
+                validate_known_identifier(signal, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(msb, visible_names, visible_types, symbols)?;
+                validate_expr_identifiers(lsb, visible_names, visible_types, symbols)
+            }
+            ValueExpr::Concat(items) => {
+                for item in items {
+                    item.validate(visible_names, visible_types, symbols)?;
+                }
+                Ok(())
+            }
+            ValueExpr::Repeat { count, value } => {
+                validate_expr_identifiers(count, visible_names, visible_types, symbols)?;
+                value.validate(visible_names, visible_types, symbols)
+            }
+            ValueExpr::Expression(expr) => {
+                validate_expr_identifiers(expr, visible_names, visible_types, symbols)
+            }
+        }
+    }
+}
+
+impl From<PortActual> for ValueExpr {
+    fn from(value: PortActual) -> Self {
+        match value {
+            PortActual::Signal(name) => ValueExpr::Signal(name),
+            PortActual::BitSelect { signal, index } => ValueExpr::BitSelect { signal, index },
+            PortActual::PartSelect { signal, msb, lsb } => {
+                ValueExpr::PartSelect { signal, msb, lsb }
+            }
+            PortActual::Concat(items) => {
+                ValueExpr::Concat(items.into_iter().map(ValueExpr::from).collect())
+            }
+            PortActual::Repeat { count, value } => ValueExpr::Repeat {
+                count,
+                value: Box::new(ValueExpr::from(*value)),
+            },
+            PortActual::Expression(expr) => ValueExpr::Expression(expr),
         }
     }
 }
@@ -1628,7 +1702,7 @@ pub enum Statement {
     Assignment {
         target: AssignmentTarget,
         kind: AssignmentKind,
-        value: Expr,
+        value: ValueExpr,
     },
     Empty,
 }
@@ -1988,6 +2062,10 @@ fn parse_assignment_target(input: &str) -> Result<AssignmentTarget, FrontendErro
         format!("unsupported assignment target '{}'", trimmed),
         0,
     ))
+}
+
+fn parse_value_expr(input: &str) -> Result<ValueExpr, FrontendError> {
+    Ok(ValueExpr::from(parse_port_actual(input)?))
 }
 
 fn split_repetition_count_and_value(input: &str) -> Result<Option<(&str, &str)>, FrontendError> {
@@ -3188,7 +3266,7 @@ impl<'a> Parser<'a> {
                 self.current().start,
             ));
         }
-        let value = self.parse_expression_until(&[';'])?;
+        let value = self.parse_value_expr_until(&[';'])?;
         self.expect_symbol(';')?;
         Ok(ContinuousAssign { target, value })
     }
@@ -3262,7 +3340,7 @@ impl<'a> Parser<'a> {
         }
 
         let (target, kind) = self.parse_assignment_target_and_kind()?;
-        let value = self.parse_expression_until(&[';'])?;
+        let value = self.parse_value_expr_until(&[';'])?;
         self.expect_symbol(';')?;
         Ok(Statement::Assignment {
             target,
@@ -3610,6 +3688,18 @@ impl<'a> Parser<'a> {
             Ok(None)
         } else {
             parse_port_actual(&text).map(Some)
+        }
+    }
+
+    fn parse_value_expr_until(&mut self, terminators: &[char]) -> Result<ValueExpr, FrontendError> {
+        let text = self.parse_raw_text_until(terminators)?;
+        if text.is_empty() {
+            Err(FrontendError::new(
+                "expected value expression",
+                self.current().start,
+            ))
+        } else {
+            parse_value_expr(&text)
         }
     }
 
@@ -3975,8 +4065,8 @@ fn is_data_type_keyword(value: &str) -> bool {
 mod tests {
     use super::{
         AssignmentTarget, DataType, EventEdge, GenerateFor, GenerateIf, ModuleItem, NetKind,
-        ParameterOverride, PortActual, PortConnection, ProceduralKind, Statement, parse_design,
-        parse_module,
+        ParameterOverride, PortActual, PortConnection, ProceduralKind, Statement, ValueExpr,
+        parse_design, parse_module,
     };
     use std::collections::HashMap;
 
@@ -4262,6 +4352,49 @@ mod tests {
     }
 
     #[test]
+    fn parses_structured_continuous_assign_values() {
+        let module = parse_module(
+            r#"
+            module top #(
+                parameter BIT = 1
+            ) (
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            assign cfg.valid = {cfg.data[BIT], cfg.data[0]};
+            endmodule
+            "#,
+        )
+        .expect("module should parse");
+
+        let assign = module
+            .items
+            .iter()
+            .find_map(|item| match item {
+                ModuleItem::ContinuousAssign(assign) => Some(assign),
+                _ => None,
+            })
+            .expect("continuous assign should exist");
+
+        assert_eq!(
+            assign.value,
+            ValueExpr::Concat(vec![
+                ValueExpr::BitSelect {
+                    signal: "cfg.data".to_string(),
+                    index: rtl_const_expr::parse_expression("BIT").unwrap(),
+                },
+                ValueExpr::BitSelect {
+                    signal: "cfg.data".to_string(),
+                    index: rtl_const_expr::parse_expression("0").unwrap(),
+                },
+            ])
+        );
+    }
+
+    #[test]
     fn elaboration_accepts_well_formed_always_ff_blocks() {
         let design = parse_design(
             r#"
@@ -4343,6 +4476,34 @@ mod tests {
     }
 
     #[test]
+    fn elaboration_accepts_structured_assignment_values() {
+        let design = parse_design(
+            r#"
+            module top #(
+                parameter IDX = 1,
+                parameter BIT = 2
+            ) (
+                input logic clk,
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfgs [0:1];
+            always_ff @(posedge clk) begin
+                cfgs[IDX].valid <= {cfgs[IDX].data[BIT], d};
+            end
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        design
+            .elaborate_top("top", &HashMap::new())
+            .expect("elaboration should accept structured assignment values");
+    }
+
+    #[test]
     fn elaboration_rejects_blocking_assignments_in_always_ff_blocks() {
         let design = parse_design(
             r#"
@@ -4413,6 +4574,33 @@ mod tests {
         let error = design
             .elaborate_top("top", &HashMap::new())
             .expect_err("elaboration should reject unknown members in assign targets");
+        assert!(
+            error
+                .message
+                .contains("unknown member 'missing' on parent-scope identifier 'cfg'")
+        );
+    }
+
+    #[test]
+    fn elaboration_rejects_unknown_members_in_assignment_values() {
+        let design = parse_design(
+            r#"
+            module top (
+                input logic d
+            );
+            struct packed {
+                logic [7:0] data;
+                logic valid;
+            } cfg;
+            assign cfg.valid = {cfg.data, cfg.missing};
+            endmodule
+            "#,
+        )
+        .expect("design should parse");
+
+        let error = design
+            .elaborate_top("top", &HashMap::new())
+            .expect_err("elaboration should reject unknown members in assignment values");
         assert!(
             error
                 .message
