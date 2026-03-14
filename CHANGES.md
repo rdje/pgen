@@ -17967,6 +17967,46 @@ Strengthen the objective proof surface for the main `systemverilog` parser famil
 
 ---
 
+## 2026-03-14: Preserve aggregate SV replay-shadow counterexamples
+
+### Goal
+Strengthen the main `systemverilog` parser-family proof surface further by retaining bounded shrunk counterexamples in the aggregate replay-shadow artifact, not just in the shadow profile reports or summary counts.
+
+### Changes
+- Updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+  - aggregate replay-shadow path now collects bounded per-profile counterexamples into:
+    - `systemverilog_closed_loop_parseability_shadow_counterexamples.jsonl`
+  - aggregate report:
+    - `systemverilog_closed_loop_parseability_shadow_report.json`
+    now preserves:
+    - `counterexamples_captured_total`
+    - bounded `counterexamples`
+  - per-profile aggregate entries now also carry:
+    - `counterexamples_captured`
+- Synced status/continuity docs:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+
+### Validation
+- Focused shadow-enabled gate:
+  - `PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_parseability_shadow_focus_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_shadow_focus`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Observed in aggregate replay-shadow report:
+  - `requested_total=1641`
+  - `attempts_total=1641`
+  - `accepted_total=462`
+  - `rejected_total=1179`
+  - `parser_rejections_total=1179`
+  - `counterexamples_captured_total=5`
+  - `counterexamples_count=5`
+
+---
+
 ## 2026-02-28: Extended Phase R dump-format/safety contract to parser-returned AST dumps
 
 ### Goal

@@ -3880,3 +3880,24 @@ Use this file to resume work without replaying full chat history.
 - Live-status effect:
   - `systemverilog`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-14 - Main SV aggregate replay-shadow counterexample retention
+
+- `rust/scripts/sv_stimuli_quality_gate.sh` now preserves bounded shrunk replay-shadow counterexamples in the aggregate `systemverilog_closed_loop_parseability_shadow_report.json`, not only in per-profile reports.
+- Focused validation used a temporary shadow-enabled contract:
+  - `PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_parseability_shadow_focus_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_shadow_focus`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Observed focused aggregate replay-shadow metrics:
+  - `requested_total=1641`
+  - `attempts_total=1641`
+  - `accepted_total=462`
+  - `rejected_total=1179`
+  - `parser_rejections_total=1179`
+  - `counterexamples_captured_total=5`
+  - `counterexamples_count=5`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

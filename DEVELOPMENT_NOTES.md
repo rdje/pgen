@@ -18252,3 +18252,44 @@ Improve the measurability of the main `systemverilog` parser-family proof surfac
   - `parser_rejections_total=7`
   - `counterexamples_count=5`
 - Verified aggregate report now preserves the counterexample payloads instead of only totals.
+
+---
+
+## 2026-03-14: Main SV aggregate replay-shadow counterexample retention
+
+### Goal
+Extend the same objective-evidence tightening from aggregate parseability generation to aggregate replay shadow, so the main `systemverilog` parser-family proof surface exposes bounded shrunk replay-shadow counterexamples directly in the aggregate report.
+
+### Changes
+- Updated `rust/scripts/sv_stimuli_quality_gate.sh`:
+  - aggregate replay-shadow path now writes bounded per-profile counterexamples into:
+    - `systemverilog_closed_loop_parseability_shadow_counterexamples.jsonl`
+  - aggregate replay-shadow report:
+    - `systemverilog_closed_loop_parseability_shadow_report.json`
+    now includes:
+    - `counterexamples_captured_total`
+    - bounded `counterexamples`
+  - profile entries in the aggregate replay-shadow report now include:
+    - `counterexamples_captured`
+- Synced status/roadmap continuity:
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `CHANGES.md`
+  - `MEMORY.md`
+
+### Validation
+- Focused shadow-enabled gate run:
+  - `PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_parseability_shadow_focus_contract.json`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_shadow_focus`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- Observed aggregate replay-shadow metrics:
+  - `requested_total=1641`
+  - `attempts_total=1641`
+  - `accepted_total=462`
+  - `rejected_total=1179`
+  - `parser_rejections_total=1179`
+  - `counterexamples_captured_total=5`
+  - `counterexamples_count=5`
+- Verified aggregate replay-shadow report now preserves the counterexample payloads instead of only totals.

@@ -1918,6 +1918,7 @@ closed_loop_parseability_shadow_parser_rejections_total=0
 closed_loop_parseability_shadow_generation_errors_total=0
 closed_loop_parseability_shadow_empty_generations_total=0
 closed_loop_parseability_shadow_acceptance_rate_percent="0.00"
+closed_loop_parseability_shadow_counterexamples_captured_total=0
 total_warnings=0
 total_errors=0
 semantic_shrink_count=0
@@ -1964,6 +1965,7 @@ realistic_report_json="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_report.
 realistic_cases_jsonl="$WORK_DIR/${grammar_name}_nexsim_realistic_corpus_cases.jsonl"
 closed_loop_parseability_shadow_report_json="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_report.json"
 closed_loop_parseability_shadow_profiles_jsonl="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_profiles.jsonl"
+closed_loop_parseability_shadow_counterexamples_jsonl="$WORK_DIR/${grammar_name}_closed_loop_parseability_shadow_counterexamples.jsonl"
 parseability_generation_counterexamples_jsonl="$WORK_DIR/${grammar_name}_parseability_generation_counterexamples.jsonl"
 closed_loop_parseability_shadow_primary_entry_attempts_total=0
 closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=0
@@ -1975,6 +1977,7 @@ if [[ "$declared_shadow_enabled" -eq 1 ]]; then
     : >"$declared_shadow_cases_jsonl"
 fi
 : >"$closed_loop_parseability_shadow_profiles_jsonl"
+: >"$closed_loop_parseability_shadow_counterexamples_jsonl"
 : >"$parseability_generation_counterexamples_jsonl"
 profile_count="${#run_profiles[@]}"
 total_samples=$((sample_count * profile_count))
@@ -2161,6 +2164,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             shadow_generation_errors="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "generation_errors")"
             shadow_empty_generations="$(parseability_summary_field_u64 "$closed_loop_replay_parseability_shadow_report" "empty_generations")"
             shadow_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$closed_loop_replay_parseability_shadow_report")"
+            shadow_counterexamples_captured="$(jq -er '((.counterexamples // []) | length) | numbers' "$closed_loop_replay_parseability_shadow_report")"
             shadow_primary_entry_attempts="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "primary_entry_attempts")"
             shadow_primary_entry_accepted_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "primary_entry_accepted_outputs")"
             shadow_primary_entry_rejected_outputs="$(parseability_target_drive_field_u64 "$closed_loop_replay_parseability_shadow_report" "primary_entry_rejected_outputs")"
@@ -2175,12 +2179,19 @@ for profile_idx in "${!run_profiles[@]}"; do
             closed_loop_parseability_shadow_parser_rejections_total=$((closed_loop_parseability_shadow_parser_rejections_total + shadow_parser_rejections))
             closed_loop_parseability_shadow_generation_errors_total=$((closed_loop_parseability_shadow_generation_errors_total + shadow_generation_errors))
             closed_loop_parseability_shadow_empty_generations_total=$((closed_loop_parseability_shadow_empty_generations_total + shadow_empty_generations))
+            closed_loop_parseability_shadow_counterexamples_captured_total=$((closed_loop_parseability_shadow_counterexamples_captured_total + shadow_counterexamples_captured))
             closed_loop_parseability_shadow_primary_entry_attempts_total=$((closed_loop_parseability_shadow_primary_entry_attempts_total + shadow_primary_entry_attempts))
             closed_loop_parseability_shadow_primary_entry_accepted_outputs_total=$((closed_loop_parseability_shadow_primary_entry_accepted_outputs_total + shadow_primary_entry_accepted_outputs))
             closed_loop_parseability_shadow_primary_entry_rejected_outputs_total=$((closed_loop_parseability_shadow_primary_entry_rejected_outputs_total + shadow_primary_entry_rejected_outputs))
             closed_loop_parseability_shadow_alternate_entry_attempts_total=$((closed_loop_parseability_shadow_alternate_entry_attempts_total + shadow_alternate_entry_attempts))
             closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total + shadow_alternate_entry_accepted_outputs))
             closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=$((closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total + shadow_alternate_entry_rejected_outputs))
+            if (( shadow_counterexamples_captured > 0 )); then
+                jq -c \
+                    --arg profile "$lrm_profile" \
+                    '(.counterexamples // [])[] | . + {profile: $profile}' \
+                    "$closed_loop_replay_parseability_shadow_report" >>"$closed_loop_parseability_shadow_counterexamples_jsonl"
+            fi
 
             jq -cn \
                 --arg profile "$lrm_profile" \
@@ -2193,6 +2204,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                 --argjson generation_errors "$shadow_generation_errors" \
                 --argjson empty_generations "$shadow_empty_generations" \
                 --argjson acceptance_rate_percent "$shadow_acceptance_rate_percent" \
+                --argjson counterexamples_captured "$shadow_counterexamples_captured" \
                 --argjson primary_entry_attempts "$shadow_primary_entry_attempts" \
                 --argjson primary_entry_accepted_outputs "$shadow_primary_entry_accepted_outputs" \
                 --argjson primary_entry_rejected_outputs "$shadow_primary_entry_rejected_outputs" \
@@ -2212,6 +2224,7 @@ for profile_idx in "${!run_profiles[@]}"; do
                         empty_generations: $empty_generations,
                         acceptance_rate_percent: $acceptance_rate_percent
                     },
+                    counterexamples_captured: $counterexamples_captured,
                     target_drive_validation: {
                         primary_entry_attempts: $primary_entry_attempts,
                         primary_entry_accepted_outputs: $primary_entry_accepted_outputs,
@@ -2988,6 +3001,10 @@ if [[ -s "$parseability_generation_counterexamples_jsonl" ]]; then
     parseability_generation_counterexamples_json="$(jq -s '.[0:20]' "$parseability_generation_counterexamples_jsonl")"
 fi
 closed_loop_parseability_shadow_acceptance_rate_percent="$(perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$closed_loop_parseability_shadow_accepted_total" "$closed_loop_parseability_shadow_attempts_total")"
+closed_loop_parseability_shadow_counterexamples_json="[]"
+if [[ -s "$closed_loop_parseability_shadow_counterexamples_jsonl" ]]; then
+    closed_loop_parseability_shadow_counterexamples_json="$(jq -s '.[0:20]' "$closed_loop_parseability_shadow_counterexamples_jsonl")"
+fi
 closed_loop_parseability_shadow_profiles_json="[]"
 if [[ -s "$closed_loop_parseability_shadow_profiles_jsonl" ]]; then
     closed_loop_parseability_shadow_profiles_json="$(jq -s '.' "$closed_loop_parseability_shadow_profiles_jsonl")"
@@ -3005,6 +3022,8 @@ jq -n \
     --argjson generation_errors_total "$closed_loop_parseability_shadow_generation_errors_total" \
     --argjson empty_generations_total "$closed_loop_parseability_shadow_empty_generations_total" \
     --argjson acceptance_rate_percent "$closed_loop_parseability_shadow_acceptance_rate_percent" \
+    --argjson counterexamples_captured_total "$closed_loop_parseability_shadow_counterexamples_captured_total" \
+    --argjson counterexamples "$closed_loop_parseability_shadow_counterexamples_json" \
     --argjson primary_entry_attempts_total "$closed_loop_parseability_shadow_primary_entry_attempts_total" \
     --argjson primary_entry_accepted_outputs_total "$closed_loop_parseability_shadow_primary_entry_accepted_outputs_total" \
     --argjson primary_entry_rejected_outputs_total "$closed_loop_parseability_shadow_primary_entry_rejected_outputs_total" \
@@ -3027,6 +3046,8 @@ jq -n \
             empty_generations_total: $empty_generations_total,
             acceptance_rate_percent: $acceptance_rate_percent
         },
+        counterexamples_captured_total: $counterexamples_captured_total,
+        counterexamples: $counterexamples,
         target_drive_validation: {
             primary_entry_attempts_total: $primary_entry_attempts_total,
             primary_entry_accepted_outputs_total: $primary_entry_accepted_outputs_total,
@@ -3240,6 +3261,7 @@ jq -n \
     echo "closed_loop_parseability_shadow_generation_errors_total: $closed_loop_parseability_shadow_generation_errors_total"
     echo "closed_loop_parseability_shadow_empty_generations_total: $closed_loop_parseability_shadow_empty_generations_total"
     echo "closed_loop_parseability_shadow_acceptance_rate_percent: $closed_loop_parseability_shadow_acceptance_rate_percent"
+    echo "closed_loop_parseability_shadow_counterexamples_captured_total: $closed_loop_parseability_shadow_counterexamples_captured_total"
     echo "closed_loop_parseability_shadow_primary_entry_attempts_total: $closed_loop_parseability_shadow_primary_entry_attempts_total"
     echo "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total: $closed_loop_parseability_shadow_primary_entry_accepted_outputs_total"
     echo "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total: $closed_loop_parseability_shadow_primary_entry_rejected_outputs_total"
