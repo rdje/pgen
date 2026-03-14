@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-13
+Last updated: 2026-03-14
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -33,10 +33,14 @@ Engine generalization rule:
 - if a fix only makes sense for one specific EBNF, treat it as grammar debt or contract debt, not as a shared generator improvement.
 
 ## Status Legend
-- `Not Started`
-- `In Progress`
-- `Blocked`
 - `Done`
+- `Mostly Done`
+- `In Progress`
+- `Not Started`
+
+## Live Tracking Rule
+- `LIVE_ACHIEVEMENT_STATUS.md` is the authoritative live progress surface for current closure state.
+- Update it before every commit whenever a task changes what is done, what is left, or what the next most important gap is.
 
 ## Pillar Tracker
 

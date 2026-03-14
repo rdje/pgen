@@ -1,6 +1,6 @@
 # COMMIT.md
 
-Last updated: 2026-03-06
+Last updated: 2026-03-14
 
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
@@ -12,6 +12,10 @@ Run this workflow after each completed task/activity.
 - `README.md` (tracked)
   - Single project entrypoint and navigation hub.
   - Must be updated whenever objective, canonical flow, key paths, standard commands, or doc map changes.
+- `LIVE_ACHIEVEMENT_STATUS.md` (tracked)
+  - Authoritative live progress tracker.
+  - Must use only `Done`, `Mostly Done`, `In Progress`, and `Not Started`.
+  - Must be reviewed and updated before every commit whenever actual closure or remaining scope changes.
 - `git_message_brief.txt` (must remain untracked)
   - Short, concise commit message file.
   - Used with `git commit -F git_message_brief.txt`.
@@ -37,7 +41,13 @@ Run this workflow after each completed task/activity.
    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
    - strict source lint must pass.
    - generated-parser lint runs too; set `PGEN_CLIPPY_GENERATED_STRICT=1` to fail on generated clippy debt.
-3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `README.md`, others touched by task).
+3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
+   - `LIVE_ACHIEVEMENT_STATUS.md` review/update is mandatory before each commit whenever the task changes:
+     - what is `Done`,
+     - what is `Mostly Done`,
+     - what is `In Progress`,
+     - what is `Not Started`,
+     - or what the next most important remaining gap is.
    - `README.md` sync is required when:
      - project objective/scope changes,
      - canonical generation flow changes,

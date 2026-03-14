@@ -27,12 +27,13 @@ PGEN is a production-focused parser and stimuli generator platform.
 2. `QUICKSTART_AI_ONBOARDING.md`
 3. `PGEN_USER_GUIDE.md`
 4. `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-5. `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-6. `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-7. `CHANGES.md`
-8. `DEVELOPMENT_NOTES.md`
-9. `MEMORY.md`
-10. `COMMIT.md`
+5. `LIVE_ACHIEVEMENT_STATUS.md`
+6. `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+7. `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+8. `CHANGES.md`
+9. `DEVELOPMENT_NOTES.md`
+10. `MEMORY.md`
+11. `COMMIT.md`
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
@@ -85,6 +86,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `README.md`
   - `PGEN_USER_GUIDE.md`
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
   - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
@@ -103,7 +105,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Core contracts and roadmaps:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Operational continuity:
-  - `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `COMMIT.md`
+  - `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `COMMIT.md`
 - User/developer onboarding:
   - `PGEN_USER_GUIDE.md`, `QUICKSTART_AI_ONBOARDING.md`, `IMPLEMENTATION_GUIDE.md`, `STRESS_TEST_STANDARDIZATION.md`
 
@@ -113,6 +115,7 @@ The list below is the complete set of tracked markdown files and is intended to 
 - `COMMIT.md`
 - `CURRENT_STATUS.md`
 - `DEVELOPMENT_NOTES.md`
+- `LIVE_ACHIEVEMENT_STATUS.md`
 - `docs/api_interfaces.md`
 - `docs/AST_BASED_GENERATOR.md`
 - `docs/AST_GENERATOR_ARCHITECTURE.md`

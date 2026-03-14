@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-14 - Add Live Four-State Achievement Tracking
+### ✅ Achievement Summary
+The project now has an explicit live progress surface using exactly four states: `Done`, `Mostly Done`, `In Progress`, and `Not Started`. That status model is now tracked in-repo and tied directly into the commit workflow so progress can be monitored precisely instead of informally.
+
+### Scope of Changes
+- Added [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - introduced the authoritative live tracker,
+  - seeded it with the current major roadmap phase status and a Phase S breakdown,
+  - documented explicit evidence and remaining-gap columns.
+- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+  - made review/update of `LIVE_ACHIEVEMENT_STATUS.md` mandatory before each commit whenever closure state changes.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [README.md](/Users/richarddje/Documents/github/pgen/README.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - aligned the roadmap legend to the four-state model,
+  - added the live tracker to the authoritative/ramp-up/continuity doc flow.
+
+### Validation Results
+- Documentation/policy change only; no code/test execution was required.
+
 ## 2026-03-14 - Add RTL Concatenated Assignment Targets
 ### ✅ Achievement Summary
 `rtl_frontend` now supports concatenated assignment targets on both `assign` statements and procedural assignments. Left-hand sides like `{cfg.data[BIT], cfg.valid}` are preserved in the AST and validated element-by-element during elaboration.

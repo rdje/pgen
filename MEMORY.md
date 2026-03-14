@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-rtl-concatenated-assignment-targets)
+Last updated: 2026-03-14 (+0100, task: add-live-four-state-achievement-tracking)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,7 @@ Use this file to resume work without replaying full chat history.
 ## Resume Checklist (Read In Order)
 1. `git status -sb`
 2. Read latest entries in:
+   - `LIVE_ACHIEVEMENT_STATUS.md`
    - `CHANGES.md`
    - `DEVELOPMENT_NOTES.md`
    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
@@ -24,6 +25,10 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Live progress tracking policy:
+  - `LIVE_ACHIEVEMENT_STATUS.md` is now the authoritative current-state tracker,
+  - only `Done`, `Mostly Done`, `In Progress`, and `Not Started` are allowed,
+  - the file must be reviewed/updated before each commit whenever closure state changes.
 - Crash-resume continuity state:
   - the pre-crash worktree already contained the semantic-hint regression fix in `rust/src/ast_pipeline/stimuli_generator.rs`,
   - the pre-crash worktree also already contained the doc-currentness cleanup:

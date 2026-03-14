@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add Live Four-State Achievement Tracking
+### Context
+The project had a living roadmap and continuity docs, but it still lacked a single explicit progress surface with stable states that could be updated before each commit. That made it too easy for progress reporting to drift into narrative status instead of precise closure tracking. The next clean operational increment was therefore to add a live four-state achievement tracker and bind it to the commit workflow.
+
+### Implementation
+- Added [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - defined the only allowed status values as `Done`, `Mostly Done`, `In Progress`, and `Not Started`,
+  - documented the meaning of each state,
+  - seeded the file with a current major-phase snapshot and a more detailed Phase S breakdown.
+- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+  - added `LIVE_ACHIEVEMENT_STATUS.md` to the required tracked files,
+  - made its review/update mandatory before every commit whenever closure or remaining scope changes.
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [README.md](/Users/richarddje/Documents/github/pgen/README.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - aligned the roadmap legend to the four-state model,
+  - promoted the live tracker into the normal ramp-up and crash-recovery read order.
+
+### Validation
+- Documentation/policy change only; no code/test execution was required.
+
+### Notes
+- From this point on, the live tracker should be updated before each commit whenever a task changes what is done, mostly done, in progress, or not started.
+- The tracker is intended to complement the roadmap, not replace it: the roadmap remains the plan, while `LIVE_ACHIEVEMENT_STATUS.md` is the precise current-state view.
+
 ## 2026-03-14 - Add RTL Concatenated Assignment Targets
 ### Context
 The previous assignment-target increment broadened LHS parsing to typed member/select forms, but it still stopped at a single target. That left a common synthesizable form uncovered: concatenated left-hand sides such as `{cfg.data[BIT], cfg.valid}`. The next clean increment was therefore recursive concatenation support on top of the existing typed LHS machinery.
