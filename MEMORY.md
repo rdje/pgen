@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: make-phase-s-ebnf-only-for-final-closure)
+Last updated: 2026-03-14 (+0100, task: clarify-phase-s-rationale-and-live-status-display-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -29,10 +29,15 @@ Use this file to resume work without replaying full chat history.
   - every parser family in Phase S must ultimately be backed by tracked EBNF and generated through PGEN,
   - handwritten Phase S parsers count only as bootstrap/prototyping scaffolding,
   - current handwritten progress in `rtl_frontend` and `rtl_const_expr` remains useful but does not by itself satisfy final Phase S closure.
+- Phase S rationale documentation:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` now explains why Phase S exists,
+  - it also explains why `rtl_const_expr` is needed for deterministic elaboration-time constant semantics,
+  - and why `rtl_frontend` is needed as the synthesis-facing RTL/elaboration boundary before Liberty/SDC and later RTLSyn logic can bind meaningfully.
 - Live progress tracking policy:
   - `LIVE_ACHIEVEMENT_STATUS.md` is now the authoritative current-state tracker,
   - only `Done`, `Mostly Done`, `In Progress`, and `Not Started` are allowed,
-  - the file must be reviewed/updated before each commit whenever closure state changes.
+  - the file must be reviewed/updated before each commit whenever closure state changes,
+  - when live status changes, the changed snapshot must be both logged in `LIVE_ACHIEVEMENT_STATUS.md` and surfaced in the user-facing completion message for that task.
 - Crash-resume continuity state:
   - the pre-crash worktree already contained the semantic-hint regression fix in `rust/src/ast_pipeline/stimuli_generator.rs`,
   - the pre-crash worktree also already contained the doc-currentness cleanup:

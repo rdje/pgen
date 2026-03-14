@@ -1886,6 +1886,47 @@ Phase S closure rule:
 - handwritten parsers may be used as bootstrap/prototyping scaffolding only,
 - handwritten parser coverage does not count as final closure for this phase.
 
+Why this phase exists:
+- PGEN is an EBNF-based parser/stimuli platform, but RTLSyn needs more than a text parser for one language: it needs the minimum trusted parsing stack required to understand synthesizable RTL, evaluate elaboration-time constants, read technology libraries, and read timing constraints.
+- Existing broad-language parsing work is not enough by itself for an RTLSyn flow because synthesis needs a narrower, semantics-aware boundary:
+  - module/instance structure,
+  - parameter/localparam evaluation,
+  - width and range computation,
+  - generate elaboration,
+  - technology-library data,
+  - timing-constraint data.
+- Phase S is therefore the bridge between "PGEN can parse languages" and "PGEN can provide the parser/evaluator inputs that a synthesis-facing flow actually needs."
+
+Why `rtl_const_expr` exists:
+- Synthesizable RTL is full of constant-driven semantics:
+  - parameter/localparam defaults and overrides,
+  - packed/unpacked widths,
+  - part-select arithmetic,
+  - generate conditions and generate-loop steps,
+  - package-scoped constants used during elaboration.
+- Without a dedicated constant-expression layer, the frontend cannot deterministically elaborate even basic RTL structure.
+- `rtl_const_expr` exists to isolate that concern into a reusable kernel:
+  - parse the constant-expression subset once,
+  - evaluate it deterministically against a symbol table,
+  - reuse it across RTL elaboration and later parser-stack components.
+- In short: `rtl_const_expr` is needed because RTLSyn cannot trust widths, parameters, or generate structure unless constant expressions are parsed and evaluated as a first-class subsystem.
+
+Why `rtl_frontend` exists:
+- RTLSyn needs a synthesis-facing view of RTL, not just token streams or a general parse tree.
+- `rtl_frontend` exists to turn synthesizable source into a design/elaboration boundary that later phases can consume:
+  - modules and ANSI ports,
+  - declarations and named types,
+  - instances and port bindings,
+  - package/import visibility,
+  - generate structure,
+  - procedural/dataflow structure,
+  - first-pass elaboration-time validation.
+- This is the point where raw syntax starts becoming design structure. Without it:
+  - Liberty data has nowhere meaningful to bind,
+  - SDC constraints have no trustworthy design objects to target,
+  - later RTLSyn passes would have to re-derive basic design semantics from raw syntax.
+- In short: `rtl_frontend` is needed because RTLSyn requires a trusted elaborated RTL boundary before library, constraint, and downstream synthesis logic can make sense.
+
 - [ ] Add an RTL frontend parser crate for the synthesizable RTL subset only:
   - SystemVerilog frontend scope should cover the planned synthesis-facing subset rather than full SV,
   - required baseline includes modules, ports, declarations, continuous assigns, procedural blocks, parameters/localparams, and generate constructs,

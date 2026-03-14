@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Require Live Status Display When It Changes
+### Context
+The project already had a four-state live tracker, but the communication contract was still incomplete: a status row could change in the tracker without the completion message making that change obvious. For a long-running roadmap, that is too easy to lose track of. The required refinement was therefore to bind live-status changes to both tracked documentation and user-facing reporting.
+
+### Implementation
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - added an explicit update-policy rule that any live-status row change must be logged there before commit,
+  - added an explicit rule that no-change tasks should say status is unchanged instead of implying drift.
+- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+  - made it mandatory to summarize the changed live-status snapshot in the completion message whenever the tracker changes materially.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new status-display requirement so future crash recovery preserves the policy.
+
+### Validation
+- Documentation/process change only; no code/test execution was required.
+
+### Notes
+- This does not change any current live-state rows by itself; it changes how future status changes must be recorded and reported.
+
+## 2026-03-14 - Clarify Why Phase S, `rtl_const_expr`, and `rtl_frontend` Exist
+### Context
+Phase S had a growing implementation surface and a stricter EBNF-only closure rule, but the docs still did not plainly answer a basic architectural question: why these components exist at all. For a complex project, the roadmap needs to explain not just "what we are building" but "why this layer is required." The required clarification was therefore to document the precise role of Phase S, `rtl_const_expr`, and `rtl_frontend`.
+
+### Implementation
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - explained that Phase S exists because RTLSyn needs the minimum trusted parser/evaluator stack for synthesizable RTL, constant-driven elaboration, libraries, and constraints,
+  - explained that `rtl_const_expr` exists because RTLSyn cannot trust parameters, widths, or generate structure without a dedicated constant-expression subsystem,
+  - explained that `rtl_frontend` exists because RTLSyn needs a synthesis-facing RTL/elaboration boundary before Liberty/SDC and later synthesis logic can bind to real design structure.
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - added shorter path-level rationale so the explanation is visible from the main entrypoint too.
+
+### Validation
+- Documentation clarification only; no code/test execution was required.
+
+### Notes
+- The detailed rationale now lives in the roadmap because that is the authoritative place where Phase S deliverables are defined.
+- The README keeps a shorter version for discoverability, while the roadmap holds the full justification.
+
 ## 2026-03-14 - Make Phase S EBNF-Only for Final Closure
 ### Context
 Phase S had accumulated substantial handwritten bootstrap progress in `rtl_frontend` and `rtl_const_expr`, but the project’s top-level doctrine is that PGEN deliverables are EBNF-backed parsers. That meant the roadmap language was still too permissive: it described parser crates, but did not explicitly forbid handwritten parsers from counting as final Phase S closure. The required correction was to make that rule explicit and realign the live tracker to match it.

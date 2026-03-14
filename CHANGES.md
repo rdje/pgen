@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-14 - Require Live Status Display When It Changes
+### ✅ Achievement Summary
+The live tracking workflow now has an explicit communication rule: whenever the four-state live status changes, that change must be logged in the tracker and also displayed in the user-facing completion message. This prevents progress drift between the tracked `.md` files and the actual reported status.
+
+### Scope of Changes
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - added an explicit rule that any live-status change must be logged there before commit,
+  - added an explicit rule that unchanged tasks should say status is unchanged rather than implying silent churn.
+- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+  - made status-display-in-response mandatory whenever `LIVE_ACHIEVEMENT_STATUS.md` materially changes.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new status-display policy for crash recovery and future handoff.
+
+### Validation Results
+- Documentation/process change only; no code/test execution was required.
+
+## 2026-03-14 - Clarify Why Phase S, `rtl_const_expr`, and `rtl_frontend` Exist
+### ✅ Achievement Summary
+The tracked docs now explicitly explain why Phase S exists at all, and why `rtl_const_expr` and `rtl_frontend` are necessary steps instead of arbitrary implementation layers. The explanation is stored next to the Phase S definition so the rationale stays coupled to the deliverable.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added a direct rationale section for:
+    - why Phase S exists,
+    - why `rtl_const_expr` exists,
+    - why `rtl_frontend` exists.
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - added concise rationale to the `rtl_const_expr/` and `rtl_frontend/` path descriptions.
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that this clarification was added as tracked project documentation.
+
+### Validation Results
+- Documentation clarification only; no code/test execution was required.
+
 ## 2026-03-14 - Make Phase S EBNF-Only for Final Closure
 ### ✅ Achievement Summary
 Phase S now has an explicit no-compromise closure rule: every parser family in the RTLSyn stack must ultimately be backed by tracked EBNF and generated through PGEN. Handwritten parsers remain acceptable only as bootstrap/prototyping scaffolding and no longer count as final closure.
