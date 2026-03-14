@@ -326,6 +326,14 @@ struct ParseabilityCounterexample {
     sample_chars: usize,
     shrunk_sample: String,
     shrunk_sample_chars: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parser_error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failure_position: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failure_line: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failure_column: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -950,23 +958,19 @@ fn main() -> Result<()> {
                     .iter()
                     .filter(|case| !case.accepted)
                     .filter_map(|case| {
-                        case.sample
-                            .as_deref()
-                            .map(|sample| ParseabilityCounterexample {
-                                stage: "coverage_guided_fuzz_replay".to_string(),
-                                sample: sample.to_string(),
-                                sample_chars: sample.chars().count(),
-                                shrunk_sample: case
-                                    .shrunk_counterexample
-                                    .clone()
-                                    .unwrap_or_else(|| sample.to_string()),
-                                shrunk_sample_chars: case
-                                    .shrunk_counterexample
-                                    .as_deref()
-                                    .unwrap_or(sample)
-                                    .chars()
-                                    .count(),
-                            })
+                        case.sample.as_deref().map(|sample| {
+                            let mut counterexample = build_parseability_counterexample(
+                                "coverage_guided_fuzz_replay",
+                                &grammar.grammar_name,
+                                args.grammar_profile.as_deref(),
+                                sample,
+                            );
+                            if let Some(shrunk) = case.shrunk_counterexample.as_deref() {
+                                counterexample.shrunk_sample = shrunk.to_string();
+                                counterexample.shrunk_sample_chars = shrunk.chars().count();
+                            }
+                            counterexample
+                        })
                     })
                     .take(MAX_PARSEABILITY_COUNTEREXAMPLES)
                     .collect();
@@ -1751,12 +1755,18 @@ fn build_parseability_counterexample(
 ) -> ParseabilityCounterexample {
     let shrunk_sample = shrink_parseability_counterexample(grammar_name, grammar_profile, sample)
         .unwrap_or_else(|_| sample.to_string());
+    let failure_detail =
+        generated_parser_failure_detail(grammar_name, grammar_profile, sample).unwrap_or(None);
     ParseabilityCounterexample {
         stage: stage.to_string(),
         sample: sample.to_string(),
         sample_chars: sample.chars().count(),
         shrunk_sample_chars: shrunk_sample.chars().count(),
         shrunk_sample,
+        parser_error: failure_detail.as_ref().map(|detail| detail.parser_error.clone()),
+        failure_position: failure_detail.as_ref().and_then(|detail| detail.failure_position),
+        failure_line: failure_detail.as_ref().and_then(|detail| detail.failure_line),
+        failure_column: failure_detail.as_ref().and_then(|detail| detail.failure_column),
     }
 }
 
@@ -1772,6 +1782,95 @@ fn shrink_parseability_counterexample(
             candidate,
         )?)
     })
+}
+
+#[derive(Debug, Clone)]
+struct ParseFailureDetail {
+    parser_error: String,
+    failure_position: Option<usize>,
+    failure_line: Option<usize>,
+    failure_column: Option<usize>,
+}
+
+#[cfg(feature = "generated_parsers")]
+fn generated_parser_failure_detail(
+    grammar_name: &str,
+    grammar_profile: Option<&str>,
+    sample: &str,
+) -> Result<Option<ParseFailureDetail>> {
+    let Some(parse_result) =
+        parser_registry::parse_sample_ast_json_with_profile(grammar_name, sample, grammar_profile)
+    else {
+        let supported = supported_generated_parseability_grammars_csv();
+        return Err(anyhow::anyhow!(
+            "Unsupported grammar '{}' for generated parseability validation. Supported grammars: {}",
+            grammar_name,
+            supported
+        ));
+    };
+
+    match parse_result {
+        Ok(_) => Ok(None),
+        Err(err) => {
+            let failure_position = extract_parse_error_position(&err);
+            let (failure_line, failure_column) = failure_position
+                .map(|position| parse_error_line_column(sample, position))
+                .unwrap_or((None, None));
+            Ok(Some(ParseFailureDetail {
+                parser_error: err,
+                failure_position,
+                failure_line,
+                failure_column,
+            }))
+        }
+    }
+}
+
+#[cfg(not(feature = "generated_parsers"))]
+fn generated_parser_failure_detail(
+    _grammar_name: &str,
+    _grammar_profile: Option<&str>,
+    _sample: &str,
+) -> Result<Option<ParseFailureDetail>> {
+    Ok(None)
+}
+
+fn extract_parse_error_position(message: &str) -> Option<usize> {
+    extract_position_after_marker(message, "position ")
+        .or_else(|| extract_position_after_marker(message, "Position: "))
+}
+
+fn extract_position_after_marker(message: &str, marker: &str) -> Option<usize> {
+    let marker_index = message.rfind(marker)?;
+    let digits = message[marker_index + marker.len()..]
+        .chars()
+        .take_while(|ch| ch.is_ascii_digit())
+        .collect::<String>();
+    if digits.is_empty() {
+        None
+    } else {
+        digits.parse::<usize>().ok()
+    }
+}
+
+fn parse_error_line_column(sample: &str, failure_position: usize) -> (Option<usize>, Option<usize>) {
+    let clamped = clamp_to_char_boundary(sample, failure_position);
+    let prefix = &sample[..clamped];
+    let line = prefix.chars().filter(|ch| *ch == '\n').count() + 1;
+    let column = prefix
+        .rsplit('\n')
+        .next()
+        .map(|segment| segment.chars().count() + 1)
+        .unwrap_or(1);
+    (Some(line), Some(column))
+}
+
+fn clamp_to_char_boundary(sample: &str, position: usize) -> usize {
+    let mut clamped = position.min(sample.len());
+    while clamped > 0 && !sample.is_char_boundary(clamped) {
+        clamped -= 1;
+    }
+    clamped
 }
 
 fn minimize_failing_input<F>(input: &str, mut still_fails: F) -> Result<String>
@@ -2406,9 +2505,10 @@ mod tests {
         FuzzCorpusCandidate, LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
         StimuliCoverageMetrics, TargetDriveParseabilityTelemetry, canonicalize_json_value,
         coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
-        generate_stimuli_module_source, is_ebnf_input_path, maybe_dump_generation_ast,
-        minimize_failing_input, minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
-        resolve_parseability_max_attempts, resolve_stimuli_module_seed,
+        extract_parse_error_position, generate_stimuli_module_source, is_ebnf_input_path,
+        maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
+        parse_error_line_column, parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
+        resolve_stimuli_module_seed,
         supported_generated_parseability_grammars, supports_generated_parseability,
         write_parseability_report,
     };
@@ -2569,6 +2669,10 @@ mod tests {
             sample_chars: 16,
             shrunk_sample: "`define FOO".to_string(),
             shrunk_sample_chars: 11,
+            parser_error: Some("Parser did not consume full input at position 8".to_string()),
+            failure_position: Some(8),
+            failure_line: Some(1),
+            failure_column: Some(9),
         }];
 
         write_parseability_report(
@@ -2598,8 +2702,45 @@ mod tests {
             report_value["counterexamples"][0]["shrunk_sample"].as_str(),
             Some("`define FOO")
         );
+        assert_eq!(
+            report_value["counterexamples"][0]["parser_error"].as_str(),
+            Some("Parser did not consume full input at position 8")
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["failure_position"].as_u64(),
+            Some(8)
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["failure_line"].as_u64(),
+            Some(1)
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["failure_column"].as_u64(),
+            Some(9)
+        );
 
         std::fs::remove_file(&path).expect("temporary parseability report should be removable");
+    }
+
+    #[test]
+    fn extracts_parse_error_position_from_standard_messages() {
+        assert_eq!(
+            extract_parse_error_position("Parser did not consume full input at position 187"),
+            Some(187)
+        );
+        assert_eq!(
+            extract_parse_error_position("Parse Error: something\n\nPosition: 42\n"),
+            Some(42)
+        );
+        assert_eq!(extract_parse_error_position("no position here"), None);
+    }
+
+    #[test]
+    fn computes_parse_error_line_and_column() {
+        let sample = "alpha\nbeta\ngamma";
+        assert_eq!(parse_error_line_column(sample, 0), (Some(1), Some(1)));
+        assert_eq!(parse_error_line_column(sample, 6), (Some(2), Some(1)));
+        assert_eq!(parse_error_line_column(sample, 10), (Some(2), Some(5)));
     }
 
     #[test]

@@ -100,6 +100,10 @@ if ! jq -e '
         has("stage")
         and has("sample")
         and has("shrunk_sample")
+        and has("parser_error")
+        and has("failure_position")
+        and has("failure_line")
+        and has("failure_column")
     )
 ' "$parseability_report_json" >/dev/null; then
     echo "error: preprocessor aggregate parseability report contract failed: $parseability_report_json" >&2

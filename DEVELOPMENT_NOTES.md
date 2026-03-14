@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add Parser-Located Preprocessor Counterexamples
+### Context
+The preprocessor parser-family row is still only `Mostly Done`, and the next useful improvement was to make the remaining bounded rejection debt easier to act on. The aggregate parseability report already retained samples and shrunk samples, but that still required manual repro work to find where the generated parser stopped. I confirmed this by probing one current counterexample: the real parser failure was an orphan top-level `` `elsif `` at byte `187`, line `6`, column `1`, but the existing proof artifact did not preserve that location.
+
+### Implementation
+- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - added `parser_error`, `failure_position`, `failure_line`, and `failure_column` to `ParseabilityCounterexample`,
+  - added helpers to:
+    - recover the generated parser’s actual error string on rejected samples,
+    - extract a numeric failure position from standard parse-error messages,
+    - map that failure position back to line/column in the sample,
+  - reused the same richer builder for direct parseability generation, target-drive output filtering, and coverage-guided fuzz replay counterexamples.
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - the aggregate proof now rejects reports that omit parser-location detail from captured counterexamples.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger counterexample observability surface without changing status labels.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline --quiet`
+  - passed `27/27`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed with unchanged top-level proof totals:
+    - `attempts=38`
+    - `accepted=33`
+    - `rejected=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
+  - confirmed first aggregate counterexample now records:
+    - `parser_error="Parser did not consume full input at position 187"`
+    - `failure_position=187`
+    - `failure_line=6`
+    - `failure_column=1`
+    - `shrunk_sample="`"`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+
+### Notes
+- This change makes the remaining bounded debt much easier to attack systematically.
+- It does not by itself reduce the `5` remaining parser rejections, so the live tracker stays unchanged.
+
 ## 2026-03-14 - Reuse SV Aggregate Contract Gates In Aggregate Sign-Off
 ### Context
 The two dedicated SV-family aggregate-report contract gates already gave us repeatable proof for the main bounded evidence surfaces, but that proof still lived slightly beside aggregate release sign-off. The next useful step was to make `sota_exit_gate` reuse and surface those exact contract checks over the artifacts it already produces, instead of making operators cross-reference standalone focused runs.

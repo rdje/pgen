@@ -1780,6 +1780,14 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `final_targets=0`
     - `covered_reachable_rules=69/69`
     - `covered_reachable_branches=47/47`
+  - Progress (2026-03-14): upgraded the aggregate preprocessor parseability proof from “sample blobs only” to parser-located counterexamples:
+    - `ParseabilityCounterexample` now records `parser_error`, `failure_position`, `failure_line`, and `failure_column`,
+    - the current artifact now exposes concrete examples such as:
+      - `parser_error="Parser did not consume full input at position 187"`
+      - `failure_line=6`
+      - `failure_column=1`
+      - `shrunk_sample="`"`
+    - `sv_preprocessor_aggregate_contract_gate` now enforces that richer counterexample shape in addition to the existing zero-target/full-reachable-coverage invariants.
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.

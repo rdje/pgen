@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: reuse-sv-aggregate-contract-gates-in-aggregate-sign-off)
+Last updated: 2026-03-14 (+0100, task: add-parser-located-preprocessor-counterexamples)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -102,6 +102,19 @@ Use this file to resume work without replaying full chat history.
     - `covered_reachable_rules=69/69`
     - `covered_reachable_branches=47/47`
   - this sharpens the remaining closure gap without changing parser-family status; `systemverilog_preprocessor` remains `Mostly Done`.
+- The preprocessor bounded-debt artifact now keeps parser-side failure localization, not just sample blobs:
+  - `ParseabilityCounterexample` now records:
+    - `parser_error`
+    - `failure_position`
+    - `failure_line`
+    - `failure_column`
+  - `sv_preprocessor_aggregate_contract_gate` now enforces that richer shape,
+  - current first aggregate counterexample demonstrates the upgraded evidence:
+    - `parser_error="Parser did not consume full input at position 187"`
+    - `failure_position=187`
+    - `failure_line=6`
+    - `failure_column=1`
+    - `shrunk_sample="`"`
 - The main cause of the acceptance lift was now tracked and fixed in-repo:
   - `grammars/systemverilog_preprocessor.ebnf` now uses `inline_trivia` for same-line lexical tokens instead of allowing line comments everywhere via `trivia`,
   - `sv_preprocessor_quality_gate` now enables `--enforce-word-boundary-spacing` during parseability stages,

@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-14 - Add Parser-Located Preprocessor Counterexamples
+### ✅ Achievement Summary
+The SystemVerilog preprocessor parseability proof is now more objective: captured counterexamples no longer stop at sample text and shrunk text alone. They now retain the generated parser’s error string plus failure byte, line, and column, and the aggregate preprocessor contract gate enforces that richer shape.
+
+### Scope of Changes
+- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - extended `ParseabilityCounterexample` with:
+    - `parser_error`
+    - `failure_position`
+    - `failure_line`
+    - `failure_column`
+  - added helper logic to recover parser error detail from the generated parser only on rejected samples,
+  - added tests for error-position extraction, line/column mapping, and JSON serialization of the richer counterexample schema.
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - now requires those parser-location fields in the aggregate preprocessor parseability report counterexamples.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger proof surface,
+  - kept live-status labels unchanged because this improves bounded-debt observability rather than closing the remaining exhaustive-proof gap.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline --quiet`
+  - passed `27/27`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed
+  - current aggregate measurable state remained:
+    - `attempts=38`
+    - `accepted=33`
+    - `rejected=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
+  - first counterexample now carries objective failure localization:
+    - `parser_error="Parser did not consume full input at position 187"`
+    - `failure_position=187`
+    - `failure_line=6`
+    - `failure_column=1`
+    - `shrunk_sample="`"`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+
 ## 2026-03-14 - Reuse SV Aggregate Contract Gates In Aggregate Sign-Off
 ### ✅ Achievement Summary
 The aggregate release gate now consumes the dedicated SystemVerilog parser-family contract gates instead of leaving them as standalone evidence only. `sota_exit_gate` reuses already-produced quality-stage artifacts, reruns the lightweight contract checks over those artifacts, and surfaces the contract summary paths directly in aggregate telemetry.
