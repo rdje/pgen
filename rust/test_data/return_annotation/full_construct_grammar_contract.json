@@ -1,0 +1,394 @@
+[
+  {
+    "name": "construct_arrow_only_passthrough",
+    "description": "Grammar contract: bare arrow form must parse as passthrough.",
+    "input": "->",
+    "expected_round_trip": "->",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_arrow_expression",
+    "description": "Grammar contract: arrow plus positional expression must parse.",
+    "input": "-> $1",
+    "expected_round_trip": "-> $1",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_bare_positional",
+    "description": "Grammar contract: bare positional reference form must parse.",
+    "input": "$1",
+    "expected_round_trip": "$1",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_double_quoted_string",
+    "description": "Grammar contract: double-quoted string literal must parse.",
+    "input": "\"literal\"",
+    "expected_round_trip": "\"literal\"",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "string"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_single_quoted_string",
+    "description": "Grammar contract: single-quoted string literal must parse in the generated return grammar.",
+    "input": "'literal'",
+    "expected_round_trip": "'literal'",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "string"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_integer_literal",
+    "description": "Grammar contract: integer literal must parse.",
+    "input": "42",
+    "expected_round_trip": "42",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "number"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_float_literal",
+    "description": "Grammar contract: floating-point literal must parse.",
+    "input": "3.25",
+    "expected_round_trip": "3.25",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "number"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_boolean_true",
+    "description": "Grammar contract: boolean true literal must parse.",
+    "input": "true",
+    "expected_round_trip": "true",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "boolean"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_boolean_false",
+    "description": "Grammar contract: boolean false literal must parse.",
+    "input": "false",
+    "expected_round_trip": "false",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "boolean"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_identifier",
+    "description": "Grammar contract: identifier expression must parse in the generated return grammar.",
+    "input": "node_kind",
+    "expected_round_trip": "node_kind",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "identifier"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_parenthesized_expression",
+    "description": "Grammar contract: parenthesized expression must parse.",
+    "input": "($1)",
+    "expected_round_trip": "($1)",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "grouping"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_object_empty",
+    "description": "Grammar contract: empty object literal must parse.",
+    "input": "{}",
+    "expected_round_trip": "{}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "object"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_object_identifier_key",
+    "description": "Grammar contract: object literal with identifier key must parse.",
+    "input": "{type: $1}",
+    "expected_round_trip": "{type: $1}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "object"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_object_string_key",
+    "description": "Grammar contract: object literal with string key must parse.",
+    "input": "{\"kind\": $1}",
+    "expected_round_trip": "{\"kind\": $1}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "object"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_array_empty",
+    "description": "Grammar contract: empty array literal must parse.",
+    "input": "[]",
+    "expected_round_trip": "[]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "array"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_array_with_spread",
+    "description": "Grammar contract: array literal with spread element must parse.",
+    "input": "[$1, $2*]",
+    "expected_round_trip": "[$1, $2*]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "array", "spread"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_extraction_index",
+    "description": "Grammar contract: extraction-by-index form must parse.",
+    "input": "$2::2",
+    "expected_round_trip": "$2::2",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "extraction"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_extraction_first",
+    "description": "Grammar contract: extraction-first form must parse.",
+    "input": "$2::first",
+    "expected_round_trip": "$2::first",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "extraction"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_extraction_last",
+    "description": "Grammar contract: extraction-last form must parse.",
+    "input": "$2::last",
+    "expected_round_trip": "$2::last",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "extraction"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_extraction_spread",
+    "description": "Grammar contract: extraction with spread suffix must parse.",
+    "input": "$2::2*",
+    "expected_round_trip": "$2::2*",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "extraction", "spread"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_property_access",
+    "description": "Grammar contract: property-access form must parse.",
+    "input": "$1.value",
+    "expected_round_trip": "$1.value",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "property_access"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_nested_property_access",
+    "description": "Grammar contract: chained property-access form must parse.",
+    "input": "$1.value.name",
+    "expected_round_trip": "$1.value.name",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "property_access"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_array_access",
+    "description": "Grammar contract: array-access form must parse.",
+    "input": "$1[0]",
+    "expected_round_trip": "$1[0]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "array_access"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_nested_array_access",
+    "description": "Grammar contract: nested array-access form must parse.",
+    "input": "$1[($2::first)][0]",
+    "expected_round_trip": "$1[($2::first)][0]",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "array_access", "extraction"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_property_spread",
+    "description": "Grammar contract: spread over property access must parse.",
+    "input": "$1.value*",
+    "expected_round_trip": "$1.value*",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "property_access", "spread"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_array_access_spread",
+    "description": "Grammar contract: spread over array access must parse.",
+    "input": "$1[0]*",
+    "expected_round_trip": "$1[0]*",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "array_access", "spread"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_grouped_spread",
+    "description": "Grammar contract: spread over parenthesized expression must parse.",
+    "input": "($1)*",
+    "expected_round_trip": "($1)*",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "grouping", "spread"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "construct_complex_nested_shape",
+    "description": "Grammar contract: nested object/array/property/extraction combination must parse.",
+    "input": "{type: \"node\", params: [$3, $4::2*], body: ($6).field[0]}",
+    "expected_round_trip": "{type: \"node\", params: [$3, $4::2*], body: ($6).field[0]}",
+    "parser_type": "return",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["grammar_contract", "return", "full_construct", "object", "array", "extraction", "property_access", "array_access"],
+    "expectations": {
+      "bootstrap_parser": "skip",
+      "generated_parser": "pass"
+    }
+  }
+]

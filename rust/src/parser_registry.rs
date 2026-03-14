@@ -9,6 +9,8 @@ use crate::ebnf_generated_parser::EbnfParser;
 use crate::generated_parsers::json::JsonParser;
 #[cfg(has_generated_regex_parser)]
 use crate::generated_parsers::regex::RegexParser;
+#[cfg(has_generated_rtl_const_expr_parser)]
+use crate::generated_parsers::rtl_const_expr::RtlConstExprParser;
 #[cfg(has_generated_systemverilog_parser)]
 use crate::generated_parsers::systemverilog::SystemverilogParser;
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
@@ -131,6 +133,21 @@ fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
     parse_node_to_json(&parsed)
 }
 
+#[cfg(has_generated_rtl_const_expr_parser)]
+fn parse_with_rtl_const_expr(sample: &str) -> bool {
+    let mut parser = RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    parser.parse_full_rtl_const_expr().is_ok()
+}
+
+#[cfg(has_generated_rtl_const_expr_parser)]
+fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    let parsed = parser
+        .parse_full_rtl_const_expr()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog(sample: &str) -> bool {
     parse_with_systemverilog_profile(sample, None)
@@ -235,6 +252,11 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "regex",
         parse_sample: parse_with_regex,
     },
+    #[cfg(has_generated_rtl_const_expr_parser)]
+    GeneratedParserRegistryEntry {
+        grammar_name: "rtl_const_expr",
+        parse_sample: parse_with_rtl_const_expr,
+    },
     #[cfg(has_generated_systemverilog_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog",
@@ -305,6 +327,8 @@ pub fn parse_sample_ast_json_with_profile(
         "json" => Some(parse_with_json_ast_json(sample)),
         #[cfg(has_generated_regex_parser)]
         "regex" => Some(parse_with_regex_ast_json(sample)),
+        #[cfg(has_generated_rtl_const_expr_parser)]
+        "rtl_const_expr" => Some(parse_with_rtl_const_expr_ast_json(sample)),
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_ast_json_profile(
             sample,
@@ -329,6 +353,9 @@ pub fn registered_grammars() -> Vec<&'static str> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+
     use super::{parse_sample, parse_sample_ast_json, registered_grammars, supports_grammar};
 
     #[test]
@@ -359,6 +386,13 @@ mod tests {
     fn registry_exposes_regex_when_generated_parser_present() {
         let grammars = registered_grammars();
         assert!(grammars.contains(&"regex"));
+    }
+
+    #[cfg(has_generated_rtl_const_expr_parser)]
+    #[test]
+    fn registry_exposes_rtl_const_expr_when_generated_parser_present() {
+        let grammars = registered_grammars();
+        assert!(grammars.contains(&"rtl_const_expr"));
     }
 
     #[cfg(has_generated_systemverilog_parser)]
@@ -407,6 +441,47 @@ mod tests {
         );
     }
 
+    #[test]
+    fn return_annotation_examples_from_grammar_are_parseable() {
+        let samples = [
+            "->",
+            "-> $1",
+            "-> \"literal\"",
+            "-> 42",
+            "-> true",
+            "-> [$1, $2]",
+            "-> [$1, $2*]",
+            "-> []",
+            "-> {type: \"node\"}",
+            "-> {key: $1, val: $2}",
+            "-> {}",
+            "-> $2::2",
+            "-> $2::first",
+            "-> $2::last",
+            "-> $2::2*",
+            "-> [$1, $2::1*]",
+            "-> $1.value",
+            "-> $1[0]",
+            "-> (($1)).field[($2::first)]",
+        ];
+
+        for sample in samples {
+            assert_eq!(
+                parse_sample("return_annotation", sample),
+                Some(true),
+                "return_annotation grammar should accept example '{}'",
+                sample
+            );
+            let ast_json = parse_sample_ast_json("return_annotation", sample)
+                .expect("return_annotation ast adapter should exist");
+            assert!(
+                ast_json.is_ok(),
+                "return_annotation AST JSON adapter should serialize '{}'",
+                sample
+            );
+        }
+    }
+
     #[cfg(feature = "ebnf_dual_run")]
     #[test]
     fn ebnf_parseability_adapter_accepts_valid_rule_and_rejects_garbage() {
@@ -429,5 +504,83 @@ mod tests {
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {
         assert_eq!(parse_sample("regex", "(foo|bar)+"), Some(true));
         assert_eq!(parse_sample("regex", "("), Some(false));
+    }
+
+    #[test]
+    fn tracked_grammars_expose_parseable_standalone_return_annotations() {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("repo root")
+            .to_path_buf();
+        let grammar_dir = repo_root.join("grammars");
+        let excluded = ["return_annotation.ebnf", "semantic_annotation.ebnf"];
+        let mut missing = Vec::new();
+        let mut invalid = Vec::new();
+
+        for entry in fs::read_dir(&grammar_dir).expect("read grammars directory") {
+            let entry = entry.expect("grammar entry");
+            let path = entry.path();
+            if path.extension().and_then(|ext| ext.to_str()) != Some("ebnf") {
+                continue;
+            }
+
+            let file_name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .expect("grammar file name");
+            if excluded.contains(&file_name) {
+                continue;
+            }
+
+            let contents = fs::read_to_string(&path).expect("read grammar file");
+            let mut found_standalone_annotation = false;
+
+            for (line_number, line) in contents.lines().enumerate() {
+                let trimmed = line.trim_start();
+                if let Some(payload) = trimmed.strip_prefix("->") {
+                    found_standalone_annotation = true;
+                    let payload = payload.trim();
+                    if payload.is_empty() {
+                        continue;
+                    }
+                    if parse_sample("return_annotation", payload) != Some(true) {
+                        invalid.push(format!(
+                            "{}:{} -> {}",
+                            file_name,
+                            line_number + 1,
+                            payload
+                        ));
+                    }
+                }
+            }
+
+            if !found_standalone_annotation {
+                missing.push(file_name.to_string());
+            }
+        }
+
+        assert!(
+            missing.is_empty(),
+            "grammars missing standalone return annotations: {:?}",
+            missing
+        );
+        assert!(
+            invalid.is_empty(),
+            "standalone return annotations that do not parse with return_annotation grammar: {:?}",
+            invalid
+        );
+    }
+
+    #[cfg(has_generated_rtl_const_expr_parser)]
+    #[test]
+    fn rtl_const_expr_parseability_adapter_accepts_valid_expression_and_rejects_garbage() {
+        assert_eq!(
+            parse_sample("rtl_const_expr", "SEL ? cfg_pkg::A + 1 : cfg.width << 2"),
+            Some(true)
+        );
+        assert_eq!(parse_sample("rtl_const_expr", "A ? : B"), Some(false));
+        let ast_json = parse_sample_ast_json("rtl_const_expr", "WIDTH + 4")
+            .expect("rtl_const_expr adapter should exist");
+        assert!(ast_json.is_ok());
     }
 }

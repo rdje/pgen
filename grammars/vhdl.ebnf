@@ -9,6 +9,7 @@
 # - expression/type/literal baseline
 
 vhdl_file := design_unit*
+-> {type: "vhdl_file", design_units: $1}
 
 design_unit := library_clause
              | use_clause

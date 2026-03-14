@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: track-parser-family-maturity-separately-from-phase-closure)
+Last updated: 2026-03-14 (+0100, task: add-cross-grammar-return-ast-shaping-baseline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,32 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Annotation-role doctrine is now explicit in tracked docs:
+  - return annotations shape the AST returned by generated parsers,
+  - semantic annotations steer parser-generation behavior,
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` now carries the explicit supported semantic-directive inventory sourced from `rust/src/ast_pipeline/semantic_directive_registry.rs`.
+- Return-annotation completeness doctrine is now restated normatively:
+  - `grammars/return_annotation.ebnf` is the complete source of truth,
+  - every construct captured there is required to stay supported by the Rust AST pipeline with no exceptions.
+- Return-annotation completeness now has an explicit tracked proof surface:
+  - `rust/test_data/return_annotation/full_construct_grammar_contract.json` enumerates the construct families,
+  - the generated return-corpus test exercises that suite end to end through parser + typed-AST conversion.
+- Return closed-loop quality proof is now explicitly part of the tracked story:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash annotation_stimuli_quality_gate` is now recorded as required proof for return-annotation quality,
+  - on 2026-03-14 the return side reached `initial_targets=6`, `resolved=6`, `final_targets=0`, `target_attempts=51`, `parseability_attempts=99`, `accepted=99`, `alternate_entry_attempts=1`.
+- Cross-grammar AST-shaping baseline:
+  - every tracked `grammars/*.ebnf` file except `return_annotation.ebnf` and `semantic_annotation.ebnf` now exposes at least one explicit standalone return annotation line,
+  - `rust/src/parser_registry.rs` now contains a regression test that audits that repository-wide contract and validates those standalone annotation payloads with the generated `return_annotation` parser.
+- Bootstrap annotation-generation doctrine is now explicit:
+  - `grammars/builtin_return_annotation.ebnf` and `grammars/builtin_semantic_annotation.ebnf` are the bootstrap-safe annotation contracts used to generate `generated/return_annotation_parser.rs` and `generated/semantic_annotation_parser.rs`,
+  - this is the tracked way PGEN breaks the annotation-parser chicken-and-egg cycle.
+- Live tracking now includes an annotation-status slice:
+  - `return_annotation` full Rust AST-pipeline support is tracked separately from cross-grammar return-AST shaping adoption,
+  - both currently sit at `Mostly Done`.
+- Phase S EBNF-backed closure made its first concrete move beyond annotation grammars:
+  - `grammars/rtl_const_expr.ebnf` is now tracked,
+  - `generated/rtl_const_expr_parser.rs` is now generated and checked in,
+  - `rust/build.rs`, `rust/src/lib.rs`, and `rust/src/parser_registry.rs` now expose the generated `rtl_const_expr` parser path and AST-JSON adapter.
 - Phase S closure doctrine:
   - every parser family in Phase S must ultimately be backed by tracked EBNF and generated through PGEN,
   - handwritten Phase S parsers count only as bootstrap/prototyping scaffolding,

@@ -19,6 +19,7 @@
 #
 # This is procedural behavior, represented here as two accepted forms.
 bootstrap_return_annotation := arrow_form | bare_form
+-> $1
 
 # Arrow form is recognized after leading whitespace normalization.
 arrow_form := ws* "->" ws* return_value?

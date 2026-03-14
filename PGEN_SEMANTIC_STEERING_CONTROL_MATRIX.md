@@ -1,6 +1,6 @@
 # PGEN Semantic Steering Control Matrix (Living)
 
-Last updated: 2026-02-20
+Last updated: 2026-03-14
 
 ## Intent
 Semantic annotations are a language-level superset. The Rust AST pipeline is an implementation-level subset at any given time.
@@ -35,6 +35,59 @@ Precedence rule:
 Hard boundary:
 - Do not hardcode domain semantics that can be expressed as typed semantic directives.
 - Do hardcode only the minimum invariant semantic behavior required for correctness/safety.
+
+## Rust AST Pipeline Supported Semantic Directives
+Authoritative implementation source:
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+
+The Rust AST pipeline currently registers these semantic annotations explicitly.
+
+Parsed and validated:
+- `@type`
+- `@category`
+- `@effect`
+- `@deprecated`
+
+Stimuli steering:
+- `@sample`
+- `@weight`
+- `@literal`
+- `@example`
+
+Parser steering:
+- `@recover_budget`
+- `@recover_parse_budget`
+- `@recover_global_budget`
+
+Parser and stimuli steering:
+- `@transform`
+- `@precedence`
+- `@associativity`
+- `@priority`
+- `@branch_policy`
+- `@recover`
+- `@sync`
+- `@panic_until`
+- `@range`
+- `@enum`
+- `@regex`
+- `@len`
+- `@constraint`
+- `@requires`
+- `@implies`
+- `@token_class`
+- `@charset`
+- `@pattern`
+- `@coverage_target`
+- `@critical_path`
+- `@invalid_case`
+- `@negative`
+- `@seed_group`
+- `@deterministic_group`
+- `@profiles`
+
+Parsed only:
+- none are intentionally registry-listed as parsed-only today
 
 ## Capability Tiers
 - `Tier 0` Parsed only (stored as AST/raw, no validation contract).

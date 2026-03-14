@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add Cross-Grammar Return-AST Shaping Baseline And EBNF-Backed `rtl_const_expr`
+### Context
+The project doctrine was already clear at a high level, but the implementation surface was not yet aligned tightly enough: several tracked grammars still had no explicit return annotations, the distinction between return-vs-semantic annotations was not spelled out in one authoritative place, and Phase S still lacked a first concrete EBNF-backed generated parser path beyond the annotation grammars themselves. The next clean increment was therefore to make the AST-shaping contract explicit across the grammar corpus and to start real EBNF-backed closure for `rtl_const_expr`.
+
+### Implementation
+- Added [grammars/rtl_const_expr.ebnf](/Users/richarddje/Documents/github/pgen/grammars/rtl_const_expr.ebnf):
+  - defined a tracked constant-expression grammar for the current Phase S subset,
+  - used return annotations so the generated parser returns a deliberately shaped AST rather than an unstructured parse tree.
+- Generated [generated/rtl_const_expr_parser.rs](/Users/richarddje/Documents/github/pgen/generated/rtl_const_expr_parser.rs) from that grammar and wired it into Rust:
+  - [rust/build.rs](/Users/richarddje/Documents/github/pgen/rust/build.rs) now discovers `generated/rtl_const_expr_parser.rs`,
+  - [rust/src/lib.rs](/Users/richarddje/Documents/github/pgen/rust/src/lib.rs) exposes the generated module,
+  - [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs) now exposes parseability + AST-JSON adapters for `rtl_const_expr`.
+- Updated the tracked grammar corpus so every `grammars/*.ebnf` file except `return_annotation.ebnf` and `semantic_annotation.ebnf` now includes at least one explicit standalone return annotation line:
+  - active grammars (`json`, `regex`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`, `rtl_const_expr`) now all shape their parser-return ASTs explicitly,
+  - bootstrap/profiled/extracted grammar artifacts also now reflect the same doctrine consistently.
+- Added explicit regression checks in [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+  - repo-wide grammar audit for standalone return annotations,
+  - validation that those standalone annotation payloads parse under the generated `return_annotation` grammar,
+  - a focused example suite proving representative constructs from `grammars/return_annotation.ebnf`.
+- Added [rust/test_data/return_annotation/full_construct_grammar_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/return_annotation/full_construct_grammar_contract.json):
+  - enumerates the tracked return-annotation construct families directly,
+  - feeds the existing generated return-corpus test so full-construct generated-pipeline coverage is checked through a tracked artifact rather than an informal list.
+- Clarified the annotation split in tracked docs:
+  - [README.md](/Users/richarddje/Documents/github/pgen/README.md) now states that return annotations shape returned AST and semantic annotations steer parser generation,
+  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) now records the no-compromise return-annotation completeness contract,
+  - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) now carries an explicit supported semantic-directive inventory sourced from `rust/src/ast_pipeline/semantic_directive_registry.rs`,
+  - and [README.md](/Users/richarddje/Documents/github/pgen/README.md) plus [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) now explicitly record that `grammars/builtin_return_annotation.ebnf` and `grammars/builtin_semantic_annotation.ebnf` are the bootstrap-safe contracts used to generate the annotation parsers without circular self-dependence.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - added an explicit annotation-status slice for `return_annotation` full support and cross-grammar return-AST shaping adoption,
+  - recorded current return closed-loop evidence from the required annotation stimuli gate.
+
+### Validation
+- Regenerated the tracked parser artifact:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- /Users/richarddje/Documents/github/pgen/grammars/rtl_const_expr.ebnf --generate-parser --output /Users/richarddje/Documents/github/pgen/generated/rtl_const_expr_parser.rs`
+- Ran focused generated-parser validation:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry --quiet`
+  - result: `7` passed, `0` failed
+- Ran focused generated return-contract validation:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus --quiet`
+  - result: `1` passed, `0` failed
+- Ran required closed-loop annotation stimuli validation:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash annotation_stimuli_quality_gate`
+  - return summary: `initial_targets=6`, `resolved=6`, `final_targets=0`, `target_attempts=51`, `parseability_attempts=99`, `accepted=99`, `alternate_entry_attempts=1`
+
+### Notes
+- This change materially improves Phase S closure by moving `rtl_const_expr` from handwritten-only toward a true PGEN-backed parser path, but it does not yet close the remaining evaluator scope or the `rtl_frontend` EBNF migration.
+- The repository-wide return-annotation audit is intentionally simple and enforceable: every target grammar must expose at least one standalone return-annotation line that is parseable by the generated return-annotation grammar.
+- The new annotation-status slice is intentionally split into support vs adoption:
+  - full Rust return-annotation support tracks the parser/typed-AST/closed-loop contract,
+  - cross-grammar adoption tracks whether target grammars are actually using return annotations to shape their returned ASTs.
+
 ## 2026-03-14 - Track Parser Family Maturity Separately From Phase Closure
 ### Context
 The roadmap already showed Phases `A-R` as complete, but that did not answer a more precise operational question: how mature are the concrete parser families themselves? That was causing phase completion to be misread as universal parser closure, even though some phases are readiness kickoffs while others are full product-grade closure programs. The required fix was to track parser-family maturity explicitly with the same four-state model used elsewhere.

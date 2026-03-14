@@ -4,13 +4,16 @@
 
 # Entry point
 regex          = pattern
+-> {type: "regex", pattern: $1}
 
 # Alternation and concatenation
 pattern        = alternation
+-> $1
 alternation    = concatenation ("|" concatenation)*
 concatenation  = piece+
 
 piece          = atom quantifier?
+-> {type: "piece", atom: $1, quantifier: $2}
 
 # Quantifiers (with lazy and possessive variants)
 quantifier     = quant_base quant_suffix?

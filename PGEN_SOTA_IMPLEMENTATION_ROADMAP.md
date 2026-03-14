@@ -2034,6 +2034,11 @@ Why `rtl_frontend` exists:
     - unary, arithmetic, shift, comparison, equality, bitwise, logical, and ternary operators,
     - executable unit tests covering precedence, symbol resolution, based literals, ternary evaluation, and failure cases.
   - Progress (2026-03-13): extended `rtl_const_expr` identifier support so the baseline evaluator now also accepts package-qualified names such as `cfg_pkg::WIDTH` without colliding with ternary `?:` parsing.
+  - Progress (2026-03-14): started EBNF-backed closure for `rtl_const_expr` by adding:
+    - tracked grammar `grammars/rtl_const_expr.ebnf`,
+    - generated parser artifact `generated/rtl_const_expr_parser.rs`,
+    - Rust generated-parser wiring in `rust/build.rs`, `rust/src/lib.rs`, and `rust/src/parser_registry.rs`,
+    - focused registry tests proving parseability and AST-JSON exposure through the generated parser path.
 - [ ] Add a Liberty parser crate:
   - required to extract cell Boolean functions,
   - required to extract timing arcs,

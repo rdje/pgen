@@ -58,6 +58,10 @@ pub mod generated_parsers {
     pub mod vhdl {
         include!(env!("PGEN_VHDL_PARSER_PATH_RESOLVED"));
     }
+    #[cfg(has_generated_rtl_const_expr_parser)]
+    pub mod rtl_const_expr {
+        include!(env!("PGEN_RTL_CONST_EXPR_PARSER_PATH_RESOLVED"));
+    }
 }
 
 #[cfg(feature = "generated_parsers")]

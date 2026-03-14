@@ -13,6 +13,7 @@
 # - Non-directive source lines are captured as passthrough text.
 
 systemverilog_preprocessor_file := pp_item*
+-> {type: "systemverilog_preprocessor_file", items: $1}
 
 pp_item := pp_define
          | pp_undef

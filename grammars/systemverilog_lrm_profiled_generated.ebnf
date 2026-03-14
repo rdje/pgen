@@ -3,6 +3,9 @@
 # - sv_2017: /Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/md/section-41-data-read-api.md
 # - sv_2023: /Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md
 
+systemverilog_lrm_profiled_generated_file := source_text
+-> {type: "systemverilog_lrm_profiled_generated_file", source_text: $1}
+
 # Shared lexical foundation
 
 compiler_directive := trivia /`[^\r\n]*/

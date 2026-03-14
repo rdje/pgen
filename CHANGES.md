@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-14 - Add Cross-Grammar Return-AST Shaping Baseline And EBNF-Backed `rtl_const_expr`
+### ✅ Achievement Summary
+The project now records the annotation split much more explicitly and enforces it in active code paths: return annotations shape parser return AST, semantic annotations steer parser generation, all tracked non-annotation grammars now expose standalone return-annotation entries, and `rtl_const_expr` now has its first tracked EBNF-backed generated parser path.
+
+### Scope of Changes
+- Added [grammars/rtl_const_expr.ebnf](/Users/richarddje/Documents/github/pgen/grammars/rtl_const_expr.ebnf) and generated [generated/rtl_const_expr_parser.rs](/Users/richarddje/Documents/github/pgen/generated/rtl_const_expr_parser.rs):
+  - established the first tracked PGEN-generated parser path for the Phase S constant-expression baseline,
+  - wired generated-parser discovery and registry exposure through [rust/build.rs](/Users/richarddje/Documents/github/pgen/rust/build.rs), [rust/src/lib.rs](/Users/richarddje/Documents/github/pgen/rust/src/lib.rs), and [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs).
+- Updated grammar files so every tracked `grammars/*.ebnf` file except `return_annotation.ebnf` and `semantic_annotation.ebnf` now contains at least one explicit standalone return annotation:
+  - this includes active grammars such as `json`, `regex`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`, and the new `rtl_const_expr`,
+  - and also the tracked bootstrap/extracted/profiled grammar artifacts so the repository-wide grammar surface reflects the AST-shaping doctrine consistently.
+- Added regression coverage in [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+  - verifies every tracked target grammar exposes standalone return-annotation lines,
+  - validates those standalone return annotations against the generated `return_annotation` parser,
+  - checks the example construct surface from `grammars/return_annotation.ebnf`.
+- Added tracked full-construct return contract suite [rust/test_data/return_annotation/full_construct_grammar_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/return_annotation/full_construct_grammar_contract.json):
+  - enumerates the return-annotation construct families from `grammars/return_annotation.ebnf`,
+  - proves the generated parser + typed-AST conversion path accepts them through the existing return-corpus test.
+- Updated tracked docs:
+  - [README.md](/Users/richarddje/Documents/github/pgen/README.md),
+  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md),
+  - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md),
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md),
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md),
+  - to record:
+    - return annotations shape returned AST,
+    - semantic annotations steer parser generation,
+    - builtin annotation grammars are the bootstrap-safe contracts that break the annotation-parser chicken-and-egg cycle,
+    - the explicit semantic-directive inventory sourced from the Rust directive registry,
+    - the no-compromise return-annotation completeness contract,
+    - and the live annotation-status slice for support/adoption progress.
+
+### Validation Results
+- `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_const_expr.ebnf --generate-parser --output generated/rtl_const_expr_parser.rs` ✅
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry --quiet` ✅ (`7/7`)
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus --quiet` ✅ (`1/1`)
+- `make -C rust SHELL=/opt/homebrew/bin/bash annotation_stimuli_quality_gate` ✅
+  - return closed-loop summary: `initial_targets=6`, `resolved=6`, `final_targets=0`, `target_attempts=51`, `parseability_attempts=99`, `accepted=99`, `alternate_entry_attempts=1`
+
 ## 2026-03-14 - Track Parser Family Maturity Separately From Phase Closure
 ### ✅ Achievement Summary
 The live tracker now distinguishes roadmap-phase completion from parser-family maturity. That makes the current state explicit for `systemverilog`, `systemverilog_preprocessor`, `vhdl`, and `regex` instead of forcing readers to infer parser readiness from phase names alone.

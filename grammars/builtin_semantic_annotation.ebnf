@@ -16,6 +16,7 @@
 #   trimmed = input.trim()
 # Then classifies trimmed text into TransformExpr or Raw.
 builtin_semantic_annotation := ws* semantic_payload ws*
+-> $2
 
 semantic_payload := transform_candidate | raw_payload
 

@@ -7,12 +7,14 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(has_generated_vhdl_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_json_parser)");
     println!("cargo:rustc-check-cfg=cfg(has_generated_regex_parser)");
+    println!("cargo:rustc-check-cfg=cfg(has_generated_rtl_const_expr_parser)");
     println!("cargo:rerun-if-env-changed=PGEN_EBNF_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_JSON_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_REGEX_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH");
     println!("cargo:rerun-if-env-changed=PGEN_VHDL_PARSER_PATH");
+    println!("cargo:rerun-if-env-changed=PGEN_RTL_CONST_EXPR_PARSER_PATH");
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into()));
     let source_dir = manifest_dir.join("src");
@@ -30,6 +32,8 @@ fn main() {
             .unwrap_or_else(|_| "../generated/systemverilog_preprocessor_parser.rs".to_string());
     let vhdl_configured_path = env::var("PGEN_VHDL_PARSER_PATH")
         .unwrap_or_else(|_| "../generated/vhdl_parser.rs".to_string());
+    let rtl_const_expr_configured_path = env::var("PGEN_RTL_CONST_EXPR_PARSER_PATH")
+        .unwrap_or_else(|_| "../generated/rtl_const_expr_parser.rs".to_string());
 
     let ebnf_resolved = resolve_path(&manifest_dir, &ebnf_configured_path);
     println!("cargo:rerun-if-changed={}", ebnf_resolved.to_string_lossy());
@@ -50,6 +54,11 @@ fn main() {
     );
     let vhdl_resolved = resolve_path(&manifest_dir, &vhdl_configured_path);
     println!("cargo:rerun-if-changed={}", vhdl_resolved.to_string_lossy());
+    let rtl_const_expr_resolved = resolve_path(&manifest_dir, &rtl_const_expr_configured_path);
+    println!(
+        "cargo:rerun-if-changed={}",
+        rtl_const_expr_resolved.to_string_lossy()
+    );
     println!(
         "cargo:rustc-env=PGEN_EBNF_PARSER_PATH_RESOLVED={}",
         relativize_for_include(&source_dir, &ebnf_resolved).display()
@@ -96,6 +105,14 @@ fn main() {
         println!(
             "cargo:rustc-env=PGEN_VHDL_PARSER_PATH_RESOLVED={}",
             relativize_for_include(&source_dir, &vhdl_resolved).display()
+        );
+    }
+
+    if rtl_const_expr_resolved.is_file() {
+        println!("cargo:rustc-cfg=has_generated_rtl_const_expr_parser");
+        println!(
+            "cargo:rustc-env=PGEN_RTL_CONST_EXPR_PARSER_PATH_RESOLVED={}",
+            relativize_for_include(&source_dir, &rtl_const_expr_resolved).display()
         );
     }
 }

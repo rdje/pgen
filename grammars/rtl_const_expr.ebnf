@@ -1,0 +1,83 @@
+# rtl_const_expr.ebnf
+#
+# Phase S bootstrap grammar for synthesizable RTL constant expressions.
+# Scope intentionally matches the current handwritten `rtl_const_expr` crate:
+# - decimal and sized based integer literals
+# - identifiers, including dotted and package-qualified names
+# - unary `+ - ! ~`
+# - binary arithmetic / shift / comparison / equality / bitwise / logical ops
+# - ternary `?:`
+
+rtl_const_expr := conditional_expr
+-> {type: "rtl_const_expr", expr: $1}
+
+conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
+-> {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
+conditional_expr := logical_or_expr
+-> $1
+
+logical_or_expr := logical_and_expr (logical_or logical_and_expr)*
+logical_and_expr := bit_or_expr (logical_and bit_or_expr)*
+bit_or_expr := bit_xor_expr (bit_or bit_xor_expr)*
+bit_xor_expr := bit_and_expr (bit_xor bit_and_expr)*
+bit_and_expr := equality_expr (bit_and equality_expr)*
+equality_expr := relational_expr ((eqeq | ne) relational_expr)*
+relational_expr := shift_expr ((le | lt | ge | gt) shift_expr)*
+shift_expr := additive_expr ((shl | shr) additive_expr)*
+additive_expr := multiplicative_expr ((plus | minus) multiplicative_expr)*
+multiplicative_expr := unary_expr ((star | slash | percent) unary_expr)*
+
+unary_expr := plus unary_expr
+-> {type: "unary", op: "plus", expr: $2}
+unary_expr := minus unary_expr
+-> {type: "unary", op: "minus", expr: $2}
+unary_expr := bang unary_expr
+-> {type: "unary", op: "logical_not", expr: $2}
+unary_expr := tilde unary_expr
+-> {type: "unary", op: "bit_not", expr: $2}
+unary_expr := primary_expr
+-> $1
+
+primary_expr := literal
+-> $1
+primary_expr := identifier
+-> $1
+primary_expr := lparen conditional_expr rparen
+-> $2
+
+literal := based_integer
+-> {type: "literal", kind: "based", text: $1}
+literal := decimal_integer
+-> {type: "literal", kind: "decimal", text: $1}
+
+based_integer := trivia /[0-9][0-9_]*'[sS]?[bBoOdDhH][0-9a-fA-F_]+/
+decimal_integer := trivia /[0-9][0-9_]*/
+identifier := trivia /[_A-Za-z][_A-Za-z0-9$]*(?:(?:\.)[_A-Za-z][_A-Za-z0-9$]*|::[_A-Za-z][_A-Za-z0-9$]*)*/
+-> {type: "identifier", text: $1}
+
+trivia := /[ \t\r\n]*/
+
+question := trivia "?"
+colon := trivia ":"
+logical_or := trivia "||"
+logical_and := trivia "&&"
+bit_or := trivia "|"
+bit_xor := trivia "^"
+bit_and := trivia "&"
+eqeq := trivia "=="
+ne := trivia "!="
+le := trivia "<="
+lt := trivia "<"
+ge := trivia ">="
+gt := trivia ">"
+shl := trivia "<<"
+shr := trivia ">>"
+plus := trivia "+"
+minus := trivia "-"
+star := trivia "*"
+slash := trivia "/"
+percent := trivia "%"
+bang := trivia "!"
+tilde := trivia "~"
+lparen := trivia "("
+rparen := trivia ")"

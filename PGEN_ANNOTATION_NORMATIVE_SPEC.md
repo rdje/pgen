@@ -1,11 +1,49 @@
 # PGEN Annotation Normative Specification (Living)
 
-Last updated: 2026-02-20
+Last updated: 2026-03-14
 
 ## Purpose
 This document defines the normative contract for PGEN return and semantic annotations across bootstrap and generated pipelines.
 
 The goal is to keep annotation behavior stable for embedding users and to make bootstrap behavior explicit (including known quirks used to break chicken-and-egg cycles).
+
+## Annotation Role Split
+PGEN uses two distinct annotation languages and they are not interchangeable:
+
+- Return annotations:
+  - Source of truth: `grammars/return_annotation.ebnf`
+  - Generated parser: `generated/return_annotation_parser.rs`
+  - Normative role: shape, tailor, and control the AST returned by a generated parser.
+- Semantic annotations:
+  - Source of truth: `grammars/semantic_annotation.ebnf`
+  - Generated parser: `generated/semantic_annotation_parser.rs`
+  - Normative role: steer parser-generation behavior and related generation-time/runtime control surfaces.
+
+Therefore:
+- every generated parser is expected to return an AST,
+- return annotations define what that returned AST should look like,
+- semantic annotations define how parser generation should be directed,
+- and they must not be conflated in roadmap, implementation, or grammar policy.
+
+## Return Annotation Completeness Contract
+`grammars/return_annotation.ebnf` is the complete source of truth for return-annotation syntax.
+
+Non-negotiable requirement:
+- every return-annotation construct captured in `grammars/return_annotation.ebnf` shall be supported by the Rust AST pipeline,
+- this is a no-compromise contract,
+- there are no exceptions and no "subset is good enough" escape hatch.
+
+That contract covers:
+- parsing through `generated/return_annotation_parser.rs`,
+- typed AST conversion in `rust/src/ast_pipeline/unified_return_ast.rs`,
+- validation/runtime handling in the Rust AST pipeline,
+- and ongoing regression coverage so previously supported constructs cannot silently drop out.
+
+Executable proof surface:
+- tracked construct suite: `rust/test_data/return_annotation/full_construct_grammar_contract.json`
+- focused generated-pipeline check: `generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`
+- focused registry/grammar audit: `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry --quiet`
+- required closed-loop stimuli gate: `make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate`
 
 Binding policy note (2026-02-20):
 - Built-in annotation parser support is no longer treated as an open-ended "limited subset" target.
@@ -27,6 +65,7 @@ PGEN annotation behavior is defined in three layers:
 1. Bootstrap parser contract (built-in, intentionally limited/permissive):
    - `grammars/builtin_return_annotation.ebnf`
    - `grammars/builtin_semantic_annotation.ebnf`
+   - These builtin grammars are the bootstrap-safe annotation contracts used to generate `generated/return_annotation_parser.rs` and `generated/semantic_annotation_parser.rs` in bootstrap mode, which is how PGEN avoids the annotation-parser chicken-and-egg problem.
    - Runtime implementations:
      - `rust/src/ast_pipeline/unified_return_ast.rs`
      - `rust/src/ast_pipeline/unified_semantic_ast.rs`
