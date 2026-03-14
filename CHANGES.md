@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-14 - Add Parser-Located Main-SV Generation Counterexamples
+### ✅ Achievement Summary
+The main SystemVerilog parser’s generation-side aggregate report is now more objective: captured counterexamples no longer stop at sample text, shrink result, profile, seed, and sample index. They now also retain the generated parser’s error string plus failure byte, line, and column, and the aggregate SV parser contract gate enforces that richer generation-side shape.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - generation-side aggregate counterexamples are now required to include:
+    - `parser_error`
+    - `failure_position`
+    - `failure_line`
+    - `failure_column`
+  - shadow-side aggregate requirements were intentionally left unchanged in this increment.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger generation-side evidence surface,
+  - kept status labels unchanged because replay-shadow still lacks the same parser-location detail and exhaustive closure is still open.
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- direct generation-side contract check against the freshly produced focused roundtrip artifact:
+  - `systemverilog_parseability_generation_report.json` satisfied the richer contract shape
+  - current focused `observed` block:
+    - `requested_total=1`
+    - `accepted_total=1`
+    - `rejected_total=7`
+    - `attempts_total=8`
+    - `parser_rejections_total=7`
+    - `acceptance_rate_percent=12.50`
+  - current first counterexample now carries:
+    - `parser_error="Parser did not consume full input at position 111"`
+    - `failure_position=111`
+    - `failure_line=3`
+    - `failure_column=2`
+    - `shrunk_sample="g"`
+
 ## 2026-03-14 - Add Parser-Located Preprocessor Counterexamples
 ### ✅ Achievement Summary
 The SystemVerilog preprocessor parseability proof is now more objective: captured counterexamples no longer stop at sample text and shrunk text alone. They now retain the generated parser’s error string plus failure byte, line, and column, and the aggregate preprocessor contract gate enforces that richer shape.

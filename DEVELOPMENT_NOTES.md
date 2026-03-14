@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add Parser-Located Main-SV Generation Counterexamples
+### Context
+The preprocessor side now preserves parser-located counterexamples, but the main SV parser-family row still had generation-side aggregate counterexamples that stopped at sample text plus shrink metadata. Since the focused main-SV generation probe already keeps profile, seed, and sample index, the next clean increment was to require the parser-location fields there too rather than waiting for the slower replay-shadow half.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - generation-side aggregate counterexamples must now include:
+    - `parser_error`
+    - `failure_position`
+    - `failure_line`
+    - `failure_column`
+  - shadow-side aggregate counterexample requirements are intentionally unchanged in this task because that probe is materially slower and should be upgraded as its own follow-up increment.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the generation-side proof improvement without changing status labels.
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- direct generation-side contract assertion against [systemverilog_parseability_generation_report.json](/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/generation_state/work/systemverilog_parseability_generation_report.json)
+  - passed
+  - current focused aggregate `observed` block:
+    - `requested_total=1`
+    - `accepted_total=1`
+    - `rejected_total=7`
+    - `attempts_total=8`
+    - `parser_rejections_total=7`
+    - `acceptance_rate_percent=12.50`
+  - current first generation-side counterexample:
+    - `parser_error="Parser did not consume full input at position 111"`
+    - `failure_position=111`
+    - `failure_line=3`
+    - `failure_column=2`
+    - `shrunk_sample="g"`
+
+### Notes
+- This increment is intentionally generation-side only.
+- The next matching step is to push the same parser-location detail through the replay-shadow aggregate surface and then enforce it there too.
+
 ## 2026-03-14 - Add Parser-Located Preprocessor Counterexamples
 ### Context
 The preprocessor parser-family row is still only `Mostly Done`, and the next useful improvement was to make the remaining bounded rejection debt easier to act on. The aggregate parseability report already retained samples and shrunk samples, but that still required manual repro work to find where the generated parser stopped. I confirmed this by probing one current counterexample: the real parser failure was an orphan top-level `` `elsif `` at byte `187`, line `6`, column `1`, but the existing proof artifact did not preserve that location.

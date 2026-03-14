@@ -424,6 +424,20 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-14): tightened aggregate parser-backed evidence in `sv_stimuli_quality_gate` so `systemverilog_parseability_generation_report.json` now preserves bounded shrunk parseability counterexamples with `profile`, `sample_index`, and `seed` metadata instead of only totals. Focused validation with a temporary shadow-disabled contract (`profile=2017`, `sample_count=1`) recorded `requested_total=1`, `attempts_total=8`, `accepted_total=1`, `rejected_total=7`, `parser_rejections_total=7`, and `counterexamples_count=5` in the aggregate report.
   - Progress (2026-03-14): extended the same evidence retention to the replay-shadow aggregate surface so `systemverilog_closed_loop_parseability_shadow_report.json` now preserves bounded shrunk counterexamples instead of only totals. Focused validation (`profile=2017`, `sample_count=1`, shadow enabled) recorded `requested_total=1641`, `attempts_total=1641`, `accepted_total=462`, `rejected_total=1179`, `parser_rejections_total=1179`, and `counterexamples_count=5` in the aggregate shadow report.
   - Progress (2026-03-14): added repeatable aggregate-report contract gate `sv_parser_aggregate_contract_gate` so the focused generation-only and shadow-enabled main-SV report surfaces are no longer proven only by ad hoc commands. The gate asserts bounded-counterexample presence/shape for both aggregate JSON artifacts and currently records `generation_parser_rejections_total=7`, `generation_counterexamples_count=5`, `shadow_parser_rejections_total=1179`, `shadow_counterexamples_count=5`, and `shadow_counterexamples_captured_total=5`.
+  - Progress (2026-03-14): upgraded the main-SV generation-side aggregate counterexamples from “sample blobs only” to parser-located evidence:
+    - `systemverilog_parseability_generation_report.json` counterexamples now retain:
+      - `parser_error`
+      - `failure_position`
+      - `failure_line`
+      - `failure_column`
+      in addition to `profile`, `sample_index`, and `seed`,
+    - focused current example:
+      - `parser_error="Parser did not consume full input at position 111"`
+      - `failure_position=111`
+      - `failure_line=3`
+      - `failure_column=2`
+      - `shrunk_sample="g"`
+    - `sv_parser_aggregate_contract_gate` now enforces that richer generation-side counterexample shape.
   - Progress (2026-03-14): wired `sv_parser_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_stimuli_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_stimuli_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded-counterexample contract proof.
