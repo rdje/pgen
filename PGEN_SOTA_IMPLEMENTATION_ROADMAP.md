@@ -1867,6 +1867,25 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `fuzz_replay_accepted_cases=5`
       - `fuzz_replay_rejected_cases=3`
       - `fuzz_replay_parseability_counterexamples=3`
+  - Progress (2026-03-15): added deterministic preprocessor parseability-debt triage artifacts to `sv_preprocessor_aggregate_contract_gate`:
+    - the gate now emits:
+      - `systemverilog_preprocessor_parseability_counterexample_triage.json`
+      - `systemverilog_preprocessor_parseability_counterexample_triage.txt`
+    - those artifacts summarize the remaining bounded parser-rejection surface by:
+      - stage
+      - parser error string
+      - shrunk sample
+      - failure line/column
+      - sample preview
+    - current focused reusable triage records:
+      - `stage_count[generate_parseable_stimuli]=5`
+      - `shrunk_sample_count["`"]=5`
+      - five distinct failure locations:
+        - `6:1`
+        - `8:4`
+        - `1:7`
+        - `2:9`
+        - `4:14`
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.

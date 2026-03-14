@@ -113,6 +113,8 @@ if [[ -z "$EXISTING_QUALITY_STATE_DIR" ]]; then
 fi
 
 parseability_report_json="$quality_state_dir/work/systemverilog_preprocessor_parseability_report.json"
+counterexample_triage_json="$WORK_DIR/systemverilog_preprocessor_parseability_counterexample_triage.json"
+counterexample_triage_txt="$WORK_DIR/systemverilog_preprocessor_parseability_counterexample_triage.txt"
 samples_stage0_a_txt="$quality_state_dir/work/systemverilog_preprocessor_samples_stage0_a.txt"
 samples_stage0_b_txt="$quality_state_dir/work/systemverilog_preprocessor_samples_stage0_b.txt"
 coverage_stage0_a_json="$quality_state_dir/work/systemverilog_preprocessor_coverage_stage0_a.json"
@@ -331,6 +333,71 @@ if (( stage0_reachable_branches != stage1_reachable_branches || stage1_reachable
     exit 1
 fi
 
+jq '
+    {
+        grammar_name: .grammar_name,
+        total_counterexamples: ((.counterexamples // []) | length),
+        by_stage: (
+            (.counterexamples // [])
+            | sort_by(.stage)
+            | group_by(.stage)
+            | map({
+                stage: .[0].stage,
+                count: length
+            })
+        ),
+        by_parser_error: (
+            (.counterexamples // [])
+            | sort_by(.parser_error)
+            | group_by(.parser_error)
+            | map({
+                parser_error: .[0].parser_error,
+                count: length
+            })
+        ),
+        by_shrunk_sample: (
+            (.counterexamples // [])
+            | sort_by(.shrunk_sample)
+            | group_by(.shrunk_sample)
+            | map({
+                shrunk_sample: .[0].shrunk_sample,
+                count: length
+            })
+        ),
+        by_failure_location: (
+            (.counterexamples // [])
+            | sort_by(.failure_line, .failure_column)
+            | group_by({failure_line, failure_column})
+            | map({
+                failure_line: .[0].failure_line,
+                failure_column: .[0].failure_column,
+                count: length
+            })
+        ),
+        sample_previews: (
+            (.counterexamples // [])[:5]
+            | map({
+                stage,
+                parser_error,
+                failure_line,
+                failure_column,
+                shrunk_sample,
+                sample_preview: (.sample[:80])
+            })
+        )
+    }
+' "$parseability_report_json" >"$counterexample_triage_json"
+require_nonempty_file "$counterexample_triage_json"
+
+{
+    echo "SV Preprocessor Counterexample Triage"
+    echo "source_report: $parseability_report_json"
+    jq -r '.by_stage[]? | "stage_count[\(.stage)]: \(.count)"' "$counterexample_triage_json"
+    jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$counterexample_triage_json"
+    jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$counterexample_triage_json"
+} >"$counterexample_triage_txt"
+require_nonempty_file "$counterexample_triage_txt"
+
 parseability_attempts_total="$(extract_json_number "$parseability_report_json" '.summary.attempts')"
 parseability_accepted_total="$(extract_json_number "$parseability_report_json" '.summary.accepted')"
 parseability_rejected_total="$(extract_json_number "$parseability_report_json" '.summary.rejected')"
@@ -344,6 +411,8 @@ reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.reachable
 fuzz_replay_accepted_cases="$(extract_json_number "$fuzz_replay_a_json" '.accepted_cases')"
 fuzz_replay_rejected_cases="$(extract_json_number "$fuzz_replay_a_json" '.rejected_cases')"
 fuzz_replay_parseability_counterexamples="$(extract_json_number "$fuzz_replay_a_json" '.parseability_counterexamples')"
+counterexample_unique_shrunk_samples="$(extract_json_number "$counterexample_triage_json" '(.by_shrunk_sample | length)')"
+counterexample_unique_failure_locations="$(extract_json_number "$counterexample_triage_json" '(.by_failure_location | length)')"
 
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
@@ -351,12 +420,16 @@ fuzz_replay_parseability_counterexamples="$(extract_json_number "$fuzz_replay_a_
     echo "existing_quality_state_dir: ${EXISTING_QUALITY_STATE_DIR:-<unset>}"
     echo "quality_state_dir: $quality_state_dir"
     echo "parseability_report_json: $parseability_report_json"
+    echo "counterexample_triage_json: $counterexample_triage_json"
+    echo "counterexample_triage_txt: $counterexample_triage_txt"
     echo "gap_stage3_json: $gap_stage3_json"
     echo "parseability_attempts_total: $parseability_attempts_total"
     echo "parseability_accepted_total: $parseability_accepted_total"
     echo "parseability_rejected_total: $parseability_rejected_total"
     echo "parseability_parser_rejections_total: $parseability_parser_rejections_total"
     echo "parseability_counterexamples_captured_total: $parseability_counterexamples_captured_total"
+    echo "counterexample_unique_shrunk_samples: $counterexample_unique_shrunk_samples"
+    echo "counterexample_unique_failure_locations: $counterexample_unique_failure_locations"
     echo "stage0_target_count: $stage0_target_count"
     echo "stage1_target_count: $stage1_target_count"
     echo "final_targets: $final_targets"

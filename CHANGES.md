@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-03-15 - Add SV Preprocessor Counterexample Triage Artifacts
+### ✅ Achievement Summary
+The SystemVerilog preprocessor aggregate contract gate now emits deterministic debt-triage artifacts for its remaining bounded parser rejections. That means the still-open rejection surface is no longer just “five raw counterexamples somewhere in JSON”; it is now summarized objectively by stage, parser error, shrunk sample, failure location, and sample preview.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - now writes:
+    - `systemverilog_preprocessor_parseability_counterexample_triage.json`
+    - `systemverilog_preprocessor_parseability_counterexample_triage.txt`
+  - triage data is derived deterministically from the aggregate parseability report and grouped by:
+    - `stage`
+    - `parser_error`
+    - `shrunk_sample`
+    - `failure_line` / `failure_column`
+  - the aggregate summary now also surfaces:
+    - `counterexample_unique_shrunk_samples`
+    - `counterexample_unique_failure_locations`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new observability surface,
+  - kept status labels unchanged because this sharpens the remaining bounded debt rather than closing exhaustive grammar-level proof.
+
+### Validation Results
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - restored the known-good measurable baseline:
+    - `attempts=38`
+    - `accepted=33`
+    - `rejected=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `final_targets=0`
+    - `covered_reachable_rules=69/69`
+    - `covered_reachable_branches=47/47`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - current triage summary:
+    - `stage_count[generate_parseable_stimuli]: 5`
+    - `shrunk_sample_count["`"]: 5`
+    - `failure_location[6:1]: 1`
+    - `failure_location[8:4]: 1`
+    - `failure_location[1:7]: 1`
+    - `failure_location[2:9]: 1`
+    - `failure_location[4:14]: 1`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add SV Preprocessor Roundtrip Coverage Contract Checks
 ### ✅ Achievement Summary
 The SystemVerilog preprocessor aggregate contract gate now proves more than final totals and counterexample shape. It also machine-checks deterministic parser/stimuli replay and staged gap-driven coverage closure over the stored quality artifacts, so the preprocessor proof is now explicitly tied to repeatable roundtrip behavior.

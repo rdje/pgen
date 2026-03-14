@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-roundtrip-coverage-contract-checks)
+Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-counterexample-triage-artifacts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -122,6 +122,21 @@ Use this file to resume work without replaying full chat history.
     - `accepted_cases=5`
     - `rejected_cases=3`
     - `parseability_counterexamples=3`
+- The SV preprocessor aggregate contract gate now also emits deterministic debt-triage artifacts for the remaining bounded parser rejections:
+  - `rust/target/sv_preprocessor_aggregate_contract_gate/work/systemverilog_preprocessor_parseability_counterexample_triage.json`
+  - `rust/target/sv_preprocessor_aggregate_contract_gate/work/systemverilog_preprocessor_parseability_counterexample_triage.txt`
+  - current triage summary:
+    - one stage bucket: `generate_parseable_stimuli`
+    - one shrunk-sample bucket: lone backtick `` ` ``
+    - five distinct failure locations:
+      - `6:1`
+      - `8:4`
+      - `1:7`
+      - `2:9`
+      - `4:14`
+- A stricter grammar experiment was tried and discarded in this session:
+  - tightening same-line directive handling in `grammars/systemverilog_preprocessor.ebnf` caused the measured rejection surface to worsen (`5 -> 27` parser rejections),
+  - it was reverted rather than committed.
 - Aggregate sign-off now composes the dedicated SV-family contract gates instead of treating them as separate evidence islands:
   - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now accepts `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
   - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh` now accepts `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,
