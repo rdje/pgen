@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-14 - Add Explicit Return-Annotation Support Gate
+### ✅ Achievement Summary
+Return-annotation support is now packaged as a single explicit proof target instead of being spread implicitly across separate tests and the shared annotation stimuli gate. That makes the “100% return-annotation support” claim directly executable.
+
+### Scope of Changes
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `return_annotation_support_gate`,
+  - the new gate runs:
+    - the generated-parser `parser_registry` audit,
+    - `return_full_contract_gate`,
+    - and `annotation_stimuli_quality_gate`.
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md) and [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+  - recorded the new support gate as the focused aggregate proof surface for return-annotation closure.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - promoted `return_annotation` full Rust AST-pipeline support from `Mostly Done` to `Done`,
+  - kept cross-grammar return-AST shaping adoption at `Mostly Done` so support and adoption remain tracked separately.
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the explicit aggregate proof target and the status-promotion rationale.
+
+### Validation Results
+- `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate` ✅
+
 ## 2026-03-14 - Always Display Live Status During Commit Workflow
 ### ✅ Achievement Summary
 The commit workflow now requires every completion message to display the current live-status snapshot from the tracker, even when the task did not change any status row. That makes the effect of each completed task on project status explicit instead of inferred.

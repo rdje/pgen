@@ -46,7 +46,11 @@ Use this file to resume work without replaying full chat history.
   - this is the tracked way PGEN breaks the annotation-parser chicken-and-egg cycle.
 - Live tracking now includes an annotation-status slice:
   - `return_annotation` full Rust AST-pipeline support is tracked separately from cross-grammar return-AST shaping adoption,
-  - both currently sit at `Mostly Done`.
+  - `return_annotation` support is now `Done`,
+  - cross-grammar return-AST shaping adoption remains `Mostly Done`.
+- Return-annotation closure now has an explicit aggregate proof target:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`
+  - bundles the repo-wide shaping audit, return full-contract gate, and shared annotation closed-loop stimuli proof.
 - Phase S EBNF-backed closure made its first concrete move beyond annotation grammars:
   - `grammars/rtl_const_expr.ebnf` is now tracked,
   - `generated/rtl_const_expr_parser.rs` is now generated and checked in,

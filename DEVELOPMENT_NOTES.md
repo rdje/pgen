@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Add Explicit Return-Annotation Support Gate
+### Context
+The repo already had the ingredients for strong return-annotation confidence, but they were distributed across several separate proof surfaces: `parser_registry` for repo-wide shaping audit, `return_full_contract_gate` for runtime/round-trip/parity, and `annotation_stimuli_quality_gate` for closed-loop generation. That was strong, but still too implicit for a “100% support, no exception” contract. The required next step was to package those proofs into one explicit aggregate gate and then update the live tracker accordingly.
+
+### Implementation
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `return_annotation_support_gate`,
+  - the new target runs:
+    - `cargo test --features generated_parsers --lib parser_registry --quiet`,
+    - `make -C rust return_full_contract_gate`,
+    - `make -C rust annotation_stimuli_quality_gate`.
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md) and [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+  - documented the new gate as the focused aggregate proof for return-annotation closure.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - promoted `return_annotation` full Rust AST-pipeline support to `Done`,
+  - intentionally kept cross-grammar return-AST shaping adoption at `Mostly Done` because “grammar uses some return shaping” is not the same thing as “every grammar is deeply and deliberately shaped”.
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`
+
+### Notes
+- This change does not weaken the shared annotation proof surface. It gives the return side its own explicit executable closure target.
+- The status promotion is scoped only to full Rust return-annotation support. The separate adoption row remains intentionally stricter.
+
 ## 2026-03-14 - Always Display Live Status During Commit Workflow
 ### Context
 The project already required live-status updates to be logged before commit when rows changed, but the completion message could still omit the current tracker snapshot on tasks that left status unchanged. That made it harder to tell whether a task truly moved the tracker or simply preserved it. The required refinement was to make live-status display mandatory on every commit closeout.

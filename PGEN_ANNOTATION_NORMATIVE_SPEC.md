@@ -40,6 +40,7 @@ That contract covers:
 - and ongoing regression coverage so previously supported constructs cannot silently drop out.
 
 Executable proof surface:
+- focused aggregate support gate: `make -C rust SHELL=/bin/bash return_annotation_support_gate`
 - tracked construct suite: `rust/test_data/return_annotation/full_construct_grammar_contract.json`
 - focused generated-pipeline check: `generated_return_tree_to_typed_ast_matches_bootstrap_for_expected_pass_return_corpus`
 - focused registry/grammar audit: `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry --quiet`

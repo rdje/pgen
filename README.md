@@ -33,6 +33,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `grammars/return_annotation.ebnf` with `generated/return_annotation_parser.rs` defines the supported AST-shaping language for parser return values.
 - `grammars/semantic_annotation.ebnf` with `generated/semantic_annotation_parser.rs` defines the supported steering language for parser-generation behavior.
 - `make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate` is the required closed-loop proof surface for annotation stimuli quality, including the return-annotation generator/parser loop.
+- `make -C rust SHELL=/bin/bash return_annotation_support_gate` is the focused aggregate proof for 100% return-annotation support in the Rust AST pipeline.
 
 ## Fast Ramp-Up (Read In This Order)
 1. `README.md` (this file)
@@ -89,6 +90,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
 - EBNF dual-run gate:
   - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate`
+- Return-annotation support gate:
+  - `make -C rust SHELL=/bin/bash return_annotation_support_gate`
 - EBNF frontend readiness (Rust path):
   - `PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
 - EBNF closed-loop quality (Rust path):

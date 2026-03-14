@@ -266,6 +266,7 @@ help:
 	@echo "  semantic_runtime_contract_gate - Enforce semantic runtime/typed-AST contract checks"
 	@echo "  semantic_ast_roundtrip_gate - Enforce semantic AST round-trip contract checks"
 	@echo "  semantic_full_contract_gate - Enforce aggregate semantic contract gate (runtime + round-trip + regression)"
+	@echo "  return_annotation_support_gate - Enforce aggregate 100% return-annotation support proof (audit + contract + stimuli)"
 	@echo "  return_runtime_semantics_gate - Enforce typed return AST/runtime transform contract checks"
 	@echo "  return_ast_roundtrip_gate - Enforce canonical return AST round-trip contract checks"
 	@echo "  return_full_contract_gate - Enforce aggregate return contract gate (runtime + round-trip + parity)"
@@ -776,6 +777,14 @@ return_parity_gate:
 	cd $(RUST_DIR) && cargo build --features generated_parsers --bin test_runner
 	cd $(RUST_DIR) && ./target/debug/test_runner --differential --parser return --differential-comparable-only --differential-report-json target/differential_harness/return_annotation_parity_report.json
 	@echo "✅ Return parity gate passed (comparable return corpus has zero mismatches)."
+
+.PHONY: return_annotation_support_gate
+return_annotation_support_gate:
+	@echo "🧱 Running return annotation support gate..."
+	cd $(RUST_DIR) && cargo test --features generated_parsers --lib parser_registry --quiet
+	@$(MAKE) -C $(RUST_DIR) return_full_contract_gate
+	@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate
+	@echo "✅ Return annotation support gate passed."
 
 .PHONY: return_runtime_semantics_gate
 return_runtime_semantics_gate:
