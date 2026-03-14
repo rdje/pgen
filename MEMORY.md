@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: add-sv-roundtrip-coverage-contract-checks)
+Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-roundtrip-coverage-contract-checks)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -99,6 +99,29 @@ Use this file to resume work without replaying full chat history.
   - covered reachable branches must not regress:
     - current focused proof: `22 -> 447`
   - replay-shadow aggregate totals must stay internally consistent with `target_drive_validation`.
+- The SV preprocessor aggregate contract gate now also proves deterministic parser/stimuli replay and staged gap/coverage closure over stored quality artifacts:
+  - exact replay identity is required for stage0 baseline A/B:
+    - sample corpus
+    - coverage report
+    - gap report
+    - parseability report
+  - exact replay identity is required for stage4 fuzz replay A/B:
+    - sample corpus
+    - coverage report
+    - gap report
+    - fuzz replay metadata
+  - aggregate parseability totals must equal the sum of stage totals,
+  - aggregate target-drive totals must equal stage2 target-drive totals,
+  - staged target debt must not increase:
+    - current focused proof: `5 -> 0 -> 0`
+  - staged covered reachable rules must not regress:
+    - current focused proof: `68/69 -> 69/69 -> 69/69`
+  - staged covered reachable branches must not regress:
+    - current focused proof: `43/47 -> 47/47 -> 47/47`
+  - current focused fuzz replay proof:
+    - `accepted_cases=5`
+    - `rejected_cases=3`
+    - `parseability_counterexamples=3`
 - Aggregate sign-off now composes the dedicated SV-family contract gates instead of treating them as separate evidence islands:
   - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now accepts `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
   - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh` now accepts `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,

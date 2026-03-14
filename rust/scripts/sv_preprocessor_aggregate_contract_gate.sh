@@ -56,6 +56,44 @@ extract_json_number() {
     jq -er "$expr | numbers" "$path"
 }
 
+assert_json() {
+    local path="$1"
+    local expr="$2"
+    local message="$3"
+    if ! jq -e "$expr" "$path" >/dev/null; then
+        echo "error: $message (file: $path, expr: $expr)" >&2
+        exit 1
+    fi
+}
+
+canonicalize_json() {
+    local source="$1"
+    local target="$2"
+    jq -S . "$source" >"$target"
+}
+
+assert_same_text() {
+    local left="$1"
+    local right="$2"
+    local context="$3"
+    if ! cmp -s "$left" "$right"; then
+        echo "error: deterministic replay mismatch for $context" >&2
+        diff -u "$left" "$right" | head -n 80 >&2 || true
+        exit 1
+    fi
+}
+
+assert_same_json() {
+    local left="$1"
+    local right="$2"
+    local context="$3"
+    local left_norm="${left}.norm.json"
+    local right_norm="${right}.norm.json"
+    canonicalize_json "$left" "$left_norm"
+    canonicalize_json "$right" "$right_norm"
+    assert_same_text "$left_norm" "$right_norm" "$context"
+}
+
 require_tool jq
 if [[ -z "$EXISTING_QUALITY_STATE_DIR" ]]; then
     require_file "$QUALITY_GATE_SCRIPT"
@@ -75,10 +113,59 @@ if [[ -z "$EXISTING_QUALITY_STATE_DIR" ]]; then
 fi
 
 parseability_report_json="$quality_state_dir/work/systemverilog_preprocessor_parseability_report.json"
+samples_stage0_a_txt="$quality_state_dir/work/systemverilog_preprocessor_samples_stage0_a.txt"
+samples_stage0_b_txt="$quality_state_dir/work/systemverilog_preprocessor_samples_stage0_b.txt"
+coverage_stage0_a_json="$quality_state_dir/work/systemverilog_preprocessor_coverage_stage0_a.json"
+coverage_stage0_b_json="$quality_state_dir/work/systemverilog_preprocessor_coverage_stage0_b.json"
 gap_stage3_json="$quality_state_dir/work/systemverilog_preprocessor_gap_stage3.json"
+gap_stage0_a_json="$quality_state_dir/work/systemverilog_preprocessor_gap_stage0_a.json"
+gap_stage0_b_json="$quality_state_dir/work/systemverilog_preprocessor_gap_stage0_b.json"
+gap_stage1_json="$quality_state_dir/work/systemverilog_preprocessor_gap_stage1.json"
+coverage_stage1_json="$quality_state_dir/work/systemverilog_preprocessor_coverage_stage1.json"
+coverage_stage3_json="$quality_state_dir/work/systemverilog_preprocessor_coverage_stage3.json"
+parseability_stage0_a_json="$quality_state_dir/work/systemverilog_preprocessor_parseability_stage0_a.json"
+parseability_stage0_b_json="$quality_state_dir/work/systemverilog_preprocessor_parseability_stage0_b.json"
+parseability_stage2_json="$quality_state_dir/work/systemverilog_preprocessor_parseability_stage2.json"
+samples_stage4_a_txt="$quality_state_dir/work/systemverilog_preprocessor_samples_stage4_fuzz_a.txt"
+samples_stage4_b_txt="$quality_state_dir/work/systemverilog_preprocessor_samples_stage4_fuzz_b.txt"
+coverage_stage4_a_json="$quality_state_dir/work/systemverilog_preprocessor_coverage_stage4_fuzz_a.json"
+coverage_stage4_b_json="$quality_state_dir/work/systemverilog_preprocessor_coverage_stage4_fuzz_b.json"
+gap_stage4_a_json="$quality_state_dir/work/systemverilog_preprocessor_gap_stage4_fuzz_a.json"
+gap_stage4_b_json="$quality_state_dir/work/systemverilog_preprocessor_gap_stage4_fuzz_b.json"
+fuzz_replay_a_json="$quality_state_dir/work/systemverilog_preprocessor_fuzz_replay_a.json"
+fuzz_replay_b_json="$quality_state_dir/work/systemverilog_preprocessor_fuzz_replay_b.json"
 
 require_nonempty_file "$parseability_report_json"
+require_nonempty_file "$samples_stage0_a_txt"
+require_nonempty_file "$samples_stage0_b_txt"
+require_nonempty_file "$coverage_stage0_a_json"
+require_nonempty_file "$coverage_stage0_b_json"
+require_nonempty_file "$gap_stage0_a_json"
+require_nonempty_file "$gap_stage0_b_json"
+require_nonempty_file "$gap_stage1_json"
 require_nonempty_file "$gap_stage3_json"
+require_nonempty_file "$coverage_stage1_json"
+require_nonempty_file "$coverage_stage3_json"
+require_nonempty_file "$parseability_stage0_a_json"
+require_nonempty_file "$parseability_stage0_b_json"
+require_nonempty_file "$parseability_stage2_json"
+require_nonempty_file "$samples_stage4_a_txt"
+require_nonempty_file "$samples_stage4_b_txt"
+require_nonempty_file "$coverage_stage4_a_json"
+require_nonempty_file "$coverage_stage4_b_json"
+require_nonempty_file "$gap_stage4_a_json"
+require_nonempty_file "$gap_stage4_b_json"
+require_nonempty_file "$fuzz_replay_a_json"
+require_nonempty_file "$fuzz_replay_b_json"
+
+assert_same_text "$samples_stage0_a_txt" "$samples_stage0_b_txt" "preprocessor stage0 sample corpus"
+assert_same_json "$coverage_stage0_a_json" "$coverage_stage0_b_json" "preprocessor stage0 coverage metrics"
+assert_same_json "$gap_stage0_a_json" "$gap_stage0_b_json" "preprocessor stage0 gap report"
+assert_same_json "$parseability_stage0_a_json" "$parseability_stage0_b_json" "preprocessor stage0 parseability report"
+assert_same_text "$samples_stage4_a_txt" "$samples_stage4_b_txt" "preprocessor stage4 fuzz sample corpus"
+assert_same_json "$coverage_stage4_a_json" "$coverage_stage4_b_json" "preprocessor stage4 fuzz coverage metrics"
+assert_same_json "$gap_stage4_a_json" "$gap_stage4_b_json" "preprocessor stage4 fuzz gap report"
+assert_same_json "$fuzz_replay_a_json" "$fuzz_replay_b_json" "preprocessor stage4 fuzz replay metadata"
 
 if ! jq -e '
     .grammar_name == "systemverilog_preprocessor"
@@ -123,6 +210,127 @@ if ! jq -e '
     exit 1
 fi
 
+assert_json "$parseability_report_json" '
+    (.summary.attempts | numbers)
+        == (
+            (.stages.stage0_baseline.summary.attempts | numbers)
+            + (.stages.stage1_gap_priority.summary.attempts | numbers)
+            + (.stages.stage2_target_drive.summary.attempts | numbers)
+            + (.stages.stage3_recompute_gap.summary.attempts | numbers)
+        )
+    and (.summary.accepted | numbers)
+        == (
+            (.stages.stage0_baseline.summary.accepted | numbers)
+            + (.stages.stage1_gap_priority.summary.accepted | numbers)
+            + (.stages.stage2_target_drive.summary.accepted | numbers)
+            + (.stages.stage3_recompute_gap.summary.accepted | numbers)
+        )
+    and (.summary.rejected | numbers)
+        == (
+            (.stages.stage0_baseline.summary.rejected | numbers)
+            + (.stages.stage1_gap_priority.summary.rejected | numbers)
+            + (.stages.stage2_target_drive.summary.rejected | numbers)
+            + (.stages.stage3_recompute_gap.summary.rejected | numbers)
+        )
+    and (.summary.parser_rejections | numbers)
+        == (
+            (.stages.stage0_baseline.summary.parser_rejections | numbers)
+            + (.stages.stage1_gap_priority.summary.parser_rejections | numbers)
+            + (.stages.stage2_target_drive.summary.parser_rejections | numbers)
+            + (.stages.stage3_recompute_gap.summary.parser_rejections | numbers)
+        )
+    and (.summary.generation_errors | numbers)
+        == (
+            (.stages.stage0_baseline.summary.generation_errors | numbers)
+            + (.stages.stage1_gap_priority.summary.generation_errors | numbers)
+            + (.stages.stage2_target_drive.summary.generation_errors | numbers)
+            + (.stages.stage3_recompute_gap.summary.generation_errors | numbers)
+        )
+    and (.summary.empty_generations | numbers)
+        == (
+            (.stages.stage0_baseline.summary.empty_generations | numbers)
+            + (.stages.stage1_gap_priority.summary.empty_generations | numbers)
+            + (.stages.stage2_target_drive.summary.empty_generations | numbers)
+            + (.stages.stage3_recompute_gap.summary.empty_generations | numbers)
+        )
+    and (.target_drive_validation.primary_entry_attempts_total | numbers)
+        == (.stages.stage2_target_drive.target_drive_validation.primary_entry_attempts | numbers)
+    and (.target_drive_validation.primary_entry_accepted_outputs_total | numbers)
+        == (.stages.stage2_target_drive.target_drive_validation.primary_entry_accepted_outputs | numbers)
+    and (.target_drive_validation.primary_entry_rejected_outputs_total | numbers)
+        == (.stages.stage2_target_drive.target_drive_validation.primary_entry_rejected_outputs | numbers)
+    and (.target_drive_validation.alternate_entry_attempts_total | numbers)
+        == (.stages.stage2_target_drive.target_drive_validation.alternate_entry_attempts | numbers)
+    and (.target_drive_validation.alternate_entry_accepted_outputs_total | numbers)
+        == (.stages.stage2_target_drive.target_drive_validation.alternate_entry_accepted_outputs | numbers)
+    and (.target_drive_validation.alternate_entry_rejected_outputs_total | numbers)
+        == (.stages.stage2_target_drive.target_drive_validation.alternate_entry_rejected_outputs | numbers)
+' "preprocessor aggregate parseability totals are internally inconsistent"
+
+assert_json "$fuzz_replay_a_json" '
+    (.rounds | numbers) >= 1
+    and ((.cases | length) == (.rounds | numbers))
+    and ((.accepted_cases | numbers) + (.rejected_cases | numbers) == (.rounds | numbers))
+    and ((.minimized_cases | numbers) <= (.rounds | numbers))
+    and ((.shrunk_counterexamples | numbers) <= (.parseability_counterexamples | numbers))
+' "preprocessor fuzz replay aggregate invariants failed"
+
+stage0_target_count="$(extract_json_number "$gap_stage0_a_json" '((.targets // []) | length)')"
+stage1_target_count="$(extract_json_number "$gap_stage1_json" '((.targets // []) | length)')"
+stage3_target_count="$(extract_json_number "$gap_stage3_json" '((.targets // []) | length)')"
+stage4_target_count="$(extract_json_number "$gap_stage4_a_json" '((.targets // []) | length)')"
+stage0_covered_reachable_rules="$(extract_json_number "$gap_stage0_a_json" '.summary.covered_reachable_rules')"
+stage1_covered_reachable_rules="$(extract_json_number "$gap_stage1_json" '.summary.covered_reachable_rules')"
+stage3_covered_reachable_rules="$(extract_json_number "$gap_stage3_json" '.summary.covered_reachable_rules')"
+stage4_covered_reachable_rules="$(extract_json_number "$gap_stage4_a_json" '.summary.covered_reachable_rules')"
+stage0_reachable_rules="$(extract_json_number "$gap_stage0_a_json" '.summary.reachable_rules')"
+stage1_reachable_rules="$(extract_json_number "$gap_stage1_json" '.summary.reachable_rules')"
+stage3_reachable_rules="$(extract_json_number "$gap_stage3_json" '.summary.reachable_rules')"
+stage4_reachable_rules="$(extract_json_number "$gap_stage4_a_json" '.summary.reachable_rules')"
+stage0_covered_reachable_branches="$(extract_json_number "$gap_stage0_a_json" '.summary.covered_reachable_branches')"
+stage1_covered_reachable_branches="$(extract_json_number "$gap_stage1_json" '.summary.covered_reachable_branches')"
+stage3_covered_reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.covered_reachable_branches')"
+stage4_covered_reachable_branches="$(extract_json_number "$gap_stage4_a_json" '.summary.covered_reachable_branches')"
+stage0_reachable_branches="$(extract_json_number "$gap_stage0_a_json" '.summary.reachable_branches')"
+stage1_reachable_branches="$(extract_json_number "$gap_stage1_json" '.summary.reachable_branches')"
+stage3_reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.reachable_branches')"
+stage4_reachable_branches="$(extract_json_number "$gap_stage4_a_json" '.summary.reachable_branches')"
+
+if (( stage1_target_count > stage0_target_count )); then
+    echo "error: preprocessor gap-priority target debt increased: stage0=$stage0_target_count stage1=$stage1_target_count" >&2
+    exit 1
+fi
+
+if (( stage3_target_count > stage1_target_count )); then
+    echo "error: preprocessor recompute-gap target debt increased: stage1=$stage1_target_count stage3=$stage3_target_count" >&2
+    exit 1
+fi
+
+if (( stage4_target_count > stage3_target_count )); then
+    echo "error: preprocessor fuzz replay target debt increased: stage3=$stage3_target_count stage4=$stage4_target_count" >&2
+    exit 1
+fi
+
+if (( stage1_covered_reachable_rules < stage0_covered_reachable_rules || stage3_covered_reachable_rules < stage1_covered_reachable_rules || stage4_covered_reachable_rules < stage3_covered_reachable_rules )); then
+    echo "error: preprocessor reachable-rule coverage regressed across stages: stage0=$stage0_covered_reachable_rules stage1=$stage1_covered_reachable_rules stage3=$stage3_covered_reachable_rules stage4=$stage4_covered_reachable_rules" >&2
+    exit 1
+fi
+
+if (( stage1_covered_reachable_branches < stage0_covered_reachable_branches || stage3_covered_reachable_branches < stage1_covered_reachable_branches || stage4_covered_reachable_branches < stage3_covered_reachable_branches )); then
+    echo "error: preprocessor reachable-branch coverage regressed across stages: stage0=$stage0_covered_reachable_branches stage1=$stage1_covered_reachable_branches stage3=$stage3_covered_reachable_branches stage4=$stage4_covered_reachable_branches" >&2
+    exit 1
+fi
+
+if (( stage0_reachable_rules != stage1_reachable_rules || stage1_reachable_rules != stage3_reachable_rules || stage3_reachable_rules != stage4_reachable_rules )); then
+    echo "error: preprocessor reachable-rule universe drifted across stages: stage0=$stage0_reachable_rules stage1=$stage1_reachable_rules stage3=$stage3_reachable_rules stage4=$stage4_reachable_rules" >&2
+    exit 1
+fi
+
+if (( stage0_reachable_branches != stage1_reachable_branches || stage1_reachable_branches != stage3_reachable_branches || stage3_reachable_branches != stage4_reachable_branches )); then
+    echo "error: preprocessor reachable-branch universe drifted across stages: stage0=$stage0_reachable_branches stage1=$stage1_reachable_branches stage3=$stage3_reachable_branches stage4=$stage4_reachable_branches" >&2
+    exit 1
+fi
+
 parseability_attempts_total="$(extract_json_number "$parseability_report_json" '.summary.attempts')"
 parseability_accepted_total="$(extract_json_number "$parseability_report_json" '.summary.accepted')"
 parseability_rejected_total="$(extract_json_number "$parseability_report_json" '.summary.rejected')"
@@ -133,6 +341,9 @@ covered_reachable_rules="$(extract_json_number "$gap_stage3_json" '.summary.cove
 reachable_rules="$(extract_json_number "$gap_stage3_json" '.summary.reachable_rules')"
 covered_reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.covered_reachable_branches')"
 reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.reachable_branches')"
+fuzz_replay_accepted_cases="$(extract_json_number "$fuzz_replay_a_json" '.accepted_cases')"
+fuzz_replay_rejected_cases="$(extract_json_number "$fuzz_replay_a_json" '.rejected_cases')"
+fuzz_replay_parseability_counterexamples="$(extract_json_number "$fuzz_replay_a_json" '.parseability_counterexamples')"
 
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
@@ -146,9 +357,21 @@ reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.reachable
     echo "parseability_rejected_total: $parseability_rejected_total"
     echo "parseability_parser_rejections_total: $parseability_parser_rejections_total"
     echo "parseability_counterexamples_captured_total: $parseability_counterexamples_captured_total"
+    echo "stage0_target_count: $stage0_target_count"
+    echo "stage1_target_count: $stage1_target_count"
     echo "final_targets: $final_targets"
+    echo "stage4_target_count: $stage4_target_count"
+    echo "stage0_covered_reachable_rules: $stage0_covered_reachable_rules/$stage0_reachable_rules"
+    echo "stage1_covered_reachable_rules: $stage1_covered_reachable_rules/$stage1_reachable_rules"
     echo "covered_reachable_rules: $covered_reachable_rules/$reachable_rules"
+    echo "stage4_covered_reachable_rules: $stage4_covered_reachable_rules/$stage4_reachable_rules"
+    echo "stage0_covered_reachable_branches: $stage0_covered_reachable_branches/$stage0_reachable_branches"
+    echo "stage1_covered_reachable_branches: $stage1_covered_reachable_branches/$stage1_reachable_branches"
     echo "covered_reachable_branches: $covered_reachable_branches/$reachable_branches"
+    echo "stage4_covered_reachable_branches: $stage4_covered_reachable_branches/$stage4_reachable_branches"
+    echo "fuzz_replay_accepted_cases: $fuzz_replay_accepted_cases"
+    echo "fuzz_replay_rejected_cases: $fuzz_replay_rejected_cases"
+    echo "fuzz_replay_parseability_counterexamples: $fuzz_replay_parseability_counterexamples"
 } | tee "$SUMMARY_TXT"
 
 echo "✅ SV preprocessor aggregate contract gate passed."

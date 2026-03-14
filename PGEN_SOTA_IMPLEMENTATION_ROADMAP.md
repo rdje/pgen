@@ -1837,6 +1837,36 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `failure_column=1`
       - `shrunk_sample="`"`
     - `sv_preprocessor_aggregate_contract_gate` now enforces that richer counterexample shape in addition to the existing zero-target/full-reachable-coverage invariants.
+  - Progress (2026-03-15): upgraded `sv_preprocessor_aggregate_contract_gate` from “final totals and report shape” to a focused parser/stimuli roundtrip and staged-coverage contract:
+    - the gate now requires exact deterministic replay equality for stage0 baseline:
+      - sample corpus A/B
+      - coverage A/B
+      - gap report A/B
+      - parseability report A/B
+    - it also now requires exact deterministic replay equality for stage4 fuzz replay:
+      - sample corpus A/B
+      - coverage A/B
+      - gap report A/B
+      - fuzz replay metadata A/B
+    - aggregate parseability totals must equal the sum of stage totals,
+    - aggregate target-drive totals must equal the stage2 target-drive totals,
+    - target debt must stay non-increasing across the staged gap loop,
+    - covered reachable rules/branches must stay non-decreasing,
+    - reachable rule/branch universes must stay stable across the staged artifacts,
+    - current focused reusable proof summary records:
+      - `stage0_target_count=5`
+      - `stage1_target_count=0`
+      - `final_targets=0`
+      - `stage4_target_count=0`
+      - `stage0_covered_reachable_rules=68/69`
+      - `stage1_covered_reachable_rules=69/69`
+      - `stage4_covered_reachable_rules=69/69`
+      - `stage0_covered_reachable_branches=43/47`
+      - `stage1_covered_reachable_branches=47/47`
+      - `stage4_covered_reachable_branches=47/47`
+      - `fuzz_replay_accepted_cases=5`
+      - `fuzz_replay_rejected_cases=3`
+      - `fuzz_replay_parseability_counterexamples=3`
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.

@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-03-15 - Add SV Preprocessor Roundtrip Coverage Contract Checks
+### ✅ Achievement Summary
+The SystemVerilog preprocessor aggregate contract gate now proves more than final totals and counterexample shape. It also machine-checks deterministic parser/stimuli replay and staged gap-driven coverage closure over the stored quality artifacts, so the preprocessor proof is now explicitly tied to repeatable roundtrip behavior.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - now requires exact deterministic replay equality for stage0 baseline:
+    - sample corpus A/B
+    - coverage A/B
+    - gap report A/B
+    - parseability report A/B
+  - now requires exact deterministic replay equality for stage4 fuzz replay:
+    - sample corpus A/B
+    - coverage A/B
+    - gap report A/B
+    - fuzz replay metadata A/B
+  - now requires aggregate parseability totals to equal the sum of stage totals,
+  - now requires aggregate target-drive totals to equal stage2 target-drive totals,
+  - now requires non-increasing staged target debt, non-decreasing staged reachable coverage, and stable reachable rule/branch universes across the stored stage artifacts,
+  - now requires the stored fuzz replay metadata to satisfy its own accepted/rejected/minimized/shrunk invariants.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger roundtrip proof surface,
+  - kept status labels unchanged because exhaustive grammar-level closure is still open.
+
+### Validation Results
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - current focused reusable proof summary:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `stage0_target_count=5`
+    - `stage1_target_count=0`
+    - `final_targets=0`
+    - `stage4_target_count=0`
+    - `stage0_covered_reachable_rules=68/69`
+    - `stage1_covered_reachable_rules=69/69`
+    - `stage4_covered_reachable_rules=69/69`
+    - `stage0_covered_reachable_branches=43/47`
+    - `stage1_covered_reachable_branches=47/47`
+    - `stage4_covered_reachable_branches=47/47`
+    - `fuzz_replay_accepted_cases=5`
+    - `fuzz_replay_rejected_cases=3`
+    - `fuzz_replay_parseability_counterexamples=3`
+- `git diff --check`
+  - passed
+
 ## 2026-03-14 - Add SV Roundtrip Coverage Contract Checks
 ### ✅ Achievement Summary
 The main SystemVerilog aggregate contract gate now proves more than bounded counterexample retention. It also machine-checks focused parser/stimuli roundtrip behavior over the closed-loop coverage and gap artifacts, so the gate now objectively enforces deterministic initial replay plus measurable gap-driven coverage improvement.
