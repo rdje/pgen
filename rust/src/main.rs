@@ -317,6 +317,17 @@ struct ParseabilitySummary {
     parser_rejections: usize,
 }
 
+const MAX_PARSEABILITY_COUNTEREXAMPLES: usize = 5;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct ParseabilityCounterexample {
+    stage: String,
+    sample: String,
+    sample_chars: usize,
+    shrunk_sample: String,
+    shrunk_sample_chars: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ParseabilityGenerationReport {
     grammar_name: String,
@@ -325,12 +336,15 @@ struct ParseabilityGenerationReport {
     summary: ParseabilitySummary,
     #[serde(skip_serializing_if = "Option::is_none")]
     target_drive_validation: Option<TargetDriveParseabilityTelemetry>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    counterexamples: Vec<ParseabilityCounterexample>,
 }
 
 #[derive(Debug, Clone)]
 struct ParseableStimuliOutcome {
     samples: Vec<String>,
     summary: ParseabilitySummary,
+    counterexamples: Vec<ParseabilityCounterexample>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -788,6 +802,7 @@ fn main() -> Result<()> {
                     resolved_entry_rule.as_str(),
                     &outcome.summary,
                     None,
+                    &outcome.counterexamples,
                 )?;
             }
             outcome.samples
@@ -901,7 +916,9 @@ fn main() -> Result<()> {
         let mut merged_coverage = generator.coverage_metrics().clone();
         let mut replay_report: Option<CoverageGuidedFuzzReplayReport> = None;
         let mut parseability_summary: Option<ParseabilitySummary> = None;
-        let mut parseability_target_drive_validation: Option<TargetDriveParseabilityTelemetry> = None;
+        let mut parseability_target_drive_validation: Option<TargetDriveParseabilityTelemetry> =
+            None;
+        let mut parseability_counterexamples = Vec::new();
 
         let mut samples = if args.coverage_guided_fuzz_rounds > 0 {
             let seed_start = args
@@ -927,6 +944,32 @@ fn main() -> Result<()> {
                 parseability_summary = Some(ParseabilitySummary::from_coverage_guided_replay(
                     &fuzz_outcome.replay_report,
                 ));
+                parseability_counterexamples = fuzz_outcome
+                    .replay_report
+                    .cases
+                    .iter()
+                    .filter(|case| !case.accepted)
+                    .filter_map(|case| {
+                        case.sample
+                            .as_deref()
+                            .map(|sample| ParseabilityCounterexample {
+                                stage: "coverage_guided_fuzz_replay".to_string(),
+                                sample: sample.to_string(),
+                                sample_chars: sample.chars().count(),
+                                shrunk_sample: case
+                                    .shrunk_counterexample
+                                    .clone()
+                                    .unwrap_or_else(|| sample.to_string()),
+                                shrunk_sample_chars: case
+                                    .shrunk_counterexample
+                                    .as_deref()
+                                    .unwrap_or(sample)
+                                    .chars()
+                                    .count(),
+                            })
+                    })
+                    .take(MAX_PARSEABILITY_COUNTEREXAMPLES)
+                    .collect();
             }
             replay_report = Some(fuzz_outcome.replay_report);
             fuzz_outcome.minimized_samples
@@ -954,6 +997,7 @@ fn main() -> Result<()> {
                     args.parseability_max_attempts,
                 )?;
                 parseability_summary = Some(outcome.summary);
+                parseability_counterexamples = outcome.counterexamples;
                 outcome.samples
             } else {
                 generator.generate_many(args.count, args.entry_rule.as_deref())?
@@ -976,11 +1020,22 @@ fn main() -> Result<()> {
                     &target_report.targets,
                     args.target_max_attempts,
                     |sample| {
-                        is_sample_parseable_by_generated_parser(
+                        let parseable = is_sample_parseable_by_generated_parser(
                             &grammar.grammar_name,
                             args.grammar_profile.as_deref(),
                             sample,
-                        )
+                        )?;
+                        if !parseable
+                            && parseability_counterexamples.len() < MAX_PARSEABILITY_COUNTEREXAMPLES
+                        {
+                            parseability_counterexamples.push(build_parseability_counterexample(
+                                "target_drive_output_filter",
+                                &grammar.grammar_name,
+                                args.grammar_profile.as_deref(),
+                                sample,
+                            ));
+                        }
+                        Ok(parseable)
                     },
                 )?;
                 let summary_for_report = ParseabilitySummary::from_filter(
@@ -990,8 +1045,9 @@ fn main() -> Result<()> {
                 );
                 println!("{}", summary_for_report.summary_line());
                 parseability_summary = Some(summary_for_report);
-                parseability_target_drive_validation =
-                    Some(TargetDriveParseabilityTelemetry::from_validation(&validation));
+                parseability_target_drive_validation = Some(
+                    TargetDriveParseabilityTelemetry::from_validation(&validation),
+                );
                 (samples, summary)
             } else {
                 generator.generate_until_targets(
@@ -1041,6 +1097,7 @@ fn main() -> Result<()> {
                 args.parseability_max_attempts,
             )?;
             parseability_summary = Some(outcome.summary);
+            parseability_counterexamples = outcome.counterexamples;
             merged_coverage = generator.coverage_metrics().clone();
             outcome.samples
         } else {
@@ -1055,17 +1112,15 @@ fn main() -> Result<()> {
             && parseability_summary.is_none()
         {
             let requested_before_filter = samples.len();
-            let (accepted, rejected) = filter_parseable_samples(
+            let (accepted, rejected, counterexamples) = filter_parseable_samples(
                 &grammar.grammar_name,
                 args.grammar_profile.as_deref(),
                 samples.into_iter(),
             )?;
             samples = accepted;
-            let summary = ParseabilitySummary::from_filter(
-                requested_before_filter,
-                samples.len(),
-                rejected,
-            );
+            parseability_counterexamples = counterexamples;
+            let summary =
+                ParseabilitySummary::from_filter(requested_before_filter, samples.len(), rejected);
             println!("{}", summary.summary_line());
             parseability_summary = Some(summary);
         }
@@ -1081,14 +1136,15 @@ fn main() -> Result<()> {
                     "--parseability-report-json requires parseability-aware generation or filtering; current generation mode did not produce a parseability summary"
                 ));
             };
-                write_parseability_report(
-                    report_path,
-                    &grammar.grammar_name,
-                    args.grammar_profile.as_deref(),
-                    resolved_entry_rule.as_str(),
-                    summary,
-                    parseability_target_drive_validation.as_ref(),
-                )?;
+            write_parseability_report(
+                report_path,
+                &grammar.grammar_name,
+                args.grammar_profile.as_deref(),
+                resolved_entry_rule.as_str(),
+                summary,
+                parseability_target_drive_validation.as_ref(),
+                &parseability_counterexamples,
+            )?;
         }
 
         if let Some(output_file) = args.output {
@@ -1687,6 +1743,23 @@ fn summarize_sample(sample: &str, max_chars: usize) -> String {
     format!("{}...", truncated)
 }
 
+fn build_parseability_counterexample(
+    stage: &str,
+    grammar_name: &str,
+    grammar_profile: Option<&str>,
+    sample: &str,
+) -> ParseabilityCounterexample {
+    let shrunk_sample = shrink_parseability_counterexample(grammar_name, grammar_profile, sample)
+        .unwrap_or_else(|_| sample.to_string());
+    ParseabilityCounterexample {
+        stage: stage.to_string(),
+        sample: sample.to_string(),
+        sample_chars: sample.chars().count(),
+        shrunk_sample_chars: shrunk_sample.chars().count(),
+        shrunk_sample,
+    }
+}
+
 fn shrink_parseability_counterexample(
     grammar_name: &str,
     grammar_profile: Option<&str>,
@@ -2082,21 +2155,30 @@ fn filter_parseable_samples<I>(
     grammar_name: &str,
     grammar_profile: Option<&str>,
     samples: I,
-) -> Result<(Vec<String>, usize)>
+) -> Result<(Vec<String>, usize, Vec<ParseabilityCounterexample>)>
 where
     I: IntoIterator<Item = String>,
 {
     ensure_parseability_support(grammar_name)?;
     let mut accepted = Vec::new();
     let mut rejected = 0usize;
+    let mut counterexamples = Vec::new();
     for sample in samples {
         if is_sample_parseable_by_generated_parser(grammar_name, grammar_profile, &sample)? {
             accepted.push(sample);
         } else {
             rejected = rejected.saturating_add(1);
+            if counterexamples.len() < MAX_PARSEABILITY_COUNTEREXAMPLES {
+                counterexamples.push(build_parseability_counterexample(
+                    "filter_parseable_samples",
+                    grammar_name,
+                    grammar_profile,
+                    &sample,
+                ));
+            }
         }
     }
-    Ok((accepted, rejected))
+    Ok((accepted, rejected, counterexamples))
 }
 
 fn supports_generated_parseability(grammar_name: &str) -> bool {
@@ -2139,8 +2221,7 @@ fn generate_parseable_stimuli(
 ) -> Result<ParseableStimuliOutcome> {
     ensure_parseability_support(grammar_name)?;
 
-    let max_attempts =
-        resolve_parseability_max_attempts(requested_count, max_attempts_override);
+    let max_attempts = resolve_parseability_max_attempts(requested_count, max_attempts_override);
     let mut accepted = Vec::with_capacity(requested_count);
     let mut attempts = 0usize;
     let mut rejected = 0usize;
@@ -2148,6 +2229,7 @@ fn generate_parseable_stimuli(
     let mut empty_generations = 0usize;
     let mut parser_rejections = 0usize;
     let mut last_parser_rejected_sample: Option<String> = None;
+    let mut counterexamples = Vec::new();
 
     while accepted.len() < requested_count && attempts < max_attempts {
         attempts += 1;
@@ -2173,6 +2255,16 @@ fn generate_parseable_stimuli(
             parser_rejections += 1;
             rejected += 1;
             last_parser_rejected_sample = Some(sample);
+            if let Some(sample) = last_parser_rejected_sample.as_deref() {
+                if counterexamples.len() < MAX_PARSEABILITY_COUNTEREXAMPLES {
+                    counterexamples.push(build_parseability_counterexample(
+                        "generate_parseable_stimuli",
+                        grammar_name,
+                        grammar_profile,
+                        sample,
+                    ));
+                }
+            }
         }
     }
 
@@ -2216,10 +2308,14 @@ fn generate_parseable_stimuli(
     Ok(ParseableStimuliOutcome {
         samples: accepted,
         summary,
+        counterexamples,
     })
 }
 
-fn resolve_parseability_max_attempts(requested_count: usize, override_attempts: Option<usize>) -> usize {
+fn resolve_parseability_max_attempts(
+    requested_count: usize,
+    override_attempts: Option<usize>,
+) -> usize {
     override_attempts.unwrap_or_else(|| requested_count.saturating_mul(50).max(requested_count))
 }
 
@@ -2230,6 +2326,7 @@ fn write_parseability_report(
     entry_rule: &str,
     summary: &ParseabilitySummary,
     target_drive_validation: Option<&TargetDriveParseabilityTelemetry>,
+    counterexamples: &[ParseabilityCounterexample],
 ) -> Result<()> {
     ensure_parent_dir_exists(output_path)?;
     let report = ParseabilityGenerationReport {
@@ -2238,6 +2335,7 @@ fn write_parseability_report(
         entry_rule: entry_rule.to_string(),
         summary: summary.clone(),
         target_drive_validation: target_drive_validation.cloned(),
+        counterexamples: counterexamples.to_vec(),
     };
     let report_json = serde_json::to_string_pretty(&report)?;
     std::fs::write(output_path, report_json)?;
@@ -2305,14 +2403,14 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        FuzzCorpusCandidate, LoadedGrammar, ParseabilitySummary,
-        TargetDriveParseabilityTelemetry, StimuliCoverageMetrics, canonicalize_json_value,
-        coverage_branch_hit_delta, default_parser_output_path,
-        default_stimuli_module_output_path, generate_stimuli_module_source, is_ebnf_input_path,
-        maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
-        parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
-        resolve_stimuli_module_seed, write_parseability_report,
+        FuzzCorpusCandidate, LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
+        StimuliCoverageMetrics, TargetDriveParseabilityTelemetry, canonicalize_json_value,
+        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
+        generate_stimuli_module_source, is_ebnf_input_path, maybe_dump_generation_ast,
+        minimize_failing_input, minimize_fuzz_corpus_cases, parse_recovery_stimuli_mode,
+        resolve_parseability_max_attempts, resolve_stimuli_module_seed,
         supported_generated_parseability_grammars, supports_generated_parseability,
+        write_parseability_report,
     };
     use pgen::ast_pipeline::stimuli_generator::{
         BranchCoverageGroup, RecoveryStimuliMode, TargetDriveValidationSummary,
@@ -2373,16 +2471,15 @@ mod tests {
 
     #[test]
     fn target_drive_parseability_telemetry_splits_primary_and_alternate_entries() {
-        let telemetry = TargetDriveParseabilityTelemetry::from_validation(
-            &TargetDriveValidationSummary {
+        let telemetry =
+            TargetDriveParseabilityTelemetry::from_validation(&TargetDriveValidationSummary {
                 validated_outputs: 4,
                 accepted_outputs: 3,
                 rejected_outputs: 1,
                 alternate_entry_attempts: 5,
                 alternate_entry_accepted_outputs: 2,
                 alternate_entry_rejected_outputs: 3,
-            },
-        );
+            });
 
         assert_eq!(telemetry.primary_entry_attempts, 4);
         assert_eq!(telemetry.primary_entry_accepted_outputs, 3);
@@ -2416,6 +2513,7 @@ mod tests {
             "start",
             &summary,
             Some(&validation),
+            &[],
         )
         .expect("parseability report write should succeed");
 
@@ -2452,11 +2550,54 @@ mod tests {
             report_value["target_drive_validation"]["alternate_entry_rejected_outputs"].as_u64(),
             Some(6)
         );
-        let alternate_rate = report_value["target_drive_validation"]
-            ["alternate_entry_acceptance_rate_percent"]
-            .as_f64()
-            .expect("alternate entry rate should be present");
+        let alternate_rate =
+            report_value["target_drive_validation"]["alternate_entry_acceptance_rate_percent"]
+                .as_f64()
+                .expect("alternate entry rate should be present");
         assert!((alternate_rate - (100.0 / 7.0)).abs() < 1e-9);
+
+        std::fs::remove_file(&path).expect("temporary parseability report should be removable");
+    }
+
+    #[test]
+    fn parseability_report_serializes_counterexamples_when_present() {
+        let path = unique_temp_path("parseability_counterexamples_report.json");
+        let summary = ParseabilitySummary::from_filter(3, 1, 2);
+        let counterexamples = vec![ParseabilityCounterexample {
+            stage: "target_drive_output_filter".to_string(),
+            sample: "`define FOO(x) x".to_string(),
+            sample_chars: 16,
+            shrunk_sample: "`define FOO".to_string(),
+            shrunk_sample_chars: 11,
+        }];
+
+        write_parseability_report(
+            path.to_str().expect("temp path should be UTF-8"),
+            "systemverilog_preprocessor",
+            None,
+            "systemverilog_preprocessor_file",
+            &summary,
+            None,
+            &counterexamples,
+        )
+        .expect("parseability report write should succeed");
+
+        let report_json =
+            std::fs::read_to_string(&path).expect("parseability report should be readable");
+        let report_value: serde_json::Value =
+            serde_json::from_str(&report_json).expect("parseability report should be valid JSON");
+        assert_eq!(
+            report_value["counterexamples"].as_array().map(Vec::len),
+            Some(1)
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["stage"].as_str(),
+            Some("target_drive_output_filter")
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["shrunk_sample"].as_str(),
+            Some("`define FOO")
+        );
 
         std::fs::remove_file(&path).expect("temporary parseability report should be removable");
     }

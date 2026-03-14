@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-14 - Preserve SV Preprocessor Parseability Counterexamples In Aggregate Proof
+### Context
+The current `systemverilog_preprocessor` row is intentionally only `Mostly Done`, and the next useful step was to make the remaining proof gap more objective rather than arguing from aggregate counts alone. The stage-level parseability reports already knew which generated samples the parser rejected, but the aggregate preprocessor gate report was rebuilding JSON from totals and throwing that evidence away. That made closure triage harder than it needed to be.
+
+### Implementation
+- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - extended `ParseabilityGenerationReport` with bounded `counterexamples`,
+  - captured original + shrunk samples for parser rejections in:
+    - parseability-aware generation,
+    - target-drive output filtering,
+    - filtered parseability fallback,
+    - coverage-guided fuzz replay summaries,
+  - added unit coverage for report serialization.
+- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh):
+  - preserved stage-level counterexamples in the aggregate `systemverilog_preprocessor_parseability_report.json`,
+  - surfaced `parseability_counterexamples_captured_total` in `summary.csv` / `summary.txt`.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger evidence surface without changing status labels.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline --quiet`
+  - passed `25/25`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed
+  - aggregate report now preserves `15` bounded rejection counterexamples while still reporting:
+    - `attempts=74`
+    - `accepted=41`
+    - `rejected=33`
+    - `final_targets=0`
+    - `covered_reachable_rules=70/70`
+    - `covered_reachable_branches=48/48`
+
 ## 2026-03-14 - Demote SV Parser Family Statuses To Match Objective Proof
 ### Context
 The user correctly challenged the live tracker on the two SV parser-family rows. On inspection, the repo absolutely does have concrete evidence there: `sv_stimuli_quality_gate`, `sv_preprocessor_quality_gate`, stimuli generation, coverage/gap tracking, target-driven replay, parseability reports, semantic suites, realistic-corpus runs, and differential gates. But the stricter tracker doctrine now says `Done` requires a formally exhaustive proof surface with no plausible grammar-level gap. The current SV gates are high-quality and measurable, but they still prove bounded quality/non-regression rather than full exhaustive closure.

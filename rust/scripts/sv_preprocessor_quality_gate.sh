@@ -271,6 +271,7 @@ parseability_parser_rejections_total=0
 parseability_generation_errors_total=0
 parseability_empty_generations_total=0
 parseability_acceptance_rate_percent_total="0.00"
+parseability_counterexamples_captured_total=0
 target_drive_alternate_entry_attempts_total=0
 target_drive_alternate_entry_accepted_outputs_total=0
 target_drive_alternate_entry_rejected_outputs_total=0
@@ -665,6 +666,12 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
                 empty_generations: $empty_generations_total,
                 acceptance_rate_percent: $acceptance_rate_percent
             },
+            counterexamples: (
+                (($stage0[0].counterexamples // [])
+                + ($stage1[0].counterexamples // [])
+                + ($stage2[0].counterexamples // [])
+                + ($stage3[0].counterexamples // []))[:20]
+            ),
             target_drive_validation: {
                 primary_entry_attempts_total: $primary_entry_attempts_total,
                 primary_entry_accepted_outputs_total: $primary_entry_accepted_outputs_total,
@@ -681,6 +688,7 @@ if [[ "$parseability_enabled" -eq 1 ]]; then
             }
         }' >"$parseability_report_json"
     require_nonempty_file "$parseability_report_json"
+    parseability_counterexamples_captured_total="$(jq -er '((.counterexamples // []) | length) | numbers' "$parseability_report_json")"
 fi
 
 for key_rule in \
@@ -1050,6 +1058,7 @@ parseability_parser_rejections_total,$parseability_parser_rejections_total
 parseability_generation_errors_total,$parseability_generation_errors_total
 parseability_empty_generations_total,$parseability_empty_generations_total
 parseability_acceptance_rate_percent,$parseability_acceptance_rate_percent_total
+parseability_counterexamples_captured_total,$parseability_counterexamples_captured_total
 parseability_report_json,$parseability_report_json
 sample_count,$SAMPLE_COUNT
 gap_threshold,$GAP_THRESHOLD

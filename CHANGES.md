@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-14 - Preserve SV Preprocessor Parseability Counterexamples In Aggregate Proof
+### ✅ Achievement Summary
+The SystemVerilog preprocessor proof surface is now more objective and inspectable without overstating closure. Parseability reports no longer stop at totals alone: the Rust parseability path now preserves bounded parser-rejection counterexamples, and `sv_preprocessor_quality_gate` now carries those examples into its aggregate `systemverilog_preprocessor_parseability_report.json`.
+
+### Scope of Changes
+- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - added bounded machine-readable parseability counterexamples to the report schema,
+  - captured original and shrunk rejection samples for parseability-generation, target-drive filtering, and coverage-guided fuzz replay paths,
+  - added unit coverage for the new report field.
+- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh):
+  - preserved stage-level counterexamples in the aggregate preprocessor parseability report,
+  - added `parseability_counterexamples_captured_total` to the gate summary surface.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger evidence surface,
+  - kept parser-family statuses unchanged because this improves proof visibility, not final closure.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline --quiet`
+  - passed `25/25`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed
+  - current aggregate measurable state:
+    - `attempts=74`
+    - `accepted=41`
+    - `rejected=33`
+    - `parseability_counterexamples_captured_total=15`
+    - `final_targets=0`
+    - `covered_reachable_rules=70/70`
+    - `covered_reachable_branches=48/48`
+
 ## 2026-03-14 - Demote SV Parser Family Statuses To Match Objective Proof
 ### ✅ Achievement Summary
 The live tracker no longer overstates the SystemVerilog parser-family rows. The repo does have serious measurable proof for both `systemverilog` and `systemverilog_preprocessor`, including stimuli generation, coverage/gap loops, target-driven replay, parseability telemetry, and differential hardening. But under the stricter project meaning of `Done`, that evidence is still not the same thing as a formally exhaustive proof surface with no plausible grammar-level gap. Both rows were therefore corrected from `Done` to `Mostly Done`.

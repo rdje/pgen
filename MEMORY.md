@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-14 (+0100, task: normalize-sv-parser-family-statuses)
+Last updated: 2026-03-14 (+0100, task: preserve-sv-preprocessor-parseability-counterexamples)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -67,6 +67,18 @@ Use this file to resume work without replaying full chat history.
   - that proof includes stimuli generation, coverage/gap tracking, target-driven replay, parseability telemetry, and differential/corpus evidence,
   - but neither row currently has a return-annotation-grade exhaustive grammar-level closure proof,
   - so both parser-family rows are now `Mostly Done` rather than `Done` in the live tracker even though `Phase P` and `Phase Q` remain closed.
+- The `systemverilog_preprocessor` proof surface is now easier to inspect objectively:
+  - `rust/src/main.rs` parseability reports now preserve bounded parser-rejection counterexamples with original + shrunk samples,
+  - `rust/scripts/sv_preprocessor_quality_gate.sh` now carries those stage-level counterexamples into the aggregate `systemverilog_preprocessor_parseability_report.json`,
+  - current aggregate preprocessor state from the gate is:
+    - `attempts=74`
+    - `accepted=41`
+    - `rejected=33`
+    - `parseability_counterexamples_captured_total=15`
+    - `final_targets=0`
+    - `covered_reachable_rules=70/70`
+    - `covered_reachable_branches=48/48`
+  - this sharpens the remaining closure gap without changing parser-family status; `systemverilog_preprocessor` remains `Mostly Done`.
 - Return-annotation closure now has an explicit aggregate proof target:
   - `make -C rust SHELL=/opt/homebrew/bin/bash return_annotation_support_gate`
   - bundles the repo-wide shaping audit, return full-contract gate, and auto-derived return-annotation exhaustiveness proof.

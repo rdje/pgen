@@ -1740,6 +1740,18 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - the core closed-loop stages now emit structured parseability reports and an aggregate `systemverilog_preprocessor_parseability_report.json`,
     - gate `summary.csv` / `summary.txt` now expose attempts / accepted / rejected totals, acceptance rate, and report path,
     - aggregate `sota_exit_gate` now surfaces those parseability totals directly in the SV preprocessor telemetry section.
+  - Progress (2026-03-14): strengthened the preprocessor proof surface without over-promoting closure:
+    - `rust/src/main.rs` parseability reports now preserve bounded machine-readable parser-rejection counterexamples with original + shrunk samples,
+    - `sv_preprocessor_quality_gate` now carries those stage-level counterexamples forward into the aggregate `systemverilog_preprocessor_parseability_report.json` instead of collapsing them back to counts,
+    - current measurable state is now directly inspectable from one artifact:
+      - `attempts=74`
+      - `accepted=41`
+      - `rejected=33`
+      - `parseability_counterexamples_captured_total=15`
+      - `final_targets=0`
+      - `covered_reachable_rules=70/70`
+      - `covered_reachable_branches=48/48`
+    - this is still not `Done`; it sharpens the objective evidence for the remaining exhaustive-closure gap.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
