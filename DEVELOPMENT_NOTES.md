@@ -19572,6 +19572,17 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
   - `covered_reachable_rules=69/69`
   - `covered_reachable_branches=47/47`
 
+## 2026-03-15 - Main SV counterexample triage paths in aggregate telemetry
+
+- Extended the main SV aggregate sign-off path to preserve the parser sidecar artifact locations for both bounded rejection surfaces:
+  - `sv_generation_counterexample_triage_json`
+  - `sv_generation_counterexample_triage_txt`
+  - `sv_shadow_counterexample_triage_json`
+  - `sv_shadow_counterexample_triage_txt`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all four path fields
+
 ## 2026-03-15 - Main SV shrunk-sample diversity in aggregate telemetry
 
 - Extended the main SV aggregate sign-off path to preserve the parser sidecar's rejection diversity counts by shrunk sample:
