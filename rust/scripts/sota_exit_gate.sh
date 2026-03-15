@@ -428,6 +428,11 @@ HDL_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
 SV_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<unset>"
+SV_REPLAY_GAP_TARGET_TRIAGE_JSON="<not-run>"
+SV_REPLAY_GAP_TARGET_TRIAGE_TXT="<not-run>"
+SV_REPLAY_GAP_TARGET_UNIQUE_RULES="<not-run>"
+SV_REPLAY_GAP_TARGET_UNIQUE_REASONS="<not-run>"
+SV_REPLAY_GAP_TARGET_UNIQUE_DEPENDENCIES="<not-run>"
 SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<not-run>"
 SV_FAILURE_CONTEXT_GENERATION_EXCERPTS="<not-run>"
 SV_FAILURE_CONTEXT_SHADOW_EXCERPTS="<not-run>"
@@ -1059,6 +1064,12 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     fi
     if [[ ! -f "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT" ]]; then
         SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
+    else
+        SV_REPLAY_GAP_TARGET_TRIAGE_JSON="$(summary_value_from_txt "replay_gap_target_triage_json" "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT")"
+        SV_REPLAY_GAP_TARGET_TRIAGE_TXT="$(summary_value_from_txt "replay_gap_target_triage_txt" "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT")"
+        SV_REPLAY_GAP_TARGET_UNIQUE_RULES="$(summary_value_from_txt "replay_gap_target_unique_rules" "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT")"
+        SV_REPLAY_GAP_TARGET_UNIQUE_REASONS="$(summary_value_from_txt "replay_gap_target_unique_reasons" "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT")"
+        SV_REPLAY_GAP_TARGET_UNIQUE_DEPENDENCIES="$(summary_value_from_txt "replay_gap_target_unique_dependencies" "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT")"
     fi
 
     if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
@@ -1136,6 +1147,11 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     echo "sv_stimuli_quality_performance_report_json: $SV_STIMULI_QUALITY_PERF_REPORT_JSON"
     echo "sv_stimuli_quality_performance_enabled: $SV_STIMULI_QUALITY_PERF_ENABLED"
     echo "sv_stimuli_quality_aggregate_contract_summary_txt: $SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT"
+    echo "sv_replay_gap_target_triage_json: $SV_REPLAY_GAP_TARGET_TRIAGE_JSON"
+    echo "sv_replay_gap_target_triage_txt: $SV_REPLAY_GAP_TARGET_TRIAGE_TXT"
+    echo "sv_replay_gap_target_unique_rules: $SV_REPLAY_GAP_TARGET_UNIQUE_RULES"
+    echo "sv_replay_gap_target_unique_reasons: $SV_REPLAY_GAP_TARGET_UNIQUE_REASONS"
+    echo "sv_replay_gap_target_unique_dependencies: $SV_REPLAY_GAP_TARGET_UNIQUE_DEPENDENCIES"
     echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
     echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
     echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"
@@ -1623,6 +1639,11 @@ fi
         echo "sv_stimuli_quality_parseability_generation_acceptance_rate_percent: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT"
         echo "sv_stimuli_quality_parseability_generation_report_json: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON"
         echo "sv_stimuli_quality_aggregate_contract_summary_txt: $SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT"
+        echo "sv_replay_gap_target_triage_json: $SV_REPLAY_GAP_TARGET_TRIAGE_JSON"
+        echo "sv_replay_gap_target_triage_txt: $SV_REPLAY_GAP_TARGET_TRIAGE_TXT"
+        echo "sv_replay_gap_target_unique_rules: $SV_REPLAY_GAP_TARGET_UNIQUE_RULES"
+        echo "sv_replay_gap_target_unique_reasons: $SV_REPLAY_GAP_TARGET_UNIQUE_REASONS"
+        echo "sv_replay_gap_target_unique_dependencies: $SV_REPLAY_GAP_TARGET_UNIQUE_DEPENDENCIES"
         echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
         echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
         echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"

@@ -266,6 +266,8 @@ generation_counterexample_triage_json="$WORK_DIR/systemverilog_parseability_gene
 generation_counterexample_triage_txt="$WORK_DIR/systemverilog_parseability_generation_counterexample_triage.txt"
 shadow_counterexample_triage_json="$WORK_DIR/systemverilog_closed_loop_parseability_shadow_counterexample_triage.json"
 shadow_counterexample_triage_txt="$WORK_DIR/systemverilog_closed_loop_parseability_shadow_counterexample_triage.txt"
+replay_gap_target_triage_json="$WORK_DIR/systemverilog_replay_gap_target_triage.json"
+replay_gap_target_triage_txt="$WORK_DIR/systemverilog_replay_gap_target_triage.txt"
 
 if (( replay_target_count > initial_target_count )); then
     echo "error: replay target debt increased: initial=$initial_target_count replay=$replay_target_count" >&2
@@ -472,6 +474,80 @@ require_nonempty_file "$shadow_counterexample_triage_json"
 } >"$shadow_counterexample_triage_txt"
 require_nonempty_file "$shadow_counterexample_triage_txt"
 
+jq '
+    {
+        grammar_name: .grammar_name,
+        aggregate_surface: "replay_gap_targets",
+        total_targets: ((.targets // []) | length),
+        by_target_type: (
+            (.targets // [])
+            | sort_by(.target_type)
+            | group_by(.target_type)
+            | map({
+                target_type: .[0].target_type,
+                count: length
+            })
+        ),
+        by_rule_name: (
+            (.targets // [])
+            | sort_by(.rule_name)
+            | group_by(.rule_name)
+            | map({
+                rule_name: .[0].rule_name,
+                count: length
+            })
+            | sort_by(-.count, .rule_name)
+        ),
+        by_reason: (
+            (.targets // [])
+            | sort_by(.reason)
+            | group_by(.reason)
+            | map({
+                reason: .[0].reason,
+                count: length
+            })
+            | sort_by(-.count, .reason)
+        ),
+        by_dependency: (
+            (.targets // [])
+            | map(.depends_on // [])
+            | add
+            | sort
+            | group_by(.)
+            | map({
+                dependency: .[0],
+                count: length
+            })
+            | sort_by(-.count, .dependency)
+        ),
+        highest_priority_targets: (
+            (.targets // [])
+            | sort_by(-.priority_score, .rule_name, .branch_index, .id)
+            | .[:10]
+            | map({
+                id,
+                target_type,
+                rule_name,
+                branch_index,
+                reason,
+                priority_score,
+                depends_on
+            })
+        )
+    }
+' "$closed_loop_replay_gap_json" >"$replay_gap_target_triage_json"
+require_nonempty_file "$replay_gap_target_triage_json"
+
+{
+    echo "SV Parser Replay Gap Target Triage"
+    echo "source_gap_json: $closed_loop_replay_gap_json"
+    jq -r '.by_target_type[]? | "target_type_count[\(.target_type)]: \(.count)"' "$replay_gap_target_triage_json"
+    jq -r '.by_reason[]? | "reason_count[\(.reason)]: \(.count)"' "$replay_gap_target_triage_json"
+    jq -r '(.by_rule_name[:10])[]? | "top_rule_count[\(.rule_name)]: \(.count)"' "$replay_gap_target_triage_json"
+    jq -r '(.by_dependency[:10])[]? | "top_dependency_count[\(.dependency)]: \(.count)"' "$replay_gap_target_triage_json"
+} >"$replay_gap_target_triage_txt"
+require_nonempty_file "$replay_gap_target_triage_txt"
+
 generation_parser_rejections="$(extract_json_number "$generation_report_json" '.observed.parser_rejections_total')"
 generation_counterexamples_count="$(extract_json_number "$generation_report_json" '((.counterexamples // []) | length)')"
 shadow_parser_rejections="$(extract_json_number "$shadow_report_json" '.observed.parser_rejections_total')"
@@ -485,6 +561,9 @@ shadow_counterexample_unique_shrunk_samples="$(extract_json_number "$shadow_coun
 shadow_counterexample_unique_failure_locations="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_location | length)')"
 shadow_counterexample_unique_failure_line_excerpts="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
 shadow_counterexample_unique_failure_context_excerpts="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_context_excerpt | length)')"
+replay_gap_target_unique_rules="$(extract_json_number "$replay_gap_target_triage_json" '(.by_rule_name | length)')"
+replay_gap_target_unique_reasons="$(extract_json_number "$replay_gap_target_triage_json" '(.by_reason | length)')"
+replay_gap_target_unique_dependencies="$(extract_json_number "$replay_gap_target_triage_json" '(.by_dependency | length)')"
 
 {
     echo "SV Parser Aggregate Contract Gate Summary"
@@ -499,6 +578,8 @@ shadow_counterexample_unique_failure_context_excerpts="$(extract_json_number "$s
     echo "generation_counterexample_triage_txt: $generation_counterexample_triage_txt"
     echo "shadow_counterexample_triage_json: $shadow_counterexample_triage_json"
     echo "shadow_counterexample_triage_txt: $shadow_counterexample_triage_txt"
+    echo "replay_gap_target_triage_json: $replay_gap_target_triage_json"
+    echo "replay_gap_target_triage_txt: $replay_gap_target_triage_txt"
     echo "generation_parser_rejections_total: $generation_parser_rejections"
     echo "generation_counterexamples_count: $generation_counterexamples_count"
     echo "generation_counterexample_unique_shrunk_samples: $generation_counterexample_unique_shrunk_samples"
@@ -512,6 +593,9 @@ shadow_counterexample_unique_failure_context_excerpts="$(extract_json_number "$s
     echo "shadow_counterexample_unique_failure_locations: $shadow_counterexample_unique_failure_locations"
     echo "shadow_counterexample_unique_failure_line_excerpts: $shadow_counterexample_unique_failure_line_excerpts"
     echo "shadow_counterexample_unique_failure_context_excerpts: $shadow_counterexample_unique_failure_context_excerpts"
+    echo "replay_gap_target_unique_rules: $replay_gap_target_unique_rules"
+    echo "replay_gap_target_unique_reasons: $replay_gap_target_unique_reasons"
+    echo "replay_gap_target_unique_dependencies: $replay_gap_target_unique_dependencies"
     echo "focused_initial_target_count: $initial_target_count"
     echo "focused_replay_target_count: $replay_target_count"
     echo "focused_initial_covered_reachable_rules: $initial_covered_reachable_rules"

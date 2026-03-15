@@ -2005,6 +2005,20 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_roundtrip_stage1_covered_reachable_branches=28/47`
     - `sv_preprocessor_roundtrip_stage4_covered_reachable_branches=47/47`
   - Progress (2026-03-15): the same `sv_combined_telemetry_contract_gate` now also proves the preprocessor values surfaced by aggregate `sota_exit_gate` match the combined proof sidecars exactly.
+  - Progress (2026-03-15): the main `sv_parser_aggregate_contract_gate` now also emits deterministic replay-gap target triage artifacts:
+    - `systemverilog_replay_gap_target_triage.json`
+    - `systemverilog_replay_gap_target_triage.txt`
+    - current focused aggregate shape:
+      - `target_type_count[branch]=1224`
+      - `target_type_count[rule]=983`
+      - `replay_gap_target_unique_rules=1007`
+      - `replay_gap_target_unique_reasons=3`
+      - `replay_gap_target_unique_dependencies=845`
+      - top remaining rule clusters currently led by:
+        - `property_expr_sv_2017=37`
+        - `binary_operator=30`
+        - `statement_item_sv_2017=21`
+  - Progress (2026-03-15): aggregate `sota_exit_gate` now also surfaces that replay-gap triage sidecar path plus the objective debt-shape counts, and `sv_combined_telemetry_contract_gate` now proves those aggregate fields match the parser-aggregate sidecar exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
   - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
     - proves `stage3_targets=0` and `stage4_targets=0`,

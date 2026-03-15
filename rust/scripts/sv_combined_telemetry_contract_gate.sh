@@ -99,15 +99,21 @@ else
 fi
 
 sota_summary_txt="$sota_state_dir/summary.txt"
+sv_parser_aggregate_summary_txt="$sota_state_dir/work/sv_parser_aggregate_contract_gate/summary.txt"
 sv_failure_summary_txt="$sota_state_dir/work/sv_failure_context_contract_gate/summary.txt"
 sv_roundtrip_summary_txt="$sota_state_dir/work/sv_roundtrip_contract_gate/summary.txt"
 sv_preprocessor_reachability_summary_txt="$sota_state_dir/work/sv_preprocessor_reachability_closure_gate/summary.txt"
 
 require_nonempty_file "$sota_summary_txt"
+require_nonempty_file "$sv_parser_aggregate_summary_txt"
 require_nonempty_file "$sv_failure_summary_txt"
 require_nonempty_file "$sv_roundtrip_summary_txt"
 require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
 
+assert_equal \
+    "main SV aggregate summary path" \
+    "$sv_parser_aggregate_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_stimuli_quality_aggregate_contract_summary_txt")"
 assert_equal \
     "main SV failure-context summary path" \
     "$sv_failure_summary_txt" \
@@ -129,6 +135,11 @@ assert_equal \
     "$sv_preprocessor_reachability_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_closure_summary_txt")"
 
+sv_replay_gap_target_triage_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_json")"
+sv_replay_gap_target_triage_txt="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_txt")"
+sv_replay_gap_target_unique_rules="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_unique_rules")"
+sv_replay_gap_target_unique_reasons="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_unique_reasons")"
+sv_replay_gap_target_unique_dependencies="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_unique_dependencies")"
 sv_failure_generation_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_generation_failure_context_excerpts")"
 sv_failure_shadow_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_shadow_failure_context_excerpts")"
 sv_roundtrip_initial_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_targets")"
@@ -158,6 +169,26 @@ svpp_reachability_stage4_branches="$(extract_summary_value "$sv_preprocessor_rea
 svpp_reachability_parseability_rejected="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parseability_rejected")"
 svpp_reachability_parser_rejections="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parser_rejections")"
 
+assert_equal \
+    "main SV replay-gap triage json path" \
+    "$sv_replay_gap_target_triage_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_triage_json")"
+assert_equal \
+    "main SV replay-gap triage txt path" \
+    "$sv_replay_gap_target_triage_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_triage_txt")"
+assert_equal \
+    "main SV replay-gap unique rules" \
+    "$sv_replay_gap_target_unique_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_unique_rules")"
+assert_equal \
+    "main SV replay-gap unique reasons" \
+    "$sv_replay_gap_target_unique_reasons" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_unique_reasons")"
+assert_equal \
+    "main SV replay-gap unique dependencies" \
+    "$sv_replay_gap_target_unique_dependencies" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_unique_dependencies")"
 assert_equal \
     "main SV generation failure-context excerpts" \
     "$sv_failure_generation_excerpts" \
@@ -276,9 +307,15 @@ assert_equal \
     echo "existing_sota_exit_state_dir: ${EXISTING_SOTA_EXIT_STATE_DIR:-<unset>}"
     echo "sota_exit_state_dir: $sota_state_dir"
     echo "sota_exit_summary_txt: $sota_summary_txt"
+    echo "sv_stimuli_quality_aggregate_contract_summary_txt: $sv_parser_aggregate_summary_txt"
     echo "sv_failure_context_contract_summary_txt: $sv_failure_summary_txt"
     echo "sv_roundtrip_contract_summary_txt: $sv_roundtrip_summary_txt"
     echo "sv_preprocessor_reachability_closure_summary_txt: $sv_preprocessor_reachability_summary_txt"
+    echo "sv_replay_gap_target_triage_json: $sv_replay_gap_target_triage_json"
+    echo "sv_replay_gap_target_triage_txt: $sv_replay_gap_target_triage_txt"
+    echo "sv_replay_gap_target_unique_rules: $sv_replay_gap_target_unique_rules"
+    echo "sv_replay_gap_target_unique_reasons: $sv_replay_gap_target_unique_reasons"
+    echo "sv_replay_gap_target_unique_dependencies: $sv_replay_gap_target_unique_dependencies"
     echo "sv_failure_context_generation_excerpts: $sv_failure_generation_excerpts"
     echo "sv_failure_context_shadow_excerpts: $sv_failure_shadow_excerpts"
     echo "sv_roundtrip_initial_targets: $sv_roundtrip_initial_targets"

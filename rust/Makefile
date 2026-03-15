@@ -242,6 +242,7 @@ help:
 	@echo "  sv_preprocessor_template_differential_gate - Run dynamic template-based preprocessor oracle differential (fully offline)"
 	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
 	@echo "  sv_parser_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused SystemVerilog parser evidence surfaces"
+	@echo "  sv_replay_gap_target_triage - Surface deterministic triage for the remaining focused SystemVerilog replay-gap targets"
 	@echo "  sv_failure_context_contract_gate - Enforce lightweight source-level failure-context proof across both SV parser families"
 	@echo "  sv_roundtrip_contract_gate - Enforce lightweight parser/stimuli roundtrip proof across both SV parser families"
 	@echo "  sv_combined_telemetry_contract_gate - Enforce aggregate SV-family telemetry consistency against combined proof sidecars"
@@ -546,6 +547,12 @@ sv_parser_aggregate_contract_gate:
 	@echo "🧪 Running SystemVerilog aggregate-report contract gate..."
 	cd $(RUST_DIR) && ./scripts/sv_parser_aggregate_contract_gate.sh
 	@echo "✅ SystemVerilog aggregate-report contract gate passed."
+
+.PHONY: sv_replay_gap_target_triage
+sv_replay_gap_target_triage:
+	@echo "🧪 Running SystemVerilog replay-gap target triage proof..."
+	cd $(RUST_DIR) && ./scripts/sv_parser_aggregate_contract_gate.sh
+	@echo "✅ SystemVerilog replay-gap target triage proof passed."
 
 .PHONY: sv_failure_context_contract_gate
 sv_failure_context_contract_gate:

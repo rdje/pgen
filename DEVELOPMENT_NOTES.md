@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface main SV replay-gap debt triage in aggregate telemetry
+### Context
+The main SV side already had objective roundtrip counts, but the unresolved replay-gap debt still lived mostly as a raw target list inside the parser aggregate workdir. The next clean hardening step was to make that debt deterministic and aggregate-visible, so the remaining work is inspectable by rule/reason/dependency rather than only by a single target count.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - emits deterministic replay-gap target triage artifacts:
+    - `systemverilog_replay_gap_target_triage.json`
+    - `systemverilog_replay_gap_target_triage.txt`
+  - groups remaining targets by target type, rule name, reason, and flattened dependency
+  - records the current highest-priority remaining targets deterministically
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - surfaces the replay-gap triage sidecar path plus unique rule/reason/dependency counts directly in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - requires the main-SV aggregate sidecar summary
+  - proves the new aggregate replay-gap triage fields exactly match that sidecar
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added helper target `sv_replay_gap_target_triage`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger debt-triage proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current replay-gap triage shape:
+    - `target_type_count[branch]=1224`
+    - `target_type_count[rule]=983`
+    - `sv_replay_gap_target_unique_rules=1007`
+    - `sv_replay_gap_target_unique_reasons=3`
+    - `sv_replay_gap_target_unique_dependencies=845`
+
 ## 2026-03-15 - Surface SV Preprocessor Reachability Closure In Aggregate Sign-Off
 ### Context
 The preprocessor reachability-closure gate already existed as a good standalone proof surface, but aggregate sign-off still omitted it. The next clean hardening step was to reuse that same sidecar in `sota_exit_gate` and make the aggregate telemetry contract verify the new fields instead of only printing them.
