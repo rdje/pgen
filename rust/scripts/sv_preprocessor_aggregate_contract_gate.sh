@@ -448,6 +448,8 @@ counterexample_primary_stage="$(jq -er 'if (.by_stage | length) > 0 then (.by_st
 counterexample_primary_stage_count="$(jq -er 'if (.by_stage | length) > 0 then (.by_stage | sort_by(-.count, .stage) | .[0].count) else 0 end' "$counterexample_triage_json")"
 counterexample_primary_shrunk_sample="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].shrunk_sample) else "<none>" end' "$counterexample_triage_json")"
 counterexample_primary_shrunk_sample_count="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].count) else 0 end' "$counterexample_triage_json")"
+counterexample_primary_parser_error="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].parser_error) else "<none>" end' "$counterexample_triage_json")"
+counterexample_primary_parser_error_count="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].count) else 0 end' "$counterexample_triage_json")"
 
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
@@ -468,6 +470,8 @@ counterexample_primary_shrunk_sample_count="$(jq -er 'if (.by_shrunk_sample | le
     echo "counterexample_primary_stage_count: $counterexample_primary_stage_count"
     echo "counterexample_primary_shrunk_sample: $counterexample_primary_shrunk_sample"
     echo "counterexample_primary_shrunk_sample_count: $counterexample_primary_shrunk_sample_count"
+    echo "counterexample_primary_parser_error: $counterexample_primary_parser_error"
+    echo "counterexample_primary_parser_error_count: $counterexample_primary_parser_error_count"
     echo "counterexample_unique_failure_locations: $counterexample_unique_failure_locations"
     echo "counterexample_unique_failure_line_excerpts: $counterexample_unique_failure_line_excerpts"
     echo "counterexample_unique_failure_context_excerpts: $counterexample_unique_failure_context_excerpts"

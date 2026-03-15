@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-parser-error-buckets)
+Last updated: 2026-03-15 (+0100, task: surface-dominant-sv-preprocessor-parser-error-buckets)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,18 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the dominant bounded parser-error bucket for the `systemverilog_preprocessor` frontend, not just the dominant stage/sample buckets:
+  - standalone `sv_preprocessor_aggregate_contract_gate` now records:
+    - `counterexample_primary_parser_error`
+    - `counterexample_primary_parser_error_count`
+  - current preprocessor aggregate summary records:
+    - `counterexample_primary_parser_error=Parser did not consume full input at position 0`
+    - `counterexample_primary_parser_error_count=1`
+  - current bounded aggregate SOTA summary now surfaces the same values as:
+    - `sv_preprocessor_counterexample_primary_parser_error=Parser did not consume full input at position 0`
+    - `sv_preprocessor_counterexample_primary_parser_error_count=1`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the preprocessor aggregate sidecar exactly.
 - Aggregate sign-off now surfaces the dominant bounded parser-error buckets for the main `systemverilog` parser, not just the dominant stage/sample buckets:
   - standalone `sv_parser_aggregate_contract_gate` now records:
     - `generation_counterexample_primary_parser_error`

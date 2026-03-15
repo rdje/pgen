@@ -2110,6 +2110,14 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `sv_preprocessor_counterexample_primary_shrunk_sample=\``
       - `sv_preprocessor_counterexample_primary_shrunk_sample_count=5`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant preprocessor parser-error bucket for that same bounded rejection surface:
+    - standalone `sv_preprocessor_aggregate_contract_gate` now records:
+      - `counterexample_primary_parser_error`
+      - `counterexample_primary_parser_error_count`
+    - aggregate `sota_exit_gate` now surfaces the bounded-policy values as:
+      - `sv_preprocessor_counterexample_primary_parser_error=Parser did not consume full input at position 0`
+      - `sv_preprocessor_counterexample_primary_parser_error_count=1`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
