@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-dominant-sv-preprocessor-failure-location-buckets)
+Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-failure-location-buckets)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,24 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the dominant bounded failure-location buckets for the main `systemverilog` parser, not just the dominant replay-gap/stage/sample/parser-error buckets:
+  - standalone `sv_parser_aggregate_contract_gate` now records:
+    - `generation_counterexample_primary_failure_location`
+    - `generation_counterexample_primary_failure_location_count`
+    - `shadow_counterexample_primary_failure_location`
+    - `shadow_counterexample_primary_failure_location_count`
+  - current main-SV parser aggregate summary records:
+    - `generation_counterexample_primary_failure_location=1:20`
+    - `generation_counterexample_primary_failure_location_count=1`
+    - `shadow_counterexample_primary_failure_location=1:2`
+    - `shadow_counterexample_primary_failure_location_count=2`
+  - current bounded aggregate SOTA summary now surfaces the same values as:
+    - `sv_generation_counterexample_primary_failure_location=1:20`
+    - `sv_generation_counterexample_primary_failure_location_count=1`
+    - `sv_shadow_counterexample_primary_failure_location=1:2`
+    - `sv_shadow_counterexample_primary_failure_location_count=2`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the main parser aggregate sidecar exactly.
 - Aggregate sign-off now surfaces the dominant bounded failure-location bucket for the `systemverilog_preprocessor` frontend, not just the dominant stage/sample/parser-error buckets:
   - standalone `sv_preprocessor_aggregate_contract_gate` now records:
     - `counterexample_primary_failure_location`
