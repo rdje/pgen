@@ -154,6 +154,7 @@ sv_replay_gap_target_primary_rule="$(extract_summary_value "$sv_parser_aggregate
 sv_replay_gap_target_primary_rule_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_rule_count")"
 sv_replay_gap_target_primary_dependency="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency")"
 sv_replay_gap_target_primary_dependency_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency_count")"
+sv_generation_contract_file="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_contract_file")"
 sv_generation_report_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_report_json")"
 sv_generation_parser_rejections_total="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_parser_rejections_total")"
 sv_generation_counterexamples_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexamples_count")"
@@ -175,6 +176,7 @@ sv_generation_counterexample_primary_failure_context_excerpt_count="$(extract_su
 sv_generation_counterexample_unique_failure_locations="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_locations")"
 sv_generation_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_line_excerpts")"
 sv_generation_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_context_excerpts")"
+sv_shadow_contract_file="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_contract_file")"
 sv_shadow_report_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_report_json")"
 sv_shadow_parser_rejections_total="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_parser_rejections_total")"
 sv_shadow_counterexamples_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexamples_count")"
@@ -297,6 +299,10 @@ assert_equal \
     "$sv_replay_gap_target_primary_dependency_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_dependency_count")"
 assert_equal \
+    "main SV generation contract file" \
+    "$sv_generation_contract_file" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_generation_contract_file")"
+assert_equal \
     "main SV generation report json path" \
     "$sv_generation_report_json" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_report_json")"
@@ -380,6 +386,10 @@ assert_equal \
     "main SV generation unique failure context excerpts" \
     "$sv_generation_counterexample_unique_failure_context_excerpts" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_unique_failure_context_excerpts")"
+assert_equal \
+    "main SV shadow contract file" \
+    "$sv_shadow_contract_file" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_shadow_contract_file")"
 assert_equal \
     "main SV shadow report json path" \
     "$sv_shadow_report_json" \
@@ -676,6 +686,7 @@ assert_equal \
     echo "sv_replay_gap_target_primary_rule_count: $sv_replay_gap_target_primary_rule_count"
     echo "sv_replay_gap_target_primary_dependency: $sv_replay_gap_target_primary_dependency"
     echo "sv_replay_gap_target_primary_dependency_count: $sv_replay_gap_target_primary_dependency_count"
+    echo "sv_generation_contract_file: $sv_generation_contract_file"
     echo "sv_generation_report_json: $sv_generation_report_json"
     echo "sv_generation_parser_rejections_total: $sv_generation_parser_rejections_total"
     echo "sv_generation_counterexamples_count: $sv_generation_counterexamples_count"
@@ -697,6 +708,7 @@ assert_equal \
     echo "sv_generation_counterexample_unique_failure_locations: $sv_generation_counterexample_unique_failure_locations"
     echo "sv_generation_counterexample_unique_failure_line_excerpts: $sv_generation_counterexample_unique_failure_line_excerpts"
     echo "sv_generation_counterexample_unique_failure_context_excerpts: $sv_generation_counterexample_unique_failure_context_excerpts"
+    echo "sv_shadow_contract_file: $sv_shadow_contract_file"
     echo "sv_shadow_report_json: $sv_shadow_report_json"
     echo "sv_shadow_parser_rejections_total: $sv_shadow_parser_rejections_total"
     echo "sv_shadow_counterexamples_count: $sv_shadow_counterexamples_count"

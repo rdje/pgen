@@ -19543,3 +19543,18 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - Live-status effect:
   - `systemverilog`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-15 - Surface main SV contract-file provenance
+
+- Added end-to-end aggregate visibility for the checked-in contract files behind the main SV parser's bounded generation/shadow report surfaces:
+  - `sv_generation_contract_file`
+  - `sv_shadow_contract_file`
+- Updated:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - carry the exact checked-in policy provenance for the main SV parser's bounded report surfaces into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the parser aggregate sidecar exactly
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

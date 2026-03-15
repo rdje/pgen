@@ -19639,3 +19639,12 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
     - `sv_shadow_parser_rejections_total=16`
     - `sv_shadow_counterexamples_count=5`
     - `sv_shadow_counterexamples_captured_total=5`
+
+## 2026-03-15 - Main SV contract-file provenance in aggregate telemetry
+
+- Extended the main SV aggregate sign-off path to preserve the checked-in contract files behind the bounded generation and replay-shadow report surfaces:
+  - `sv_generation_contract_file`
+  - `sv_shadow_contract_file`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for both fields
