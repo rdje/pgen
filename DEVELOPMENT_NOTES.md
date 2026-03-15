@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface dominant preprocessor debt buckets in aggregate telemetry
+### Context
+The aggregate SV sign-off already exposed the preprocessor triage sidecar paths and the diversity counts for remaining bounded parser debt, but it still did not say which bucket was actually dominating that debt. The next clean hardening step was to surface the dominant stage bucket and dominant shrunk-sample bucket directly in aggregate telemetry, so release summaries point to the main remaining debt shape without forcing a separate triage-file read.
+
+### Implementation
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - now derives and records:
+    - `counterexample_primary_stage`
+    - `counterexample_primary_stage_count`
+    - `counterexample_primary_shrunk_sample`
+    - `counterexample_primary_shrunk_sample_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_preprocessor_counterexample_primary_stage`
+    - `sv_preprocessor_counterexample_primary_stage_count`
+    - `sv_preprocessor_counterexample_primary_shrunk_sample`
+    - `sv_preprocessor_counterexample_primary_shrunk_sample_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate debt-shape proof without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - current standalone aggregate values:
+    - `counterexample_primary_stage=generate_parseable_stimuli`
+    - `counterexample_primary_stage_count=5`
+    - `counterexample_primary_shrunk_sample=\``
+    - `counterexample_primary_shrunk_sample_count=5`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA values:
+    - `sv_preprocessor_counterexample_primary_stage=target_drive_output_filter`
+    - `sv_preprocessor_counterexample_primary_stage_count=5`
+    - `sv_preprocessor_counterexample_primary_shrunk_sample=\``
+    - `sv_preprocessor_counterexample_primary_shrunk_sample_count=5`
+
 ## 2026-03-15 - Surface preprocessor parser-debt triage in aggregate telemetry
 ### Context
 The preprocessor side already had deterministic parser-debt triage artifacts inside `sv_preprocessor_aggregate_contract_gate`, but aggregate sign-off still surfaced only reachability/roundtrip/failure-context summaries. The next clean hardening step was to make the bounded parser-rejection debt itself aggregate-visible, so release telemetry shows not just that debt exists, but where its triage artifacts are and how diverse the remaining failure surface currently is.

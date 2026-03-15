@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-preprocessor-parser-debt-triage-in-aggregate-telemetry)
+Last updated: 2026-03-15 (+0100, task: surface-dominant-preprocessor-debt-buckets-in-aggregate-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,24 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the dominant bounded SV preprocessor parser-debt buckets, not just the triage artifact paths:
+  - standalone `sv_preprocessor_aggregate_contract_gate` now records:
+    - `counterexample_primary_stage`
+    - `counterexample_primary_stage_count`
+    - `counterexample_primary_shrunk_sample`
+    - `counterexample_primary_shrunk_sample_count`
+  - current standalone aggregate summary over `rust/target/sv_preprocessor_quality_gate` records:
+    - `counterexample_primary_stage=generate_parseable_stimuli`
+    - `counterexample_primary_stage_count=5`
+    - `counterexample_primary_shrunk_sample=\``
+    - `counterexample_primary_shrunk_sample_count=5`
+  - current bounded aggregate SOTA summary records:
+    - `sv_preprocessor_counterexample_primary_stage=target_drive_output_filter`
+    - `sv_preprocessor_counterexample_primary_stage_count=5`
+    - `sv_preprocessor_counterexample_primary_shrunk_sample=\``
+    - `sv_preprocessor_counterexample_primary_shrunk_sample_count=5`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the preprocessor aggregate sidecar exactly.
 - Aggregate sign-off now surfaces the bounded SV preprocessor parser-debt triage itself, not only reachability closure:
   - `sota_exit_gate` now emits:
     - `sv_preprocessor_counterexample_triage_json`

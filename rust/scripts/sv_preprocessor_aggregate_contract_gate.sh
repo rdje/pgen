@@ -444,6 +444,10 @@ counterexample_unique_shrunk_samples="$(extract_json_number "$counterexample_tri
 counterexample_unique_failure_locations="$(extract_json_number "$counterexample_triage_json" '(.by_failure_location | length)')"
 counterexample_unique_failure_line_excerpts="$(extract_json_number "$counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
 counterexample_unique_failure_context_excerpts="$(extract_json_number "$counterexample_triage_json" '(.by_failure_context_excerpt | length)')"
+counterexample_primary_stage="$(jq -er 'if (.by_stage | length) > 0 then (.by_stage | sort_by(-.count, .stage) | .[0].stage) else "<none>" end' "$counterexample_triage_json")"
+counterexample_primary_stage_count="$(jq -er 'if (.by_stage | length) > 0 then (.by_stage | sort_by(-.count, .stage) | .[0].count) else 0 end' "$counterexample_triage_json")"
+counterexample_primary_shrunk_sample="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].shrunk_sample) else "<none>" end' "$counterexample_triage_json")"
+counterexample_primary_shrunk_sample_count="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].count) else 0 end' "$counterexample_triage_json")"
 
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
@@ -460,6 +464,10 @@ counterexample_unique_failure_context_excerpts="$(extract_json_number "$countere
     echo "parseability_parser_rejections_total: $parseability_parser_rejections_total"
     echo "parseability_counterexamples_captured_total: $parseability_counterexamples_captured_total"
     echo "counterexample_unique_shrunk_samples: $counterexample_unique_shrunk_samples"
+    echo "counterexample_primary_stage: $counterexample_primary_stage"
+    echo "counterexample_primary_stage_count: $counterexample_primary_stage_count"
+    echo "counterexample_primary_shrunk_sample: $counterexample_primary_shrunk_sample"
+    echo "counterexample_primary_shrunk_sample_count: $counterexample_primary_shrunk_sample_count"
     echo "counterexample_unique_failure_locations: $counterexample_unique_failure_locations"
     echo "counterexample_unique_failure_line_excerpts: $counterexample_unique_failure_line_excerpts"
     echo "counterexample_unique_failure_context_excerpts: $counterexample_unique_failure_context_excerpts"

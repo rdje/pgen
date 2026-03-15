@@ -2046,6 +2046,18 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_counterexample_unique_failure_line_excerpts=5`
     - `sv_preprocessor_counterexample_unique_failure_context_excerpts=5`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly, so bounded parser-rejection debt is aggregate-visible rather than trapped inside the preprocessor workdir.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant preprocessor bounded-debt buckets directly instead of only file paths and unique counts:
+    - standalone `sv_preprocessor_aggregate_contract_gate` now records:
+      - `counterexample_primary_stage`
+      - `counterexample_primary_stage_count`
+      - `counterexample_primary_shrunk_sample`
+      - `counterexample_primary_shrunk_sample_count`
+    - aggregate `sota_exit_gate` now surfaces the bounded-policy values as:
+      - `sv_preprocessor_counterexample_primary_stage=target_drive_output_filter`
+      - `sv_preprocessor_counterexample_primary_stage_count=5`
+      - `sv_preprocessor_counterexample_primary_shrunk_sample=\``
+      - `sv_preprocessor_counterexample_primary_shrunk_sample_count=5`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
