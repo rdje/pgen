@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Promote SV Failure Context Into Rust Parseability Reports
+### Context
+The SV-family gates were already reconstructing line-level context from stored samples plus failure line/column. That improved observability, but it still meant the proof surface depended on shell-side derivation instead of the Rust parseability reports themselves. The next clean increment was to promote that context into the source-level report schema so downstream gates can require it directly and objective parser-failure evidence no longer depends on ad hoc reconstruction logic.
+
+### Implementation
+- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - `ParseabilityCounterexample` now carries:
+    - `failure_line_excerpt`
+    - `failure_context_excerpt`
+  - generated-parser failure extraction now derives those fields when the parseability report is written
+  - added unit coverage for:
+    - excerpt extraction
+    - report serialization
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now requires numeric failure position/line/column and string failure-line/context excerpts
+  - now groups triage by `failure_context_excerpt` too
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - now requires the same numeric/string source-level failure detail
+  - now groups triage by `failure_context_excerpt` too
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the move from shell-only reconstruction to source-level parser proof,
+  - kept status labels unchanged because exhaustive closure remains the actual blocker.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline --quiet`
+  - passed (`29/29`)
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed with fresh preprocessor parseability reports
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - recorded `counterexample_unique_failure_context_excerpts=5`
+- `env PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_failure_context_tiny_contract.json PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_failure_context_tiny2 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - passed focused main-SV validation with fresh source-level excerpts on both generation and replay-shadow surfaces
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_failure_context_tiny2 make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - recorded:
+    - `generation_counterexample_unique_failure_context_excerpts=5`
+    - `shadow_counterexample_unique_failure_context_excerpts=5`
+
+### Notes
+- I intentionally used a tiny temporary main-SV contract for the focused rerun because the new proof point here is source-level failure-context retention, not replay-corpus scale.
+- The heavier full main-SV wrapper gate also eventually finished green in the background, but the tiny focused state was the faster clean proof for this specific schema increment.
+
 ## 2026-03-15 - Add SV Preprocessor Failure-Line Triage Context
 ### Context
 The preprocessor triage artifact was already summarizing bounded parser debt by stage, parser error, shrunk sample, and failure location. That was enough to prove the debt existed and was stable, but not enough to group the debt by what the parser was actually seeing at the failure point. Since the counterexamples already carry full samples plus failure line/column, the next clean increment was to derive deterministic failure-line excerpts directly into the triage surface so the remaining bounded preprocessor debt can be grouped by directive-line context instead of only by coordinates.

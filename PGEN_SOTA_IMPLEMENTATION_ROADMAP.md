@@ -497,6 +497,14 @@ Toolbox baseline to leverage end-to-end:
     - the generation-side focused artifact currently records five unique failure-line excerpts,
     - the replay-shadow focused artifact currently records five unique failure-line excerpts,
     - this gives the remaining bounded debt a parser-context grouping surface instead of only a coordinate-based one.
+  - Progress (2026-03-15): promoted parser-context extraction into the Rust parseability reports themselves instead of leaving it as shell-side reconstruction:
+    - `ParseabilityCounterexample` now carries source-level `failure_line_excerpt` and `failure_context_excerpt`,
+    - both aggregate SV report surfaces are contract-checked for real numeric/string failure-position and failure-context fields, not just key presence,
+    - fresh focused validation over tiny shadow-state contract `/tmp/systemverilog_failure_context_tiny_contract.json` recorded:
+      - generation `unique_failure_context_excerpts=5`
+      - replay-shadow `unique_failure_context_excerpts=5`
+      - example generation context excerpt: `...recision 17'SO29 fs //\n ;specify endspecify gene...`
+      - example replay-shadow context excerpt: ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
@@ -1914,6 +1922,12 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `` `elsif ``
       - ``              `else         ``
       - ``       `ifdef  oLT    ``
+  - Progress (2026-03-15): promoted parser-context extraction into the Rust preprocessor parseability reports too:
+    - `ParseabilityCounterexample` now carries source-level `failure_line_excerpt` and `failure_context_excerpt` for preprocessor parseability debt,
+    - `sv_preprocessor_aggregate_contract_gate` now requires real numeric/string failure-position and failure-context fields, not just key presence,
+    - the fresh aggregate contract summary now records:
+      - `counterexample_unique_failure_context_excerpts=5`
+      - example source-level context excerpt: `...define            -XE^\n`elsif \n       `ifndef  ...`
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.

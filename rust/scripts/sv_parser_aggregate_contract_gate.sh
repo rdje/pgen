@@ -171,9 +171,16 @@ if ! jq -e '
         and has("failure_position")
         and has("failure_line")
         and has("failure_column")
+        and has("failure_line_excerpt")
+        and has("failure_context_excerpt")
         and has("profile")
         and has("sample_index")
         and has("seed")
+        and (.failure_position | type == "number")
+        and (.failure_line | type == "number")
+        and (.failure_column | type == "number")
+        and (.failure_line_excerpt | type == "string")
+        and (.failure_context_excerpt | type == "string")
     )
 ' "$generation_report_json" >/dev/null; then
     echo "error: generation aggregate report contract failed: $generation_report_json" >&2
@@ -205,7 +212,14 @@ if ! jq -e '
         and has("failure_position")
         and has("failure_line")
         and has("failure_column")
+        and has("failure_line_excerpt")
+        and has("failure_context_excerpt")
         and has("profile")
+        and (.failure_position | type == "number")
+        and (.failure_line | type == "number")
+        and (.failure_column | type == "number")
+        and (.failure_line_excerpt | type == "string")
+        and (.failure_context_excerpt | type == "string")
     )
 ' "$shadow_report_json" >/dev/null; then
     echo "error: replay-shadow aggregate report contract failed: $shadow_report_json" >&2
@@ -322,19 +336,19 @@ jq '
         ),
         by_failure_line_excerpt: (
             (.counterexamples // [])
-            | map(
-                . + {
-                    failure_line_excerpt: (
-                        (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
-                        | gsub("\r"; "")
-                        | .[:80]
-                    )
-                }
-            )
             | sort_by(.failure_line_excerpt)
             | group_by(.failure_line_excerpt)
             | map({
                 failure_line_excerpt: .[0].failure_line_excerpt,
+                count: length
+            })
+        ),
+        by_failure_context_excerpt: (
+            (.counterexamples // [])
+            | sort_by(.failure_context_excerpt)
+            | group_by(.failure_context_excerpt)
+            | map({
+                failure_context_excerpt: .[0].failure_context_excerpt,
                 count: length
             })
         ),
@@ -349,11 +363,8 @@ jq '
                 sample_index,
                 seed,
                 shrunk_sample,
-                failure_line_excerpt: (
-                    (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
-                    | gsub("\r"; "")
-                    | .[:80]
-                ),
+                failure_line_excerpt,
+                failure_context_excerpt,
                 sample_preview: (.sample[:80])
             })
         )
@@ -368,6 +379,7 @@ require_nonempty_file "$generation_counterexample_triage_json"
     jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$generation_counterexample_triage_json"
+    jq -r '.by_failure_context_excerpt[]? | "failure_context_excerpt_count[\(.failure_context_excerpt | @json)]: \(.count)"' "$generation_counterexample_triage_json"
 } >"$generation_counterexample_triage_txt"
 require_nonempty_file "$generation_counterexample_triage_txt"
 
@@ -415,19 +427,19 @@ jq '
         ),
         by_failure_line_excerpt: (
             (.counterexamples // [])
-            | map(
-                . + {
-                    failure_line_excerpt: (
-                        (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
-                        | gsub("\r"; "")
-                        | .[:80]
-                    )
-                }
-            )
             | sort_by(.failure_line_excerpt)
             | group_by(.failure_line_excerpt)
             | map({
                 failure_line_excerpt: .[0].failure_line_excerpt,
+                count: length
+            })
+        ),
+        by_failure_context_excerpt: (
+            (.counterexamples // [])
+            | sort_by(.failure_context_excerpt)
+            | group_by(.failure_context_excerpt)
+            | map({
+                failure_context_excerpt: .[0].failure_context_excerpt,
                 count: length
             })
         ),
@@ -440,11 +452,8 @@ jq '
                 failure_column,
                 profile,
                 shrunk_sample,
-                failure_line_excerpt: (
-                    (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
-                    | gsub("\r"; "")
-                    | .[:80]
-                ),
+                failure_line_excerpt,
+                failure_context_excerpt,
                 sample_preview: (.sample[:80])
             })
         )
@@ -459,6 +468,7 @@ require_nonempty_file "$shadow_counterexample_triage_json"
     jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
+    jq -r '.by_failure_context_excerpt[]? | "failure_context_excerpt_count[\(.failure_context_excerpt | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
 } >"$shadow_counterexample_triage_txt"
 require_nonempty_file "$shadow_counterexample_triage_txt"
 
@@ -470,9 +480,11 @@ shadow_counterexamples_captured_total="$(extract_json_number "$shadow_report_jso
 generation_counterexample_unique_shrunk_samples="$(extract_json_number "$generation_counterexample_triage_json" '(.by_shrunk_sample | length)')"
 generation_counterexample_unique_failure_locations="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_location | length)')"
 generation_counterexample_unique_failure_line_excerpts="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
+generation_counterexample_unique_failure_context_excerpts="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_context_excerpt | length)')"
 shadow_counterexample_unique_shrunk_samples="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_shrunk_sample | length)')"
 shadow_counterexample_unique_failure_locations="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_location | length)')"
 shadow_counterexample_unique_failure_line_excerpts="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
+shadow_counterexample_unique_failure_context_excerpts="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_context_excerpt | length)')"
 
 {
     echo "SV Parser Aggregate Contract Gate Summary"
@@ -492,12 +504,14 @@ shadow_counterexample_unique_failure_line_excerpts="$(extract_json_number "$shad
     echo "generation_counterexample_unique_shrunk_samples: $generation_counterexample_unique_shrunk_samples"
     echo "generation_counterexample_unique_failure_locations: $generation_counterexample_unique_failure_locations"
     echo "generation_counterexample_unique_failure_line_excerpts: $generation_counterexample_unique_failure_line_excerpts"
+    echo "generation_counterexample_unique_failure_context_excerpts: $generation_counterexample_unique_failure_context_excerpts"
     echo "shadow_parser_rejections_total: $shadow_parser_rejections"
     echo "shadow_counterexamples_count: $shadow_counterexamples_count"
     echo "shadow_counterexamples_captured_total: $shadow_counterexamples_captured_total"
     echo "shadow_counterexample_unique_shrunk_samples: $shadow_counterexample_unique_shrunk_samples"
     echo "shadow_counterexample_unique_failure_locations: $shadow_counterexample_unique_failure_locations"
     echo "shadow_counterexample_unique_failure_line_excerpts: $shadow_counterexample_unique_failure_line_excerpts"
+    echo "shadow_counterexample_unique_failure_context_excerpts: $shadow_counterexample_unique_failure_context_excerpts"
     echo "focused_initial_target_count: $initial_target_count"
     echo "focused_replay_target_count: $replay_target_count"
     echo "focused_initial_covered_reachable_rules: $initial_covered_reachable_rules"

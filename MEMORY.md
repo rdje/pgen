@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-failure-line-triage-context)
+Last updated: 2026-03-15 (+0100, task: promote-sv-failure-context-into-rust-parseability-reports)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -125,6 +125,17 @@ Use this file to resume work without replaying full chat history.
     - examples:
       - `" timeunit //&I"`
       - `";(*\\3_   *) program ;;//k~//bn endprogram //3"`
+- Parser failure context is now source-level in the Rust parseability reports, not only shell-derived:
+  - `ParseabilityCounterexample` now carries:
+    - `failure_line_excerpt`
+    - `failure_context_excerpt`
+  - fresh focused main-SV validation over `/tmp/systemverilog_failure_context_tiny_contract.json` recorded:
+    - generation `unique_failure_context_excerpts=5`
+    - replay-shadow `unique_failure_context_excerpts=5`
+    - generation example:
+      - `...recision 17'SO29 fs //\n ;specify endspecify gene...`
+    - replay-shadow example:
+      - ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
 - The SV preprocessor aggregate contract gate now also proves deterministic parser/stimuli replay and staged gap/coverage closure over stored quality artifacts:
   - exact replay identity is required for stage0 baseline A/B:
     - sample corpus
@@ -153,6 +164,17 @@ Use this file to resume work without replaying full chat history.
     - `` `elsif ``
     - ``              `else         ``
     - ``       `ifdef  oLT    ``
+- The SV preprocessor parseability reports now also carry source-level failure context:
+  - `sv_preprocessor_aggregate_contract_gate` now requires real numeric/string values for:
+    - `failure_position`
+    - `failure_line`
+    - `failure_column`
+    - `failure_line_excerpt`
+    - `failure_context_excerpt`
+  - fresh aggregate summary records:
+    - `counterexample_unique_failure_context_excerpts=5`
+    - example:
+      - `...define            -XE^\n`elsif \n       `ifndef  ...`
   - current focused fuzz replay proof:
     - `accepted_cases=5`
     - `rejected_cases=3`

@@ -318,6 +318,8 @@ struct ParseabilitySummary {
 }
 
 const MAX_PARSEABILITY_COUNTEREXAMPLES: usize = 5;
+const MAX_PARSEABILITY_FAILURE_LINE_EXCERPT_CHARS: usize = 80;
+const MAX_PARSEABILITY_FAILURE_CONTEXT_EXCERPT_CHARS: usize = 48;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct ParseabilityCounterexample {
@@ -334,6 +336,10 @@ struct ParseabilityCounterexample {
     failure_line: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     failure_column: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failure_line_excerpt: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failure_context_excerpt: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1767,6 +1773,12 @@ fn build_parseability_counterexample(
         failure_position: failure_detail.as_ref().and_then(|detail| detail.failure_position),
         failure_line: failure_detail.as_ref().and_then(|detail| detail.failure_line),
         failure_column: failure_detail.as_ref().and_then(|detail| detail.failure_column),
+        failure_line_excerpt: failure_detail
+            .as_ref()
+            .and_then(|detail| detail.failure_line_excerpt.clone()),
+        failure_context_excerpt: failure_detail
+            .as_ref()
+            .and_then(|detail| detail.failure_context_excerpt.clone()),
     }
 }
 
@@ -1790,6 +1802,8 @@ struct ParseFailureDetail {
     failure_position: Option<usize>,
     failure_line: Option<usize>,
     failure_column: Option<usize>,
+    failure_line_excerpt: Option<String>,
+    failure_context_excerpt: Option<String>,
 }
 
 #[cfg(feature = "generated_parsers")]
@@ -1816,11 +1830,17 @@ fn generated_parser_failure_detail(
             let (failure_line, failure_column) = failure_position
                 .map(|position| parse_error_line_column(sample, position))
                 .unwrap_or((None, None));
+            let failure_line_excerpt = failure_line
+                .and_then(|line| parse_error_line_excerpt(sample, line));
+            let failure_context_excerpt = failure_position
+                .and_then(|position| parse_error_context_excerpt(sample, position));
             Ok(Some(ParseFailureDetail {
                 parser_error: err,
                 failure_position,
                 failure_line,
                 failure_column,
+                failure_line_excerpt,
+                failure_context_excerpt,
             }))
         }
     }
@@ -1863,6 +1883,47 @@ fn parse_error_line_column(sample: &str, failure_position: usize) -> (Option<usi
         .map(|segment| segment.chars().count() + 1)
         .unwrap_or(1);
     (Some(line), Some(column))
+}
+
+fn sanitize_excerpt_text(text: &str) -> String {
+    text.replace('\r', "").replace('\n', "\\n").replace('\t', "\\t")
+}
+
+fn parse_error_line_excerpt(sample: &str, failure_line: usize) -> Option<String> {
+    let line_index = failure_line.checked_sub(1)?;
+    let raw_line = sample.split('\n').nth(line_index)?;
+    let sanitized = sanitize_excerpt_text(raw_line);
+    Some(summarize_sample(
+        &sanitized,
+        MAX_PARSEABILITY_FAILURE_LINE_EXCERPT_CHARS,
+    ))
+}
+
+fn parse_error_context_excerpt(sample: &str, failure_position: usize) -> Option<String> {
+    if sample.is_empty() {
+        return Some(String::new());
+    }
+
+    let clamped = clamp_to_char_boundary(sample, failure_position);
+    let chars: Vec<char> = sample.chars().collect();
+    let char_index = sample[..clamped].chars().count();
+    let context_window = MAX_PARSEABILITY_FAILURE_CONTEXT_EXCERPT_CHARS.max(1);
+    let half_window = context_window / 2;
+    let mut start = char_index.saturating_sub(half_window);
+    let end = (start + context_window).min(chars.len());
+    start = end.saturating_sub(context_window);
+
+    let excerpt_body: String = chars[start..end].iter().collect();
+    let sanitized = sanitize_excerpt_text(&excerpt_body);
+    let mut excerpt = String::new();
+    if start > 0 {
+        excerpt.push_str("...");
+    }
+    excerpt.push_str(&sanitized);
+    if end < chars.len() {
+        excerpt.push_str("...");
+    }
+    Some(excerpt)
 }
 
 fn clamp_to_char_boundary(sample: &str, position: usize) -> usize {
@@ -2507,8 +2568,8 @@ mod tests {
         coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
         extract_parse_error_position, generate_stimuli_module_source, is_ebnf_input_path,
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
-        parse_error_line_column, parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
-        resolve_stimuli_module_seed,
+        parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
+        parse_recovery_stimuli_mode, resolve_parseability_max_attempts, resolve_stimuli_module_seed,
         supported_generated_parseability_grammars, supports_generated_parseability,
         write_parseability_report,
     };
@@ -2673,6 +2734,8 @@ mod tests {
             failure_position: Some(8),
             failure_line: Some(1),
             failure_column: Some(9),
+            failure_line_excerpt: Some("`define FOO(x) x".to_string()),
+            failure_context_excerpt: Some("`define FOO(x) x".to_string()),
         }];
 
         write_parseability_report(
@@ -2718,8 +2781,34 @@ mod tests {
             report_value["counterexamples"][0]["failure_column"].as_u64(),
             Some(9)
         );
+        assert_eq!(
+            report_value["counterexamples"][0]["failure_line_excerpt"].as_str(),
+            Some("`define FOO(x) x")
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["failure_context_excerpt"].as_str(),
+            Some("`define FOO(x) x")
+        );
 
         std::fs::remove_file(&path).expect("temporary parseability report should be removable");
+    }
+
+    #[test]
+    fn parse_error_line_excerpt_sanitizes_and_truncates() {
+        let sample =
+            "alpha\r\n\tbeta and more text that is intentionally long to exercise truncation\r\n";
+        let excerpt = parse_error_line_excerpt(sample, 2).expect("line excerpt should exist");
+        assert_eq!(excerpt, "\\tbeta and more text that is intentionally long to exercise truncation");
+    }
+
+    #[test]
+    fn parse_error_context_excerpt_centers_failure_position() {
+        let sample =
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let excerpt =
+            parse_error_context_excerpt(sample, 20).expect("context excerpt should exist");
+        assert!(excerpt.contains("0123456789abcdefghijklmnopqrstuvwx"));
+        assert!(excerpt.ends_with("..."));
     }
 
     #[test]

@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-03-15 - Promote SV Failure Context Into Rust Parseability Reports
+### ✅ Achievement Summary
+Parser failure context is now first-class in the Rust parseability reports instead of being reconstructed only inside shell gates. `ParseabilityCounterexample` now carries both `failure_line_excerpt` and `failure_context_excerpt`, and the SV-family aggregate contract gates require those fields to be real strings alongside real numeric failure positions/lines/columns.
+
+### Scope of Changes
+- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - `ParseabilityCounterexample` now includes:
+    - `failure_line_excerpt`
+    - `failure_context_excerpt`
+  - generated-parser failure extraction now derives those fields at report-generation time
+  - added unit coverage for excerpt extraction and report serialization
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now requires non-null numeric `failure_position` / `failure_line` / `failure_column`
+  - now requires non-null string `failure_line_excerpt` / `failure_context_excerpt`
+  - triage summaries now track `failure_context_excerpt`
+  - summary now surfaces:
+    - `generation_counterexample_unique_failure_context_excerpts`
+    - `shadow_counterexample_unique_failure_context_excerpts`
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - now requires the same non-null source-level failure-context fields
+  - triage summary now also tracks `failure_context_excerpt`
+  - summary now surfaces:
+    - `counterexample_unique_failure_context_excerpts`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the shift from shell-only reconstruction to source-level report proof,
+  - kept status labels unchanged because exhaustive grammar-level closure is still open.
+
+### Validation Results
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline --quiet`
+  - passed (`29/29`)
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed with fresh source-level report fields
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - now records `counterexample_unique_failure_context_excerpts=5`
+- `env PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_failure_context_tiny_contract.json PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_failure_context_tiny2 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - passed focused main-SV generation+shadow validation with fresh source-level failure excerpts
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_failure_context_tiny2 make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - now records:
+    - `generation_counterexample_unique_failure_context_excerpts=5`
+    - `shadow_counterexample_unique_failure_context_excerpts=5`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add SV Preprocessor Failure-Line Triage Context
 ### ✅ Achievement Summary
 The SystemVerilog preprocessor aggregate contract gate now preserves concrete failure-line excerpts in its deterministic debt-triage artifact. That moves the remaining bounded preprocessor parser debt from “we know the line and column” to “we can group the debt by the exact directive-line context the parser saw,” which is much more actionable while staying fully repeatable.

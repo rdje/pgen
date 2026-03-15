@@ -193,6 +193,13 @@ if ! jq -e '
         and has("failure_position")
         and has("failure_line")
         and has("failure_column")
+        and has("failure_line_excerpt")
+        and has("failure_context_excerpt")
+        and (.failure_position | type == "number")
+        and (.failure_line | type == "number")
+        and (.failure_column | type == "number")
+        and (.failure_line_excerpt | type == "string")
+        and (.failure_context_excerpt | type == "string")
     )
 ' "$parseability_report_json" >/dev/null; then
     echo "error: preprocessor aggregate parseability report contract failed: $parseability_report_json" >&2
@@ -376,19 +383,19 @@ jq '
         ),
         by_failure_line_excerpt: (
             (.counterexamples // [])
-            | map(
-                . + {
-                    failure_line_excerpt: (
-                        (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
-                        | gsub("\r"; "")
-                        | .[:80]
-                    )
-                }
-            )
             | sort_by(.failure_line_excerpt)
             | group_by(.failure_line_excerpt)
             | map({
                 failure_line_excerpt: .[0].failure_line_excerpt,
+                count: length
+            })
+        ),
+        by_failure_context_excerpt: (
+            (.counterexamples // [])
+            | sort_by(.failure_context_excerpt)
+            | group_by(.failure_context_excerpt)
+            | map({
+                failure_context_excerpt: .[0].failure_context_excerpt,
                 count: length
             })
         ),
@@ -400,11 +407,8 @@ jq '
                 failure_line,
                 failure_column,
                 shrunk_sample,
-                failure_line_excerpt: (
-                    (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
-                    | gsub("\r"; "")
-                    | .[:80]
-                ),
+                failure_line_excerpt,
+                failure_context_excerpt,
                 sample_preview: (.sample[:80])
             })
         )
@@ -419,6 +423,7 @@ require_nonempty_file "$counterexample_triage_json"
     jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$counterexample_triage_json"
     jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$counterexample_triage_json"
     jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$counterexample_triage_json"
+    jq -r '.by_failure_context_excerpt[]? | "failure_context_excerpt_count[\(.failure_context_excerpt | @json)]: \(.count)"' "$counterexample_triage_json"
 } >"$counterexample_triage_txt"
 require_nonempty_file "$counterexample_triage_txt"
 
@@ -438,6 +443,7 @@ fuzz_replay_parseability_counterexamples="$(extract_json_number "$fuzz_replay_a_
 counterexample_unique_shrunk_samples="$(extract_json_number "$counterexample_triage_json" '(.by_shrunk_sample | length)')"
 counterexample_unique_failure_locations="$(extract_json_number "$counterexample_triage_json" '(.by_failure_location | length)')"
 counterexample_unique_failure_line_excerpts="$(extract_json_number "$counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
+counterexample_unique_failure_context_excerpts="$(extract_json_number "$counterexample_triage_json" '(.by_failure_context_excerpt | length)')"
 
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
@@ -456,6 +462,7 @@ counterexample_unique_failure_line_excerpts="$(extract_json_number "$counterexam
     echo "counterexample_unique_shrunk_samples: $counterexample_unique_shrunk_samples"
     echo "counterexample_unique_failure_locations: $counterexample_unique_failure_locations"
     echo "counterexample_unique_failure_line_excerpts: $counterexample_unique_failure_line_excerpts"
+    echo "counterexample_unique_failure_context_excerpts: $counterexample_unique_failure_context_excerpts"
     echo "stage0_target_count: $stage0_target_count"
     echo "stage1_target_count: $stage1_target_count"
     echo "final_targets: $final_targets"
