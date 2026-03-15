@@ -396,6 +396,19 @@ SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED="<unset>"
 SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED="<unset>"
 SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR="<unset>"
 SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="<unset>"
+SV_PREPROCESSOR_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<not-run>"
+SV_PREPROCESSOR_FAILURE_CONTEXT_EXCERPTS="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_CONTRACT_SUMMARY_TXT="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE0_TARGETS="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE1_TARGETS="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_FINAL_TARGETS="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE4_TARGETS="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_RULES="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_RULES="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_RULES="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_BRANCHES="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_BRANCHES="<not-run>"
+SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_BRANCHES="<not-run>"
 EBNF_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 EBNF_STIMULI_QUALITY_SUMMARY_CSV="<unset>"
 EBNF_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
@@ -405,6 +418,16 @@ HDL_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
 SV_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<unset>"
+SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<not-run>"
+SV_FAILURE_CONTEXT_GENERATION_EXCERPTS="<not-run>"
+SV_FAILURE_CONTEXT_SHADOW_EXCERPTS="<not-run>"
+SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="<not-run>"
+SV_ROUNDTRIP_INITIAL_TARGETS="<not-run>"
+SV_ROUNDTRIP_REPLAY_TARGETS="<not-run>"
+SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES="<not-run>"
+SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_RULES="<not-run>"
+SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_BRANCHES="<not-run>"
+SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES="<not-run>"
 SV_STIMULI_QUALITY_PARSE_FULL_QUALITY_REPORT_JSON="<unset>"
 SV_STIMULI_QUALITY_PARSE_FULL_PASS_RATIO_PERCENT="<unset>"
 SV_STIMULI_QUALITY_DIFF_REPORT_JSON="<unset>"
@@ -485,6 +508,15 @@ summary_value_from_log() {
         return 0
     fi
     sed -nE "s/^${key}: (.*)$/\\1/p" "$log_file" | tail -n 1 || true
+}
+
+summary_value_from_txt() {
+    local key="$1"
+    local txt_file="$2"
+    if [[ ! -f "$txt_file" ]]; then
+        return 0
+    fi
+    sed -nE "s/^${key}: (.*)$/\\1/p" "$txt_file" | tail -n 1 || true
 }
 
 echo "==> PGEN SOTA exit gate"
@@ -813,9 +845,6 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
         SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
     fi
 
-    SV_PREPROCESSOR_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<not-run>"
-    SV_PREPROCESSOR_ROUNDTRIP_CONTRACT_SUMMARY_TXT="<not-run>"
-
     echo "sv_preprocessor_quality_state_dir: $SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR"
     echo "sv_preprocessor_quality_summary_csv: $SV_PREPROCESSOR_QUALITY_SUMMARY_CSV"
     echo "sv_preprocessor_quality_differential_report_json: $SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON"
@@ -985,8 +1014,6 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
     fi
 
-    SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<not-run>"
-    SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="<not-run>"
     if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
         SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_failure_context_contract_gate"
         SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="${SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR}/summary.txt"
@@ -1007,6 +1034,10 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         fi
         if [[ ! -f "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT" ]]; then
             SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<missing>"
+        else
+            SV_FAILURE_CONTEXT_GENERATION_EXCERPTS="$(summary_value_from_txt "systemverilog_generation_failure_context_excerpts" "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT")"
+            SV_FAILURE_CONTEXT_SHADOW_EXCERPTS="$(summary_value_from_txt "systemverilog_shadow_failure_context_excerpts" "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_FAILURE_CONTEXT_EXCERPTS="$(summary_value_from_txt "systemverilog_preprocessor_failure_context_excerpts" "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT")"
         fi
 
         SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_roundtrip_contract_gate"
@@ -1028,6 +1059,23 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         fi
         if [[ ! -f "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT" ]]; then
             SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="<missing>"
+        else
+            SV_ROUNDTRIP_INITIAL_TARGETS="$(summary_value_from_txt "systemverilog_roundtrip_initial_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_ROUNDTRIP_REPLAY_TARGETS="$(summary_value_from_txt "systemverilog_roundtrip_replay_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_roundtrip_initial_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_roundtrip_replay_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_roundtrip_initial_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_roundtrip_replay_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage0_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage1_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_FINAL_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_final_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage4_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
         fi
         SV_PREPROCESSOR_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
         SV_PREPROCESSOR_ROUNDTRIP_CONTRACT_SUMMARY_TXT="$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
@@ -1042,7 +1090,15 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     echo "sv_stimuli_quality_performance_enabled: $SV_STIMULI_QUALITY_PERF_ENABLED"
     echo "sv_stimuli_quality_aggregate_contract_summary_txt: $SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT"
     echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
+    echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
+    echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"
     echo "sv_roundtrip_contract_summary_txt: $SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
+    echo "sv_roundtrip_initial_targets: $SV_ROUNDTRIP_INITIAL_TARGETS"
+    echo "sv_roundtrip_replay_targets: $SV_ROUNDTRIP_REPLAY_TARGETS"
+    echo "sv_roundtrip_initial_covered_reachable_rules: $SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES"
+    echo "sv_roundtrip_replay_covered_reachable_rules: $SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_RULES"
+    echo "sv_roundtrip_initial_covered_reachable_branches: $SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_BRANCHES"
+    echo "sv_roundtrip_replay_covered_reachable_branches: $SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES"
 fi
 
 if [[ "$RUN_SV_DECLARED_SHADOW_PROMOTION" -eq 1 ]]; then
@@ -1521,7 +1577,15 @@ fi
         echo "sv_stimuli_quality_parseability_generation_report_json: $SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON"
         echo "sv_stimuli_quality_aggregate_contract_summary_txt: $SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT"
         echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
+        echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
+        echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"
         echo "sv_roundtrip_contract_summary_txt: $SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
+        echo "sv_roundtrip_initial_targets: $SV_ROUNDTRIP_INITIAL_TARGETS"
+        echo "sv_roundtrip_replay_targets: $SV_ROUNDTRIP_REPLAY_TARGETS"
+        echo "sv_roundtrip_initial_covered_reachable_rules: $SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES"
+        echo "sv_roundtrip_replay_covered_reachable_rules: $SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_RULES"
+        echo "sv_roundtrip_initial_covered_reachable_branches: $SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_BRANCHES"
+        echo "sv_roundtrip_replay_covered_reachable_branches: $SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES"
     fi
     if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" ]]; then
         echo
@@ -1581,7 +1645,18 @@ fi
         echo "sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED"
         echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT"
         echo "sv_preprocessor_failure_context_contract_summary_txt: $SV_PREPROCESSOR_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
+        echo "sv_preprocessor_failure_context_excerpts: $SV_PREPROCESSOR_FAILURE_CONTEXT_EXCERPTS"
         echo "sv_preprocessor_roundtrip_contract_summary_txt: $SV_PREPROCESSOR_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
+        echo "sv_preprocessor_roundtrip_stage0_targets: $SV_PREPROCESSOR_ROUNDTRIP_STAGE0_TARGETS"
+        echo "sv_preprocessor_roundtrip_stage1_targets: $SV_PREPROCESSOR_ROUNDTRIP_STAGE1_TARGETS"
+        echo "sv_preprocessor_roundtrip_final_targets: $SV_PREPROCESSOR_ROUNDTRIP_FINAL_TARGETS"
+        echo "sv_preprocessor_roundtrip_stage4_targets: $SV_PREPROCESSOR_ROUNDTRIP_STAGE4_TARGETS"
+        echo "sv_preprocessor_roundtrip_stage0_covered_reachable_rules: $SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_RULES"
+        echo "sv_preprocessor_roundtrip_stage1_covered_reachable_rules: $SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_RULES"
+        echo "sv_preprocessor_roundtrip_stage4_covered_reachable_rules: $SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_RULES"
+        echo "sv_preprocessor_roundtrip_stage0_covered_reachable_branches: $SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_BRANCHES"
+        echo "sv_preprocessor_roundtrip_stage1_covered_reachable_branches: $SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_BRANCHES"
+        echo "sv_preprocessor_roundtrip_stage4_covered_reachable_branches: $SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_BRANCHES"
     fi
     if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
         echo

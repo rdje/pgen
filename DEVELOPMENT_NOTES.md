@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface Combined SV Proof Metrics In Aggregate Telemetry
+### Context
+The previous aggregate sign-off increment made the combined SV-family proof gates part of `sota_exit_gate`, but the release summary still required a second hop into sidecar summaries to see the actual counts. The next clean observability step was to promote those proof metrics into aggregate telemetry itself.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - added `summary_value_from_txt()` so aggregate sign-off can parse the combined proof summaries directly
+  - when both SV families run, aggregate stdout and final telemetry now surface:
+    - main SV failure-context counts: `sv_failure_context_generation_excerpts`, `sv_failure_context_shadow_excerpts`
+    - main SV roundtrip counts: `sv_roundtrip_initial_targets`, `sv_roundtrip_replay_targets`, `sv_roundtrip_initial_covered_reachable_rules`, `sv_roundtrip_replay_covered_reachable_rules`, `sv_roundtrip_initial_covered_reachable_branches`, `sv_roundtrip_replay_covered_reachable_branches`
+    - preprocessor failure-context count: `sv_preprocessor_failure_context_excerpts`
+    - preprocessor roundtrip counts: `sv_preprocessor_roundtrip_stage0_targets`, `sv_preprocessor_roundtrip_stage1_targets`, `sv_preprocessor_roundtrip_final_targets`, `sv_preprocessor_roundtrip_stage4_targets`, plus the three staged reachable-rule and reachable-branch counters
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate sign-off now carries concrete combined proof metrics in addition to the summary paths.
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- Focused aggregate run:
+  - `env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_sv_combined_contract PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 PGEN_SV_STIMULI_QUALITY_CONTRACT=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+  - passed
+  - aggregate telemetry now directly reports:
+    - main SV: `failure-context 5/5`, `targets 2366 -> 2207`, `reachable rules 46 -> 155`, `reachable branches 22 -> 72`
+    - preprocessor: `failure-context 5`, `targets 95 -> 27 -> 0 -> 0`, `reachable rules 17/69 -> 61/69 -> 69/69`, `reachable branches 4/47 -> 28/47 -> 47/47`
+
+### Notes
+- This did not change any status label. It made the current proof surface easier to inspect objectively from one aggregate report.
+
 ## 2026-03-15 - Surface Combined SV Proofs In Aggregate Sign-Off
 ### Context
 The SV-family proof surface had been normalized nicely at the gate level, but aggregate sign-off was still only surfacing the lower-level aggregate contract summaries. Since the combined lightweight failure-context and roundtrip gates are now part of the tracked proof story, the next clean increment was to make `sota_exit_gate` carry those summaries too.

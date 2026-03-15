@@ -1,4 +1,63 @@
 # CHANGES.md
+## 2026-03-15 - Surface Combined SV Proof Metrics In Aggregate Telemetry
+### ✅ Achievement Summary
+Aggregate `sota_exit_gate` no longer stops at pointing to the combined SV-family proof summaries. It now extracts and prints the key failure-context and roundtrip metrics directly in aggregate telemetry, so the release summary itself carries the measurable proof deltas.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - added a summary-text extraction helper for combined proof sidecars
+  - when both SV families run, aggregate sign-off now surfaces:
+    - `sv_failure_context_generation_excerpts`
+    - `sv_failure_context_shadow_excerpts`
+    - `sv_roundtrip_initial_targets`
+    - `sv_roundtrip_replay_targets`
+    - `sv_roundtrip_initial_covered_reachable_rules`
+    - `sv_roundtrip_replay_covered_reachable_rules`
+    - `sv_roundtrip_initial_covered_reachable_branches`
+    - `sv_roundtrip_replay_covered_reachable_branches`
+    - `sv_preprocessor_failure_context_excerpts`
+    - `sv_preprocessor_roundtrip_stage0_targets`
+    - `sv_preprocessor_roundtrip_stage1_targets`
+    - `sv_preprocessor_roundtrip_final_targets`
+    - `sv_preprocessor_roundtrip_stage4_targets`
+    - `sv_preprocessor_roundtrip_stage0_covered_reachable_rules`
+    - `sv_preprocessor_roundtrip_stage1_covered_reachable_rules`
+    - `sv_preprocessor_roundtrip_stage4_covered_reachable_rules`
+    - `sv_preprocessor_roundtrip_stage0_covered_reachable_branches`
+    - `sv_preprocessor_roundtrip_stage1_covered_reachable_branches`
+    - `sv_preprocessor_roundtrip_stage4_covered_reachable_branches`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate sign-off now surfaces the combined SV proof numbers themselves, not only the summary artifact paths.
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- Focused aggregate run:
+  - `env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_sv_combined_contract PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 PGEN_SV_STIMULI_QUALITY_CONTRACT=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+  - passed
+  - final telemetry now includes:
+    - `sv_failure_context_generation_excerpts: 5`
+    - `sv_failure_context_shadow_excerpts: 5`
+    - `sv_roundtrip_initial_targets: 2366`
+    - `sv_roundtrip_replay_targets: 2207`
+    - `sv_roundtrip_initial_covered_reachable_rules: 46`
+    - `sv_roundtrip_replay_covered_reachable_rules: 155`
+    - `sv_roundtrip_initial_covered_reachable_branches: 22`
+    - `sv_roundtrip_replay_covered_reachable_branches: 72`
+    - `sv_preprocessor_failure_context_excerpts: 5`
+    - `sv_preprocessor_roundtrip_stage0_targets: 95`
+    - `sv_preprocessor_roundtrip_stage1_targets: 27`
+    - `sv_preprocessor_roundtrip_final_targets: 0`
+    - `sv_preprocessor_roundtrip_stage4_targets: 0`
+    - `sv_preprocessor_roundtrip_stage0_covered_reachable_rules: 17/69`
+    - `sv_preprocessor_roundtrip_stage1_covered_reachable_rules: 61/69`
+    - `sv_preprocessor_roundtrip_stage4_covered_reachable_rules: 69/69`
+    - `sv_preprocessor_roundtrip_stage0_covered_reachable_branches: 4/47`
+    - `sv_preprocessor_roundtrip_stage1_covered_reachable_branches: 28/47`
+    - `sv_preprocessor_roundtrip_stage4_covered_reachable_branches: 47/47`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Surface Combined SV Proofs In Aggregate Sign-Off
 ### ✅ Achievement Summary
 The new lightweight combined SV-family proof gates are no longer side evidence. Aggregate `sota_exit_gate` now reuses them over already-produced quality artifacts and surfaces their summary paths directly in release telemetry.

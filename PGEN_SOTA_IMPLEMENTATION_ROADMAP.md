@@ -483,6 +483,16 @@ Toolbox baseline to leverage end-to-end:
       - `sv_failure_context_contract_summary_txt`
       - `sv_roundtrip_contract_summary_txt`
     - a focused aggregate run with only the two SV quality stages enabled recorded both combined checks as passing informational entries in the SOTA summary table.
+  - Progress (2026-03-15): aggregate `sota_exit_gate` now also extracts the main-SV combined proof metrics out of those sidecar summaries and surfaces them directly in aggregate telemetry:
+    - `sv_failure_context_generation_excerpts=5`
+    - `sv_failure_context_shadow_excerpts=5`
+    - `sv_roundtrip_initial_targets=2366`
+    - `sv_roundtrip_replay_targets=2207`
+    - `sv_roundtrip_initial_covered_reachable_rules=46`
+    - `sv_roundtrip_replay_covered_reachable_rules=155`
+    - `sv_roundtrip_initial_covered_reachable_branches=22`
+    - `sv_roundtrip_replay_covered_reachable_branches=72`
+    - this removes the extra summary-file hop when auditing aggregate sign-off.
   - Progress (2026-03-15): added deterministic main-SV parseability-debt triage artifacts to `sv_parser_aggregate_contract_gate`:
     - generation-side bounded debt is now summarized into:
       - `systemverilog_parseability_generation_counterexample_triage.json`
@@ -1980,6 +1990,18 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_failure_context_contract_summary_txt`
     - `sv_preprocessor_roundtrip_contract_summary_txt`
     - the focused aggregate run under tiny-policy settings passed both combined checks and printed those summary paths in the final preprocessor telemetry block.
+  - Progress (2026-03-15): aggregate `sota_exit_gate` now also extracts the preprocessor combined proof metrics out of those sidecar summaries and surfaces them directly in aggregate telemetry:
+    - `sv_preprocessor_failure_context_excerpts=5`
+    - `sv_preprocessor_roundtrip_stage0_targets=95`
+    - `sv_preprocessor_roundtrip_stage1_targets=27`
+    - `sv_preprocessor_roundtrip_final_targets=0`
+    - `sv_preprocessor_roundtrip_stage4_targets=0`
+    - `sv_preprocessor_roundtrip_stage0_covered_reachable_rules=17/69`
+    - `sv_preprocessor_roundtrip_stage1_covered_reachable_rules=61/69`
+    - `sv_preprocessor_roundtrip_stage4_covered_reachable_rules=69/69`
+    - `sv_preprocessor_roundtrip_stage0_covered_reachable_branches=4/47`
+    - `sv_preprocessor_roundtrip_stage1_covered_reachable_branches=28/47`
+    - `sv_preprocessor_roundtrip_stage4_covered_reachable_branches=47/47`
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

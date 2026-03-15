@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-combined-sv-proofs-in-aggregate-sign-off)
+Last updated: 2026-03-15 (+0100, task: surface-combined-sv-proof-metrics-in-aggregate-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,35 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate `sota_exit_gate` telemetry now surfaces the key combined SV proof metrics directly, not only sidecar summary paths:
+  - main SV:
+    - `sv_failure_context_generation_excerpts`
+    - `sv_failure_context_shadow_excerpts`
+    - `sv_roundtrip_initial_targets`
+    - `sv_roundtrip_replay_targets`
+    - `sv_roundtrip_initial_covered_reachable_rules`
+    - `sv_roundtrip_replay_covered_reachable_rules`
+    - `sv_roundtrip_initial_covered_reachable_branches`
+    - `sv_roundtrip_replay_covered_reachable_branches`
+  - SV preprocessor:
+    - `sv_preprocessor_failure_context_excerpts`
+    - `sv_preprocessor_roundtrip_stage0_targets`
+    - `sv_preprocessor_roundtrip_stage1_targets`
+    - `sv_preprocessor_roundtrip_final_targets`
+    - `sv_preprocessor_roundtrip_stage4_targets`
+    - staged reachable-rule counters
+    - staged reachable-branch counters
+- Focused measured aggregate values from `/tmp/pgen_sota_sv_combined_contract`:
+  - main SV:
+    - `failure-context 5/5`
+    - `targets 2366 -> 2207`
+    - `reachable rules 46 -> 155`
+    - `reachable branches 22 -> 72`
+  - SV preprocessor:
+    - `failure-context 5`
+    - `targets 95 -> 27 -> 0 -> 0`
+    - `reachable rules 17/69 -> 61/69 -> 69/69`
+    - `reachable branches 4/47 -> 28/47 -> 47/47`
 - Annotation-role doctrine is now explicit in tracked docs:
   - return annotations shape the AST returned by generated parsers,
   - semantic annotations steer parser-generation behavior,
