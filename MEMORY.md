@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-reachability-closure-gate)
+Last updated: 2026-03-15 (+0100, task: surface-sv-preprocessor-reachability-closure-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,18 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now reuses the standalone SV preprocessor reachability-closure proof over produced artifacts:
+  - `sota_exit_gate` surfaces:
+    - `sv_preprocessor_reachability_stage3_targets=0`
+    - `sv_preprocessor_reachability_stage4_targets=0`
+    - `sv_preprocessor_reachability_stage3_covered_reachable_rules=69/69`
+    - `sv_preprocessor_reachability_stage4_covered_reachable_rules=69/69`
+    - `sv_preprocessor_reachability_stage3_covered_reachable_branches=47/47`
+    - `sv_preprocessor_reachability_stage4_covered_reachable_branches=47/47`
+    - `sv_preprocessor_reachability_parseability_rejected=24`
+    - `sv_preprocessor_reachability_parser_rejections=24`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate fields match the reachability-closure sidecar exactly.
 - SV preprocessor now has a standalone reachability-closure proof gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_reachability_closure_gate`
   - proves:

@@ -101,10 +101,12 @@ fi
 sota_summary_txt="$sota_state_dir/summary.txt"
 sv_failure_summary_txt="$sota_state_dir/work/sv_failure_context_contract_gate/summary.txt"
 sv_roundtrip_summary_txt="$sota_state_dir/work/sv_roundtrip_contract_gate/summary.txt"
+sv_preprocessor_reachability_summary_txt="$sota_state_dir/work/sv_preprocessor_reachability_closure_gate/summary.txt"
 
 require_nonempty_file "$sota_summary_txt"
 require_nonempty_file "$sv_failure_summary_txt"
 require_nonempty_file "$sv_roundtrip_summary_txt"
+require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
 
 assert_equal \
     "main SV failure-context summary path" \
@@ -122,6 +124,10 @@ assert_equal \
     "SV preprocessor roundtrip summary path" \
     "$sv_roundtrip_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_contract_summary_txt")"
+assert_equal \
+    "SV preprocessor reachability-closure summary path" \
+    "$sv_preprocessor_reachability_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_closure_summary_txt")"
 
 sv_failure_generation_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_generation_failure_context_excerpts")"
 sv_failure_shadow_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_shadow_failure_context_excerpts")"
@@ -143,6 +149,14 @@ svpp_stage4_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemve
 svpp_stage0_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches")"
 svpp_stage1_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches")"
 svpp_stage4_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches")"
+svpp_reachability_stage3_targets="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage3_targets")"
+svpp_reachability_stage4_targets="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage4_targets")"
+svpp_reachability_stage3_rules="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage3_covered_reachable_rules")"
+svpp_reachability_stage4_rules="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage4_covered_reachable_rules")"
+svpp_reachability_stage3_branches="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage3_covered_reachable_branches")"
+svpp_reachability_stage4_branches="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage4_covered_reachable_branches")"
+svpp_reachability_parseability_rejected="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parseability_rejected")"
+svpp_reachability_parser_rejections="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parser_rejections")"
 
 assert_equal \
     "main SV generation failure-context excerpts" \
@@ -221,6 +235,38 @@ assert_equal \
     "SV preprocessor roundtrip stage4 reachable branches" \
     "$svpp_stage4_branches" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage4_covered_reachable_branches")"
+assert_equal \
+    "SV preprocessor reachability stage3 targets" \
+    "$svpp_reachability_stage3_targets" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_stage3_targets")"
+assert_equal \
+    "SV preprocessor reachability stage4 targets" \
+    "$svpp_reachability_stage4_targets" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_stage4_targets")"
+assert_equal \
+    "SV preprocessor reachability stage3 reachable rules" \
+    "$svpp_reachability_stage3_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_stage3_covered_reachable_rules")"
+assert_equal \
+    "SV preprocessor reachability stage4 reachable rules" \
+    "$svpp_reachability_stage4_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_stage4_covered_reachable_rules")"
+assert_equal \
+    "SV preprocessor reachability stage3 reachable branches" \
+    "$svpp_reachability_stage3_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_stage3_covered_reachable_branches")"
+assert_equal \
+    "SV preprocessor reachability stage4 reachable branches" \
+    "$svpp_reachability_stage4_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_stage4_covered_reachable_branches")"
+assert_equal \
+    "SV preprocessor reachability parseability rejected" \
+    "$svpp_reachability_parseability_rejected" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_parseability_rejected")"
+assert_equal \
+    "SV preprocessor reachability parser rejections" \
+    "$svpp_reachability_parser_rejections" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_parser_rejections")"
 
 {
     echo "SV Combined Telemetry Contract Gate Summary"
@@ -232,6 +278,7 @@ assert_equal \
     echo "sota_exit_summary_txt: $sota_summary_txt"
     echo "sv_failure_context_contract_summary_txt: $sv_failure_summary_txt"
     echo "sv_roundtrip_contract_summary_txt: $sv_roundtrip_summary_txt"
+    echo "sv_preprocessor_reachability_closure_summary_txt: $sv_preprocessor_reachability_summary_txt"
     echo "sv_failure_context_generation_excerpts: $sv_failure_generation_excerpts"
     echo "sv_failure_context_shadow_excerpts: $sv_failure_shadow_excerpts"
     echo "sv_roundtrip_initial_targets: $sv_roundtrip_initial_targets"
@@ -251,6 +298,14 @@ assert_equal \
     echo "sv_preprocessor_roundtrip_stage0_covered_reachable_branches: $svpp_stage0_branches"
     echo "sv_preprocessor_roundtrip_stage1_covered_reachable_branches: $svpp_stage1_branches"
     echo "sv_preprocessor_roundtrip_stage4_covered_reachable_branches: $svpp_stage4_branches"
+    echo "sv_preprocessor_reachability_stage3_targets: $svpp_reachability_stage3_targets"
+    echo "sv_preprocessor_reachability_stage4_targets: $svpp_reachability_stage4_targets"
+    echo "sv_preprocessor_reachability_stage3_covered_reachable_rules: $svpp_reachability_stage3_rules"
+    echo "sv_preprocessor_reachability_stage4_covered_reachable_rules: $svpp_reachability_stage4_rules"
+    echo "sv_preprocessor_reachability_stage3_covered_reachable_branches: $svpp_reachability_stage3_branches"
+    echo "sv_preprocessor_reachability_stage4_covered_reachable_branches: $svpp_reachability_stage4_branches"
+    echo "sv_preprocessor_reachability_parseability_rejected: $svpp_reachability_parseability_rejected"
+    echo "sv_preprocessor_reachability_parser_rejections: $svpp_reachability_parser_rejections"
 } >"$SUMMARY_TXT"
 
 require_nonempty_file "$SUMMARY_TXT"

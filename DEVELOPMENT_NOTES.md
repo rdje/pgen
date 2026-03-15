@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface SV Preprocessor Reachability Closure In Aggregate Sign-Off
+### Context
+The preprocessor reachability-closure gate already existed as a good standalone proof surface, but aggregate sign-off still omitted it. The next clean hardening step was to reuse that same sidecar in `sota_exit_gate` and make the aggregate telemetry contract verify the new fields instead of only printing them.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - reuses `sv_preprocessor_reachability_closure_gate` against the produced preprocessor quality state
+  - surfaces the summary path plus stage3/stage4 closure metrics and remaining parseability debt directly in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - requires the preprocessor reachability-closure summary sidecar
+  - proves the new aggregate `sota_exit_gate` fields exactly match that sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current preprocessor reachability values surfaced and verified in aggregate telemetry:
+    - `stage3_targets=0`
+    - `stage4_targets=0`
+    - `stage3_covered_reachable_rules=69/69`
+    - `stage4_covered_reachable_rules=69/69`
+    - `stage3_covered_reachable_branches=47/47`
+    - `stage4_covered_reachable_branches=47/47`
+    - `parseability_rejected=24`
+    - `parser_rejections=24`
+
 ## 2026-03-15 - Add SV Preprocessor Reachability Closure Gate
 ### Context
 The preprocessor side already had strong aggregate proof, but “zero target debt and full reachable coverage” was still buried inside the broader aggregate contract surface. The next clean step was to give that sub-closure its own explicit gate without overstating full parser closure.

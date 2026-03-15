@@ -2014,6 +2014,16 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `stage3_covered_reachable_branches=47/47`
       - `stage4_covered_reachable_branches=47/47`
     - keeps parseability rejection debt visible in the same summary instead of masking it as full parser closure.
+  - Progress (2026-03-15): aggregate `sota_exit_gate` now also reuses that reachability-closure gate over the produced preprocessor quality artifacts and surfaces the closure/debt values directly in release telemetry:
+    - `sv_preprocessor_reachability_stage3_targets=0`
+    - `sv_preprocessor_reachability_stage4_targets=0`
+    - `sv_preprocessor_reachability_stage3_covered_reachable_rules=69/69`
+    - `sv_preprocessor_reachability_stage4_covered_reachable_rules=69/69`
+    - `sv_preprocessor_reachability_stage3_covered_reachable_branches=47/47`
+    - `sv_preprocessor_reachability_stage4_covered_reachable_branches=47/47`
+    - `sv_preprocessor_reachability_parseability_rejected=24`
+    - `sv_preprocessor_reachability_parser_rejections=24`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the reachability-closure sidecar exactly.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

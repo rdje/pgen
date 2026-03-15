@@ -409,6 +409,16 @@ SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_RULES="<not-run>"
 SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_BRANCHES="<not-run>"
 SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_BRANCHES="<not-run>"
 SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_BRANCHES="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR="<unset>"
+SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_STAGE3_TARGETS="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_STAGE4_TARGETS="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_RULES="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_RULES="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_BRANCHES="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_BRANCHES="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_PARSEABILITY_REJECTED="<not-run>"
+SV_PREPROCESSOR_REACHABILITY_PARSER_REJECTIONS="<not-run>"
 EBNF_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 EBNF_STIMULI_QUALITY_SUMMARY_CSV="<unset>"
 EBNF_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
@@ -845,6 +855,34 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
         SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
     fi
 
+    SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR="${STATE_DIR}/work/sv_preprocessor_reachability_closure_gate"
+    SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="${SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR}/summary.txt"
+    if [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+        run_check "sv_preprocessor_reachability_closure_gate" "required" "strict SV preprocessor reachability-closure proof over produced artifacts" \
+            env \
+                PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR="$SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR" \
+                PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_EXISTING_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_preprocessor_reachability_closure_gate
+    else
+        run_check "sv_preprocessor_reachability_closure_gate" "informational" "report-only SV preprocessor reachability-closure proof over produced artifacts" \
+            env \
+                PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR="$SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR" \
+                PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_EXISTING_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash sv_preprocessor_reachability_closure_gate
+    fi
+    if [[ ! -f "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT" ]]; then
+        SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="<missing>"
+    else
+        SV_PREPROCESSOR_REACHABILITY_STAGE3_TARGETS="$(summary_value_from_txt "stage3_targets" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+        SV_PREPROCESSOR_REACHABILITY_STAGE4_TARGETS="$(summary_value_from_txt "stage4_targets" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+        SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_RULES="$(summary_value_from_txt "stage3_covered_reachable_rules" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+        SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_RULES="$(summary_value_from_txt "stage4_covered_reachable_rules" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+        SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "stage3_covered_reachable_branches" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+        SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "stage4_covered_reachable_branches" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+        SV_PREPROCESSOR_REACHABILITY_PARSEABILITY_REJECTED="$(summary_value_from_txt "parseability_rejected" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+        SV_PREPROCESSOR_REACHABILITY_PARSER_REJECTIONS="$(summary_value_from_txt "parser_rejections" "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT")"
+    fi
+
     echo "sv_preprocessor_quality_state_dir: $SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR"
     echo "sv_preprocessor_quality_summary_csv: $SV_PREPROCESSOR_QUALITY_SUMMARY_CSV"
     echo "sv_preprocessor_quality_differential_report_json: $SV_PREPROCESSOR_QUALITY_DIFF_REPORT_JSON"
@@ -866,6 +904,15 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
     echo "sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED"
     echo "sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED"
     echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT"
+    echo "sv_preprocessor_reachability_closure_summary_txt: $SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT"
+    echo "sv_preprocessor_reachability_stage3_targets: $SV_PREPROCESSOR_REACHABILITY_STAGE3_TARGETS"
+    echo "sv_preprocessor_reachability_stage4_targets: $SV_PREPROCESSOR_REACHABILITY_STAGE4_TARGETS"
+    echo "sv_preprocessor_reachability_stage3_covered_reachable_rules: $SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_RULES"
+    echo "sv_preprocessor_reachability_stage4_covered_reachable_rules: $SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_RULES"
+    echo "sv_preprocessor_reachability_stage3_covered_reachable_branches: $SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_BRANCHES"
+    echo "sv_preprocessor_reachability_stage4_covered_reachable_branches: $SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_BRANCHES"
+    echo "sv_preprocessor_reachability_parseability_rejected: $SV_PREPROCESSOR_REACHABILITY_PARSEABILITY_REJECTED"
+    echo "sv_preprocessor_reachability_parser_rejections: $SV_PREPROCESSOR_REACHABILITY_PARSER_REJECTIONS"
 fi
 
 if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
@@ -1644,6 +1691,15 @@ fi
         echo "sv_preprocessor_quality_diff_taxonomy_rust_failed_reference_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_RUST_FAILED_REFERENCE_PASSED"
         echo "sv_preprocessor_quality_diff_taxonomy_reference_failed_rust_passed: $SV_PREPROCESSOR_QUALITY_DIFF_TAXONOMY_REFERENCE_FAILED_RUST_PASSED"
         echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT"
+        echo "sv_preprocessor_reachability_closure_summary_txt: $SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT"
+        echo "sv_preprocessor_reachability_stage3_targets: $SV_PREPROCESSOR_REACHABILITY_STAGE3_TARGETS"
+        echo "sv_preprocessor_reachability_stage4_targets: $SV_PREPROCESSOR_REACHABILITY_STAGE4_TARGETS"
+        echo "sv_preprocessor_reachability_stage3_covered_reachable_rules: $SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_RULES"
+        echo "sv_preprocessor_reachability_stage4_covered_reachable_rules: $SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_RULES"
+        echo "sv_preprocessor_reachability_stage3_covered_reachable_branches: $SV_PREPROCESSOR_REACHABILITY_STAGE3_COVERED_REACHABLE_BRANCHES"
+        echo "sv_preprocessor_reachability_stage4_covered_reachable_branches: $SV_PREPROCESSOR_REACHABILITY_STAGE4_COVERED_REACHABLE_BRANCHES"
+        echo "sv_preprocessor_reachability_parseability_rejected: $SV_PREPROCESSOR_REACHABILITY_PARSEABILITY_REJECTED"
+        echo "sv_preprocessor_reachability_parser_rejections: $SV_PREPROCESSOR_REACHABILITY_PARSER_REJECTIONS"
         echo "sv_preprocessor_failure_context_contract_summary_txt: $SV_PREPROCESSOR_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
         echo "sv_preprocessor_failure_context_excerpts: $SV_PREPROCESSOR_FAILURE_CONTEXT_EXCERPTS"
         echo "sv_preprocessor_roundtrip_contract_summary_txt: $SV_PREPROCESSOR_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
