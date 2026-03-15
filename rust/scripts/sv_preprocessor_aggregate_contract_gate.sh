@@ -452,6 +452,10 @@ counterexample_primary_parser_error="$(jq -er 'if (.by_parser_error | length) > 
 counterexample_primary_parser_error_count="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].count) else 0 end' "$counterexample_triage_json")"
 counterexample_primary_failure_location="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0] | "\(.failure_line):\(.failure_column)") else "<none>" end' "$counterexample_triage_json")"
 counterexample_primary_failure_location_count="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0].count) else 0 end' "$counterexample_triage_json")"
+counterexample_primary_failure_line_excerpt_json="$(jq -er 'if (.by_failure_line_excerpt | length) > 0 then (.by_failure_line_excerpt | sort_by(-.count, .failure_line_excerpt) | .[0].failure_line_excerpt | @json) else "\"<none>\"" end' "$counterexample_triage_json")"
+counterexample_primary_failure_line_excerpt_count="$(jq -er 'if (.by_failure_line_excerpt | length) > 0 then (.by_failure_line_excerpt | sort_by(-.count, .failure_line_excerpt) | .[0].count) else 0 end' "$counterexample_triage_json")"
+counterexample_primary_failure_context_excerpt_json="$(jq -er 'if (.by_failure_context_excerpt | length) > 0 then (.by_failure_context_excerpt | sort_by(-.count, .failure_context_excerpt) | .[0].failure_context_excerpt | @json) else "\"<none>\"" end' "$counterexample_triage_json")"
+counterexample_primary_failure_context_excerpt_count="$(jq -er 'if (.by_failure_context_excerpt | length) > 0 then (.by_failure_context_excerpt | sort_by(-.count, .failure_context_excerpt) | .[0].count) else 0 end' "$counterexample_triage_json")"
 
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
@@ -476,6 +480,10 @@ counterexample_primary_failure_location_count="$(jq -er 'if (.by_failure_locatio
     echo "counterexample_primary_parser_error_count: $counterexample_primary_parser_error_count"
     echo "counterexample_primary_failure_location: $counterexample_primary_failure_location"
     echo "counterexample_primary_failure_location_count: $counterexample_primary_failure_location_count"
+    echo "counterexample_primary_failure_line_excerpt_json: $counterexample_primary_failure_line_excerpt_json"
+    echo "counterexample_primary_failure_line_excerpt_count: $counterexample_primary_failure_line_excerpt_count"
+    echo "counterexample_primary_failure_context_excerpt_json: $counterexample_primary_failure_context_excerpt_json"
+    echo "counterexample_primary_failure_context_excerpt_count: $counterexample_primary_failure_context_excerpt_count"
     echo "counterexample_unique_failure_locations: $counterexample_unique_failure_locations"
     echo "counterexample_unique_failure_line_excerpts: $counterexample_unique_failure_line_excerpts"
     echo "counterexample_unique_failure_context_excerpts: $counterexample_unique_failure_context_excerpts"

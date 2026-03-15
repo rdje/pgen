@@ -19449,3 +19449,28 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - `bash -n rust/scripts/ast_dump_contract_gate.sh`
 - `make -C rust SHELL=/bin/bash ast_dump_contract_gate`
 - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+## 2026-03-15 - Surface dominant SV preprocessor excerpt buckets
+
+- Added end-to-end aggregate visibility for the preprocessor side's dominant JSON-safe excerpt buckets:
+  - `sv_preprocessor_counterexample_primary_failure_line_excerpt_json`
+  - `sv_preprocessor_counterexample_primary_failure_line_excerpt_count`
+  - `sv_preprocessor_counterexample_primary_failure_context_excerpt_json`
+  - `sv_preprocessor_counterexample_primary_failure_context_excerpt_count`
+- Updated:
+  - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - carry the dominant preprocessor failure-line and failure-context excerpt buckets from sidecar triage into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the sidecar summary exactly
+- Measured evidence:
+  - direct aggregate sidecar proof over existing quality artifacts:
+    - `counterexample_primary_failure_line_excerpt_json="             \`else         "`
+    - `counterexample_primary_failure_context_excerpt_json="      \`ifdef  oLT    \\n   \`elsif   \`\`     (    &&..."`
+  - bounded aggregate sign-off proof surface:
+    - `sv_preprocessor_counterexample_primary_failure_line_excerpt_json="      \`ifdef           G73nd    "`
+    - `sv_preprocessor_counterexample_primary_failure_context_excerpt_json="      \`ifdef           G73nd    \\n\`timescale 7565..."`
+- Live-status effect:
+  - `systemverilog_preprocessor`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

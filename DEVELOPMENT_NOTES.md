@@ -19571,3 +19571,21 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
   - `final_targets=0`
   - `covered_reachable_rules=69/69`
   - `covered_reachable_branches=47/47`
+
+## 2026-03-15 - SV preprocessor dominant excerpt buckets in aggregate telemetry
+
+- Extended the preprocessor aggregate sidecar and aggregate sign-off path to preserve the dominant JSON-safe excerpt buckets, not just unique counts:
+  - `counterexample_primary_failure_line_excerpt_json`
+  - `counterexample_primary_failure_context_excerpt_json`
+  - plus their `*_count` fields
+- Wiring:
+  - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh` now derives the primary excerpt buckets from `by_failure_line_excerpt` / `by_failure_context_excerpt`
+  - `rust/scripts/sota_exit_gate.sh` now surfaces those values as `sv_preprocessor_counterexample_primary_failure_*_excerpt_*`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts parity for those aggregate fields
+- Current measured values:
+  - direct sidecar replay over `rust/target/sv_preprocessor_quality_gate`:
+    - `counterexample_primary_failure_line_excerpt_json="             \`else         "`
+    - `counterexample_primary_failure_context_excerpt_json="      \`ifdef  oLT    \\n   \`elsif   \`\`     (    &&..."`
+  - bounded aggregate sign-off run:
+    - `sv_preprocessor_counterexample_primary_failure_line_excerpt_json="      \`ifdef           G73nd    "`
+    - `sv_preprocessor_counterexample_primary_failure_context_excerpt_json="      \`ifdef           G73nd    \\n\`timescale 7565..."`

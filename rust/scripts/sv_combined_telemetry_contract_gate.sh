@@ -205,6 +205,10 @@ svpp_counterexample_primary_parser_error="$(extract_summary_value "$sv_preproces
 svpp_counterexample_primary_parser_error_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_parser_error_count")"
 svpp_counterexample_primary_failure_location="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_location")"
 svpp_counterexample_primary_failure_location_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_location_count")"
+svpp_counterexample_primary_failure_line_excerpt_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_line_excerpt_json")"
+svpp_counterexample_primary_failure_line_excerpt_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_line_excerpt_count")"
+svpp_counterexample_primary_failure_context_excerpt_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_context_excerpt_json")"
+svpp_counterexample_primary_failure_context_excerpt_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_context_excerpt_count")"
 svpp_counterexample_unique_failure_locations="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_locations")"
 svpp_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_line_excerpts")"
 svpp_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_context_excerpts")"
@@ -481,6 +485,22 @@ assert_equal \
     "$svpp_counterexample_primary_failure_location_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_location_count")"
 assert_equal \
+    "SV preprocessor counterexample primary failure line excerpt json" \
+    "$svpp_counterexample_primary_failure_line_excerpt_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_line_excerpt_json")"
+assert_equal \
+    "SV preprocessor counterexample primary failure line excerpt count" \
+    "$svpp_counterexample_primary_failure_line_excerpt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_line_excerpt_count")"
+assert_equal \
+    "SV preprocessor counterexample primary failure context excerpt json" \
+    "$svpp_counterexample_primary_failure_context_excerpt_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_context_excerpt_json")"
+assert_equal \
+    "SV preprocessor counterexample primary failure context excerpt count" \
+    "$svpp_counterexample_primary_failure_context_excerpt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_context_excerpt_count")"
+assert_equal \
     "SV preprocessor counterexample unique failure locations" \
     "$svpp_counterexample_unique_failure_locations" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_unique_failure_locations")"
@@ -641,6 +661,10 @@ assert_equal \
     echo "sv_preprocessor_counterexample_primary_parser_error_count: $svpp_counterexample_primary_parser_error_count"
     echo "sv_preprocessor_counterexample_primary_failure_location: $svpp_counterexample_primary_failure_location"
     echo "sv_preprocessor_counterexample_primary_failure_location_count: $svpp_counterexample_primary_failure_location_count"
+    echo "sv_preprocessor_counterexample_primary_failure_line_excerpt_json: $svpp_counterexample_primary_failure_line_excerpt_json"
+    echo "sv_preprocessor_counterexample_primary_failure_line_excerpt_count: $svpp_counterexample_primary_failure_line_excerpt_count"
+    echo "sv_preprocessor_counterexample_primary_failure_context_excerpt_json: $svpp_counterexample_primary_failure_context_excerpt_json"
+    echo "sv_preprocessor_counterexample_primary_failure_context_excerpt_count: $svpp_counterexample_primary_failure_context_excerpt_count"
     echo "sv_preprocessor_counterexample_unique_failure_locations: $svpp_counterexample_unique_failure_locations"
     echo "sv_preprocessor_counterexample_unique_failure_line_excerpts: $svpp_counterexample_unique_failure_line_excerpts"
     echo "sv_preprocessor_counterexample_unique_failure_context_excerpts: $svpp_counterexample_unique_failure_context_excerpts"
