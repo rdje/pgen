@@ -450,6 +450,8 @@ counterexample_primary_shrunk_sample="$(jq -er 'if (.by_shrunk_sample | length) 
 counterexample_primary_shrunk_sample_count="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].count) else 0 end' "$counterexample_triage_json")"
 counterexample_primary_parser_error="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].parser_error) else "<none>" end' "$counterexample_triage_json")"
 counterexample_primary_parser_error_count="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].count) else 0 end' "$counterexample_triage_json")"
+counterexample_primary_failure_location="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0] | "\(.failure_line):\(.failure_column)") else "<none>" end' "$counterexample_triage_json")"
+counterexample_primary_failure_location_count="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0].count) else 0 end' "$counterexample_triage_json")"
 
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
@@ -472,6 +474,8 @@ counterexample_primary_parser_error_count="$(jq -er 'if (.by_parser_error | leng
     echo "counterexample_primary_shrunk_sample_count: $counterexample_primary_shrunk_sample_count"
     echo "counterexample_primary_parser_error: $counterexample_primary_parser_error"
     echo "counterexample_primary_parser_error_count: $counterexample_primary_parser_error_count"
+    echo "counterexample_primary_failure_location: $counterexample_primary_failure_location"
+    echo "counterexample_primary_failure_location_count: $counterexample_primary_failure_location_count"
     echo "counterexample_unique_failure_locations: $counterexample_unique_failure_locations"
     echo "counterexample_unique_failure_line_excerpts: $counterexample_unique_failure_line_excerpts"
     echo "counterexample_unique_failure_context_excerpts: $counterexample_unique_failure_context_excerpts"
