@@ -505,6 +505,14 @@ Toolbox baseline to leverage end-to-end:
       - replay-shadow `unique_failure_context_excerpts=5`
       - example generation context excerpt: `...recision 17'SO29 fs //\n ;specify endspecify gene...`
       - example replay-shadow context excerpt: ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
+  - Progress (2026-03-15): added dedicated lightweight gate `sv_failure_context_contract_gate` plus tracked tiny contract `rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json`:
+    - the new gate replays the main SV parser-family source-context proof without ad hoc `/tmp` setup,
+    - it reuses `sv_parser_aggregate_contract_gate` over the tiny state dir and verifies:
+      - `systemverilog_generation_failure_context_excerpts=5`
+      - `systemverilog_shadow_failure_context_excerpts=5`
+    - current example excerpts surfaced by the gate:
+      - generation: `...recision 17'SO29 fs //\n ;specify endspecify gene...`
+      - replay-shadow: ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
@@ -1928,6 +1936,10 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - the fresh aggregate contract summary now records:
       - `counterexample_unique_failure_context_excerpts=5`
       - example source-level context excerpt: `...define            -XE^\n`elsif \n       `ifndef  ...`
+  - Progress (2026-03-15): `sv_failure_context_contract_gate` now revalidates the preprocessor side in the same lightweight focused command:
+    - it runs `sv_preprocessor_quality_gate` plus `sv_preprocessor_aggregate_contract_gate`,
+    - then asserts `systemverilog_preprocessor_failure_context_excerpts=5`,
+    - current surfaced example: `...define            -XE^\n`elsif \n       `ifndef  ...`
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.

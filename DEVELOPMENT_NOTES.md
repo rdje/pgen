@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Add Dedicated SV Failure-Context Contract Gate
+### Context
+The source-level failure-context work was already objective, but replaying it still required a specific sequence of ad hoc commands and temporary contracts. That was good enough for development, not good enough for a tracked proof surface. The next clean increment was to turn that into one checked-in lightweight gate so the repo itself can re-prove the failure-context contract for both SV parser families without manual setup.
+
+### Implementation
+- Added [rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json):
+  - checked-in tiny main-SV contract derived from the canonical core contract
+  - keeps the proof intentionally narrow:
+    - `sample_count=1`
+    - only profile `2017`
+    - `target_max_attempts=20`
+    - `replay_sample_count=1`
+    - realistic corpus disabled
+- Added [rust/scripts/sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh):
+  - runs the tiny main-SV quality state
+  - reuses the existing main-SV aggregate contract gate
+  - runs the preprocessor quality gate
+  - reuses the existing preprocessor aggregate contract gate
+  - asserts non-zero source-level failure-context excerpt counts for all three surfaces:
+    - main SV generation
+    - main SV replay-shadow
+    - SV preprocessor
+  - emits one combined summary artifact
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `sv_failure_context_contract_gate`
+  - added help text for the new gate
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that source-level failure-context proof is now one tracked command, not a recipe.
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_failure_context_contract_gate`
+  - passed
+  - current combined proof summary:
+    - `systemverilog_generation_failure_context_excerpts=5`
+    - `systemverilog_shadow_failure_context_excerpts=5`
+    - `systemverilog_preprocessor_failure_context_excerpts=5`
+  - current examples:
+    - main SV generation: `...recision 17'SO29 fs //\n ;specify endspecify gene...`
+    - main SV replay-shadow: ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
+    - SV preprocessor: `...define            -XE^\n`elsif \n       `ifndef  ...`
+
+### Notes
+- The tiny main-SV contract is intentionally not a closure claim. It is a lightweight repeatable proof for the source-level failure-context surface only.
+- This gate makes future parser-family proof work easier because it separates “does the schema/context survive end to end?” from broader grammar-closure questions.
+
 ## 2026-03-15 - Promote SV Failure Context Into Rust Parseability Reports
 ### Context
 The SV-family gates were already reconstructing line-level context from stored samples plus failure line/column. That improved observability, but it still meant the proof surface depended on shell-side derivation instead of the Rust parseability reports themselves. The next clean increment was to promote that context into the source-level report schema so downstream gates can require it directly and objective parser-failure evidence no longer depends on ad hoc reconstruction logic.

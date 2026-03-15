@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: promote-sv-failure-context-into-rust-parseability-reports)
+Last updated: 2026-03-15 (+0100, task: add-dedicated-sv-failure-context-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -174,6 +174,21 @@ Use this file to resume work without replaying full chat history.
   - fresh aggregate summary records:
     - `counterexample_unique_failure_context_excerpts=5`
     - example:
+      - `...define            -XE^\n`elsif \n       `ifndef  ...`
+- There is now a dedicated lightweight combined proof command for that source-level context surface:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_failure_context_contract_gate`
+  - tracked tiny SV contract:
+    - `rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json`
+  - current combined summary:
+    - `systemverilog_generation_failure_context_excerpts=5`
+    - `systemverilog_shadow_failure_context_excerpts=5`
+    - `systemverilog_preprocessor_failure_context_excerpts=5`
+  - current examples:
+    - main SV generation:
+      - `...recision 17'SO29 fs //\n ;specify endspecify gene...`
+    - main SV replay-shadow:
+      - ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
+    - SV preprocessor:
       - `...define            -XE^\n`elsif \n       `ifndef  ...`
   - current focused fuzz replay proof:
     - `accepted_cases=5`
