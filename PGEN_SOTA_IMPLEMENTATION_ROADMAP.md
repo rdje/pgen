@@ -2119,6 +2119,17 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `sv_shadow_counterexample_triage_json`
       - `sv_shadow_counterexample_triage_txt`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate path fields match the parser aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the deterministic main-SV parseability report paths and current bounded-run rejection totals for both parser-backed report surfaces:
+    - aggregate `sota_exit_gate` now surfaces generation-side:
+      - `sv_generation_report_json`
+      - `sv_generation_parser_rejections_total=7`
+      - `sv_generation_counterexamples_count=5`
+    - aggregate `sota_exit_gate` now surfaces replay-shadow:
+      - `sv_shadow_report_json`
+      - `sv_shadow_parser_rejections_total=16`
+      - `sv_shadow_counterexamples_count=5`
+      - `sv_shadow_counterexamples_captured_total=5`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate report-path and total fields match the parser aggregate sidecar exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
   - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
     - proves `stage3_targets=0` and `stage4_targets=0`,

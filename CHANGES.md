@@ -19510,3 +19510,36 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - Live-status effect:
   - `systemverilog_preprocessor`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-15 - Surface main SV report paths and totals
+
+- Added end-to-end aggregate visibility for the main SV parser's deterministic parseability report paths and bounded-run rejection totals:
+  - `sv_generation_report_json`
+  - `sv_generation_parser_rejections_total`
+  - `sv_generation_counterexamples_count`
+  - `sv_shadow_report_json`
+  - `sv_shadow_parser_rejections_total`
+  - `sv_shadow_counterexamples_count`
+  - `sv_shadow_counterexamples_captured_total`
+- Updated:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - carry the main SV parser's deterministic report locations and rejection totals into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the parser aggregate sidecar exactly
+- Measured evidence:
+  - direct parser aggregate sidecar proof:
+    - `generation_parser_rejections_total=7`
+    - `generation_counterexamples_count=5`
+    - `shadow_parser_rejections_total=1179`
+    - `shadow_counterexamples_count=5`
+    - `shadow_counterexamples_captured_total=5`
+  - bounded aggregate sign-off proof surface:
+    - `sv_generation_parser_rejections_total=7`
+    - `sv_generation_counterexamples_count=5`
+    - `sv_shadow_parser_rejections_total=16`
+    - `sv_shadow_counterexamples_count=5`
+    - `sv_shadow_counterexamples_captured_total=5`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

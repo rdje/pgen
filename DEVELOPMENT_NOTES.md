@@ -19612,3 +19612,30 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
   - bounded aggregate sign-off run:
     - `sv_preprocessor_counterexample_primary_failure_line_excerpt_json="      \`ifdef           G73nd    "`
     - `sv_preprocessor_counterexample_primary_failure_context_excerpt_json="      \`ifdef           G73nd    \\n\`timescale 7565..."`
+
+## 2026-03-15 - Main SV report paths and totals in aggregate telemetry
+
+- Extended the main SV aggregate sign-off path to preserve the parser sidecar report locations and rejection totals for both bounded parseability report surfaces:
+  - `sv_generation_report_json`
+  - `sv_generation_parser_rejections_total`
+  - `sv_generation_counterexamples_count`
+  - `sv_shadow_report_json`
+  - `sv_shadow_parser_rejections_total`
+  - `sv_shadow_counterexamples_count`
+  - `sv_shadow_counterexamples_captured_total`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all seven fields
+- Current measured values:
+  - direct sidecar replay over `rust/target/sv_parser_aggregate_contract_gate/work/shadow_state`:
+    - `generation_parser_rejections_total=7`
+    - `generation_counterexamples_count=5`
+    - `shadow_parser_rejections_total=1179`
+    - `shadow_counterexamples_count=5`
+    - `shadow_counterexamples_captured_total=5`
+  - bounded aggregate sign-off run:
+    - `sv_generation_parser_rejections_total=7`
+    - `sv_generation_counterexamples_count=5`
+    - `sv_shadow_parser_rejections_total=16`
+    - `sv_shadow_counterexamples_count=5`
+    - `sv_shadow_counterexamples_captured_total=5`
