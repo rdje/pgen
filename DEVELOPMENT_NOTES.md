@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface main SV parser-debt diversity counts
+### Context
+The main SV aggregate proof already surfaced dominant replay-gap buckets plus dominant stage/sample/parser-error/failure-location buckets for bounded parser-rejection debt, but aggregate sign-off still did not show how diverse the remaining parser-facing debt was. The next clean hardening step was to surface the main parser’s aggregate-visible diversity counts for failure locations, failure-line excerpts, and failure-context excerpts, so release telemetry reflects both the leading buckets and the breadth of the remaining rejection surface.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_generation_counterexample_unique_failure_locations`
+    - `sv_generation_counterexample_unique_failure_line_excerpts`
+    - `sv_generation_counterexample_unique_failure_context_excerpts`
+    - `sv_shadow_counterexample_unique_failure_locations`
+    - `sv_shadow_counterexample_unique_failure_line_excerpts`
+    - `sv_shadow_counterexample_unique_failure_context_excerpts`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV parser-debt diversity proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_combined_telemetry_main_diversity make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA values:
+    - `sv_generation_counterexample_unique_failure_locations=5`
+    - `sv_generation_counterexample_unique_failure_line_excerpts=5`
+    - `sv_generation_counterexample_unique_failure_context_excerpts=5`
+    - `sv_shadow_counterexample_unique_failure_locations=4`
+    - `sv_shadow_counterexample_unique_failure_line_excerpts=5`
+    - `sv_shadow_counterexample_unique_failure_context_excerpts=5`
+
 ## 2026-03-15 - Surface dominant main SV failure-location buckets
 ### Context
 The main SV aggregate proof already surfaced dominant replay-gap buckets and dominant stage/sample/parser-error buckets for bounded parser-rejection debt, but it still did not expose which concrete failure-location buckets were leading that remaining debt. The next clean hardening step was to surface the dominant `line:column` buckets for both generation-side and replay-shadow bounded rejections, so aggregate sign-off shows parser-facing location as well as the dominant stage/sample/error class.

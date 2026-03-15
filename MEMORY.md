@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-failure-location-buckets)
+Last updated: 2026-03-15 (+0100, task: surface-main-sv-parser-debt-diversity-counts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,17 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the main `systemverilog` parser's aggregate-visible parser-debt diversity counts, not just dominant replay-gap/stage/sample/parser-error/failure-location buckets:
+  - current bounded aggregate SOTA summary now surfaces generation-side:
+    - `sv_generation_counterexample_unique_failure_locations=5`
+    - `sv_generation_counterexample_unique_failure_line_excerpts=5`
+    - `sv_generation_counterexample_unique_failure_context_excerpts=5`
+  - current bounded aggregate SOTA summary now surfaces replay-shadow:
+    - `sv_shadow_counterexample_unique_failure_locations=4`
+    - `sv_shadow_counterexample_unique_failure_line_excerpts=5`
+    - `sv_shadow_counterexample_unique_failure_context_excerpts=5`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the main parser aggregate sidecar exactly.
 - Aggregate sign-off now surfaces the dominant bounded failure-location buckets for the main `systemverilog` parser, not just the dominant replay-gap/stage/sample/parser-error buckets:
   - standalone `sv_parser_aggregate_contract_gate` now records:
     - `generation_counterexample_primary_failure_location`

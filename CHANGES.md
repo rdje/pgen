@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-15 - Surface main SV parser-debt diversity counts
+### ✅ Achievement Summary
+Aggregate SV sign-off now shows the main `systemverilog` parser’s aggregate-visible counterexample diversity counts, not just dominant replay-gap, stage/sample, parser-error, and failure-location buckets. `sota_exit_gate` now surfaces generation-side and replay-shadow counts for unique failure locations, unique failure-line excerpts, and unique failure-context excerpts, and `sv_combined_telemetry_contract_gate` proves those fields match the parser aggregate sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_generation_counterexample_unique_failure_locations`
+    - `sv_generation_counterexample_unique_failure_line_excerpts`
+    - `sv_generation_counterexample_unique_failure_context_excerpts`
+    - `sv_shadow_counterexample_unique_failure_locations`
+    - `sv_shadow_counterexample_unique_failure_line_excerpts`
+    - `sv_shadow_counterexample_unique_failure_context_excerpts`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields match the main parser aggregate sidecar exactly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV parser-debt diversity proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_combined_telemetry_main_diversity make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA summary records:
+    - `sv_generation_counterexample_unique_failure_locations=5`
+    - `sv_generation_counterexample_unique_failure_line_excerpts=5`
+    - `sv_generation_counterexample_unique_failure_context_excerpts=5`
+    - `sv_shadow_counterexample_unique_failure_locations=4`
+    - `sv_shadow_counterexample_unique_failure_line_excerpts=5`
+    - `sv_shadow_counterexample_unique_failure_context_excerpts=5`
+
 ## 2026-03-15 - Surface dominant main SV failure-location buckets
 ### ✅ Achievement Summary
 Aggregate SV sign-off now shows the dominant bounded failure-location buckets for the main `systemverilog` parser, not just the dominant replay-gap, stage/sample, and parser-error buckets. `sota_exit_gate` now surfaces the top generation-side and replay-shadow `line:column` failure-location classes, and `sv_combined_telemetry_contract_gate` proves those fields match the parser aggregate sidecar exactly.
