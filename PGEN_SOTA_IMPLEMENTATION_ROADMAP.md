@@ -493,6 +493,7 @@ Toolbox baseline to leverage end-to-end:
     - `sv_roundtrip_initial_covered_reachable_branches=22`
     - `sv_roundtrip_replay_covered_reachable_branches=72`
     - this removes the extra summary-file hop when auditing aggregate sign-off.
+  - Progress (2026-03-15): added `sv_combined_telemetry_contract_gate` so the main-SV values surfaced by aggregate `sota_exit_gate` are themselves machine-checked against the combined proof sidecars instead of relying on manual inspection.
   - Progress (2026-03-15): added deterministic main-SV parseability-debt triage artifacts to `sv_parser_aggregate_contract_gate`:
     - generation-side bounded debt is now summarized into:
       - `systemverilog_parseability_generation_counterexample_triage.json`
@@ -2002,6 +2003,7 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_roundtrip_stage0_covered_reachable_branches=4/47`
     - `sv_preprocessor_roundtrip_stage1_covered_reachable_branches=28/47`
     - `sv_preprocessor_roundtrip_stage4_covered_reachable_branches=47/47`
+  - Progress (2026-03-15): the same `sv_combined_telemetry_contract_gate` now also proves the preprocessor values surfaced by aggregate `sota_exit_gate` match the combined proof sidecars exactly.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

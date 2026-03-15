@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-combined-sv-proof-metrics-in-aggregate-telemetry)
+Last updated: 2026-03-15 (+0100, task: add-aggregate-sv-telemetry-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,24 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate SV-family release-summary telemetry is now machine-checked:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - proves aggregate `sota_exit_gate` telemetry matches the combined sidecar summaries exactly for:
+    - main SV failure-context counts
+    - main SV roundtrip target/rule/branch counts
+    - preprocessor failure-context count
+    - preprocessor roundtrip staged target/rule/branch counts
+- Current contract-gate summary records:
+  - main SV:
+    - `failure-context 5/5`
+    - `targets 2366 -> 2207`
+    - `reachable rules 46 -> 155`
+    - `reachable branches 22 -> 72`
+  - SV preprocessor:
+    - `failure-context 5`
+    - `targets 95 -> 27 -> 0 -> 0`
+    - `reachable rules 17/69 -> 61/69 -> 69/69`
+    - `reachable branches 4/47 -> 28/47 -> 47/47`
 - Aggregate `sota_exit_gate` telemetry now surfaces the key combined SV proof metrics directly, not only sidecar summary paths:
   - main SV:
     - `sv_failure_context_generation_excerpts`

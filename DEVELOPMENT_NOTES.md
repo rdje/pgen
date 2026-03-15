@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Add Aggregate SV Telemetry Contract Gate
+### Context
+Once aggregate `sota_exit_gate` started surfacing the combined SV proof numbers directly, the next risk was simple but important: those numbers were observable, but not yet independently contract-checked. The next clean increment was to prove the aggregate release summary matches the combined sidecar summaries exactly.
+
+### Implementation
+- Added [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - runs a bounded SV-only aggregate `sota_exit_gate` flow, or reuses an existing aggregate state dir
+  - validates the four combined summary-path fields in aggregate telemetry
+  - validates exact equality between aggregate telemetry and sidecar-summary values for:
+    - main SV failure-context counts
+    - main SV roundtrip target/rule/branch counts
+    - preprocessor failure-context count
+    - preprocessor roundtrip staged target/rule/branch counts
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `sv_combined_telemetry_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate telemetry is now machine-checked against the combined proof sidecars.
+
+### Validation
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current contract summary records:
+    - main SV: `failure-context 5/5`, `targets 2366 -> 2207`, `reachable rules 46 -> 155`, `reachable branches 22 -> 72`
+    - preprocessor: `failure-context 5`, `targets 95 -> 27 -> 0 -> 0`, `reachable rules 17/69 -> 61/69 -> 69/69`, `reachable branches 4/47 -> 28/47 -> 47/47`
+
+### Notes
+- This did not change any tracker label. It strengthened the objectivity of the existing aggregate proof surface.
+
 ## 2026-03-15 - Surface Combined SV Proof Metrics In Aggregate Telemetry
 ### Context
 The previous aggregate sign-off increment made the combined SV-family proof gates part of `sota_exit_gate`, but the release summary still required a second hop into sidecar summaries to see the actual counts. The next clean observability step was to promote those proof metrics into aggregate telemetry itself.

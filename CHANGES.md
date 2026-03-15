@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-15 - Add Aggregate SV Telemetry Contract Gate
+### ✅ Achievement Summary
+The new combined SV-family numbers in aggregate `sota_exit_gate` telemetry are no longer just “printed and observed once.” A dedicated contract gate now reruns the bounded SV-only aggregate flow and proves the emitted release-summary values match the combined sidecar summaries exactly.
+
+### Scope of Changes
+- Added [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - runs a bounded SV-only `sota_exit_gate` flow, or reuses an existing aggregate state dir
+  - validates aggregate summary-path forwarding for:
+    - `sv_failure_context_contract_summary_txt`
+    - `sv_roundtrip_contract_summary_txt`
+    - `sv_preprocessor_failure_context_contract_summary_txt`
+    - `sv_preprocessor_roundtrip_contract_summary_txt`
+  - validates exact value equality between aggregate telemetry and the combined sidecar summaries for:
+    - main SV failure-context counts
+    - main SV roundtrip target/rule/branch counts
+    - preprocessor failure-context count
+    - preprocessor roundtrip staged target/rule/branch counts
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `sv_combined_telemetry_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate SV telemetry is now machine-checked against the combined proof sidecars.
+
+### Validation Results
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current summary records:
+    - `sv_failure_context_generation_excerpts=5`
+    - `sv_failure_context_shadow_excerpts=5`
+    - `sv_roundtrip_initial_targets=2366`
+    - `sv_roundtrip_replay_targets=2207`
+    - `sv_roundtrip_initial_covered_reachable_rules=46`
+    - `sv_roundtrip_replay_covered_reachable_rules=155`
+    - `sv_preprocessor_failure_context_excerpts=5`
+    - `sv_preprocessor_roundtrip_stage0_targets=95`
+    - `sv_preprocessor_roundtrip_stage1_targets=27`
+    - `sv_preprocessor_roundtrip_final_targets=0`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Surface Combined SV Proof Metrics In Aggregate Telemetry
 ### ✅ Achievement Summary
 Aggregate `sota_exit_gate` no longer stops at pointing to the combined SV-family proof summaries. It now extracts and prints the key failure-context and roundtrip metrics directly in aggregate telemetry, so the release summary itself carries the measurable proof deltas.
