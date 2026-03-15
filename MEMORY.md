@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: track-lightweight-sv-preprocessor-gate-policy)
+Last updated: 2026-03-15 (+0100, task: surface-combined-sv-proofs-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -221,6 +221,21 @@ Use this file to resume work without replaying full chat history.
       - `targets 95 -> 27 -> 0 -> 0`
       - `reachable rules 17/69 -> 61/69 -> 69/69`
       - `reachable branches 4/47 -> 28/47 -> 47/47`
+- Aggregate sign-off now also carries the combined lightweight SV-family proof surface:
+  - `rust/scripts/sota_exit_gate.sh` now reuses:
+    - `sv_failure_context_contract_gate`
+    - `sv_roundtrip_contract_gate`
+    - over the already-produced SV quality artifacts
+  - focused aggregate validation state dir:
+    - `/tmp/pgen_sota_sv_combined_contract`
+  - the final SOTA summary table now includes:
+    - `sv_failure_context_contract_gate`
+    - `sv_roundtrip_contract_gate`
+  - the final telemetry now surfaces:
+    - `sv_failure_context_contract_summary_txt`
+    - `sv_roundtrip_contract_summary_txt`
+    - `sv_preprocessor_failure_context_contract_summary_txt`
+    - `sv_preprocessor_roundtrip_contract_summary_txt`
   - current focused fuzz replay proof:
     - `accepted_cases=5`
     - `rejected_cases=3`

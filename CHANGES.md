@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-15 - Surface Combined SV Proofs In Aggregate Sign-Off
+### ✅ Achievement Summary
+The new lightweight combined SV-family proof gates are no longer side evidence. Aggregate `sota_exit_gate` now reuses them over already-produced quality artifacts and surfaces their summary paths directly in release telemetry.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - after `sv_preprocessor_quality_gate` and `sv_stimuli_quality_gate` complete, aggregate sign-off now also reuses:
+    - [rust/scripts/sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh)
+    - [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh)
+  - when both SV families are enabled, aggregate telemetry now surfaces:
+    - `sv_failure_context_contract_summary_txt`
+    - `sv_roundtrip_contract_summary_txt`
+    - `sv_preprocessor_failure_context_contract_summary_txt`
+    - `sv_preprocessor_roundtrip_contract_summary_txt`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate sign-off now carries the combined lightweight proof surface, not just the lower-level aggregate contract gates.
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- Focused aggregate run:
+  - `env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_sv_combined_contract PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 PGEN_SV_STIMULI_QUALITY_CONTRACT=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+  - passed
+  - summary table now includes:
+    - `sv_failure_context_contract_gate`
+    - `sv_roundtrip_contract_gate`
+  - final telemetry now includes:
+    - `sv_failure_context_contract_summary_txt: /tmp/pgen_sota_sv_combined_contract/work/sv_failure_context_contract_gate/summary.txt`
+    - `sv_roundtrip_contract_summary_txt: /tmp/pgen_sota_sv_combined_contract/work/sv_roundtrip_contract_gate/summary.txt`
+    - `sv_preprocessor_failure_context_contract_summary_txt: /tmp/pgen_sota_sv_combined_contract/work/sv_failure_context_contract_gate/summary.txt`
+    - `sv_preprocessor_roundtrip_contract_summary_txt: /tmp/pgen_sota_sv_combined_contract/work/sv_roundtrip_contract_gate/summary.txt`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Track Lightweight SV Preprocessor Gate Policy
 ### ✅ Achievement Summary
 The lightweight combined SV-family proof gates no longer depend on implicit preprocessor defaults. The preprocessor side now uses a checked-in lightweight policy file, so both the main parser side and the preprocessor side are driven by tracked in-repo policy.

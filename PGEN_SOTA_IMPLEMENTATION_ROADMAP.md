@@ -476,6 +476,13 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-14): wired `sv_parser_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_stimuli_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_stimuli_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded-counterexample contract proof.
+  - Progress (2026-03-15): aggregate `sota_exit_gate` now also reuses the combined lightweight SV-family proof gates over the already-produced artifacts:
+    - `sv_failure_context_contract_gate`
+    - `sv_roundtrip_contract_gate`
+    - aggregate telemetry now also surfaces:
+      - `sv_failure_context_contract_summary_txt`
+      - `sv_roundtrip_contract_summary_txt`
+    - a focused aggregate run with only the two SV quality stages enabled recorded both combined checks as passing informational entries in the SOTA summary table.
   - Progress (2026-03-15): added deterministic main-SV parseability-debt triage artifacts to `sv_parser_aggregate_contract_gate`:
     - generation-side bounded debt is now summarized into:
       - `systemverilog_parseability_generation_counterexample_triage.json`
@@ -1969,6 +1976,10 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.
+  - Progress (2026-03-15): aggregate `sota_exit_gate` now also surfaces the combined lightweight SV-family proof summaries on the preprocessor side:
+    - `sv_preprocessor_failure_context_contract_summary_txt`
+    - `sv_preprocessor_roundtrip_contract_summary_txt`
+    - the focused aggregate run under tiny-policy settings passed both combined checks and printed those summary paths in the final preprocessor telemetry block.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`
