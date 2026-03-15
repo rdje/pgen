@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-main-sv-replay-gap-debt-triage-in-aggregate-telemetry)
+Last updated: 2026-03-15 (+0100, task: surface-preprocessor-parser-debt-triage-in-aggregate-telemetry)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,19 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the bounded SV preprocessor parser-debt triage itself, not only reachability closure:
+  - `sota_exit_gate` now emits:
+    - `sv_preprocessor_counterexample_triage_json`
+    - `sv_preprocessor_counterexample_triage_txt`
+    - `sv_preprocessor_counterexample_unique_shrunk_samples=1`
+    - `sv_preprocessor_counterexample_unique_failure_locations=5`
+    - `sv_preprocessor_counterexample_unique_failure_line_excerpts=5`
+    - `sv_preprocessor_counterexample_unique_failure_context_excerpts=5`
+  - current triage surface is still the bounded preprocessor rejection family already summarized by the sidecar:
+    - `stage_count[target_drive_output_filter]=5`
+    - `shrunk_sample_count["`"]=5`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the preprocessor aggregate sidecar exactly.
 - Main SV replay-gap debt is now deterministic and aggregate-visible:
   - `sv_parser_aggregate_contract_gate` now emits:
     - `systemverilog_replay_gap_target_triage.json`

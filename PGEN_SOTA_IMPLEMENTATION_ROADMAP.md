@@ -2038,6 +2038,14 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_reachability_parseability_rejected=24`
     - `sv_preprocessor_reachability_parser_rejections=24`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the reachability-closure sidecar exactly.
+  - Progress (2026-03-15): aggregate `sota_exit_gate` now also surfaces the preprocessor parser-debt triage sidecars and their current diversity counts directly in release telemetry:
+    - `sv_preprocessor_counterexample_triage_json`
+    - `sv_preprocessor_counterexample_triage_txt`
+    - `sv_preprocessor_counterexample_unique_shrunk_samples=1`
+    - `sv_preprocessor_counterexample_unique_failure_locations=5`
+    - `sv_preprocessor_counterexample_unique_failure_line_excerpts=5`
+    - `sv_preprocessor_counterexample_unique_failure_context_excerpts=5`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly, so bounded parser-rejection debt is aggregate-visible rather than trapped inside the preprocessor workdir.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface preprocessor parser-debt triage in aggregate telemetry
+### Context
+The preprocessor side already had deterministic parser-debt triage artifacts inside `sv_preprocessor_aggregate_contract_gate`, but aggregate sign-off still surfaced only reachability/roundtrip/failure-context summaries. The next clean hardening step was to make the bounded parser-rejection debt itself aggregate-visible, so release telemetry shows not just that debt exists, but where its triage artifacts are and how diverse the remaining failure surface currently is.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the preprocessor triage sidecar paths:
+    - `sv_preprocessor_counterexample_triage_json`
+    - `sv_preprocessor_counterexample_triage_txt`
+  - now surfaces the current bounded-debt diversity counts:
+    - `sv_preprocessor_counterexample_unique_shrunk_samples`
+    - `sv_preprocessor_counterexample_unique_failure_locations`
+    - `sv_preprocessor_counterexample_unique_failure_line_excerpts`
+    - `sv_preprocessor_counterexample_unique_failure_context_excerpts`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires the preprocessor aggregate summary sidecar
+  - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar values
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate preprocessor debt-triage proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current surfaced preprocessor triage values:
+    - `sv_preprocessor_counterexample_unique_shrunk_samples=1`
+    - `sv_preprocessor_counterexample_unique_failure_locations=5`
+    - `sv_preprocessor_counterexample_unique_failure_line_excerpts=5`
+    - `sv_preprocessor_counterexample_unique_failure_context_excerpts=5`
+
 ## 2026-03-15 - Surface main SV replay-gap debt triage in aggregate telemetry
 ### Context
 The main SV side already had objective roundtrip counts, but the unresolved replay-gap debt still lived mostly as a raw target list inside the parser aggregate workdir. The next clean hardening step was to make that debt deterministic and aggregate-visible, so the remaining work is inspectable by rule/reason/dependency rather than only by a single target count.

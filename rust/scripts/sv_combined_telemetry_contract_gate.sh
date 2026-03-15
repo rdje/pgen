@@ -100,12 +100,14 @@ fi
 
 sota_summary_txt="$sota_state_dir/summary.txt"
 sv_parser_aggregate_summary_txt="$sota_state_dir/work/sv_parser_aggregate_contract_gate/summary.txt"
+sv_preprocessor_aggregate_summary_txt="$sota_state_dir/work/sv_preprocessor_aggregate_contract_gate/summary.txt"
 sv_failure_summary_txt="$sota_state_dir/work/sv_failure_context_contract_gate/summary.txt"
 sv_roundtrip_summary_txt="$sota_state_dir/work/sv_roundtrip_contract_gate/summary.txt"
 sv_preprocessor_reachability_summary_txt="$sota_state_dir/work/sv_preprocessor_reachability_closure_gate/summary.txt"
 
 require_nonempty_file "$sota_summary_txt"
 require_nonempty_file "$sv_parser_aggregate_summary_txt"
+require_nonempty_file "$sv_preprocessor_aggregate_summary_txt"
 require_nonempty_file "$sv_failure_summary_txt"
 require_nonempty_file "$sv_roundtrip_summary_txt"
 require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
@@ -131,6 +133,10 @@ assert_equal \
     "$sv_roundtrip_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_contract_summary_txt")"
 assert_equal \
+    "SV preprocessor aggregate summary path" \
+    "$sv_preprocessor_aggregate_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_quality_aggregate_contract_summary_txt")"
+assert_equal \
     "SV preprocessor reachability-closure summary path" \
     "$sv_preprocessor_reachability_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_closure_summary_txt")"
@@ -150,6 +156,12 @@ sv_roundtrip_initial_branches="$(extract_summary_value "$sv_roundtrip_summary_tx
 sv_roundtrip_replay_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_covered_reachable_branches")"
 
 svpp_failure_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_preprocessor_failure_context_excerpts")"
+svpp_counterexample_triage_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_triage_json")"
+svpp_counterexample_triage_txt="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_triage_txt")"
+svpp_counterexample_unique_shrunk_samples="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_shrunk_samples")"
+svpp_counterexample_unique_failure_locations="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_locations")"
+svpp_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_line_excerpts")"
+svpp_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_context_excerpts")"
 svpp_stage0_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_targets")"
 svpp_stage1_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_targets")"
 svpp_final_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_final_targets")"
@@ -226,6 +238,30 @@ assert_equal \
     "SV preprocessor failure-context excerpts" \
     "$svpp_failure_excerpts" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_failure_context_excerpts")"
+assert_equal \
+    "SV preprocessor counterexample triage json path" \
+    "$svpp_counterexample_triage_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_triage_json")"
+assert_equal \
+    "SV preprocessor counterexample triage txt path" \
+    "$svpp_counterexample_triage_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_triage_txt")"
+assert_equal \
+    "SV preprocessor counterexample unique shrunk samples" \
+    "$svpp_counterexample_unique_shrunk_samples" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_unique_shrunk_samples")"
+assert_equal \
+    "SV preprocessor counterexample unique failure locations" \
+    "$svpp_counterexample_unique_failure_locations" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_unique_failure_locations")"
+assert_equal \
+    "SV preprocessor counterexample unique failure line excerpts" \
+    "$svpp_counterexample_unique_failure_line_excerpts" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_unique_failure_line_excerpts")"
+assert_equal \
+    "SV preprocessor counterexample unique failure context excerpts" \
+    "$svpp_counterexample_unique_failure_context_excerpts" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_unique_failure_context_excerpts")"
 assert_equal \
     "SV preprocessor roundtrip stage0 targets" \
     "$svpp_stage0_targets" \
@@ -308,6 +344,7 @@ assert_equal \
     echo "sota_exit_state_dir: $sota_state_dir"
     echo "sota_exit_summary_txt: $sota_summary_txt"
     echo "sv_stimuli_quality_aggregate_contract_summary_txt: $sv_parser_aggregate_summary_txt"
+    echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $sv_preprocessor_aggregate_summary_txt"
     echo "sv_failure_context_contract_summary_txt: $sv_failure_summary_txt"
     echo "sv_roundtrip_contract_summary_txt: $sv_roundtrip_summary_txt"
     echo "sv_preprocessor_reachability_closure_summary_txt: $sv_preprocessor_reachability_summary_txt"
@@ -325,6 +362,12 @@ assert_equal \
     echo "sv_roundtrip_initial_covered_reachable_branches: $sv_roundtrip_initial_branches"
     echo "sv_roundtrip_replay_covered_reachable_branches: $sv_roundtrip_replay_branches"
     echo "sv_preprocessor_failure_context_excerpts: $svpp_failure_excerpts"
+    echo "sv_preprocessor_counterexample_triage_json: $svpp_counterexample_triage_json"
+    echo "sv_preprocessor_counterexample_triage_txt: $svpp_counterexample_triage_txt"
+    echo "sv_preprocessor_counterexample_unique_shrunk_samples: $svpp_counterexample_unique_shrunk_samples"
+    echo "sv_preprocessor_counterexample_unique_failure_locations: $svpp_counterexample_unique_failure_locations"
+    echo "sv_preprocessor_counterexample_unique_failure_line_excerpts: $svpp_counterexample_unique_failure_line_excerpts"
+    echo "sv_preprocessor_counterexample_unique_failure_context_excerpts: $svpp_counterexample_unique_failure_context_excerpts"
     echo "sv_preprocessor_roundtrip_stage0_targets: $svpp_stage0_targets"
     echo "sv_preprocessor_roundtrip_stage1_targets: $svpp_stage1_targets"
     echo "sv_preprocessor_roundtrip_final_targets: $svpp_final_targets"

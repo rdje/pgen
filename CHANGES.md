@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-15 - Surface preprocessor parser-debt triage in aggregate telemetry
+### ✅ Achievement Summary
+The remaining SystemVerilog preprocessor parser debt is now aggregate-visible and machine-checked instead of living only inside the preprocessor aggregate sidecar. `sota_exit_gate` now surfaces the preprocessor counterexample-triage artifact paths plus their diversity counts, and `sv_combined_telemetry_contract_gate` proves those aggregate telemetry fields match the preprocessor aggregate sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_preprocessor_counterexample_triage_json`
+    - `sv_preprocessor_counterexample_triage_txt`
+    - `sv_preprocessor_counterexample_unique_shrunk_samples`
+    - `sv_preprocessor_counterexample_unique_failure_locations`
+    - `sv_preprocessor_counterexample_unique_failure_line_excerpts`
+    - `sv_preprocessor_counterexample_unique_failure_context_excerpts`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires the preprocessor aggregate summary sidecar
+  - proves the new aggregate `sota_exit_gate` triage paths and counts match that sidecar exactly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate preprocessor debt-triage proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current preprocessor aggregate triage summary records:
+    - `sv_preprocessor_counterexample_unique_shrunk_samples=1`
+    - `sv_preprocessor_counterexample_unique_failure_locations=5`
+    - `sv_preprocessor_counterexample_unique_failure_line_excerpts=5`
+    - `sv_preprocessor_counterexample_unique_failure_context_excerpts=5`
+
 ## 2026-03-15 - Surface main SV replay-gap debt triage in aggregate telemetry
 ### ✅ Achievement Summary
 The remaining main SystemVerilog parser debt is now more objective and triageable. `sv_parser_aggregate_contract_gate` now emits deterministic replay-gap target triage artifacts, and aggregate `sota_exit_gate` telemetry now surfaces their path plus summary counts so the unresolved target surface is visible in release proof, not buried inside raw gap JSON.
