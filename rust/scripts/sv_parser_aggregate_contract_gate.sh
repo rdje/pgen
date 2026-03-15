@@ -320,6 +320,24 @@ jq '
                 count: length
             })
         ),
+        by_failure_line_excerpt: (
+            (.counterexamples // [])
+            | map(
+                . + {
+                    failure_line_excerpt: (
+                        (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
+                        | gsub("\r"; "")
+                        | .[:80]
+                    )
+                }
+            )
+            | sort_by(.failure_line_excerpt)
+            | group_by(.failure_line_excerpt)
+            | map({
+                failure_line_excerpt: .[0].failure_line_excerpt,
+                count: length
+            })
+        ),
         sample_previews: (
             (.counterexamples // [])[:5]
             | map({
@@ -331,6 +349,11 @@ jq '
                 sample_index,
                 seed,
                 shrunk_sample,
+                failure_line_excerpt: (
+                    (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
+                    | gsub("\r"; "")
+                    | .[:80]
+                ),
                 sample_preview: (.sample[:80])
             })
         )
@@ -344,6 +367,7 @@ require_nonempty_file "$generation_counterexample_triage_json"
     jq -r '.by_stage[]? | "stage_count[\(.stage)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$generation_counterexample_triage_json"
+    jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$generation_counterexample_triage_json"
 } >"$generation_counterexample_triage_txt"
 require_nonempty_file "$generation_counterexample_triage_txt"
 
@@ -389,6 +413,24 @@ jq '
                 count: length
             })
         ),
+        by_failure_line_excerpt: (
+            (.counterexamples // [])
+            | map(
+                . + {
+                    failure_line_excerpt: (
+                        (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
+                        | gsub("\r"; "")
+                        | .[:80]
+                    )
+                }
+            )
+            | sort_by(.failure_line_excerpt)
+            | group_by(.failure_line_excerpt)
+            | map({
+                failure_line_excerpt: .[0].failure_line_excerpt,
+                count: length
+            })
+        ),
         sample_previews: (
             (.counterexamples // [])[:5]
             | map({
@@ -398,6 +440,11 @@ jq '
                 failure_column,
                 profile,
                 shrunk_sample,
+                failure_line_excerpt: (
+                    (((.sample // "") | split("\n"))[((.failure_line // 1) - 1)] // "")
+                    | gsub("\r"; "")
+                    | .[:80]
+                ),
                 sample_preview: (.sample[:80])
             })
         )
@@ -411,6 +458,7 @@ require_nonempty_file "$shadow_counterexample_triage_json"
     jq -r '.by_stage[]? | "stage_count[\(.stage)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$shadow_counterexample_triage_json"
+    jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
 } >"$shadow_counterexample_triage_txt"
 require_nonempty_file "$shadow_counterexample_triage_txt"
 
@@ -421,8 +469,10 @@ shadow_counterexamples_count="$(extract_json_number "$shadow_report_json" '((.co
 shadow_counterexamples_captured_total="$(extract_json_number "$shadow_report_json" '.counterexamples_captured_total')"
 generation_counterexample_unique_shrunk_samples="$(extract_json_number "$generation_counterexample_triage_json" '(.by_shrunk_sample | length)')"
 generation_counterexample_unique_failure_locations="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_location | length)')"
+generation_counterexample_unique_failure_line_excerpts="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
 shadow_counterexample_unique_shrunk_samples="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_shrunk_sample | length)')"
 shadow_counterexample_unique_failure_locations="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_location | length)')"
+shadow_counterexample_unique_failure_line_excerpts="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
 
 {
     echo "SV Parser Aggregate Contract Gate Summary"
@@ -441,11 +491,13 @@ shadow_counterexample_unique_failure_locations="$(extract_json_number "$shadow_c
     echo "generation_counterexamples_count: $generation_counterexamples_count"
     echo "generation_counterexample_unique_shrunk_samples: $generation_counterexample_unique_shrunk_samples"
     echo "generation_counterexample_unique_failure_locations: $generation_counterexample_unique_failure_locations"
+    echo "generation_counterexample_unique_failure_line_excerpts: $generation_counterexample_unique_failure_line_excerpts"
     echo "shadow_parser_rejections_total: $shadow_parser_rejections"
     echo "shadow_counterexamples_count: $shadow_counterexamples_count"
     echo "shadow_counterexamples_captured_total: $shadow_counterexamples_captured_total"
     echo "shadow_counterexample_unique_shrunk_samples: $shadow_counterexample_unique_shrunk_samples"
     echo "shadow_counterexample_unique_failure_locations: $shadow_counterexample_unique_failure_locations"
+    echo "shadow_counterexample_unique_failure_line_excerpts: $shadow_counterexample_unique_failure_line_excerpts"
     echo "focused_initial_target_count: $initial_target_count"
     echo "focused_replay_target_count: $replay_target_count"
     echo "focused_initial_covered_reachable_rules: $initial_covered_reachable_rules"

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-sv-parser-counterexample-triage-artifacts)
+Last updated: 2026-03-15 (+0100, task: add-sv-parser-failure-line-triage-context)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -114,6 +114,17 @@ Use this file to resume work without replaying full chat history.
     - one stage bucket: `target_drive_output_filter`
     - four unique shrunk samples: `*`, `P`, `e`, `m`
     - four unique failure locations
+- The main SV aggregate contract gate now also preserves concrete failure-line excerpts in those triage artifacts:
+  - generation-side focused artifact currently records:
+    - five unique failure-line excerpts
+    - examples:
+      - `" ;specify endspecify generate endgenerate   endmodule :\\+g"`
+      - `" timeunit 79  s   ;interface \\]v#()//"`
+  - replay-shadow focused artifact currently records:
+    - five unique failure-line excerpts
+    - examples:
+      - `" timeunit //&I"`
+      - `";(*\\3_   *) program ;;//k~//bn endprogram //3"`
 - The SV preprocessor aggregate contract gate now also proves deterministic parser/stimuli replay and staged gap/coverage closure over stored quality artifacts:
   - exact replay identity is required for stage0 baseline A/B:
     - sample corpus

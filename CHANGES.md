@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-15 - Add SV Parser Failure-Line Triage Context
+### ✅ Achievement Summary
+The main SystemVerilog aggregate contract gate now preserves concrete failure-line excerpts in its deterministic debt-triage artifacts. That moves the remaining bounded parser debt from “we know the line and column” to “we can group the debt by the exact parser-facing line context,” which is a more actionable and still fully repeatable proof surface.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - generation-side triage now groups by `failure_line_excerpt`
+  - replay-shadow triage now also groups by `failure_line_excerpt`
+  - both triage JSON artifacts now retain `failure_line_excerpt` in `sample_previews`
+  - the aggregate summary now also surfaces:
+    - `generation_counterexample_unique_failure_line_excerpts`
+    - `shadow_counterexample_unique_failure_line_excerpts`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger parser-context observability for the main SV parser family,
+  - kept status labels unchanged because exhaustive grammar-level closure is still open.
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current generation-side summary now includes:
+    - `generation_counterexample_unique_failure_line_excerpts=5`
+    - example grouped excerpts such as:
+      - `" ;specify endspecify generate endgenerate   endmodule :\\+g"`
+      - `" timeunit 79  s   ;interface \\]v#()//"`
+  - current replay-shadow summary now includes:
+    - `shadow_counterexample_unique_failure_line_excerpts=5`
+    - example grouped excerpts such as:
+      - `" timeunit //&I"`
+      - `";(*\\3_   *) program ;;//k~//bn endprogram //3"`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add SV Parser Counterexample Triage Artifacts
 ### ✅ Achievement Summary
 The main SystemVerilog aggregate contract gate now emits deterministic debt-triage artifacts for both of its bounded parser-rejection surfaces. That means the remaining measurable parser debt is no longer buried only inside the aggregate JSON reports; it is now summarized objectively by stage, parser error, shrunk sample, failure location, and sample preview for both generation-side and replay-shadow counterexamples.

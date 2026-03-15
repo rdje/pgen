@@ -492,6 +492,11 @@ Toolbox baseline to leverage end-to-end:
     - current focused reusable summary records:
       - generation side: one stage bucket (`generate_parseable_stimuli`), five unique shrunk samples (`I`, `U`, `e`, `g`, `m`), five unique failure locations
       - replay-shadow side: one stage bucket (`target_drive_output_filter`), four unique shrunk samples (`*`, `P`, `e`, `m`), four unique failure locations
+  - Progress (2026-03-15): upgraded the main-SV triage artifacts to preserve concrete failure-line excerpts in addition to coordinates:
+    - `sv_parser_aggregate_contract_gate` now groups bounded debt by exact failure-line excerpt as well as by stage, parser error, shrunk sample, and failure location,
+    - the generation-side focused artifact currently records five unique failure-line excerpts,
+    - the replay-shadow focused artifact currently records five unique failure-line excerpts,
+    - this gives the remaining bounded debt a parser-context grouping surface instead of only a coordinate-based one.
 - [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
   - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
