@@ -19450,6 +19450,25 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - `make -C rust SHELL=/bin/bash ast_dump_contract_gate`
 - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
 
+## 2026-03-15 - Surface main SV shrunk-sample diversity counts
+
+- Added aggregate visibility for the main parser's sidecar-only shrunk-sample diversity counts:
+  - `sv_generation_counterexample_unique_shrunk_samples`
+  - `sv_shadow_counterexample_unique_shrunk_samples`
+- Updated:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - promote the main SV parser's rejection diversity counts into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the parser aggregate sidecar exactly
+- Measured evidence:
+  - direct parser aggregate sidecar proof:
+    - `generation_counterexample_unique_shrunk_samples=5`
+    - `shadow_counterexample_unique_shrunk_samples=4`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
 ## 2026-03-15 - Surface dominant SV preprocessor excerpt buckets
 
 - Added end-to-end aggregate visibility for the preprocessor side's dominant JSON-safe excerpt buckets:

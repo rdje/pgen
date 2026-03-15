@@ -19572,6 +19572,18 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
   - `covered_reachable_rules=69/69`
   - `covered_reachable_branches=47/47`
 
+## 2026-03-15 - Main SV shrunk-sample diversity in aggregate telemetry
+
+- Extended the main SV aggregate sign-off path to preserve the parser sidecar's rejection diversity counts by shrunk sample:
+  - `sv_generation_counterexample_unique_shrunk_samples`
+  - `sv_shadow_counterexample_unique_shrunk_samples`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for both fields
+- Current measured sidecar values:
+  - `generation_counterexample_unique_shrunk_samples=5`
+  - `shadow_counterexample_unique_shrunk_samples=4`
+
 ## 2026-03-15 - SV preprocessor dominant excerpt buckets in aggregate telemetry
 
 - Extended the preprocessor aggregate sidecar and aggregate sign-off path to preserve the dominant JSON-safe excerpt buckets, not just unique counts:

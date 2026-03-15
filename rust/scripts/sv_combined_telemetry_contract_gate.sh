@@ -154,6 +154,7 @@ sv_replay_gap_target_primary_rule="$(extract_summary_value "$sv_parser_aggregate
 sv_replay_gap_target_primary_rule_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_rule_count")"
 sv_replay_gap_target_primary_dependency="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency")"
 sv_replay_gap_target_primary_dependency_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency_count")"
+sv_generation_counterexample_unique_shrunk_samples="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_shrunk_samples")"
 sv_generation_counterexample_primary_stage="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_stage")"
 sv_generation_counterexample_primary_stage_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_stage_count")"
 sv_generation_counterexample_primary_shrunk_sample="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_shrunk_sample")"
@@ -169,6 +170,7 @@ sv_generation_counterexample_primary_failure_context_excerpt_count="$(extract_su
 sv_generation_counterexample_unique_failure_locations="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_locations")"
 sv_generation_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_line_excerpts")"
 sv_generation_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_context_excerpts")"
+sv_shadow_counterexample_unique_shrunk_samples="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_shrunk_samples")"
 sv_shadow_counterexample_primary_stage="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_stage")"
 sv_shadow_counterexample_primary_stage_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_stage_count")"
 sv_shadow_counterexample_primary_shrunk_sample="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_shrunk_sample")"
@@ -284,6 +286,10 @@ assert_equal \
     "$sv_replay_gap_target_primary_dependency_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_dependency_count")"
 assert_equal \
+    "main SV generation unique shrunk samples" \
+    "$sv_generation_counterexample_unique_shrunk_samples" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_unique_shrunk_samples")"
+assert_equal \
     "main SV generation primary stage" \
     "$sv_generation_counterexample_primary_stage" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_stage")"
@@ -343,6 +349,10 @@ assert_equal \
     "main SV generation unique failure context excerpts" \
     "$sv_generation_counterexample_unique_failure_context_excerpts" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_unique_failure_context_excerpts")"
+assert_equal \
+    "main SV shadow unique shrunk samples" \
+    "$sv_shadow_counterexample_unique_shrunk_samples" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_unique_shrunk_samples")"
 assert_equal \
     "main SV shadow primary stage" \
     "$sv_shadow_counterexample_primary_stage" \
@@ -611,6 +621,7 @@ assert_equal \
     echo "sv_replay_gap_target_primary_rule_count: $sv_replay_gap_target_primary_rule_count"
     echo "sv_replay_gap_target_primary_dependency: $sv_replay_gap_target_primary_dependency"
     echo "sv_replay_gap_target_primary_dependency_count: $sv_replay_gap_target_primary_dependency_count"
+    echo "sv_generation_counterexample_unique_shrunk_samples: $sv_generation_counterexample_unique_shrunk_samples"
     echo "sv_generation_counterexample_primary_stage: $sv_generation_counterexample_primary_stage"
     echo "sv_generation_counterexample_primary_stage_count: $sv_generation_counterexample_primary_stage_count"
     echo "sv_generation_counterexample_primary_shrunk_sample: $sv_generation_counterexample_primary_shrunk_sample"
@@ -626,6 +637,7 @@ assert_equal \
     echo "sv_generation_counterexample_unique_failure_locations: $sv_generation_counterexample_unique_failure_locations"
     echo "sv_generation_counterexample_unique_failure_line_excerpts: $sv_generation_counterexample_unique_failure_line_excerpts"
     echo "sv_generation_counterexample_unique_failure_context_excerpts: $sv_generation_counterexample_unique_failure_context_excerpts"
+    echo "sv_shadow_counterexample_unique_shrunk_samples: $sv_shadow_counterexample_unique_shrunk_samples"
     echo "sv_shadow_counterexample_primary_stage: $sv_shadow_counterexample_primary_stage"
     echo "sv_shadow_counterexample_primary_stage_count: $sv_shadow_counterexample_primary_stage_count"
     echo "sv_shadow_counterexample_primary_shrunk_sample: $sv_shadow_counterexample_primary_shrunk_sample"

@@ -2093,6 +2093,12 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `sv_shadow_counterexample_unique_failure_line_excerpts=5`
       - `sv_shadow_counterexample_unique_failure_context_excerpts=5`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the main-SV shrunk-sample diversity counts for those same bounded rejection artifacts:
+    - aggregate `sota_exit_gate` now surfaces generation-side:
+      - `sv_generation_counterexample_unique_shrunk_samples=5`
+    - aggregate `sota_exit_gate` now surfaces replay-shadow:
+      - `sv_shadow_counterexample_unique_shrunk_samples=4`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
   - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant main-SV failure-line/context excerpt buckets for those same bounded rejection artifacts in JSON-safe form:
     - aggregate `sota_exit_gate` now surfaces generation-side:
       - `sv_generation_counterexample_primary_failure_line_excerpt_json="  timeunit  473e-9  ps ;package automatic  //"`
