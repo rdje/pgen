@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-03-15 - Add Dedicated SV Roundtrip Contract Gate
+### ✅ Achievement Summary
+The parser/stimuli replay proof for both SV parser families now has its own tracked lightweight gate instead of living only inside the two separate aggregate contract gates. One command now revalidates the main SystemVerilog roundtrip surface and the SystemVerilog preprocessor staged roundtrip surface together.
+
+### Scope of Changes
+- Added [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
+  - reuses the checked-in tiny SV contract from [rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json)
+  - reuses [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh)
+  - reuses [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh)
+  - supports existing-artifact mode for both quality-state inputs so the proof can be replayed quickly over already-produced evidence
+  - emits one combined summary artifact for both parser families
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - new target: `sv_roundtrip_contract_gate`
+  - help text now advertises the new gate
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that lightweight parser/stimuli roundtrip proof is now a tracked combined command, not just an implication of the lower-level gates.
+
+### Validation Results
+- `bash -n rust/scripts/sv_roundtrip_contract_gate.sh`
+  - passed
+- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state PGEN_SV_ROUNDTRIP_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
+  - passed
+  - current combined summary:
+    - `systemverilog_roundtrip_initial_targets=2366`
+    - `systemverilog_roundtrip_replay_targets=1290`
+    - `systemverilog_roundtrip_initial_covered_reachable_rules=46`
+    - `systemverilog_roundtrip_replay_covered_reachable_rules=697`
+    - `systemverilog_roundtrip_initial_covered_reachable_branches=22`
+    - `systemverilog_roundtrip_replay_covered_reachable_branches=447`
+    - `systemverilog_preprocessor_roundtrip_stage0_targets=5`
+    - `systemverilog_preprocessor_roundtrip_stage1_targets=0`
+    - `systemverilog_preprocessor_roundtrip_final_targets=0`
+    - `systemverilog_preprocessor_roundtrip_stage4_targets=0`
+    - `systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules=68/69`
+    - `systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules=69/69`
+    - `systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules=69/69`
+    - `systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches=43/47`
+    - `systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches=47/47`
+    - `systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches=47/47`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add Dedicated SV Failure-Context Contract Gate
 ### ✅ Achievement Summary
 The source-level SV failure-context proof now has its own tracked lightweight gate instead of depending on ad hoc temporary contracts and manual command composition. One command now revalidates both the main SystemVerilog parser family and the SystemVerilog preprocessor family for non-zero source-level failure-context evidence.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-dedicated-sv-failure-context-contract-gate)
+Last updated: 2026-03-15 (+0100, task: add-dedicated-sv-roundtrip-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -190,6 +190,20 @@ Use this file to resume work without replaying full chat history.
       - ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
     - SV preprocessor:
       - `...define            -XE^\n`elsif \n       `ifndef  ...`
+- There is now also a dedicated lightweight combined proof command for parser/stimuli roundtrip replay:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
+  - validated in existing-artifact mode over:
+    - `rust/target/sv_parser_aggregate_contract_gate/work/shadow_state`
+    - `rust/target/sv_preprocessor_quality_gate`
+  - current combined summary:
+    - main SV:
+      - `targets 2366 -> 1290`
+      - `reachable rules 46 -> 697`
+      - `reachable branches 22 -> 447`
+    - SV preprocessor:
+      - `targets 5 -> 0 -> 0`
+      - `reachable rules 68/69 -> 69/69 -> 69/69`
+      - `reachable branches 43/47 -> 47/47 -> 47/47`
   - current focused fuzz replay proof:
     - `accepted_cases=5`
     - `rejected_cases=3`

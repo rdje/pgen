@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Add Dedicated SV Roundtrip Contract Gate
+### Context
+The lower-level SV aggregate contract gates were already proving parser/stimuli replay properties, but the proof still lived in two separate commands and two separate summary surfaces. Since roundtrip testing is part of the project doctrine, the next clean increment was to make that replay proof directly replayable as one tracked command across both SV parser families.
+
+### Implementation
+- Added [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
+  - reuses the checked-in tiny contract [rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json) for the main SV side
+  - reuses the existing main-SV aggregate contract gate
+  - reuses the existing preprocessor aggregate contract gate
+  - supports existing-artifact mode for both quality-state inputs
+  - emits one combined roundtrip summary artifact instead of leaving replay proof scattered across the lower-level summaries
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `sv_roundtrip_contract_gate`
+  - added help text for the new gate
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that lightweight parser/stimuli roundtrip proof is now one tracked command.
+
+### Validation
+- `bash -n rust/scripts/sv_roundtrip_contract_gate.sh`
+  - passed
+- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state PGEN_SV_ROUNDTRIP_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
+  - passed
+  - current combined summary:
+    - main SV: `targets 2366 -> 1290`, `reachable rules 46 -> 697`, `reachable branches 22 -> 447`
+    - preprocessor: `targets 5 -> 0 -> 0`, `reachable rules 68/69 -> 69/69 -> 69/69`, `reachable branches 43/47 -> 47/47 -> 47/47`
+
+### Notes
+- I validated the new gate in existing-artifact mode because the proof point here is orchestration and summary normalization, not re-running the heavy quality pipelines again.
+- This does not change any status labels; it makes the current roundtrip proof easier to replay and audit.
+
 ## 2026-03-15 - Add Dedicated SV Failure-Context Contract Gate
 ### Context
 The source-level failure-context work was already objective, but replaying it still required a specific sequence of ad hoc commands and temporary contracts. That was good enough for development, not good enough for a tracked proof surface. The next clean increment was to turn that into one checked-in lightweight gate so the repo itself can re-prove the failure-context contract for both SV parser families without manual setup.

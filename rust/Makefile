@@ -242,6 +242,7 @@ help:
 	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
 	@echo "  sv_parser_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused SystemVerilog parser evidence surfaces"
 	@echo "  sv_failure_context_contract_gate - Enforce lightweight source-level failure-context proof across both SV parser families"
+	@echo "  sv_roundtrip_contract_gate - Enforce lightweight parser/stimuli roundtrip proof across both SV parser families"
 	@echo "  sv_declared_shadow_promotion_gate - Run strict declared-shadow promotion trials and emit runtime-enforcement readiness report"
 	@echo "  sv_parse_full_ratio_promotion_gate - Run strict parse-full ratio promotion trials and emit threshold-ratchet readiness report"
 	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
@@ -543,6 +544,12 @@ sv_failure_context_contract_gate:
 	@echo "🧪 Running SystemVerilog failure-context contract gate..."
 	cd $(RUST_DIR) && ./scripts/sv_failure_context_contract_gate.sh
 	@echo "✅ SystemVerilog failure-context contract gate passed."
+
+.PHONY: sv_roundtrip_contract_gate
+sv_roundtrip_contract_gate:
+	@echo "🧪 Running SystemVerilog roundtrip contract gate..."
+	cd $(RUST_DIR) && ./scripts/sv_roundtrip_contract_gate.sh
+	@echo "✅ SystemVerilog roundtrip contract gate passed."
 
 .PHONY: sv_declared_shadow_promotion_gate
 sv_declared_shadow_promotion_gate:
