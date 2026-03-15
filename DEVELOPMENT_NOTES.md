@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Track Aggregate SV Telemetry Lightweight Policy
+### Context
+The new aggregate SV telemetry contract gate was already useful, but its bounded `sota_exit_gate` profile still lived as embedded env in the script. The next clean hardening step was to move that profile into a checked-in policy file, matching the approach already used for the other lightweight SV-family proof gates.
+
+### Implementation
+- Added [rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env):
+  - checked-in focused aggregate policy for `sv_combined_telemetry_contract_gate`
+  - pins the bounded SV-only `sota_exit_gate` shape used by this proof surface
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires and surfaces `sota_policy_env_file`
+  - now sources that checked-in policy when running `sota_exit_gate` directly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that this aggregate proof path is now driven by checked-in policy instead of script-local env.
+
+### Validation
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current summary surfaces:
+    - `sota_policy_env_file: /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`
+
+### Notes
+- This did not change any status label. It reduced hidden policy and made the proof path more objectively trackable.
+
 ## 2026-03-15 - Add Aggregate SV Telemetry Contract Gate
 ### Context
 Once aggregate `sota_exit_gate` started surfacing the combined SV proof numbers directly, the next risk was simple but important: those numbers were observable, but not yet independently contract-checked. The next clean increment was to prove the aggregate release summary matches the combined sidecar summaries exactly.

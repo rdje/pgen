@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-aggregate-sv-telemetry-contract-gate)
+Last updated: 2026-03-15 (+0100, task: track-aggregate-sv-telemetry-lightweight-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,11 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate SV telemetry proof now uses checked-in bounded aggregate policy:
+  - `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`
+  - `sv_combined_telemetry_contract_gate` now sources that file when it needs to run `sota_exit_gate` directly
+  - current summary surfaces:
+    - `sota_policy_env_file: /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`
 - Aggregate SV-family release-summary telemetry is now machine-checked:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
   - proves aggregate `sota_exit_gate` telemetry matches the combined sidecar summaries exactly for:

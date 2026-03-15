@@ -11,6 +11,7 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 
 SOTA_EXIT_GATE_SCRIPT="$RUST_DIR/scripts/sota_exit_gate.sh"
 SV_CONTRACT_FILE="${PGEN_SV_COMBINED_TELEMETRY_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json}"
+SOTA_POLICY_ENV_FILE="${PGEN_SV_COMBINED_TELEMETRY_SOTA_POLICY_ENV_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env}"
 EXISTING_SOTA_EXIT_STATE_DIR="${PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR:-}"
 
 require_file() {
@@ -43,6 +44,27 @@ run_logged() {
     fi
 }
 
+run_logged_with_env_file() {
+    local label="$1"
+    local env_file="$2"
+    shift 2
+    local log_file="$LOG_DIR/${label}.log"
+    echo "==> ${label}"
+    if (
+        set -a
+        # shellcheck disable=SC1090
+        source "$env_file"
+        set +a
+        "$@"
+    ) >"$log_file" 2>&1; then
+        echo "    ok (${log_file})"
+    else
+        echo "error: stage '$label' failed (log: $log_file)" >&2
+        tail -n 120 "$log_file" >&2 || true
+        exit 1
+    fi
+}
+
 extract_summary_value() {
     local path="$1"
     local key="$2"
@@ -61,6 +83,7 @@ assert_equal() {
 
 require_file "$SOTA_EXIT_GATE_SCRIPT"
 require_file "$SV_CONTRACT_FILE"
+require_file "$SOTA_POLICY_ENV_FILE"
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -69,25 +92,8 @@ sota_state_dir="$WORK_DIR/sota_exit_gate"
 if [[ -n "$EXISTING_SOTA_EXIT_STATE_DIR" ]]; then
     sota_state_dir="$EXISTING_SOTA_EXIT_STATE_DIR"
 else
-    run_logged "sv_combined_sota_exit_gate" env \
-        PGEN_SOTA_EXIT_STATE_DIR="$sota_state_dir" \
-        PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract \
-        PGEN_SOTA_RUN_EBNF_READINESS=0 \
-        PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 \
-        PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 \
-        PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 \
-        PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 \
-        PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 \
-        PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 \
-        PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 \
-        PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 \
-        PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 \
-        PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 \
-        PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 \
-        PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 \
-        PGEN_SV_PREPROCESSOR_DIFF_MODE=0 \
-        PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 \
-        PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 \
+    run_logged_with_env_file "sv_combined_sota_exit_gate" "$SOTA_POLICY_ENV_FILE" \
+        env PGEN_SOTA_EXIT_STATE_DIR="$sota_state_dir" \
         PGEN_SV_STIMULI_QUALITY_CONTRACT="$SV_CONTRACT_FILE" \
         "$SOTA_EXIT_GATE_SCRIPT"
 fi
@@ -220,6 +226,7 @@ assert_equal \
     echo "SV Combined Telemetry Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
     echo "sv_contract_file: $SV_CONTRACT_FILE"
+    echo "sota_policy_env_file: $SOTA_POLICY_ENV_FILE"
     echo "existing_sota_exit_state_dir: ${EXISTING_SOTA_EXIT_STATE_DIR:-<unset>}"
     echo "sota_exit_state_dir: $sota_state_dir"
     echo "sota_exit_summary_txt: $sota_summary_txt"

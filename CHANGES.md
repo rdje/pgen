@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-15 - Track Aggregate SV Telemetry Lightweight Policy
+### ✅ Achievement Summary
+The aggregate SV telemetry contract gate no longer hides its bounded `sota_exit_gate` profile inside the script. It now uses a checked-in lightweight aggregate policy file, so the whole proof path is repo-tracked and auditable.
+
+### Scope of Changes
+- Added [rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env):
+  - checked-in bounded aggregate policy for `sv_combined_telemetry_contract_gate`
+  - pins the focused SV-only `sota_exit_gate` shape used by this proof surface
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires and surfaces `sota_policy_env_file`
+  - now sources the checked-in policy file when it needs to run `sota_exit_gate` directly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate SV telemetry proof now uses checked-in aggregate policy rather than embedded shell env.
+
+### Validation Results
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current summary now surfaces:
+    - `sota_policy_env_file: /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add Aggregate SV Telemetry Contract Gate
 ### ✅ Achievement Summary
 The new combined SV-family numbers in aggregate `sota_exit_gate` telemetry are no longer just “printed and observed once.” A dedicated contract gate now reruns the bounded SV-only aggregate flow and proves the emitted release-summary values match the combined sidecar summaries exactly.
