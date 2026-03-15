@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-dominant-preprocessor-debt-buckets-in-aggregate-telemetry)
+Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-replay-gap-buckets)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,36 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the dominant main-SV replay-gap buckets, not just the triage artifact paths and uniqueness counts:
+  - standalone `sv_parser_aggregate_contract_gate` now records:
+    - `replay_gap_target_primary_target_type`
+    - `replay_gap_target_primary_target_type_count`
+    - `replay_gap_target_primary_reason`
+    - `replay_gap_target_primary_reason_count`
+    - `replay_gap_target_primary_rule`
+    - `replay_gap_target_primary_rule_count`
+    - `replay_gap_target_primary_dependency`
+    - `replay_gap_target_primary_dependency_count`
+  - current parser aggregate summary records:
+    - `replay_gap_target_primary_target_type=branch`
+    - `replay_gap_target_primary_target_type_count=1224`
+    - `replay_gap_target_primary_reason=never_hit`
+    - `replay_gap_target_primary_reason_count=983`
+    - `replay_gap_target_primary_rule=property_expr_sv_2017`
+    - `replay_gap_target_primary_rule_count=37`
+    - `replay_gap_target_primary_dependency=expression`
+    - `replay_gap_target_primary_dependency_count=64`
+  - current bounded aggregate SOTA summary now surfaces the same values as:
+    - `sv_replay_gap_target_primary_target_type=branch`
+    - `sv_replay_gap_target_primary_target_type_count=1224`
+    - `sv_replay_gap_target_primary_reason=never_hit`
+    - `sv_replay_gap_target_primary_reason_count=983`
+    - `sv_replay_gap_target_primary_rule=property_expr_sv_2017`
+    - `sv_replay_gap_target_primary_rule_count=37`
+    - `sv_replay_gap_target_primary_dependency=expression`
+    - `sv_replay_gap_target_primary_dependency_count=64`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the parser aggregate sidecar exactly.
 - Aggregate sign-off now surfaces the dominant bounded SV preprocessor parser-debt buckets, not just the triage artifact paths:
   - standalone `sv_preprocessor_aggregate_contract_gate` now records:
     - `counterexample_primary_stage`

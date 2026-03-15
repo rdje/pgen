@@ -2019,6 +2019,26 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
         - `binary_operator=30`
         - `statement_item_sv_2017=21`
   - Progress (2026-03-15): aggregate `sota_exit_gate` now also surfaces that replay-gap triage sidecar path plus the objective debt-shape counts, and `sv_combined_telemetry_contract_gate` now proves those aggregate fields match the parser-aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant main-SV replay-gap buckets directly instead of only uniqueness counts:
+    - standalone `sv_parser_aggregate_contract_gate` now records:
+      - `replay_gap_target_primary_target_type`
+      - `replay_gap_target_primary_target_type_count`
+      - `replay_gap_target_primary_reason`
+      - `replay_gap_target_primary_reason_count`
+      - `replay_gap_target_primary_rule`
+      - `replay_gap_target_primary_rule_count`
+      - `replay_gap_target_primary_dependency`
+      - `replay_gap_target_primary_dependency_count`
+    - aggregate `sota_exit_gate` now surfaces the bounded-policy values as:
+      - `sv_replay_gap_target_primary_target_type=branch`
+      - `sv_replay_gap_target_primary_target_type_count=1224`
+      - `sv_replay_gap_target_primary_reason=never_hit`
+      - `sv_replay_gap_target_primary_reason_count=983`
+      - `sv_replay_gap_target_primary_rule=property_expr_sv_2017`
+      - `sv_replay_gap_target_primary_rule_count=37`
+      - `sv_replay_gap_target_primary_dependency=expression`
+      - `sv_replay_gap_target_primary_dependency_count=64`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
   - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
     - proves `stage3_targets=0` and `stage4_targets=0`,

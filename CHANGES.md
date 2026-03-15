@@ -1,4 +1,57 @@
 # CHANGES.md
+## 2026-03-15 - Surface dominant main SV replay-gap buckets
+### ✅ Achievement Summary
+Aggregate SV sign-off now shows the dominant main-SystemVerilog replay-gap buckets directly, not just the replay-gap triage artifact paths and uniqueness counts. `sota_exit_gate` now surfaces the top target-type, reason, rule, and dependency buckets, and `sv_combined_telemetry_contract_gate` proves those new aggregate telemetry fields match the parser aggregate sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now emits:
+    - `replay_gap_target_primary_target_type`
+    - `replay_gap_target_primary_target_type_count`
+    - `replay_gap_target_primary_reason`
+    - `replay_gap_target_primary_reason_count`
+    - `replay_gap_target_primary_rule`
+    - `replay_gap_target_primary_rule_count`
+    - `replay_gap_target_primary_dependency`
+    - `replay_gap_target_primary_dependency_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_replay_gap_target_primary_target_type`
+    - `sv_replay_gap_target_primary_target_type_count`
+    - `sv_replay_gap_target_primary_reason`
+    - `sv_replay_gap_target_primary_reason_count`
+    - `sv_replay_gap_target_primary_rule`
+    - `sv_replay_gap_target_primary_rule_count`
+    - `sv_replay_gap_target_primary_dependency`
+    - `sv_replay_gap_target_primary_dependency_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields match the parser aggregate sidecar exactly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV replay-gap proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current parser aggregate summary records:
+    - `replay_gap_target_primary_target_type=branch`
+    - `replay_gap_target_primary_target_type_count=1224`
+    - `replay_gap_target_primary_reason=never_hit`
+    - `replay_gap_target_primary_reason_count=983`
+    - `replay_gap_target_primary_rule=property_expr_sv_2017`
+    - `replay_gap_target_primary_rule_count=37`
+    - `replay_gap_target_primary_dependency=expression`
+    - `replay_gap_target_primary_dependency_count=64`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA summary records the same values under the `sv_replay_gap_target_primary_*` keys
+
 ## 2026-03-15 - Surface dominant preprocessor debt buckets in aggregate telemetry
 ### ✅ Achievement Summary
 The aggregate SV sign-off now shows not just where the preprocessor parser-debt triage artifacts live, but also which bounded-debt bucket is currently dominant under the checked-in aggregate policy. `sota_exit_gate` now surfaces the top stage bucket and top shrunk-sample bucket, and `sv_combined_telemetry_contract_gate` proves those new fields match the preprocessor aggregate sidecar exactly.

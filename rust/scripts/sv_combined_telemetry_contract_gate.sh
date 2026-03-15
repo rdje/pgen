@@ -146,6 +146,14 @@ sv_replay_gap_target_triage_txt="$(extract_summary_value "$sv_parser_aggregate_s
 sv_replay_gap_target_unique_rules="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_unique_rules")"
 sv_replay_gap_target_unique_reasons="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_unique_reasons")"
 sv_replay_gap_target_unique_dependencies="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_unique_dependencies")"
+sv_replay_gap_target_primary_target_type="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_target_type")"
+sv_replay_gap_target_primary_target_type_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_target_type_count")"
+sv_replay_gap_target_primary_reason="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_reason")"
+sv_replay_gap_target_primary_reason_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_reason_count")"
+sv_replay_gap_target_primary_rule="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_rule")"
+sv_replay_gap_target_primary_rule_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_rule_count")"
+sv_replay_gap_target_primary_dependency="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency")"
+sv_replay_gap_target_primary_dependency_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency_count")"
 sv_failure_generation_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_generation_failure_context_excerpts")"
 sv_failure_shadow_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_shadow_failure_context_excerpts")"
 sv_roundtrip_initial_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_targets")"
@@ -205,6 +213,38 @@ assert_equal \
     "main SV replay-gap unique dependencies" \
     "$sv_replay_gap_target_unique_dependencies" \
     "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_unique_dependencies")"
+assert_equal \
+    "main SV replay-gap primary target type" \
+    "$sv_replay_gap_target_primary_target_type" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_target_type")"
+assert_equal \
+    "main SV replay-gap primary target type count" \
+    "$sv_replay_gap_target_primary_target_type_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_target_type_count")"
+assert_equal \
+    "main SV replay-gap primary reason" \
+    "$sv_replay_gap_target_primary_reason" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_reason")"
+assert_equal \
+    "main SV replay-gap primary reason count" \
+    "$sv_replay_gap_target_primary_reason_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_reason_count")"
+assert_equal \
+    "main SV replay-gap primary rule" \
+    "$sv_replay_gap_target_primary_rule" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_rule")"
+assert_equal \
+    "main SV replay-gap primary rule count" \
+    "$sv_replay_gap_target_primary_rule_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_rule_count")"
+assert_equal \
+    "main SV replay-gap primary dependency" \
+    "$sv_replay_gap_target_primary_dependency" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_dependency")"
+assert_equal \
+    "main SV replay-gap primary dependency count" \
+    "$sv_replay_gap_target_primary_dependency_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_dependency_count")"
 assert_equal \
     "main SV generation failure-context excerpts" \
     "$sv_failure_generation_excerpts" \
@@ -373,6 +413,14 @@ assert_equal \
     echo "sv_replay_gap_target_unique_rules: $sv_replay_gap_target_unique_rules"
     echo "sv_replay_gap_target_unique_reasons: $sv_replay_gap_target_unique_reasons"
     echo "sv_replay_gap_target_unique_dependencies: $sv_replay_gap_target_unique_dependencies"
+    echo "sv_replay_gap_target_primary_target_type: $sv_replay_gap_target_primary_target_type"
+    echo "sv_replay_gap_target_primary_target_type_count: $sv_replay_gap_target_primary_target_type_count"
+    echo "sv_replay_gap_target_primary_reason: $sv_replay_gap_target_primary_reason"
+    echo "sv_replay_gap_target_primary_reason_count: $sv_replay_gap_target_primary_reason_count"
+    echo "sv_replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule"
+    echo "sv_replay_gap_target_primary_rule_count: $sv_replay_gap_target_primary_rule_count"
+    echo "sv_replay_gap_target_primary_dependency: $sv_replay_gap_target_primary_dependency"
+    echo "sv_replay_gap_target_primary_dependency_count: $sv_replay_gap_target_primary_dependency_count"
     echo "sv_failure_context_generation_excerpts: $sv_failure_generation_excerpts"
     echo "sv_failure_context_shadow_excerpts: $sv_failure_shadow_excerpts"
     echo "sv_roundtrip_initial_targets: $sv_roundtrip_initial_targets"

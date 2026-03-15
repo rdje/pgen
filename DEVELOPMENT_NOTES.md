@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface dominant main SV replay-gap buckets
+### Context
+The main SV aggregate proof already surfaced replay-gap triage artifact paths and uniqueness counts, but the release summary still did not say which replay-gap bucket was actually dominating the remaining debt. The next clean hardening step was to expose the dominant target-type, reason, rule, and dependency buckets directly in aggregate telemetry, so aggregate sign-off makes the main replay-gap shape immediately visible without a separate triage-file read.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now derives and records:
+    - `replay_gap_target_primary_target_type`
+    - `replay_gap_target_primary_target_type_count`
+    - `replay_gap_target_primary_reason`
+    - `replay_gap_target_primary_reason_count`
+    - `replay_gap_target_primary_rule`
+    - `replay_gap_target_primary_rule_count`
+    - `replay_gap_target_primary_dependency`
+    - `replay_gap_target_primary_dependency_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the same values as:
+    - `sv_replay_gap_target_primary_target_type`
+    - `sv_replay_gap_target_primary_target_type_count`
+    - `sv_replay_gap_target_primary_reason`
+    - `sv_replay_gap_target_primary_reason_count`
+    - `sv_replay_gap_target_primary_rule`
+    - `sv_replay_gap_target_primary_rule_count`
+    - `sv_replay_gap_target_primary_dependency`
+    - `sv_replay_gap_target_primary_dependency_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV replay-gap proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current parser aggregate values:
+    - `replay_gap_target_primary_target_type=branch`
+    - `replay_gap_target_primary_target_type_count=1224`
+    - `replay_gap_target_primary_reason=never_hit`
+    - `replay_gap_target_primary_reason_count=983`
+    - `replay_gap_target_primary_rule=property_expr_sv_2017`
+    - `replay_gap_target_primary_rule_count=37`
+    - `replay_gap_target_primary_dependency=expression`
+    - `replay_gap_target_primary_dependency_count=64`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA values match those same dominant replay-gap buckets exactly
+
 ## 2026-03-15 - Surface dominant preprocessor debt buckets in aggregate telemetry
 ### Context
 The aggregate SV sign-off already exposed the preprocessor triage sidecar paths and the diversity counts for remaining bounded parser debt, but it still did not say which bucket was actually dominating that debt. The next clean hardening step was to surface the dominant stage bucket and dominant shrunk-sample bucket directly in aggregate telemetry, so release summaries point to the main remaining debt shape without forcing a separate triage-file read.
