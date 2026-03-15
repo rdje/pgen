@@ -2136,6 +2136,10 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - aggregate `sota_exit_gate` now surfaces replay-shadow:
       - `sv_shadow_contract_file`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate contract-file paths match the parser aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces parser-aggregate root provenance for the same bounded main-SV evidence surface:
+    - aggregate `sota_exit_gate` now surfaces:
+      - `sv_base_contract_file`
+    - `sv_combined_telemetry_contract_gate` now also proves that surfaced aggregate root-provenance field matches the parser aggregate sidecar exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
   - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
     - proves `stage3_targets=0` and `stage4_targets=0`,

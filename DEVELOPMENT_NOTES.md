@@ -19591,6 +19591,14 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
 - Wiring:
   - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for both fields
+
+## 2026-03-15 - Main SV base-contract provenance in aggregate telemetry
+
+- Extended the main SV aggregate sign-off path to preserve the parser aggregate's checked-in root contract file:
+  - `sv_base_contract_file`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits that value from `sv_parser_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for that root-provenance field too
 - Current measured sidecar values:
   - `generation_counterexample_unique_shrunk_samples=5`
   - `shadow_counterexample_unique_shrunk_samples=4`
