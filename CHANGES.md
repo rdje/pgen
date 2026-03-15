@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-15 - Surface dominant main SV parser-error buckets
+### ✅ Achievement Summary
+Aggregate SV sign-off now shows the dominant bounded parser-error buckets for the main `systemverilog` parser, not just the dominant stage/sample buckets. `sota_exit_gate` now surfaces the top generation-side and replay-shadow parser-error classes, and `sv_combined_telemetry_contract_gate` proves those fields match the parser aggregate sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now emits:
+    - `generation_counterexample_primary_parser_error`
+    - `generation_counterexample_primary_parser_error_count`
+    - `shadow_counterexample_primary_parser_error`
+    - `shadow_counterexample_primary_parser_error_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_generation_counterexample_primary_parser_error`
+    - `sv_generation_counterexample_primary_parser_error_count`
+    - `sv_shadow_counterexample_primary_parser_error`
+    - `sv_shadow_counterexample_primary_parser_error_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields match the parser aggregate sidecar exactly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV parser-debt proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current parser aggregate summary records:
+    - `generation_counterexample_primary_parser_error=Parser did not consume full input at position 111`
+    - `generation_counterexample_primary_parser_error_count=1`
+    - `shadow_counterexample_primary_parser_error=Parser did not consume full input at position 1`
+    - `shadow_counterexample_primary_parser_error_count=2`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA summary records the same values under the `sv_generation_counterexample_primary_parser_error*` and `sv_shadow_counterexample_primary_parser_error*` keys
+
 ## 2026-03-15 - Surface dominant main SV parser-debt buckets
 ### ✅ Achievement Summary
 Aggregate SV sign-off now shows the dominant bounded parser-rejection buckets for the main `systemverilog` parser, not just the replay-gap buckets. `sota_exit_gate` now surfaces the top generation-side and replay-shadow counterexample stage/sample buckets, and `sv_combined_telemetry_contract_gate` proves those fields match the parser aggregate sidecar exactly.

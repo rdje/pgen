@@ -2059,6 +2059,18 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `sv_shadow_counterexample_primary_shrunk_sample=m`
       - `sv_shadow_counterexample_primary_shrunk_sample_count=2`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant main-SV parser-error buckets for those same bounded rejection artifacts:
+    - standalone `sv_parser_aggregate_contract_gate` now records:
+      - `generation_counterexample_primary_parser_error`
+      - `generation_counterexample_primary_parser_error_count`
+      - `shadow_counterexample_primary_parser_error`
+      - `shadow_counterexample_primary_parser_error_count`
+    - aggregate `sota_exit_gate` now surfaces the bounded-policy values as:
+      - `sv_generation_counterexample_primary_parser_error=Parser did not consume full input at position 111`
+      - `sv_generation_counterexample_primary_parser_error_count=1`
+      - `sv_shadow_counterexample_primary_parser_error=Parser did not consume full input at position 1`
+      - `sv_shadow_counterexample_primary_parser_error_count=2`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
   - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
     - proves `stage3_targets=0` and `stage4_targets=0`,

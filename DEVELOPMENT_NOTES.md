@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface dominant main SV parser-error buckets
+### Context
+The main SV aggregate proof already surfaced dominant replay-gap buckets and dominant stage/sample buckets for bounded parser-rejection debt, but it still did not expose which parser error bucket was leading that remaining debt. The next clean hardening step was to surface the dominant parser-error bucket for both generation-side and replay-shadow bounded rejections, so aggregate sign-off shows the dominant failure class as well as the dominant stage/sample bucket.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now derives and records:
+    - `generation_counterexample_primary_parser_error`
+    - `generation_counterexample_primary_parser_error_count`
+    - `shadow_counterexample_primary_parser_error`
+    - `shadow_counterexample_primary_parser_error_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the same values as:
+    - `sv_generation_counterexample_primary_parser_error`
+    - `sv_generation_counterexample_primary_parser_error_count`
+    - `sv_shadow_counterexample_primary_parser_error`
+    - `sv_shadow_counterexample_primary_parser_error_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV parser-debt proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current parser aggregate values:
+    - `generation_counterexample_primary_parser_error=Parser did not consume full input at position 111`
+    - `generation_counterexample_primary_parser_error_count=1`
+    - `shadow_counterexample_primary_parser_error=Parser did not consume full input at position 1`
+    - `shadow_counterexample_primary_parser_error_count=2`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA values match those same dominant parser-error buckets exactly
+
 ## 2026-03-15 - Surface dominant main SV parser-debt buckets
 ### Context
 The main SV aggregate proof already surfaced dominant replay-gap buckets, but the bounded parser-rejection side of that proof was still only visible through the triage sidecar artifacts themselves. The next clean hardening step was to surface the dominant generation-side and replay-shadow parser-debt buckets directly in aggregate telemetry, so aggregate sign-off shows both uncovered-target debt and parser-rejection debt in the same top-level proof surface.
