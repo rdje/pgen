@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-15 - Add SV Preprocessor Failure-Line Triage Context
+### ✅ Achievement Summary
+The SystemVerilog preprocessor aggregate contract gate now preserves concrete failure-line excerpts in its deterministic debt-triage artifact. That moves the remaining bounded preprocessor parser debt from “we know the line and column” to “we can group the debt by the exact directive-line context the parser saw,” which is much more actionable while staying fully repeatable.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - preprocessor triage now groups by `failure_line_excerpt`
+  - `sample_previews` now retain `failure_line_excerpt`
+  - the aggregate summary now also surfaces:
+    - `counterexample_unique_failure_line_excerpts`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger parser-context observability for the preprocessor row,
+  - kept status labels unchanged because exhaustive grammar-level closure is still open.
+
+### Validation Results
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - current summary now includes:
+    - `counterexample_unique_failure_line_excerpts=5`
+    - grouped examples such as:
+      - `` `elsif ``
+      - ``              `else         ``
+      - ``       `ifdef  oLT    ``
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add SV Parser Failure-Line Triage Context
 ### ✅ Achievement Summary
 The main SystemVerilog aggregate contract gate now preserves concrete failure-line excerpts in its deterministic debt-triage artifacts. That moves the remaining bounded parser debt from “we know the line and column” to “we can group the debt by the exact parser-facing line context,” which is a more actionable and still fully repeatable proof surface.

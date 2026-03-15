@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-sv-parser-failure-line-triage-context)
+Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-failure-line-triage-context)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -144,6 +144,15 @@ Use this file to resume work without replaying full chat history.
     - current focused proof: `68/69 -> 69/69 -> 69/69`
   - staged covered reachable branches must not regress:
     - current focused proof: `43/47 -> 47/47 -> 47/47`
+- The SV preprocessor aggregate contract gate now also preserves concrete failure-line excerpts in its debt-triage artifact:
+  - current focused artifact records:
+    - one shrunk-sample bucket: lone backtick `` ` ``
+    - five unique failure locations
+    - five unique failure-line excerpts
+  - current grouped examples include:
+    - `` `elsif ``
+    - ``              `else         ``
+    - ``       `ifdef  oLT    ``
   - current focused fuzz replay proof:
     - `accepted_cases=5`
     - `rejected_cases=3`

@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Add SV Preprocessor Failure-Line Triage Context
+### Context
+The preprocessor triage artifact was already summarizing bounded parser debt by stage, parser error, shrunk sample, and failure location. That was enough to prove the debt existed and was stable, but not enough to group the debt by what the parser was actually seeing at the failure point. Since the counterexamples already carry full samples plus failure line/column, the next clean increment was to derive deterministic failure-line excerpts directly into the triage surface so the remaining bounded preprocessor debt can be grouped by directive-line context instead of only by coordinates.
+
+### Implementation
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - the triage artifact now derives and groups `failure_line_excerpt`
+  - `sample_previews` now retain `failure_line_excerpt`
+  - the aggregate summary now records:
+    - `counterexample_unique_failure_line_excerpts`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger parser-context observability,
+  - kept status labels unchanged because exhaustive closure is still the real remaining gap.
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed
+  - current triage surface now shows five unique failure-line excerpts
+  - current grouped examples include:
+    - `` `elsif ``
+    - ``              `else         ``
+    - ``       `ifdef  oLT    ``
+
+### Notes
+- This does not close the remaining preprocessor parser debt, but it makes the debt much easier to attack surgically.
+- The triage remains deterministic because it is derived from stored aggregate-report artifacts, not ad hoc inspection.
+
 ## 2026-03-15 - Add SV Parser Failure-Line Triage Context
 ### Context
 The main SystemVerilog triage artifacts were already summarizing bounded parser debt by stage, parser error, shrunk sample, and failure location. That was useful, but still left a manual step when trying to understand what the parser was actually seeing at the failure site. Since the counterexamples already carry full samples plus failure line/column, the next clean increment was to extract deterministic failure-line excerpts directly into the triage surface so the remaining debt can be grouped by parser-facing context instead of only by coordinates.

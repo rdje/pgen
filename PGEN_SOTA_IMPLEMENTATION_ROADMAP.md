@@ -1907,6 +1907,13 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
         - `1:7`
         - `2:9`
         - `4:14`
+  - Progress (2026-03-15): upgraded the preprocessor triage artifact to preserve concrete failure-line excerpts in addition to coordinates:
+    - `sv_preprocessor_aggregate_contract_gate` now groups bounded debt by exact failure-line excerpt as well as by stage, parser error, shrunk sample, and failure location,
+    - the current focused artifact records five unique failure-line excerpts,
+    - current examples include:
+      - `` `elsif ``
+      - ``              `else         ``
+      - ``       `ifdef  oLT    ``
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_preprocessor_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded parseability/gap contract proof.
