@@ -612,6 +612,7 @@ replay_gap_target_primary_dependency_count="$(jq -er 'if (.by_dependency | lengt
     echo "shadow_counterexample_triage_txt: $shadow_counterexample_triage_txt"
     echo "replay_gap_target_triage_json: $replay_gap_target_triage_json"
     echo "replay_gap_target_triage_txt: $replay_gap_target_triage_txt"
+    echo "source_gap_json: $closed_loop_replay_gap_json"
     echo "generation_parser_rejections_total: $generation_parser_rejections"
     echo "generation_counterexamples_count: $generation_counterexamples_count"
     echo "generation_counterexample_unique_shrunk_samples: $generation_counterexample_unique_shrunk_samples"

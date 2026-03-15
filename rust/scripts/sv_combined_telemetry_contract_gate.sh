@@ -154,6 +154,7 @@ sv_replay_gap_target_primary_rule="$(extract_summary_value "$sv_parser_aggregate
 sv_replay_gap_target_primary_rule_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_rule_count")"
 sv_replay_gap_target_primary_dependency="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency")"
 sv_replay_gap_target_primary_dependency_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_primary_dependency_count")"
+sv_replay_gap_source_gap_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "source_gap_json")"
 sv_base_contract_file="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "base_contract_file")"
 sv_generation_contract_file="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_contract_file")"
 sv_generation_report_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_report_json")"
@@ -299,6 +300,10 @@ assert_equal \
     "main SV replay-gap primary dependency count" \
     "$sv_replay_gap_target_primary_dependency_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_target_primary_dependency_count")"
+assert_equal \
+    "main SV replay-gap source gap json path" \
+    "$sv_replay_gap_source_gap_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_replay_gap_source_gap_json")"
 assert_equal \
     "main SV base contract file" \
     "$sv_base_contract_file" \
@@ -691,6 +696,7 @@ assert_equal \
     echo "sv_replay_gap_target_primary_rule_count: $sv_replay_gap_target_primary_rule_count"
     echo "sv_replay_gap_target_primary_dependency: $sv_replay_gap_target_primary_dependency"
     echo "sv_replay_gap_target_primary_dependency_count: $sv_replay_gap_target_primary_dependency_count"
+    echo "sv_replay_gap_source_gap_json: $sv_replay_gap_source_gap_json"
     echo "sv_base_contract_file: $sv_base_contract_file"
     echo "sv_generation_contract_file: $sv_generation_contract_file"
     echo "sv_generation_report_json: $sv_generation_report_json"

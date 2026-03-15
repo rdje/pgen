@@ -19458,6 +19458,7 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - `sv_shadow_counterexample_triage_json`
   - `sv_shadow_counterexample_triage_txt`
 - Updated:
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh`
   - `rust/scripts/sota_exit_gate.sh`
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
 - Purpose:
@@ -19476,6 +19477,20 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
 - Purpose:
   - carry the parser aggregate's root checked-in contract provenance into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the parser aggregate sidecar exactly
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-15 - Surface main SV replay-gap provenance
+
+- Added aggregate visibility for the replay-gap triage source artifact:
+  - `sv_replay_gap_source_gap_json`
+- Updated:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - carry the exact closed-loop gap report JSON behind the surfaced replay-gap target triage into aggregate sign-off telemetry
   - machine-check that aggregate telemetry matches the parser aggregate sidecar exactly
 - Live-status effect:
   - `systemverilog`: remains `Mostly Done`
