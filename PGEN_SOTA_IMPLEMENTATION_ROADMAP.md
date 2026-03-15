@@ -2006,6 +2006,14 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_roundtrip_stage4_covered_reachable_branches=47/47`
   - Progress (2026-03-15): the same `sv_combined_telemetry_contract_gate` now also proves the preprocessor values surfaced by aggregate `sota_exit_gate` match the combined proof sidecars exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
+  - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
+    - proves `stage3_targets=0` and `stage4_targets=0`,
+    - proves full reachable coverage at both stage3 and stage4:
+      - `stage3_covered_reachable_rules=69/69`
+      - `stage4_covered_reachable_rules=69/69`
+      - `stage3_covered_reachable_branches=47/47`
+      - `stage4_covered_reachable_branches=47/47`
+    - keeps parseability rejection debt visible in the same summary instead of masking it as full parser closure.
   - Progress (2026-03-03): made aggregate `sota_exit_gate` preprocessor-stage execution artifact-scoped and telemetry-visible:
     - aggregate now routes stage artifacts under:
       - `rust/target/sota_exit_gate/work/sv_preprocessor_quality_gate`

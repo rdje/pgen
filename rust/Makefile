@@ -237,6 +237,7 @@ help:
 	@echo "  hdl_frontend_gate - Strict HDL frontend readiness gate (fails on missing/failing HDL grammar flows)"
 	@echo "  sv_preprocessor_quality_gate - Enforce deterministic closed-loop quality checks for systemverilog_preprocessor grammar"
 	@echo "  sv_preprocessor_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused preprocessor evidence surfaces"
+	@echo "  sv_preprocessor_reachability_closure_gate - Enforce zero-target/full-reachable-coverage preprocessor closure under checked-in policy"
 	@echo "  sv_preprocessor_curated_differential_gate - Run curated expected-artifact differential corpus and classify expected-vs-bug taxonomy deltas"
 	@echo "  sv_preprocessor_template_differential_gate - Run dynamic template-based preprocessor oracle differential (fully offline)"
 	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
@@ -515,6 +516,12 @@ sv_preprocessor_aggregate_contract_gate:
 	@echo "🧪 Running SystemVerilog preprocessor aggregate-report contract gate..."
 	cd $(RUST_DIR) && ./scripts/sv_preprocessor_aggregate_contract_gate.sh
 	@echo "✅ SystemVerilog preprocessor aggregate-report contract gate passed."
+
+.PHONY: sv_preprocessor_reachability_closure_gate
+sv_preprocessor_reachability_closure_gate:
+	@echo "🧪 Running SystemVerilog preprocessor reachability-closure gate..."
+	cd $(RUST_DIR) && ./scripts/sv_preprocessor_reachability_closure_gate.sh
+	@echo "✅ SystemVerilog preprocessor reachability-closure gate passed."
 
 .PHONY: sv_preprocessor_curated_differential_gate
 sv_preprocessor_curated_differential_gate:

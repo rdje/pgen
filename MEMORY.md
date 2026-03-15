@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: track-aggregate-sv-telemetry-lightweight-policy)
+Last updated: 2026-03-15 (+0100, task: add-sv-preprocessor-reachability-closure-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,18 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- SV preprocessor now has a standalone reachability-closure proof gate:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_reachability_closure_gate`
+  - proves:
+    - `stage3_targets=0`
+    - `stage4_targets=0`
+    - `stage3_covered_reachable_rules=69/69`
+    - `stage4_covered_reachable_rules=69/69`
+    - `stage3_covered_reachable_branches=47/47`
+    - `stage4_covered_reachable_branches=47/47`
+  - still surfaces remaining parseability debt separately:
+    - `parseability_rejected=24`
+    - `parser_rejections=24`
 - Aggregate SV telemetry proof now uses checked-in bounded aggregate policy:
   - `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`
   - `sv_combined_telemetry_contract_gate` now sources that file when it needs to run `sota_exit_gate` directly

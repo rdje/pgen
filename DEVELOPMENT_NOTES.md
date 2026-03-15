@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Add SV Preprocessor Reachability Closure Gate
+### Context
+The preprocessor side already had strong aggregate proof, but “zero target debt and full reachable coverage” was still buried inside the broader aggregate contract surface. The next clean step was to give that sub-closure its own explicit gate without overstating full parser closure.
+
+### Implementation
+- Added [rust/scripts/sv_preprocessor_reachability_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_reachability_closure_gate.sh):
+  - runs or reuses `sv_preprocessor_quality_gate` under checked-in policy [systemverilog_preprocessor_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env)
+  - requires:
+    - `stage3_targets=0`
+    - `stage4_targets=0`
+    - full reachable rule coverage at stage3 and stage4
+    - full reachable branch coverage at stage3 and stage4
+  - reports parseability totals and parser-rejection debt separately instead of hiding them behind the closure claim
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `sv_preprocessor_reachability_closure_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that preprocessor reachability closure is now a standalone tracked proof surface.
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_reachability_closure_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_reachability_closure_gate`
+  - passed
+  - current summary records:
+    - `stage3_targets=0`
+    - `stage4_targets=0`
+    - `stage3_covered_reachable_rules=69/69`
+    - `stage4_covered_reachable_rules=69/69`
+    - `stage3_covered_reachable_branches=47/47`
+    - `stage4_covered_reachable_branches=47/47`
+    - `parseability_rejected=24`
+    - `parser_rejections=24`
+
+### Notes
+- This does not change the parser-family status label. It isolates one real closure property while keeping the remaining debt visible.
+
 ## 2026-03-15 - Track Aggregate SV Telemetry Lightweight Policy
 ### Context
 The new aggregate SV telemetry contract gate was already useful, but its bounded `sota_exit_gate` profile still lived as embedded env in the script. The next clean hardening step was to move that profile into a checked-in policy file, matching the approach already used for the other lightweight SV-family proof gates.

@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-15 - Add SV Preprocessor Reachability Closure Gate
+### ✅ Achievement Summary
+The preprocessor side now has a dedicated closure-building proof gate instead of relying only on the broader aggregate contract. The new gate proves zero target debt and full reachable rule/branch coverage under checked-in policy, while still keeping parseability rejection debt visible so it does not overclaim full parser closure.
+
+### Scope of Changes
+- Added [rust/scripts/sv_preprocessor_reachability_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_reachability_closure_gate.sh):
+  - runs or reuses `sv_preprocessor_quality_gate` under checked-in policy
+  - requires:
+    - `stage3_targets=0`
+    - `stage4_targets=0`
+    - full reachable rule coverage at stage3 and stage4
+    - full reachable branch coverage at stage3 and stage4
+  - reports parseability totals and parser rejection debt separately
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `sv_preprocessor_reachability_closure_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new explicit preprocessor reachability-closure proof surface.
+
+### Validation Results
+- `bash -n rust/scripts/sv_preprocessor_reachability_closure_gate.sh`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_reachability_closure_gate`
+  - passed
+  - current summary records:
+    - `stage3_targets=0`
+    - `stage4_targets=0`
+    - `stage3_covered_reachable_rules=69/69`
+    - `stage4_covered_reachable_rules=69/69`
+    - `stage3_covered_reachable_branches=47/47`
+    - `stage4_covered_reachable_branches=47/47`
+    - `parseability_rejected=24`
+    - `parser_rejections=24`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Track Aggregate SV Telemetry Lightweight Policy
 ### ✅ Achievement Summary
 The aggregate SV telemetry contract gate no longer hides its bounded `sota_exit_gate` profile inside the script. It now uses a checked-in lightweight aggregate policy file, so the whole proof path is repo-tracked and auditable.
