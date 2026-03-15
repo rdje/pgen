@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: add-dedicated-sv-roundtrip-contract-gate)
+Last updated: 2026-03-15 (+0100, task: track-lightweight-sv-preprocessor-gate-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -204,6 +204,23 @@ Use this file to resume work without replaying full chat history.
       - `targets 5 -> 0 -> 0`
       - `reachable rules 68/69 -> 69/69 -> 69/69`
       - `reachable branches 43/47 -> 47/47 -> 47/47`
+- Lightweight SV-family proof is now tracked on both sides, not only the main SV side:
+  - checked-in main SV tiny contract:
+    - `rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json`
+  - checked-in preprocessor lightweight policy:
+    - `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`
+  - both `sv_failure_context_contract_gate` and `sv_roundtrip_contract_gate` now source that preprocessor policy file when they need to run `sv_preprocessor_quality_gate` directly.
+  - current lightweight focused validation with existing main-SV artifacts recorded:
+    - failure-context counts:
+      - `systemverilog_generation_failure_context_excerpts=5`
+      - `systemverilog_shadow_failure_context_excerpts=5`
+      - `systemverilog_preprocessor_failure_context_excerpts=5`
+    - lightweight preprocessor failure-context example:
+      - `      \`ifdef           G73nd    \n\`timescale 7565...`
+    - lightweight preprocessor roundtrip summary:
+      - `targets 95 -> 27 -> 0 -> 0`
+      - `reachable rules 17/69 -> 61/69 -> 69/69`
+      - `reachable branches 4/47 -> 28/47 -> 47/47`
   - current focused fuzz replay proof:
     - `accepted_cases=5`
     - `rejected_cases=3`

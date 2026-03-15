@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Track Lightweight SV Preprocessor Gate Policy
+### Context
+The lightweight SV-family proof commands were already useful, but the “lightweight” claim was asymmetric: the main SV side used a checked-in tiny contract while the preprocessor side was still narrowing itself through implicit environment defaults. The next clean increment was to make that preprocessor policy explicit and tracked so both halves of the lightweight proof surface are driven by checked-in repository policy.
+
+### Implementation
+- Added [rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env):
+  - checked-in focused preprocessor policy for lightweight proof gates
+  - sets:
+    - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1`
+    - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
+- Updated [rust/scripts/sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh):
+  - now requires and surfaces the checked-in preprocessor policy file
+  - now sources it when running `sv_preprocessor_quality_gate` directly
+- Updated [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
+  - now requires and surfaces the same checked-in preprocessor policy file
+  - now sources it when running `sv_preprocessor_quality_gate` directly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that lightweight SV-family proof now means checked-in policy on both sides, not only the main SV side.
+
+### Validation
+- `bash -n rust/scripts/sv_failure_context_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_roundtrip_contract_gate.sh`
+  - passed
+- `env PGEN_SV_FAILURE_CONTEXT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_failure_context_contract_gate`
+  - passed
+  - current combined summary still records:
+    - `systemverilog_generation_failure_context_excerpts=5`
+    - `systemverilog_shadow_failure_context_excerpts=5`
+    - `systemverilog_preprocessor_failure_context_excerpts=5`
+  - current lightweight preprocessor example:
+    - `      \`ifdef           G73nd    \n\`timescale 7565...`
+- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
+  - passed
+  - current combined summary still records:
+    - main SV: `targets 2366 -> 1290`, `reachable rules 46 -> 697`, `reachable branches 22 -> 447`
+    - preprocessor: `targets 95 -> 27 -> 0 -> 0`, `reachable rules 17/69 -> 61/69 -> 69/69`, `reachable branches 4/47 -> 28/47 -> 47/47`
+
+### Notes
+- I validated through existing-artifact mode on the main SV side because the proof point here is “checked-in policy drives the lightweight preprocessor side,” not regenerating another heavy SV state.
+- This does not change any status labels; it hardens the proof doctrine behind the existing `Mostly Done` rows.
+
 ## 2026-03-15 - Add Dedicated SV Roundtrip Contract Gate
 ### Context
 The lower-level SV aggregate contract gates were already proving parser/stimuli replay properties, but the proof still lived in two separate commands and two separate summary surfaces. Since roundtrip testing is part of the project doctrine, the next clean increment was to make that replay proof directly replayable as one tracked command across both SV parser families.

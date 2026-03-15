@@ -10,6 +10,7 @@ LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
 
 SV_CONTRACT_FILE="${PGEN_SV_FAILURE_CONTEXT_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json}"
+SVPP_POLICY_ENV_FILE="${PGEN_SV_FAILURE_CONTEXT_SVPP_POLICY_ENV_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env}"
 SV_GATE_SCRIPT="$RUST_DIR/scripts/sv_stimuli_quality_gate.sh"
 SV_PARSER_AGGREGATE_SCRIPT="$RUST_DIR/scripts/sv_parser_aggregate_contract_gate.sh"
 SVPP_QUALITY_GATE_SCRIPT="$RUST_DIR/scripts/sv_preprocessor_quality_gate.sh"
@@ -56,6 +57,27 @@ run_logged() {
     fi
 }
 
+run_logged_with_env_file() {
+    local label="$1"
+    local env_file="$2"
+    shift 2
+    local log_file="$LOG_DIR/${label}.log"
+    echo "==> ${label}"
+    if (
+        set -a
+        # shellcheck disable=SC1090
+        source "$env_file"
+        set +a
+        "$@"
+    ) >"$log_file" 2>&1; then
+        echo "    ok (${log_file})"
+    else
+        echo "error: stage '$label' failed (log: $log_file)" >&2
+        tail -n 120 "$log_file" >&2 || true
+        exit 1
+    fi
+}
+
 extract_json_number() {
     local path="$1"
     local expr="$2"
@@ -70,6 +92,7 @@ extract_json_string() {
 
 require_tool jq
 require_file "$SV_CONTRACT_FILE"
+require_file "$SVPP_POLICY_ENV_FILE"
 require_file "$SV_GATE_SCRIPT"
 require_file "$SV_PARSER_AGGREGATE_SCRIPT"
 require_file "$SVPP_QUALITY_GATE_SCRIPT"
@@ -117,9 +140,8 @@ svpp_quality_state_dir="$WORK_DIR/systemverilog_preprocessor_failure_context_qua
 if [[ -n "$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR" ]]; then
     svpp_quality_state_dir="$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR"
 else
-    run_logged "systemverilog_preprocessor_failure_context_quality_gate" env \
-        PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR="$svpp_quality_state_dir" \
-        "$SVPP_QUALITY_GATE_SCRIPT"
+    run_logged_with_env_file "systemverilog_preprocessor_failure_context_quality_gate" "$SVPP_POLICY_ENV_FILE" \
+        env PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR="$svpp_quality_state_dir" "$SVPP_QUALITY_GATE_SCRIPT"
 fi
 
 svpp_aggregate_state_dir="$WORK_DIR/sv_preprocessor_aggregate_contract_gate"
@@ -143,6 +165,7 @@ svpp_failure_context_example="$(extract_json_string "$svpp_triage_json" '.sample
     echo "SV Failure Context Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
     echo "sv_contract_file: $SV_CONTRACT_FILE"
+    echo "svpp_policy_env_file: $SVPP_POLICY_ENV_FILE"
     echo "existing_sv_stimuli_quality_state_dir: ${EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-<unset>}"
     echo "existing_sv_preprocessor_quality_state_dir: ${EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-<unset>}"
     echo "systemverilog_failure_context_quality_state_dir: $sv_quality_state_dir"

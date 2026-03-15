@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-03-15 - Track Lightweight SV Preprocessor Gate Policy
+### ✅ Achievement Summary
+The lightweight combined SV-family proof gates no longer depend on implicit preprocessor defaults. The preprocessor side now uses a checked-in lightweight policy file, so both the main parser side and the preprocessor side are driven by tracked in-repo policy.
+
+### Scope of Changes
+- Added [rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env):
+  - tracked focused preprocessor policy for lightweight proof gates
+  - sets:
+    - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1`
+    - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
+- Updated [rust/scripts/sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh):
+  - now requires and surfaces the checked-in preprocessor lightweight policy file
+  - now sources that file when it has to run `sv_preprocessor_quality_gate` itself
+- Updated [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
+  - now requires and surfaces the checked-in preprocessor lightweight policy file
+  - now sources that file when it has to run `sv_preprocessor_quality_gate` itself
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that lightweight SV-family proof now means checked-in policy on both sides, not just the main SV side.
+
+### Validation Results
+- `bash -n rust/scripts/sv_failure_context_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_roundtrip_contract_gate.sh`
+  - passed
+- `env PGEN_SV_FAILURE_CONTEXT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_failure_context_contract_gate`
+  - passed
+  - current combined summary still records:
+    - `systemverilog_generation_failure_context_excerpts=5`
+    - `systemverilog_shadow_failure_context_excerpts=5`
+    - `systemverilog_preprocessor_failure_context_excerpts=5`
+  - current lightweight preprocessor example:
+    - `      \`ifdef           G73nd    \n\`timescale 7565...`
+- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
+  - passed
+  - current combined summary still records:
+    - main SV: `targets 2366 -> 1290`, `reachable rules 46 -> 697`, `reachable branches 22 -> 447`
+    - preprocessor: `targets 95 -> 27 -> 0 -> 0`, `reachable rules 17/69 -> 61/69 -> 69/69`, `reachable branches 4/47 -> 28/47 -> 47/47`
+- `git diff --check`
+  - passed
+
 ## 2026-03-15 - Add Dedicated SV Roundtrip Contract Gate
 ### ✅ Achievement Summary
 The parser/stimuli replay proof for both SV parser families now has its own tracked lightweight gate instead of living only inside the two separate aggregate contract gates. One command now revalidates the main SystemVerilog roundtrip surface and the SystemVerilog preprocessor staged roundtrip surface together.

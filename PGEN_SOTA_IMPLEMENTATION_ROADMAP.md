@@ -513,8 +513,10 @@ Toolbox baseline to leverage end-to-end:
     - current example excerpts surfaced by the gate:
       - generation: `...recision 17'SO29 fs //\n ;specify endspecify gene...`
       - replay-shadow: ` timeunit //&I\n97.573 s ///9n 2 ps    ;//~\ninter...`
+    - that lightweight focused proof now also uses checked-in preprocessor policy file `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env` instead of implicit default knobs on the preprocessor side.
   - Progress (2026-03-15): added dedicated lightweight gate `sv_roundtrip_contract_gate` for tracked parser/stimuli replay proof:
     - the new gate reuses the checked-in tiny SV contract and existing aggregate contract gates instead of relying on separate focused commands,
+    - it now also uses checked-in preprocessor policy file `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env` when the preprocessor side is not running in existing-artifact mode,
     - it surfaces one combined main-SV roundtrip summary:
       - `systemverilog_roundtrip_initial_targets=2366`
       - `systemverilog_roundtrip_replay_targets=1290`
@@ -1948,19 +1950,21 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
   - Progress (2026-03-15): `sv_failure_context_contract_gate` now revalidates the preprocessor side in the same lightweight focused command:
     - it runs `sv_preprocessor_quality_gate` plus `sv_preprocessor_aggregate_contract_gate`,
     - then asserts `systemverilog_preprocessor_failure_context_excerpts=5`,
-    - current surfaced example: `...define            -XE^\n`elsif \n       `ifndef  ...`
+    - current surfaced example: `...define            -XE^\n`elsif \n       `ifndef  ...`,
+    - and it now does so under tracked lightweight preprocessor policy file `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env` instead of ad hoc env settings.
   - Progress (2026-03-15): `sv_roundtrip_contract_gate` now revalidates the preprocessor roundtrip side in the same lightweight focused command:
     - it reuses `sv_preprocessor_quality_gate` plus `sv_preprocessor_aggregate_contract_gate`,
+    - it now does so under the same checked-in lightweight preprocessor policy file `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`,
     - then surfaces one combined staged replay summary:
-      - `systemverilog_preprocessor_roundtrip_stage0_targets=5`
-      - `systemverilog_preprocessor_roundtrip_stage1_targets=0`
+      - `systemverilog_preprocessor_roundtrip_stage0_targets=95`
+      - `systemverilog_preprocessor_roundtrip_stage1_targets=27`
       - `systemverilog_preprocessor_roundtrip_final_targets=0`
       - `systemverilog_preprocessor_roundtrip_stage4_targets=0`
-      - `systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules=68/69`
-      - `systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules=69/69`
+      - `systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules=17/69`
+      - `systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules=61/69`
       - `systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules=69/69`
-      - `systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches=43/47`
-      - `systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches=47/47`
+      - `systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches=4/47`
+      - `systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches=28/47`
       - `systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches=47/47`
   - Progress (2026-03-14): wired `sv_preprocessor_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_preprocessor_quality_gate` state dir instead of rerunning focused probes,
