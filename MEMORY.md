@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-replay-gap-buckets)
+Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-parser-debt-buckets)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,36 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the dominant bounded parser-rejection buckets for the main `systemverilog` parser, not just the replay-gap buckets:
+  - standalone `sv_parser_aggregate_contract_gate` now records:
+    - `generation_counterexample_primary_stage`
+    - `generation_counterexample_primary_stage_count`
+    - `generation_counterexample_primary_shrunk_sample`
+    - `generation_counterexample_primary_shrunk_sample_count`
+    - `shadow_counterexample_primary_stage`
+    - `shadow_counterexample_primary_stage_count`
+    - `shadow_counterexample_primary_shrunk_sample`
+    - `shadow_counterexample_primary_shrunk_sample_count`
+  - current parser aggregate summary records:
+    - `generation_counterexample_primary_stage=generate_parseable_stimuli`
+    - `generation_counterexample_primary_stage_count=5`
+    - `generation_counterexample_primary_shrunk_sample=I`
+    - `generation_counterexample_primary_shrunk_sample_count=1`
+    - `shadow_counterexample_primary_stage=target_drive_output_filter`
+    - `shadow_counterexample_primary_stage_count=5`
+    - `shadow_counterexample_primary_shrunk_sample=m`
+    - `shadow_counterexample_primary_shrunk_sample_count=2`
+  - current bounded aggregate SOTA summary now surfaces the same values as:
+    - `sv_generation_counterexample_primary_stage=generate_parseable_stimuli`
+    - `sv_generation_counterexample_primary_stage_count=5`
+    - `sv_generation_counterexample_primary_shrunk_sample=I`
+    - `sv_generation_counterexample_primary_shrunk_sample_count=1`
+    - `sv_shadow_counterexample_primary_stage=target_drive_output_filter`
+    - `sv_shadow_counterexample_primary_stage_count=5`
+    - `sv_shadow_counterexample_primary_shrunk_sample=m`
+    - `sv_shadow_counterexample_primary_shrunk_sample_count=2`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the parser aggregate sidecar exactly.
 - Aggregate sign-off now surfaces the dominant main-SV replay-gap buckets, not just the triage artifact paths and uniqueness counts:
   - standalone `sv_parser_aggregate_contract_gate` now records:
     - `replay_gap_target_primary_target_type`

@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface dominant main SV parser-debt buckets
+### Context
+The main SV aggregate proof already surfaced dominant replay-gap buckets, but the bounded parser-rejection side of that proof was still only visible through the triage sidecar artifacts themselves. The next clean hardening step was to surface the dominant generation-side and replay-shadow parser-debt buckets directly in aggregate telemetry, so aggregate sign-off shows both uncovered-target debt and parser-rejection debt in the same top-level proof surface.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now derives and records:
+    - `generation_counterexample_primary_stage`
+    - `generation_counterexample_primary_stage_count`
+    - `generation_counterexample_primary_shrunk_sample`
+    - `generation_counterexample_primary_shrunk_sample_count`
+    - `shadow_counterexample_primary_stage`
+    - `shadow_counterexample_primary_stage_count`
+    - `shadow_counterexample_primary_shrunk_sample`
+    - `shadow_counterexample_primary_shrunk_sample_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the same values as:
+    - `sv_generation_counterexample_primary_stage`
+    - `sv_generation_counterexample_primary_stage_count`
+    - `sv_generation_counterexample_primary_shrunk_sample`
+    - `sv_generation_counterexample_primary_shrunk_sample_count`
+    - `sv_shadow_counterexample_primary_stage`
+    - `sv_shadow_counterexample_primary_stage_count`
+    - `sv_shadow_counterexample_primary_shrunk_sample`
+    - `sv_shadow_counterexample_primary_shrunk_sample_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV parser-debt proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+  - current parser aggregate values:
+    - `generation_counterexample_primary_stage=generate_parseable_stimuli`
+    - `generation_counterexample_primary_stage_count=5`
+    - `generation_counterexample_primary_shrunk_sample=I`
+    - `generation_counterexample_primary_shrunk_sample_count=1`
+    - `shadow_counterexample_primary_stage=target_drive_output_filter`
+    - `shadow_counterexample_primary_stage_count=5`
+    - `shadow_counterexample_primary_shrunk_sample=m`
+    - `shadow_counterexample_primary_shrunk_sample_count=2`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA values match those same dominant parser-debt buckets exactly
+
 ## 2026-03-15 - Surface dominant main SV replay-gap buckets
 ### Context
 The main SV aggregate proof already surfaced replay-gap triage artifact paths and uniqueness counts, but the release summary still did not say which replay-gap bucket was actually dominating the remaining debt. The next clean hardening step was to expose the dominant target-type, reason, rule, and dependency buckets directly in aggregate telemetry, so aggregate sign-off makes the main replay-gap shape immediately visible without a separate triage-file read.

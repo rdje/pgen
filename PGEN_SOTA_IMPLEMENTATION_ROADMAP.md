@@ -2039,6 +2039,26 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `sv_replay_gap_target_primary_dependency=expression`
       - `sv_replay_gap_target_primary_dependency_count=64`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant main-SV parser-rejection buckets, not just the replay-gap buckets:
+    - standalone `sv_parser_aggregate_contract_gate` now records:
+      - `generation_counterexample_primary_stage`
+      - `generation_counterexample_primary_stage_count`
+      - `generation_counterexample_primary_shrunk_sample`
+      - `generation_counterexample_primary_shrunk_sample_count`
+      - `shadow_counterexample_primary_stage`
+      - `shadow_counterexample_primary_stage_count`
+      - `shadow_counterexample_primary_shrunk_sample`
+      - `shadow_counterexample_primary_shrunk_sample_count`
+    - aggregate `sota_exit_gate` now surfaces the bounded-policy values as:
+      - `sv_generation_counterexample_primary_stage=generate_parseable_stimuli`
+      - `sv_generation_counterexample_primary_stage_count=5`
+      - `sv_generation_counterexample_primary_shrunk_sample=I`
+      - `sv_generation_counterexample_primary_shrunk_sample_count=1`
+      - `sv_shadow_counterexample_primary_stage=target_drive_output_filter`
+      - `sv_shadow_counterexample_primary_stage_count=5`
+      - `sv_shadow_counterexample_primary_shrunk_sample=m`
+      - `sv_shadow_counterexample_primary_shrunk_sample_count=2`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
   - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
     - proves `stage3_targets=0` and `stage4_targets=0`,
