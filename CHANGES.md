@@ -1,4 +1,56 @@
 # CHANGES.md
+## 2026-03-15 - Surface dominant main SV excerpt buckets
+### ✅ Achievement Summary
+Aggregate SV sign-off now shows the dominant bounded failure-line and failure-context excerpt buckets for the main `systemverilog` parser, not just dominant replay-gap, stage/sample, parser-error, failure-location, and diversity-count telemetry. `sota_exit_gate` now surfaces JSON-safe dominant generation-side and replay-shadow excerpt buckets, and `sv_combined_telemetry_contract_gate` proves those fields match the parser aggregate sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now emits:
+    - `generation_counterexample_primary_failure_line_excerpt_json`
+    - `generation_counterexample_primary_failure_line_excerpt_count`
+    - `generation_counterexample_primary_failure_context_excerpt_json`
+    - `generation_counterexample_primary_failure_context_excerpt_count`
+    - `shadow_counterexample_primary_failure_line_excerpt_json`
+    - `shadow_counterexample_primary_failure_line_excerpt_count`
+    - `shadow_counterexample_primary_failure_context_excerpt_json`
+    - `shadow_counterexample_primary_failure_context_excerpt_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_generation_counterexample_primary_failure_line_excerpt_json`
+    - `sv_generation_counterexample_primary_failure_line_excerpt_count`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_json`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_count`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_json`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_count`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_json`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields match the main parser aggregate sidecar exactly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV excerpt-bucket proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation Results
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_combined_telemetry_main_excerpt_buckets make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA summary records:
+    - `sv_generation_counterexample_primary_failure_line_excerpt_json="  timeunit  473e-9  ps ;package automatic  //"`
+    - `sv_generation_counterexample_primary_failure_line_excerpt_count=1`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_json="  timeunit  473e-9  ps ;package automatic  //\\n\\V..."`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_count=1`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms //-T/6 s //t|  ;endpackage : vP"`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_count=1`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms..."`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_count=1`
+
 ## 2026-03-15 - Surface main SV parser-debt diversity counts
 ### ✅ Achievement Summary
 Aggregate SV sign-off now shows the main `systemverilog` parser’s aggregate-visible counterexample diversity counts, not just dominant replay-gap, stage/sample, parser-error, and failure-location buckets. `sota_exit_gate` now surfaces generation-side and replay-shadow counts for unique failure locations, unique failure-line excerpts, and unique failure-context excerpts, and `sv_combined_telemetry_contract_gate` proves those fields match the parser aggregate sidecar exactly.

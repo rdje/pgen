@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-main-sv-parser-debt-diversity-counts)
+Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-excerpt-buckets)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,19 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the dominant bounded failure-line and failure-context excerpt buckets for the main `systemverilog` parser in JSON-safe form, not just the dominant replay-gap/stage/sample/parser-error/failure-location buckets and diversity counts:
+  - current bounded aggregate SOTA summary now surfaces generation-side:
+    - `sv_generation_counterexample_primary_failure_line_excerpt_json="  timeunit  473e-9  ps ;package automatic  //"`
+    - `sv_generation_counterexample_primary_failure_line_excerpt_count=1`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_json="  timeunit  473e-9  ps ;package automatic  //\\n\\V..."`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_count=1`
+  - current bounded aggregate SOTA summary now surfaces replay-shadow:
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms //-T/6 s //t|  ;endpackage : vP"`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_count=1`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms..."`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_count=1`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the main parser aggregate sidecar exactly.
 - Aggregate sign-off now surfaces the main `systemverilog` parser's aggregate-visible parser-debt diversity counts, not just dominant replay-gap/stage/sample/parser-error/failure-location buckets:
   - current bounded aggregate SOTA summary now surfaces generation-side:
     - `sv_generation_counterexample_unique_failure_locations=5`

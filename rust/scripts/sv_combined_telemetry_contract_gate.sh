@@ -162,6 +162,10 @@ sv_generation_counterexample_primary_parser_error="$(extract_summary_value "$sv_
 sv_generation_counterexample_primary_parser_error_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_parser_error_count")"
 sv_generation_counterexample_primary_failure_location="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_failure_location")"
 sv_generation_counterexample_primary_failure_location_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_failure_location_count")"
+sv_generation_counterexample_primary_failure_line_excerpt_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_failure_line_excerpt_json")"
+sv_generation_counterexample_primary_failure_line_excerpt_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_failure_line_excerpt_count")"
+sv_generation_counterexample_primary_failure_context_excerpt_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_failure_context_excerpt_json")"
+sv_generation_counterexample_primary_failure_context_excerpt_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_failure_context_excerpt_count")"
 sv_generation_counterexample_unique_failure_locations="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_locations")"
 sv_generation_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_line_excerpts")"
 sv_generation_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_failure_context_excerpts")"
@@ -173,6 +177,10 @@ sv_shadow_counterexample_primary_parser_error="$(extract_summary_value "$sv_pars
 sv_shadow_counterexample_primary_parser_error_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_parser_error_count")"
 sv_shadow_counterexample_primary_failure_location="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_failure_location")"
 sv_shadow_counterexample_primary_failure_location_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_failure_location_count")"
+sv_shadow_counterexample_primary_failure_line_excerpt_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_failure_line_excerpt_json")"
+sv_shadow_counterexample_primary_failure_line_excerpt_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_failure_line_excerpt_count")"
+sv_shadow_counterexample_primary_failure_context_excerpt_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_failure_context_excerpt_json")"
+sv_shadow_counterexample_primary_failure_context_excerpt_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_failure_context_excerpt_count")"
 sv_shadow_counterexample_unique_failure_locations="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_failure_locations")"
 sv_shadow_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_failure_line_excerpts")"
 sv_shadow_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_failure_context_excerpts")"
@@ -304,6 +312,22 @@ assert_equal \
     "$sv_generation_counterexample_primary_failure_location_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_failure_location_count")"
 assert_equal \
+    "main SV generation primary failure line excerpt json" \
+    "$sv_generation_counterexample_primary_failure_line_excerpt_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_failure_line_excerpt_json")"
+assert_equal \
+    "main SV generation primary failure line excerpt count" \
+    "$sv_generation_counterexample_primary_failure_line_excerpt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_failure_line_excerpt_count")"
+assert_equal \
+    "main SV generation primary failure context excerpt json" \
+    "$sv_generation_counterexample_primary_failure_context_excerpt_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_failure_context_excerpt_json")"
+assert_equal \
+    "main SV generation primary failure context excerpt count" \
+    "$sv_generation_counterexample_primary_failure_context_excerpt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_failure_context_excerpt_count")"
+assert_equal \
     "main SV generation unique failure locations" \
     "$sv_generation_counterexample_unique_failure_locations" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_unique_failure_locations")"
@@ -347,6 +371,22 @@ assert_equal \
     "main SV shadow primary failure location count" \
     "$sv_shadow_counterexample_primary_failure_location_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_primary_failure_location_count")"
+assert_equal \
+    "main SV shadow primary failure line excerpt json" \
+    "$sv_shadow_counterexample_primary_failure_line_excerpt_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_primary_failure_line_excerpt_json")"
+assert_equal \
+    "main SV shadow primary failure line excerpt count" \
+    "$sv_shadow_counterexample_primary_failure_line_excerpt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_primary_failure_line_excerpt_count")"
+assert_equal \
+    "main SV shadow primary failure context excerpt json" \
+    "$sv_shadow_counterexample_primary_failure_context_excerpt_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_primary_failure_context_excerpt_json")"
+assert_equal \
+    "main SV shadow primary failure context excerpt count" \
+    "$sv_shadow_counterexample_primary_failure_context_excerpt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_primary_failure_context_excerpt_count")"
 assert_equal \
     "main SV shadow unique failure locations" \
     "$sv_shadow_counterexample_unique_failure_locations" \
@@ -559,6 +599,10 @@ assert_equal \
     echo "sv_generation_counterexample_primary_parser_error_count: $sv_generation_counterexample_primary_parser_error_count"
     echo "sv_generation_counterexample_primary_failure_location: $sv_generation_counterexample_primary_failure_location"
     echo "sv_generation_counterexample_primary_failure_location_count: $sv_generation_counterexample_primary_failure_location_count"
+    echo "sv_generation_counterexample_primary_failure_line_excerpt_json: $sv_generation_counterexample_primary_failure_line_excerpt_json"
+    echo "sv_generation_counterexample_primary_failure_line_excerpt_count: $sv_generation_counterexample_primary_failure_line_excerpt_count"
+    echo "sv_generation_counterexample_primary_failure_context_excerpt_json: $sv_generation_counterexample_primary_failure_context_excerpt_json"
+    echo "sv_generation_counterexample_primary_failure_context_excerpt_count: $sv_generation_counterexample_primary_failure_context_excerpt_count"
     echo "sv_generation_counterexample_unique_failure_locations: $sv_generation_counterexample_unique_failure_locations"
     echo "sv_generation_counterexample_unique_failure_line_excerpts: $sv_generation_counterexample_unique_failure_line_excerpts"
     echo "sv_generation_counterexample_unique_failure_context_excerpts: $sv_generation_counterexample_unique_failure_context_excerpts"
@@ -570,6 +614,10 @@ assert_equal \
     echo "sv_shadow_counterexample_primary_parser_error_count: $sv_shadow_counterexample_primary_parser_error_count"
     echo "sv_shadow_counterexample_primary_failure_location: $sv_shadow_counterexample_primary_failure_location"
     echo "sv_shadow_counterexample_primary_failure_location_count: $sv_shadow_counterexample_primary_failure_location_count"
+    echo "sv_shadow_counterexample_primary_failure_line_excerpt_json: $sv_shadow_counterexample_primary_failure_line_excerpt_json"
+    echo "sv_shadow_counterexample_primary_failure_line_excerpt_count: $sv_shadow_counterexample_primary_failure_line_excerpt_count"
+    echo "sv_shadow_counterexample_primary_failure_context_excerpt_json: $sv_shadow_counterexample_primary_failure_context_excerpt_json"
+    echo "sv_shadow_counterexample_primary_failure_context_excerpt_count: $sv_shadow_counterexample_primary_failure_context_excerpt_count"
     echo "sv_shadow_counterexample_unique_failure_locations: $sv_shadow_counterexample_unique_failure_locations"
     echo "sv_shadow_counterexample_unique_failure_line_excerpts: $sv_shadow_counterexample_unique_failure_line_excerpts"
     echo "sv_shadow_counterexample_unique_failure_context_excerpts: $sv_shadow_counterexample_unique_failure_context_excerpts"

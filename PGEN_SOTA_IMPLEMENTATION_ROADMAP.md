@@ -2093,6 +2093,18 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
       - `sv_shadow_counterexample_unique_failure_line_excerpts=5`
       - `sv_shadow_counterexample_unique_failure_context_excerpts=5`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
+  - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant main-SV failure-line/context excerpt buckets for those same bounded rejection artifacts in JSON-safe form:
+    - aggregate `sota_exit_gate` now surfaces generation-side:
+      - `sv_generation_counterexample_primary_failure_line_excerpt_json="  timeunit  473e-9  ps ;package automatic  //"`
+      - `sv_generation_counterexample_primary_failure_line_excerpt_count=1`
+      - `sv_generation_counterexample_primary_failure_context_excerpt_json="  timeunit  473e-9  ps ;package automatic  //\\n\\V..."`
+      - `sv_generation_counterexample_primary_failure_context_excerpt_count=1`
+    - aggregate `sota_exit_gate` now surfaces replay-shadow:
+      - `sv_shadow_counterexample_primary_failure_line_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms //-T/6 s //t|  ;endpackage : vP"`
+      - `sv_shadow_counterexample_primary_failure_line_excerpt_count=1`
+      - `sv_shadow_counterexample_primary_failure_context_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms..."`
+      - `sv_shadow_counterexample_primary_failure_context_excerpt_count=1`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the parser aggregate sidecar exactly.
   - Progress (2026-03-15): that same aggregate telemetry proof path now runs under checked-in bounded policy file `rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`, keeping the preprocessor side lightweight profile repo-tracked too.
   - Progress (2026-03-15): added dedicated `sv_preprocessor_reachability_closure_gate` under checked-in policy `rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env`:
     - proves `stage3_targets=0` and `stage4_targets=0`,

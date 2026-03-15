@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-15 - Surface dominant main SV excerpt buckets
+### Context
+The main SV aggregate proof already surfaced dominant replay-gap buckets plus dominant stage/sample/parser-error/failure-location buckets and diversity counts for bounded parser-rejection debt, but it still did not expose the dominant failure-line and failure-context excerpt buckets themselves. The next clean hardening step was to surface those dominant excerpt buckets in JSON-safe form, so aggregate sign-off shows not only how broad the remaining debt is but also which exact excerpt buckets are leading it.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+  - now derives and records:
+    - `generation_counterexample_primary_failure_line_excerpt_json`
+    - `generation_counterexample_primary_failure_line_excerpt_count`
+    - `generation_counterexample_primary_failure_context_excerpt_json`
+    - `generation_counterexample_primary_failure_context_excerpt_count`
+    - `shadow_counterexample_primary_failure_line_excerpt_json`
+    - `shadow_counterexample_primary_failure_line_excerpt_count`
+    - `shadow_counterexample_primary_failure_context_excerpt_json`
+    - `shadow_counterexample_primary_failure_context_excerpt_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the same values as:
+    - `sv_generation_counterexample_primary_failure_line_excerpt_json`
+    - `sv_generation_counterexample_primary_failure_line_excerpt_count`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_json`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_count`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_json`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_count`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_json`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger main-SV excerpt-bucket proof surface without changing the status labels
+
+### Validation
+- `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - passed
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_combined_telemetry_main_excerpt_buckets make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA values:
+    - `sv_generation_counterexample_primary_failure_line_excerpt_json="  timeunit  473e-9  ps ;package automatic  //"`
+    - `sv_generation_counterexample_primary_failure_line_excerpt_count=1`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_json="  timeunit  473e-9  ps ;package automatic  //\\n\\V..."`
+    - `sv_generation_counterexample_primary_failure_context_excerpt_count=1`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms //-T/6 s //t|  ;endpackage : vP"`
+    - `sv_shadow_counterexample_primary_failure_line_excerpt_count=1`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_json="  (*\\8q//=*)  package  \\{ //*;timeunit 739.33 ms..."`
+    - `sv_shadow_counterexample_primary_failure_context_excerpt_count=1`
+
 ## 2026-03-15 - Surface main SV parser-debt diversity counts
 ### Context
 The main SV aggregate proof already surfaced dominant replay-gap buckets plus dominant stage/sample/parser-error/failure-location buckets for bounded parser-rejection debt, but aggregate sign-off still did not show how diverse the remaining parser-facing debt was. The next clean hardening step was to surface the main parser’s aggregate-visible diversity counts for failure locations, failure-line excerpts, and failure-context excerpts, so release telemetry reflects both the leading buckets and the breadth of the remaining rejection surface.
