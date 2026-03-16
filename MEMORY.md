@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-contract-metadata)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-tracker-alignment)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,11 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the shipped SV-family tracker side explicitly:
+  - `sv_family_status_systemverilog_tracker_status=Mostly Done`
+  - `sv_family_status_systemverilog_tracker_alignment_ok=true`
+  - `sv_family_status_systemverilog_preprocessor_tracker_status=Mostly Done`
+  - `sv_family_status_systemverilog_preprocessor_tracker_alignment_ok=true`
 - Aggregate sign-off now surfaces the SV-family status sidecar's own contract metadata:
   - `sv_parser_family_status_gate=sv_parser_family_status_gate`
   - `sv_parser_family_status_gate_version=1`

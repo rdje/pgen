@@ -315,6 +315,8 @@ svpp_reachability_stage4_branches="$(extract_summary_value "$sv_preprocessor_rea
 svpp_reachability_parseability_rejected="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parseability_rejected")"
 svpp_reachability_parser_rejections="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parser_rejections")"
 sv_family_status_systemverilog="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_status")"
+sv_family_status_systemverilog_tracker_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_tracker_status")"
+sv_family_status_systemverilog_tracker_alignment_ok="$(jq -r '.families[] | select(.family=="systemverilog") | .tracker_alignment_ok' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_unmet_closure_criteria_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_unmet_closure_criteria_count")"
 sv_family_status_systemverilog_unmet_closure_criteria_json="$(jq -cer '.families[] | select(.family=="systemverilog") | .unmet_closure_criteria' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_primary_unmet_closure_criterion="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_unmet_closure_criterion[0]")"
@@ -337,6 +339,8 @@ sv_family_status_systemverilog_focused_replay_target_debt_zero="$(jq -r '.famili
 sv_family_status_systemverilog_syntax_closure_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.syntax_closure_summary_json' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_parser_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_status")"
+sv_family_status_systemverilog_preprocessor_tracker_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_tracker_status")"
+sv_family_status_systemverilog_preprocessor_tracker_alignment_ok="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .tracker_alignment_ok' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_count")"
 sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criterion[0]")"
@@ -904,6 +908,14 @@ assert_equal \
     "$sv_family_status_systemverilog" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog")"
 assert_equal \
+    "SV family-status main parser tracker status" \
+    "$sv_family_status_systemverilog_tracker_status" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_tracker_status")"
+assert_equal \
+    "SV family-status main parser tracker alignment" \
+    "$sv_family_status_systemverilog_tracker_alignment_ok" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_tracker_alignment_ok")"
+assert_equal \
     "SV family-status main parser unmet closure criteria count" \
     "$sv_family_status_systemverilog_unmet_closure_criteria_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_unmet_closure_criteria_count")"
@@ -987,6 +999,14 @@ assert_equal \
     "SV family-status preprocessor label" \
     "$sv_family_status_systemverilog_preprocessor" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor")"
+assert_equal \
+    "SV family-status preprocessor tracker status" \
+    "$sv_family_status_systemverilog_preprocessor_tracker_status" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_tracker_status")"
+assert_equal \
+    "SV family-status preprocessor tracker alignment" \
+    "$sv_family_status_systemverilog_preprocessor_tracker_alignment_ok" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_tracker_alignment_ok")"
 assert_equal \
     "SV family-status preprocessor unmet closure criteria count" \
     "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count" \
@@ -1250,6 +1270,8 @@ assert_equal \
     echo "sv_preprocessor_reachability_parseability_rejected: $svpp_reachability_parseability_rejected"
     echo "sv_preprocessor_reachability_parser_rejections: $svpp_reachability_parser_rejections"
     echo "sv_family_status_systemverilog: $sv_family_status_systemverilog"
+    echo "sv_family_status_systemverilog_tracker_status: $sv_family_status_systemverilog_tracker_status"
+    echo "sv_family_status_systemverilog_tracker_alignment_ok: $sv_family_status_systemverilog_tracker_alignment_ok"
     echo "sv_family_status_systemverilog_unmet_closure_criteria_count: $sv_family_status_systemverilog_unmet_closure_criteria_count"
     echo "sv_family_status_systemverilog_unmet_closure_criteria_json: $sv_family_status_systemverilog_unmet_closure_criteria_json"
     echo "sv_family_status_systemverilog_primary_unmet_closure_criterion: $sv_family_status_systemverilog_primary_unmet_closure_criterion"
@@ -1271,6 +1293,8 @@ assert_equal \
     echo "sv_family_status_systemverilog_syntax_closure_summary_json: $sv_family_status_systemverilog_syntax_closure_summary_json"
     echo "sv_family_status_systemverilog_parser_aggregate_summary_txt: $sv_family_status_systemverilog_parser_aggregate_summary_txt"
     echo "sv_family_status_systemverilog_preprocessor: $sv_family_status_systemverilog_preprocessor"
+    echo "sv_family_status_systemverilog_preprocessor_tracker_status: $sv_family_status_systemverilog_preprocessor_tracker_status"
+    echo "sv_family_status_systemverilog_preprocessor_tracker_alignment_ok: $sv_family_status_systemverilog_preprocessor_tracker_alignment_ok"
     echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count"
     echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json"
     echo "sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion: $sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion"

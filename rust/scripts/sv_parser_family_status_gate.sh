@@ -401,6 +401,9 @@ if [[ "$live_tracker_svpp_status" != "$svpp_status" ]]; then
     exit 1
 fi
 
+sv_tracker_alignment_ok=true
+svpp_tracker_alignment_ok=true
+
 sv_unmet_json="$(jq -n '$ARGS.positional' --args "${sv_unmet[@]}")"
 svpp_unmet_json="$(jq -n '$ARGS.positional' --args "${svpp_unmet[@]}")"
 
@@ -482,6 +485,7 @@ jq -n \
           family: "systemverilog",
           computed_status: $sv_status,
           live_tracker_status: $sv_tracker_status,
+          tracker_alignment_ok: true,
           proof_surfaces: {
             syntax_closure_summary_json: $sv_syntax_summary_json,
             parser_aggregate_summary_txt: $sv_parser_summary_txt
@@ -517,6 +521,7 @@ jq -n \
           family: "systemverilog_preprocessor",
           computed_status: $svpp_status,
           live_tracker_status: $svpp_tracker_status,
+          tracker_alignment_ok: true,
           proof_surfaces: {
             syntax_closure_summary_json: $svpp_syntax_summary_json,
             aggregate_summary_txt: $svpp_aggregate_summary_txt,
@@ -573,6 +578,7 @@ require_nonempty_file "$SUMMARY_JSON"
     echo "summary_json: $SUMMARY_JSON"
     echo "systemverilog_status: $sv_status"
     echo "systemverilog_tracker_status: $live_tracker_sv_status"
+    echo "systemverilog_tracker_alignment_ok: $sv_tracker_alignment_ok"
     echo "systemverilog_syntax_closure_status: $sv_syntax_status"
     echo "systemverilog_syntax_closure_failure_count: $sv_syntax_failure_count"
     echo "systemverilog_syntax_defined_rule_count: $sv_syntax_defined_rule_count"
@@ -593,6 +599,7 @@ require_nonempty_file "$SUMMARY_JSON"
     done
     echo "systemverilog_preprocessor_status: $svpp_status"
     echo "systemverilog_preprocessor_tracker_status: $live_tracker_svpp_status"
+    echo "systemverilog_preprocessor_tracker_alignment_ok: $svpp_tracker_alignment_ok"
     echo "systemverilog_preprocessor_syntax_closure_status: $svpp_syntax_status"
     echo "systemverilog_preprocessor_syntax_closure_failure_count: $svpp_syntax_failure_count"
     echo "systemverilog_preprocessor_syntax_defined_rule_count: $svpp_syntax_defined_rule_count"

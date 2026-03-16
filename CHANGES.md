@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-16 - Surface SV family tracker alignment
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces the tracker-status side of the shipped SV family rows, not just the computed status side. `sv_parser_family_status_gate` now records tracker-alignment booleans, `sota_exit_gate` now carries both tracker statuses and alignment flags, and `sv_combined_telemetry_contract_gate` proves those aggregate-visible fields match the family-status sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - now records `tracker_alignment_ok` for each shipped SV parser family in both `summary.json` and `summary.txt`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_family_status_systemverilog_tracker_status`
+    - `sv_family_status_systemverilog_tracker_alignment_ok`
+    - `sv_family_status_systemverilog_preprocessor_tracker_status`
+    - `sv_family_status_systemverilog_preprocessor_tracker_alignment_ok`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves exact parity for those tracker-status and tracker-alignment fields against `sv_parser_family_status_gate/summary.json`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible tracker-alignment surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family status contract metadata
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the SV family-status sidecar's own contract metadata, not just the computed family rows. `sota_exit_gate` carries the family-status gate name, version, timestamp, live-tracker path, and tracked `Done` rule, and `sv_combined_telemetry_contract_gate` proves those aggregate-visible fields match `sv_parser_family_status_gate/summary.json` exactly.
