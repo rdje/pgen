@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Add SV family status contract gate
+### Context
+The project already had a producer for the SV family-status sidecar and consumers that reused it in aggregate sign-off, but the sidecar itself still lacked a dedicated contract gate. The next clean hardening step was to validate the sidecar as an artifact in its own right: schema shape, family roster, tracker-alignment consistency, closure-count arithmetic, false-criteria accounting, and parity between the JSON sidecar and the human summary.
+
+### Implementation
+- Added [rust/scripts/sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - can validate an existing `sv_parser_family_status_gate` state dir or produce one on demand
+  - enforces required top-level fields and required per-family keys
+  - enforces internal consistency for both shipped SV parser families:
+    - tracker alignment
+    - closure count arithmetic
+    - false criteria count equals unsatisfied count
+    - structured blocker detail count equals blocker count
+    - structured blocker details map back to false criteria and the human blocker strings
+  - enforces parity between the sidecar JSON and `summary.txt` for structured blocker arrays and tracker-alignment booleans
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added the new `sv_parser_family_status_contract_gate` target and help text
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new source-side contract gate and the stronger sidecar proof surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface structured SV family blocker details
 ### Context
 Aggregate sign-off already exposed the shipped SV-family blocker counts, first-blocker strings, and full blocker string arrays, but it still did not carry a machine-readable structured blocker surface. The next clean hardening step was to make each unmet closure criterion explicit as an object with a criterion id, evidence key, observed value, expected value, and detail string, so downstream telemetry can consume blocker evidence without parsing human-oriented strings.

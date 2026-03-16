@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-16 - Add SV family status contract gate
+### ✅ Achievement Summary
+The SV family-status sidecar now has its own dedicated schema/consistency proof gate. `sv_parser_family_status_contract_gate` validates the structure and internal consistency of `sv_parser_family_status_gate/summary.json` and `summary.txt`, including tracker alignment, closure-count arithmetic, false-criteria accounting, and structured blocker-detail parity.
+
+### Scope of Changes
+- Added [rust/scripts/sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - validates the top-level sidecar metadata and required family roster
+  - validates required `criteria`, `metrics`, and `proof_surfaces` keys for both shipped SV parser families
+  - validates:
+    - `tracker_alignment_ok == (computed_status == live_tracker_status)`
+    - `satisfied + unsatisfied == total`
+    - false-criteria count equals unsatisfied-count
+    - `unmet_closure_criteria_details | map(.detail) == unmet_closure_criteria`
+    - each structured blocker points at a false criterion and carries `criterion`, `evidence_key`, `observed`, `expected`, and `detail`
+  - validates parity between the sidecar JSON and the human summary for:
+    - `systemverilog_unmet_closure_criteria_details_json`
+    - `systemverilog_preprocessor_unmet_closure_criteria_details_json`
+    - both tracker-alignment booleans
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `sv_parser_family_status_contract_gate`
+  - added the new help text entry
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new source-side contract gate
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface structured SV family blocker details
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces machine-readable structured blocker arrays for both shipped SV parser families, not just blocker counts plus free-form strings. `sv_parser_family_status_gate` now emits `unmet_closure_criteria_details` in `summary.json`, `sota_exit_gate` now carries the matching `*_details_json` fields, and `sv_combined_telemetry_contract_gate` proves exact parity end to end.

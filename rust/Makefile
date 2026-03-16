@@ -243,6 +243,7 @@ help:
 	@echo "  sv_stimuli_quality_gate - Enforce preprocess-first SystemVerilog closed-loop quality gate (coverage/gap/replay -> preprocess -> parse_full -> semantic baseline)"
 	@echo "  sv_parser_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused SystemVerilog parser evidence surfaces"
 	@echo "  sv_parser_family_status_gate - Compute machine-checkable SV-family status rationale and verify live-tracker alignment"
+	@echo "  sv_parser_family_status_contract_gate - Enforce schema/consistency contract for the SV-family status sidecar"
 	@echo "  sv_replay_gap_target_triage - Surface deterministic triage for the remaining focused SystemVerilog replay-gap targets"
 	@echo "  sv_failure_context_contract_gate - Enforce lightweight source-level failure-context proof across both SV parser families"
 	@echo "  sv_roundtrip_contract_gate - Enforce lightweight parser/stimuli roundtrip proof across both SV parser families"
@@ -555,6 +556,12 @@ sv_parser_family_status_gate:
 	@echo "🧪 Running SystemVerilog parser-family status gate..."
 	cd $(RUST_DIR) && ./scripts/sv_parser_family_status_gate.sh
 	@echo "✅ SystemVerilog parser-family status gate passed."
+
+.PHONY: sv_parser_family_status_contract_gate
+sv_parser_family_status_contract_gate:
+	@echo "🧪 Running SystemVerilog parser-family status contract gate..."
+	cd $(RUST_DIR) && ./scripts/sv_parser_family_status_contract_gate.sh
+	@echo "✅ SystemVerilog parser-family status contract gate passed."
 
 .PHONY: sv_replay_gap_target_triage
 sv_replay_gap_target_triage:
