@@ -449,6 +449,13 @@ SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_RULES="<not-run>"
 SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_BRANCHES="<not-run>"
 SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_BRANCHES="<not-run>"
 SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_BRANCHES="<not-run>"
+SV_PARSER_FAMILY_STATUS_SUMMARY_TXT="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_COUNT="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_STATUS="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_COUNT="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_STATUS="<not-run>"
 SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR="<unset>"
 SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="<not-run>"
 SV_PREPROCESSOR_REACHABILITY_STAGE3_TARGETS="<not-run>"
@@ -1362,6 +1369,38 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         fi
         SV_PREPROCESSOR_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
         SV_PREPROCESSOR_ROUNDTRIP_CONTRACT_SUMMARY_TXT="$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
+
+        SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_family_status_gate"
+        SV_PARSER_FAMILY_STATUS_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
+        if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+            run_check "sv_parser_family_status_gate" "required" "strict combined SV-family status proof over produced artifacts" \
+                env \
+                    PGEN_SV_FAMILY_STATUS_STATE_DIR="$SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_syntax_closure_gate" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_preprocessor_syntax_closure_gate" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash sv_parser_family_status_gate
+        else
+            run_check "sv_parser_family_status_gate" "informational" "report-only combined SV-family status proof over produced artifacts" \
+                env \
+                    PGEN_SV_FAMILY_STATUS_STATE_DIR="$SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_syntax_closure_gate" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_preprocessor_syntax_closure_gate" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash sv_parser_family_status_gate
+        fi
+        if [[ ! -f "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+            SV_PARSER_FAMILY_STATUS_SUMMARY_TXT="<missing>"
+        else
+            SV_FAMILY_STATUS_SYSTEMVERILOG="$(summary_value_from_txt "systemverilog_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_unmet_closure_criteria_count" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_STATUS="$(summary_value_from_txt "systemverilog_syntax_closure_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR="$(summary_value_from_txt "systemverilog_preprocessor_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_preprocessor_unmet_closure_criteria_count" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_STATUS="$(summary_value_from_txt "systemverilog_preprocessor_syntax_closure_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        fi
     fi
 
     echo "sv_stimuli_quality_state_dir: $SV_STIMULI_QUALITY_STAGE_STATE_DIR"
@@ -2001,6 +2040,13 @@ fi
         echo "sv_roundtrip_replay_covered_reachable_rules: $SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_RULES"
         echo "sv_roundtrip_initial_covered_reachable_branches: $SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_BRANCHES"
         echo "sv_roundtrip_replay_covered_reachable_branches: $SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES"
+        echo "sv_parser_family_status_summary_txt: $SV_PARSER_FAMILY_STATUS_SUMMARY_TXT"
+        echo "sv_family_status_systemverilog: $SV_FAMILY_STATUS_SYSTEMVERILOG"
+        echo "sv_family_status_systemverilog_unmet_closure_criteria_count: $SV_FAMILY_STATUS_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_COUNT"
+        echo "sv_family_status_systemverilog_syntax_closure_status: $SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_STATUS"
+        echo "sv_family_status_systemverilog_preprocessor: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR"
+        echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_COUNT"
+        echo "sv_family_status_systemverilog_preprocessor_syntax_closure_status: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_STATUS"
     fi
     if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" ]]; then
         echo

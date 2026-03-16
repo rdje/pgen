@@ -104,6 +104,7 @@ sv_preprocessor_aggregate_summary_txt="$sota_state_dir/work/sv_preprocessor_aggr
 sv_failure_summary_txt="$sota_state_dir/work/sv_failure_context_contract_gate/summary.txt"
 sv_roundtrip_summary_txt="$sota_state_dir/work/sv_roundtrip_contract_gate/summary.txt"
 sv_preprocessor_reachability_summary_txt="$sota_state_dir/work/sv_preprocessor_reachability_closure_gate/summary.txt"
+sv_parser_family_status_summary_txt="$sota_state_dir/work/sv_parser_family_status_gate/summary.txt"
 
 require_nonempty_file "$sota_summary_txt"
 require_nonempty_file "$sv_parser_aggregate_summary_txt"
@@ -111,6 +112,7 @@ require_nonempty_file "$sv_preprocessor_aggregate_summary_txt"
 require_nonempty_file "$sv_failure_summary_txt"
 require_nonempty_file "$sv_roundtrip_summary_txt"
 require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
+require_nonempty_file "$sv_parser_family_status_summary_txt"
 
 assert_equal \
     "main SV aggregate summary path" \
@@ -140,6 +142,10 @@ assert_equal \
     "SV preprocessor reachability-closure summary path" \
     "$sv_preprocessor_reachability_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_closure_summary_txt")"
+assert_equal \
+    "SV parser-family status summary path" \
+    "$sv_parser_family_status_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_txt")"
 
 sv_replay_gap_target_triage_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_json")"
 sv_replay_gap_target_triage_txt="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_txt")"
@@ -275,6 +281,12 @@ svpp_reachability_stage3_branches="$(extract_summary_value "$sv_preprocessor_rea
 svpp_reachability_stage4_branches="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage4_covered_reachable_branches")"
 svpp_reachability_parseability_rejected="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parseability_rejected")"
 svpp_reachability_parser_rejections="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "parser_rejections")"
+sv_family_status_systemverilog="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_status")"
+sv_family_status_systemverilog_unmet_closure_criteria_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_unmet_closure_criteria_count")"
+sv_family_status_systemverilog_syntax_closure_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_closure_status")"
+sv_family_status_systemverilog_preprocessor="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_status")"
+sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_count")"
+sv_family_status_systemverilog_preprocessor_syntax_closure_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_closure_status")"
 
 assert_equal \
     "main SV replay-gap triage json path" \
@@ -809,6 +821,30 @@ assert_equal \
     "SV preprocessor reachability parser rejections" \
     "$svpp_reachability_parser_rejections" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_parser_rejections")"
+assert_equal \
+    "SV family-status main parser label" \
+    "$sv_family_status_systemverilog" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog")"
+assert_equal \
+    "SV family-status main parser unmet closure criteria count" \
+    "$sv_family_status_systemverilog_unmet_closure_criteria_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_unmet_closure_criteria_count")"
+assert_equal \
+    "SV family-status main parser syntax-closure status" \
+    "$sv_family_status_systemverilog_syntax_closure_status" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_closure_status")"
+assert_equal \
+    "SV family-status preprocessor label" \
+    "$sv_family_status_systemverilog_preprocessor" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor")"
+assert_equal \
+    "SV family-status preprocessor unmet closure criteria count" \
+    "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count")"
+assert_equal \
+    "SV family-status preprocessor syntax-closure status" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_closure_status" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_closure_status")"
 
 {
     echo "SV Combined Telemetry Contract Gate Summary"
@@ -823,6 +859,7 @@ assert_equal \
     echo "sv_failure_context_contract_summary_txt: $sv_failure_summary_txt"
     echo "sv_roundtrip_contract_summary_txt: $sv_roundtrip_summary_txt"
     echo "sv_preprocessor_reachability_closure_summary_txt: $sv_preprocessor_reachability_summary_txt"
+    echo "sv_parser_family_status_summary_txt: $sv_parser_family_status_summary_txt"
     echo "sv_replay_gap_target_triage_json: $sv_replay_gap_target_triage_json"
     echo "sv_replay_gap_target_triage_txt: $sv_replay_gap_target_triage_txt"
     echo "sv_replay_gap_target_unique_rules: $sv_replay_gap_target_unique_rules"
@@ -956,6 +993,12 @@ assert_equal \
     echo "sv_preprocessor_reachability_stage4_covered_reachable_branches: $svpp_reachability_stage4_branches"
     echo "sv_preprocessor_reachability_parseability_rejected: $svpp_reachability_parseability_rejected"
     echo "sv_preprocessor_reachability_parser_rejections: $svpp_reachability_parser_rejections"
+    echo "sv_family_status_systemverilog: $sv_family_status_systemverilog"
+    echo "sv_family_status_systemverilog_unmet_closure_criteria_count: $sv_family_status_systemverilog_unmet_closure_criteria_count"
+    echo "sv_family_status_systemverilog_syntax_closure_status: $sv_family_status_systemverilog_syntax_closure_status"
+    echo "sv_family_status_systemverilog_preprocessor: $sv_family_status_systemverilog_preprocessor"
+    echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_closure_status: $sv_family_status_systemverilog_preprocessor_syntax_closure_status"
 } >"$SUMMARY_TXT"
 
 require_nonempty_file "$SUMMARY_TXT"

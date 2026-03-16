@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV parser-family status proof in aggregate sign-off
+### Context
+The SV-family status gate now computes the authoritative `systemverilog` and `systemverilog_preprocessor` live-status labels from syntax closure plus parser/stimuli proof surfaces, but aggregate sign-off still stopped one layer lower at the raw proof sidecars. The next clean hardening step was to make `sota_exit_gate` surface that computed family-status proof directly, so release telemetry shows the normalized status claim and its unmet-closure counts instead of forcing separate manual correlation.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now runs `sv_parser_family_status_gate` against the produced SV-family artifact state
+  - now surfaces:
+    - `sv_parser_family_status_summary_txt`
+    - `sv_family_status_systemverilog`
+    - `sv_family_status_systemverilog_unmet_closure_criteria_count`
+    - `sv_family_status_systemverilog_syntax_closure_status`
+    - `sv_family_status_systemverilog_preprocessor`
+    - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count`
+    - `sv_family_status_systemverilog_preprocessor_syntax_closure_status`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires the family-status sidecar summary
+  - now proves those aggregate telemetry fields exactly match the family-status summary
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate sign-off now carries the computed family-status proof surface
+  - recorded that the live-status labels themselves did not change
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `git diff --check`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_family_status_telemetry_parity PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current aggregate-visible family-status proof:
+    - `sv_family_status_systemverilog=Mostly Done`
+    - `sv_family_status_systemverilog_unmet_closure_criteria_count=3`
+    - `sv_family_status_systemverilog_syntax_closure_status=pass`
+    - `sv_family_status_systemverilog_preprocessor=Mostly Done`
+    - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count=2`
+    - `sv_family_status_systemverilog_preprocessor_syntax_closure_status=pass`
+
 ## 2026-03-15 - Surface dominant main SV excerpt buckets
 ### Context
 The main SV aggregate proof already surfaced dominant replay-gap buckets plus dominant stage/sample/parser-error/failure-location buckets and diversity counts for bounded parser-rejection debt, but it still did not expose the dominant failure-line and failure-context excerpt buckets themselves. The next clean hardening step was to surface those dominant excerpt buckets in JSON-safe form, so aggregate sign-off shows not only how broad the remaining debt is but also which exact excerpt buckets are leading it.

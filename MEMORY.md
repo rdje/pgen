@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-15 (+0100, task: surface-dominant-main-sv-excerpt-buckets)
+Last updated: 2026-03-16 (+0100, task: surface-sv-parser-family-status-proof-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,17 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the machine-computed SV-family status proof directly instead of forcing separate inspection of the sidecar summary:
+  - current bounded aggregate SOTA summary now surfaces:
+    - `sv_parser_family_status_summary_txt=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_parser_family_status_gate/summary.txt`
+    - `sv_family_status_systemverilog=Mostly Done`
+    - `sv_family_status_systemverilog_unmet_closure_criteria_count=3`
+    - `sv_family_status_systemverilog_syntax_closure_status=pass`
+    - `sv_family_status_systemverilog_preprocessor=Mostly Done`
+    - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count=2`
+    - `sv_family_status_systemverilog_preprocessor_syntax_closure_status=pass`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate telemetry fields match the `sv_parser_family_status_gate` sidecar exactly.
 - Aggregate sign-off now surfaces the dominant bounded failure-line and failure-context excerpt buckets for the main `systemverilog` parser in JSON-safe form, not just the dominant replay-gap/stage/sample/parser-error/failure-location buckets and diversity counts:
   - current bounded aggregate SOTA summary now surfaces generation-side:
     - `sv_generation_counterexample_primary_failure_line_excerpt_json="  timeunit  473e-9  ps ;package automatic  //"`
