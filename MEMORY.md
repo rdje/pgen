@@ -4446,3 +4446,10 @@ Use this file to resume work without replaying full chat history.
 - 2026-03-16: Strengthened the main SV aggregate proof surface again by promoting the parser aggregate's focused replay counters into both `sota_exit_gate` telemetry and `sv_combined_telemetry_contract_gate` parity checks; status labels stayed unchanged (`systemverilog` remains `Mostly Done`).
 - 2026-03-16: Strengthened the SV preprocessor aggregate proof surface again by promoting the sidecar's own report paths and bounded parseability totals into both `sota_exit_gate` telemetry and `sv_combined_telemetry_contract_gate` parity checks; status labels stayed unchanged (`systemverilog_preprocessor` remains `Mostly Done`).
 - 2026-03-16: Strengthened the SV preprocessor aggregate proof surface again by promoting the remaining useful closure metrics and fuzz replay totals into both `sota_exit_gate` telemetry and `sv_combined_telemetry_contract_gate` parity checks; status labels stayed unchanged (`systemverilog_preprocessor` remains `Mostly Done`).
+- 2026-03-16: Added `sv_parser_family_status_gate` as the first direct machine-check for SV-family live-status normalization:
+  - it runs `sv_parser_aggregate_contract_gate`, `sv_preprocessor_aggregate_contract_gate`, and `sv_preprocessor_reachability_closure_gate`
+  - it emits `rust/target/sv_parser_family_status_gate/summary.json` and `summary.txt`
+  - it fails if the computed `systemverilog` / `systemverilog_preprocessor` statuses drift from `LIVE_ACHIEVEMENT_STATUS.md`
+  - current computed unmet closure criteria are:
+    - main SV: `generation_parser_rejections_total > 0`, `shadow_parser_rejections_total > 0`, `focused_replay_target_count > 0`
+    - SV preprocessor: `parseability_parser_rejections_total > 0`, `parseability_rejected_total > 0`

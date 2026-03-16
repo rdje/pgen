@@ -19654,3 +19654,32 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - Live-status effect:
   - `systemverilog_preprocessor`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-16 - Add SV parser-family status gate
+
+- Added:
+  - `rust/scripts/sv_parser_family_status_gate.sh`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_gate`
+- Purpose:
+  - compute the current `systemverilog` and `systemverilog_preprocessor` live-status labels from existing machine-checkable proof surfaces instead of prose alone
+  - emit explicit unmet closure criteria for each family
+  - fail if the computed statuses drift from `LIVE_ACHIEVEMENT_STATUS.md`
+- Current computed rationale:
+  - `systemverilog`: `Mostly Done`
+    - unmet closure criteria:
+      - `generation_parser_rejections_total > 0`
+      - `shadow_parser_rejections_total > 0`
+      - `focused_replay_target_count > 0`
+  - `systemverilog_preprocessor`: `Mostly Done`
+    - unmet closure criteria:
+      - `parseability_parser_rejections_total > 0`
+      - `parseability_rejected_total > 0`
+- Updated:
+  - `rust/scripts/sv_parser_family_status_gate.sh`
+  - `rust/Makefile`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `systemverilog_preprocessor`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

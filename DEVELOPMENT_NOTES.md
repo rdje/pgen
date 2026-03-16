@@ -19718,3 +19718,26 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
 - Wiring:
   - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_preprocessor_aggregate_contract_gate`
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all fifteen fields
+
+## 2026-03-16 - SV parser-family status normalization gate
+
+- Added a dedicated status-normalization proof command:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_gate`
+- Wiring:
+  - `rust/scripts/sv_parser_family_status_gate.sh` runs:
+    - `sv_parser_aggregate_contract_gate`
+    - `sv_preprocessor_aggregate_contract_gate`
+    - `sv_preprocessor_reachability_closure_gate`
+  - it then computes the current `systemverilog` and `systemverilog_preprocessor` statuses from those summaries
+  - it emits:
+    - `rust/target/sv_parser_family_status_gate/summary.json`
+    - `rust/target/sv_parser_family_status_gate/summary.txt`
+  - it fails if the computed statuses drift from `LIVE_ACHIEVEMENT_STATUS.md`
+- Current computed unmet closure criteria:
+  - `systemverilog`
+    - `generation_parser_rejections_total > 0`
+    - `shadow_parser_rejections_total > 0`
+    - `focused_replay_target_count > 0`
+  - `systemverilog_preprocessor`
+    - `parseability_parser_rejections_total > 0`
+    - `parseability_rejected_total > 0`
