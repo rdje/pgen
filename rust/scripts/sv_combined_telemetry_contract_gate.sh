@@ -201,6 +201,12 @@ sv_shadow_counterexample_primary_failure_context_excerpt_count="$(extract_summar
 sv_shadow_counterexample_unique_failure_locations="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_failure_locations")"
 sv_shadow_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_failure_line_excerpts")"
 sv_shadow_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_failure_context_excerpts")"
+sv_focused_initial_target_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_initial_target_count")"
+sv_focused_replay_target_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_replay_target_count")"
+sv_focused_initial_covered_reachable_rules="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_initial_covered_reachable_rules")"
+sv_focused_replay_covered_reachable_rules="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_replay_covered_reachable_rules")"
+sv_focused_initial_covered_reachable_branches="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_initial_covered_reachable_branches")"
+sv_focused_replay_covered_reachable_branches="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_replay_covered_reachable_branches")"
 sv_failure_generation_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_generation_failure_context_excerpts")"
 sv_failure_shadow_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_shadow_failure_context_excerpts")"
 sv_roundtrip_initial_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_targets")"
@@ -489,6 +495,30 @@ assert_equal \
     "$sv_shadow_counterexample_unique_failure_context_excerpts" \
     "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_unique_failure_context_excerpts")"
 assert_equal \
+    "main SV focused initial target count" \
+    "$sv_focused_initial_target_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_focused_initial_target_count")"
+assert_equal \
+    "main SV focused replay target count" \
+    "$sv_focused_replay_target_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_focused_replay_target_count")"
+assert_equal \
+    "main SV focused initial reachable rules" \
+    "$sv_focused_initial_covered_reachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_focused_initial_covered_reachable_rules")"
+assert_equal \
+    "main SV focused replay reachable rules" \
+    "$sv_focused_replay_covered_reachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_focused_replay_covered_reachable_rules")"
+assert_equal \
+    "main SV focused initial reachable branches" \
+    "$sv_focused_initial_covered_reachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_focused_initial_covered_reachable_branches")"
+assert_equal \
+    "main SV focused replay reachable branches" \
+    "$sv_focused_replay_covered_reachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_focused_replay_covered_reachable_branches")"
+assert_equal \
     "main SV generation failure-context excerpts" \
     "$sv_failure_generation_excerpts" \
     "$(extract_summary_value "$sota_summary_txt" "sv_failure_context_generation_excerpts")"
@@ -743,6 +773,12 @@ assert_equal \
     echo "sv_shadow_counterexample_unique_failure_locations: $sv_shadow_counterexample_unique_failure_locations"
     echo "sv_shadow_counterexample_unique_failure_line_excerpts: $sv_shadow_counterexample_unique_failure_line_excerpts"
     echo "sv_shadow_counterexample_unique_failure_context_excerpts: $sv_shadow_counterexample_unique_failure_context_excerpts"
+    echo "sv_focused_initial_target_count: $sv_focused_initial_target_count"
+    echo "sv_focused_replay_target_count: $sv_focused_replay_target_count"
+    echo "sv_focused_initial_covered_reachable_rules: $sv_focused_initial_covered_reachable_rules"
+    echo "sv_focused_replay_covered_reachable_rules: $sv_focused_replay_covered_reachable_rules"
+    echo "sv_focused_initial_covered_reachable_branches: $sv_focused_initial_covered_reachable_branches"
+    echo "sv_focused_replay_covered_reachable_branches: $sv_focused_replay_covered_reachable_branches"
     echo "sv_failure_context_generation_excerpts: $sv_failure_generation_excerpts"
     echo "sv_failure_context_shadow_excerpts: $sv_failure_shadow_excerpts"
     echo "sv_roundtrip_initial_targets: $sv_roundtrip_initial_targets"

@@ -19587,3 +19587,22 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - Live-status effect:
   - `systemverilog`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-16 - Surface main SV focused replay counters
+
+- Added end-to-end aggregate visibility for the parser aggregate's focused replay counters:
+  - `sv_focused_initial_target_count`
+  - `sv_focused_replay_target_count`
+  - `sv_focused_initial_covered_reachable_rules`
+  - `sv_focused_replay_covered_reachable_rules`
+  - `sv_focused_initial_covered_reachable_branches`
+  - `sv_focused_replay_covered_reachable_branches`
+- Updated:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - carry the parser aggregate's own focused replay counters into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the parser aggregate sidecar exactly
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

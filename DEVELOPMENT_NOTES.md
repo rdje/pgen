@@ -19665,3 +19665,16 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
 - Wiring:
   - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for both fields
+
+## 2026-03-16 - Main SV focused replay counters in aggregate telemetry
+
+- Extended the main SV aggregate sign-off path to preserve the parser aggregate's focused replay counters:
+  - `sv_focused_initial_target_count`
+  - `sv_focused_replay_target_count`
+  - `sv_focused_initial_covered_reachable_rules`
+  - `sv_focused_replay_covered_reachable_rules`
+  - `sv_focused_initial_covered_reachable_branches`
+  - `sv_focused_replay_covered_reachable_branches`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all six fields

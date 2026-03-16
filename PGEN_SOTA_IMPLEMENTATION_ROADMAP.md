@@ -476,6 +476,13 @@ Toolbox baseline to leverage end-to-end:
   - Progress (2026-03-14): wired `sv_parser_aggregate_contract_gate` into aggregate `sota_exit_gate` in artifact-reuse mode:
     - aggregate sign-off now revalidates the contract directly over the already-produced `sv_stimuli_quality_gate` state dir instead of rerunning focused probes,
     - aggregate telemetry now surfaces `sv_stimuli_quality_aggregate_contract_summary_txt` so release summaries point straight at the bounded-counterexample contract proof.
+  - Progress (2026-03-16): aggregate `sota_exit_gate` now also surfaces the parser aggregate's focused replay counters directly, and `sv_combined_telemetry_contract_gate` proves exact parity for:
+    - `sv_focused_initial_target_count`
+    - `sv_focused_replay_target_count`
+    - `sv_focused_initial_covered_reachable_rules`
+    - `sv_focused_replay_covered_reachable_rules`
+    - `sv_focused_initial_covered_reachable_branches`
+    - `sv_focused_replay_covered_reachable_branches`
   - Progress (2026-03-15): aggregate `sota_exit_gate` now also reuses the combined lightweight SV-family proof gates over the already-produced artifacts:
     - `sv_failure_context_contract_gate`
     - `sv_roundtrip_contract_gate`

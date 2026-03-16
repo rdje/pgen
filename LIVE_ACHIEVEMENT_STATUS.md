@@ -1,6 +1,6 @@
 # Live Achievement Status
 
-Last updated: 2026-03-15
+Last updated: 2026-03-16
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -51,6 +51,7 @@ Tracker note (2026-03-15): the `systemverilog` main parser status label remains 
 
 Tracker note (2026-03-15): the same main-SV aggregate proof surface now also exposes parser-aggregate root provenance as `sv_base_contract_file`, so aggregate sign-off no longer relies only on the generation/shadow per-surface provenance fields when tracing the bounded parser-aggregate evidence back to its checked-in root contract.
 Tracker note (2026-03-15): the same main-SV aggregate proof surface now also exposes replay-gap provenance as `sv_replay_gap_source_gap_json`, so the surfaced replay-gap target triage can be traced back to the exact closed-loop gap report JSON rather than only to the derived triage artifact.
+Tracker note (2026-03-16): aggregate sign-off now also exposes the parser aggregate's focused replay counters directly as `sv_focused_initial_target_count`, `sv_focused_replay_target_count`, `sv_focused_initial_covered_reachable_rules`, `sv_focused_replay_covered_reachable_rules`, `sv_focused_initial_covered_reachable_branches`, and `sv_focused_replay_covered_reachable_branches`, with `sv_combined_telemetry_contract_gate` proving exact parity against the parser aggregate sidecar.
 
 ### Annotation System Status
 
