@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-17 - Add VHDL parser-family contract gate
+### ✅ Achievement Summary
+VHDL now has its own reusable combined proof gate. `vhdl_parser_family_contract_gate` validates the current VHDL family proof surface by checking `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` together, without overstating the live tracker label.
+
+### Scope of Changes
+- Added [rust/scripts/vhdl_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh):
+  - can validate existing VHDL quality/promotion state dirs or produce them on demand
+  - validates current VHDL family invariants including:
+    - closed-loop initial/replay statuses are both `pass`
+    - realistic corpus executed totals match expected pass/fail totals exactly
+    - realistic corpus has zero `expected_fail_parse_pass_total`
+    - parser-backed generation and shadow flows have zero generation errors / empty generations
+    - strict promotion is `completed`, `eligible_for_required_strict_mode=1`, has zero ratio/parity/gate/missing-ratio failures, and `primary_blocker=none`
+  - validates parity between the VHDL gate summaries and their JSON sidecars for the checked totals
+  - emits a reusable combined summary with current validated values such as:
+    - `quality_closed_loop_initial_targets=254`
+    - `quality_closed_loop_replay_targets=12`
+    - `quality_parseability_generation_attempts_total=3`
+    - `quality_parseability_generation_rejected_total=1`
+    - `quality_realistic_cases_executed=14`
+    - `strict_promotion_recommendation=enable_required_strict_mode`
+    - `strict_promotion_trial_passed=3`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `vhdl_parser_family_contract_gate`
+  - added the new help text entry
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger reusable VHDL proof surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Make universal parser proof doctrine explicit
 ### ✅ Achievement Summary
 The repository now states unambiguously that the proof-first professional-grade closure doctrine applies to any PGEN EBNF-based parser family, not just the currently most-developed SV parser families.

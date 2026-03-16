@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: make-universal-parser-proof-doctrine-explicit)
+Last updated: 2026-03-17 (+0100, task: add-vhdl-parser-family-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -29,6 +29,26 @@ Use this file to resume work without replaying full chat history.
   - any PGEN EBNF-based parser family is judged against the same professional-grade closure doctrine,
   - that doctrine is not SV-only and not annotation-only,
   - status differences across parser families reflect landed proof depth, not different quality bars.
+- VHDL now has a reusable combined family proof gate:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_contract_gate`
+  - current validated summary from existing-artifact mode:
+    - `quality_closed_loop_initial_status=pass`
+    - `quality_closed_loop_replay_status=pass`
+    - `quality_closed_loop_initial_targets=254`
+    - `quality_closed_loop_replay_targets=12`
+    - `quality_parseability_generation_attempts_total=3`
+    - `quality_parseability_generation_accepted_total=2`
+    - `quality_parseability_generation_rejected_total=1`
+    - `quality_realistic_cases_executed=14`
+    - `quality_realistic_expected_pass_total=8`
+    - `quality_realistic_expected_fail_total=6`
+    - `quality_realistic_observed_parse_pass_total=8`
+    - `quality_realistic_observed_parse_fail_total=6`
+    - `strict_promotion_recommendation=enable_required_strict_mode`
+    - `strict_promotion_eligible_for_required_strict_mode=1`
+    - `strict_promotion_primary_blocker=none`
+    - `strict_promotion_trial_passed=3`
+  - the gate validates the current VHDL family proof surface across `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` without overclaiming a final VHDL closure label.
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

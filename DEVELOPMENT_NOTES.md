@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add VHDL parser-family contract gate
+### Context
+Once the repository-wide parser proof doctrine was made explicit, the next useful follow-through was to apply it to a non-SV family in executable form. VHDL already had two meaningful proof surfaces, `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate`, but no reusable combined contract that treated them as one family-level evidence surface.
+
+### Implementation
+- Added [rust/scripts/vhdl_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh):
+  - can reuse existing `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` state dirs for fast validation
+  - enforces summary/JSON consistency and key VHDL-family invariants across those two gates
+  - emits one reusable combined summary for current VHDL family evidence
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added the new `vhdl_parser_family_contract_gate` target and help text
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger reusable VHDL proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Make universal parser proof doctrine explicit
 ### Context
 The repo had already evolved a strong proof-first doctrine in practice, especially around the shipped SV parser families, but that doctrine still risked being read as a local SV standard rather than a universal PGEN parser standard. The next clean documentation step was to make the rule explicit: any EBNF-based parser built by PGEN is expected to converge toward the same professional-grade closure surface.
