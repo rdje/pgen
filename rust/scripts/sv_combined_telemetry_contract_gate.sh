@@ -224,6 +224,21 @@ svpp_parseability_accepted_total="$(extract_summary_value "$sv_preprocessor_aggr
 svpp_parseability_rejected_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_rejected_total")"
 svpp_parseability_parser_rejections_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_parser_rejections_total")"
 svpp_parseability_counterexamples_captured_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_counterexamples_captured_total")"
+svpp_stage0_target_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage0_target_count")"
+svpp_stage1_target_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage1_target_count")"
+svpp_final_target_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "final_targets")"
+svpp_stage4_target_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage4_target_count")"
+svpp_stage0_covered_reachable_rules="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage0_covered_reachable_rules")"
+svpp_stage1_covered_reachable_rules="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage1_covered_reachable_rules")"
+svpp_covered_reachable_rules="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "covered_reachable_rules")"
+svpp_stage4_covered_reachable_rules="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage4_covered_reachable_rules")"
+svpp_stage0_covered_reachable_branches="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage0_covered_reachable_branches")"
+svpp_stage1_covered_reachable_branches="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage1_covered_reachable_branches")"
+svpp_covered_reachable_branches="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "covered_reachable_branches")"
+svpp_stage4_covered_reachable_branches="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "stage4_covered_reachable_branches")"
+svpp_fuzz_replay_accepted_cases="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "fuzz_replay_accepted_cases")"
+svpp_fuzz_replay_rejected_cases="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "fuzz_replay_rejected_cases")"
+svpp_fuzz_replay_parseability_counterexamples="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "fuzz_replay_parseability_counterexamples")"
 svpp_counterexample_triage_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_triage_json")"
 svpp_counterexample_triage_txt="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_triage_txt")"
 svpp_counterexample_unique_shrunk_samples="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_shrunk_samples")"
@@ -591,6 +606,66 @@ assert_equal \
     "$svpp_parseability_counterexamples_captured_total" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_parseability_counterexamples_captured_total")"
 assert_equal \
+    "SV preprocessor stage0 target count" \
+    "$svpp_stage0_target_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage0_target_count")"
+assert_equal \
+    "SV preprocessor stage1 target count" \
+    "$svpp_stage1_target_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage1_target_count")"
+assert_equal \
+    "SV preprocessor final target count" \
+    "$svpp_final_target_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_final_targets")"
+assert_equal \
+    "SV preprocessor stage4 target count" \
+    "$svpp_stage4_target_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage4_target_count")"
+assert_equal \
+    "SV preprocessor stage0 covered reachable rules" \
+    "$svpp_stage0_covered_reachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage0_covered_reachable_rules")"
+assert_equal \
+    "SV preprocessor stage1 covered reachable rules" \
+    "$svpp_stage1_covered_reachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage1_covered_reachable_rules")"
+assert_equal \
+    "SV preprocessor covered reachable rules" \
+    "$svpp_covered_reachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_covered_reachable_rules")"
+assert_equal \
+    "SV preprocessor stage4 covered reachable rules" \
+    "$svpp_stage4_covered_reachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage4_covered_reachable_rules")"
+assert_equal \
+    "SV preprocessor stage0 covered reachable branches" \
+    "$svpp_stage0_covered_reachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage0_covered_reachable_branches")"
+assert_equal \
+    "SV preprocessor stage1 covered reachable branches" \
+    "$svpp_stage1_covered_reachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage1_covered_reachable_branches")"
+assert_equal \
+    "SV preprocessor covered reachable branches" \
+    "$svpp_covered_reachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_covered_reachable_branches")"
+assert_equal \
+    "SV preprocessor stage4 covered reachable branches" \
+    "$svpp_stage4_covered_reachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_stage4_covered_reachable_branches")"
+assert_equal \
+    "SV preprocessor fuzz replay accepted cases" \
+    "$svpp_fuzz_replay_accepted_cases" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_fuzz_replay_accepted_cases")"
+assert_equal \
+    "SV preprocessor fuzz replay rejected cases" \
+    "$svpp_fuzz_replay_rejected_cases" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_fuzz_replay_rejected_cases")"
+assert_equal \
+    "SV preprocessor fuzz replay parseability counterexamples" \
+    "$svpp_fuzz_replay_parseability_counterexamples" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_fuzz_replay_parseability_counterexamples")"
+assert_equal \
     "SV preprocessor counterexample triage json path" \
     "$svpp_counterexample_triage_json" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_triage_json")"
@@ -830,6 +905,21 @@ assert_equal \
     echo "sv_preprocessor_parseability_rejected_total: $svpp_parseability_rejected_total"
     echo "sv_preprocessor_parseability_parser_rejections_total: $svpp_parseability_parser_rejections_total"
     echo "sv_preprocessor_parseability_counterexamples_captured_total: $svpp_parseability_counterexamples_captured_total"
+    echo "sv_preprocessor_stage0_target_count: $svpp_stage0_target_count"
+    echo "sv_preprocessor_stage1_target_count: $svpp_stage1_target_count"
+    echo "sv_preprocessor_final_targets: $svpp_final_target_count"
+    echo "sv_preprocessor_stage4_target_count: $svpp_stage4_target_count"
+    echo "sv_preprocessor_stage0_covered_reachable_rules: $svpp_stage0_covered_reachable_rules"
+    echo "sv_preprocessor_stage1_covered_reachable_rules: $svpp_stage1_covered_reachable_rules"
+    echo "sv_preprocessor_covered_reachable_rules: $svpp_covered_reachable_rules"
+    echo "sv_preprocessor_stage4_covered_reachable_rules: $svpp_stage4_covered_reachable_rules"
+    echo "sv_preprocessor_stage0_covered_reachable_branches: $svpp_stage0_covered_reachable_branches"
+    echo "sv_preprocessor_stage1_covered_reachable_branches: $svpp_stage1_covered_reachable_branches"
+    echo "sv_preprocessor_covered_reachable_branches: $svpp_covered_reachable_branches"
+    echo "sv_preprocessor_stage4_covered_reachable_branches: $svpp_stage4_covered_reachable_branches"
+    echo "sv_preprocessor_fuzz_replay_accepted_cases: $svpp_fuzz_replay_accepted_cases"
+    echo "sv_preprocessor_fuzz_replay_rejected_cases: $svpp_fuzz_replay_rejected_cases"
+    echo "sv_preprocessor_fuzz_replay_parseability_counterexamples: $svpp_fuzz_replay_parseability_counterexamples"
     echo "sv_preprocessor_counterexample_triage_json: $svpp_counterexample_triage_json"
     echo "sv_preprocessor_counterexample_triage_txt: $svpp_counterexample_triage_txt"
     echo "sv_preprocessor_counterexample_unique_shrunk_samples: $svpp_counterexample_unique_shrunk_samples"

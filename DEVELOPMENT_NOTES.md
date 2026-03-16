@@ -19692,3 +19692,29 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
 - Wiring:
   - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_preprocessor_aggregate_contract_gate`
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all seven fields
+
+## 2026-03-16 - SV preprocessor closure metrics in aggregate telemetry
+
+- Extended the aggregate sign-off path to preserve the remaining useful preprocessor aggregate closure metrics:
+  - target counts:
+    - `sv_preprocessor_stage0_target_count`
+    - `sv_preprocessor_stage1_target_count`
+    - `sv_preprocessor_final_targets`
+    - `sv_preprocessor_stage4_target_count`
+  - reachable rule coverage strings:
+    - `sv_preprocessor_stage0_covered_reachable_rules`
+    - `sv_preprocessor_stage1_covered_reachable_rules`
+    - `sv_preprocessor_covered_reachable_rules`
+    - `sv_preprocessor_stage4_covered_reachable_rules`
+  - reachable branch coverage strings:
+    - `sv_preprocessor_stage0_covered_reachable_branches`
+    - `sv_preprocessor_stage1_covered_reachable_branches`
+    - `sv_preprocessor_covered_reachable_branches`
+    - `sv_preprocessor_stage4_covered_reachable_branches`
+  - fuzz replay totals:
+    - `sv_preprocessor_fuzz_replay_accepted_cases`
+    - `sv_preprocessor_fuzz_replay_rejected_cases`
+    - `sv_preprocessor_fuzz_replay_parseability_counterexamples`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_preprocessor_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all fifteen fields

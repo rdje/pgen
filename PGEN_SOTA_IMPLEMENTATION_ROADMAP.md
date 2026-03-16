@@ -2187,6 +2187,27 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_parseability_parser_rejections_total`
     - `sv_preprocessor_parseability_counterexamples_captured_total`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly.
+  - Progress (2026-03-16): aggregate `sota_exit_gate` now also surfaces the remaining useful preprocessor aggregate closure metrics directly:
+    - target counts:
+      - `sv_preprocessor_stage0_target_count`
+      - `sv_preprocessor_stage1_target_count`
+      - `sv_preprocessor_final_targets`
+      - `sv_preprocessor_stage4_target_count`
+    - reachable rule coverage strings:
+      - `sv_preprocessor_stage0_covered_reachable_rules`
+      - `sv_preprocessor_stage1_covered_reachable_rules`
+      - `sv_preprocessor_covered_reachable_rules`
+      - `sv_preprocessor_stage4_covered_reachable_rules`
+    - reachable branch coverage strings:
+      - `sv_preprocessor_stage0_covered_reachable_branches`
+      - `sv_preprocessor_stage1_covered_reachable_branches`
+      - `sv_preprocessor_covered_reachable_branches`
+      - `sv_preprocessor_stage4_covered_reachable_branches`
+    - fuzz replay totals:
+      - `sv_preprocessor_fuzz_replay_accepted_cases`
+      - `sv_preprocessor_fuzz_replay_rejected_cases`
+      - `sv_preprocessor_fuzz_replay_parseability_counterexamples`
+    - `sv_combined_telemetry_contract_gate` now also proves those fifteen surfaced aggregate fields match the preprocessor aggregate sidecar exactly.
   - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant preprocessor bounded-debt buckets directly instead of only file paths and unique counts:
     - standalone `sv_preprocessor_aggregate_contract_gate` now records:
       - `counterexample_primary_stage`

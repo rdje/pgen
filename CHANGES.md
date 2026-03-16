@@ -19626,3 +19626,31 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - Live-status effect:
   - `systemverilog_preprocessor`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-16 - Surface SV preprocessor closure metrics
+
+- Added end-to-end aggregate visibility for the remaining useful preprocessor aggregate closure metrics:
+  - `sv_preprocessor_stage0_target_count`
+  - `sv_preprocessor_stage1_target_count`
+  - `sv_preprocessor_final_targets`
+  - `sv_preprocessor_stage4_target_count`
+  - `sv_preprocessor_stage0_covered_reachable_rules`
+  - `sv_preprocessor_stage1_covered_reachable_rules`
+  - `sv_preprocessor_covered_reachable_rules`
+  - `sv_preprocessor_stage4_covered_reachable_rules`
+  - `sv_preprocessor_stage0_covered_reachable_branches`
+  - `sv_preprocessor_stage1_covered_reachable_branches`
+  - `sv_preprocessor_covered_reachable_branches`
+  - `sv_preprocessor_stage4_covered_reachable_branches`
+  - `sv_preprocessor_fuzz_replay_accepted_cases`
+  - `sv_preprocessor_fuzz_replay_rejected_cases`
+  - `sv_preprocessor_fuzz_replay_parseability_counterexamples`
+- Updated:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - carry the remaining useful preprocessor aggregate closure metrics into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the preprocessor aggregate sidecar exactly
+- Live-status effect:
+  - `systemverilog_preprocessor`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`
