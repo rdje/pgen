@@ -456,6 +456,16 @@ SV_PARSER_FAMILY_STATUS_GATE_VERSION="<not-run>"
 SV_PARSER_FAMILY_STATUS_GENERATED_AT_UTC="<not-run>"
 SV_PARSER_FAMILY_STATUS_LIVE_TRACKER_FILE="<not-run>"
 SV_PARSER_FAMILY_STATUS_STATUS_RULE_DONE="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_UNMET_DETAILS_COUNT="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PRIMARY_UNMET_DETAIL_CRITERION="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FALSE_CRITERIA_COUNT="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_DETAILS_COUNT="<not-run>"
+SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_PRIMARY_UNMET_DETAIL_CRITERION="<not-run>"
 SV_FAMILY_STATUS_SYSTEMVERILOG="<not-run>"
 SV_FAMILY_STATUS_SYSTEMVERILOG_TRACKER_STATUS="<not-run>"
 SV_FAMILY_STATUS_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK="<not-run>"
@@ -1474,6 +1484,45 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
                     make -C rust SHELL=/bin/bash sv_parser_family_status_gate
         fi
+        SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_family_status_contract_gate"
+        SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+        if [[ -f "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+            if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+                run_check "sv_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced SV-family status sidecar" \
+                    env \
+                        PGEN_SV_FAMILY_STATUS_CONTRACT_STATE_DIR="$SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                        PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                        make -C rust SHELL=/bin/bash sv_parser_family_status_contract_gate
+            else
+                run_check "sv_parser_family_status_contract_gate" "informational" "report-only source-side contract proof for the produced SV-family status sidecar" \
+                    env \
+                        PGEN_SV_FAMILY_STATUS_CONTRACT_STATE_DIR="$SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                        PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                        make -C rust SHELL=/bin/bash sv_parser_family_status_contract_gate
+            fi
+        fi
+        if [[ ! -f "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_UNMET_DETAILS_COUNT="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PRIMARY_UNMET_DETAIL_CRITERION="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FALSE_CRITERIA_COUNT="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_DETAILS_COUNT="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_PRIMARY_UNMET_DETAIL_CRITERION="<missing>"
+        else
+            SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="$(summary_value_from_txt "family_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "systemverilog_tracker_alignment_ok" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_false_criteria_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_UNMET_DETAILS_COUNT="$(summary_value_from_txt "systemverilog_unmet_details_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PRIMARY_UNMET_DETAIL_CRITERION="$(summary_value_from_txt "systemverilog_primary_unmet_detail_criterion" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "systemverilog_preprocessor_tracker_alignment_ok" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_preprocessor_false_criteria_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_DETAILS_COUNT="$(summary_value_from_txt "systemverilog_preprocessor_unmet_details_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_PRIMARY_UNMET_DETAIL_CRITERION="$(summary_value_from_txt "systemverilog_preprocessor_primary_unmet_detail_criterion" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        fi
         if [[ ! -f "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
             SV_PARSER_FAMILY_STATUS_SUMMARY_TXT="<missing>"
             SV_PARSER_FAMILY_STATUS_SUMMARY_JSON="<missing>"
@@ -2258,11 +2307,21 @@ fi
         echo "sv_roundtrip_replay_covered_reachable_branches: $SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES"
         echo "sv_parser_family_status_summary_txt: $SV_PARSER_FAMILY_STATUS_SUMMARY_TXT"
         echo "sv_parser_family_status_summary_json: $SV_PARSER_FAMILY_STATUS_SUMMARY_JSON"
+        echo "sv_parser_family_status_contract_summary_txt: $SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT"
         echo "sv_parser_family_status_gate: $SV_PARSER_FAMILY_STATUS_GATE_NAME"
         echo "sv_parser_family_status_gate_version: $SV_PARSER_FAMILY_STATUS_GATE_VERSION"
         echo "sv_parser_family_status_generated_at_utc: $SV_PARSER_FAMILY_STATUS_GENERATED_AT_UTC"
         echo "sv_parser_family_status_live_tracker_file: $SV_PARSER_FAMILY_STATUS_LIVE_TRACKER_FILE"
         echo "sv_parser_family_status_status_rule_done: $SV_PARSER_FAMILY_STATUS_STATUS_RULE_DONE"
+        echo "sv_parser_family_status_contract_family_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT"
+        echo "sv_parser_family_status_contract_systemverilog_tracker_alignment_ok: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK"
+        echo "sv_parser_family_status_contract_systemverilog_false_criteria_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT"
+        echo "sv_parser_family_status_contract_systemverilog_unmet_details_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_UNMET_DETAILS_COUNT"
+        echo "sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PRIMARY_UNMET_DETAIL_CRITERION"
+        echo "sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK"
+        echo "sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FALSE_CRITERIA_COUNT"
+        echo "sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_DETAILS_COUNT"
+        echo "sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_PRIMARY_UNMET_DETAIL_CRITERION"
         echo "sv_family_status_systemverilog: $SV_FAMILY_STATUS_SYSTEMVERILOG"
         echo "sv_family_status_systemverilog_tracker_status: $SV_FAMILY_STATUS_SYSTEMVERILOG_TRACKER_STATUS"
         echo "sv_family_status_systemverilog_tracker_alignment_ok: $SV_FAMILY_STATUS_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK"

@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-16 - Surface SV family-status contract proof in aggregate sign-off
+### ✅ Achievement Summary
+Aggregate SV sign-off now reuses the source-side `sv_parser_family_status_contract_gate` and surfaces its contract summary directly. `sota_exit_gate` now carries the contract-summary path plus the key contract counts for both shipped SV parser families, and `sv_combined_telemetry_contract_gate` proves exact parity for those fields end to end.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now runs `sv_parser_family_status_contract_gate` against the produced `sv_parser_family_status_gate` state dir
+  - now surfaces:
+    - `sv_parser_family_status_contract_summary_txt`
+    - `sv_parser_family_status_contract_family_count`
+    - `sv_parser_family_status_contract_systemverilog_tracker_alignment_ok`
+    - `sv_parser_family_status_contract_systemverilog_false_criteria_count`
+    - `sv_parser_family_status_contract_systemverilog_unmet_details_count`
+    - `sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion`
+    - `sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok`
+    - `sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count`
+    - `sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count`
+    - `sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires the produced `sv_parser_family_status_contract_gate/summary.txt`
+  - now extracts those contract-count fields from the source-side contract summary
+  - now proves exact parity for every new aggregate-visible family-status contract field
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that aggregate sign-off now reuses the source-side family-status contract gate
+  - recorded the current contract-proof counts:
+    - `family_count=2`
+    - main SV: `tracker_alignment_ok=true`, `false_criteria_count=3`, `unmet_details_count=3`, `primary_unmet_detail_criterion=generation_parser_rejections_zero`
+    - SV preprocessor: `tracker_alignment_ok=true`, `false_criteria_count=2`, `unmet_details_count=2`, `primary_unmet_detail_criterion=parser_rejections_zero`
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Add SV family status contract gate
 ### ✅ Achievement Summary
 The SV family-status sidecar now has its own dedicated schema/consistency proof gate. `sv_parser_family_status_contract_gate` validates the structure and internal consistency of `sv_parser_family_status_gate/summary.json` and `summary.txt`, including tracker alignment, closure-count arithmetic, false-criteria accounting, and structured blocker-detail parity.

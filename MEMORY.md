@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: add-sv-family-status-contract-gate)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-contract-proof-in-aggregate-signoff)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -38,6 +38,21 @@ Use this file to resume work without replaying full chat history.
     - `systemverilog_preprocessor_unmet_details_count=2`
     - `systemverilog_preprocessor_primary_unmet_detail_criterion=parser_rejections_zero`
   - the gate validates sidecar schema shape, required family roster, tracker alignment, closure-count arithmetic, false-criteria accounting, structured blocker-detail parity, and parity between `summary.json` and `summary.txt` for structured blocker arrays and tracker-alignment booleans.
+- Aggregate sign-off now also reuses that source-side family-status contract gate and surfaces its summary directly:
+  - `sv_parser_family_status_contract_summary_txt=/tmp/pgen_sv_family_status_contract_surface/work/sota_exit_gate/work/sv_parser_family_status_contract_gate/summary.txt`
+  - current aggregate-visible contract counts:
+    - `sv_parser_family_status_contract_family_count=2`
+    - main SV:
+      - `sv_parser_family_status_contract_systemverilog_tracker_alignment_ok=true`
+      - `sv_parser_family_status_contract_systemverilog_false_criteria_count=3`
+      - `sv_parser_family_status_contract_systemverilog_unmet_details_count=3`
+      - `sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion=generation_parser_rejections_zero`
+    - SV preprocessor:
+      - `sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok=true`
+      - `sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count=2`
+      - `sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count=2`
+      - `sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion=parser_rejections_zero`
+  - `sv_combined_telemetry_contract_gate` now parity-checks those aggregate-visible contract fields against `sv_parser_family_status_contract_gate/summary.txt`.
 - Aggregate sign-off now surfaces machine-readable structured blocker arrays for both shipped SV parser families:
   - main SV:
     - `sv_family_status_systemverilog_unmet_closure_criteria_details_json=[{"criterion":"generation_parser_rejections_zero","evidence_key":"generation_parser_rejections_total","observed":"7","expected":"0",...},{"criterion":"replay_shadow_parser_rejections_zero","evidence_key":"replay_shadow_parser_rejections_total","observed":"16","expected":"0",...},{"criterion":"focused_replay_target_debt_zero","evidence_key":"focused_replay_target_count","observed":"2207","expected":"0",...}]`

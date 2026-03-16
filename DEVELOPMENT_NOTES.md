@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family-status contract proof in aggregate sign-off
+### Context
+We already had two adjacent proof layers for shipped SV-family status: the producer `sv_parser_family_status_gate`, and the source-side artifact contract `sv_parser_family_status_contract_gate`. Aggregate sign-off still only surfaced the producer sidecar, which meant the release telemetry did not explicitly show whether the sidecar itself had passed its own contract gate. The next clean hardening step was to thread that source-side contract layer through aggregate sign-off and parity-check its key counts too.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now reruns `sv_parser_family_status_contract_gate` against the produced `sv_parser_family_status_gate` state dir
+  - now surfaces the resulting summary path and the contract-summary counts for both shipped SV parser families
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires the source-side contract summary under `work/sv_parser_family_status_contract_gate/summary.txt`
+  - now proves exact parity for the new aggregate-visible contract fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible family-status contract surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Add SV family status contract gate
 ### Context
 The project already had a producer for the SV family-status sidecar and consumers that reused it in aggregate sign-off, but the sidecar itself still lacked a dedicated contract gate. The next clean hardening step was to validate the sidecar as an artifact in its own right: schema shape, family roster, tracker-alignment consistency, closure-count arithmetic, false-criteria accounting, and parity between the JSON sidecar and the human summary.
