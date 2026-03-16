@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family proof-surface provenance paths
+### Context
+Aggregate sign-off already surfaced the computed family-status labels, blocker lists, syntax debt, criteria booleans, and closure-progress counts, but it still did not expose the exact per-family sidecars that produced those rows. The next clean hardening step was to surface those proof-surface paths directly so release telemetry can point to the concrete syntax-closure, aggregate-contract, and reachability artifacts behind each family status.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now extracts per-family `proof_surfaces.*` paths from `sv_parser_family_status_gate/summary.json`
+  - now surfaces those provenance paths directly in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now reads the same per-family proof-surface paths from the family-status JSON sidecar
+  - now proves exact parity for every new aggregate-visible provenance field
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible provenance surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family closure-progress counts in aggregate sign-off
 ### Context
 After surfacing the exact family-status criteria booleans, aggregate sign-off still did not carry a compact progress ratio for each shipped SV parser family. The next clean hardening step was to let the source-of-truth family-status gate count how many closure criteria are currently satisfied, then promote those counts through aggregate telemetry so release summaries can say not just which booleans are green, but how far each family is from full closure in a machine-checkable way.

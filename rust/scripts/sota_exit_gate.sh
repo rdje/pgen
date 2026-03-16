@@ -495,6 +495,11 @@ SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE3_RULES_FULL="<not
 SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_RULES_FULL="<not-run>"
 SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE3_BRANCHES_FULL="<not-run>"
 SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_BRANCHES_FULL="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_SUMMARY_JSON="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_SUMMARY_JSON="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT="<not-run>"
+SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_SUMMARY_TXT="<not-run>"
 SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR="<unset>"
 SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="<not-run>"
 SV_PREPROCESSOR_REACHABILITY_STAGE3_TARGETS="<not-run>"
@@ -1456,6 +1461,8 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_SYSTEMVERILOG_GENERATION_PARSER_REJECTIONS_ZERO="<missing>"
             SV_FAMILY_STATUS_SYSTEMVERILOG_REPLAY_SHADOW_PARSER_REJECTIONS_ZERO="<missing>"
             SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_TARGET_DEBT_ZERO="<missing>"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_SUMMARY_JSON="<missing>"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT="<missing>"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_GATE_GREEN="<missing>"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_CONTRACT_GREEN="<missing>"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_CLOSURE_GREEN="<missing>"
@@ -1467,6 +1474,9 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_RULES_FULL="<missing>"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE3_BRANCHES_FULL="<missing>"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_BRANCHES_FULL="<missing>"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_SUMMARY_JSON="<missing>"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT="<missing>"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_SUMMARY_TXT="<missing>"
         else
             SV_FAMILY_STATUS_SYSTEMVERILOG="$(summary_value_from_txt "systemverilog_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_unmet_closure_criteria_count" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
@@ -1488,6 +1498,8 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_SYSTEMVERILOG_GENERATION_PARSER_REJECTIONS_ZERO="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.generation_parser_rejections_zero' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_REPLAY_SHADOW_PARSER_REJECTIONS_ZERO="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.replay_shadow_parser_rejections_zero' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_TARGET_DEBT_ZERO="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.focused_replay_target_debt_zero' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.syntax_closure_summary_json' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR="$(summary_value_from_txt "systemverilog_preprocessor_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_preprocessor_unmet_closure_criteria_count" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_JSON="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON" 2>/dev/null || echo '[]')"
@@ -1514,6 +1526,9 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_RULES_FULL="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage4_rules_full' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE3_BRANCHES_FULL="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage3_branches_full' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_BRANCHES_FULL="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage4_branches_full' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.syntax_closure_summary_json' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_txt' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_summary_txt' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         fi
     fi
 
@@ -2175,6 +2190,8 @@ fi
         echo "sv_family_status_systemverilog_generation_parser_rejections_zero: $SV_FAMILY_STATUS_SYSTEMVERILOG_GENERATION_PARSER_REJECTIONS_ZERO"
         echo "sv_family_status_systemverilog_replay_shadow_parser_rejections_zero: $SV_FAMILY_STATUS_SYSTEMVERILOG_REPLAY_SHADOW_PARSER_REJECTIONS_ZERO"
         echo "sv_family_status_systemverilog_focused_replay_target_debt_zero: $SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_TARGET_DEBT_ZERO"
+        echo "sv_family_status_systemverilog_syntax_closure_summary_json: $SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_SUMMARY_JSON"
+        echo "sv_family_status_systemverilog_parser_aggregate_summary_txt: $SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT"
         echo "sv_family_status_systemverilog_preprocessor: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR"
         echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_COUNT"
         echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_JSON"
@@ -2200,6 +2217,9 @@ fi
         echo "sv_family_status_systemverilog_preprocessor_reachability_stage4_rules_full: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_RULES_FULL"
         echo "sv_family_status_systemverilog_preprocessor_reachability_stage3_branches_full: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE3_BRANCHES_FULL"
         echo "sv_family_status_systemverilog_preprocessor_reachability_stage4_branches_full: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_STAGE4_BRANCHES_FULL"
+        echo "sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_SYNTAX_CLOSURE_SUMMARY_JSON"
+        echo "sv_family_status_systemverilog_preprocessor_aggregate_summary_txt: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT"
+        echo "sv_family_status_systemverilog_preprocessor_reachability_summary_txt: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_REACHABILITY_SUMMARY_TXT"
     fi
     if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" ]]; then
         echo

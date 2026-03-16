@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-closure-progress-counts-in-aggregate-sign-off)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-proof-surface-provenance-paths)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,14 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the exact per-family proof-surface artifact paths behind the shipped SV-family status rows:
+  - main SV:
+    - `sv_family_status_systemverilog_syntax_closure_summary_json=/Users/richarddje/Documents/github/pgen/rust/target/sv_syntax_closure_gate/summary.json`
+    - `sv_family_status_systemverilog_parser_aggregate_summary_txt=/tmp/pgen_sv_family_status_proof_surface_paths/work/sota_exit_gate/work/sv_parser_family_status_gate/work/sv_parser_aggregate_contract_gate/summary.txt`
+  - SV preprocessor:
+    - `sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_syntax_closure_gate/summary.json`
+    - `sv_family_status_systemverilog_preprocessor_aggregate_summary_txt=/tmp/pgen_sv_family_status_proof_surface_paths/work/sota_exit_gate/work/sv_parser_family_status_gate/work/sv_preprocessor_aggregate_contract_gate/summary.txt`
+    - `sv_family_status_systemverilog_preprocessor_reachability_summary_txt=/tmp/pgen_sv_family_status_proof_surface_paths/work/sota_exit_gate/work/sv_parser_family_status_gate/work/sv_preprocessor_reachability_closure_gate/summary.txt`
 - Aggregate sign-off now surfaces the machine-checkable closure-progress counts for both shipped SV parser families in addition to the status rows, blocker lists, criteria booleans, and syntax debt metrics:
   - main SV currently sits at `2/5` satisfied closure criteria
   - SV preprocessor currently sits at `9/11` satisfied closure criteria
