@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family syntax debt in aggregate sign-off
+### Context
+Aggregate sign-off already surfaced the family-status labels, blocker counts, blocker strings, and syntax pass/fail flags, but it still hid the concrete grammar-level syntax debt numbers that explain those flags. The next clean hardening step was to surface the syntax-debt metrics from the family-status sidecar directly in aggregate telemetry, so release summaries show the actual defined-rule, unresolved-reference, unreachable-rule/branch, and syntax-target-debt counts behind the current SV-family status proof.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces, for both shipped SV families:
+    - `syntax_closure_failure_count`
+    - `syntax_defined_rule_count`
+    - `syntax_unresolved_rule_reference_count`
+    - `syntax_unreachable_rules`
+    - `syntax_unreachable_branches`
+    - `syntax_target_debt_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those aggregate syntax-debt fields exactly match the family-status summary
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible syntax-debt proof surface
+  - recorded that the live-status labels did not change
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `git diff --check`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_family_status_syntax_metrics PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate-visible syntax debt:
+    - main SV:
+      - `sv_family_status_systemverilog_syntax_closure_failure_count=0`
+      - `sv_family_status_systemverilog_syntax_defined_rule_count=366`
+      - `sv_family_status_systemverilog_syntax_unresolved_rule_reference_count=0`
+      - `sv_family_status_systemverilog_syntax_unreachable_rules=1`
+      - `sv_family_status_systemverilog_syntax_unreachable_branches=0`
+      - `sv_family_status_systemverilog_syntax_target_debt_count=601`
+    - SV preprocessor:
+      - `sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count=0`
+      - `sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count=71`
+      - `sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count=0`
+      - `sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules=2`
+      - `sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches=3`
+      - `sv_family_status_systemverilog_preprocessor_syntax_target_debt_count=48`
+
 ## 2026-03-16 - Surface SV family status blockers in aggregate sign-off
 ### Context
 Aggregate sign-off already surfaced the computed SV-family status labels and unmet-closure counts, but it still made a reviewer open the family-status sidecar to see what the first blocker actually was. The next clean hardening step was to surface the primary unmet closure criterion directly in aggregate telemetry, alongside the family-status JSON sidecar path, so the normalized status proof is actionable from the aggregate release summary itself.

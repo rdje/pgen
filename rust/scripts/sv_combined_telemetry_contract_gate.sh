@@ -292,11 +292,23 @@ sv_family_status_systemverilog_unmet_closure_criteria_count="$(extract_summary_v
 sv_family_status_systemverilog_primary_unmet_closure_criterion="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_unmet_closure_criterion[0]")"
 sv_family_status_systemverilog_primary_unmet_closure_criterion="${sv_family_status_systemverilog_primary_unmet_closure_criterion:-<none>}"
 sv_family_status_systemverilog_syntax_closure_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_closure_status")"
+sv_family_status_systemverilog_syntax_closure_failure_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_closure_failure_count")"
+sv_family_status_systemverilog_syntax_defined_rule_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_defined_rule_count")"
+sv_family_status_systemverilog_syntax_unresolved_rule_reference_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_unresolved_rule_reference_count")"
+sv_family_status_systemverilog_syntax_unreachable_rules="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_unreachable_rules")"
+sv_family_status_systemverilog_syntax_unreachable_branches="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_unreachable_branches")"
+sv_family_status_systemverilog_syntax_target_debt_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_target_debt_count")"
 sv_family_status_systemverilog_preprocessor="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_status")"
 sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_count")"
 sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criterion[0]")"
 sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion="${sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion:-<none>}"
 sv_family_status_systemverilog_preprocessor_syntax_closure_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_closure_status")"
+sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_closure_failure_count")"
+sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_defined_rule_count")"
+sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_unresolved_rule_reference_count")"
+sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_unreachable_rules")"
+sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_unreachable_branches")"
+sv_family_status_systemverilog_preprocessor_syntax_target_debt_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_target_debt_count")"
 
 assert_equal \
     "main SV replay-gap triage json path" \
@@ -848,6 +860,30 @@ assert_equal \
     "$sv_family_status_systemverilog_syntax_closure_status" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_closure_status")"
 assert_equal \
+    "SV family-status main parser syntax-closure failure count" \
+    "$sv_family_status_systemverilog_syntax_closure_failure_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_closure_failure_count")"
+assert_equal \
+    "SV family-status main parser syntax defined rule count" \
+    "$sv_family_status_systemverilog_syntax_defined_rule_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_defined_rule_count")"
+assert_equal \
+    "SV family-status main parser syntax unresolved rule reference count" \
+    "$sv_family_status_systemverilog_syntax_unresolved_rule_reference_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_unresolved_rule_reference_count")"
+assert_equal \
+    "SV family-status main parser syntax unreachable rules" \
+    "$sv_family_status_systemverilog_syntax_unreachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_unreachable_rules")"
+assert_equal \
+    "SV family-status main parser syntax unreachable branches" \
+    "$sv_family_status_systemverilog_syntax_unreachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_unreachable_branches")"
+assert_equal \
+    "SV family-status main parser syntax target debt count" \
+    "$sv_family_status_systemverilog_syntax_target_debt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_target_debt_count")"
+assert_equal \
     "SV family-status preprocessor label" \
     "$sv_family_status_systemverilog_preprocessor" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor")"
@@ -863,6 +899,30 @@ assert_equal \
     "SV family-status preprocessor syntax-closure status" \
     "$sv_family_status_systemverilog_preprocessor_syntax_closure_status" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_closure_status")"
+assert_equal \
+    "SV family-status preprocessor syntax-closure failure count" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count")"
+assert_equal \
+    "SV family-status preprocessor syntax defined rule count" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count")"
+assert_equal \
+    "SV family-status preprocessor syntax unresolved rule reference count" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count")"
+assert_equal \
+    "SV family-status preprocessor syntax unreachable rules" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules")"
+assert_equal \
+    "SV family-status preprocessor syntax unreachable branches" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches")"
+assert_equal \
+    "SV family-status preprocessor syntax target debt count" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_target_debt_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_target_debt_count")"
 
 {
     echo "SV Combined Telemetry Contract Gate Summary"
@@ -1016,10 +1076,22 @@ assert_equal \
     echo "sv_family_status_systemverilog_unmet_closure_criteria_count: $sv_family_status_systemverilog_unmet_closure_criteria_count"
     echo "sv_family_status_systemverilog_primary_unmet_closure_criterion: $sv_family_status_systemverilog_primary_unmet_closure_criterion"
     echo "sv_family_status_systemverilog_syntax_closure_status: $sv_family_status_systemverilog_syntax_closure_status"
+    echo "sv_family_status_systemverilog_syntax_closure_failure_count: $sv_family_status_systemverilog_syntax_closure_failure_count"
+    echo "sv_family_status_systemverilog_syntax_defined_rule_count: $sv_family_status_systemverilog_syntax_defined_rule_count"
+    echo "sv_family_status_systemverilog_syntax_unresolved_rule_reference_count: $sv_family_status_systemverilog_syntax_unresolved_rule_reference_count"
+    echo "sv_family_status_systemverilog_syntax_unreachable_rules: $sv_family_status_systemverilog_syntax_unreachable_rules"
+    echo "sv_family_status_systemverilog_syntax_unreachable_branches: $sv_family_status_systemverilog_syntax_unreachable_branches"
+    echo "sv_family_status_systemverilog_syntax_target_debt_count: $sv_family_status_systemverilog_syntax_target_debt_count"
     echo "sv_family_status_systemverilog_preprocessor: $sv_family_status_systemverilog_preprocessor"
     echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count"
     echo "sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion: $sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion"
     echo "sv_family_status_systemverilog_preprocessor_syntax_closure_status: $sv_family_status_systemverilog_preprocessor_syntax_closure_status"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count: $sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count: $sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count: $sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules: $sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches: $sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_target_debt_count: $sv_family_status_systemverilog_preprocessor_syntax_target_debt_count"
 } >"$SUMMARY_TXT"
 
 require_nonempty_file "$SUMMARY_TXT"

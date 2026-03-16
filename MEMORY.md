@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-blockers-in-aggregate-sign-off)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-syntax-debt-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,23 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the grammar-level syntax debt metrics behind the shipped SV-family status proof, not just the syntax pass/fail flags:
+  - current bounded aggregate SOTA summary now surfaces main SV:
+    - `sv_family_status_systemverilog_syntax_closure_failure_count=0`
+    - `sv_family_status_systemverilog_syntax_defined_rule_count=366`
+    - `sv_family_status_systemverilog_syntax_unresolved_rule_reference_count=0`
+    - `sv_family_status_systemverilog_syntax_unreachable_rules=1`
+    - `sv_family_status_systemverilog_syntax_unreachable_branches=0`
+    - `sv_family_status_systemverilog_syntax_target_debt_count=601`
+  - current bounded aggregate SOTA summary now surfaces SV preprocessor:
+    - `sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count=0`
+    - `sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count=71`
+    - `sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count=0`
+    - `sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules=2`
+    - `sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches=3`
+    - `sv_family_status_systemverilog_preprocessor_syntax_target_debt_count=48`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate syntax-debt fields match `sv_parser_family_status_gate` exactly.
 - Aggregate sign-off now surfaces the first blocking closure criterion for each shipped SV parser family, not just the normalized status labels and blocker counts:
   - current bounded aggregate SOTA summary now surfaces:
     - `sv_parser_family_status_summary_json=/tmp/pgen_sv_family_status_primary_unmet_fix/work/sota_exit_gate/work/sv_parser_family_status_gate/summary.json`

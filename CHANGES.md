@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-03-16 - Surface SV family syntax debt in aggregate sign-off
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces the grammar-level syntax debt metrics behind the shipped SV-family status proof, not just the syntax status flag. `sota_exit_gate` now records syntax closure failure count, defined rule count, unresolved rule-reference count, unreachable rule count, unreachable branch count, and syntax target debt count for both `systemverilog` and `systemverilog_preprocessor`, and `sv_combined_telemetry_contract_gate` proves those fields match the family-status sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces, for both shipped SV families:
+    - `*_syntax_closure_failure_count`
+    - `*_syntax_defined_rule_count`
+    - `*_syntax_unresolved_rule_reference_count`
+    - `*_syntax_unreachable_rules`
+    - `*_syntax_unreachable_branches`
+    - `*_syntax_target_debt_count`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those aggregate syntax-debt fields exactly match the family-status summary
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible syntax-debt proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `git diff --check`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_family_status_syntax_metrics PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA summary records:
+    - main SV syntax debt:
+      - `sv_family_status_systemverilog_syntax_closure_failure_count=0`
+      - `sv_family_status_systemverilog_syntax_defined_rule_count=366`
+      - `sv_family_status_systemverilog_syntax_unresolved_rule_reference_count=0`
+      - `sv_family_status_systemverilog_syntax_unreachable_rules=1`
+      - `sv_family_status_systemverilog_syntax_unreachable_branches=0`
+      - `sv_family_status_systemverilog_syntax_target_debt_count=601`
+    - SV preprocessor syntax debt:
+      - `sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count=0`
+      - `sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count=71`
+      - `sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_count=0`
+      - `sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules=2`
+      - `sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches=3`
+      - `sv_family_status_systemverilog_preprocessor_syntax_target_debt_count=48`
+
 ## 2026-03-16 - Surface SV family status blockers in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the first blocking closure criterion for each shipped SV parser family, not just the status label and blocker count. `sota_exit_gate` now records the family-status summary JSON path plus the primary unmet criterion string for both `systemverilog` and `systemverilog_preprocessor`, and `sv_combined_telemetry_contract_gate` proves those fields match the family-status sidecar exactly.
