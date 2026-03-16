@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-16 - Surface SV family criteria booleans in aggregate sign-off
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces the exact machine-checked `true`/`false` closure criteria behind both shipped SV family status rows, not just the status labels, blocker strings, and syntax debt metrics. `sota_exit_gate` now records those criteria booleans directly, and `sv_combined_telemetry_contract_gate` proves they match the family-status JSON sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the main-SV criteria booleans:
+    - `sv_family_status_systemverilog_syntax_closure_gate_green`
+    - `sv_family_status_systemverilog_parser_aggregate_contract_green`
+    - `sv_family_status_systemverilog_generation_parser_rejections_zero`
+    - `sv_family_status_systemverilog_replay_shadow_parser_rejections_zero`
+    - `sv_family_status_systemverilog_focused_replay_target_debt_zero`
+  - now surfaces the preprocessor criteria booleans:
+    - `sv_family_status_systemverilog_preprocessor_syntax_closure_gate_green`
+    - `sv_family_status_systemverilog_preprocessor_aggregate_contract_green`
+    - `sv_family_status_systemverilog_preprocessor_reachability_closure_green`
+    - `sv_family_status_systemverilog_preprocessor_parser_rejections_zero`
+    - `sv_family_status_systemverilog_preprocessor_parseability_rejections_zero`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_targets_zero`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_targets_zero`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_rules_full`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_rules_full`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_branches_full`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_branches_full`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now extracts those criteria booleans from `sv_parser_family_status_gate`'s JSON sidecar
+  - now proves all new aggregate-visible boolean fields match that sidecar exactly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible family-status proof surface
+  - recorded that live-status labels did not change
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `git diff --check`
+  - passed
+
 ## 2026-03-16 - Surface full SV family blocker lists in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the full unmet-closure criterion lists for both shipped SV parser families, not just the blocker count and first blocker string. `sota_exit_gate` now records compact JSON arrays for those blocker lists, and `sv_combined_telemetry_contract_gate` proves the arrays match the family-status sidecar exactly.

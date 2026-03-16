@@ -79,6 +79,7 @@ Interpretation note:
 - Aggregate sign-off must also surface the first blocking closure criterion for each shipped SV parser family, not just the blocker counts: `sota_exit_gate` now records the family-status JSON sidecar path plus the primary unmet criterion string for each family, and `sv_combined_telemetry_contract_gate` must prove exact parity for those fields too.
 - Aggregate sign-off must also surface the grammar-level syntax debt metrics behind those family-status rows: defined-rule counts, unresolved reference counts, unreachable rule/branch counts, syntax-closure failure counts, and syntax target debt counts for both shipped SV families must be present in `sota_exit_gate` telemetry and parity-checked by `sv_combined_telemetry_contract_gate`.
 - Aggregate sign-off must also surface the full unmet-closure criterion lists for each shipped SV parser family as compact JSON arrays, not just counts plus the first criterion, and `sv_combined_telemetry_contract_gate` must prove exact parity for those blocker lists against `sv_parser_family_status_gate`.
+- Aggregate sign-off must also surface the exact machine-checked closure-criteria booleans behind each shipped SV family status row, not just the derived label and blocker strings. `sota_exit_gate` must carry those `true`/`false` flags directly, and `sv_combined_telemetry_contract_gate` must prove exact parity against the `criteria` object in `sv_parser_family_status_gate/summary.json`.
 
 ## Pillar Tracker
 

@@ -299,6 +299,11 @@ sv_family_status_systemverilog_syntax_unresolved_rule_reference_count="$(extract
 sv_family_status_systemverilog_syntax_unreachable_rules="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_unreachable_rules")"
 sv_family_status_systemverilog_syntax_unreachable_branches="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_unreachable_branches")"
 sv_family_status_systemverilog_syntax_target_debt_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_target_debt_count")"
+sv_family_status_systemverilog_syntax_closure_gate_green="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.syntax_closure_gate_green' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_parser_aggregate_contract_green="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.parser_aggregate_contract_green' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_generation_parser_rejections_zero="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.generation_parser_rejections_zero' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_replay_shadow_parser_rejections_zero="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.replay_shadow_parser_rejections_zero' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_focused_replay_target_debt_zero="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.focused_replay_target_debt_zero' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_status")"
 sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_count")"
 sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria' "$sv_parser_family_status_summary_json")"
@@ -311,6 +316,17 @@ sv_family_status_systemverilog_preprocessor_syntax_unresolved_rule_reference_cou
 sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_unreachable_rules")"
 sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_unreachable_branches")"
 sv_family_status_systemverilog_preprocessor_syntax_target_debt_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_target_debt_count")"
+sv_family_status_systemverilog_preprocessor_syntax_closure_gate_green="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.syntax_closure_gate_green' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_aggregate_contract_green="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.aggregate_contract_green' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_reachability_closure_green="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_closure_green' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_parser_rejections_zero="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.parser_rejections_zero' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_parseability_rejections_zero="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.parseability_rejections_zero' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_reachability_stage3_targets_zero="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage3_targets_zero' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_reachability_stage4_targets_zero="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage4_targets_zero' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_reachability_stage3_rules_full="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage3_rules_full' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_reachability_stage4_rules_full="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage4_rules_full' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_reachability_stage3_branches_full="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage3_branches_full' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_reachability_stage4_branches_full="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.reachability_stage4_branches_full' "$sv_parser_family_status_summary_json")"
 
 assert_equal \
     "main SV replay-gap triage json path" \
@@ -890,6 +906,26 @@ assert_equal \
     "$sv_family_status_systemverilog_syntax_target_debt_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_target_debt_count")"
 assert_equal \
+    "SV family-status main parser syntax-closure gate green" \
+    "$sv_family_status_systemverilog_syntax_closure_gate_green" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_closure_gate_green")"
+assert_equal \
+    "SV family-status main parser aggregate-contract green" \
+    "$sv_family_status_systemverilog_parser_aggregate_contract_green" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_parser_aggregate_contract_green")"
+assert_equal \
+    "SV family-status main parser generation-rejections zero" \
+    "$sv_family_status_systemverilog_generation_parser_rejections_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_generation_parser_rejections_zero")"
+assert_equal \
+    "SV family-status main parser replay-shadow rejections zero" \
+    "$sv_family_status_systemverilog_replay_shadow_parser_rejections_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_replay_shadow_parser_rejections_zero")"
+assert_equal \
+    "SV family-status main parser focused replay debt zero" \
+    "$sv_family_status_systemverilog_focused_replay_target_debt_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_focused_replay_target_debt_zero")"
+assert_equal \
     "SV family-status preprocessor label" \
     "$sv_family_status_systemverilog_preprocessor" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor")"
@@ -933,6 +969,50 @@ assert_equal \
     "SV family-status preprocessor syntax target debt count" \
     "$sv_family_status_systemverilog_preprocessor_syntax_target_debt_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_target_debt_count")"
+assert_equal \
+    "SV family-status preprocessor syntax-closure gate green" \
+    "$sv_family_status_systemverilog_preprocessor_syntax_closure_gate_green" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_syntax_closure_gate_green")"
+assert_equal \
+    "SV family-status preprocessor aggregate-contract green" \
+    "$sv_family_status_systemverilog_preprocessor_aggregate_contract_green" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_aggregate_contract_green")"
+assert_equal \
+    "SV family-status preprocessor reachability-closure green" \
+    "$sv_family_status_systemverilog_preprocessor_reachability_closure_green" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_closure_green")"
+assert_equal \
+    "SV family-status preprocessor parser-rejections zero" \
+    "$sv_family_status_systemverilog_preprocessor_parser_rejections_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_parser_rejections_zero")"
+assert_equal \
+    "SV family-status preprocessor parseability-rejections zero" \
+    "$sv_family_status_systemverilog_preprocessor_parseability_rejections_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_parseability_rejections_zero")"
+assert_equal \
+    "SV family-status preprocessor reachability stage3 targets zero" \
+    "$sv_family_status_systemverilog_preprocessor_reachability_stage3_targets_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_stage3_targets_zero")"
+assert_equal \
+    "SV family-status preprocessor reachability stage4 targets zero" \
+    "$sv_family_status_systemverilog_preprocessor_reachability_stage4_targets_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_stage4_targets_zero")"
+assert_equal \
+    "SV family-status preprocessor reachability stage3 rules full" \
+    "$sv_family_status_systemverilog_preprocessor_reachability_stage3_rules_full" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_stage3_rules_full")"
+assert_equal \
+    "SV family-status preprocessor reachability stage4 rules full" \
+    "$sv_family_status_systemverilog_preprocessor_reachability_stage4_rules_full" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_stage4_rules_full")"
+assert_equal \
+    "SV family-status preprocessor reachability stage3 branches full" \
+    "$sv_family_status_systemverilog_preprocessor_reachability_stage3_branches_full" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_stage3_branches_full")"
+assert_equal \
+    "SV family-status preprocessor reachability stage4 branches full" \
+    "$sv_family_status_systemverilog_preprocessor_reachability_stage4_branches_full" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_stage4_branches_full")"
 
 {
     echo "SV Combined Telemetry Contract Gate Summary"
@@ -1093,6 +1173,11 @@ assert_equal \
     echo "sv_family_status_systemverilog_syntax_unreachable_rules: $sv_family_status_systemverilog_syntax_unreachable_rules"
     echo "sv_family_status_systemverilog_syntax_unreachable_branches: $sv_family_status_systemverilog_syntax_unreachable_branches"
     echo "sv_family_status_systemverilog_syntax_target_debt_count: $sv_family_status_systemverilog_syntax_target_debt_count"
+    echo "sv_family_status_systemverilog_syntax_closure_gate_green: $sv_family_status_systemverilog_syntax_closure_gate_green"
+    echo "sv_family_status_systemverilog_parser_aggregate_contract_green: $sv_family_status_systemverilog_parser_aggregate_contract_green"
+    echo "sv_family_status_systemverilog_generation_parser_rejections_zero: $sv_family_status_systemverilog_generation_parser_rejections_zero"
+    echo "sv_family_status_systemverilog_replay_shadow_parser_rejections_zero: $sv_family_status_systemverilog_replay_shadow_parser_rejections_zero"
+    echo "sv_family_status_systemverilog_focused_replay_target_debt_zero: $sv_family_status_systemverilog_focused_replay_target_debt_zero"
     echo "sv_family_status_systemverilog_preprocessor: $sv_family_status_systemverilog_preprocessor"
     echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count"
     echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json"
@@ -1104,6 +1189,17 @@ assert_equal \
     echo "sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules: $sv_family_status_systemverilog_preprocessor_syntax_unreachable_rules"
     echo "sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches: $sv_family_status_systemverilog_preprocessor_syntax_unreachable_branches"
     echo "sv_family_status_systemverilog_preprocessor_syntax_target_debt_count: $sv_family_status_systemverilog_preprocessor_syntax_target_debt_count"
+    echo "sv_family_status_systemverilog_preprocessor_syntax_closure_gate_green: $sv_family_status_systemverilog_preprocessor_syntax_closure_gate_green"
+    echo "sv_family_status_systemverilog_preprocessor_aggregate_contract_green: $sv_family_status_systemverilog_preprocessor_aggregate_contract_green"
+    echo "sv_family_status_systemverilog_preprocessor_reachability_closure_green: $sv_family_status_systemverilog_preprocessor_reachability_closure_green"
+    echo "sv_family_status_systemverilog_preprocessor_parser_rejections_zero: $sv_family_status_systemverilog_preprocessor_parser_rejections_zero"
+    echo "sv_family_status_systemverilog_preprocessor_parseability_rejections_zero: $sv_family_status_systemverilog_preprocessor_parseability_rejections_zero"
+    echo "sv_family_status_systemverilog_preprocessor_reachability_stage3_targets_zero: $sv_family_status_systemverilog_preprocessor_reachability_stage3_targets_zero"
+    echo "sv_family_status_systemverilog_preprocessor_reachability_stage4_targets_zero: $sv_family_status_systemverilog_preprocessor_reachability_stage4_targets_zero"
+    echo "sv_family_status_systemverilog_preprocessor_reachability_stage3_rules_full: $sv_family_status_systemverilog_preprocessor_reachability_stage3_rules_full"
+    echo "sv_family_status_systemverilog_preprocessor_reachability_stage4_rules_full: $sv_family_status_systemverilog_preprocessor_reachability_stage4_rules_full"
+    echo "sv_family_status_systemverilog_preprocessor_reachability_stage3_branches_full: $sv_family_status_systemverilog_preprocessor_reachability_stage3_branches_full"
+    echo "sv_family_status_systemverilog_preprocessor_reachability_stage4_branches_full: $sv_family_status_systemverilog_preprocessor_reachability_stage4_branches_full"
 } >"$SUMMARY_TXT"
 
 require_nonempty_file "$SUMMARY_TXT"

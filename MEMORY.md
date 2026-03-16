@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-full-sv-family-blocker-lists-in-aggregate-sign-off)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-criteria-booleans-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,8 +25,28 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
-- Aggregate sign-off now surfaces the full unmet-closure blocker lists for both shipped SV parser families, not just the blocker count and first blocker string:
-  - current bounded aggregate SOTA summary now surfaces:
+- Aggregate sign-off now surfaces the exact machine-checked family-status criteria booleans for both shipped SV parser families in addition to the status rows, blocker lists, and syntax debt metrics:
+  - current family-status JSON sidecar criteria are:
+    - main SV:
+      - `syntax_closure_gate_green=true`
+      - `parser_aggregate_contract_green=true`
+      - `generation_parser_rejections_zero=false`
+      - `replay_shadow_parser_rejections_zero=false`
+      - `focused_replay_target_debt_zero=false`
+    - SV preprocessor:
+      - `syntax_closure_gate_green=true`
+      - `aggregate_contract_green=true`
+      - `reachability_closure_green=true`
+      - `parser_rejections_zero=false`
+      - `parseability_rejections_zero=false`
+      - `reachability_stage3_targets_zero=true`
+      - `reachability_stage4_targets_zero=true`
+      - `reachability_stage3_rules_full=true`
+      - `reachability_stage4_rules_full=true`
+      - `reachability_stage3_branches_full=true`
+      - `reachability_stage4_branches_full=true`
+- Aggregate sign-off still surfaces the full unmet-closure blocker lists for both shipped SV parser families:
+  - current bounded aggregate SOTA summary surfaces:
     - `sv_family_status_systemverilog_unmet_closure_criteria_json=["generation_parser_rejections_total=7 > 0","shadow_parser_rejections_total=16 > 0","focused_replay_target_count=2207 > 0"]`
     - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json=["parseability_parser_rejections_total=24 > 0","parseability_rejected_total=24 > 0"]`
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`

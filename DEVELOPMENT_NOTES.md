@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family criteria booleans in aggregate sign-off
+### Context
+Aggregate sign-off already carried the family-status labels, blocker lists, first blockers, and syntax-debt metrics, but it still did not expose the exact machine-checked closure criteria booleans that produced those rows. The next clean hardening step was to surface those booleans directly so release telemetry can answer not just "what is the status?" but "which closure checks are green right now?" without reopening the family-status sidecar JSON.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now extracts the shipped SV families' criteria booleans from `sv_parser_family_status_gate/summary.json`
+  - now surfaces those boolean fields directly in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now reads the same criteria booleans from the family-status JSON sidecar
+  - now proves exact parity for every new aggregate-visible boolean field
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new aggregate-visible family-status criteria surface
+  - recorded that live-status labels remain unchanged
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `git diff --check`
+  - passed
+
 ## 2026-03-16 - Surface full SV family blocker lists in aggregate sign-off
 ### Context
 Aggregate sign-off already surfaced the blocker count and the first unmet closure criterion for each shipped SV parser family, but it still required opening the family-status sidecar to see the complete blocker list. The next clean hardening step was to surface the full unmet-closure arrays directly in aggregate telemetry so release summaries carry the whole normalized blocker set, not just a truncated leading example.
