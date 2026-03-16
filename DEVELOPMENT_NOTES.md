@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family status contract metadata
+### Context
+Aggregate sign-off already exposed the computed SV-family labels, blocker lists, criteria booleans, progress counts, and per-family proof-surface paths, but it still did not expose the contract metadata of the family-status sidecar itself. The next clean hardening step was to let release telemetry name the exact gate, version, timestamp, live tracker, and `Done` rule that produced those family rows.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now extracts the top-level family-status metadata from `sv_parser_family_status_gate/summary.json`
+  - now surfaces those contract provenance fields directly in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now reads the top-level family-status metadata from `sv_parser_family_status_gate/summary.json`
+  - now proves exact parity for the aggregate-visible contract metadata fields emitted by `sota_exit_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible contract provenance surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family proof-surface provenance paths
 ### Context
 Aggregate sign-off already surfaced the computed family-status labels, blocker lists, syntax debt, criteria booleans, and closure-progress counts, but it still did not expose the exact per-family sidecars that produced those rows. The next clean hardening step was to surface those proof-surface paths directly so release telemetry can point to the concrete syntax-closure, aggregate-contract, and reachability artifacts behind each family status.

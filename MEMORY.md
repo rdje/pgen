@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-proof-surface-provenance-paths)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-contract-metadata)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,12 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the SV-family status sidecar's own contract metadata:
+  - `sv_parser_family_status_gate=sv_parser_family_status_gate`
+  - `sv_parser_family_status_gate_version=1`
+  - `sv_parser_family_status_generated_at_utc=2026-03-16T20:45:51Z`
+  - `sv_parser_family_status_live_tracker_file=/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md`
+  - `sv_parser_family_status_status_rule_done=Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.`
 - Aggregate sign-off now surfaces the exact per-family proof-surface artifact paths behind the shipped SV-family status rows:
   - main SV:
     - `sv_family_status_systemverilog_syntax_closure_summary_json=/Users/richarddje/Documents/github/pgen/rust/target/sv_syntax_closure_gate/summary.json`

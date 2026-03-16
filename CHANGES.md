@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-16 - Surface SV family status contract metadata
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces the SV family-status sidecar's own contract metadata, not just the computed family rows. `sota_exit_gate` carries the family-status gate name, version, timestamp, live-tracker path, and tracked `Done` rule, and `sv_combined_telemetry_contract_gate` proves those aggregate-visible fields match `sv_parser_family_status_gate/summary.json` exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now extracts the top-level family-status metadata from `sv_parser_family_status_gate/summary.json`
+  - now surfaces:
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_gate_version`
+    - `sv_parser_family_status_generated_at_utc`
+    - `sv_parser_family_status_live_tracker_file`
+    - `sv_parser_family_status_status_rule_done`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now extracts top-level metadata from `sv_parser_family_status_gate/summary.json`
+  - now proves exact parity for:
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_gate_version`
+    - `sv_parser_family_status_generated_at_utc`
+    - `sv_parser_family_status_live_tracker_file`
+    - `sv_parser_family_status_status_rule_done`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible family-status contract provenance surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family proof-surface provenance paths
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the exact per-family proof-surface artifact paths behind both shipped SV parser-family status rows. `sota_exit_gate` now records the family-status syntax-closure, parser-aggregate, and reachability sidecar paths directly, and `sv_combined_telemetry_contract_gate` proves those aggregate-visible provenance fields match the family-status JSON sidecar exactly.

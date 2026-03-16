@@ -153,6 +153,33 @@ assert_equal \
     "$sv_parser_family_status_summary_json" \
     "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_json")"
 
+sv_parser_family_status_gate_name="$(jq -r '.gate' "$sv_parser_family_status_summary_json")"
+sv_parser_family_status_gate_version="$(jq -r '.version' "$sv_parser_family_status_summary_json")"
+sv_parser_family_status_generated_at_utc="$(jq -r '.generated_at_utc' "$sv_parser_family_status_summary_json")"
+sv_parser_family_status_live_tracker_file="$(jq -r '.live_tracker_file' "$sv_parser_family_status_summary_json")"
+sv_parser_family_status_status_rule_done="$(jq -r '.status_rule_done' "$sv_parser_family_status_summary_json")"
+
+assert_equal \
+    "SV parser-family status gate name" \
+    "$sv_parser_family_status_gate_name" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_gate")"
+assert_equal \
+    "SV parser-family status gate version" \
+    "$sv_parser_family_status_gate_version" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_gate_version")"
+assert_equal \
+    "SV parser-family status generated_at_utc" \
+    "$sv_parser_family_status_generated_at_utc" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_generated_at_utc")"
+assert_equal \
+    "SV parser-family status live tracker file" \
+    "$sv_parser_family_status_live_tracker_file" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_live_tracker_file")"
+assert_equal \
+    "SV parser-family status Done rule" \
+    "$sv_parser_family_status_status_rule_done" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_status_rule_done")"
+
 sv_replay_gap_target_triage_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_json")"
 sv_replay_gap_target_triage_txt="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_txt")"
 sv_replay_gap_target_unique_rules="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_unique_rules")"
@@ -1084,6 +1111,11 @@ assert_equal \
     echo "sv_preprocessor_reachability_closure_summary_txt: $sv_preprocessor_reachability_summary_txt"
     echo "sv_parser_family_status_summary_txt: $sv_parser_family_status_summary_txt"
     echo "sv_parser_family_status_summary_json: $sv_parser_family_status_summary_json"
+    echo "sv_parser_family_status_gate: $sv_parser_family_status_gate_name"
+    echo "sv_parser_family_status_gate_version: $sv_parser_family_status_gate_version"
+    echo "sv_parser_family_status_generated_at_utc: $sv_parser_family_status_generated_at_utc"
+    echo "sv_parser_family_status_live_tracker_file: $sv_parser_family_status_live_tracker_file"
+    echo "sv_parser_family_status_status_rule_done: $sv_parser_family_status_status_rule_done"
     echo "sv_replay_gap_target_triage_json: $sv_replay_gap_target_triage_json"
     echo "sv_replay_gap_target_triage_txt: $sv_replay_gap_target_triage_txt"
     echo "sv_replay_gap_target_unique_rules: $sv_replay_gap_target_unique_rules"
