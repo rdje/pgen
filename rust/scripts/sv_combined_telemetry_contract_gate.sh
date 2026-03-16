@@ -292,6 +292,9 @@ sv_family_status_systemverilog_unmet_closure_criteria_count="$(extract_summary_v
 sv_family_status_systemverilog_unmet_closure_criteria_json="$(jq -cer '.families[] | select(.family=="systemverilog") | .unmet_closure_criteria' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_primary_unmet_closure_criterion="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_unmet_closure_criterion[0]")"
 sv_family_status_systemverilog_primary_unmet_closure_criterion="${sv_family_status_systemverilog_primary_unmet_closure_criterion:-<none>}"
+sv_family_status_systemverilog_closure_criteria_total_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_closure_criteria_total_count")"
+sv_family_status_systemverilog_closure_criteria_satisfied_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_closure_criteria_satisfied_count")"
+sv_family_status_systemverilog_closure_criteria_unsatisfied_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_closure_criteria_unsatisfied_count")"
 sv_family_status_systemverilog_syntax_closure_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_closure_status")"
 sv_family_status_systemverilog_syntax_closure_failure_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_closure_failure_count")"
 sv_family_status_systemverilog_syntax_defined_rule_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_syntax_defined_rule_count")"
@@ -309,6 +312,9 @@ sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count="$(extr
 sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criterion[0]")"
 sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion="${sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion:-<none>}"
+sv_family_status_systemverilog_preprocessor_closure_criteria_total_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_closure_criteria_total_count")"
+sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_closure_criteria_satisfied_count")"
+sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_closure_criteria_unsatisfied_count")"
 sv_family_status_systemverilog_preprocessor_syntax_closure_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_closure_status")"
 sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_closure_failure_count")"
 sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_syntax_defined_rule_count")"
@@ -874,6 +880,18 @@ assert_equal \
     "$sv_family_status_systemverilog_unmet_closure_criteria_json" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_unmet_closure_criteria_json")"
 assert_equal \
+    "SV family-status main parser closure criteria total count" \
+    "$sv_family_status_systemverilog_closure_criteria_total_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_closure_criteria_total_count")"
+assert_equal \
+    "SV family-status main parser closure criteria satisfied count" \
+    "$sv_family_status_systemverilog_closure_criteria_satisfied_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_closure_criteria_satisfied_count")"
+assert_equal \
+    "SV family-status main parser closure criteria unsatisfied count" \
+    "$sv_family_status_systemverilog_closure_criteria_unsatisfied_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_closure_criteria_unsatisfied_count")"
+assert_equal \
     "SV family-status main parser primary unmet closure criterion" \
     "$sv_family_status_systemverilog_primary_unmet_closure_criterion" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_primary_unmet_closure_criterion")"
@@ -937,6 +955,18 @@ assert_equal \
     "SV family-status preprocessor unmet closure criteria json" \
     "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json")"
+assert_equal \
+    "SV family-status preprocessor closure criteria total count" \
+    "$sv_family_status_systemverilog_preprocessor_closure_criteria_total_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_closure_criteria_total_count")"
+assert_equal \
+    "SV family-status preprocessor closure criteria satisfied count" \
+    "$sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count")"
+assert_equal \
+    "SV family-status preprocessor closure criteria unsatisfied count" \
+    "$sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count")"
 assert_equal \
     "SV family-status preprocessor primary unmet closure criterion" \
     "$sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion" \
@@ -1166,6 +1196,9 @@ assert_equal \
     echo "sv_family_status_systemverilog_unmet_closure_criteria_count: $sv_family_status_systemverilog_unmet_closure_criteria_count"
     echo "sv_family_status_systemverilog_unmet_closure_criteria_json: $sv_family_status_systemverilog_unmet_closure_criteria_json"
     echo "sv_family_status_systemverilog_primary_unmet_closure_criterion: $sv_family_status_systemverilog_primary_unmet_closure_criterion"
+    echo "sv_family_status_systemverilog_closure_criteria_total_count: $sv_family_status_systemverilog_closure_criteria_total_count"
+    echo "sv_family_status_systemverilog_closure_criteria_satisfied_count: $sv_family_status_systemverilog_closure_criteria_satisfied_count"
+    echo "sv_family_status_systemverilog_closure_criteria_unsatisfied_count: $sv_family_status_systemverilog_closure_criteria_unsatisfied_count"
     echo "sv_family_status_systemverilog_syntax_closure_status: $sv_family_status_systemverilog_syntax_closure_status"
     echo "sv_family_status_systemverilog_syntax_closure_failure_count: $sv_family_status_systemverilog_syntax_closure_failure_count"
     echo "sv_family_status_systemverilog_syntax_defined_rule_count: $sv_family_status_systemverilog_syntax_defined_rule_count"
@@ -1182,6 +1215,9 @@ assert_equal \
     echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count"
     echo "sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json"
     echo "sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion: $sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion"
+    echo "sv_family_status_systemverilog_preprocessor_closure_criteria_total_count: $sv_family_status_systemverilog_preprocessor_closure_criteria_total_count"
+    echo "sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count: $sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count"
+    echo "sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count: $sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count"
     echo "sv_family_status_systemverilog_preprocessor_syntax_closure_status: $sv_family_status_systemverilog_preprocessor_syntax_closure_status"
     echo "sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count: $sv_family_status_systemverilog_preprocessor_syntax_closure_failure_count"
     echo "sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count: $sv_family_status_systemverilog_preprocessor_syntax_defined_rule_count"

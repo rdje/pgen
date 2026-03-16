@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family closure-progress counts in aggregate sign-off
+### Context
+After surfacing the exact family-status criteria booleans, aggregate sign-off still did not carry a compact progress ratio for each shipped SV parser family. The next clean hardening step was to let the source-of-truth family-status gate count how many closure criteria are currently satisfied, then promote those counts through aggregate telemetry so release summaries can say not just which booleans are green, but how far each family is from full closure in a machine-checkable way.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - now counts satisfied criteria directly from the same boolean closure checks used to compute each family status
+  - now emits `closure_criteria_total_count`, `closure_criteria_satisfied_count`, and `closure_criteria_unsatisfied_count` in both `summary.json` and `summary.txt`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces those closure-progress counts directly in aggregate telemetry for both shipped SV families
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves exact parity for all new aggregate-visible progress-count fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible closure-progress surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family criteria booleans in aggregate sign-off
 ### Context
 Aggregate sign-off already carried the family-status labels, blocker lists, first blockers, and syntax-debt metrics, but it still did not expose the exact machine-checked closure criteria booleans that produced those rows. The next clean hardening step was to surface those booleans directly so release telemetry can answer not just "what is the status?" but "which closure checks are green right now?" without reopening the family-status sidecar JSON.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-criteria-booleans-in-aggregate-sign-off)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-closure-progress-counts-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,7 +25,10 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
-- Aggregate sign-off now surfaces the exact machine-checked family-status criteria booleans for both shipped SV parser families in addition to the status rows, blocker lists, and syntax debt metrics:
+- Aggregate sign-off now surfaces the machine-checkable closure-progress counts for both shipped SV parser families in addition to the status rows, blocker lists, criteria booleans, and syntax debt metrics:
+  - main SV currently sits at `2/5` satisfied closure criteria
+  - SV preprocessor currently sits at `9/11` satisfied closure criteria
+- Aggregate sign-off now also surfaces the exact machine-checked family-status criteria booleans for both shipped SV parser families:
   - current family-status JSON sidecar criteria are:
     - main SV:
       - `syntax_closure_gate_green=true`

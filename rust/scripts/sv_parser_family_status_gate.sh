@@ -232,6 +232,24 @@ if [[ "$sv_focused_replay_target_count" == "0" ]]; then
     sv_focused_replay_target_debt_zero=true
 fi
 
+sv_closure_criteria_total_count=5
+sv_closure_criteria_satisfied_count=0
+if [[ "$sv_syntax_closure_gate_green" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$sv_aggregate_contract_green" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$sv_generation_parser_rejections_zero" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$sv_shadow_parser_rejections_zero" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$sv_focused_replay_target_debt_zero" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
+
 declare -a sv_unmet=()
 if [[ "$sv_syntax_closure_gate_green" != true ]]; then
     sv_unmet+=("syntax_closure_gate_status=${sv_syntax_status} failure_count=${sv_syntax_failure_count}")
@@ -290,6 +308,42 @@ if fraction_is_full "$svpp_reach_stage3_branches"; then
 fi
 if fraction_is_full "$svpp_reach_stage4_branches"; then
     svpp_stage4_branches_full=true
+fi
+
+svpp_closure_criteria_total_count=11
+svpp_closure_criteria_satisfied_count=0
+if [[ "$svpp_syntax_closure_gate_green" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_aggregate_contract_green" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_reachability_closure_green" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_parser_rejections_zero" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_parseability_rejections_zero" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_stage3_targets_zero" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_stage4_targets_zero" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_stage3_rules_full" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_stage4_rules_full" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_stage3_branches_full" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
+fi
+if [[ "$svpp_stage4_branches_full" == true ]]; then
+    ((svpp_closure_criteria_satisfied_count += 1))
 fi
 
 declare -a svpp_unmet=()
@@ -370,7 +424,10 @@ jq -n \
     --arg sv_focused_replay_covered_reachable_rules "$sv_focused_replay_covered_reachable_rules" \
     --arg sv_focused_replay_covered_reachable_branches "$sv_focused_replay_covered_reachable_branches" \
     --arg sv_replay_gap_target_primary_rule "$sv_replay_gap_target_primary_rule" \
+    --arg sv_closure_criteria_total_count "$sv_closure_criteria_total_count" \
+    --arg sv_closure_criteria_satisfied_count "$sv_closure_criteria_satisfied_count" \
     --argjson sv_syntax_closure_gate_green "$sv_syntax_closure_gate_green" \
+    --argjson sv_aggregate_contract_green "$sv_aggregate_contract_green" \
     --argjson sv_generation_parser_rejections_zero "$sv_generation_parser_rejections_zero" \
     --argjson sv_shadow_parser_rejections_zero "$sv_shadow_parser_rejections_zero" \
     --argjson sv_focused_replay_target_debt_zero "$sv_focused_replay_target_debt_zero" \
@@ -399,7 +456,11 @@ jq -n \
     --arg svpp_reach_stage4_rules "$svpp_reach_stage4_rules" \
     --arg svpp_reach_stage3_branches "$svpp_reach_stage3_branches" \
     --arg svpp_reach_stage4_branches "$svpp_reach_stage4_branches" \
+    --arg svpp_closure_criteria_total_count "$svpp_closure_criteria_total_count" \
+    --arg svpp_closure_criteria_satisfied_count "$svpp_closure_criteria_satisfied_count" \
     --argjson svpp_syntax_closure_gate_green "$svpp_syntax_closure_gate_green" \
+    --argjson svpp_aggregate_contract_green "$svpp_aggregate_contract_green" \
+    --argjson svpp_reachability_closure_green "$svpp_reachability_closure_green" \
     --argjson svpp_parser_rejections_zero "$svpp_parser_rejections_zero" \
     --argjson svpp_parseability_rejections_zero "$svpp_parseability_rejections_zero" \
     --argjson svpp_stage3_targets_zero "$svpp_stage3_targets_zero" \
@@ -425,9 +486,12 @@ jq -n \
             syntax_closure_summary_json: $sv_syntax_summary_json,
             parser_aggregate_summary_txt: $sv_parser_summary_txt
           },
+          closure_criteria_total_count: ($sv_closure_criteria_total_count | tonumber),
+          closure_criteria_satisfied_count: ($sv_closure_criteria_satisfied_count | tonumber),
+          closure_criteria_unsatisfied_count: ($sv_unmet | length),
           criteria: {
             syntax_closure_gate_green: $sv_syntax_closure_gate_green,
-            parser_aggregate_contract_green: true,
+            parser_aggregate_contract_green: $sv_aggregate_contract_green,
             generation_parser_rejections_zero: $sv_generation_parser_rejections_zero,
             replay_shadow_parser_rejections_zero: $sv_shadow_parser_rejections_zero,
             focused_replay_target_debt_zero: $sv_focused_replay_target_debt_zero
@@ -458,10 +522,13 @@ jq -n \
             aggregate_summary_txt: $svpp_aggregate_summary_txt,
             reachability_summary_txt: $svpp_reachability_summary_txt
           },
+          closure_criteria_total_count: ($svpp_closure_criteria_total_count | tonumber),
+          closure_criteria_satisfied_count: ($svpp_closure_criteria_satisfied_count | tonumber),
+          closure_criteria_unsatisfied_count: ($svpp_unmet | length),
           criteria: {
             syntax_closure_gate_green: $svpp_syntax_closure_gate_green,
-            aggregate_contract_green: true,
-            reachability_closure_green: true,
+            aggregate_contract_green: $svpp_aggregate_contract_green,
+            reachability_closure_green: $svpp_reachability_closure_green,
             parser_rejections_zero: $svpp_parser_rejections_zero,
             parseability_rejections_zero: $svpp_parseability_rejections_zero,
             reachability_stage3_targets_zero: $svpp_stage3_targets_zero,
@@ -517,6 +584,9 @@ require_nonempty_file "$SUMMARY_JSON"
     echo "systemverilog_replay_shadow_parser_rejections_total: $sv_shadow_parser_rejections_total"
     echo "systemverilog_focused_replay_target_count: $sv_focused_replay_target_count"
     echo "systemverilog_replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule"
+    echo "systemverilog_closure_criteria_total_count: $sv_closure_criteria_total_count"
+    echo "systemverilog_closure_criteria_satisfied_count: $sv_closure_criteria_satisfied_count"
+    echo "systemverilog_closure_criteria_unsatisfied_count: ${#sv_unmet[@]}"
     echo "systemverilog_unmet_closure_criteria_count: ${#sv_unmet[@]}"
     for idx in "${!sv_unmet[@]}"; do
         echo "systemverilog_unmet_closure_criterion[$idx]: ${sv_unmet[$idx]}"
@@ -540,6 +610,9 @@ require_nonempty_file "$SUMMARY_JSON"
     echo "systemverilog_preprocessor_reachability_stage4_rules: $svpp_reach_stage4_rules"
     echo "systemverilog_preprocessor_reachability_stage3_branches: $svpp_reach_stage3_branches"
     echo "systemverilog_preprocessor_reachability_stage4_branches: $svpp_reach_stage4_branches"
+    echo "systemverilog_preprocessor_closure_criteria_total_count: $svpp_closure_criteria_total_count"
+    echo "systemverilog_preprocessor_closure_criteria_satisfied_count: $svpp_closure_criteria_satisfied_count"
+    echo "systemverilog_preprocessor_closure_criteria_unsatisfied_count: ${#svpp_unmet[@]}"
     echo "systemverilog_preprocessor_unmet_closure_criteria_count: ${#svpp_unmet[@]}"
     for idx in "${!svpp_unmet[@]}"; do
         echo "systemverilog_preprocessor_unmet_closure_criterion[$idx]: ${svpp_unmet[$idx]}"

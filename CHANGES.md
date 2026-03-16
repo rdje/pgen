@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-16 - Surface SV family closure-progress counts in aggregate sign-off
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces the machine-checkable closure-progress counts for both shipped SV parser families, not just the labels, blocker lists, and individual criteria booleans. The family-status gate now emits `satisfied / total / unsatisfied` criteria counts, `sota_exit_gate` records them directly, and `sv_combined_telemetry_contract_gate` proves exact parity end to end.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - now emits per-family:
+    - `closure_criteria_total_count`
+    - `closure_criteria_satisfied_count`
+    - `closure_criteria_unsatisfied_count`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the matching `sv_family_status_*_closure_criteria_{total,satisfied,unsatisfied}_count` fields for both shipped SV families
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now proves those aggregate-visible progress counts match the family-status sidecar exactly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible closure-progress surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family criteria booleans in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the exact machine-checked `true`/`false` closure criteria behind both shipped SV family status rows, not just the status labels, blocker strings, and syntax debt metrics. `sota_exit_gate` now records those criteria booleans directly, and `sv_combined_telemetry_contract_gate` proves they match the family-status JSON sidecar exactly.
