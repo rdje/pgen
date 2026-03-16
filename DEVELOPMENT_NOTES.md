@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family status metrics in aggregate sign-off
+### Context
+Aggregate sign-off already exposed the shipped SV-family labels, blocker lists, syntax debt, criteria booleans, progress counts, tracker alignment, proof-surface paths, and contract metadata, but it still did not expose the source-of-truth family-status metrics that explain those rows numerically. The next clean hardening step was to surface those metric values directly so release telemetry can show the exact parser-rejection, replay-gap, parseability, and reachability numbers that the family-status gate used when it computed `Mostly Done`.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now extracts the `metrics.*` fields from `sv_parser_family_status_gate/summary.json` for both shipped SV parser families
+  - now surfaces those family-status metrics directly in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now reads the same `metrics.*` fields from the family-status JSON sidecar
+  - now proves exact parity for every new aggregate-visible family-status metric field
+  - now emits those fields in its own summary for deterministic inspection
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible family-status metric surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family tracker alignment
 ### Context
 Aggregate sign-off already exposed the computed SV-family rows and the family-status sidecar metadata, but it still did not show the live-tracker statuses that those rows were checked against. The next clean hardening step was to surface the tracker side explicitly, plus a machine-checkable alignment flag, so aggregate telemetry can prove not just the computed state but also that the tracker agrees with it.

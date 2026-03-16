@@ -84,6 +84,7 @@ Interpretation note:
 - Aggregate sign-off must also surface the exact per-family proof-surface artifact paths from `sv_parser_family_status_gate/summary.json`, so each shipped SV family status row can be traced directly to the concrete syntax-closure, aggregate-contract, and reachability sidecars that produced it. `sv_combined_telemetry_contract_gate` must prove exact parity for those provenance fields too.
 - Aggregate sign-off must also surface the SV-family status sidecar's own contract metadata from `sv_parser_family_status_gate/summary.json`, including the gate name, version, generation timestamp, live-tracker path, and tracked `Done` rule. `sv_combined_telemetry_contract_gate` must prove exact parity for those top-level provenance fields too.
 - Aggregate sign-off must also surface the shipped SV-family tracker statuses and tracker-alignment flags from `sv_parser_family_status_gate/summary.json`, so release telemetry shows both the computed family row and the exact live-tracker row it matched. `sv_combined_telemetry_contract_gate` must prove exact parity for those tracker-alignment fields too.
+- Aggregate sign-off must also surface the source-of-truth `metrics.*` fields from `sv_parser_family_status_gate/summary.json`, so release telemetry carries the numeric parser-rejection, replay-gap, parseability, and reachability values behind each shipped SV-family status row. `sv_combined_telemetry_contract_gate` must prove exact parity for those family-status metric fields too.
 
 ## Pillar Tracker
 

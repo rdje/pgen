@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-tracker-alignment)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-metrics)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,27 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the shipped SV-family source-of-truth metric fields directly from `sv_parser_family_status_gate/summary.json`:
+  - main SV:
+    - `sv_family_status_systemverilog_generation_parser_rejections_total=7`
+    - `sv_family_status_systemverilog_replay_shadow_parser_rejections_total=16`
+    - `sv_family_status_systemverilog_focused_replay_target_count=2207`
+    - `sv_family_status_systemverilog_focused_replay_covered_reachable_rules=155`
+    - `sv_family_status_systemverilog_focused_replay_covered_reachable_branches=72`
+    - `sv_family_status_systemverilog_replay_gap_target_primary_rule=property_expr_sv_2017`
+  - SV preprocessor:
+    - `sv_family_status_systemverilog_preprocessor_parseability_parser_rejections_total=24`
+    - `sv_family_status_systemverilog_preprocessor_parseability_rejected_total=24`
+    - `sv_family_status_systemverilog_preprocessor_final_targets=0`
+    - `sv_family_status_systemverilog_preprocessor_covered_reachable_rules=69/69`
+    - `sv_family_status_systemverilog_preprocessor_covered_reachable_branches=47/47`
+    - `sv_family_status_systemverilog_preprocessor_counterexample_primary_stage=target_drive_output_filter`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_targets=0`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_targets=0`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_rules=69/69`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_rules=69/69`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_branches=47/47`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_branches=47/47`
 - Aggregate sign-off now surfaces the shipped SV-family tracker side explicitly:
   - `sv_family_status_systemverilog_tracker_status=Mostly Done`
   - `sv_family_status_systemverilog_tracker_alignment_ok=true`

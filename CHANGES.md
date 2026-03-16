@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-16 - Surface SV family status metrics in aggregate sign-off
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces the family-status sidecar's own metric fields, not just its labels, blocker lists, booleans, tracker alignment, and provenance. `sota_exit_gate` now carries the shipped SV-family metric surface directly, and `sv_combined_telemetry_contract_gate` proves those aggregate-visible values match `sv_parser_family_status_gate/summary.json` exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces main-SV family-status metrics:
+    - `sv_family_status_systemverilog_generation_parser_rejections_total`
+    - `sv_family_status_systemverilog_replay_shadow_parser_rejections_total`
+    - `sv_family_status_systemverilog_focused_replay_target_count`
+    - `sv_family_status_systemverilog_focused_replay_covered_reachable_rules`
+    - `sv_family_status_systemverilog_focused_replay_covered_reachable_branches`
+    - `sv_family_status_systemverilog_replay_gap_target_primary_rule`
+  - now surfaces preprocessor family-status metrics:
+    - `sv_family_status_systemverilog_preprocessor_parseability_parser_rejections_total`
+    - `sv_family_status_systemverilog_preprocessor_parseability_rejected_total`
+    - `sv_family_status_systemverilog_preprocessor_final_targets`
+    - `sv_family_status_systemverilog_preprocessor_covered_reachable_rules`
+    - `sv_family_status_systemverilog_preprocessor_covered_reachable_branches`
+    - `sv_family_status_systemverilog_preprocessor_counterexample_primary_stage`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_targets`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_targets`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_rules`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_rules`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage3_branches`
+    - `sv_family_status_systemverilog_preprocessor_reachability_stage4_branches`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now extracts those metric fields from `sv_parser_family_status_gate/summary.json`
+  - now proves exact parity for all new aggregate-visible family-status metric fields
+  - now emits those metric fields in its own deterministic summary
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible family-status metric surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family tracker alignment
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the tracker-status side of the shipped SV family rows, not just the computed status side. `sv_parser_family_status_gate` now records tracker-alignment booleans, `sota_exit_gate` now carries both tracker statuses and alignment flags, and `sv_combined_telemetry_contract_gate` proves those aggregate-visible fields match the family-status sidecar exactly.
