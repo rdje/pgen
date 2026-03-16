@@ -19741,3 +19741,17 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
   - `systemverilog_preprocessor`
     - `parseability_parser_rejections_total > 0`
     - `parseability_rejected_total > 0`
+
+## 2026-03-16 - Main SV syntax closure folded into family-status proof
+
+- Extended `sv_parser_family_status_gate` so the main `systemverilog` status now depends on:
+  - `sv_syntax_closure_gate`
+  - `sv_parser_aggregate_contract_gate`
+- Added existing-artifact mode for the syntax-closure input as well, so the status gate can validate quickly against already-produced proof states during documentation/telemetry-only increments.
+- Current syntax metrics now carried into the family-status summary:
+  - `systemverilog_syntax_closure_status=pass`
+  - `systemverilog_syntax_defined_rule_count=366`
+  - `systemverilog_syntax_unresolved_rule_reference_count=0`
+  - `systemverilog_syntax_unreachable_rules=1`
+  - `systemverilog_syntax_unreachable_branches=0`
+  - `systemverilog_syntax_target_debt_count=601`

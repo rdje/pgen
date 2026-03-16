@@ -11,10 +11,12 @@ SUMMARY_JSON="$STATE_DIR/summary.json"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
 LIVE_TRACKER_FILE="$ROOT_DIR/LIVE_ACHIEVEMENT_STATUS.md"
 
+SV_SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_syntax_closure_gate.sh"
 SV_PARSER_AGGREGATE_GATE="$RUST_DIR/scripts/sv_parser_aggregate_contract_gate.sh"
 SV_PREPROCESSOR_AGGREGATE_GATE="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate.sh"
 SV_PREPROCESSOR_REACHABILITY_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"
 
+EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}"
 
@@ -91,6 +93,7 @@ run_logged() {
 
 require_tool jq
 require_file "$LIVE_TRACKER_FILE"
+require_file "$SV_SYNTAX_CLOSURE_GATE"
 require_file "$SV_PARSER_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_REACHABILITY_GATE"
@@ -98,9 +101,19 @@ require_file "$SV_PREPROCESSOR_REACHABILITY_GATE"
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
 
+sv_syntax_closure_state_dir="$WORK_DIR/sv_syntax_closure_gate"
 sv_parser_gate_state_dir="$WORK_DIR/sv_parser_aggregate_contract_gate"
 sv_preprocessor_aggregate_state_dir="$WORK_DIR/sv_preprocessor_aggregate_contract_gate"
 sv_preprocessor_reachability_state_dir="$WORK_DIR/sv_preprocessor_reachability_closure_gate"
+
+if [[ -n "$EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR" ]]; then
+    sv_syntax_closure_state_dir="$EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR"
+else
+    run_logged "sv_syntax_closure_gate" \
+        env \
+            PGEN_SV_SYNTAX_CLOSURE_STATE_DIR="$sv_syntax_closure_state_dir" \
+            "$SV_SYNTAX_CLOSURE_GATE"
+fi
 
 if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
     run_logged "sv_parser_aggregate_contract_gate" \
@@ -144,6 +157,17 @@ require_nonempty_file "$sv_parser_summary_txt"
 require_nonempty_file "$sv_preprocessor_aggregate_summary_txt"
 require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
 
+sv_syntax_summary_json="$sv_syntax_closure_state_dir/summary.json"
+require_nonempty_file "$sv_syntax_summary_json"
+
+sv_syntax_status="$(jq -er '.status | strings' "$sv_syntax_summary_json")"
+sv_syntax_failure_count="$(jq -er '.failure_count | numbers' "$sv_syntax_summary_json")"
+sv_syntax_defined_rule_count="$(jq -er '.metrics.defined_rule_count | numbers' "$sv_syntax_summary_json")"
+sv_syntax_unresolved_rule_reference_count="$(jq -er '.metrics.unresolved_rule_reference_count | numbers' "$sv_syntax_summary_json")"
+sv_syntax_unreachable_rules="$(jq -er '.metrics.unreachable_rules | numbers' "$sv_syntax_summary_json")"
+sv_syntax_unreachable_branches="$(jq -er '.metrics.unreachable_branches | numbers' "$sv_syntax_summary_json")"
+sv_syntax_target_debt_count="$(jq -er '.metrics.target_debt_count | numbers' "$sv_syntax_summary_json")"
+
 sv_generation_parser_rejections_total="$(summary_value_from_txt "generation_parser_rejections_total" "$sv_parser_summary_txt")"
 sv_shadow_parser_rejections_total="$(summary_value_from_txt "shadow_parser_rejections_total" "$sv_parser_summary_txt")"
 sv_focused_replay_target_count="$(summary_value_from_txt "focused_replay_target_count" "$sv_parser_summary_txt")"
@@ -165,11 +189,15 @@ svpp_reach_stage4_rules="$(summary_value_from_txt "stage4_covered_reachable_rule
 svpp_reach_stage3_branches="$(summary_value_from_txt "stage3_covered_reachable_branches" "$sv_preprocessor_reachability_summary_txt")"
 svpp_reach_stage4_branches="$(summary_value_from_txt "stage4_covered_reachable_branches" "$sv_preprocessor_reachability_summary_txt")"
 
+sv_syntax_closure_gate_green=false
 sv_aggregate_contract_green=true
 sv_generation_parser_rejections_zero=false
 sv_shadow_parser_rejections_zero=false
 sv_focused_replay_target_debt_zero=false
 
+if [[ "$sv_syntax_status" == "pass" && "$sv_syntax_failure_count" == "0" ]]; then
+    sv_syntax_closure_gate_green=true
+fi
 if [[ "$sv_generation_parser_rejections_total" == "0" ]]; then
     sv_generation_parser_rejections_zero=true
 fi
@@ -181,6 +209,9 @@ if [[ "$sv_focused_replay_target_count" == "0" ]]; then
 fi
 
 declare -a sv_unmet=()
+if [[ "$sv_syntax_closure_gate_green" != true ]]; then
+    sv_unmet+=("syntax_closure_gate_status=${sv_syntax_status} failure_count=${sv_syntax_failure_count}")
+fi
 if [[ "$sv_generation_parser_rejections_zero" != true ]]; then
     sv_unmet+=("generation_parser_rejections_total=${sv_generation_parser_rejections_total} > 0")
 fi
@@ -191,7 +222,7 @@ if [[ "$sv_focused_replay_target_debt_zero" != true ]]; then
     sv_unmet+=("focused_replay_target_count=${sv_focused_replay_target_count} > 0")
 fi
 
-if [[ "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true ]]; then
+if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true ]]; then
     sv_status="Done"
 else
     sv_status="Mostly Done"
@@ -292,6 +323,14 @@ jq -n \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg sv_status "$sv_status" \
     --arg sv_tracker_status "$live_tracker_sv_status" \
+    --arg sv_syntax_summary_json "$sv_syntax_summary_json" \
+    --arg sv_syntax_status "$sv_syntax_status" \
+    --arg sv_syntax_failure_count "$sv_syntax_failure_count" \
+    --arg sv_syntax_defined_rule_count "$sv_syntax_defined_rule_count" \
+    --arg sv_syntax_unresolved_rule_reference_count "$sv_syntax_unresolved_rule_reference_count" \
+    --arg sv_syntax_unreachable_rules "$sv_syntax_unreachable_rules" \
+    --arg sv_syntax_unreachable_branches "$sv_syntax_unreachable_branches" \
+    --arg sv_syntax_target_debt_count "$sv_syntax_target_debt_count" \
     --arg sv_parser_summary_txt "$sv_parser_summary_txt" \
     --arg sv_generation_parser_rejections_total "$sv_generation_parser_rejections_total" \
     --arg sv_shadow_parser_rejections_total "$sv_shadow_parser_rejections_total" \
@@ -299,6 +338,7 @@ jq -n \
     --arg sv_focused_replay_covered_reachable_rules "$sv_focused_replay_covered_reachable_rules" \
     --arg sv_focused_replay_covered_reachable_branches "$sv_focused_replay_covered_reachable_branches" \
     --arg sv_replay_gap_target_primary_rule "$sv_replay_gap_target_primary_rule" \
+    --argjson sv_syntax_closure_gate_green "$sv_syntax_closure_gate_green" \
     --argjson sv_generation_parser_rejections_zero "$sv_generation_parser_rejections_zero" \
     --argjson sv_shadow_parser_rejections_zero "$sv_shadow_parser_rejections_zero" \
     --argjson sv_focused_replay_target_debt_zero "$sv_focused_replay_target_debt_zero" \
@@ -341,15 +381,24 @@ jq -n \
           computed_status: $sv_status,
           live_tracker_status: $sv_tracker_status,
           proof_surfaces: {
+            syntax_closure_summary_json: $sv_syntax_summary_json,
             parser_aggregate_summary_txt: $sv_parser_summary_txt
           },
           criteria: {
+            syntax_closure_gate_green: $sv_syntax_closure_gate_green,
             parser_aggregate_contract_green: true,
             generation_parser_rejections_zero: $sv_generation_parser_rejections_zero,
             replay_shadow_parser_rejections_zero: $sv_shadow_parser_rejections_zero,
             focused_replay_target_debt_zero: $sv_focused_replay_target_debt_zero
           },
           metrics: {
+            syntax_closure_status: $sv_syntax_status,
+            syntax_closure_failure_count: ($sv_syntax_failure_count | tonumber),
+            syntax_defined_rule_count: ($sv_syntax_defined_rule_count | tonumber),
+            syntax_unresolved_rule_reference_count: ($sv_syntax_unresolved_rule_reference_count | tonumber),
+            syntax_unreachable_rules: ($sv_syntax_unreachable_rules | tonumber),
+            syntax_unreachable_branches: ($sv_syntax_unreachable_branches | tonumber),
+            syntax_target_debt_count: ($sv_syntax_target_debt_count | tonumber),
             generation_parser_rejections_total: ($sv_generation_parser_rejections_total | tonumber),
             replay_shadow_parser_rejections_total: ($sv_shadow_parser_rejections_total | tonumber),
             focused_replay_target_count: ($sv_focused_replay_target_count | tonumber),
@@ -407,6 +456,13 @@ require_nonempty_file "$SUMMARY_JSON"
     echo "summary_json: $SUMMARY_JSON"
     echo "systemverilog_status: $sv_status"
     echo "systemverilog_tracker_status: $live_tracker_sv_status"
+    echo "systemverilog_syntax_closure_status: $sv_syntax_status"
+    echo "systemverilog_syntax_closure_failure_count: $sv_syntax_failure_count"
+    echo "systemverilog_syntax_defined_rule_count: $sv_syntax_defined_rule_count"
+    echo "systemverilog_syntax_unresolved_rule_reference_count: $sv_syntax_unresolved_rule_reference_count"
+    echo "systemverilog_syntax_unreachable_rules: $sv_syntax_unreachable_rules"
+    echo "systemverilog_syntax_unreachable_branches: $sv_syntax_unreachable_branches"
+    echo "systemverilog_syntax_target_debt_count: $sv_syntax_target_debt_count"
     echo "systemverilog_generation_parser_rejections_total: $sv_generation_parser_rejections_total"
     echo "systemverilog_replay_shadow_parser_rejections_total: $sv_shadow_parser_rejections_total"
     echo "systemverilog_focused_replay_target_count: $sv_focused_replay_target_count"

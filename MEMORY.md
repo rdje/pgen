@@ -4453,3 +4453,12 @@ Use this file to resume work without replaying full chat history.
   - current computed unmet closure criteria are:
     - main SV: `generation_parser_rejections_total > 0`, `shadow_parser_rejections_total > 0`, `focused_replay_target_count > 0`
     - SV preprocessor: `parseability_parser_rejections_total > 0`, `parseability_rejected_total > 0`
+- 2026-03-16: Strengthened `sv_parser_family_status_gate` again so main-SV status now depends on the grammar-level syntax no-regression proof too:
+  - added `sv_syntax_closure_gate` input plus existing-artifact mode for it
+  - summary now carries:
+    - `systemverilog_syntax_closure_status=pass`
+    - `systemverilog_syntax_defined_rule_count=366`
+    - `systemverilog_syntax_unresolved_rule_reference_count=0`
+    - `systemverilog_syntax_unreachable_rules=1`
+    - `systemverilog_syntax_unreachable_branches=0`
+    - `systemverilog_syntax_target_debt_count=601`

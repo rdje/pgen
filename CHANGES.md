@@ -19683,3 +19683,34 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - `systemverilog`: remains `Mostly Done`
   - `systemverilog_preprocessor`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-16 - Include SV syntax closure in parser-family status proof
+
+- Extended:
+  - `rust/scripts/sv_parser_family_status_gate.sh`
+- Purpose:
+  - make the computed `systemverilog` family status depend on both:
+    - grammar-level syntax no-regression proof (`sv_syntax_closure_gate`)
+    - parser/stimuli aggregate proof (`sv_parser_aggregate_contract_gate`)
+  - keep fast verification possible via existing-artifact mode for:
+    - `sv_syntax_closure_gate`
+    - `sv_parser_aggregate_contract_gate`
+    - `sv_preprocessor_aggregate_contract_gate`
+    - `sv_preprocessor_reachability_closure_gate`
+- Current added main-SV syntax metrics in the status summary:
+  - `systemverilog_syntax_closure_status=pass`
+  - `systemverilog_syntax_defined_rule_count=366`
+  - `systemverilog_syntax_unresolved_rule_reference_count=0`
+  - `systemverilog_syntax_unreachable_rules=1`
+  - `systemverilog_syntax_unreachable_branches=0`
+  - `systemverilog_syntax_target_debt_count=601`
+- Updated:
+  - `rust/scripts/sv_parser_family_status_gate.sh`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `systemverilog_preprocessor`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`
