@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-16 - Surface full SV family blocker lists in aggregate sign-off
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces the full unmet-closure criterion lists for both shipped SV parser families, not just the blocker count and first blocker string. `sota_exit_gate` now records compact JSON arrays for those blocker lists, and `sv_combined_telemetry_contract_gate` proves the arrays match the family-status sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_family_status_systemverilog_unmet_closure_criteria_json`
+    - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now extracts the unmet-closure arrays from the family-status JSON sidecar
+  - now proves the new aggregate blocker-list fields exactly match that sidecar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible blocker-list proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation Results
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `git diff --check`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_family_status_unmet_json PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate SOTA blocker lists:
+    - `sv_family_status_systemverilog_unmet_closure_criteria_json=["generation_parser_rejections_total=7 > 0","shadow_parser_rejections_total=16 > 0","focused_replay_target_count=2207 > 0"]`
+    - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json=["parseability_parser_rejections_total=24 > 0","parseability_rejected_total=24 > 0"]`
+
 ## 2026-03-16 - Surface SV family syntax debt in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the grammar-level syntax debt metrics behind the shipped SV-family status proof, not just the syntax status flag. `sota_exit_gate` now records syntax closure failure count, defined rule count, unresolved rule-reference count, unreachable rule count, unreachable branch count, and syntax target debt count for both `systemverilog` and `systemverilog_preprocessor`, and `sv_combined_telemetry_contract_gate` proves those fields match the family-status sidecar exactly.
