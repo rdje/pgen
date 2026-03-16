@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-parser-family-status-proof-in-aggregate-sign-off)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-blockers-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,13 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces the first blocking closure criterion for each shipped SV parser family, not just the normalized status labels and blocker counts:
+  - current bounded aggregate SOTA summary now surfaces:
+    - `sv_parser_family_status_summary_json=/tmp/pgen_sv_family_status_primary_unmet_fix/work/sota_exit_gate/work/sv_parser_family_status_gate/summary.json`
+    - `sv_family_status_systemverilog_primary_unmet_closure_criterion=generation_parser_rejections_total=7 > 0`
+    - `sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion=parseability_parser_rejections_total=24 > 0`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+    now proves those aggregate-visible blocker strings and the family-status JSON sidecar path match `sv_parser_family_status_gate` exactly.
 - Aggregate sign-off now surfaces the machine-computed SV-family status proof directly instead of forcing separate inspection of the sidecar summary:
   - current bounded aggregate SOTA summary now surfaces:
     - `sv_parser_family_status_summary_txt=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_parser_family_status_gate/summary.txt`

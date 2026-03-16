@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface SV family status blockers in aggregate sign-off
+### Context
+Aggregate sign-off already surfaced the computed SV-family status labels and unmet-closure counts, but it still made a reviewer open the family-status sidecar to see what the first blocker actually was. The next clean hardening step was to surface the primary unmet closure criterion directly in aggregate telemetry, alongside the family-status JSON sidecar path, so the normalized status proof is actionable from the aggregate release summary itself.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - added `summary_value_from_txt_literal` for literal-key extraction where summary keys contain `[0]`
+  - now surfaces:
+    - `sv_parser_family_status_summary_json`
+    - `sv_family_status_systemverilog_primary_unmet_closure_criterion`
+    - `sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now requires the family-status JSON sidecar path
+  - now proves the new aggregate blocker strings exactly match the family-status summary
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible blocker proof surface
+  - recorded that live-status labels are unchanged
+
+### Validation
+- `bash -n rust/scripts/sota_exit_gate.sh`
+  - passed
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - passed
+- `git diff --check`
+  - passed
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_family_status_primary_unmet_fix PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_LRM_PROFILES=2017 make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - passed
+  - current bounded aggregate-visible blocker proof:
+    - `sv_parser_family_status_summary_json=/tmp/pgen_sv_family_status_primary_unmet_fix/work/sota_exit_gate/work/sv_parser_family_status_gate/summary.json`
+    - `sv_family_status_systemverilog_primary_unmet_closure_criterion=generation_parser_rejections_total=7 > 0`
+    - `sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion=parseability_parser_rejections_total=24 > 0`
+
 ## 2026-03-16 - Surface SV parser-family status proof in aggregate sign-off
 ### Context
 The SV-family status gate now computes the authoritative `systemverilog` and `systemverilog_preprocessor` live-status labels from syntax closure plus parser/stimuli proof surfaces, but aggregate sign-off still stopped one layer lower at the raw proof sidecars. The next clean hardening step was to make `sota_exit_gate` surface that computed family-status proof directly, so release telemetry shows the normalized status claim and its unmet-closure counts instead of forcing separate manual correlation.

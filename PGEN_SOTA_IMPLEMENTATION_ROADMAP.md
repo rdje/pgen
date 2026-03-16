@@ -76,6 +76,7 @@ Interpretation note:
 - For the current shipped SV parser families, `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_gate` is the machine-checkable status-alignment proof: it computes family status from the existing proof surfaces, emits unmet closure criteria, and must agree with `LIVE_ACHIEVEMENT_STATUS.md`.
 - That status-alignment proof now includes both grammar-level no-regression surfaces (`sv_syntax_closure_gate` and `sv_preprocessor_syntax_closure_gate`) in addition to the parser/stimuli aggregate surfaces.
 - Aggregate sign-off must surface that computed SV-family status proof too: `sota_exit_gate` now records the family-status sidecar path, both parser-family labels, their unmet-closure counts, and their syntax-closure statuses, and `sv_combined_telemetry_contract_gate` must prove exact parity against `sv_parser_family_status_gate`.
+- Aggregate sign-off must also surface the first blocking closure criterion for each shipped SV parser family, not just the blocker counts: `sota_exit_gate` now records the family-status JSON sidecar path plus the primary unmet criterion string for each family, and `sv_combined_telemetry_contract_gate` must prove exact parity for those fields too.
 
 ## Pillar Tracker
 
