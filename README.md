@@ -16,7 +16,9 @@ PGEN is a production-focused parser and stimuli generator platform.
   - for a deliverable grammar `grammars/foolang.ebnf`, closure expects a generated parser path (`generated/foolang_parser.rs`) plus a stimuli path,
   - that stimuli path may be the default in-memory generator, a generated module artifact (`generated/foolang_stimuli.rs`), or both,
   - when both stimuli forms exist, parity between them is part of the contract,
-  - parser closure requires objective roundtrip and coverage proof for both parsing and stimuli generation rather than narrative confidence.
+  - parser closure requires objective roundtrip and coverage proof for both parsing and stimuli generation rather than narrative confidence,
+  - this doctrine applies to any PGEN EBNF-based parser family with no exception: SystemVerilog, VHDL, regex, annotation grammars, Phase S parser families, and future grammar families are all judged against the same professional-grade closure standard,
+  - the live tracker differs by how much of that common proof doctrine has been landed for a given parser family, not by using different quality bars for different grammars.
 - Support advanced **return annotations** and **semantic annotations** with contract-grade validation.
 - Deliver parser/stimuli quality via deterministic gates, coverage/gap analysis, and closed-loop replay.
 - Treat parser quality as the product:
@@ -50,6 +52,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - parser coverage proof,
   - stimuli-generation coverage/gap proof,
   - and repeatable machine-checkable gates behind every claim.
+  - This is the repository-wide closure doctrine for any PGEN EBNF-based parser, not an SV-only or annotation-only rule.
 
 ## Fast Ramp-Up (Read In This Order)
 1. `README.md` (this file)

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-contract-proof-in-aggregate-signoff)
+Last updated: 2026-03-17 (+0100, task: make-universal-parser-proof-doctrine-explicit)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,10 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- The repository now says this explicitly at project and roadmap level:
+  - any PGEN EBNF-based parser family is judged against the same professional-grade closure doctrine,
+  - that doctrine is not SV-only and not annotation-only,
+  - status differences across parser families reflect landed proof depth, not different quality bars.
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

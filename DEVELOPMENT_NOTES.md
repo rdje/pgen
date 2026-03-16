@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Make universal parser proof doctrine explicit
+### Context
+The repo had already evolved a strong proof-first doctrine in practice, especially around the shipped SV parser families, but that doctrine still risked being read as a local SV standard rather than a universal PGEN parser standard. The next clean documentation step was to make the rule explicit: any EBNF-based parser built by PGEN is expected to converge toward the same professional-grade closure surface.
+
+### Implementation
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - clarified that the parser proof doctrine applies to all PGEN EBNF-based parser families with no exception
+  - clarified that tracker/status differences reflect landed proof depth, not differing quality bars
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added a universal-application rule under parser deliverable proof doctrine
+  - clarified in live-tracking policy that every parser-family row is interpreted against that same common closure bar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the doctrine clarification
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family-status contract proof in aggregate sign-off
 ### Context
 We already had two adjacent proof layers for shipped SV-family status: the producer `sv_parser_family_status_gate`, and the source-side artifact contract `sv_parser_family_status_contract_gate`. Aggregate sign-off still only surfaced the producer sidecar, which meant the release telemetry did not explicitly show whether the sidecar itself had passed its own contract gate. The next clean hardening step was to thread that source-side contract layer through aggregate sign-off and parity-check its key counts too.

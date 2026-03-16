@@ -1,6 +1,6 @@
 # Live Achievement Status
 
-Last updated: 2026-03-16
+Last updated: 2026-03-17
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -25,6 +25,7 @@ This file is the authoritative live tracking view for "where we are now".
 - Use only the four statuses above.
 - Keep "Evidence" concrete and "Left To Close" explicit.
 - Do not mark a row `Done` if its proof surface still depends on a curated/manual construct list where grammar-derived exhaustiveness is expected.
+- Universal parser doctrine: any PGEN EBNF-based parser family is judged against the same professional-grade closure bar. Status differences across parser families reflect different amounts of landed proof, not different quality standards.
 
 ## Live Snapshot
 
@@ -62,6 +63,7 @@ Tracker note (2026-03-16): aggregate sign-off now also exposes the shipped SV-fa
 Tracker note (2026-03-16): aggregate sign-off now also exposes the shipped SV-family source-of-truth metric fields from `sv_parser_family_status_gate/summary.json`, including main-SV `sv_family_status_systemverilog_generation_parser_rejections_total=7`, `sv_family_status_systemverilog_replay_shadow_parser_rejections_total=16`, `sv_family_status_systemverilog_focused_replay_target_count=2207`, `sv_family_status_systemverilog_focused_replay_covered_reachable_rules=155`, `sv_family_status_systemverilog_focused_replay_covered_reachable_branches=72`, `sv_family_status_systemverilog_replay_gap_target_primary_rule=property_expr_sv_2017`, plus preprocessor `sv_family_status_systemverilog_preprocessor_parseability_parser_rejections_total=24`, `sv_family_status_systemverilog_preprocessor_parseability_rejected_total=24`, `sv_family_status_systemverilog_preprocessor_final_targets=0`, `sv_family_status_systemverilog_preprocessor_covered_reachable_rules=69/69`, `sv_family_status_systemverilog_preprocessor_covered_reachable_branches=47/47`, `sv_family_status_systemverilog_preprocessor_counterexample_primary_stage=target_drive_output_filter`, and the stage3/stage4 reachability closure metrics under `sv_family_status_systemverilog_preprocessor_reachability_stage{3,4}_{targets,rules,branches}`. `sv_combined_telemetry_contract_gate` now proves exact parity for those family-status metric fields against the sidecar as well.
 Tracker note (2026-03-16): aggregate sign-off now also exposes machine-readable structured blocker arrays for both shipped SV parser families under `sv_family_status_systemverilog_unmet_closure_criteria_details_json` and `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_details_json`. Each blocker entry now names the closure criterion, the source evidence key, the observed value, the expected value, and the detail string, and `sv_combined_telemetry_contract_gate` now proves exact parity for those arrays against `sv_parser_family_status_gate/summary.json`. The family-status sidecar itself now also records the real computed `tracker_alignment_ok` booleans in JSON instead of hardcoded values.
 Tracker note (2026-03-16): aggregate sign-off now also reuses the source-side `sv_parser_family_status_contract_gate` over the produced family-status sidecar and surfaces its own contract summary directly under `sv_parser_family_status_contract_summary_txt`. The current aggregate-visible contract counts are `family_count=2`; for main SV, `tracker_alignment_ok=true`, `false_criteria_count=3`, `unmet_details_count=3`, `primary_unmet_detail_criterion=generation_parser_rejections_zero`; for the SV preprocessor, `tracker_alignment_ok=true`, `false_criteria_count=2`, `unmet_details_count=2`, `primary_unmet_detail_criterion=parser_rejections_zero`. `sv_combined_telemetry_contract_gate` now proves exact parity for those fields too.
+Tracker note (2026-03-17): the proof-first closure doctrine is now explicitly repository-wide. Any PGEN EBNF-based parser family, including SV, VHDL, regex, annotation grammars, Phase S parser families, and future families, is expected to reach the same objective standard: EBNF-backed parser generation, stimuli support, parser/stimuli roundtrip proof, parser coverage proof, stimuli coverage/gap proof, and machine-checkable gates behind closure claims. The status rows in this file therefore differ only by landed proof depth, not by parser-specific quality bars.
 
 ### Annotation System Status
 

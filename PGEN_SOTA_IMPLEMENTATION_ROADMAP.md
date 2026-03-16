@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-15
+Last updated: 2026-03-17
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -34,6 +34,11 @@ Engine generalization rule:
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.
+
+Universal application rule:
+- this doctrine applies to any PGEN EBNF-based parser family with no exception,
+- current examples include SystemVerilog, SystemVerilog preprocessor, VHDL, regex, annotation grammars, `rtl_const_expr`, the planned `rtl_frontend` generated path, and future Liberty/SDC families,
+- parser-family status differences are allowed only because different families are at different distances from the same closure bar, not because they are held to different standards.
 
 Required deliverable shape:
 - tracked grammar source: `grammars/foolang.ebnf`
@@ -73,6 +78,7 @@ Interpretation note:
 ## Live Tracking Rule
 - `LIVE_ACHIEVEMENT_STATUS.md` is the authoritative live progress surface for current closure state.
 - Update it before every commit whenever a task changes what is done, what is left, or what the next most important gap is.
+- The four-state live tracker must interpret parser-family rows against the universal parser proof doctrine above. In other words, any EBNF-based parser built by PGEN is expected to converge toward the same professional-grade proof surface; `Done` / `Mostly Done` / `In Progress` / `Not Started` only describe how much of that universal standard is actually landed today.
 - For the current shipped SV parser families, `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_gate` is the machine-checkable status-alignment proof: it computes family status from the existing proof surfaces, emits unmet closure criteria, and must agree with `LIVE_ACHIEVEMENT_STATUS.md`.
 - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate` is now the source-side artifact contract for that family-status sidecar: it validates schema shape, tracker alignment, closure-count arithmetic, false-criteria accounting, and structured-blocker parity between `summary.json` and `summary.txt`.
 - Aggregate sign-off must now also reuse that source-side family-status contract gate over the produced sidecar and surface its summary path plus its key contract counts (`family_count`, tracker-alignment booleans, false-criteria counts, unmet-detail counts, and primary unmet-detail criteria for both shipped SV families). `sv_combined_telemetry_contract_gate` must prove exact parity for those contract-summary fields too.

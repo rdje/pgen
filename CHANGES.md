@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-17 - Make universal parser proof doctrine explicit
+### ✅ Achievement Summary
+The repository now states unambiguously that the proof-first professional-grade closure doctrine applies to any PGEN EBNF-based parser family, not just the currently most-developed SV parser families.
+
+### Scope of Changes
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - clarified that the parser proof doctrine is universal across all PGEN EBNF parser families
+  - clarified that tracker differences reflect landed proof depth, not different quality bars
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added an explicit universal-application rule under parser deliverable proof doctrine
+  - added a live-tracking rule clarifying that every parser-family row is interpreted against that same closure bar
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - recorded the universal parser doctrine directly in the tracker policy
+  - added a dated tracker note making that doctrine explicit
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the doctrine clarification for future continuity
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family-status contract proof in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate SV sign-off now reuses the source-side `sv_parser_family_status_contract_gate` and surfaces its contract summary directly. `sota_exit_gate` now carries the contract-summary path plus the key contract counts for both shipped SV parser families, and `sv_combined_telemetry_contract_gate` proves exact parity for those fields end to end.
