@@ -74,7 +74,7 @@ Interpretation note:
 - `LIVE_ACHIEVEMENT_STATUS.md` is the authoritative live progress surface for current closure state.
 - Update it before every commit whenever a task changes what is done, what is left, or what the next most important gap is.
 - For the current shipped SV parser families, `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_gate` is the machine-checkable status-alignment proof: it computes family status from the existing proof surfaces, emits unmet closure criteria, and must agree with `LIVE_ACHIEVEMENT_STATUS.md`.
-- That status-alignment proof now includes the main SystemVerilog grammar-level no-regression surface (`sv_syntax_closure_gate`) in addition to the parser/stimuli aggregate surfaces.
+- That status-alignment proof now includes both grammar-level no-regression surfaces (`sv_syntax_closure_gate` and `sv_preprocessor_syntax_closure_gate`) in addition to the parser/stimuli aggregate surfaces.
 
 ## Pillar Tracker
 

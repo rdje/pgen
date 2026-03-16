@@ -12,11 +12,13 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 LIVE_TRACKER_FILE="$ROOT_DIR/LIVE_ACHIEVEMENT_STATUS.md"
 
 SV_SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_syntax_closure_gate.sh"
+SV_PREPROCESSOR_SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_syntax_closure_gate.sh"
 SV_PARSER_AGGREGATE_GATE="$RUST_DIR/scripts/sv_parser_aggregate_contract_gate.sh"
 SV_PREPROCESSOR_AGGREGATE_GATE="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate.sh"
 SV_PREPROCESSOR_REACHABILITY_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"
 
 EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}"
 
@@ -94,6 +96,7 @@ run_logged() {
 require_tool jq
 require_file "$LIVE_TRACKER_FILE"
 require_file "$SV_SYNTAX_CLOSURE_GATE"
+require_file "$SV_PREPROCESSOR_SYNTAX_CLOSURE_GATE"
 require_file "$SV_PARSER_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_REACHABILITY_GATE"
@@ -102,6 +105,7 @@ mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
 
 sv_syntax_closure_state_dir="$WORK_DIR/sv_syntax_closure_gate"
+sv_preprocessor_syntax_closure_state_dir="$WORK_DIR/sv_preprocessor_syntax_closure_gate"
 sv_parser_gate_state_dir="$WORK_DIR/sv_parser_aggregate_contract_gate"
 sv_preprocessor_aggregate_state_dir="$WORK_DIR/sv_preprocessor_aggregate_contract_gate"
 sv_preprocessor_reachability_state_dir="$WORK_DIR/sv_preprocessor_reachability_closure_gate"
@@ -113,6 +117,15 @@ else
         env \
             PGEN_SV_SYNTAX_CLOSURE_STATE_DIR="$sv_syntax_closure_state_dir" \
             "$SV_SYNTAX_CLOSURE_GATE"
+fi
+
+if [[ -n "$EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR" ]]; then
+    sv_preprocessor_syntax_closure_state_dir="$EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR"
+else
+    run_logged "sv_preprocessor_syntax_closure_gate" \
+        env \
+            PGEN_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$sv_preprocessor_syntax_closure_state_dir" \
+            "$SV_PREPROCESSOR_SYNTAX_CLOSURE_GATE"
 fi
 
 if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
@@ -167,6 +180,17 @@ sv_syntax_unresolved_rule_reference_count="$(jq -er '.metrics.unresolved_rule_re
 sv_syntax_unreachable_rules="$(jq -er '.metrics.unreachable_rules | numbers' "$sv_syntax_summary_json")"
 sv_syntax_unreachable_branches="$(jq -er '.metrics.unreachable_branches | numbers' "$sv_syntax_summary_json")"
 sv_syntax_target_debt_count="$(jq -er '.metrics.target_debt_count | numbers' "$sv_syntax_summary_json")"
+
+svpp_syntax_summary_json="$sv_preprocessor_syntax_closure_state_dir/summary.json"
+require_nonempty_file "$svpp_syntax_summary_json"
+
+svpp_syntax_status="$(jq -er '.status | strings' "$svpp_syntax_summary_json")"
+svpp_syntax_failure_count="$(jq -er '.failure_count | numbers' "$svpp_syntax_summary_json")"
+svpp_syntax_defined_rule_count="$(jq -er '.metrics.defined_rule_count | numbers' "$svpp_syntax_summary_json")"
+svpp_syntax_unresolved_rule_reference_count="$(jq -er '.metrics.unresolved_rule_reference_count | numbers' "$svpp_syntax_summary_json")"
+svpp_syntax_unreachable_rules="$(jq -er '.metrics.unreachable_rules | numbers' "$svpp_syntax_summary_json")"
+svpp_syntax_unreachable_branches="$(jq -er '.metrics.unreachable_branches | numbers' "$svpp_syntax_summary_json")"
+svpp_syntax_target_debt_count="$(jq -er '.metrics.target_debt_count | numbers' "$svpp_syntax_summary_json")"
 
 sv_generation_parser_rejections_total="$(summary_value_from_txt "generation_parser_rejections_total" "$sv_parser_summary_txt")"
 sv_shadow_parser_rejections_total="$(summary_value_from_txt "shadow_parser_rejections_total" "$sv_parser_summary_txt")"
@@ -230,6 +254,7 @@ fi
 
 svpp_aggregate_contract_green=true
 svpp_reachability_closure_green=true
+svpp_syntax_closure_gate_green=false
 svpp_parser_rejections_zero=false
 svpp_parseability_rejections_zero=false
 svpp_stage3_targets_zero=false
@@ -239,6 +264,9 @@ svpp_stage4_rules_full=false
 svpp_stage3_branches_full=false
 svpp_stage4_branches_full=false
 
+if [[ "$svpp_syntax_status" == "pass" && "$svpp_syntax_failure_count" == "0" ]]; then
+    svpp_syntax_closure_gate_green=true
+fi
 if [[ "$svpp_parseability_parser_rejections_total" == "0" ]]; then
     svpp_parser_rejections_zero=true
 fi
@@ -265,6 +293,9 @@ if fraction_is_full "$svpp_reach_stage4_branches"; then
 fi
 
 declare -a svpp_unmet=()
+if [[ "$svpp_syntax_closure_gate_green" != true ]]; then
+    svpp_unmet+=("syntax_closure_gate_status=${svpp_syntax_status} failure_count=${svpp_syntax_failure_count}")
+fi
 if [[ "$svpp_parser_rejections_zero" != true ]]; then
     svpp_unmet+=("parseability_parser_rejections_total=${svpp_parseability_parser_rejections_total} > 0")
 fi
@@ -290,7 +321,8 @@ if [[ "$svpp_stage4_branches_full" != true ]]; then
     svpp_unmet+=("reachability_stage4_covered_reachable_branches=${svpp_reach_stage4_branches} is not full")
 fi
 
-if [[ "$svpp_parser_rejections_zero" == true \
+if [[ "$svpp_syntax_closure_gate_green" == true \
+   && "$svpp_parser_rejections_zero" == true \
    && "$svpp_parseability_rejections_zero" == true \
    && "$svpp_stage3_targets_zero" == true \
    && "$svpp_stage4_targets_zero" == true \
@@ -345,6 +377,14 @@ jq -n \
     --argjson sv_unmet "$sv_unmet_json" \
     --arg svpp_status "$svpp_status" \
     --arg svpp_tracker_status "$live_tracker_svpp_status" \
+    --arg svpp_syntax_summary_json "$svpp_syntax_summary_json" \
+    --arg svpp_syntax_status "$svpp_syntax_status" \
+    --arg svpp_syntax_failure_count "$svpp_syntax_failure_count" \
+    --arg svpp_syntax_defined_rule_count "$svpp_syntax_defined_rule_count" \
+    --arg svpp_syntax_unresolved_rule_reference_count "$svpp_syntax_unresolved_rule_reference_count" \
+    --arg svpp_syntax_unreachable_rules "$svpp_syntax_unreachable_rules" \
+    --arg svpp_syntax_unreachable_branches "$svpp_syntax_unreachable_branches" \
+    --arg svpp_syntax_target_debt_count "$svpp_syntax_target_debt_count" \
     --arg svpp_aggregate_summary_txt "$sv_preprocessor_aggregate_summary_txt" \
     --arg svpp_reachability_summary_txt "$sv_preprocessor_reachability_summary_txt" \
     --arg svpp_parseability_parser_rejections_total "$svpp_parseability_parser_rejections_total" \
@@ -359,6 +399,7 @@ jq -n \
     --arg svpp_reach_stage4_rules "$svpp_reach_stage4_rules" \
     --arg svpp_reach_stage3_branches "$svpp_reach_stage3_branches" \
     --arg svpp_reach_stage4_branches "$svpp_reach_stage4_branches" \
+    --argjson svpp_syntax_closure_gate_green "$svpp_syntax_closure_gate_green" \
     --argjson svpp_parser_rejections_zero "$svpp_parser_rejections_zero" \
     --argjson svpp_parseability_rejections_zero "$svpp_parseability_rejections_zero" \
     --argjson svpp_stage3_targets_zero "$svpp_stage3_targets_zero" \
@@ -413,10 +454,12 @@ jq -n \
           computed_status: $svpp_status,
           live_tracker_status: $svpp_tracker_status,
           proof_surfaces: {
+            syntax_closure_summary_json: $svpp_syntax_summary_json,
             aggregate_summary_txt: $svpp_aggregate_summary_txt,
             reachability_summary_txt: $svpp_reachability_summary_txt
           },
           criteria: {
+            syntax_closure_gate_green: $svpp_syntax_closure_gate_green,
             aggregate_contract_green: true,
             reachability_closure_green: true,
             parser_rejections_zero: $svpp_parser_rejections_zero,
@@ -429,6 +472,13 @@ jq -n \
             reachability_stage4_branches_full: $svpp_stage4_branches_full
           },
           metrics: {
+            syntax_closure_status: $svpp_syntax_status,
+            syntax_closure_failure_count: ($svpp_syntax_failure_count | tonumber),
+            syntax_defined_rule_count: ($svpp_syntax_defined_rule_count | tonumber),
+            syntax_unresolved_rule_reference_count: ($svpp_syntax_unresolved_rule_reference_count | tonumber),
+            syntax_unreachable_rules: ($svpp_syntax_unreachable_rules | tonumber),
+            syntax_unreachable_branches: ($svpp_syntax_unreachable_branches | tonumber),
+            syntax_target_debt_count: ($svpp_syntax_target_debt_count | tonumber),
             parseability_parser_rejections_total: ($svpp_parseability_parser_rejections_total | tonumber),
             parseability_rejected_total: ($svpp_parseability_rejected_total | tonumber),
             final_targets: ($svpp_final_targets | tonumber),
@@ -473,6 +523,13 @@ require_nonempty_file "$SUMMARY_JSON"
     done
     echo "systemverilog_preprocessor_status: $svpp_status"
     echo "systemverilog_preprocessor_tracker_status: $live_tracker_svpp_status"
+    echo "systemverilog_preprocessor_syntax_closure_status: $svpp_syntax_status"
+    echo "systemverilog_preprocessor_syntax_closure_failure_count: $svpp_syntax_failure_count"
+    echo "systemverilog_preprocessor_syntax_defined_rule_count: $svpp_syntax_defined_rule_count"
+    echo "systemverilog_preprocessor_syntax_unresolved_rule_reference_count: $svpp_syntax_unresolved_rule_reference_count"
+    echo "systemverilog_preprocessor_syntax_unreachable_rules: $svpp_syntax_unreachable_rules"
+    echo "systemverilog_preprocessor_syntax_unreachable_branches: $svpp_syntax_unreachable_branches"
+    echo "systemverilog_preprocessor_syntax_target_debt_count: $svpp_syntax_target_debt_count"
     echo "systemverilog_preprocessor_parseability_parser_rejections_total: $svpp_parseability_parser_rejections_total"
     echo "systemverilog_preprocessor_parseability_rejected_total: $svpp_parseability_rejected_total"
     echo "systemverilog_preprocessor_final_targets: $svpp_final_targets"

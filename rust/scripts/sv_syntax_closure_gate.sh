@@ -136,7 +136,7 @@ unresolved_refs_file="$WORK_DIR/${grammar_name}_unresolved_rule_references.txt"
 
 require_file "$grammar_file"
 
-echo "==> SystemVerilog syntax closure gate"
+echo "==> ${grammar_name} syntax closure gate"
 echo "state_dir: $STATE_DIR"
 echo "contract_file: $CONTRACT_FILE"
 echo "contract_version: $contract_version"
@@ -276,7 +276,7 @@ jq -n \
   }' >"$SUMMARY_JSON"
 
 {
-    echo "PGEN SV Syntax Closure Gate Summary"
+    echo "PGEN ${grammar_name} Syntax Closure Gate Summary"
     echo "state_dir: $STATE_DIR"
     echo "contract_file: $CONTRACT_FILE"
     echo "grammar_name: $grammar_name"
@@ -308,11 +308,11 @@ jq -n \
 cat "$SUMMARY_TXT"
 
 if (( failures > 0 )); then
-    echo "❌ SV syntax closure gate failed with ${failures} violation(s):" >&2
+    echo "❌ ${grammar_name} syntax closure gate failed with ${failures} violation(s):" >&2
     for note in "${failure_notes[@]}"; do
         echo "  - $note" >&2
     done
     exit 1
 fi
 
-echo "✅ SV syntax closure gate passed."
+echo "✅ ${grammar_name} syntax closure gate passed."

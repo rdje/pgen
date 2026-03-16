@@ -19755,3 +19755,18 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
   - `systemverilog_syntax_unreachable_rules=1`
   - `systemverilog_syntax_unreachable_branches=0`
   - `systemverilog_syntax_target_debt_count=601`
+
+## 2026-03-16 - Preprocessor syntax closure folded into family-status proof
+
+- Added a checked-in preprocessor syntax-closure gate:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_syntax_closure_gate`
+- Implementation:
+  - `rust/scripts/sv_preprocessor_syntax_closure_gate.sh` is a small wrapper over the existing syntax-closure engine
+  - `rust/test_data/grammar_quality/systemverilog_preprocessor_syntax_closure_contract.json` locks the current no-regression baseline for `grammars/systemverilog_preprocessor.ebnf`
+- Current baseline metrics:
+  - `defined_rule_count=71`
+  - `unresolved_rule_reference_count=0`
+  - `unreachable_rules=2`
+  - `unreachable_branches=3`
+  - `target_debt_count=48`
+- `sv_parser_family_status_gate` now also carries those syntax metrics into the preprocessor family-status summary and requires the syntax-closure gate to stay green before the preprocessor family can ever be promoted to `Done`.

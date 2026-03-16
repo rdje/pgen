@@ -4462,3 +4462,13 @@ Use this file to resume work without replaying full chat history.
     - `systemverilog_syntax_unreachable_rules=1`
     - `systemverilog_syntax_unreachable_branches=0`
     - `systemverilog_syntax_target_debt_count=601`
+- 2026-03-16: Added the matching preprocessor grammar-level no-regression surface and folded it into family-status proof:
+  - new wrapper gate: `sv_preprocessor_syntax_closure_gate`
+  - new contract: `rust/test_data/grammar_quality/systemverilog_preprocessor_syntax_closure_contract.json`
+  - locked baseline:
+    - `defined_rule_count=71`
+    - `unresolved_rule_reference_count=0`
+    - `unreachable_rules=2`
+    - `unreachable_branches=3`
+    - `target_debt_count=48`
+  - `sv_parser_family_status_gate` now also requires this preprocessor syntax-closure surface to stay green for the preprocessor family status.
