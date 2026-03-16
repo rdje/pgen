@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-16 (+0100, task: surface-sv-family-status-metrics)
+Last updated: 2026-03-16 (+0100, task: surface-sv-family-structured-blockers)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -25,6 +25,13 @@ Use this file to resume work without replaying full chat history.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
 
 ## Current Technical Snapshot
+- Aggregate sign-off now surfaces machine-readable structured blocker arrays for both shipped SV parser families:
+  - main SV:
+    - `sv_family_status_systemverilog_unmet_closure_criteria_details_json=[{"criterion":"generation_parser_rejections_zero","evidence_key":"generation_parser_rejections_total","observed":"7","expected":"0",...},{"criterion":"replay_shadow_parser_rejections_zero","evidence_key":"replay_shadow_parser_rejections_total","observed":"16","expected":"0",...},{"criterion":"focused_replay_target_debt_zero","evidence_key":"focused_replay_target_count","observed":"2207","expected":"0",...}]`
+  - SV preprocessor:
+    - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_details_json=[{"criterion":"parser_rejections_zero","evidence_key":"parseability_parser_rejections_total","observed":"24","expected":"0",...},{"criterion":"parseability_rejections_zero","evidence_key":"parseability_rejected_total","observed":"24","expected":"0",...}]`
+  - those arrays are now parity-checked by `sv_combined_telemetry_contract_gate` against `sv_parser_family_status_gate/summary.json`
+- The SV family-status sidecar now records actual computed `tracker_alignment_ok` booleans in `summary.json` instead of hardcoded values.
 - Aggregate sign-off now surfaces the shipped SV-family source-of-truth metric fields directly from `sv_parser_family_status_gate/summary.json`:
   - main SV:
     - `sv_family_status_systemverilog_generation_parser_rejections_total=7`

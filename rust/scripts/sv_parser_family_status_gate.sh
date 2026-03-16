@@ -412,6 +412,7 @@ jq -n \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg sv_status "$sv_status" \
     --arg sv_tracker_status "$live_tracker_sv_status" \
+    --argjson sv_tracker_alignment_ok "$sv_tracker_alignment_ok" \
     --arg sv_syntax_summary_json "$sv_syntax_summary_json" \
     --arg sv_syntax_status "$sv_syntax_status" \
     --arg sv_syntax_failure_count "$sv_syntax_failure_count" \
@@ -437,6 +438,7 @@ jq -n \
     --argjson sv_unmet "$sv_unmet_json" \
     --arg svpp_status "$svpp_status" \
     --arg svpp_tracker_status "$live_tracker_svpp_status" \
+    --argjson svpp_tracker_alignment_ok "$svpp_tracker_alignment_ok" \
     --arg svpp_syntax_summary_json "$svpp_syntax_summary_json" \
     --arg svpp_syntax_status "$svpp_syntax_status" \
     --arg svpp_syntax_failure_count "$svpp_syntax_failure_count" \
@@ -485,7 +487,7 @@ jq -n \
           family: "systemverilog",
           computed_status: $sv_status,
           live_tracker_status: $sv_tracker_status,
-          tracker_alignment_ok: true,
+          tracker_alignment_ok: $sv_tracker_alignment_ok,
           proof_surfaces: {
             syntax_closure_summary_json: $sv_syntax_summary_json,
             parser_aggregate_summary_txt: $sv_parser_summary_txt
@@ -515,13 +517,44 @@ jq -n \
             focused_replay_covered_reachable_branches: ($sv_focused_replay_covered_reachable_branches | tonumber),
             replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule
           },
-          unmet_closure_criteria: $sv_unmet
+          unmet_closure_criteria: $sv_unmet,
+          unmet_closure_criteria_details: (
+            []
+            + (if $sv_syntax_closure_gate_green then [] else [{
+                criterion: "syntax_closure_gate_green",
+                evidence_key: "syntax_closure_status",
+                observed: ("status=" + $sv_syntax_status + " failure_count=" + $sv_syntax_failure_count),
+                expected: "status=pass failure_count=0",
+                detail: ("syntax_closure_gate_status=" + $sv_syntax_status + " failure_count=" + $sv_syntax_failure_count)
+              }] end)
+            + (if $sv_generation_parser_rejections_zero then [] else [{
+                criterion: "generation_parser_rejections_zero",
+                evidence_key: "generation_parser_rejections_total",
+                observed: $sv_generation_parser_rejections_total,
+                expected: "0",
+                detail: ("generation_parser_rejections_total=" + $sv_generation_parser_rejections_total + " > 0")
+              }] end)
+            + (if $sv_shadow_parser_rejections_zero then [] else [{
+                criterion: "replay_shadow_parser_rejections_zero",
+                evidence_key: "replay_shadow_parser_rejections_total",
+                observed: $sv_shadow_parser_rejections_total,
+                expected: "0",
+                detail: ("shadow_parser_rejections_total=" + $sv_shadow_parser_rejections_total + " > 0")
+              }] end)
+            + (if $sv_focused_replay_target_debt_zero then [] else [{
+                criterion: "focused_replay_target_debt_zero",
+                evidence_key: "focused_replay_target_count",
+                observed: $sv_focused_replay_target_count,
+                expected: "0",
+                detail: ("focused_replay_target_count=" + $sv_focused_replay_target_count + " > 0")
+              }] end)
+          )
         },
         {
           family: "systemverilog_preprocessor",
           computed_status: $svpp_status,
           live_tracker_status: $svpp_tracker_status,
-          tracker_alignment_ok: true,
+          tracker_alignment_ok: $svpp_tracker_alignment_ok,
           proof_surfaces: {
             syntax_closure_summary_json: $svpp_syntax_summary_json,
             aggregate_summary_txt: $svpp_aggregate_summary_txt,
@@ -564,12 +597,81 @@ jq -n \
             reachability_stage3_branches: $svpp_reach_stage3_branches,
             reachability_stage4_branches: $svpp_reach_stage4_branches
           },
-          unmet_closure_criteria: $svpp_unmet
+          unmet_closure_criteria: $svpp_unmet,
+          unmet_closure_criteria_details: (
+            []
+            + (if $svpp_syntax_closure_gate_green then [] else [{
+                criterion: "syntax_closure_gate_green",
+                evidence_key: "syntax_closure_status",
+                observed: ("status=" + $svpp_syntax_status + " failure_count=" + $svpp_syntax_failure_count),
+                expected: "status=pass failure_count=0",
+                detail: ("syntax_closure_gate_status=" + $svpp_syntax_status + " failure_count=" + $svpp_syntax_failure_count)
+              }] end)
+            + (if $svpp_parser_rejections_zero then [] else [{
+                criterion: "parser_rejections_zero",
+                evidence_key: "parseability_parser_rejections_total",
+                observed: $svpp_parseability_parser_rejections_total,
+                expected: "0",
+                detail: ("parseability_parser_rejections_total=" + $svpp_parseability_parser_rejections_total + " > 0")
+              }] end)
+            + (if $svpp_parseability_rejections_zero then [] else [{
+                criterion: "parseability_rejections_zero",
+                evidence_key: "parseability_rejected_total",
+                observed: $svpp_parseability_rejected_total,
+                expected: "0",
+                detail: ("parseability_rejected_total=" + $svpp_parseability_rejected_total + " > 0")
+              }] end)
+            + (if $svpp_stage3_targets_zero then [] else [{
+                criterion: "reachability_stage3_targets_zero",
+                evidence_key: "reachability_stage3_targets",
+                observed: $svpp_reach_stage3_targets,
+                expected: "0",
+                detail: ("reachability_stage3_targets=" + $svpp_reach_stage3_targets + " > 0")
+              }] end)
+            + (if $svpp_stage4_targets_zero then [] else [{
+                criterion: "reachability_stage4_targets_zero",
+                evidence_key: "reachability_stage4_targets",
+                observed: $svpp_reach_stage4_targets,
+                expected: "0",
+                detail: ("reachability_stage4_targets=" + $svpp_reach_stage4_targets + " > 0")
+              }] end)
+            + (if $svpp_stage3_rules_full then [] else [{
+                criterion: "reachability_stage3_rules_full",
+                evidence_key: "reachability_stage3_rules",
+                observed: $svpp_reach_stage3_rules,
+                expected: "full",
+                detail: ("reachability_stage3_covered_reachable_rules=" + $svpp_reach_stage3_rules + " is not full")
+              }] end)
+            + (if $svpp_stage4_rules_full then [] else [{
+                criterion: "reachability_stage4_rules_full",
+                evidence_key: "reachability_stage4_rules",
+                observed: $svpp_reach_stage4_rules,
+                expected: "full",
+                detail: ("reachability_stage4_covered_reachable_rules=" + $svpp_reach_stage4_rules + " is not full")
+              }] end)
+            + (if $svpp_stage3_branches_full then [] else [{
+                criterion: "reachability_stage3_branches_full",
+                evidence_key: "reachability_stage3_branches",
+                observed: $svpp_reach_stage3_branches,
+                expected: "full",
+                detail: ("reachability_stage3_covered_reachable_branches=" + $svpp_reach_stage3_branches + " is not full")
+              }] end)
+            + (if $svpp_stage4_branches_full then [] else [{
+                criterion: "reachability_stage4_branches_full",
+                evidence_key: "reachability_stage4_branches",
+                observed: $svpp_reach_stage4_branches,
+                expected: "full",
+                detail: ("reachability_stage4_covered_reachable_branches=" + $svpp_reach_stage4_branches + " is not full")
+              }] end)
+          )
         }
       ]
     }
     ' >"$SUMMARY_JSON"
 require_nonempty_file "$SUMMARY_JSON"
+
+sv_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog") | .unmet_closure_criteria_details' "$SUMMARY_JSON")"
+svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria_details' "$SUMMARY_JSON")"
 
 {
     echo "SV Parser Family Status Gate Summary"
@@ -594,6 +696,7 @@ require_nonempty_file "$SUMMARY_JSON"
     echo "systemverilog_closure_criteria_satisfied_count: $sv_closure_criteria_satisfied_count"
     echo "systemverilog_closure_criteria_unsatisfied_count: ${#sv_unmet[@]}"
     echo "systemverilog_unmet_closure_criteria_count: ${#sv_unmet[@]}"
+    echo "systemverilog_unmet_closure_criteria_details_json: $sv_unmet_details_json"
     for idx in "${!sv_unmet[@]}"; do
         echo "systemverilog_unmet_closure_criterion[$idx]: ${sv_unmet[$idx]}"
     done
@@ -621,6 +724,7 @@ require_nonempty_file "$SUMMARY_JSON"
     echo "systemverilog_preprocessor_closure_criteria_satisfied_count: $svpp_closure_criteria_satisfied_count"
     echo "systemverilog_preprocessor_closure_criteria_unsatisfied_count: ${#svpp_unmet[@]}"
     echo "systemverilog_preprocessor_unmet_closure_criteria_count: ${#svpp_unmet[@]}"
+    echo "systemverilog_preprocessor_unmet_closure_criteria_details_json: $svpp_unmet_details_json"
     for idx in "${!svpp_unmet[@]}"; do
         echo "systemverilog_preprocessor_unmet_closure_criterion[$idx]: ${svpp_unmet[$idx]}"
     done

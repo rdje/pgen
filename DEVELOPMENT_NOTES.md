@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-16 - Surface structured SV family blocker details
+### Context
+Aggregate sign-off already exposed the shipped SV-family blocker counts, first-blocker strings, and full blocker string arrays, but it still did not carry a machine-readable structured blocker surface. The next clean hardening step was to make each unmet closure criterion explicit as an object with a criterion id, evidence key, observed value, expected value, and detail string, so downstream telemetry can consume blocker evidence without parsing human-oriented strings.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - now emits per-family `unmet_closure_criteria_details` arrays in `summary.json`
+  - now exposes those same arrays in `summary.txt` as:
+    - `systemverilog_unmet_closure_criteria_details_json`
+    - `systemverilog_preprocessor_unmet_closure_criteria_details_json`
+  - now records the actual computed `tracker_alignment_ok` booleans in the JSON sidecar instead of hardcoded `true`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the two aggregate-visible structured blocker JSON fields directly in release telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now reads those structured blocker arrays from the family-status sidecar
+  - now proves exact parity for the aggregate-visible `*_details_json` fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger structured blocker surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family status metrics in aggregate sign-off
 ### Context
 Aggregate sign-off already exposed the shipped SV-family labels, blocker lists, syntax debt, criteria booleans, progress counts, tracker alignment, proof-surface paths, and contract metadata, but it still did not expose the source-of-truth family-status metrics that explain those rows numerically. The next clean hardening step was to surface those metric values directly so release telemetry can show the exact parser-rejection, replay-gap, parseability, and reachability numbers that the family-status gate used when it computed `Mostly Done`.

@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-16 - Surface structured SV family blocker details
+### ✅ Achievement Summary
+Aggregate SV sign-off now surfaces machine-readable structured blocker arrays for both shipped SV parser families, not just blocker counts plus free-form strings. `sv_parser_family_status_gate` now emits `unmet_closure_criteria_details` in `summary.json`, `sota_exit_gate` now carries the matching `*_details_json` fields, and `sv_combined_telemetry_contract_gate` proves exact parity end to end.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - now emits per-family `unmet_closure_criteria_details` arrays in `summary.json`
+  - each blocker entry now carries:
+    - `criterion`
+    - `evidence_key`
+    - `observed`
+    - `expected`
+    - `detail`
+  - now emits `systemverilog_unmet_closure_criteria_details_json` and `systemverilog_preprocessor_unmet_closure_criteria_details_json` in `summary.txt`
+  - now records the actual computed `tracker_alignment_ok` booleans in `summary.json` instead of hardcoded `true`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `sv_family_status_systemverilog_unmet_closure_criteria_details_json`
+    - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_details_json`
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now extracts those structured blocker arrays from `sv_parser_family_status_gate/summary.json`
+  - now proves exact parity for both aggregate-visible `*_details_json` fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger structured blocker surface
+  - recorded that live-status labels remain unchanged
+
 ## 2026-03-16 - Surface SV family status metrics in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate SV sign-off now surfaces the family-status sidecar's own metric fields, not just its labels, blocker lists, booleans, tracker alignment, and provenance. `sota_exit_gate` now carries the shipped SV-family metric surface directly, and `sv_combined_telemetry_contract_gate` proves those aggregate-visible values match `sv_parser_family_status_gate/summary.json` exactly.
