@@ -19606,3 +19606,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - Live-status effect:
   - `systemverilog`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-16 - Surface SV preprocessor report paths and totals
+
+- Added end-to-end aggregate visibility for the preprocessor aggregate sidecar's own report paths and bounded parseability totals:
+  - `sv_preprocessor_parseability_report_json`
+  - `sv_preprocessor_gap_stage3_json`
+  - `sv_preprocessor_parseability_attempts_total`
+  - `sv_preprocessor_parseability_accepted_total`
+  - `sv_preprocessor_parseability_rejected_total`
+  - `sv_preprocessor_parseability_parser_rejections_total`
+  - `sv_preprocessor_parseability_counterexamples_captured_total`
+- Updated:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- Purpose:
+  - carry the preprocessor aggregate sidecar's own report paths and bounded parseability totals into aggregate sign-off telemetry
+  - machine-check that aggregate telemetry matches the preprocessor aggregate sidecar exactly
+- Live-status effect:
+  - `systemverilog_preprocessor`: remains `Mostly Done`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

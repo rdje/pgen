@@ -217,6 +217,13 @@ sv_roundtrip_initial_branches="$(extract_summary_value "$sv_roundtrip_summary_tx
 sv_roundtrip_replay_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_covered_reachable_branches")"
 
 svpp_failure_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_preprocessor_failure_context_excerpts")"
+svpp_parseability_report_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_report_json")"
+svpp_gap_stage3_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "gap_stage3_json")"
+svpp_parseability_attempts_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_attempts_total")"
+svpp_parseability_accepted_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_accepted_total")"
+svpp_parseability_rejected_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_rejected_total")"
+svpp_parseability_parser_rejections_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_parser_rejections_total")"
+svpp_parseability_counterexamples_captured_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_counterexamples_captured_total")"
 svpp_counterexample_triage_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_triage_json")"
 svpp_counterexample_triage_txt="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_triage_txt")"
 svpp_counterexample_unique_shrunk_samples="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_shrunk_samples")"
@@ -556,6 +563,34 @@ assert_equal \
     "$svpp_failure_excerpts" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_failure_context_excerpts")"
 assert_equal \
+    "SV preprocessor parseability report json path" \
+    "$svpp_parseability_report_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_parseability_report_json")"
+assert_equal \
+    "SV preprocessor stage3 gap json path" \
+    "$svpp_gap_stage3_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_gap_stage3_json")"
+assert_equal \
+    "SV preprocessor parseability attempts total" \
+    "$svpp_parseability_attempts_total" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_parseability_attempts_total")"
+assert_equal \
+    "SV preprocessor parseability accepted total" \
+    "$svpp_parseability_accepted_total" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_parseability_accepted_total")"
+assert_equal \
+    "SV preprocessor parseability rejected total" \
+    "$svpp_parseability_rejected_total" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_parseability_rejected_total")"
+assert_equal \
+    "SV preprocessor parseability parser rejections total" \
+    "$svpp_parseability_parser_rejections_total" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_parseability_parser_rejections_total")"
+assert_equal \
+    "SV preprocessor parseability counterexamples captured total" \
+    "$svpp_parseability_counterexamples_captured_total" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_parseability_counterexamples_captured_total")"
+assert_equal \
     "SV preprocessor counterexample triage json path" \
     "$svpp_counterexample_triage_json" \
     "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_triage_json")"
@@ -788,6 +823,13 @@ assert_equal \
     echo "sv_roundtrip_initial_covered_reachable_branches: $sv_roundtrip_initial_branches"
     echo "sv_roundtrip_replay_covered_reachable_branches: $sv_roundtrip_replay_branches"
     echo "sv_preprocessor_failure_context_excerpts: $svpp_failure_excerpts"
+    echo "sv_preprocessor_parseability_report_json: $svpp_parseability_report_json"
+    echo "sv_preprocessor_gap_stage3_json: $svpp_gap_stage3_json"
+    echo "sv_preprocessor_parseability_attempts_total: $svpp_parseability_attempts_total"
+    echo "sv_preprocessor_parseability_accepted_total: $svpp_parseability_accepted_total"
+    echo "sv_preprocessor_parseability_rejected_total: $svpp_parseability_rejected_total"
+    echo "sv_preprocessor_parseability_parser_rejections_total: $svpp_parseability_parser_rejections_total"
+    echo "sv_preprocessor_parseability_counterexamples_captured_total: $svpp_parseability_counterexamples_captured_total"
     echo "sv_preprocessor_counterexample_triage_json: $svpp_counterexample_triage_json"
     echo "sv_preprocessor_counterexample_triage_txt: $svpp_counterexample_triage_txt"
     echo "sv_preprocessor_counterexample_unique_shrunk_samples: $svpp_counterexample_unique_shrunk_samples"

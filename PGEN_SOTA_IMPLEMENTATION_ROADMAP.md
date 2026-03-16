@@ -2178,6 +2178,15 @@ Objective: deliver an executable, testable, deterministic preprocessor frontend 
     - `sv_preprocessor_counterexample_unique_failure_line_excerpts=5`
     - `sv_preprocessor_counterexample_unique_failure_context_excerpts=5`
     - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly, so bounded parser-rejection debt is aggregate-visible rather than trapped inside the preprocessor workdir.
+  - Progress (2026-03-16): aggregate `sota_exit_gate` now also surfaces the preprocessor aggregate sidecar's own parseability report path, stage3 gap-report path, and bounded parseability totals directly:
+    - `sv_preprocessor_parseability_report_json`
+    - `sv_preprocessor_gap_stage3_json`
+    - `sv_preprocessor_parseability_attempts_total`
+    - `sv_preprocessor_parseability_accepted_total`
+    - `sv_preprocessor_parseability_rejected_total`
+    - `sv_preprocessor_parseability_parser_rejections_total`
+    - `sv_preprocessor_parseability_counterexamples_captured_total`
+    - `sv_combined_telemetry_contract_gate` now also proves those surfaced aggregate fields match the preprocessor aggregate sidecar exactly.
   - Progress (2026-03-15): aggregate sign-off now also surfaces the dominant preprocessor bounded-debt buckets directly instead of only file paths and unique counts:
     - standalone `sv_preprocessor_aggregate_contract_gate` now records:
       - `counterexample_primary_stage`

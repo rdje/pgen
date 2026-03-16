@@ -19678,3 +19678,17 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
 - Wiring:
   - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_parser_aggregate_contract_gate`
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all six fields
+
+## 2026-03-16 - SV preprocessor report paths and totals in aggregate telemetry
+
+- Extended the aggregate sign-off path to preserve the preprocessor aggregate sidecar's own report paths and bounded parseability totals:
+  - `sv_preprocessor_parseability_report_json`
+  - `sv_preprocessor_gap_stage3_json`
+  - `sv_preprocessor_parseability_attempts_total`
+  - `sv_preprocessor_parseability_accepted_total`
+  - `sv_preprocessor_parseability_rejected_total`
+  - `sv_preprocessor_parseability_parser_rejections_total`
+  - `sv_preprocessor_parseability_counterexamples_captured_total`
+- Wiring:
+  - `rust/scripts/sota_exit_gate.sh` now reads and emits those values from `sv_preprocessor_aggregate_contract_gate`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now asserts exact parity for all seven fields
