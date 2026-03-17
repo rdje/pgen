@@ -244,6 +244,7 @@ help:
 	@echo "  sv_parser_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused SystemVerilog parser evidence surfaces"
 	@echo "  sv_parser_family_status_gate - Compute machine-checkable SV-family status rationale and verify live-tracker alignment"
 	@echo "  sv_parser_family_status_contract_gate - Enforce schema/consistency contract for the SV-family status sidecar"
+	@echo "  regex_parser_family_contract_gate - Enforce combined contract for the current regex family proof surfaces"
 	@echo "  vhdl_parser_family_contract_gate - Enforce combined contract for the current VHDL family proof surfaces"
 	@echo "  vhdl_combined_telemetry_contract_gate - Enforce aggregate VHDL-family telemetry consistency against the VHDL family sidecar"
 	@echo "  vhdl_parser_family_status_gate - Compute machine-checkable VHDL family status rationale and verify live-tracker alignment"
@@ -566,6 +567,12 @@ sv_parser_family_status_contract_gate:
 	@echo "🧪 Running SystemVerilog parser-family status contract gate..."
 	cd $(RUST_DIR) && ./scripts/sv_parser_family_status_contract_gate.sh
 	@echo "✅ SystemVerilog parser-family status contract gate passed."
+
+.PHONY: regex_parser_family_contract_gate
+regex_parser_family_contract_gate:
+	@echo "🧪 Running regex parser-family contract gate..."
+	cd $(RUST_DIR) && ./scripts/regex_parser_family_contract_gate.sh
+	@echo "✅ Regex parser-family contract gate passed."
 
 .PHONY: vhdl_parser_family_contract_gate
 vhdl_parser_family_contract_gate:

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-status-metadata)
+Last updated: 2026-03-17 (+0100, task: add-regex-parser-family-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -181,6 +181,34 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion=quality_parseability_generation_parser_rejections_zero`
     - `vhdl_family_status_contract_vhdl_unmet_closure_criteria_json`
     - `vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json`
+- `regex` now has its first reusable family proof wrapper:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_contract_gate`
+  - validates the current regex family proof surface across:
+    - `ebnf_frontend_gate`
+    - `ebnf_frontend_dual_run_gate`
+    - `ebnf_stimuli_quality_gate`
+  - emits both:
+    - `rust/target/regex_parser_family_contract_gate/summary.txt`
+    - `rust/target/regex_parser_family_contract_gate/summary.json`
+  - current validated regex-family summary:
+    - frontend overall `pass`
+    - dual-run overall `pass`
+    - `raw_ast_status=perl_under_reports`
+    - `perl_rule_count=78`
+    - `rust_rule_count=87`
+    - `raw_ast_missing_on_perl_count=9`
+    - `raw_ast_missing_on_rust_count=0`
+    - stimuli status `pass`
+    - `stimuli_regex_initial_targets=167`
+    - `stimuli_regex_resolved_targets=86`
+    - `stimuli_regex_final_targets=81`
+    - `stimuli_regex_target_attempts=5000`
+    - `stimuli_regex_stage0_successes=12`
+    - `stimuli_regex_stage3_successes=5025`
+  - this is intentionally a first family contract layer only:
+    - `regex` still has no family-status gate,
+    - no aggregate telemetry parity layer,
+    - and no regex-specific realistic-corpus or embedder-facing closure surface yet.
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

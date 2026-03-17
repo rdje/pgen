@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-17 - Add regex parser-family contract gate
+### ✅ Achievement Summary
+The `regex` parser family now has its first reusable machine-checkable family proof wrapper. `regex_parser_family_contract_gate` validates the current regex frontend-readiness, Rust-vs-Perl dual-run, and grammar/stimuli closed-loop surfaces together, with a machine-readable `summary.json` sidecar for later status/telemetry work.
+
+### Scope of Changes
+- Added [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+  - validates the current regex family proof surface over:
+    - `ebnf_frontend_gate`
+    - `ebnf_frontend_dual_run_gate`
+    - `ebnf_stimuli_quality_gate`
+  - emits:
+    - `summary.txt`
+    - `summary.json`
+  - records current measured regex-family evidence including:
+    - frontend overall `pass`
+    - dual-run overall `pass`
+    - raw-AST status `perl_under_reports`
+    - `perl_rule_count=78`
+    - `rust_rule_count=87`
+    - `raw_ast_missing_on_perl_count=9`
+    - `raw_ast_missing_on_rust_count=0`
+    - stimuli status `pass`
+    - `initial_targets=167`
+    - `resolved_targets=86`
+    - `final_targets=81`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new reusable regex-family proof anchor
+  - kept `regex` honestly at `In Progress`
+
 ## 2026-03-17 - Surface VHDL family-status metadata
 ### ✅ Achievement Summary
 Aggregate sign-off now surfaces the VHDL family-status sidecar's own identity and provenance metadata, not just its derived status fields and blocker arrays. `vhdl_combined_telemetry_contract_gate` now proves those aggregate-visible VHDL status-sidecar metadata fields match `vhdl_parser_family_status_gate/summary.json` exactly.

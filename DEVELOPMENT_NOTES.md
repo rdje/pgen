@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add regex parser-family contract gate
+### Context
+The `regex` row was still mostly narrative: it had frontend-readiness, dual-run parity, and closed-loop stimuli evidence, but no dedicated family-level proof wrapper comparable to the first VHDL family contract gate. The next useful step was to package those existing regex proof surfaces into one replayable family gate without overclaiming professional-grade closure.
+
+### Implementation
+- Added [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+  - validates the current regex family proof surface across:
+    - `ebnf_frontend_gate`
+    - `ebnf_frontend_dual_run_gate`
+    - `ebnf_stimuli_quality_gate`
+  - emits both `summary.txt` and machine-readable `summary.json`
+  - keeps the regex story objective:
+    - frontend overall `pass`
+    - dual-run overall `pass`
+    - Rust raw-AST does not under-report relative to Perl (`raw_ast_missing_on_rust_count=0`)
+    - current stimuli closure still leaves bounded debt (`initial_targets=167`, `final_targets=81`)
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `regex_parser_family_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new regex-family proof anchor
+  - kept `regex` at `In Progress`
+
 ## 2026-03-17 - Surface VHDL family-status metadata
 ### Context
 Aggregate sign-off already surfaced the VHDL family-status label, blocker arrays, criterion booleans, and the separate VHDL status-contract metadata. The next missing layer was the VHDL family-status sidecar's own identity and provenance metadata, so the aggregate proof could expose exactly which gate/version generated the sidecar and which tracker/proof-surface context it came from.
