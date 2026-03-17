@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-03-17 - Surface regex family aggregate telemetry
+### ✅ Achievement Summary
+Aggregate sign-off now surfaces the `regex` family contract, regex family-status, and regex family-status contract sidecars directly, and a new `regex_combined_telemetry_contract_gate` proves exact parity for those aggregate-visible fields under checked-in lightweight policy.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now scopes `ebnf_frontend_dual_run` into the aggregate workdir
+  - now reuses the produced regex family sidecars directly
+  - now surfaces:
+    - `regex_parser_family_contract_summary_txt`
+    - `regex_parser_family_contract_summary_json`
+    - `regex_parser_family_status_summary_txt`
+    - `regex_parser_family_status_summary_json`
+    - `regex_parser_family_status_contract_summary_txt`
+    - `regex_parser_family_status_contract_summary_json`
+    - aggregate-visible regex family metrics, regex family-status counts/blocker arrays/criteria booleans, and regex status-contract counts
+- Added [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+  - reruns bounded aggregate sign-off for the regex-family slice
+  - proves exact parity between aggregate-visible regex telemetry and the produced regex contract/status/status-contract sidecars
+- Added [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
+  - checked-in bounded aggregate policy for the regex combined telemetry proof
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `make -C rust SHELL=/opt/homebrew/bin/bash regex_combined_telemetry_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that regex aggregate telemetry parity is now landed
+  - kept `regex` honestly at `In Progress`
+
 ## 2026-03-17 - Add regex parser-family status contract gate
 ### ✅ Achievement Summary
 The `regex` family-status sidecar now has its own source-side contract gate. `regex_parser_family_status_contract_gate` validates the produced `regex_parser_family_status_gate` artifacts for schema shape, tracker alignment, closure-count arithmetic, false-criteria accounting, and parity between `summary.json` and `summary.txt` for the blocker arrays and primary blocker fields.

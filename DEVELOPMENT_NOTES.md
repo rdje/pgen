@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Surface regex family aggregate telemetry
+### Context
+After landing the regex family contract, regex family-status, and regex family-status contract layers, the next missing proof surface was the same aggregate sign-off parity layer already present for SV and VHDL. The regex row should not depend on source-side sidecars alone; `sota_exit_gate` also needs to surface that sidecar stack explicitly and prove its aggregate telemetry matches the source artifacts exactly.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now scopes `ebnf_frontend_dual_run` into the aggregate workdir instead of leaving it only in the default target dir
+  - now reruns and surfaces:
+    - `regex_parser_family_contract_gate`
+    - `regex_parser_family_status_gate`
+    - `regex_parser_family_status_contract_gate`
+  - now emits aggregate-visible regex family metrics, regex family-status fields, blocker arrays, criteria booleans, and regex status-contract counts
+- Added [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+  - runs bounded aggregate sign-off for the regex-family slice
+  - proves exact parity between aggregate telemetry and the produced regex contract/status/status-contract sidecars
+- Added [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
+  - checked-in lightweight aggregate policy for the regex proof slice
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `regex_combined_telemetry_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that regex aggregate telemetry parity is now landed
+  - kept `regex` at `In Progress`
+
 ## 2026-03-17 - Add regex parser-family status contract gate
 ### Context
 After landing the regex family-status sidecar, the next missing layer was the same source-side contract proof the SV and VHDL families already had. The `regex` row should not just be machine-computed; the sidecar itself should also be schema-checked and parity-checked so later aggregate work can depend on it safely.

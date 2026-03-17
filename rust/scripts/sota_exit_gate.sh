@@ -555,8 +555,17 @@ EBNF_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 EBNF_STIMULI_QUALITY_SUMMARY_CSV="<unset>"
 EBNF_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
 EBNF_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
+EBNF_DUAL_RUN_STAGE_STATE_DIR="<unset>"
+EBNF_DUAL_RUN_SUMMARY_TXT="<unset>"
+EBNF_DUAL_RUN_SUMMARY_JSON="<unset>"
 HDL_FRONTEND_READINESS_STAGE_STATE_DIR="<unset>"
 HDL_FRONTEND_READINESS_SUMMARY_CSV="<unset>"
+REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="<not-run>"
+REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON="<not-run>"
+REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT="<not-run>"
+REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON="<not-run>"
+REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<not-run>"
+REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="<not-run>"
 SV_STIMULI_QUALITY_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR="<unset>"
 SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<unset>"
@@ -910,12 +919,19 @@ if [[ "$RUN_EBNF_READINESS" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_EBNF_DUAL_RUN_DIFF" -eq 1 ]]; then
+    EBNF_DUAL_RUN_STAGE_STATE_DIR="${STATE_DIR}/work/ebnf_frontend_dual_run_gate"
+    EBNF_DUAL_RUN_SUMMARY_TXT="${EBNF_DUAL_RUN_STAGE_STATE_DIR}/summary.txt"
+    EBNF_DUAL_RUN_SUMMARY_JSON="${EBNF_DUAL_RUN_STAGE_STATE_DIR}/summary.json"
     if [[ "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
         run_check "ebnf_frontend_dual_run_gate" "required" "strict Perl-vs-Rust EBNF dual-run differential" \
-            make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
+            env \
+                PGEN_EBNF_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
     else
         run_check "ebnf_frontend_dual_run_diff" "informational" "report-only Perl-vs-Rust EBNF dual-run differential" \
-            make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
+            env \
+                PGEN_EBNF_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff
     fi
 fi
 
@@ -2374,6 +2390,183 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
     fi
 fi
 
+if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JSON" && -f "$EBNF_STIMULI_QUALITY_SUMMARY_CSV" ]]; then
+    REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/regex_parser_family_contract_gate"
+    REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="${REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON="${REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.json"
+    if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
+        run_check "regex_parser_family_contract_gate" "required" "strict combined regex-family proof over produced artifacts" \
+            env \
+                PGEN_REGEX_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR="$EBNF_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash regex_parser_family_contract_gate
+    else
+        run_check "regex_parser_family_contract_gate" "informational" "report-only combined regex-family proof over produced artifacts" \
+            env \
+                PGEN_REGEX_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR="$EBNF_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash regex_parser_family_contract_gate
+    fi
+
+    if [[ ! -f "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT" ]]; then
+        REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
+        REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
+        REGEX_FAMILY_FRONTEND_OVERALL="<missing>"
+        REGEX_FAMILY_DUAL_RUN_OVERALL="<missing>"
+        REGEX_FAMILY_DUAL_RUN_RAW_AST_STATUS="<missing>"
+        REGEX_FAMILY_DUAL_RUN_PERL_RULE_COUNT="<missing>"
+        REGEX_FAMILY_DUAL_RUN_RUST_RULE_COUNT="<missing>"
+        REGEX_FAMILY_DUAL_RUN_RAW_AST_MISSING_ON_PERL_COUNT="<missing>"
+        REGEX_FAMILY_DUAL_RUN_RAW_AST_MISSING_ON_RUST_COUNT="<missing>"
+        REGEX_FAMILY_STIMULI_STATUS="<missing>"
+        REGEX_FAMILY_STIMULI_INITIAL_TARGETS="<missing>"
+        REGEX_FAMILY_STIMULI_RESOLVED_TARGETS="<missing>"
+        REGEX_FAMILY_STIMULI_FINAL_TARGETS="<missing>"
+        REGEX_FAMILY_STIMULI_TARGET_ATTEMPTS="<missing>"
+        REGEX_FAMILY_STIMULI_STAGE0_SUCCESSES="<missing>"
+        REGEX_FAMILY_STIMULI_STAGE3_SUCCESSES="<missing>"
+    else
+        REGEX_FAMILY_FRONTEND_OVERALL="$(summary_value_from_txt "frontend_regex_overall" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_DUAL_RUN_OVERALL="$(summary_value_from_txt "dual_run_regex_overall" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_DUAL_RUN_RAW_AST_STATUS="$(summary_value_from_txt "dual_run_regex_raw_ast_status" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_DUAL_RUN_PERL_RULE_COUNT="$(summary_value_from_txt "dual_run_regex_perl_rule_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_DUAL_RUN_RUST_RULE_COUNT="$(summary_value_from_txt "dual_run_regex_rust_rule_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_DUAL_RUN_RAW_AST_MISSING_ON_PERL_COUNT="$(summary_value_from_txt "dual_run_regex_raw_ast_missing_on_perl_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_DUAL_RUN_RAW_AST_MISSING_ON_RUST_COUNT="$(summary_value_from_txt "dual_run_regex_raw_ast_missing_on_rust_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_STATUS="$(summary_value_from_txt "stimuli_regex_status" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_INITIAL_TARGETS="$(summary_value_from_txt "stimuli_regex_initial_targets" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_RESOLVED_TARGETS="$(summary_value_from_txt "stimuli_regex_resolved_targets" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_FINAL_TARGETS="$(summary_value_from_txt "stimuli_regex_final_targets" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_TARGET_ATTEMPTS="$(summary_value_from_txt "stimuli_regex_target_attempts" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_STAGE0_SUCCESSES="$(summary_value_from_txt "stimuli_regex_stage0_successes" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_STAGE3_SUCCESSES="$(summary_value_from_txt "stimuli_regex_stage3_successes" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+    fi
+
+    REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR="${STATE_DIR}/work/regex_parser_family_status_gate"
+    REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT="${REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
+    REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON="${REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.json"
+    if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
+        run_check "regex_parser_family_status_gate" "required" "strict regex family-status proof over produced artifacts" \
+            env \
+                PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash regex_parser_family_status_gate
+    else
+        run_check "regex_parser_family_status_gate" "informational" "report-only regex family-status proof over produced artifacts" \
+            env \
+                PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash regex_parser_family_status_gate
+    fi
+
+    if [[ ! -f "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+        REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_GATE="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_GATE_VERSION="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_GENERATED_AT_UTC="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_LIVE_TRACKER_FILE="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_STATUS_RULE_DONE="<missing>"
+        REGEX_FAMILY_STATUS_REGEX="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_TRACKER_STATUS="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_TRACKER_ALIGNMENT_OK="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_COUNT="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_PRIMARY_UNMET_CLOSURE_CRITERION="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_JSON="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_SATISFIED_COUNT="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_TOTAL_COUNT="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_UNSATISFIED_COUNT="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_GREEN="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FRONTEND_OVERALL_PASS="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_OVERALL_PASS="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_RAW_AST_MISSING_ON_RUST_ZERO="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_STIMULI_STATUS_PASS="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_STIMULI_FINAL_TARGET_DEBT_ZERO="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SURFACE_GREEN="<missing>"
+    else
+        REGEX_PARSER_FAMILY_STATUS_GATE="$(jq -r '.gate' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_PARSER_FAMILY_STATUS_GATE_VERSION="$(jq -r '.version' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_PARSER_FAMILY_STATUS_GENERATED_AT_UTC="$(jq -r '.generated_at_utc' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_PARSER_FAMILY_STATUS_LIVE_TRACKER_FILE="$(jq -r '.live_tracker_file' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_PARSER_FAMILY_STATUS_STATUS_RULE_DONE="$(jq -r '.status_rule_done' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_REGEX="$(summary_value_from_txt "regex_status" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_TRACKER_STATUS="$(summary_value_from_txt "regex_tracker_status" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "regex_tracker_alignment_ok" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "regex_unmet_closure_criteria_count" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_PRIMARY_UNMET_CLOSURE_CRITERION="$(summary_value_from_txt "regex_primary_unmet_closure_criterion" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_JSON="$(summary_value_from_txt "regex_unmet_closure_criteria_json" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON="$(summary_value_from_txt "regex_unmet_closure_criteria_details_json" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_SATISFIED_COUNT="$(summary_value_from_txt "regex_closure_criteria_satisfied_count" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_TOTAL_COUNT="$(summary_value_from_txt "regex_closure_criteria_total_count" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_UNSATISFIED_COUNT="$(summary_value_from_txt "regex_closure_criteria_unsatisfied_count" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_summary_txt' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_summary_json' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_GREEN="$(summary_value_from_txt "regex_family_contract_green" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_FRONTEND_OVERALL_PASS="$(summary_value_from_txt "regex_frontend_overall_pass" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_OVERALL_PASS="$(summary_value_from_txt "regex_dual_run_overall_pass" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_RAW_AST_MISSING_ON_RUST_ZERO="$(summary_value_from_txt "regex_dual_run_raw_ast_missing_on_rust_zero" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_STIMULI_STATUS_PASS="$(summary_value_from_txt "regex_stimuli_status_pass" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_STIMULI_FINAL_TARGET_DEBT_ZERO="$(summary_value_from_txt "regex_stimuli_final_target_debt_zero" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SURFACE_GREEN="$(summary_value_from_txt "regex_formal_exhaustive_closure_surface_green" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+    fi
+
+    REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/regex_parser_family_status_contract_gate"
+    REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="${REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.json"
+    if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
+        run_check "regex_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced regex family-status sidecar" \
+            env \
+                PGEN_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate
+    else
+        run_check "regex_parser_family_status_contract_gate" "informational" "report-only source-side contract proof for the produced regex family-status sidecar" \
+            env \
+                PGEN_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate
+    fi
+
+    if [[ ! -f "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_GATE="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_GATE_VERSION="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_GENERATED_AT_UTC="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_FALSE_CRITERIA_COUNT="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_DETAILS_COUNT="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON="<missing>"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON="<missing>"
+    else
+        REGEX_FAMILY_STATUS_CONTRACT_GATE="$(jq -r '.gate' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_GATE_VERSION="$(jq -r '.version' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_GENERATED_AT_UTC="$(jq -r '.generated_at_utc' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR="$(jq -r '.family_status_state_dir' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON="$(jq -r '.family_status_summary_json' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT="$(jq -r '.family_status_summary_txt' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="$(summary_value_from_txt "family_count" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "regex_tracker_alignment_ok" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "regex_false_criteria_count" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_DETAILS_COUNT="$(summary_value_from_txt "regex_unmet_details_count" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION="$(summary_value_from_txt "regex_primary_unmet_detail_criterion" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON="$(summary_value_from_txt "regex_unmet_closure_criteria_json" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON="$(summary_value_from_txt "regex_unmet_closure_criteria_details_json" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+    fi
+fi
+
 {
     echo "PGEN SOTA Exit Gate Summary"
     echo "state_dir: $STATE_DIR"
@@ -2884,6 +3077,67 @@ fi
         echo "vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_PRIMARY_UNMET_DETAIL_CRITERION"
         echo "vhdl_family_status_contract_vhdl_unmet_closure_criteria_json: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_JSON"
         echo "vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_DETAILS_JSON"
+    fi
+    if [[ -f "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT" ]]; then
+        echo
+        echo "Regex Family Telemetry"
+        echo "regex_parser_family_contract_summary_txt: $REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT"
+        echo "regex_parser_family_contract_summary_json: $REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON"
+        echo "regex_family_frontend_overall: $REGEX_FAMILY_FRONTEND_OVERALL"
+        echo "regex_family_dual_run_overall: $REGEX_FAMILY_DUAL_RUN_OVERALL"
+        echo "regex_family_dual_run_raw_ast_status: $REGEX_FAMILY_DUAL_RUN_RAW_AST_STATUS"
+        echo "regex_family_dual_run_perl_rule_count: $REGEX_FAMILY_DUAL_RUN_PERL_RULE_COUNT"
+        echo "regex_family_dual_run_rust_rule_count: $REGEX_FAMILY_DUAL_RUN_RUST_RULE_COUNT"
+        echo "regex_family_dual_run_raw_ast_missing_on_perl_count: $REGEX_FAMILY_DUAL_RUN_RAW_AST_MISSING_ON_PERL_COUNT"
+        echo "regex_family_dual_run_raw_ast_missing_on_rust_count: $REGEX_FAMILY_DUAL_RUN_RAW_AST_MISSING_ON_RUST_COUNT"
+        echo "regex_family_stimuli_status: $REGEX_FAMILY_STIMULI_STATUS"
+        echo "regex_family_stimuli_initial_targets: $REGEX_FAMILY_STIMULI_INITIAL_TARGETS"
+        echo "regex_family_stimuli_resolved_targets: $REGEX_FAMILY_STIMULI_RESOLVED_TARGETS"
+        echo "regex_family_stimuli_final_targets: $REGEX_FAMILY_STIMULI_FINAL_TARGETS"
+        echo "regex_family_stimuli_target_attempts: $REGEX_FAMILY_STIMULI_TARGET_ATTEMPTS"
+        echo "regex_family_stimuli_stage0_successes: $REGEX_FAMILY_STIMULI_STAGE0_SUCCESSES"
+        echo "regex_family_stimuli_stage3_successes: $REGEX_FAMILY_STIMULI_STAGE3_SUCCESSES"
+        echo "regex_parser_family_status_summary_txt: $REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT"
+        echo "regex_parser_family_status_summary_json: $REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON"
+        echo "regex_parser_family_status_gate: $REGEX_PARSER_FAMILY_STATUS_GATE"
+        echo "regex_parser_family_status_gate_version: $REGEX_PARSER_FAMILY_STATUS_GATE_VERSION"
+        echo "regex_parser_family_status_generated_at_utc: $REGEX_PARSER_FAMILY_STATUS_GENERATED_AT_UTC"
+        echo "regex_parser_family_status_live_tracker_file: $REGEX_PARSER_FAMILY_STATUS_LIVE_TRACKER_FILE"
+        echo "regex_parser_family_status_status_rule_done: $REGEX_PARSER_FAMILY_STATUS_STATUS_RULE_DONE"
+        echo "regex_family_status_regex: $REGEX_FAMILY_STATUS_REGEX"
+        echo "regex_family_status_regex_tracker_status: $REGEX_FAMILY_STATUS_REGEX_TRACKER_STATUS"
+        echo "regex_family_status_regex_tracker_alignment_ok: $REGEX_FAMILY_STATUS_REGEX_TRACKER_ALIGNMENT_OK"
+        echo "regex_family_status_regex_unmet_closure_criteria_count: $REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_COUNT"
+        echo "regex_family_status_regex_primary_unmet_closure_criterion: $REGEX_FAMILY_STATUS_REGEX_PRIMARY_UNMET_CLOSURE_CRITERION"
+        echo "regex_family_status_regex_unmet_closure_criteria_json: $REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_JSON"
+        echo "regex_family_status_regex_unmet_closure_criteria_details_json: $REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON"
+        echo "regex_family_status_regex_closure_criteria_satisfied_count: $REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_SATISFIED_COUNT"
+        echo "regex_family_status_regex_closure_criteria_total_count: $REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_TOTAL_COUNT"
+        echo "regex_family_status_regex_closure_criteria_unsatisfied_count: $REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_UNSATISFIED_COUNT"
+        echo "regex_family_status_regex_family_contract_summary_txt: $REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT"
+        echo "regex_family_status_regex_family_contract_summary_json: $REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON"
+        echo "regex_family_status_regex_family_contract_green: $REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_GREEN"
+        echo "regex_family_status_regex_frontend_overall_pass: $REGEX_FAMILY_STATUS_REGEX_FRONTEND_OVERALL_PASS"
+        echo "regex_family_status_regex_dual_run_overall_pass: $REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_OVERALL_PASS"
+        echo "regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero: $REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_RAW_AST_MISSING_ON_RUST_ZERO"
+        echo "regex_family_status_regex_stimuli_status_pass: $REGEX_FAMILY_STATUS_REGEX_STIMULI_STATUS_PASS"
+        echo "regex_family_status_regex_stimuli_final_target_debt_zero: $REGEX_FAMILY_STATUS_REGEX_STIMULI_FINAL_TARGET_DEBT_ZERO"
+        echo "regex_family_status_regex_formal_exhaustive_closure_surface_green: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SURFACE_GREEN"
+        echo "regex_parser_family_status_contract_summary_txt: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT"
+        echo "regex_parser_family_status_contract_summary_json: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON"
+        echo "regex_family_status_contract_gate: $REGEX_FAMILY_STATUS_CONTRACT_GATE"
+        echo "regex_family_status_contract_gate_version: $REGEX_FAMILY_STATUS_CONTRACT_GATE_VERSION"
+        echo "regex_family_status_contract_generated_at_utc: $REGEX_FAMILY_STATUS_CONTRACT_GENERATED_AT_UTC"
+        echo "regex_family_status_contract_family_status_state_dir: $REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR"
+        echo "regex_family_status_contract_family_status_summary_json: $REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON"
+        echo "regex_family_status_contract_family_status_summary_txt: $REGEX_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT"
+        echo "regex_family_status_contract_family_count: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT"
+        echo "regex_family_status_contract_regex_tracker_alignment_ok: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK"
+        echo "regex_family_status_contract_regex_false_criteria_count: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_FALSE_CRITERIA_COUNT"
+        echo "regex_family_status_contract_regex_unmet_details_count: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_DETAILS_COUNT"
+        echo "regex_family_status_contract_regex_primary_unmet_detail_criterion: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION"
+        echo "regex_family_status_contract_regex_unmet_closure_criteria_json: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON"
+        echo "regex_family_status_contract_regex_unmet_closure_criteria_details_json: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON"
     fi
 } >"$SUMMARY_TXT"
 

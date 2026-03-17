@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-regex-parser-family-status-gate)
+Last updated: 2026-03-17 (+0100, task: add-regex-combined-telemetry-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -205,9 +205,9 @@ Use this file to resume work without replaying full chat history.
     - `stimuli_regex_target_attempts=5000`
     - `stimuli_regex_stage0_successes=12`
     - `stimuli_regex_stage3_successes=5025`
-  - this is intentionally a first family contract layer only:
-    - `regex` still has no aggregate telemetry parity layer,
-    - and no regex-specific realistic-corpus or embedder-facing closure surface yet.
+  - this is intentionally still below professional-grade regex closure:
+    - `regex` still has no parser-backed realistic-corpus program,
+    - and no regex-specific embedder-facing or exhaustive-closure surface yet.
 - `regex` now also has a conservative machine-checkable family-status proof:
   - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_gate`
   - computes the `regex` row from the source-side `regex_parser_family_contract_gate` surface
@@ -237,8 +237,38 @@ Use this file to resume work without replaying full chat history.
     - `regex_false_criteria_count=2`
     - `regex_unmet_details_count=2`
     - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
-  - this closes the source-side regex status-sidecar contract layer,
-  - but `regex` still lacks aggregate telemetry parity and later professional-grade closure surfaces.
+  - this closes the source-side regex status-sidecar contract layer.
+- `regex` now also has aggregate telemetry parity over that sidecar stack:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_combined_telemetry_contract_gate`
+  - checked-in aggregate policy:
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env`
+  - aggregate sign-off now surfaces:
+    - `regex_parser_family_contract_summary_txt`
+    - `regex_parser_family_contract_summary_json`
+    - `regex_parser_family_status_summary_txt`
+    - `regex_parser_family_status_summary_json`
+    - `regex_parser_family_status_contract_summary_txt`
+    - `regex_parser_family_status_contract_summary_json`
+  - current aggregate-visible/parity-checked regex fields include:
+    - `regex_family_frontend_overall=pass`
+    - `regex_family_dual_run_overall=pass`
+    - `regex_family_dual_run_raw_ast_status=perl_under_reports`
+    - `regex_family_dual_run_perl_rule_count=78`
+    - `regex_family_dual_run_rust_rule_count=87`
+    - `regex_family_dual_run_raw_ast_missing_on_perl_count=9`
+    - `regex_family_dual_run_raw_ast_missing_on_rust_count=0`
+    - `regex_family_stimuli_initial_targets=167`
+    - `regex_family_stimuli_resolved_targets=74`
+    - `regex_family_stimuli_final_targets=93`
+    - `regex_family_status_regex=In Progress`
+    - `regex_family_status_regex_closure_criteria_satisfied_count=5`
+    - `regex_family_status_regex_closure_criteria_total_count=7`
+    - `regex_family_status_regex_closure_criteria_unsatisfied_count=2`
+    - `regex_family_status_contract_family_count=1`
+    - `regex_family_status_contract_regex_false_criteria_count=2`
+    - `regex_family_status_contract_regex_unmet_details_count=2`
+  - this closes the regex aggregate telemetry parity layer,
+  - but later professional-grade closure surfaces are still pending.
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:
