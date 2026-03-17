@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Enforce commit reporting contract
+### Context
+The recent commit workflow already depended on continuity documents, but the post-commit reporting contract was still partly implicit. For crash recovery and seamless session resume, the workflow needs to require not just the live-status snapshot, but also the exact commit identity and committed file set.
+
+### Implementation
+- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+  - made markdown synchronization explicit and systematic rather than loosely "as needed"
+  - now requires every post-commit completion message to include:
+    - commit ID
+    - exact commit message
+    - full list of tracked files included in the commit
+    - current live-status snapshot
+    - whether the snapshot changed or stayed unchanged
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - added a dedicated commit-workflow continuity contract section so crash-recovery handoffs read the same rule directly
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - recorded the binding post-commit reporting rule in the repository entrypoint
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md):
+  - logged this workflow-contract hardening step
+
 ## 2026-03-17 - Add VHDL status-contract JSON sidecar
 ### Context
 The VHDL family-status contract proof already exposed its key facts through `summary.txt`, but it still lacked the same machine-readable sidecar shape we rely on elsewhere for durable proof reuse. The next clean step was to add `summary.json` and surface its path in aggregate sign-off.

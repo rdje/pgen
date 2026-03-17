@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-vhdl-status-contract-json-sidecar)
+Last updated: 2026-03-17 (+0100, task: enforce-commit-reporting-contract)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,6 +23,20 @@ Use this file to resume work without replaying full chat history.
    - clean checkouts should contain the full `generated/` tree,
    - regenerate only when the task requires updated generated artifacts.
 6. Continue with highest-priority pending task (see "Next Likely Tasks").
+
+## Commit Workflow Continuity Contract
+- Commit workflow remains strict operating procedure after each completed task.
+- Markdown synchronization must be systematic:
+  - always review the tracked continuity/workflow markdown surface before commit,
+  - always update every relevant tracked `.md` file affected by the task,
+  - do not treat documentation sync as optional polish.
+- Every user-facing completion message produced after the commit workflow must include:
+  - the commit ID,
+  - the exact commit message,
+  - the full list of tracked files included in the commit,
+  - the current live-status snapshot,
+  - and whether that snapshot changed or stayed unchanged.
+- This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Technical Snapshot
 - The repository now says this explicitly at project and roadmap level:

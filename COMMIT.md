@@ -1,6 +1,6 @@
 # COMMIT.md
 
-Last updated: 2026-03-14
+Last updated: 2026-03-17
 
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
@@ -44,6 +44,10 @@ Run this workflow after each completed task/activity.
    - strict source lint must pass.
    - generated-parser lint runs too; set `PGEN_CLIPPY_GENERATED_STRICT=1` to fail on generated clippy debt.
 3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
+   - Treat markdown synchronization as systematic, not optional:
+     - always review the tracked continuity/workflow markdown surface before commit,
+     - always update every relevant tracked `.md` file touched by the task or affected by its workflow/policy/command/documentation impact,
+     - do not leave a relevant markdown file stale just because code/tests already passed.
    - `LIVE_ACHIEVEMENT_STATUS.md` review/update is mandatory before each commit whenever the task changes:
      - what is `Done`,
      - what is `Mostly Done`,
@@ -60,6 +64,10 @@ Run this workflow after each completed task/activity.
    - When no live-status row changes:
      - still display the current live-status snapshot in the completion message,
      - explicitly say that the tracker is unchanged rather than implying a status update happened.
+   - In every commit-workflow completion message, also display:
+     - the commit ID,
+     - the exact commit message,
+     - the full list of tracked files included in that commit.
    - `README.md` sync is required when:
      - project objective/scope changes,
      - canonical generation flow changes,
@@ -75,6 +83,12 @@ Run this workflow after each completed task/activity.
    - `git ls-files --error-unmatch git_message_brief.txt` must fail (untracked).
    - `wc -c git_message_brief.txt` must be `0`.
    - `git status --short` must show expected state only.
+9. In the user-facing completion message after commit, report:
+   - the commit ID,
+   - the exact commit message,
+   - the list of tracked files included in the commit,
+   - the current live-status snapshot,
+   - and whether that snapshot changed or stayed unchanged.
 
 ## Pre-Commit Safety Rules
 - Do not add `git_message_brief.txt` to git.

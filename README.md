@@ -135,6 +135,9 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `rust/docs/TECHNICAL_ARCHITECTURE.md`
   - `rust/docs/CLI_REFERENCE.md`
 - The complete markdown index below is a repository navigation index, not a claim that every listed document is equally current.
+- Commit-workflow continuity rule:
+  - `COMMIT.md` is binding operational policy for post-task commits,
+  - post-commit user-facing reports must include the commit ID, exact commit message, the list of tracked files included in the commit, and the current live-status snapshot.
 
 ## Documentation Structure
 - Project governance and status:
