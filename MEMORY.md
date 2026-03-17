@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-external-hdl-corpus-triage-gates)
+Last updated: 2026-03-17 (+0100, task: debug-sv-external-preprocess-failures)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -62,15 +62,21 @@ Use this file to resume work without replaying full chat history.
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
     - current measured summary:
       - `cases_executed=14`
-      - `preprocess_pass_total=4`
-      - `preprocess_fail_total=10`
+      - `preprocess_pass_total=12`
+      - `preprocess_fail_total=2`
       - `parse_pass_total=0`
-      - `parse_fail_total=4`
-    - current first blockers:
-      - UVM macro preprocessing
-      - SCR1 non-UTF-8 include handling
-      - VeeR include resolution
+      - `parse_fail_total=12`
+    - current preprocess blocker surface:
+      - VeeR include resolution for missing `el2_param.vh`
+    - current parse blocker surface after preprocess hardening:
+      - UVM package parsing
+      - SCR1 parser acceptance
       - FRISCV parser acceptance
+    - landed SV preprocessor hardening behind that shift:
+      - default-valued macro parameter support
+      - adjacency-based function-like macro recognition
+      - multiline `` `define`` continuation assembly
+      - non-UTF-8 source fallback with `W_SVPP_NON_UTF8_SOURCE`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - manifest:
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`
@@ -4739,6 +4745,9 @@ Use this file to resume work without replaying full chat history.
       - continue tuning shared replay weighting now that dependency ranking plus marginal-probe suppression are in place,
       - recover more SV replay-shadow acceptance from the new `28.53%` bounded level without giving back the replay-debt gain,
       - continue avoiding grammar-specific heuristics.
+   - immediate external-corpus follow-up inside the same area:
+     - decide whether the remaining VeeR preprocess blocker should be solved by checked-in include-dir policy or treated as a corpus snapshot gap,
+     - then use the now-preprocess-green UVM and SCR1 slices for parser-rejection triage and grammar hardening.
 3. Continue Rust-native EBNF migration hardening:
    - main HDL quality/preprocessor and aggregate sign-off surfaces now expose both primary-entry and alternate-entry telemetry,
    - likely next useful parser-trust increment inside the non-annotation loop is narrower:

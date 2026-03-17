@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-17 - Fix external SV preprocess onboarding for UVM and SCR1
+### ✅ Achievement Summary
+SystemVerilog external-corpus triage now preprocesses the vendored UVM packages and the SCR1 representative files successfully. The SV preprocessor was hardened around real external-corpus failure modes, and the remaining preprocess debt in the current SV representative slice is now narrowed to the VeeR corpus snapshot's unresolved `el2_param.vh` include.
+
+### Scope of Changes
+- Updated [rust/src/sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - added support for default-valued function-like macro parameters
+  - preserved the rule that a function-like macro only exists when the `(` is immediately adjacent to the macro name, so object-like bodies like `` `define MASK          (1<<0)`` remain object-like
+  - assembles multiline `` `define`` bodies before directive parsing
+  - tolerates non-UTF-8 source files with warning `W_SVPP_NON_UTF8_SOURCE` instead of hard-failing the whole preprocess step
+  - added focused regression tests for those cases
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - refreshed the current external SV triage measurements
+  - recorded that UVM and SCR1 moved from preprocess failure into parser-rejection triage
+  - recorded that VeeR is now the only remaining preprocess blocker in the current SV slice
+
+### Current Measured Surface
+- SystemVerilog external triage:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=0`
+  - `parse_fail_total=12`
+  - remaining preprocess blocker: VeeR include resolution for `el2_param.vh`
+  - newly exposed parse triage now includes UVM, SCR1, and FRISCV after successful preprocessing
+
 ## 2026-03-17 - Add external HDL corpus sources for SV and VHDL hardening
 ### ✅ Achievement Summary
 The repository now tracks a much larger realistic-corpus base for future parser hardening: eight new HDL corpus submodules plus a checked-in UVM core source drop. This materially strengthens the available external evidence base for `systemverilog` and `vhdl`, while keeping live status honest until those corpora are wired into repeatable proof gates.

@@ -104,7 +104,8 @@ Interpretation note:
 - Those external corpora are now first consumed by deterministic source-side triage gates:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
     - checked-in manifest: [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json)
-    - current measured surface: `cases_executed=14`, `preprocess_pass_total=4`, `preprocess_fail_total=10`, `parse_pass_total=0`, `parse_fail_total=4`
+    - current measured surface: `cases_executed=14`, `preprocess_pass_total=12`, `preprocess_fail_total=2`, `parse_pass_total=0`, `parse_fail_total=12`
+    - current onboarding state: UVM and SCR1 now preprocess successfully after SV preprocessor hardening; the remaining preprocess blocker in the current representative slice is VeeR include resolution for missing `el2_param.vh`, while UVM, SCR1, and FRISCV now feed parser-rejection triage directly
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - checked-in manifest: [vhdl_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json)
     - current measured surface: `cases_executed=8`, `parse_pass_total=0`, `parse_fail_total=8`

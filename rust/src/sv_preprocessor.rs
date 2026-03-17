@@ -178,8 +178,14 @@ pub struct PreprocessedOutput {
 }
 
 #[derive(Debug, Clone)]
+struct MacroParameter {
+    name: String,
+    default: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 struct MacroDefinition {
-    params: Option<Vec<String>>,
+    params: Option<Vec<MacroParameter>>,
     body: String,
 }
 
@@ -403,8 +409,21 @@ fn preprocess_file_internal(
         );
     }
 
-    let content = fs::read_to_string(&canonical_path)
-        .with_context(|| format!("failed to read '{}'", canonical_path.display()))?;
+    let content_bytes =
+        fs::read(&canonical_path).with_context(|| format!("failed to read '{}'", canonical_path.display()))?;
+    let content = match String::from_utf8(content_bytes) {
+        Ok(content) => content,
+        Err(err) => {
+            state.push_warning(
+                "W_SVPP_NON_UTF8_SOURCE",
+                &canonical_path,
+                1,
+                "source file was not valid UTF-8; applied lossy decoding",
+                format!("{}; continuing with loss-tolerant text decode", err),
+            )?;
+            String::from_utf8_lossy(err.as_bytes()).into_owned()
+        }
+    };
     state.include_stack.push(canonical_path.clone());
     state.record_include_file(&canonical_path);
     preprocess_text_internal(&content, &canonical_path, state, depth)?;
@@ -419,19 +438,31 @@ fn preprocess_text_internal(
     depth: usize,
 ) -> Result<()> {
     let mut conditionals: Vec<ConditionalFrame> = Vec::new();
-
-    for (line_index, raw_line) in split_lines_preserve_terminator(content)
-        .into_iter()
-        .enumerate()
-    {
+    let lines = split_lines_preserve_terminator(content);
+    let mut line_index = 0usize;
+    while line_index < lines.len() {
         let line_no = line_index + 1;
-        let active = conditionals
-            .last()
-            .map(|c| c.current_active)
-            .unwrap_or(true);
-        let trimmed = raw_line.trim_start_matches([' ', '\t']);
+        let active = conditionals.last().map(|c| c.current_active).unwrap_or(true);
+        let mut raw_line = lines[line_index].clone();
+        let mut trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
 
-        if let Some((directive, rest)) = parse_directive_line(trimmed) {
+        if let Some((directive, _)) = parse_directive_line(&trimmed) {
+            if directive == "define" {
+                let mut continuation_index = line_index;
+                while line_has_continuation(&raw_line) && continuation_index + 1 < lines.len() {
+                    raw_line = format!(
+                        "{}{}",
+                        strip_line_continuation(&raw_line),
+                        lines[continuation_index + 1]
+                    );
+                    continuation_index += 1;
+                }
+                trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
+                line_index = continuation_index;
+            }
+        }
+
+        if let Some((directive, rest)) = parse_directive_line(&trimmed) {
             match directive {
                 "define" => {
                     state.push_event(
@@ -718,6 +749,7 @@ fn preprocess_text_internal(
                     }
                 }
             }
+            line_index += 1;
             continue;
         }
 
@@ -753,6 +785,7 @@ fn preprocess_text_internal(
                 "inactive branch".to_string(),
             );
         }
+        line_index += 1;
     }
 
     if !conditionals.is_empty() {
@@ -921,12 +954,11 @@ fn parse_identifier_token(input: &str) -> Option<(&str, &str)> {
 
 fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
     let trimmed = input.trim_end_matches(['\r', '\n']);
-    let (name, rest) = parse_identifier_token(trimmed.trim_start())
+    let (name, rest_after_name) = parse_identifier_token(trimmed.trim_start())
         .with_context(|| "missing macro name in `define")?;
-    let rest = rest.trim_start();
-    if rest.starts_with('(') {
-        let (params, after) =
-            parse_macro_parameter_list(rest).with_context(|| "invalid macro parameter list")?;
+    if rest_after_name.starts_with('(') {
+        let (params, after) = parse_macro_parameter_list(rest_after_name)
+            .with_context(|| "invalid macro parameter list")?;
         let body = after.trim_start().to_string();
         Ok((
             name.to_string(),
@@ -940,13 +972,13 @@ fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
             name.to_string(),
             MacroDefinition {
                 params: None,
-                body: rest.to_string(),
+                body: rest_after_name.trim_start().to_string(),
             },
         ))
     }
 }
 
-fn parse_macro_parameter_list(input: &str) -> Result<(Vec<String>, &str)> {
+fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)> {
     if !input.starts_with('(') {
         bail!("macro parameter list must start with '('");
     }
@@ -971,19 +1003,86 @@ fn parse_macro_parameter_list(input: &str) -> Result<(Vec<String>, &str)> {
     let close_idx = end_idx.with_context(|| "unterminated macro parameter list")?;
     let param_segment = &input[1..close_idx];
     let mut params = Vec::new();
-    for token in param_segment.split(',') {
+    for token in split_macro_parameter_tokens(param_segment) {
         let t = token.trim();
         if t.is_empty() {
             continue;
         }
         let (name, trailing) = parse_identifier_token(t)
             .with_context(|| format!("invalid macro parameter token '{}'", t))?;
-        if !trailing.trim().is_empty() {
+        let trailing = trailing.trim();
+        let default = if trailing.is_empty() {
+            None
+        } else if let Some(rest) = trailing.strip_prefix('=') {
+            Some(rest.trim().to_string())
+        } else {
             bail!("invalid trailing text in macro parameter '{}'", t);
-        }
-        params.push(name.to_string());
+        };
+        params.push(MacroParameter {
+            name: name.to_string(),
+            default,
+        });
     }
     Ok((params, &input[close_idx + 1..]))
+}
+
+fn split_macro_parameter_tokens(input: &str) -> Vec<&str> {
+    let bytes = input.as_bytes();
+    let mut tokens = Vec::new();
+    let mut start = 0usize;
+    let mut paren_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut brace_depth = 0usize;
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut escaped = false;
+    let mut i = 0usize;
+
+    while i < bytes.len() {
+        let ch = bytes[i] as char;
+        if escaped {
+            escaped = false;
+            i += 1;
+            continue;
+        }
+        if ch == '\\' && (in_single_quote || in_double_quote) {
+            escaped = true;
+            i += 1;
+            continue;
+        }
+        if ch == '"' && !in_single_quote {
+            in_double_quote = !in_double_quote;
+            i += 1;
+            continue;
+        }
+        if ch == '\'' && !in_double_quote {
+            in_single_quote = !in_single_quote;
+            i += 1;
+            continue;
+        }
+        if in_single_quote || in_double_quote {
+            i += 1;
+            continue;
+        }
+        match ch {
+            '(' => paren_depth += 1,
+            ')' => paren_depth = paren_depth.saturating_sub(1),
+            '[' => bracket_depth += 1,
+            ']' => bracket_depth = bracket_depth.saturating_sub(1),
+            '{' => brace_depth += 1,
+            '}' => brace_depth = brace_depth.saturating_sub(1),
+            ',' if paren_depth == 0 && bracket_depth == 0 && brace_depth == 0 => {
+                tokens.push(&input[start..i]);
+                i += 1;
+                start = i;
+                continue;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    tokens.push(&input[start..]);
+    tokens
 }
 
 fn parse_include_directive(input: &str) -> Result<(&str, bool)> {
@@ -1063,6 +1162,17 @@ fn split_lines_preserve_terminator(content: &str) -> Vec<String> {
         lines.push(content[start..].to_string());
     }
     lines
+}
+
+fn line_has_continuation(raw_line: &str) -> bool {
+    raw_line.trim_end_matches(['\r', '\n']).ends_with('\\')
+}
+
+fn strip_line_continuation(raw_line: &str) -> &str {
+    raw_line
+        .trim_end_matches(['\r', '\n'])
+        .strip_suffix('\\')
+        .unwrap_or(raw_line)
 }
 
 fn expand_macros_in_text(
@@ -1250,15 +1360,19 @@ fn expand_object_macro(
 
 fn expand_function_macro(
     definition: &MacroDefinition,
-    params: &[String],
+    params: &[MacroParameter],
     args: &[String],
     macros: &HashMap<String, MacroDefinition>,
     depth: usize,
 ) -> String {
     let mut bindings: HashMap<&str, &str> = HashMap::new();
     for (idx, param) in params.iter().enumerate() {
-        let arg = args.get(idx).map(|s| s.as_str()).unwrap_or("");
-        bindings.insert(param.as_str(), arg);
+        let arg = args
+            .get(idx)
+            .map(|s| s.as_str())
+            .or(param.default.as_deref())
+            .unwrap_or("");
+        bindings.insert(param.name.as_str(), arg);
     }
     let substituted = substitute_function_macro_body(&definition.body, &bindings);
     let pasted = substituted.replace("``", "");
@@ -1415,6 +1529,69 @@ mod tests {
     }
 
     #[test]
+    fn expands_function_macro_with_default_parameter_expression() {
+        let dir = create_temp_dir("svpp_func_default");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define REPORT_BEGIN(SEVERITY, ID, VERBOSITY, RO=uvm_get_report_object()) RO\nlogic [0:0] a = `REPORT_BEGIN(UVM_INFO, ID, 100);\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess function-like macro with default");
+        assert!(output.text.contains("logic [0:0] a = uvm_get_report_object();"));
+    }
+
+    #[test]
+    fn expands_function_macro_with_empty_default_parameter() {
+        let dir = create_temp_dir("svpp_func_empty_default");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define DECL(TYPE, NAME, SFX=) TYPE NAME``SFX;\n`DECL(logic, signal)\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess function-like macro with empty default");
+        assert!(output.text.contains("logic signal;"));
+    }
+
+    #[test]
+    fn keeps_parenthesized_object_macro_body() {
+        let dir = create_temp_dir("svpp_object_paren_body");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define MASK          (1<<0)\nlocalparam int M = `MASK;\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess object-like macro with parenthesized body");
+        assert!(output.text.contains("localparam int M = (1<<0);"));
+    }
+
+    #[test]
+    fn accepts_multiline_define_with_directive_tokens_in_body() {
+        let dir = create_temp_dir("svpp_multiline_define");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define MAYBE_FIELD \\\n`ifdef ENABLE_FIELD \\\nlogic enabled; \\\n`endif\n`MAYBE_FIELD\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess multiline define");
+        assert!(output
+            .diagnostics
+            .iter()
+            .all(|diagnostic| diagnostic.severity != PreprocessorDiagnosticSeverity::Error));
+    }
+
+    #[test]
     fn warns_on_macro_redefine_when_policy_warn() {
         let dir = create_temp_dir("svpp_redefine_warn");
         let input = dir.join("top.sv");
@@ -1496,5 +1673,24 @@ mod tests {
             .expect_err("strict warning promotion should fail");
         let err_text = format!("{err:#}");
         assert!(err_text.contains("W_SVPP_ABSOLUTE_INCLUDE_PATH"));
+    }
+
+    #[test]
+    fn tolerates_non_utf8_include_with_warning() {
+        let dir = create_temp_dir("svpp_non_utf8");
+        let inc = dir.join("inc.svh");
+        let top = dir.join("top.sv");
+        let mut inc_bytes = b"// Copyright \xa9\nlogic from_inc;\n".to_vec();
+        fs::write(&inc, std::mem::take(&mut inc_bytes)).expect("write inc bytes");
+        fs::write(&top, "`include \"inc.svh\"\nlogic from_top;\n").expect("write top");
+
+        let output = preprocess_systemverilog_file(&top, &SvPreprocessorConfig::default())
+            .expect("preprocess non-utf8 include");
+        assert!(output.text.contains("logic from_inc;"));
+        assert!(output.text.contains("logic from_top;"));
+        assert!(output.diagnostics.iter().any(|d| {
+            d.code == "W_SVPP_NON_UTF8_SOURCE"
+                && d.severity == PreprocessorDiagnosticSeverity::Warning
+        }));
     }
 }

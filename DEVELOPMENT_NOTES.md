@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Harden SV preprocessing against first external-corpus blockers
+### Context
+After wiring the new SV external corpora into `sv_external_corpus_triage_gate`, the first useful debugging target was the preprocess stage rather than parser acceptance. The initial measured surface was too preprocess-heavy to give good parser debt on the UVM and SCR1 slices, so the right move was to make the preprocessor robust enough to get those corpora through onboarding first.
+
+### Implementation
+- Updated [rust/src/sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - replaced hard UTF-8 reads with byte reads plus lossy fallback and warning `W_SVPP_NON_UTF8_SOURCE`
+  - changed macro parameter parsing from bare names to structured parameters with optional defaults
+  - enforced the SystemVerilog adjacency rule for function-like macros, so only `` `define FOO(bar)`` is function-like while `` `define FOO   (1<<0)`` remains object-like
+  - added multiline `` `define`` continuation assembly before directive dispatch so directive-looking text inside macro bodies does not leak into the live conditional stream during definition
+- Added regression tests covering:
+  - default-valued macro parameters
+  - empty default macro parameters
+  - parenthesized object-like macro bodies
+  - multiline macro bodies with directive-looking text
+  - non-UTF-8 include/source decoding
+
+### Outcome
+- `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
+  - passed with `13` focused SV preprocessor tests
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` now records:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=0`
+  - `parse_fail_total=12`
+- Practical shift in the external SV corpus:
+  - UVM packages now preprocess and advance to parser-rejection triage
+  - SCR1 representative files now preprocess and advance to parser-rejection triage despite non-UTF-8 include bytes
+  - FRISCV remains preprocess-green and parse-red
+  - VeeR is now the only remaining preprocess blocker in the current external SV slice, and the blocker appears to be a real corpus snapshot/include-surface issue (`el2_param.vh` not present in the checked tree) rather than another preprocessor parsing bug
+
 ## 2026-03-17 - Add external HDL corpus sources for SV and VHDL hardening
 ### Context
 The user added a substantial external corpus base intended specifically to harden the `systemverilog` and `vhdl` parser families. Those sources are immediately valuable for future realistic-corpus proof work, but they should not be mistaken for closure on their own: the parser-trust doctrine still requires repeatable gates, reports, and objective pass/fail policy over those corpora.
