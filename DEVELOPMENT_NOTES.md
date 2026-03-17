@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Record deferred engineering concerns without changing parser priority
+### Context
+After a full README-driven documentation pass and a thorough static analysis of the Rust codebase, a few maintainability concerns were clear: several core Rust modules are very large, `main.rs` is a heavy orchestration hub, and some of the release-proof aggregation logic now lives in very large shell gates. Those concerns are legitimate, but the user explicitly prioritized finishing the parser-family roadmap objectives first, especially for `systemverilog`, `vhdl`, and `regex`.
+
+### Implementation
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added a dedicated deferred-engineering-concerns section
+  - explicitly recorded that these concerns are real but must not displace parser-family closure work for `systemverilog`, `vhdl`, and `regex`
+  - captured the concrete deferred concerns:
+    - split [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs) into smaller orchestration modules
+    - reduce implementation concentration in the largest `ast_pipeline` / embedding modules
+    - gradually lift the highest-risk shell-side aggregation logic into typed/shared Rust utilities where appropriate
+    - continue current-vs-archival documentation cleanup
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the same deferred-concerns rule for crash recovery and future resume continuity
+  - kept parser finalization as the active priority and moved the maintainability concerns into explicitly post-closure follow-up
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md):
+  - logged the new deferred-concerns tracking decision
+
 ## 2026-03-17 - Surface VHDL status-contract metadata
 ### Context
 After adding the VHDL status-contract `summary.json` sidecar and surfacing its path in aggregate sign-off, the next missing layer was the sidecar's own identity and provenance metadata. The aggregate proof should expose not only where the sidecar lives, but also which gate/version produced it and which family-status sidecar it validated.

@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-17 - Record deferred engineering concerns after full Rust analysis
+### ✅ Achievement Summary
+The roadmap and continuity docs now explicitly preserve a set of legitimate architecture and maintainability concerns without letting them displace the current parser-finalization mission. The rule is now written down: finish the roadmap/parser-family closure work for `systemverilog`, `vhdl`, and `regex` first, then come back to the deferred hardening work intentionally.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added a dedicated deferred-engineering-concerns section for post-parser-finalization follow-up
+  - recorded the concrete deferred concerns:
+    - split [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs)
+    - reduce monolith size across the largest `ast_pipeline` and embedding modules
+    - gradually move the highest-risk shell aggregation/parity logic into typed/shared Rust utilities where useful
+    - continue authoritative-vs-archival documentation cleanup
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the same defer-but-don't-forget rule for continuity and later resumption
+  - kept parser-family closure as the active priority
+
 ## 2026-03-17 - Surface VHDL status-contract metadata
 ### ✅ Achievement Summary
 Aggregate sign-off now surfaces the VHDL status-contract sidecar's own metadata and provenance, not just its blocker arrays and counts. `vhdl_combined_telemetry_contract_gate` now proves those aggregate-visible metadata fields match `vhdl_parser_family_status_contract_gate/summary.json` exactly.

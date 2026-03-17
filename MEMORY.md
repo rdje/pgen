@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-vhdl-status-contract-metadata)
+Last updated: 2026-03-17 (+0100, task: record-deferred-engineering-concerns)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,17 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Technical Snapshot
+- A full README-driven documentation pass plus a broad static Rust codebase analysis was completed on 2026-03-17.
+- Legitimate deferred engineering concerns are now explicitly tracked in the roadmap and must not be forgotten, but they are intentionally lower priority than finishing the parser-family closure work for `systemverilog`, `vhdl`, and `regex`.
+- The recorded deferred concerns are:
+  - split [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs) into smaller orchestration modules,
+  - reduce implementation concentration in the largest `ast_pipeline` / embedding modules,
+  - gradually move the highest-risk shell aggregation/parity logic into typed/shared Rust utilities where that improves maintainability without weakening gate rigor,
+  - continue current-vs-archival documentation cleanup.
+- Resume rule for those concerns:
+  - do not let them displace parser-family closure work,
+  - revisit them after the targeted parser families are materially finalized,
+  - treat them as hardening work on top of the parser proof surface, not as substitutes for parser proof work.
 - The repository now says this explicitly at project and roadmap level:
   - any PGEN EBNF-based parser family is judged against the same professional-grade closure doctrine,
   - that doctrine is not SV-only and not annotation-only,
@@ -4600,6 +4611,8 @@ Use this file to resume work without replaying full chat history.
 4. Keep roadmap + UG + memory synced after every gate/contract increment.
 5. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.
+6. Deferred until after parser-family finalization:
+   - resume the roadmap's deferred engineering concerns once `systemverilog`, `vhdl`, and `regex` have reached their intended closure/finalization bar.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).

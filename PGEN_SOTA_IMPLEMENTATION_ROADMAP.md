@@ -97,6 +97,20 @@ Interpretation note:
 - Aggregate sign-off must also surface machine-readable structured blocker arrays from `sv_parser_family_status_gate/summary.json`, not just blocker counts and strings. Each blocker entry must carry the closure criterion id, the evidence key, the observed value, the expected value, and the detail string, and `sv_combined_telemetry_contract_gate` must prove exact parity for those structured blocker fields too.
 - Universal-doctrine follow-through should be staged family by family. Current example beyond SV: `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_contract_gate` now validates the current combined VHDL proof surface (`vhdl_stimuli_quality_gate` + `vhdl_strict_promotion_gate`), `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate` now computes the conservative `vhdl` live row from explicit source-side closure criteria and live-tracker alignment, `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_contract_gate` now validates that resulting sidecar itself, and `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate` now proves that aggregate sign-off carries the VHDL family sidecar, the VHDL family-status sidecar, and the VHDL family-status contract sidecar faithfully. Its current blockers are objective and machine-checked: generation parser rejections `1`, replay-shadow parser rejections `20`, replay target debt `12`, and no formal exhaustive VHDL closure gate yet. Similar family-level proof gates and aggregate parity gates should be added for other mature parser families before any future status-promotion claims.
 
+## Deferred Engineering Concerns (After Parser Finalization)
+The current project priority remains unchanged: keep fulfilling the roadmap and closure objectives until the `systemverilog`, `vhdl`, and `regex` parser families reach their intended professional-grade finalization bar. The concerns below are legitimate, but they are explicitly deferred so they do not displace parser-family closure work prematurely.
+
+Deferred-until-later rule:
+- do not let these concerns reorder the main parser-finalization work for SystemVerilog, VHDL, or regex,
+- resume them after the targeted parser-family closure milestones are materially complete,
+- when resumed, treat them as maintainability and operability hardening on top of an already-proven parser stack, not as substitutes for parser proof work.
+
+Recorded concerns from the 2026-03-17 full Rust codebase analysis:
+- split [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs) into smaller command/orchestration modules so parser generation, stimuli generation, parseability reporting, fuzz replay, and SV preprocessing are no longer coupled through one very large entrypoint,
+- reduce implementation concentration inside [rust/src/ast_pipeline/mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs), [rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs), [rust/src/ast_pipeline/annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs), [rust/src/ast_pipeline/ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs), and [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) by introducing narrower modules and clearer internal boundaries,
+- progressively move the highest-risk summary/schema/parity logic out of very large shell gates such as [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) into typed/shared Rust utilities where that reduces drift risk without weakening the machine-checkable gate layer,
+- continue cleaning up the current-vs-archival documentation split so onboarding stays fast and authoritative docs stay obvious even as historical proof evidence is preserved.
+
 ## Pillar Tracker
 
 | Pillar | Current Status | Target Outcome |
