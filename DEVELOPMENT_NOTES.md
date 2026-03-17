@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Preserve parser rejection detail in external triage logs
+### Context
+Once the first external SV preprocess blockers were removed, the next debugging bottleneck was visibility: the triage logs still reduced every parser rejection to the same generic `parse_full rejected sample` message. That made the now-preprocess-green UVM, SCR1, and FRISCV slices harder to debug than they needed to be.
+
+### Implementation
+- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+  - added `parse_sample_detail` / `parse_sample_detail_with_profile`
+  - the new detail path returns `Result<(), String>` with the underlying generated-parser error instead of only a boolean
+  - `systemverilog` keeps grammar-profile-aware dispatch in that detail surface
+- Updated [rust/src/bin/parseability_probe.rs](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs):
+  - `--parse` now routes through the detail-returning registry path
+  - failures now emit `parse_full rejected sample ...: <real parser error>`
+
+### Outcome
+- Fresh `sv_external_corpus_triage_gate` logs now preserve the first parser stop directly:
+  - UVM: `Parser did not consume full input at position 125319`
+  - SCR1 core top: `Parser did not consume full input at position 1724`
+  - FRISCV RV32I core: `Parser did not consume full input at position 89`
+- That does not change the measured pass/fail totals, but it meaningfully improves the parser-debugging loop for the new external corpus slice.
+
 ## 2026-03-17 - Harden SV preprocessing against first external-corpus blockers
 ### Context
 After wiring the new SV external corpora into `sv_external_corpus_triage_gate`, the first useful debugging target was the preprocess stage rather than parser acceptance. The initial measured surface was too preprocess-heavy to give good parser debt on the UVM and SCR1 slices, so the right move was to make the preprocessor robust enough to get those corpora through onboarding first.

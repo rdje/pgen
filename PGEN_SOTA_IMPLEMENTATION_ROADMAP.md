@@ -106,6 +106,7 @@ Interpretation note:
     - checked-in manifest: [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json)
     - current measured surface: `cases_executed=14`, `preprocess_pass_total=12`, `preprocess_fail_total=2`, `parse_pass_total=0`, `parse_fail_total=12`
     - current onboarding state: UVM and SCR1 now preprocess successfully after SV preprocessor hardening; the remaining preprocess blocker in the current representative slice is VeeR include resolution for missing `el2_param.vh`, while UVM, SCR1, and FRISCV now feed parser-rejection triage directly
+    - current parser-failure logs now preserve first-stop detail directly, e.g. UVM `position 125319`, SCR1 core top `position 1724`, and FRISCV RV32I core `position 89`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - checked-in manifest: [vhdl_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json)
     - current measured surface: `cases_executed=8`, `parse_pass_total=0`, `parse_fail_total=8`

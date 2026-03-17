@@ -42,6 +42,15 @@ fn parse_with_return_annotation(sample: &str) -> bool {
     parser.parse_full_return_annotation().is_ok()
 }
 
+fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
+    let mut parser =
+        Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
+    parser
+        .parse_full_return_annotation()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
+}
+
 fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser =
         Return_annotationParser::new(sample, runtime_logger_box("generated.return_annotation"));
@@ -55,6 +64,15 @@ fn parse_with_semantic_annotation(sample: &str) -> bool {
     let mut parser =
         Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
     parser.parse_full_semantic_annotation().is_ok()
+}
+
+fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
+    let mut parser =
+        Semantic_annotationParser::new(sample, runtime_logger_box("generated.semantic_annotation"));
+    parser
+        .parse_full_semantic_annotation()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
@@ -71,6 +89,10 @@ fn parse_with_builtin_return_annotation(sample: &str) -> bool {
     parse_with_return_annotation(sample)
 }
 
+fn parse_with_builtin_return_annotation_detail(sample: &str) -> Result<(), String> {
+    parse_with_return_annotation_detail(sample)
+}
+
 fn parse_with_builtin_return_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
     // Built-in return grammar is a strict subset of return_annotation grammar.
     parse_with_return_annotation_ast_json(sample)
@@ -82,6 +104,13 @@ fn parse_with_builtin_semantic_annotation(sample: &str) -> bool {
     // not the stricter full semantic_annotation grammar.
     let logger = runtime_logger("bootstrap.semantic_annotation");
     UnifiedSemanticAST::parse_bootstrap(sample, &logger).is_ok()
+}
+
+fn parse_with_builtin_semantic_annotation_detail(sample: &str) -> Result<(), String> {
+    let logger = runtime_logger("bootstrap.semantic_annotation");
+    UnifiedSemanticAST::parse_bootstrap(sample, &logger)
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 fn parse_with_builtin_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, String> {
@@ -96,6 +125,15 @@ fn parse_with_builtin_semantic_annotation_ast_json(sample: &str) -> Result<JsonV
 fn parse_with_ebnf(sample: &str) -> bool {
     let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
     parser.parse_full_grammar_file().is_ok()
+}
+
+#[cfg(feature = "ebnf_dual_run")]
+fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
+    let mut parser = EbnfParser::new(sample, runtime_logger_box("generated.ebnf"));
+    parser
+        .parse_full_grammar_file()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 #[cfg(feature = "ebnf_dual_run")]
@@ -114,6 +152,12 @@ fn parse_with_json(sample: &str) -> bool {
 }
 
 #[cfg(has_generated_json_parser)]
+fn parse_with_json_detail(sample: &str) -> Result<(), String> {
+    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    parser.parse_full_json().map(|_| ()).map_err(|err| err.to_string())
+}
+
+#[cfg(has_generated_json_parser)]
 fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
     let parsed = parser.parse_full_json().map_err(|err| err.to_string())?;
@@ -127,6 +171,12 @@ fn parse_with_regex(sample: &str) -> bool {
 }
 
 #[cfg(has_generated_regex_parser)]
+fn parse_with_regex_detail(sample: &str) -> Result<(), String> {
+    let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
+    parser.parse_full_regex().map(|_| ()).map_err(|err| err.to_string())
+}
+
+#[cfg(has_generated_regex_parser)]
 fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
     let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
@@ -137,6 +187,15 @@ fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
 fn parse_with_rtl_const_expr(sample: &str) -> bool {
     let mut parser = RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
     parser.parse_full_rtl_const_expr().is_ok()
+}
+
+#[cfg(has_generated_rtl_const_expr_parser)]
+fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
+    let mut parser = RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    parser
+        .parse_full_rtl_const_expr()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 #[cfg(has_generated_rtl_const_expr_parser)]
@@ -159,6 +218,20 @@ fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>)
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
     parser.set_grammar_profile(grammar_profile);
     parser.parse_full_systemverilog_file().is_ok()
+}
+
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_detail_profile(
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Result<(), String> {
+    let mut parser =
+        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+    parser.set_grammar_profile(grammar_profile);
+    parser
+        .parse_full_systemverilog_file()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 #[cfg(has_generated_systemverilog_parser)]
@@ -190,6 +263,18 @@ fn parse_with_systemverilog_preprocessor(sample: &str) -> bool {
 }
 
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
+fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), String> {
+    let mut parser = SystemverilogPreprocessorParser::new(
+        sample,
+        runtime_logger_box("generated.systemverilog_preprocessor"),
+    );
+    parser
+        .parse_full_systemverilog_preprocessor_file()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
+}
+
+#[cfg(has_generated_systemverilog_preprocessor_parser)]
 fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser = SystemverilogPreprocessorParser::new(
         sample,
@@ -205,6 +290,12 @@ fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonVa
 fn parse_with_vhdl(sample: &str) -> bool {
     let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
     parser.parse_full_vhdl_file().is_ok()
+}
+
+#[cfg(has_generated_vhdl_parser)]
+fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
+    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    parser.parse_full_vhdl_file().map(|_| ()).map_err(|err| err.to_string())
 }
 
 #[cfg(has_generated_vhdl_parser)]
@@ -299,6 +390,38 @@ pub fn parse_sample_with_profile(
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_profile(sample, grammar_profile)),
         _ => find_entry(grammar_name).map(|entry| entry.parse(sample)),
+    }
+}
+
+pub fn parse_sample_detail(grammar_name: &str, sample: &str) -> Option<Result<(), String>> {
+    parse_sample_detail_with_profile(grammar_name, sample, None)
+}
+
+pub fn parse_sample_detail_with_profile(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Option<Result<(), String>> {
+    match grammar_name {
+        "return_annotation" => Some(parse_with_return_annotation_detail(sample)),
+        "semantic_annotation" => Some(parse_with_semantic_annotation_detail(sample)),
+        "builtin_return_annotation" => Some(parse_with_builtin_return_annotation_detail(sample)),
+        "builtin_semantic_annotation" => Some(parse_with_builtin_semantic_annotation_detail(sample)),
+        #[cfg(feature = "ebnf_dual_run")]
+        "ebnf" => Some(parse_with_ebnf_detail(sample)),
+        #[cfg(has_generated_json_parser)]
+        "json" => Some(parse_with_json_detail(sample)),
+        #[cfg(has_generated_regex_parser)]
+        "regex" => Some(parse_with_regex_detail(sample)),
+        #[cfg(has_generated_rtl_const_expr_parser)]
+        "rtl_const_expr" => Some(parse_with_rtl_const_expr_detail(sample)),
+        #[cfg(has_generated_systemverilog_parser)]
+        "systemverilog" => Some(parse_with_systemverilog_detail_profile(sample, grammar_profile)),
+        #[cfg(has_generated_systemverilog_preprocessor_parser)]
+        "systemverilog_preprocessor" => Some(parse_with_systemverilog_preprocessor_detail(sample)),
+        #[cfg(has_generated_vhdl_parser)]
+        "vhdl" => Some(parse_with_vhdl_detail(sample)),
+        _ => None,
     }
 }
 

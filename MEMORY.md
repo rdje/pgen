@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: debug-sv-external-preprocess-failures)
+Last updated: 2026-03-17 (+0100, task: surface-parser-error-detail-in-external-triage)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -72,11 +72,17 @@ Use this file to resume work without replaying full chat history.
       - UVM package parsing
       - SCR1 parser acceptance
       - FRISCV parser acceptance
+    - current first parser-stop logs are now explicit:
+      - UVM: `Parser did not consume full input at position 125319`
+      - SCR1 core top: `Parser did not consume full input at position 1724`
+      - FRISCV RV32I core: `Parser did not consume full input at position 89`
     - landed SV preprocessor hardening behind that shift:
       - default-valued macro parameter support
       - adjacency-based function-like macro recognition
       - multiline `` `define`` continuation assembly
       - non-UTF-8 source fallback with `W_SVPP_NON_UTF8_SOURCE`
+    - landed parser-triage observability behind the next shift:
+      - `parseability_probe --parse` now preserves the real parser error string through `parser_registry::parse_sample_detail_with_profile`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - manifest:
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`
@@ -4747,6 +4753,7 @@ Use this file to resume work without replaying full chat history.
       - continue avoiding grammar-specific heuristics.
    - immediate external-corpus follow-up inside the same area:
      - decide whether the remaining VeeR preprocess blocker should be solved by checked-in include-dir policy or treated as a corpus snapshot gap,
+     - use the new UVM/SCR1/FRISCV parser-stop positions to identify the next grammar/top-level parse bug,
      - then use the now-preprocess-green UVM and SCR1 slices for parser-rejection triage and grammar hardening.
 3. Continue Rust-native EBNF migration hardening:
    - main HDL quality/preprocessor and aggregate sign-off surfaces now expose both primary-entry and alternate-entry telemetry,

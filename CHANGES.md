@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-17 - Surface parser error detail in external HDL triage logs
+### ✅ Achievement Summary
+`parseability_probe --parse` now preserves the real parser error text instead of collapsing every rejection into the same generic failure banner. That makes the external HDL triage gates materially more actionable for parser debugging without changing their pass/fail policy.
+
+### Scope of Changes
+- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+  - added lightweight `parse_sample_detail_with_profile` support that returns `Result<(), String>` with the real parser error string
+  - keeps grammar-profile-aware detail handling for `systemverilog`
+- Updated [rust/src/bin/parseability_probe.rs](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs):
+  - `--parse` now uses the new detail path
+  - on failure it prints the underlying parser rejection text instead of only `parse_full rejected sample`
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded that external SV parser-failure logs now preserve concrete parser error positions
+
+### Current Measured Parser-Failure Surface
+- Fresh SV external triage still records:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=0`
+  - `parse_fail_total=12`
+- But parse logs are now actionable:
+  - UVM: `Parser did not consume full input at position 125319`
+  - SCR1 core top: `Parser did not consume full input at position 1724`
+  - FRISCV RV32I core: `Parser did not consume full input at position 89`
+
 ## 2026-03-17 - Fix external SV preprocess onboarding for UVM and SCR1
 ### ✅ Achievement Summary
 SystemVerilog external-corpus triage now preprocesses the vendored UVM packages and the SCR1 representative files successfully. The SV preprocessor was hardened around real external-corpus failure modes, and the remaining preprocess debt in the current SV representative slice is now narrowed to the VeeR corpus snapshot's unresolved `el2_param.vh` include.

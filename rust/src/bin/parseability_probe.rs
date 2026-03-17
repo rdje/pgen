@@ -234,18 +234,19 @@ fn command_supports(grammar_name: &str, profile: Option<&str>) -> Result<()> {
 fn command_parse(grammar_name: &str, input_file: &str, profile: Option<&str>) -> Result<()> {
     let sample = std::fs::read_to_string(input_file)
         .with_context(|| format!("failed to read input file '{}'", input_file))?;
-    match parser_registry::parse_sample_with_profile(grammar_name, &sample, profile) {
-        Some(true) => {
+    match parser_registry::parse_sample_detail_with_profile(grammar_name, &sample, profile) {
+        Some(Ok(())) => {
             println!(
                 "parse_full passed for grammar '{}' on '{}'",
                 grammar_name, input_file
             );
             Ok(())
         }
-        Some(false) => bail!(
-            "parse_full rejected sample for grammar '{}' on '{}'",
+        Some(Err(err)) => bail!(
+            "parse_full rejected sample for grammar '{}' on '{}': {}",
             grammar_name,
-            input_file
+            input_file,
+            err
         ),
         None => bail!(
             "parseability adapter unavailable for grammar '{}'. Supported grammars: {}",
