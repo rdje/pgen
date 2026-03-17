@@ -13,6 +13,14 @@ SOTA_EXIT_GATE_SCRIPT="$RUST_DIR/scripts/sota_exit_gate.sh"
 SOTA_POLICY_ENV_FILE="${PGEN_VHDL_COMBINED_TELEMETRY_SOTA_POLICY_ENV_FILE:-$RUST_DIR/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env}"
 EXISTING_SOTA_EXIT_STATE_DIR="${PGEN_VHDL_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR:-}"
 
+require_tool() {
+    local tool="$1"
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "error: required tool '$tool' is not available in PATH" >&2
+        exit 1
+    fi
+}
+
 require_file() {
     local path="$1"
     if [[ ! -f "$path" ]]; then
@@ -68,6 +76,7 @@ assert_equal() {
 
 require_file "$SOTA_EXIT_GATE_SCRIPT"
 require_file "$SOTA_POLICY_ENV_FILE"
+require_tool jq
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -161,6 +170,12 @@ vhdl_family_status_contract_vhdl_unmet_details_count="$(extract_summary_value "$
 vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_primary_unmet_detail_criterion")"
 vhdl_family_status_contract_vhdl_unmet_closure_criteria_json="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_unmet_closure_criteria_json")"
 vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_unmet_closure_criteria_details_json")"
+vhdl_family_status_contract_gate="$(jq -r '.gate' "$vhdl_family_status_contract_summary_json")"
+vhdl_family_status_contract_gate_version="$(jq -r '.version' "$vhdl_family_status_contract_summary_json")"
+vhdl_family_status_contract_generated_at_utc="$(jq -r '.generated_at_utc' "$vhdl_family_status_contract_summary_json")"
+vhdl_family_status_contract_family_status_state_dir="$(jq -r '.family_status_state_dir' "$vhdl_family_status_contract_summary_json")"
+vhdl_family_status_contract_family_status_summary_json="$(jq -r '.family_status_summary_json' "$vhdl_family_status_contract_summary_json")"
+vhdl_family_status_contract_family_status_summary_txt="$(jq -r '.family_status_summary_txt' "$vhdl_family_status_contract_summary_json")"
 
 assert_equal \
     "VHDL family quality closed-loop initial status" \
@@ -315,6 +330,30 @@ assert_equal \
     "$vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green")"
 assert_equal \
+    "VHDL family status contract gate name" \
+    "$vhdl_family_status_contract_gate" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_gate")"
+assert_equal \
+    "VHDL family status contract gate version" \
+    "$vhdl_family_status_contract_gate_version" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_gate_version")"
+assert_equal \
+    "VHDL family status contract generated at" \
+    "$vhdl_family_status_contract_generated_at_utc" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_generated_at_utc")"
+assert_equal \
+    "VHDL family status contract family status state dir" \
+    "$vhdl_family_status_contract_family_status_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_family_status_state_dir")"
+assert_equal \
+    "VHDL family status contract family status summary json path" \
+    "$vhdl_family_status_contract_family_status_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_family_status_summary_json")"
+assert_equal \
+    "VHDL family status contract family status summary txt path" \
+    "$vhdl_family_status_contract_family_status_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_family_status_summary_txt")"
+assert_equal \
     "VHDL family status contract family count" \
     "$vhdl_family_status_contract_family_count" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_family_count")"
@@ -353,6 +392,12 @@ assert_equal \
     echo "vhdl_parser_family_status_summary_json: $vhdl_family_status_summary_json"
     echo "vhdl_parser_family_status_contract_summary_txt: $vhdl_family_status_contract_summary_txt"
     echo "vhdl_parser_family_status_contract_summary_json: $vhdl_family_status_contract_summary_json"
+    echo "vhdl_family_status_contract_gate: $vhdl_family_status_contract_gate"
+    echo "vhdl_family_status_contract_gate_version: $vhdl_family_status_contract_gate_version"
+    echo "vhdl_family_status_contract_generated_at_utc: $vhdl_family_status_contract_generated_at_utc"
+    echo "vhdl_family_status_contract_family_status_state_dir: $vhdl_family_status_contract_family_status_state_dir"
+    echo "vhdl_family_status_contract_family_status_summary_json: $vhdl_family_status_contract_family_status_summary_json"
+    echo "vhdl_family_status_contract_family_status_summary_txt: $vhdl_family_status_contract_family_status_summary_txt"
     echo "vhdl_family_quality_closed_loop_initial_status: $vhdl_quality_closed_loop_initial_status"
     echo "vhdl_family_quality_closed_loop_replay_status: $vhdl_quality_closed_loop_replay_status"
     echo "vhdl_family_quality_closed_loop_initial_targets: $vhdl_quality_closed_loop_initial_targets"

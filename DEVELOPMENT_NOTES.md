@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Surface VHDL status-contract metadata
+### Context
+After adding the VHDL status-contract `summary.json` sidecar and surfacing its path in aggregate sign-off, the next missing layer was the sidecar's own identity and provenance metadata. The aggregate proof should expose not only where the sidecar lives, but also which gate/version produced it and which family-status sidecar it validated.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now reads VHDL status-contract metadata from `vhdl_parser_family_status_contract_gate/summary.json`
+  - now surfaces:
+    - `vhdl_family_status_contract_gate`
+    - `vhdl_family_status_contract_gate_version`
+    - `vhdl_family_status_contract_generated_at_utc`
+    - `vhdl_family_status_contract_family_status_state_dir`
+    - `vhdl_family_status_contract_family_status_summary_json`
+    - `vhdl_family_status_contract_family_status_summary_txt`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now requires `jq` and reads the VHDL status-contract `summary.json` directly
+  - now proves exact parity for the new aggregate-visible metadata/provenance fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL status-contract proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Enforce commit reporting contract
 ### Context
 The recent commit workflow already depended on continuity documents, but the post-commit reporting contract was still partly implicit. For crash recovery and seamless session resume, the workflow needs to require not just the live-status snapshot, but also the exact commit identity and committed file set.

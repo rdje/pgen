@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-17 - Surface VHDL status-contract metadata
+### ✅ Achievement Summary
+Aggregate sign-off now surfaces the VHDL status-contract sidecar's own metadata and provenance, not just its blocker arrays and counts. `vhdl_combined_telemetry_contract_gate` now proves those aggregate-visible metadata fields match `vhdl_parser_family_status_contract_gate/summary.json` exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `vhdl_family_status_contract_gate`
+    - `vhdl_family_status_contract_gate_version`
+    - `vhdl_family_status_contract_generated_at_utc`
+    - `vhdl_family_status_contract_family_status_state_dir`
+    - `vhdl_family_status_contract_family_status_summary_json`
+    - `vhdl_family_status_contract_family_status_summary_txt`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now reads the VHDL status-contract `summary.json` directly
+  - now parity-checks those aggregate-visible metadata/provenance fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL status-contract proof surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Enforce commit reporting contract
 ### ✅ Achievement Summary
 The commit workflow now explicitly requires systematic markdown synchronization and post-commit reporting of the commit ID, exact commit message, and the full list of tracked files included in each commit. This turns continuity reporting into a repository contract instead of a conversational preference.

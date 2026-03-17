@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: enforce-commit-reporting-contract)
+Last updated: 2026-03-17 (+0100, task: surface-vhdl-status-contract-metadata)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -151,6 +151,12 @@ Use this file to resume work without replaying full chat history.
   - current aggregate-visible/parity-checked VHDL status-contract fields include:
     - `vhdl_parser_family_status_contract_summary_txt`
     - `vhdl_parser_family_status_contract_summary_json`
+    - `vhdl_family_status_contract_gate=vhdl_parser_family_status_contract_gate`
+    - `vhdl_family_status_contract_gate_version=1`
+    - `vhdl_family_status_contract_generated_at_utc=<run-specific>`
+    - `vhdl_family_status_contract_family_status_state_dir=<aggregate workdir>/work/vhdl_parser_family_status_gate`
+    - `vhdl_family_status_contract_family_status_summary_json=<aggregate workdir>/work/vhdl_parser_family_status_gate/summary.json`
+    - `vhdl_family_status_contract_family_status_summary_txt=<aggregate workdir>/work/vhdl_parser_family_status_gate/summary.txt`
     - `vhdl_family_status_contract_family_count=1`
     - `vhdl_family_status_contract_vhdl_tracker_alignment_ok=true`
     - `vhdl_family_status_contract_vhdl_false_criteria_count=4`
