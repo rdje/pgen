@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-vhdl-family-status-gate)
+Last updated: 2026-03-17 (+0100, task: add-vhdl-family-status-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -89,6 +89,20 @@ Use this file to resume work without replaying full chat history.
   - the gate emits both:
     - `rust/target/vhdl_parser_family_status_gate/summary.txt`
     - `rust/target/vhdl_parser_family_status_gate/summary.json`
+- The VHDL family-status sidecar now also has a dedicated source-side contract gate:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_contract_gate`
+  - validates `vhdl_parser_family_status_gate/summary.json` and `summary.txt` for:
+    - single-family roster
+    - tracker alignment
+    - closure-count arithmetic
+    - false-criteria accounting
+    - blocker-array parity between JSON and TXT summaries
+  - current validated contract counts:
+    - `family_count=1`
+    - `vhdl_tracker_alignment_ok=true`
+    - `vhdl_false_criteria_count=4`
+    - `vhdl_unmet_details_count=4`
+    - `vhdl_primary_unmet_detail_criterion=quality_parseability_generation_parser_rejections_zero`
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

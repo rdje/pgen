@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add VHDL family status contract gate
+### Context
+Once the VHDL family-status gate existed, the next clean hardening step was the same one we took for SV: validate the sidecar itself as an artifact. That gives the VHDL row a producer gate plus a source-side contract gate, instead of leaving all trust on the producer alone.
+
+### Implementation
+- Added [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+  - can validate an existing `vhdl_parser_family_status_gate` state dir or produce one on demand
+  - enforces sidecar schema shape, single-family roster, tracker alignment, closure-count arithmetic, false-criteria accounting, and blocker-detail count parity
+  - enforces parity between `summary.json` and `summary.txt` for the VHDL blocker arrays, primary unmet criterion, and tracker-alignment boolean
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added the new `vhdl_parser_family_status_contract_gate` target and help text
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new VHDL family-status contract proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Add VHDL family status gate
 ### Context
 The VHDL proof surface had already reached the point where the row deserved the same treatment as the shipped SV families: a machine-checkable status computation instead of a prose-only tracker label. The next clean step was to add a conservative VHDL family-status gate that reuses the landed VHDL family proof surfaces, verifies alignment with the live tracker, and makes the remaining blockers explicit without overpromoting the row.

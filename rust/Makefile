@@ -247,6 +247,7 @@ help:
 	@echo "  vhdl_parser_family_contract_gate - Enforce combined contract for the current VHDL family proof surfaces"
 	@echo "  vhdl_combined_telemetry_contract_gate - Enforce aggregate VHDL-family telemetry consistency against the VHDL family sidecar"
 	@echo "  vhdl_parser_family_status_gate - Compute machine-checkable VHDL family status rationale and verify live-tracker alignment"
+	@echo "  vhdl_parser_family_status_contract_gate - Enforce schema/consistency contract for the VHDL family-status sidecar"
 	@echo "  sv_replay_gap_target_triage - Surface deterministic triage for the remaining focused SystemVerilog replay-gap targets"
 	@echo "  sv_failure_context_contract_gate - Enforce lightweight source-level failure-context proof across both SV parser families"
 	@echo "  sv_roundtrip_contract_gate - Enforce lightweight parser/stimuli roundtrip proof across both SV parser families"
@@ -583,6 +584,12 @@ vhdl_parser_family_status_gate:
 	@echo "🧪 Running VHDL parser-family status gate..."
 	cd $(RUST_DIR) && ./scripts/vhdl_parser_family_status_gate.sh
 	@echo "✅ VHDL parser-family status gate passed."
+
+.PHONY: vhdl_parser_family_status_contract_gate
+vhdl_parser_family_status_contract_gate:
+	@echo "🧪 Running VHDL parser-family status contract gate..."
+	cd $(RUST_DIR) && ./scripts/vhdl_parser_family_status_contract_gate.sh
+	@echo "✅ VHDL parser-family status contract gate passed."
 
 .PHONY: sv_replay_gap_target_triage
 sv_replay_gap_target_triage:

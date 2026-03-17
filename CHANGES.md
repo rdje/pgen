@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-03-17 - Add VHDL family status contract gate
+### ✅ Achievement Summary
+The VHDL family-status sidecar now has its own source-side contract proof. `vhdl_parser_family_status_contract_gate` validates the shape and internal consistency of `vhdl_parser_family_status_gate/summary.json` and `summary.txt`, so the new VHDL status row is backed by an artifact contract rather than only by the producer gate.
+
+### Scope of Changes
+- Added [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+  - can validate an existing `vhdl_parser_family_status_gate` state dir or produce one on demand
+  - enforces required top-level fields and the required single-family roster
+  - enforces tracker alignment, closure-count arithmetic, false-criteria accounting, and blocker-detail count consistency
+  - enforces parity between `summary.json` and `summary.txt` for:
+    - `vhdl_tracker_alignment_ok`
+    - `vhdl_primary_unmet_closure_criterion`
+    - `vhdl_unmet_closure_criteria_json`
+    - `vhdl_unmet_closure_criteria_details_json`
+  - current validated contract counts are:
+    - `family_count=1`
+    - `vhdl_tracker_alignment_ok=true`
+    - `vhdl_false_criteria_count=4`
+    - `vhdl_unmet_details_count=4`
+    - `vhdl_primary_unmet_detail_criterion=quality_parseability_generation_parser_rejections_zero`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `vhdl_parser_family_status_contract_gate`
+  - added the new help text entry
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new VHDL family-status contract proof surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Add VHDL family status gate
 ### ✅ Achievement Summary
 VHDL now has a conservative machine-checkable family-status proof. `vhdl_parser_family_status_gate` computes the `vhdl` live tracker row from landed VHDL proof surfaces, verifies tracker alignment, and makes the remaining blockers explicit instead of leaving the `In Progress` label as prose-only interpretation.
