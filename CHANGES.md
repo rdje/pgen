@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-17 - Surface VHDL family proof in aggregate sign-off
+### ✅ Achievement Summary
+Aggregate sign-off now reuses the VHDL family-side contract and exposes it as first-class telemetry. `sota_exit_gate` now carries the combined VHDL family summary path plus core quality/promotion metrics, and `vhdl_combined_telemetry_contract_gate` proves those aggregate-visible fields match the VHDL family sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now reruns `vhdl_parser_family_contract_gate` against the produced `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` state dirs
+  - now surfaces:
+    - `vhdl_parser_family_contract_summary_txt`
+    - `vhdl_family_quality_closed_loop_initial_status`
+    - `vhdl_family_quality_closed_loop_replay_status`
+    - `vhdl_family_quality_closed_loop_initial_targets`
+    - `vhdl_family_quality_closed_loop_replay_targets`
+    - `vhdl_family_quality_parseability_generation_attempts_total`
+    - `vhdl_family_quality_parseability_generation_rejected_total`
+    - `vhdl_family_quality_realistic_cases_executed`
+    - `vhdl_family_quality_realistic_expected_pass_total`
+    - `vhdl_family_quality_realistic_expected_fail_total`
+    - `vhdl_family_quality_realistic_observed_parse_pass_total`
+    - `vhdl_family_quality_realistic_observed_parse_fail_total`
+    - `vhdl_family_strict_promotion_recommendation`
+    - `vhdl_family_strict_promotion_eligible_for_required_strict_mode`
+    - `vhdl_family_strict_promotion_primary_blocker`
+    - `vhdl_family_strict_promotion_trial_passed`
+    - `vhdl_family_strict_promotion_observed_ratio_min`
+    - `vhdl_family_strict_promotion_observed_ratio_max`
+    - `vhdl_family_strict_promotion_observed_ratio_avg`
+- Added [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - runs a bounded VHDL-only aggregate `sota_exit_gate` flow or validates an existing aggregate state dir
+  - proves the aggregate VHDL family telemetry matches `vhdl_parser_family_contract_gate/summary.txt` exactly
+- Added [rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env):
+  - checked-in bounded aggregate policy for VHDL-only telemetry proof
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `vhdl_combined_telemetry_contract_gate`
+  - added the new help text entry
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL family proof surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Add VHDL parser-family contract gate
 ### ✅ Achievement Summary
 VHDL now has its own reusable combined proof gate. `vhdl_parser_family_contract_gate` validates the current VHDL family proof surface by checking `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` together, without overstating the live tracker label.

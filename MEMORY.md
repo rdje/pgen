@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-vhdl-parser-family-contract-gate)
+Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-proof-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -49,6 +49,30 @@ Use this file to resume work without replaying full chat history.
     - `strict_promotion_primary_blocker=none`
     - `strict_promotion_trial_passed=3`
   - the gate validates the current VHDL family proof surface across `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` without overclaiming a final VHDL closure label.
+- Aggregate sign-off now also reuses that VHDL family sidecar directly:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
+  - checked-in policy file:
+    - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env`
+  - current aggregate-visible/parity-checked VHDL family surface includes:
+    - `vhdl_family_quality_closed_loop_initial_status=pass`
+    - `vhdl_family_quality_closed_loop_replay_status=pass`
+    - `vhdl_family_quality_closed_loop_initial_targets=254`
+    - `vhdl_family_quality_closed_loop_replay_targets=12`
+    - `vhdl_family_quality_parseability_generation_attempts_total=3`
+    - `vhdl_family_quality_parseability_generation_rejected_total=1`
+    - `vhdl_family_quality_realistic_cases_executed=14`
+    - `vhdl_family_quality_realistic_expected_pass_total=8`
+    - `vhdl_family_quality_realistic_expected_fail_total=6`
+    - `vhdl_family_quality_realistic_observed_parse_pass_total=8`
+    - `vhdl_family_quality_realistic_observed_parse_fail_total=6`
+    - `vhdl_family_strict_promotion_recommendation=enable_required_strict_mode`
+    - `vhdl_family_strict_promotion_eligible_for_required_strict_mode=1`
+    - `vhdl_family_strict_promotion_primary_blocker=none`
+    - `vhdl_family_strict_promotion_trial_passed=3`
+    - `vhdl_family_strict_promotion_observed_ratio_min=12`
+    - `vhdl_family_strict_promotion_observed_ratio_max=37`
+    - `vhdl_family_strict_promotion_observed_ratio_avg=24`
+  - `vhdl_combined_telemetry_contract_gate` proves those aggregate-visible values match `vhdl_parser_family_contract_gate/summary.txt` exactly.
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

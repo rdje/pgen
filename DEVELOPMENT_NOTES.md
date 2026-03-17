@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Surface VHDL family proof in aggregate sign-off
+### Context
+The new VHDL family contract gate made the current VHDL proof surface reusable, but aggregate sign-off still only surfaced the lower-level VHDL gates separately. The next hardening step was to thread the family-level sidecar into `sota_exit_gate` and add a dedicated parity gate so the release summary can show one coherent VHDL family proof surface rather than two disconnected sub-surfaces.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now reuses `vhdl_parser_family_contract_gate` over the produced `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` artifacts
+  - now surfaces the VHDL family summary path plus core quality/promotion metrics in aggregate telemetry
+- Added [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - runs a bounded VHDL-only aggregate flow or validates an existing aggregate state dir
+  - proves exact parity between aggregate VHDL telemetry and `vhdl_parser_family_contract_gate/summary.txt`
+- Added [rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env):
+  - checked-in lightweight aggregate policy for the VHDL telemetry parity proof
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added the new `vhdl_combined_telemetry_contract_gate` target and help text
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL family proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Add VHDL parser-family contract gate
 ### Context
 Once the repository-wide parser proof doctrine was made explicit, the next useful follow-through was to apply it to a non-SV family in executable form. VHDL already had two meaningful proof surfaces, `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate`, but no reusable combined contract that treated them as one family-level evidence surface.

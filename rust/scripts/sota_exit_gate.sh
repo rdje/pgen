@@ -116,6 +116,8 @@ VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO="${PGEN_SOTA_VHDL_STRICT_PROMOTION_TARGET
 VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY="${PGEN_SOTA_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY:-$POLICY_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY}"
 ALLOW_INFORMATIONAL_FAILURES="${PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES:-$POLICY_ALLOW_INFORMATIONAL_FAILURES}"
 REQUIRED_CHECKS="${PGEN_SOTA_REQUIRED_CHECKS:-$POLICY_REQUIRED_CHECKS}"
+EXISTING_VHDL_STIMULI_QUALITY_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_STIMULI_QUALITY_STATE_DIR:-}"
+EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR:-}"
 VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS_SOURCE="policy"
 if [[ -n "${PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}" ]]; then
     VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS_SOURCE="runtime_override"
@@ -714,6 +716,19 @@ summary_value_from_txt_literal() {
         return 0
     fi
     awk -v prefix="${key}: " 'index($0, prefix) == 1 { print substr($0, length(prefix) + 1); found = 1 } END { if (!found) exit 0 }' "$txt_file" | tail -n 1 || true
+}
+
+summary_value_from_log_or_txt() {
+    local key="$1"
+    local log_file="$2"
+    local txt_file="$3"
+    local value
+    value="$(summary_value_from_log "$key" "$log_file")"
+    if [[ -n "$value" ]]; then
+        printf '%s\n' "$value"
+        return 0
+    fi
+    summary_value_from_txt "$key" "$txt_file"
 }
 
 echo "==> PGEN SOTA exit gate"
@@ -1972,42 +1987,50 @@ if [[ "$RUN_SV_PARSE_FULL_RATIO_PROMOTION" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
-    VHDL_STIMULI_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/vhdl_stimuli_quality_gate"
+    VHDL_STIMULI_QUALITY_STAGE_STATE_DIR="${EXISTING_VHDL_STIMULI_QUALITY_STATE_DIR:-${STATE_DIR}/work/vhdl_stimuli_quality_gate}"
+    VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/summary.txt"
     VHDL_STIMULI_QUALITY_STAGE_LOG_FILE="${LOG_DIR}/vhdl_stimuli_quality_gate.log"
-    if [[ "$REQUIRE_VHDL_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
-        run_check "vhdl_stimuli_quality_gate" "required" "strict VHDL stimuli quality gate" \
-            env \
-                PGEN_VHDL_STIMULI_QUALITY_STATE_DIR="$VHDL_STIMULI_QUALITY_STAGE_STATE_DIR" \
-                PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
-                make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate
+    if [[ -z "$EXISTING_VHDL_STIMULI_QUALITY_STATE_DIR" ]]; then
+        if [[ "$REQUIRE_VHDL_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
+            run_check "vhdl_stimuli_quality_gate" "required" "strict VHDL stimuli quality gate" \
+                env \
+                    PGEN_VHDL_STIMULI_QUALITY_STATE_DIR="$VHDL_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
+                    make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate
+        else
+            run_check "vhdl_stimuli_quality_gate" "informational" "report-only VHDL stimuli quality gate" \
+                env \
+                    PGEN_VHDL_STIMULI_QUALITY_STATE_DIR="$VHDL_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
+                    make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate
+        fi
     else
-        run_check "vhdl_stimuli_quality_gate" "informational" "report-only VHDL stimuli quality gate" \
-            env \
-                PGEN_VHDL_STIMULI_QUALITY_STATE_DIR="$VHDL_STIMULI_QUALITY_STAGE_STATE_DIR" \
-                PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
-                make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate
+        if [[ ! -f "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT" ]]; then
+            echo "error: existing VHDL stimuli quality state dir is missing summary.txt: $VHDL_STIMULI_QUALITY_STAGE_STATE_DIR" >&2
+            exit 2
+        fi
     fi
 
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS="$(summary_value_from_log "closed_loop_target_max_attempts" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE="$(summary_value_from_log "closed_loop_target_max_attempts_source" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS="$(summary_value_from_log "closed_loop_initial_targets" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS="$(summary_value_from_log "closed_loop_replay_targets" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED="$(summary_value_from_log "closed_loop_parseability_shadow_enabled" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE="$(summary_value_from_log "closed_loop_parseability_shadow_effective" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REQUESTED_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log "closed_loop_parseability_shadow_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_primary_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS="$(summary_value_from_log_or_txt "closed_loop_target_max_attempts" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE="$(summary_value_from_log_or_txt "closed_loop_target_max_attempts_source" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_INITIAL_TARGETS="$(summary_value_from_log_or_txt "closed_loop_initial_targets" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_REPLAY_TARGETS="$(summary_value_from_log_or_txt "closed_loop_replay_targets" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ENABLED="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_enabled" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_EFFECTIVE="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_effective" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REQUESTED_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_primary_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_primary_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_PRIMARY_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_primary_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/work/closed_loop_replay_parseability_shadow_report.json"
     if [[ ! -f "$VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON" ]]; then
-        VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_log "closed_loop_parseability_shadow_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+        VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="$(summary_value_from_log_or_txt "closed_loop_parseability_shadow_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     fi
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS:-unknown}"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_TARGET_MAX_ATTEMPTS_SOURCE:-unknown}"
@@ -2028,16 +2051,16 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL:-unknown}"
     VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON="${VHDL_STIMULI_QUALITY_CLOSED_LOOP_PARSEABILITY_SHADOW_REPORT_JSON:-<missing>}"
 
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_log "parseability_generation_enabled" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE="$(summary_value_from_log "parseability_generation_effective" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="$(summary_value_from_log "parseability_generation_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="$(summary_value_from_log "parseability_generation_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTED_TOTAL="$(summary_value_from_log "parseability_generation_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="$(summary_value_from_log "parseability_generation_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
-    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log "parseability_generation_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="$(summary_value_from_log_or_txt "parseability_generation_enabled" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE="$(summary_value_from_log_or_txt "parseability_generation_effective" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REQUESTED_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_requested_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_attempts_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTED_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_accepted_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="$(summary_value_from_log_or_txt "parseability_generation_rejected_total" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
+    VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_log_or_txt "parseability_generation_acceptance_rate_percent" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/work/vhdl_parseability_generation_report.json"
     if [[ ! -f "$VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON" ]]; then
-        VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="$(summary_value_from_log "parseability_generation_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+        VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="$(summary_value_from_log_or_txt "parseability_generation_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     fi
     VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED="${VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_ENABLED:-unknown}"
     VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE="${VHDL_STIMULI_QUALITY_PARSEABILITY_GENERATION_EFFECTIVE:-unknown}"
@@ -2050,45 +2073,52 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 ]]; then
 
     VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="${VHDL_STIMULI_QUALITY_STAGE_STATE_DIR}/work/vhdl_realistic_corpus_report.json"
     if [[ ! -f "$VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON" ]]; then
-        VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="$(summary_value_from_log "realistic_corpus_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE")"
+        VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="$(summary_value_from_log_or_txt "realistic_corpus_report_json" "$VHDL_STIMULI_QUALITY_STAGE_LOG_FILE" "$VHDL_STIMULI_QUALITY_STAGE_SUMMARY_TXT")"
     fi
     VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON="${VHDL_STIMULI_QUALITY_REALISTIC_CORPUS_REPORT_JSON:-<missing>}"
 fi
 
 if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
-    VHDL_STRICT_PROMOTION_STAGE_STATE_DIR="${STATE_DIR}/work/vhdl_strict_promotion_gate"
+    VHDL_STRICT_PROMOTION_STAGE_STATE_DIR="${EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR:-${STATE_DIR}/work/vhdl_strict_promotion_gate}"
     VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON="${VHDL_STRICT_PROMOTION_STAGE_STATE_DIR}/work/vhdl_strict_promotion_report.json"
 
-    if [[ "$REQUIRE_VHDL_STRICT_PROMOTION_STRICT" -eq 1 ]]; then
-        run_check "vhdl_strict_promotion_gate" "required" "strict VHDL strict-promotion trial gate" \
-            env \
-                PGEN_VHDL_STRICT_PROMOTION_MODE=1 \
-                PGEN_VHDL_STRICT_PROMOTION_TRIALS="$VHDL_STRICT_PROMOTION_TRIALS" \
-                PGEN_VHDL_STRICT_PROMOTION_COUNT="$VHDL_STRICT_PROMOTION_COUNT" \
-                PGEN_VHDL_STRICT_PROMOTION_SEED_BASE="$VHDL_STRICT_PROMOTION_SEED_BASE" \
-                PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE="$VHDL_STRICT_PROMOTION_SEED_STRIDE" \
-                PGEN_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE="$VHDL_STRICT_PROMOTION_PARSE_FULL_MODE" \
-                PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE="$VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE" \
-                PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO="$VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO" \
-                PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY="$VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY" \
-                PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
-                PGEN_VHDL_STRICT_PROMOTION_STATE_DIR="$VHDL_STRICT_PROMOTION_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate
+    if [[ -z "$EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR" ]]; then
+        if [[ "$REQUIRE_VHDL_STRICT_PROMOTION_STRICT" -eq 1 ]]; then
+            run_check "vhdl_strict_promotion_gate" "required" "strict VHDL strict-promotion trial gate" \
+                env \
+                    PGEN_VHDL_STRICT_PROMOTION_MODE=1 \
+                    PGEN_VHDL_STRICT_PROMOTION_TRIALS="$VHDL_STRICT_PROMOTION_TRIALS" \
+                    PGEN_VHDL_STRICT_PROMOTION_COUNT="$VHDL_STRICT_PROMOTION_COUNT" \
+                    PGEN_VHDL_STRICT_PROMOTION_SEED_BASE="$VHDL_STRICT_PROMOTION_SEED_BASE" \
+                    PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE="$VHDL_STRICT_PROMOTION_SEED_STRIDE" \
+                    PGEN_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE="$VHDL_STRICT_PROMOTION_PARSE_FULL_MODE" \
+                    PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE="$VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE" \
+                    PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO="$VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO" \
+                    PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY="$VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY" \
+                    PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
+                    PGEN_VHDL_STRICT_PROMOTION_STATE_DIR="$VHDL_STRICT_PROMOTION_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate
+        else
+            run_check "vhdl_strict_promotion_gate" "informational" "report-only VHDL strict-promotion trial gate" \
+                env \
+                    PGEN_VHDL_STRICT_PROMOTION_MODE=auto \
+                    PGEN_VHDL_STRICT_PROMOTION_TRIALS="$VHDL_STRICT_PROMOTION_TRIALS" \
+                    PGEN_VHDL_STRICT_PROMOTION_COUNT="$VHDL_STRICT_PROMOTION_COUNT" \
+                    PGEN_VHDL_STRICT_PROMOTION_SEED_BASE="$VHDL_STRICT_PROMOTION_SEED_BASE" \
+                    PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE="$VHDL_STRICT_PROMOTION_SEED_STRIDE" \
+                    PGEN_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE="$VHDL_STRICT_PROMOTION_PARSE_FULL_MODE" \
+                    PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE="$VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE" \
+                    PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO="$VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO" \
+                    PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY="$VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY" \
+                    PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
+                    PGEN_VHDL_STRICT_PROMOTION_STATE_DIR="$VHDL_STRICT_PROMOTION_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate
+        fi
     else
-        run_check "vhdl_strict_promotion_gate" "informational" "report-only VHDL strict-promotion trial gate" \
-            env \
-                PGEN_VHDL_STRICT_PROMOTION_MODE=auto \
-                PGEN_VHDL_STRICT_PROMOTION_TRIALS="$VHDL_STRICT_PROMOTION_TRIALS" \
-                PGEN_VHDL_STRICT_PROMOTION_COUNT="$VHDL_STRICT_PROMOTION_COUNT" \
-                PGEN_VHDL_STRICT_PROMOTION_SEED_BASE="$VHDL_STRICT_PROMOTION_SEED_BASE" \
-                PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE="$VHDL_STRICT_PROMOTION_SEED_STRIDE" \
-                PGEN_VHDL_STRICT_PROMOTION_PARSE_FULL_MODE="$VHDL_STRICT_PROMOTION_PARSE_FULL_MODE" \
-                PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE="$VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE" \
-                PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO="$VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO" \
-                PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY="$VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY" \
-                PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="$VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS" \
-                PGEN_VHDL_STRICT_PROMOTION_STATE_DIR="$VHDL_STRICT_PROMOTION_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate
+        if [[ ! -f "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" ]]; then
+            echo "error: existing VHDL strict-promotion state dir is missing report json: $VHDL_STRICT_PROMOTION_STAGE_STATE_DIR" >&2
+            exit 2
+        fi
     fi
 
     if [[ -f "$VHDL_STRICT_PROMOTION_STAGE_REPORT_JSON" ]]; then
@@ -2155,6 +2185,67 @@ if [[ "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
     echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+fi
+
+if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
+    VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/vhdl_parser_family_contract_gate"
+    VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="${VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    if [[ "$REQUIRE_VHDL_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_VHDL_STRICT_PROMOTION_STRICT" -eq 1 ]]; then
+        run_check "vhdl_parser_family_contract_gate" "required" "strict combined VHDL-family proof over produced artifacts" \
+            env \
+                PGEN_VHDL_FAMILY_CONTRACT_STATE_DIR="$VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR="$VHDL_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                PGEN_VHDL_FAMILY_CONTRACT_EXISTING_STRICT_PROMOTION_STATE_DIR="$VHDL_STRICT_PROMOTION_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash vhdl_parser_family_contract_gate
+    else
+        run_check "vhdl_parser_family_contract_gate" "informational" "report-only combined VHDL-family proof over produced artifacts" \
+            env \
+                PGEN_VHDL_FAMILY_CONTRACT_STATE_DIR="$VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR="$VHDL_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                PGEN_VHDL_FAMILY_CONTRACT_EXISTING_STRICT_PROMOTION_STATE_DIR="$VHDL_STRICT_PROMOTION_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash vhdl_parser_family_contract_gate
+    fi
+
+    if [[ ! -f "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT" ]]; then
+        VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_STATUS="<missing>"
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_STATUS="<missing>"
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_TARGETS="<missing>"
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_TARGETS="<missing>"
+        VHDL_FAMILY_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="<missing>"
+        VHDL_FAMILY_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="<missing>"
+        VHDL_FAMILY_QUALITY_REALISTIC_CASES_EXECUTED="<missing>"
+        VHDL_FAMILY_QUALITY_REALISTIC_EXPECTED_PASS_TOTAL="<missing>"
+        VHDL_FAMILY_QUALITY_REALISTIC_EXPECTED_FAIL_TOTAL="<missing>"
+        VHDL_FAMILY_QUALITY_REALISTIC_OBSERVED_PARSE_PASS_TOTAL="<missing>"
+        VHDL_FAMILY_QUALITY_REALISTIC_OBSERVED_PARSE_FAIL_TOTAL="<missing>"
+        VHDL_FAMILY_STRICT_PROMOTION_RECOMMENDATION="<missing>"
+        VHDL_FAMILY_STRICT_PROMOTION_ELIGIBLE="<missing>"
+        VHDL_FAMILY_STRICT_PROMOTION_PRIMARY_BLOCKER="<missing>"
+        VHDL_FAMILY_STRICT_PROMOTION_TRIAL_PASSED="<missing>"
+        VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MIN="<missing>"
+        VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MAX="<missing>"
+        VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_AVG="<missing>"
+    else
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_STATUS="$(summary_value_from_txt "quality_closed_loop_initial_status" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_STATUS="$(summary_value_from_txt "quality_closed_loop_replay_status" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_TARGETS="$(summary_value_from_txt "quality_closed_loop_initial_targets" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_TARGETS="$(summary_value_from_txt "quality_closed_loop_replay_targets" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="$(summary_value_from_txt "quality_parseability_generation_attempts_total" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL="$(summary_value_from_txt "quality_parseability_generation_rejected_total" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_REALISTIC_CASES_EXECUTED="$(summary_value_from_txt "quality_realistic_cases_executed" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_REALISTIC_EXPECTED_PASS_TOTAL="$(summary_value_from_txt "quality_realistic_expected_pass_total" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_REALISTIC_EXPECTED_FAIL_TOTAL="$(summary_value_from_txt "quality_realistic_expected_fail_total" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_REALISTIC_OBSERVED_PARSE_PASS_TOTAL="$(summary_value_from_txt "quality_realistic_observed_parse_pass_total" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_QUALITY_REALISTIC_OBSERVED_PARSE_FAIL_TOTAL="$(summary_value_from_txt "quality_realistic_observed_parse_fail_total" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_STRICT_PROMOTION_RECOMMENDATION="$(summary_value_from_txt "strict_promotion_recommendation" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_STRICT_PROMOTION_ELIGIBLE="$(summary_value_from_txt "strict_promotion_eligible_for_required_strict_mode" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_STRICT_PROMOTION_PRIMARY_BLOCKER="$(summary_value_from_txt "strict_promotion_primary_blocker" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_STRICT_PROMOTION_TRIAL_PASSED="$(summary_value_from_txt "strict_promotion_trial_passed" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MIN="$(summary_value_from_txt "strict_promotion_observed_ratio_min" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MAX="$(summary_value_from_txt "strict_promotion_observed_ratio_max" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_AVG="$(summary_value_from_txt "strict_promotion_observed_ratio_avg" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+    fi
 fi
 
 {
@@ -2601,6 +2692,29 @@ fi
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_attempts_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ATTEMPTS_TOTAL"
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_accepted_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_ACCEPTED_OUTPUTS_TOTAL"
         echo "vhdl_strict_promotion_closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total: $VHDL_STRICT_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ALTERNATE_ENTRY_REJECTED_OUTPUTS_TOTAL"
+    fi
+    if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]; then
+        echo
+        echo "VHDL Family Contract Telemetry"
+        echo "vhdl_parser_family_contract_summary_txt: $VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT"
+        echo "vhdl_family_quality_closed_loop_initial_status: $VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_STATUS"
+        echo "vhdl_family_quality_closed_loop_replay_status: $VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_STATUS"
+        echo "vhdl_family_quality_closed_loop_initial_targets: $VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_TARGETS"
+        echo "vhdl_family_quality_closed_loop_replay_targets: $VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_TARGETS"
+        echo "vhdl_family_quality_parseability_generation_attempts_total: $VHDL_FAMILY_QUALITY_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL"
+        echo "vhdl_family_quality_parseability_generation_rejected_total: $VHDL_FAMILY_QUALITY_PARSEABILITY_GENERATION_REJECTED_TOTAL"
+        echo "vhdl_family_quality_realistic_cases_executed: $VHDL_FAMILY_QUALITY_REALISTIC_CASES_EXECUTED"
+        echo "vhdl_family_quality_realistic_expected_pass_total: $VHDL_FAMILY_QUALITY_REALISTIC_EXPECTED_PASS_TOTAL"
+        echo "vhdl_family_quality_realistic_expected_fail_total: $VHDL_FAMILY_QUALITY_REALISTIC_EXPECTED_FAIL_TOTAL"
+        echo "vhdl_family_quality_realistic_observed_parse_pass_total: $VHDL_FAMILY_QUALITY_REALISTIC_OBSERVED_PARSE_PASS_TOTAL"
+        echo "vhdl_family_quality_realistic_observed_parse_fail_total: $VHDL_FAMILY_QUALITY_REALISTIC_OBSERVED_PARSE_FAIL_TOTAL"
+        echo "vhdl_family_strict_promotion_recommendation: $VHDL_FAMILY_STRICT_PROMOTION_RECOMMENDATION"
+        echo "vhdl_family_strict_promotion_eligible_for_required_strict_mode: $VHDL_FAMILY_STRICT_PROMOTION_ELIGIBLE"
+        echo "vhdl_family_strict_promotion_primary_blocker: $VHDL_FAMILY_STRICT_PROMOTION_PRIMARY_BLOCKER"
+        echo "vhdl_family_strict_promotion_trial_passed: $VHDL_FAMILY_STRICT_PROMOTION_TRIAL_PASSED"
+        echo "vhdl_family_strict_promotion_observed_ratio_min: $VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MIN"
+        echo "vhdl_family_strict_promotion_observed_ratio_max: $VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MAX"
+        echo "vhdl_family_strict_promotion_observed_ratio_avg: $VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_AVG"
     fi
 } >"$SUMMARY_TXT"
 
