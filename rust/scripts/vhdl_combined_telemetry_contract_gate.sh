@@ -138,6 +138,16 @@ vhdl_family_status_vhdl_unmet_closure_criteria_details_json="$(extract_summary_v
 vhdl_family_status_vhdl_closure_criteria_satisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_satisfied_count")"
 vhdl_family_status_vhdl_closure_criteria_total_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_total_count")"
 vhdl_family_status_vhdl_closure_criteria_unsatisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_unsatisfied_count")"
+vhdl_family_status_vhdl_family_contract_green="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_family_contract_green")"
+vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_quality_closed_loop_initial_status_pass")"
+vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_quality_closed_loop_replay_status_pass")"
+vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_quality_parseability_generation_parser_rejections_zero")"
+vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero")"
+vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_quality_closed_loop_replay_target_debt_zero")"
+vhdl_family_status_vhdl_strict_promotion_recommendation_green="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_strict_promotion_recommendation_green")"
+vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_strict_promotion_eligible_for_required_strict_mode")"
+vhdl_family_status_vhdl_strict_promotion_primary_blocker_none="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_strict_promotion_primary_blocker_none")"
+vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_formal_exhaustive_closure_surface_green")"
 vhdl_family_status_contract_family_count="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "family_count")"
 vhdl_family_status_contract_vhdl_tracker_alignment_ok="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_tracker_alignment_ok")"
 vhdl_family_status_contract_vhdl_false_criteria_count="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_false_criteria_count")"
@@ -257,6 +267,46 @@ assert_equal \
     "$vhdl_family_status_vhdl_closure_criteria_unsatisfied_count" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count")"
 assert_equal \
+    "VHDL family contract green criterion" \
+    "$vhdl_family_status_vhdl_family_contract_green" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_family_contract_green")"
+assert_equal \
+    "VHDL family closed-loop initial status pass criterion" \
+    "$vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass")"
+assert_equal \
+    "VHDL family closed-loop replay status pass criterion" \
+    "$vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass")"
+assert_equal \
+    "VHDL family generation parser rejections zero criterion" \
+    "$vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero")"
+assert_equal \
+    "VHDL family replay-shadow parser rejections zero criterion" \
+    "$vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero")"
+assert_equal \
+    "VHDL family replay target debt zero criterion" \
+    "$vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero")"
+assert_equal \
+    "VHDL family strict-promotion recommendation green criterion" \
+    "$vhdl_family_status_vhdl_strict_promotion_recommendation_green" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_strict_promotion_recommendation_green")"
+assert_equal \
+    "VHDL family strict-promotion eligible criterion" \
+    "$vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode")"
+assert_equal \
+    "VHDL family strict-promotion primary blocker none criterion" \
+    "$vhdl_family_status_vhdl_strict_promotion_primary_blocker_none" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_strict_promotion_primary_blocker_none")"
+assert_equal \
+    "VHDL family formal exhaustive closure surface green criterion" \
+    "$vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green")"
+assert_equal \
     "VHDL family status contract family count" \
     "$vhdl_family_status_contract_family_count" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_family_count")"
@@ -314,6 +364,16 @@ assert_equal \
     echo "vhdl_family_status_vhdl_closure_criteria_satisfied_count: $vhdl_family_status_vhdl_closure_criteria_satisfied_count"
     echo "vhdl_family_status_vhdl_closure_criteria_total_count: $vhdl_family_status_vhdl_closure_criteria_total_count"
     echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $vhdl_family_status_vhdl_closure_criteria_unsatisfied_count"
+    echo "vhdl_family_status_vhdl_family_contract_green: $vhdl_family_status_vhdl_family_contract_green"
+    echo "vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass: $vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass"
+    echo "vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass: $vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass"
+    echo "vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero: $vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero"
+    echo "vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero: $vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero"
+    echo "vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero: $vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero"
+    echo "vhdl_family_status_vhdl_strict_promotion_recommendation_green: $vhdl_family_status_vhdl_strict_promotion_recommendation_green"
+    echo "vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode: $vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode"
+    echo "vhdl_family_status_vhdl_strict_promotion_primary_blocker_none: $vhdl_family_status_vhdl_strict_promotion_primary_blocker_none"
+    echo "vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green: $vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green"
     echo "vhdl_family_status_contract_family_count: $vhdl_family_status_contract_family_count"
     echo "vhdl_family_status_contract_vhdl_tracker_alignment_ok: $vhdl_family_status_contract_vhdl_tracker_alignment_ok"
     echo "vhdl_family_status_contract_vhdl_false_criteria_count: $vhdl_family_status_contract_vhdl_false_criteria_count"

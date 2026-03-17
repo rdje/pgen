@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-17 - Surface VHDL family criteria booleans
+### ✅ Achievement Summary
+Aggregate sign-off now carries the exact machine-checked VHDL family-status criterion booleans, not just the resulting status, blocker arrays, and progress counts. `vhdl_combined_telemetry_contract_gate` now proves those criterion flags match the VHDL family-status sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces aggregate-visible VHDL family criteria booleans including:
+    - `vhdl_family_status_vhdl_family_contract_green`
+    - `vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass`
+    - `vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass`
+    - `vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero`
+    - `vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero`
+    - `vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero`
+    - `vhdl_family_status_vhdl_strict_promotion_recommendation_green`
+    - `vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode`
+    - `vhdl_family_status_vhdl_strict_promotion_primary_blocker_none`
+    - `vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now parity-checks those aggregate-visible VHDL criterion flags against `vhdl_parser_family_status_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL status proof surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Surface structured VHDL blocker arrays
 ### ✅ Achievement Summary
 Aggregate sign-off now carries the full machine-readable VHDL blocker arrays from the family-status sidecar, not just counts plus the primary blocker string. `vhdl_combined_telemetry_contract_gate` now proves those blocker-array fields match the status sidecar exactly.

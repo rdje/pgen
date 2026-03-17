@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-structured-vhdl-blocker-arrays)
+Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-criteria-booleans)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -119,6 +119,17 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_family_status_vhdl_closure_criteria_satisfied_count=6`
     - `vhdl_family_status_vhdl_closure_criteria_total_count=10`
     - `vhdl_family_status_vhdl_closure_criteria_unsatisfied_count=4`
+    - criterion booleans now aggregate-visible too:
+      - `vhdl_family_status_vhdl_family_contract_green=true`
+      - `vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass=true`
+      - `vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass=true`
+      - `vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero=false`
+      - `vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero=false`
+      - `vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero=false`
+      - `vhdl_family_status_vhdl_strict_promotion_recommendation_green=true`
+      - `vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode=true`
+      - `vhdl_family_status_vhdl_strict_promotion_primary_blocker_none=true`
+      - `vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green=false`
 - Aggregate sign-off now also reuses and surfaces the VHDL family-status contract sidecar directly:
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
   - current aggregate-visible/parity-checked VHDL status-contract fields include:

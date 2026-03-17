@@ -1,4 +1,17 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Surface VHDL family criteria booleans
+### Context
+Aggregate sign-off already exposed the VHDL status label, blocker arrays, and closure-progress counts, but it still hid the exact boolean closure criteria that the VHDL family-status gate actually evaluates. The next clean step was to surface those criterion flags directly and parity-check them at the aggregate layer too.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces the VHDL family-status criterion booleans from `vhdl_parser_family_status_gate/summary.txt`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now proves exact parity for those aggregate-visible criterion flags
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL status-proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Surface structured VHDL blocker arrays
 ### Context
 Aggregate sign-off already surfaced the VHDL status label, blocker counts, and the primary blocker, but it still hid the full blocker arrays that actually explain the remaining closure debt. The next clean step was to expose those arrays directly and parity-check them at the aggregate layer too.
