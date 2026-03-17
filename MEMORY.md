@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: record-deferred-engineering-concerns)
+Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-status-metadata)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -136,6 +136,11 @@ Use this file to resume work without replaying full chat history.
   - current aggregate-visible/parity-checked VHDL status fields include:
     - `vhdl_parser_family_status_summary_txt`
     - `vhdl_parser_family_status_summary_json`
+    - `vhdl_parser_family_status_gate=vhdl_parser_family_status_gate`
+    - `vhdl_parser_family_status_gate_version=2`
+    - `vhdl_parser_family_status_generated_at_utc=<run-specific>`
+    - `vhdl_parser_family_status_live_tracker_file=/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md`
+    - `vhdl_parser_family_status_status_rule_done=Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.`
     - `vhdl_family_status_vhdl=In Progress`
     - `vhdl_family_status_vhdl_tracker_status=In Progress`
     - `vhdl_family_status_vhdl_tracker_alignment_ok=true`
@@ -146,6 +151,7 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_family_status_vhdl_closure_criteria_satisfied_count=6`
     - `vhdl_family_status_vhdl_closure_criteria_total_count=10`
     - `vhdl_family_status_vhdl_closure_criteria_unsatisfied_count=4`
+    - `vhdl_family_status_vhdl_family_contract_summary_txt=<aggregate workdir>/work/vhdl_parser_family_contract_gate/summary.txt`
     - criterion booleans now aggregate-visible too:
       - `vhdl_family_status_vhdl_family_contract_green=true`
       - `vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass=true`

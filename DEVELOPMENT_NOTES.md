@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Surface VHDL family-status metadata
+### Context
+Aggregate sign-off already surfaced the VHDL family-status label, blocker arrays, criterion booleans, and the separate VHDL status-contract metadata. The next missing layer was the VHDL family-status sidecar's own identity and provenance metadata, so the aggregate proof could expose exactly which gate/version generated the sidecar and which tracker/proof-surface context it came from.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now reads the VHDL family-status sidecar `summary.json` directly
+  - now surfaces:
+    - `vhdl_parser_family_status_gate`
+    - `vhdl_parser_family_status_gate_version`
+    - `vhdl_parser_family_status_generated_at_utc`
+    - `vhdl_parser_family_status_live_tracker_file`
+    - `vhdl_parser_family_status_status_rule_done`
+    - `vhdl_family_status_vhdl_family_contract_summary_txt`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now extracts the VHDL family-status sidecar's top-level metadata directly from `summary.json`
+  - now proves exact parity for the new aggregate-visible metadata and proof-surface path fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL family-status proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Record deferred engineering concerns without changing parser priority
 ### Context
 After a full README-driven documentation pass and a thorough static analysis of the Rust codebase, a few maintainability concerns were clear: several core Rust modules are very large, `main.rs` is a heavy orchestration hub, and some of the release-proof aggregation logic now lives in very large shell gates. Those concerns are legitimate, but the user explicitly prioritized finishing the parser-family roadmap objectives first, especially for `systemverilog`, `vhdl`, and `regex`.

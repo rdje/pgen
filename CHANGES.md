@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-17 - Surface VHDL family-status metadata
+### ✅ Achievement Summary
+Aggregate sign-off now surfaces the VHDL family-status sidecar's own identity and provenance metadata, not just its derived status fields and blocker arrays. `vhdl_combined_telemetry_contract_gate` now proves those aggregate-visible VHDL status-sidecar metadata fields match `vhdl_parser_family_status_gate/summary.json` exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `vhdl_parser_family_status_gate`
+    - `vhdl_parser_family_status_gate_version`
+    - `vhdl_parser_family_status_generated_at_utc`
+    - `vhdl_parser_family_status_live_tracker_file`
+    - `vhdl_parser_family_status_status_rule_done`
+    - `vhdl_family_status_vhdl_family_contract_summary_txt`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now reads the VHDL family-status `summary.json` directly for its top-level metadata
+  - now proves exact parity for the new aggregate-visible VHDL status metadata and proof-surface path fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL family-status proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Record deferred engineering concerns after full Rust analysis
 ### ✅ Achievement Summary
 The roadmap and continuity docs now explicitly preserve a set of legitimate architecture and maintainability concerns without letting them displace the current parser-finalization mission. The rule is now written down: finish the roadmap/parser-family closure work for `systemverilog`, `vhdl`, and `regex` first, then come back to the deferred hardening work intentionally.
