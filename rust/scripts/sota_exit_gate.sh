@@ -2285,6 +2285,39 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_total_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_unsatisfied_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
     fi
+
+    VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/vhdl_parser_family_status_contract_gate"
+    VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    if [[ -f "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+        if [[ "$REQUIRE_VHDL_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_VHDL_STRICT_PROMOTION_STRICT" -eq 1 ]]; then
+            run_check "vhdl_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced VHDL family-status sidecar" \
+                env \
+                    PGEN_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR="$VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash vhdl_parser_family_status_contract_gate
+        else
+            run_check "vhdl_parser_family_status_contract_gate" "informational" "report-only source-side contract proof for the produced VHDL family-status sidecar" \
+                env \
+                    PGEN_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR="$VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash vhdl_parser_family_status_contract_gate
+        fi
+    fi
+
+    if [[ ! -f "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK="<missing>"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT="<missing>"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_DETAILS_COUNT="<missing>"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_PRIMARY_UNMET_DETAIL_CRITERION="<missing>"
+    else
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="$(summary_value_from_txt "family_count" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "vhdl_tracker_alignment_ok" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "vhdl_false_criteria_count" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_DETAILS_COUNT="$(summary_value_from_txt "vhdl_unmet_details_count" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_PRIMARY_UNMET_DETAIL_CRITERION="$(summary_value_from_txt "vhdl_primary_unmet_detail_criterion" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
+    fi
 fi
 
 {
@@ -2764,6 +2797,12 @@ fi
         echo "vhdl_family_status_vhdl_closure_criteria_satisfied_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_SATISFIED_COUNT"
         echo "vhdl_family_status_vhdl_closure_criteria_total_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT"
         echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT"
+        echo "vhdl_parser_family_status_contract_summary_txt: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT"
+        echo "vhdl_family_status_contract_family_count: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT"
+        echo "vhdl_family_status_contract_vhdl_tracker_alignment_ok: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK"
+        echo "vhdl_family_status_contract_vhdl_false_criteria_count: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT"
+        echo "vhdl_family_status_contract_vhdl_unmet_details_count: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_DETAILS_COUNT"
+        echo "vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_PRIMARY_UNMET_DETAIL_CRITERION"
     fi
 } >"$SUMMARY_TXT"
 

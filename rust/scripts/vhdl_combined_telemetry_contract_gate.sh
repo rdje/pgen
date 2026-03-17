@@ -85,11 +85,13 @@ sota_summary_txt="$sota_state_dir/summary.txt"
 vhdl_family_summary_txt="$sota_state_dir/work/vhdl_parser_family_contract_gate/summary.txt"
 vhdl_family_status_summary_txt="$sota_state_dir/work/vhdl_parser_family_status_gate/summary.txt"
 vhdl_family_status_summary_json="$sota_state_dir/work/vhdl_parser_family_status_gate/summary.json"
+vhdl_family_status_contract_summary_txt="$sota_state_dir/work/vhdl_parser_family_status_contract_gate/summary.txt"
 
 require_nonempty_file "$sota_summary_txt"
 require_nonempty_file "$vhdl_family_summary_txt"
 require_nonempty_file "$vhdl_family_status_summary_txt"
 require_nonempty_file "$vhdl_family_status_summary_json"
+require_nonempty_file "$vhdl_family_status_contract_summary_txt"
 
 assert_equal \
     "VHDL family contract summary path" \
@@ -103,6 +105,10 @@ assert_equal \
     "VHDL family status summary json path" \
     "$vhdl_family_status_summary_json" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_status_summary_json")"
+assert_equal \
+    "VHDL family status contract summary txt path" \
+    "$vhdl_family_status_contract_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_status_contract_summary_txt")"
 
 vhdl_quality_closed_loop_initial_status="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_initial_status")"
 vhdl_quality_closed_loop_replay_status="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_replay_status")"
@@ -130,6 +136,11 @@ vhdl_family_status_vhdl_primary_unmet_closure_criterion="$(extract_summary_value
 vhdl_family_status_vhdl_closure_criteria_satisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_satisfied_count")"
 vhdl_family_status_vhdl_closure_criteria_total_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_total_count")"
 vhdl_family_status_vhdl_closure_criteria_unsatisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_unsatisfied_count")"
+vhdl_family_status_contract_family_count="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "family_count")"
+vhdl_family_status_contract_vhdl_tracker_alignment_ok="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_tracker_alignment_ok")"
+vhdl_family_status_contract_vhdl_false_criteria_count="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_false_criteria_count")"
+vhdl_family_status_contract_vhdl_unmet_details_count="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_unmet_details_count")"
+vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion="$(extract_summary_value "$vhdl_family_status_contract_summary_txt" "vhdl_primary_unmet_detail_criterion")"
 
 assert_equal \
     "VHDL family quality closed-loop initial status" \
@@ -235,6 +246,26 @@ assert_equal \
     "VHDL family closure criteria unsatisfied count" \
     "$vhdl_family_status_vhdl_closure_criteria_unsatisfied_count" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count")"
+assert_equal \
+    "VHDL family status contract family count" \
+    "$vhdl_family_status_contract_family_count" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_family_count")"
+assert_equal \
+    "VHDL family status contract tracker alignment" \
+    "$vhdl_family_status_contract_vhdl_tracker_alignment_ok" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_vhdl_tracker_alignment_ok")"
+assert_equal \
+    "VHDL family status contract false criteria count" \
+    "$vhdl_family_status_contract_vhdl_false_criteria_count" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_vhdl_false_criteria_count")"
+assert_equal \
+    "VHDL family status contract unmet details count" \
+    "$vhdl_family_status_contract_vhdl_unmet_details_count" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_vhdl_unmet_details_count")"
+assert_equal \
+    "VHDL family status contract primary unmet detail criterion" \
+    "$vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion")"
 
 {
     echo "VHDL Combined Telemetry Contract Gate Summary"
@@ -244,6 +275,7 @@ assert_equal \
     echo "vhdl_parser_family_contract_summary_txt: $vhdl_family_summary_txt"
     echo "vhdl_parser_family_status_summary_txt: $vhdl_family_status_summary_txt"
     echo "vhdl_parser_family_status_summary_json: $vhdl_family_status_summary_json"
+    echo "vhdl_parser_family_status_contract_summary_txt: $vhdl_family_status_contract_summary_txt"
     echo "vhdl_family_quality_closed_loop_initial_status: $vhdl_quality_closed_loop_initial_status"
     echo "vhdl_family_quality_closed_loop_replay_status: $vhdl_quality_closed_loop_replay_status"
     echo "vhdl_family_quality_closed_loop_initial_targets: $vhdl_quality_closed_loop_initial_targets"
@@ -270,6 +302,11 @@ assert_equal \
     echo "vhdl_family_status_vhdl_closure_criteria_satisfied_count: $vhdl_family_status_vhdl_closure_criteria_satisfied_count"
     echo "vhdl_family_status_vhdl_closure_criteria_total_count: $vhdl_family_status_vhdl_closure_criteria_total_count"
     echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $vhdl_family_status_vhdl_closure_criteria_unsatisfied_count"
+    echo "vhdl_family_status_contract_family_count: $vhdl_family_status_contract_family_count"
+    echo "vhdl_family_status_contract_vhdl_tracker_alignment_ok: $vhdl_family_status_contract_vhdl_tracker_alignment_ok"
+    echo "vhdl_family_status_contract_vhdl_false_criteria_count: $vhdl_family_status_contract_vhdl_false_criteria_count"
+    echo "vhdl_family_status_contract_vhdl_unmet_details_count: $vhdl_family_status_contract_vhdl_unmet_details_count"
+    echo "vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion: $vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion"
 } | tee "$SUMMARY_TXT"
 
 echo "✅ VHDL combined telemetry contract gate passed."

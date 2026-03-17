@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Surface VHDL family-status contract proof in aggregate sign-off
+### Context
+Once aggregate sign-off exposed the VHDL family-status sidecar directly, the next missing layer was the same one we already closed for the shipped SV families: aggregate telemetry still did not show whether that VHDL status sidecar had passed its own source-side contract gate. The next clean step was to thread the VHDL status-contract summary through aggregate sign-off and parity-check it there too.
+
+### Implementation
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now reruns `vhdl_parser_family_status_contract_gate` against the produced `vhdl_parser_family_status_gate` sidecar
+  - now surfaces the resulting summary path and key contract-summary counts for the single tracked VHDL family row
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now requires the source-side VHDL status-contract summary under aggregate state
+  - now proves exact parity for the new aggregate-visible contract fields:
+    - `vhdl_family_status_contract_family_count`
+    - `vhdl_family_status_contract_vhdl_tracker_alignment_ok`
+    - `vhdl_family_status_contract_vhdl_false_criteria_count`
+    - `vhdl_family_status_contract_vhdl_unmet_details_count`
+    - `vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL family-status contract surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Surface VHDL family status in aggregate sign-off
 ### Context
 The first VHDL status gate was useful, but its proof layering was wrong for long-term aggregate reuse: it depended on the aggregate-telemetry parity gate that should have been consuming it. The clean next step was to make `vhdl_parser_family_status_gate` source-side only, then let aggregate sign-off reuse and expose that sidecar explicitly.
