@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "description": "Deterministic external SystemVerilog corpus slice for preprocess-first parse triage over the tracked UVM and SV submodule sources.",
+  "cases": [
+    {
+      "name": "uvm_pkg",
+      "corpus": "uvm",
+      "path": "stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_pkg.sv",
+      "mode": "preprocess_then_parse_full",
+      "profiles": ["2017", "2023"],
+      "include_dirs": [
+        "stimuli/sv/uvm/uvm-core-2020.3.1/src"
+      ]
+    },
+    {
+      "name": "uvm_compat_pkg",
+      "corpus": "uvm",
+      "path": "stimuli/sv/uvm/uvm-core-2020.3.1/compat/uvm_compat_pkg.sv",
+      "mode": "preprocess_then_parse_full",
+      "profiles": ["2017", "2023"],
+      "include_dirs": [
+        "stimuli/sv/uvm/uvm-core-2020.3.1/compat",
+        "stimuli/sv/uvm/uvm-core-2020.3.1/src"
+      ]
+    },
+    {
+      "name": "scr1_core_top",
+      "corpus": "scr1",
+      "path": "stimuli/sv/subs/scr1/src/core/scr1_core_top.sv",
+      "mode": "preprocess_then_parse_full",
+      "profiles": ["2017", "2023"],
+      "include_dirs": [
+        "stimuli/sv/subs/scr1/src/includes"
+      ]
+    },
+    {
+      "name": "scr1_top_ahb",
+      "corpus": "scr1",
+      "path": "stimuli/sv/subs/scr1/src/top/scr1_top_ahb.sv",
+      "mode": "preprocess_then_parse_full",
+      "profiles": ["2017", "2023"],
+      "include_dirs": [
+        "stimuli/sv/subs/scr1/src/includes"
+      ]
+    },
+    {
+      "name": "friscv_rv32i_core",
+      "corpus": "friscv",
+      "path": "stimuli/sv/subs/friscv/rtl/friscv_rv32i_core.sv",
+      "mode": "preprocess_then_parse_full",
+      "profiles": ["2017", "2023"],
+      "include_dirs": [
+        "stimuli/sv/subs/friscv/rtl"
+      ]
+    },
+    {
+      "name": "friscv_pipeline",
+      "corpus": "friscv",
+      "path": "stimuli/sv/subs/friscv/rtl/friscv_pipeline.sv",
+      "mode": "preprocess_then_parse_full",
+      "profiles": ["2017", "2023"],
+      "include_dirs": [
+        "stimuli/sv/subs/friscv/rtl"
+      ]
+    },
+    {
+      "name": "veer_el2_lsu",
+      "corpus": "veer_el2",
+      "path": "stimuli/sv/subs/Cores-VeeR-EL2/design/lsu/el2_lsu.sv",
+      "mode": "preprocess_then_parse_full",
+      "profiles": ["2017", "2023"],
+      "include_dirs": [
+        "stimuli/sv/subs/Cores-VeeR-EL2/design/lsu",
+        "stimuli/sv/subs/Cores-VeeR-EL2/design/include"
+      ]
+    }
+  ]
+}

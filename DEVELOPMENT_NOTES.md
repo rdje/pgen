@@ -20455,3 +20455,51 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
   - `unreachable_branches=3`
   - `target_debt_count=48`
 - `sv_parser_family_status_gate` now also carries those syntax metrics into the preprocessor family-status summary and requires the syntax-closure gate to stay green before the preprocessor family can ever be promoted to `Done`.
+
+## 2026-03-17 - External HDL corpus triage gates for SV/UVM and VHDL
+
+The repository had just gained a meaningful real-world HDL corpus base through new VHDL and SystemVerilog submodules plus vendored UVM source, but those assets were still passive. The immediate next hardening step was not to pretend they were already status-bearing proof; it was to make them executable, deterministic, and inspectable as first-pass triage surfaces.
+
+- Added checked-in manifests:
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
+  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`
+- Added source-side triage gates:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_external_corpus_triage_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_external_corpus_triage_gate.sh`
+- Added make targets:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
+
+SystemVerilog gate shape:
+- generates a fresh parser from `grammars/systemverilog.ebnf`
+- rebuilds `ast_pipeline` and `parseability_probe` with that generated adapter
+- preprocesses representative UVM, SCR1, FRISCV, and VeeR files under checked-in include-dir policy
+- then records preprocess and parseability outcomes as deterministic triage artifacts
+
+Current measured SV external-corpus triage summary:
+- `cases_executed=14`
+- `preprocess_pass_total=4`
+- `preprocess_fail_total=10`
+- `parse_pass_total=0`
+- `parse_fail_total=4`
+- current first blockers are concrete and useful:
+  - UVM macro preprocessing rejection around invalid macro parameter syntax
+  - SCR1 include read failure caused by non-UTF-8 include content
+  - VeeR include resolution failure (`el2_param.vh`)
+  - FRISCV parser rejection after successful preprocessing
+
+VHDL gate shape:
+- generates a fresh parser from `grammars/vhdl.ebnf`
+- rebuilds `parseability_probe` with that generated adapter
+- runs representative compliance, interface, PoC, neorv32, and Rudi files directly through parser triage
+
+Current measured VHDL external-corpus triage summary:
+- `cases_executed=8`
+- `parse_pass_total=0`
+- `parse_fail_total=8`
+- the new gate is therefore immediately useful as an honest parser-debt surface even before any pass slice can be promoted
+
+Important policy outcome:
+- these gates are intentionally triage-first, not promotion-first
+- they make the imported HDL corpora repeatable and machine-inspectable
+- they do not by themselves justify a live-status upgrade until the external corpora are integrated into broader status-bearing realistic-corpus or exhaustive-closure criteria

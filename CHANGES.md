@@ -20593,3 +20593,39 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - `systemverilog`: remains `Mostly Done`
   - `systemverilog_preprocessor`: remains `Mostly Done`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+## 2026-03-17 - Add external HDL corpus triage gates
+
+- Added:
+  - `rust/scripts/sv_external_corpus_triage_gate.sh`
+  - `rust/scripts/vhdl_external_corpus_triage_gate.sh`
+  - `rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
+  - `rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
+- Purpose:
+  - operationalize the newly added external SV/UVM and VHDL corpora immediately instead of leaving them as passive assets
+  - make first-pass real-corpus parser debt repeatable, deterministic, and machine-inspectable
+  - separate corpus onboarding/triage from status promotion so the gates stay honest while still accelerating hardening work
+- Current measured surfaces:
+  - SystemVerilog external triage:
+    - `cases_executed=14`
+    - `preprocess_pass_total=4`
+    - `preprocess_fail_total=10`
+    - `parse_pass_total=0`
+    - `parse_fail_total=4`
+    - first surfaced blockers: UVM macro preprocessing, SCR1 include encoding, VeeR include resolution, FRISCV parser rejection
+  - VHDL external triage:
+    - `cases_executed=8`
+    - `parse_pass_total=0`
+    - `parse_fail_total=8`
+- Updated:
+  - `rust/Makefile`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+- Live-status effect:
+  - `systemverilog`: remains `Mostly Done`
+  - `vhdl`: remains `In Progress`
+  - `Parser-family exhaustive proof normalization`: remains `In Progress`

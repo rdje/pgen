@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-external-hdl-corpus-sources)
+Last updated: 2026-03-17 (+0100, task: add-external-hdl-corpus-triage-gates)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,7 +39,7 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Technical Snapshot
-- The repository now tracks a wider external HDL corpus base for future parser hardening:
+- The repository now tracks and executes a wider external HDL corpus base for parser hardening:
   - VHDL submodules:
     - `stimuli/vhdl/subs/PoC`
     - `stimuli/vhdl/subs/Compliance-Tests`
@@ -54,7 +54,32 @@ Use this file to resume work without replaying full chat history.
     - `stimuli/sv/uvm/uvm-core-2020.3.1`
   - continuity rule:
     - these assets improve the realistic-corpus frontier for `systemverilog` and `vhdl`,
-    - they do not change parser-family live status until repeatable proof gates consume them explicitly.
+    - they are now first consumed by deterministic source-side triage gates,
+    - they still do not change parser-family live status until broader status-bearing proof surfaces adopt them.
+- New external HDL corpus triage commands:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+    - manifest:
+      - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
+    - current measured summary:
+      - `cases_executed=14`
+      - `preprocess_pass_total=4`
+      - `preprocess_fail_total=10`
+      - `parse_pass_total=0`
+      - `parse_fail_total=4`
+    - current first blockers:
+      - UVM macro preprocessing
+      - SCR1 non-UTF-8 include handling
+      - VeeR include resolution
+      - FRISCV parser acceptance
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
+    - manifest:
+      - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`
+    - current measured summary:
+      - `cases_executed=8`
+      - `parse_pass_total=0`
+      - `parse_fail_total=8`
+    - current first blocker surface:
+      - immediate parser rejection across the first compliance/interface/PoC/neorv32/Rudi representative slice
 - A full README-driven documentation pass plus a broad static Rust codebase analysis was completed on 2026-03-17.
 - Legitimate deferred engineering concerns are now explicitly tracked in the roadmap and must not be forgotten, but they are intentionally lower priority than finishing the parser-family closure work for `systemverilog`, `vhdl`, and `regex`.
 - The recorded deferred concerns are:

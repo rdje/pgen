@@ -244,6 +244,7 @@ help:
 	@echo "  sv_parser_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused SystemVerilog parser evidence surfaces"
 	@echo "  sv_parser_family_status_gate - Compute machine-checkable SV-family status rationale and verify live-tracker alignment"
 	@echo "  sv_parser_family_status_contract_gate - Enforce schema/consistency contract for the SV-family status sidecar"
+	@echo "  sv_external_corpus_triage_gate - Run deterministic external SystemVerilog corpus preprocess/parse triage over tracked SV/UVM sources"
 	@echo "  regex_parser_family_contract_gate - Enforce combined contract for the current regex family proof surfaces"
 	@echo "  regex_parser_family_status_gate - Compute machine-checkable regex family status rationale and verify live-tracker alignment"
 	@echo "  regex_parser_family_status_contract_gate - Enforce schema/consistency contract for the regex family-status sidecar"
@@ -252,6 +253,7 @@ help:
 	@echo "  vhdl_combined_telemetry_contract_gate - Enforce aggregate VHDL-family telemetry consistency against the VHDL family sidecar"
 	@echo "  vhdl_parser_family_status_gate - Compute machine-checkable VHDL family status rationale and verify live-tracker alignment"
 	@echo "  vhdl_parser_family_status_contract_gate - Enforce schema/consistency contract for the VHDL family-status sidecar"
+	@echo "  vhdl_external_corpus_triage_gate - Run deterministic external VHDL corpus parse triage over tracked VHDL submodule sources"
 	@echo "  sv_replay_gap_target_triage - Surface deterministic triage for the remaining focused SystemVerilog replay-gap targets"
 	@echo "  sv_failure_context_contract_gate - Enforce lightweight source-level failure-context proof across both SV parser families"
 	@echo "  sv_roundtrip_contract_gate - Enforce lightweight parser/stimuli roundtrip proof across both SV parser families"
@@ -571,6 +573,12 @@ sv_parser_family_status_contract_gate:
 	cd $(RUST_DIR) && ./scripts/sv_parser_family_status_contract_gate.sh
 	@echo "✅ SystemVerilog parser-family status contract gate passed."
 
+.PHONY: sv_external_corpus_triage_gate
+sv_external_corpus_triage_gate:
+	@echo "🧪 Running SystemVerilog external corpus triage gate..."
+	cd $(RUST_DIR) && ./scripts/sv_external_corpus_triage_gate.sh
+	@echo "✅ SystemVerilog external corpus triage gate completed."
+
 .PHONY: regex_parser_family_contract_gate
 regex_parser_family_contract_gate:
 	@echo "🧪 Running regex parser-family contract gate..."
@@ -618,6 +626,12 @@ vhdl_parser_family_status_contract_gate:
 	@echo "🧪 Running VHDL parser-family status contract gate..."
 	cd $(RUST_DIR) && ./scripts/vhdl_parser_family_status_contract_gate.sh
 	@echo "✅ VHDL parser-family status contract gate passed."
+
+.PHONY: vhdl_external_corpus_triage_gate
+vhdl_external_corpus_triage_gate:
+	@echo "🧪 Running VHDL external corpus triage gate..."
+	cd $(RUST_DIR) && ./scripts/vhdl_external_corpus_triage_gate.sh
+	@echo "✅ VHDL external corpus triage gate completed."
 
 .PHONY: sv_replay_gap_target_triage
 sv_replay_gap_target_triage:

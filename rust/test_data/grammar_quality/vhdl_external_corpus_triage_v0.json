@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Deterministic external VHDL corpus slice for parse-full triage over the tracked VHDL submodule sources.",
+  "cases": [
+    {
+      "name": "compliance_tb_aggregate",
+      "corpus": "compliance_tests",
+      "path": "stimuli/vhdl/subs/Compliance-Tests/vhdl_2008/tb_aggregate.vhd"
+    },
+    {
+      "name": "compliance_tb_generic_packages_on_entity",
+      "corpus": "compliance_tests",
+      "path": "stimuli/vhdl/subs/Compliance-Tests/vhdl_2008/tb_generic_packages_on_entity.vhd"
+    },
+    {
+      "name": "interfaces_avalon_mm",
+      "corpus": "interfaces",
+      "path": "stimuli/vhdl/subs/Interfaces/Avalon/v1/AvalonMM.vhdl"
+    },
+    {
+      "name": "interfaces_avalon_st",
+      "corpus": "interfaces",
+      "path": "stimuli/vhdl/subs/Interfaces/Avalon/v1/AvalonST.vhdl"
+    },
+    {
+      "name": "neorv32_top",
+      "corpus": "neorv32",
+      "path": "stimuli/vhdl/subs/neorv32/rtl/core/neorv32_top.vhd"
+    },
+    {
+      "name": "neorv32_package",
+      "corpus": "neorv32",
+      "path": "stimuli/vhdl/subs/neorv32/rtl/core/neorv32_package.vhd"
+    },
+    {
+      "name": "poc_mem_pkg",
+      "corpus": "poc",
+      "path": "stimuli/vhdl/subs/PoC/src/mem/mem.pkg.vhdl"
+    },
+    {
+      "name": "rudi_riscv_cpu",
+      "corpus": "rudi_rv32i",
+      "path": "stimuli/vhdl/subs/Rudi-RV32I/src/cpu/riscv_cpu.vhd"
+    }
+  ]
+}
