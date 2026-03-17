@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-criteria-booleans)
+Last updated: 2026-03-17 (+0100, task: surface-vhdl-status-contract-blocker-arrays)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -139,6 +139,8 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_family_status_contract_vhdl_false_criteria_count=4`
     - `vhdl_family_status_contract_vhdl_unmet_details_count=4`
     - `vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion=quality_parseability_generation_parser_rejections_zero`
+    - `vhdl_family_status_contract_vhdl_unmet_closure_criteria_json`
+    - `vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json`
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

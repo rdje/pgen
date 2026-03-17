@@ -215,6 +215,8 @@ fi
     echo "vhdl_false_criteria_count: $vhdl_false_criteria_count"
     echo "vhdl_unmet_details_count: $vhdl_details_count"
     echo "vhdl_primary_unmet_detail_criterion: $vhdl_primary_unmet_detail_criterion"
+    echo "vhdl_unmet_closure_criteria_json: $vhdl_unmet_json"
+    echo "vhdl_unmet_closure_criteria_details_json: $vhdl_details_json"
 } | tee "$SUMMARY_TXT"
 
 echo "✅ VHDL parser-family status contract gate passed."
