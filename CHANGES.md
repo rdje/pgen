@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-17 - Add regex parser-family status contract gate
+### ✅ Achievement Summary
+The `regex` family-status sidecar now has its own source-side contract gate. `regex_parser_family_status_contract_gate` validates the produced `regex_parser_family_status_gate` artifacts for schema shape, tracker alignment, closure-count arithmetic, false-criteria accounting, and parity between `summary.json` and `summary.txt` for the blocker arrays and primary blocker fields.
+
+### Scope of Changes
+- Added [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh):
+  - validates the `regex_parser_family_status_gate` sidecar itself
+  - emits:
+    - `summary.txt`
+    - `summary.json`
+  - current validated contract summary records:
+    - `family_count=1`
+    - `regex_tracker_alignment_ok=true`
+    - `regex_false_criteria_count=2`
+    - `regex_unmet_details_count=2`
+    - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new regex status-contract proof layer
+  - kept `regex` honestly at `In Progress`
+
 ## 2026-03-17 - Add regex parser-family status gate
 ### ✅ Achievement Summary
 The `regex` parser family now has its first machine-checkable live-row proof. `regex_parser_family_status_gate` computes the `regex` status directly from `regex_parser_family_contract_gate`, emits both `summary.txt` and `summary.json`, and fails if the computed result drifts from [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md).

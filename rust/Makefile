@@ -246,6 +246,7 @@ help:
 	@echo "  sv_parser_family_status_contract_gate - Enforce schema/consistency contract for the SV-family status sidecar"
 	@echo "  regex_parser_family_contract_gate - Enforce combined contract for the current regex family proof surfaces"
 	@echo "  regex_parser_family_status_gate - Compute machine-checkable regex family status rationale and verify live-tracker alignment"
+	@echo "  regex_parser_family_status_contract_gate - Enforce schema/consistency contract for the regex family-status sidecar"
 	@echo "  vhdl_parser_family_contract_gate - Enforce combined contract for the current VHDL family proof surfaces"
 	@echo "  vhdl_combined_telemetry_contract_gate - Enforce aggregate VHDL-family telemetry consistency against the VHDL family sidecar"
 	@echo "  vhdl_parser_family_status_gate - Compute machine-checkable VHDL family status rationale and verify live-tracker alignment"
@@ -580,6 +581,12 @@ regex_parser_family_status_gate:
 	@echo "🧪 Running regex parser-family status gate..."
 	cd $(RUST_DIR) && ./scripts/regex_parser_family_status_gate.sh
 	@echo "✅ Regex parser-family status gate passed."
+
+.PHONY: regex_parser_family_status_contract_gate
+regex_parser_family_status_contract_gate:
+	@echo "🧪 Running regex parser-family status contract gate..."
+	cd $(RUST_DIR) && ./scripts/regex_parser_family_status_contract_gate.sh
+	@echo "✅ Regex parser-family status contract gate passed."
 
 .PHONY: vhdl_parser_family_contract_gate
 vhdl_parser_family_contract_gate:

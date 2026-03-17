@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add regex parser-family status contract gate
+### Context
+After landing the regex family-status sidecar, the next missing layer was the same source-side contract proof the SV and VHDL families already had. The `regex` row should not just be machine-computed; the sidecar itself should also be schema-checked and parity-checked so later aggregate work can depend on it safely.
+
+### Implementation
+- Added [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh):
+  - validates the produced `regex_parser_family_status_gate` sidecar
+  - checks schema shape, tracker alignment, closure-count arithmetic, false-criteria accounting, and parity between `summary.json` and `summary.txt`
+  - emits both `summary.txt` and `summary.json`
+  - current validated contract summary records:
+    - `family_count=1`
+    - `regex_tracker_alignment_ok=true`
+    - `regex_false_criteria_count=2`
+    - `regex_unmet_details_count=2`
+    - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `regex_parser_family_status_contract_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new regex status-contract proof layer
+  - kept `regex` at `In Progress`
+
 ## 2026-03-17 - Add regex parser-family status gate
 ### Context
 After landing the first reusable regex family contract gate, the next missing layer was a real source-side status proof. The `regex` row should be computed from explicit closure criteria and tracker alignment, not left as a narrative inference.

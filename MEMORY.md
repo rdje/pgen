@@ -206,8 +206,7 @@ Use this file to resume work without replaying full chat history.
     - `stimuli_regex_stage0_successes=12`
     - `stimuli_regex_stage3_successes=5025`
   - this is intentionally a first family contract layer only:
-    - `regex` still has no family-status gate,
-    - no aggregate telemetry parity layer,
+    - `regex` still has no aggregate telemetry parity layer,
     - and no regex-specific realistic-corpus or embedder-facing closure surface yet.
 - `regex` now also has a conservative machine-checkable family-status proof:
   - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_gate`
@@ -226,6 +225,20 @@ Use this file to resume work without replaying full chat history.
   - current proof-surface anchors:
     - `regex_family_contract_summary_txt`
     - `regex_family_contract_summary_json`
+- `regex` now also has a dedicated family-status contract gate:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_contract_gate`
+  - validates the produced `regex_parser_family_status_gate` sidecar itself
+  - emits both:
+    - `rust/target/regex_parser_family_status_contract_gate/summary.txt`
+    - `rust/target/regex_parser_family_status_contract_gate/summary.json`
+  - current validated contract summary:
+    - `family_count=1`
+    - `regex_tracker_alignment_ok=true`
+    - `regex_false_criteria_count=2`
+    - `regex_unmet_details_count=2`
+    - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
+  - this closes the source-side regex status-sidecar contract layer,
+  - but `regex` still lacks aggregate telemetry parity and later professional-grade closure surfaces.
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:
