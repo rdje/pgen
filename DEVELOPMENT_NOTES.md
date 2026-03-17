@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add external HDL corpus sources for SV and VHDL hardening
+### Context
+The user added a substantial external corpus base intended specifically to harden the `systemverilog` and `vhdl` parser families. Those sources are immediately valuable for future realistic-corpus proof work, but they should not be mistaken for closure on their own: the parser-trust doctrine still requires repeatable gates, reports, and objective pass/fail policy over those corpora.
+
+### Implementation
+- Added [.gitmodules](/Users/richarddje/Documents/github/pgen/.gitmodules) with eight new top-level corpus submodules:
+  - `stimuli/vhdl/subs/PoC`
+  - `stimuli/vhdl/subs/Compliance-Tests`
+  - `stimuli/vhdl/subs/Interfaces`
+  - `stimuli/vhdl/subs/neorv32`
+  - `stimuli/vhdl/subs/Rudi-RV32I`
+  - `stimuli/sv/subs/Cores-VeeR-EL2`
+  - `stimuli/sv/subs/scr1`
+  - `stimuli/sv/subs/friscv`
+- Added vendored UVM source package [stimuli/sv/uvm/uvm-core-2020.3.1](/Users/richarddje/Documents/github/pgen/stimuli/sv/uvm/uvm-core-2020.3.1):
+  - core package entrypoints `src/uvm_pkg.sv` and `src/uvm_macros.svh`
+  - the broader UVM class/package/macro/sequence/register/TLM/DPI source tree for parser hardening
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new external corpus base for SV/VHDL
+  - explicitly kept live status unchanged because tracked corpora only count toward closure once wired into machine-checkable proof surfaces
+
 ## 2026-03-17 - Surface regex family aggregate telemetry
 ### Context
 After landing the regex family contract, regex family-status, and regex family-status contract layers, the next missing proof surface was the same aggregate sign-off parity layer already present for SV and VHDL. The regex row should not depend on source-side sidecars alone; `sota_exit_gate` also needs to surface that sidecar stack explicitly and prove its aggregate telemetry matches the source artifacts exactly.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-regex-combined-telemetry-contract-gate)
+Last updated: 2026-03-17 (+0100, task: add-external-hdl-corpus-sources)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,22 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Technical Snapshot
+- The repository now tracks a wider external HDL corpus base for future parser hardening:
+  - VHDL submodules:
+    - `stimuli/vhdl/subs/PoC`
+    - `stimuli/vhdl/subs/Compliance-Tests`
+    - `stimuli/vhdl/subs/Interfaces`
+    - `stimuli/vhdl/subs/neorv32`
+    - `stimuli/vhdl/subs/Rudi-RV32I`
+  - SystemVerilog submodules:
+    - `stimuli/sv/subs/Cores-VeeR-EL2`
+    - `stimuli/sv/subs/scr1`
+    - `stimuli/sv/subs/friscv`
+  - vendored UVM source package:
+    - `stimuli/sv/uvm/uvm-core-2020.3.1`
+  - continuity rule:
+    - these assets improve the realistic-corpus frontier for `systemverilog` and `vhdl`,
+    - they do not change parser-family live status until repeatable proof gates consume them explicitly.
 - A full README-driven documentation pass plus a broad static Rust codebase analysis was completed on 2026-03-17.
 - Legitimate deferred engineering concerns are now explicitly tracked in the roadmap and must not be forgotten, but they are intentionally lower priority than finishing the parser-family closure work for `systemverilog`, `vhdl`, and `regex`.
 - The recorded deferred concerns are:

@@ -1,0 +1,24 @@
+[submodule "stimuli/sv/subs/Cores-VeeR-EL2"]
+	path = stimuli/sv/subs/Cores-VeeR-EL2
+	url = https://github.com/chipsalliance/Cores-VeeR-EL2
+[submodule "stimuli/vhdl/subs/PoC"]
+	path = stimuli/vhdl/subs/PoC
+	url = https://github.com/VHDL/PoC
+[submodule "stimuli/vhdl/subs/Compliance-Tests"]
+	path = stimuli/vhdl/subs/Compliance-Tests
+	url = https://github.com/VHDL/Compliance-Tests
+[submodule "stimuli/vhdl/subs/Interfaces"]
+	path = stimuli/vhdl/subs/Interfaces
+	url = https://github.com/VHDL/Interfaces
+[submodule "stimuli/vhdl/subs/neorv32"]
+	path = stimuli/vhdl/subs/neorv32
+	url = https://github.com/stnolting/neorv32
+[submodule "stimuli/vhdl/subs/Rudi-RV32I"]
+	path = stimuli/vhdl/subs/Rudi-RV32I
+	url = https://github.com/hamsternz/Rudi-RV32I
+[submodule "stimuli/sv/subs/scr1"]
+	path = stimuli/sv/subs/scr1
+	url = https://github.com/syntacore/scr1
+[submodule "stimuli/sv/subs/friscv"]
+	path = stimuli/sv/subs/friscv
+	url = https://github.com/dpretet/friscv

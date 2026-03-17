@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-17 - Add external HDL corpus sources for SV and VHDL hardening
+### ✅ Achievement Summary
+The repository now tracks a much larger realistic-corpus base for future parser hardening: eight new HDL corpus submodules plus a checked-in UVM core source drop. This materially strengthens the available external evidence base for `systemverilog` and `vhdl`, while keeping live status honest until those corpora are wired into repeatable proof gates.
+
+### Scope of Changes
+- Added [.gitmodules](/Users/richarddje/Documents/github/pgen/.gitmodules):
+  - new `vhdl` corpus submodules:
+    - `stimuli/vhdl/subs/PoC`
+    - `stimuli/vhdl/subs/Compliance-Tests`
+    - `stimuli/vhdl/subs/Interfaces`
+    - `stimuli/vhdl/subs/neorv32`
+    - `stimuli/vhdl/subs/Rudi-RV32I`
+  - new `systemverilog` corpus submodules:
+    - `stimuli/sv/subs/Cores-VeeR-EL2`
+    - `stimuli/sv/subs/scr1`
+    - `stimuli/sv/subs/friscv`
+- Added tracked gitlinks for those eight external corpus repositories.
+- Added vendored UVM source package under [stimuli/sv/uvm/uvm-core-2020.3.1](/Users/richarddje/Documents/github/pgen/stimuli/sv/uvm/uvm-core-2020.3.1):
+  - includes `uvm_pkg.sv`, `uvm_macros.svh`, the core `src/base`, `src/comps`, `src/seq`, `src/reg`, `src/tlm1`, `src/tlm2`, `src/dpi`, and compatibility/documentation trees
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the expanded external corpus base for SV/VHDL hardening
+  - kept parser-family live status unchanged until these sources are wired into machine-checkable gates
+
 ## 2026-03-17 - Surface regex family aggregate telemetry
 ### ✅ Achievement Summary
 Aggregate sign-off now surfaces the `regex` family contract, regex family-status, and regex family-status contract sidecars directly, and a new `regex_combined_telemetry_contract_gate` proves exact parity for those aggregate-visible fields under checked-in lightweight policy.
