@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-17 - Add regex parser-family status gate
+### ✅ Achievement Summary
+The `regex` parser family now has its first machine-checkable live-row proof. `regex_parser_family_status_gate` computes the `regex` status directly from `regex_parser_family_contract_gate`, emits both `summary.txt` and `summary.json`, and fails if the computed result drifts from [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md).
+
+### Scope of Changes
+- Added [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh):
+  - computes the `regex` row from explicit source-side closure criteria over `regex_parser_family_contract_gate`
+  - emits:
+    - `summary.txt`
+    - `summary.json`
+  - current computed status remains `In Progress` with:
+    - `closure_criteria_satisfied_count=5`
+    - `closure_criteria_total_count=7`
+    - `closure_criteria_unsatisfied_count=2`
+    - blockers:
+      - `stimuli_regex_final_targets=81 > 0`
+      - `formal_exhaustive_closure_surface=missing`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new regex family-status proof surface
+  - kept `regex` honestly at `In Progress`
+
 ## 2026-03-17 - Add regex parser-family contract gate
 ### ✅ Achievement Summary
 The `regex` parser family now has its first reusable machine-checkable family proof wrapper. `regex_parser_family_contract_gate` validates the current regex frontend-readiness, Rust-vs-Perl dual-run, and grammar/stimuli closed-loop surfaces together, with a machine-readable `summary.json` sidecar for later status/telemetry work.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-regex-parser-family-contract-gate)
+Last updated: 2026-03-17 (+0100, task: add-regex-parser-family-status-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -209,6 +209,23 @@ Use this file to resume work without replaying full chat history.
     - `regex` still has no family-status gate,
     - no aggregate telemetry parity layer,
     - and no regex-specific realistic-corpus or embedder-facing closure surface yet.
+- `regex` now also has a conservative machine-checkable family-status proof:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_gate`
+  - computes the `regex` row from the source-side `regex_parser_family_contract_gate` surface
+  - emits both:
+    - `rust/target/regex_parser_family_status_gate/summary.txt`
+    - `rust/target/regex_parser_family_status_gate/summary.json`
+  - current validated summary keeps `regex` aligned with the live tracker at `In Progress`
+  - current closure counts:
+    - `regex_closure_criteria_satisfied_count=5`
+    - `regex_closure_criteria_total_count=7`
+    - `regex_closure_criteria_unsatisfied_count=2`
+  - current blocker surface:
+    - `stimuli_regex_final_targets=81 > 0`
+    - `formal_exhaustive_closure_surface=missing`
+  - current proof-surface anchors:
+    - `regex_family_contract_summary_txt`
+    - `regex_family_contract_summary_json`
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

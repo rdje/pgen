@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add regex parser-family status gate
+### Context
+After landing the first reusable regex family contract gate, the next missing layer was a real source-side status proof. The `regex` row should be computed from explicit closure criteria and tracker alignment, not left as a narrative inference.
+
+### Implementation
+- Added [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh):
+  - computes the `regex` status from `regex_parser_family_contract_gate`
+  - emits both `summary.txt` and `summary.json`
+  - verifies tracker alignment against [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - keeps the row conservative:
+    - `regex_status=In Progress`
+    - `closure_criteria_satisfied_count=5`
+    - `closure_criteria_total_count=7`
+    - `closure_criteria_unsatisfied_count=2`
+    - blockers:
+      - `stimuli_regex_final_targets=81 > 0`
+      - `formal_exhaustive_closure_surface=missing`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added target `regex_parser_family_status_gate`
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new regex source-side status proof
+  - kept `regex` at `In Progress`
+
 ## 2026-03-17 - Add regex parser-family contract gate
 ### Context
 The `regex` row was still mostly narrative: it had frontend-readiness, dual-run parity, and closed-loop stimuli evidence, but no dedicated family-level proof wrapper comparable to the first VHDL family contract gate. The next useful step was to package those existing regex proof surfaces into one replayable family gate without overclaiming professional-grade closure.
