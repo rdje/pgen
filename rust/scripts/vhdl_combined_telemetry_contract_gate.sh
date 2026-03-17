@@ -133,6 +133,8 @@ vhdl_family_status_vhdl_tracker_status="$(extract_summary_value "$vhdl_family_st
 vhdl_family_status_vhdl_tracker_alignment_ok="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_tracker_alignment_ok")"
 vhdl_family_status_vhdl_unmet_closure_criteria_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_unmet_closure_criteria_count")"
 vhdl_family_status_vhdl_primary_unmet_closure_criterion="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_primary_unmet_closure_criterion")"
+vhdl_family_status_vhdl_unmet_closure_criteria_json="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_unmet_closure_criteria_json")"
+vhdl_family_status_vhdl_unmet_closure_criteria_details_json="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_unmet_closure_criteria_details_json")"
 vhdl_family_status_vhdl_closure_criteria_satisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_satisfied_count")"
 vhdl_family_status_vhdl_closure_criteria_total_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_total_count")"
 vhdl_family_status_vhdl_closure_criteria_unsatisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_unsatisfied_count")"
@@ -235,6 +237,14 @@ assert_equal \
     "$vhdl_family_status_vhdl_primary_unmet_closure_criterion" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_primary_unmet_closure_criterion")"
 assert_equal \
+    "VHDL family unmet closure criteria json" \
+    "$vhdl_family_status_vhdl_unmet_closure_criteria_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_unmet_closure_criteria_json")"
+assert_equal \
+    "VHDL family unmet closure criteria details json" \
+    "$vhdl_family_status_vhdl_unmet_closure_criteria_details_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_unmet_closure_criteria_details_json")"
+assert_equal \
     "VHDL family closure criteria satisfied count" \
     "$vhdl_family_status_vhdl_closure_criteria_satisfied_count" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_closure_criteria_satisfied_count")"
@@ -299,6 +309,8 @@ assert_equal \
     echo "vhdl_family_status_vhdl_tracker_alignment_ok: $vhdl_family_status_vhdl_tracker_alignment_ok"
     echo "vhdl_family_status_vhdl_unmet_closure_criteria_count: $vhdl_family_status_vhdl_unmet_closure_criteria_count"
     echo "vhdl_family_status_vhdl_primary_unmet_closure_criterion: $vhdl_family_status_vhdl_primary_unmet_closure_criterion"
+    echo "vhdl_family_status_vhdl_unmet_closure_criteria_json: $vhdl_family_status_vhdl_unmet_closure_criteria_json"
+    echo "vhdl_family_status_vhdl_unmet_closure_criteria_details_json: $vhdl_family_status_vhdl_unmet_closure_criteria_details_json"
     echo "vhdl_family_status_vhdl_closure_criteria_satisfied_count: $vhdl_family_status_vhdl_closure_criteria_satisfied_count"
     echo "vhdl_family_status_vhdl_closure_criteria_total_count: $vhdl_family_status_vhdl_closure_criteria_total_count"
     echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $vhdl_family_status_vhdl_closure_criteria_unsatisfied_count"

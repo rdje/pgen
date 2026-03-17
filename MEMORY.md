@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-status-contract-proof-in-aggregate-sign-off)
+Last updated: 2026-03-17 (+0100, task: surface-structured-vhdl-blocker-arrays)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -114,6 +114,8 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_family_status_vhdl_tracker_alignment_ok=true`
     - `vhdl_family_status_vhdl_unmet_closure_criteria_count=4`
     - `vhdl_family_status_vhdl_primary_unmet_closure_criterion=quality_parseability_generation_parser_rejections_total=1 > 0`
+    - `vhdl_family_status_vhdl_unmet_closure_criteria_json`
+    - `vhdl_family_status_vhdl_unmet_closure_criteria_details_json`
     - `vhdl_family_status_vhdl_closure_criteria_satisfied_count=6`
     - `vhdl_family_status_vhdl_closure_criteria_total_count=10`
     - `vhdl_family_status_vhdl_closure_criteria_unsatisfied_count=4`

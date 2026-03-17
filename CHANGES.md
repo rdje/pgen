@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-03-17 - Surface structured VHDL blocker arrays
+### ✅ Achievement Summary
+Aggregate sign-off now carries the full machine-readable VHDL blocker arrays from the family-status sidecar, not just counts plus the primary blocker string. `vhdl_combined_telemetry_contract_gate` now proves those blocker-array fields match the status sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `vhdl_family_status_vhdl_unmet_closure_criteria_json`
+    - `vhdl_family_status_vhdl_unmet_closure_criteria_details_json`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now proves exact parity for those aggregate-visible VHDL blocker-array fields
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger aggregate-visible VHDL blocker surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Surface VHDL family-status contract proof in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate sign-off now also carries the source-side VHDL family-status contract proof, not just the VHDL status sidecar itself. `sota_exit_gate` now surfaces the VHDL status-contract summary and its key contract counts, and `vhdl_combined_telemetry_contract_gate` now proves those aggregate-visible fields match the status-contract sidecar exactly.
