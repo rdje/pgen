@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-17 - Add VHDL family status gate
+### ✅ Achievement Summary
+VHDL now has a conservative machine-checkable family-status proof. `vhdl_parser_family_status_gate` computes the `vhdl` live tracker row from landed VHDL proof surfaces, verifies tracker alignment, and makes the remaining blockers explicit instead of leaving the `In Progress` label as prose-only interpretation.
+
+### Scope of Changes
+- Added [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh):
+  - reuses or reruns `vhdl_parser_family_contract_gate` and `vhdl_combined_telemetry_contract_gate`
+  - can pass through existing VHDL quality/promotion/SOTA state dirs for faster validation
+  - computes the `vhdl` status from explicit closure criteria and fails if it drifts from [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - emits `summary.txt` and `summary.json` with closure counts, tracker alignment, structured blocker details, and proof-surface paths
+  - current validated blocker surface is:
+    - `quality_parseability_generation_parser_rejections_total=1 > 0`
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=20 > 0`
+    - `quality_closed_loop_replay_targets=12 > 0`
+    - `formal_exhaustive_closure_surface=missing`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added `vhdl_parser_family_status_gate`
+  - added the new help text entry
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new VHDL family-status proof surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Surface VHDL family proof in aggregate sign-off
 ### ✅ Achievement Summary
 Aggregate sign-off now reuses the VHDL family-side contract and exposes it as first-class telemetry. `sota_exit_gate` now carries the combined VHDL family summary path plus core quality/promotion metrics, and `vhdl_combined_telemetry_contract_gate` proves those aggregate-visible fields match the VHDL family sidecar exactly.

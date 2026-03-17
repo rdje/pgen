@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add VHDL family status gate
+### Context
+The VHDL proof surface had already reached the point where the row deserved the same treatment as the shipped SV families: a machine-checkable status computation instead of a prose-only tracker label. The next clean step was to add a conservative VHDL family-status gate that reuses the landed VHDL family proof surfaces, verifies alignment with the live tracker, and makes the remaining blockers explicit without overpromoting the row.
+
+### Implementation
+- Added [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh):
+  - reuses `vhdl_parser_family_contract_gate` plus `vhdl_combined_telemetry_contract_gate`
+  - can pass through existing VHDL quality, strict-promotion, and SOTA aggregate state dirs for fast validation
+  - emits `summary.txt` and `summary.json` with tracker alignment, closure counts, proof-surface paths, and structured blocker details
+  - currently keeps `vhdl` at `In Progress` because the validated blocker set is:
+    - `quality_parseability_generation_parser_rejections_total=1 > 0`
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=20 > 0`
+    - `quality_closed_loop_replay_targets=12 > 0`
+    - `formal_exhaustive_closure_surface=missing`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added the new `vhdl_parser_family_status_gate` target and help text
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the new VHDL family-status proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Surface VHDL family proof in aggregate sign-off
 ### Context
 The new VHDL family contract gate made the current VHDL proof surface reusable, but aggregate sign-off still only surfaced the lower-level VHDL gates separately. The next hardening step was to thread the family-level sidecar into `sota_exit_gate` and add a dedicated parity gate so the release summary can show one coherent VHDL family proof surface rather than two disconnected sub-surfaces.

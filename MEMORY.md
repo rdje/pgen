@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-proof-in-aggregate-sign-off)
+Last updated: 2026-03-17 (+0100, task: add-vhdl-family-status-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -73,6 +73,22 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_family_strict_promotion_observed_ratio_max=37`
     - `vhdl_family_strict_promotion_observed_ratio_avg=24`
   - `vhdl_combined_telemetry_contract_gate` proves those aggregate-visible values match `vhdl_parser_family_contract_gate/summary.txt` exactly.
+- VHDL now also has a conservative machine-checkable family-status proof:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+  - can reuse existing `vhdl_stimuli_quality_gate`, `vhdl_strict_promotion_gate`, and `sota_exit_gate` state dirs through pass-through env vars
+  - current validated summary keeps `vhdl` aligned with the live tracker at `In Progress`
+  - current closure counts:
+    - `vhdl_closure_criteria_satisfied_count=7`
+    - `vhdl_closure_criteria_total_count=11`
+    - `vhdl_closure_criteria_unsatisfied_count=4`
+  - current blocker surface:
+    - `quality_parseability_generation_parser_rejections_total=1 > 0`
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=20 > 0`
+    - `quality_closed_loop_replay_targets=12 > 0`
+    - `formal_exhaustive_closure_surface=missing`
+  - the gate emits both:
+    - `rust/target/vhdl_parser_family_status_gate/summary.txt`
+    - `rust/target/vhdl_parser_family_status_gate/summary.json`
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:
