@@ -13,10 +13,8 @@ VHDL_FAMILY_STATUS_GATE="$RUST_DIR/scripts/vhdl_parser_family_status_gate.sh"
 EXISTING_FAMILY_STATUS_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR:-}"
 
 EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_FAMILY_CONTRACT_STATE_DIR:-}"
-EXISTING_VHDL_COMBINED_TELEMETRY_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_COMBINED_TELEMETRY_STATE_DIR:-}"
 EXISTING_VHDL_QUALITY_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_QUALITY_STATE_DIR:-}"
 EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STRICT_PROMOTION_STATE_DIR:-}"
-EXISTING_VHDL_SOTA_EXIT_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_SOTA_EXIT_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -86,11 +84,6 @@ if [[ -z "$EXISTING_FAMILY_STATUS_STATE_DIR" ]]; then
             PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR"
         )
     fi
-    if [[ -n "$EXISTING_VHDL_COMBINED_TELEMETRY_STATE_DIR" ]]; then
-        family_status_env+=(
-            PGEN_VHDL_FAMILY_STATUS_EXISTING_COMBINED_TELEMETRY_STATE_DIR="$EXISTING_VHDL_COMBINED_TELEMETRY_STATE_DIR"
-        )
-    fi
     if [[ -n "$EXISTING_VHDL_QUALITY_STATE_DIR" ]]; then
         family_status_env+=(
             PGEN_VHDL_FAMILY_STATUS_EXISTING_QUALITY_STATE_DIR="$EXISTING_VHDL_QUALITY_STATE_DIR"
@@ -99,11 +92,6 @@ if [[ -z "$EXISTING_FAMILY_STATUS_STATE_DIR" ]]; then
     if [[ -n "$EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR" ]]; then
         family_status_env+=(
             PGEN_VHDL_FAMILY_STATUS_EXISTING_STRICT_PROMOTION_STATE_DIR="$EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR"
-        )
-    fi
-    if [[ -n "$EXISTING_VHDL_SOTA_EXIT_STATE_DIR" ]]; then
-        family_status_env+=(
-            PGEN_VHDL_FAMILY_STATUS_EXISTING_SOTA_EXIT_STATE_DIR="$EXISTING_VHDL_SOTA_EXIT_STATE_DIR"
         )
     fi
     family_status_env+=("$VHDL_FAMILY_STATUS_GATE")
@@ -116,9 +104,9 @@ family_status_summary_txt="$family_status_state_dir/summary.txt"
 require_nonempty_file "$family_status_summary_json"
 require_nonempty_file "$family_status_summary_txt"
 
-expected_criteria='["family_contract_green","aggregate_telemetry_contract_green","quality_closed_loop_initial_status_pass","quality_closed_loop_replay_status_pass","quality_parseability_generation_parser_rejections_zero","quality_closed_loop_parseability_shadow_parser_rejections_zero","quality_closed_loop_replay_target_debt_zero","strict_promotion_recommendation_green","strict_promotion_eligible_for_required_strict_mode","strict_promotion_primary_blocker_none","formal_exhaustive_closure_surface_green"]'
+expected_criteria='["family_contract_green","quality_closed_loop_initial_status_pass","quality_closed_loop_replay_status_pass","quality_parseability_generation_parser_rejections_zero","quality_closed_loop_parseability_shadow_parser_rejections_zero","quality_closed_loop_replay_target_debt_zero","strict_promotion_recommendation_green","strict_promotion_eligible_for_required_strict_mode","strict_promotion_primary_blocker_none","formal_exhaustive_closure_surface_green"]'
 expected_metrics='["quality_closed_loop_initial_status","quality_closed_loop_replay_status","quality_closed_loop_replay_targets","quality_closed_loop_parseability_shadow_parser_rejections_total","quality_parseability_generation_parser_rejections_total","quality_parseability_generation_rejected_total","quality_realistic_cases_executed","quality_realistic_expected_pass_total","quality_realistic_expected_fail_total","quality_realistic_observed_parse_pass_total","quality_realistic_observed_parse_fail_total","strict_promotion_recommendation","strict_promotion_eligible","strict_promotion_primary_blocker","strict_promotion_trial_passed"]'
-expected_proof_surfaces='["family_contract_summary_txt","combined_telemetry_summary_txt"]'
+expected_proof_surfaces='["family_contract_summary_txt"]'
 
 jq -e \
     --argjson expected_criteria "$expected_criteria" \

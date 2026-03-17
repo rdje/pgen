@@ -83,14 +83,26 @@ fi
 
 sota_summary_txt="$sota_state_dir/summary.txt"
 vhdl_family_summary_txt="$sota_state_dir/work/vhdl_parser_family_contract_gate/summary.txt"
+vhdl_family_status_summary_txt="$sota_state_dir/work/vhdl_parser_family_status_gate/summary.txt"
+vhdl_family_status_summary_json="$sota_state_dir/work/vhdl_parser_family_status_gate/summary.json"
 
 require_nonempty_file "$sota_summary_txt"
 require_nonempty_file "$vhdl_family_summary_txt"
+require_nonempty_file "$vhdl_family_status_summary_txt"
+require_nonempty_file "$vhdl_family_status_summary_json"
 
 assert_equal \
     "VHDL family contract summary path" \
     "$vhdl_family_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_contract_summary_txt")"
+assert_equal \
+    "VHDL family status summary txt path" \
+    "$vhdl_family_status_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_status_summary_txt")"
+assert_equal \
+    "VHDL family status summary json path" \
+    "$vhdl_family_status_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_status_summary_json")"
 
 vhdl_quality_closed_loop_initial_status="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_initial_status")"
 vhdl_quality_closed_loop_replay_status="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_replay_status")"
@@ -110,6 +122,14 @@ vhdl_strict_promotion_trial_passed="$(extract_summary_value "$vhdl_family_summar
 vhdl_strict_promotion_observed_ratio_min="$(extract_summary_value "$vhdl_family_summary_txt" "strict_promotion_observed_ratio_min")"
 vhdl_strict_promotion_observed_ratio_max="$(extract_summary_value "$vhdl_family_summary_txt" "strict_promotion_observed_ratio_max")"
 vhdl_strict_promotion_observed_ratio_avg="$(extract_summary_value "$vhdl_family_summary_txt" "strict_promotion_observed_ratio_avg")"
+vhdl_family_status_vhdl="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_status")"
+vhdl_family_status_vhdl_tracker_status="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_tracker_status")"
+vhdl_family_status_vhdl_tracker_alignment_ok="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_tracker_alignment_ok")"
+vhdl_family_status_vhdl_unmet_closure_criteria_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_unmet_closure_criteria_count")"
+vhdl_family_status_vhdl_primary_unmet_closure_criterion="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_primary_unmet_closure_criterion")"
+vhdl_family_status_vhdl_closure_criteria_satisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_satisfied_count")"
+vhdl_family_status_vhdl_closure_criteria_total_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_total_count")"
+vhdl_family_status_vhdl_closure_criteria_unsatisfied_count="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_closure_criteria_unsatisfied_count")"
 
 assert_equal \
     "VHDL family quality closed-loop initial status" \
@@ -183,6 +203,38 @@ assert_equal \
     "VHDL family strict-promotion observed ratio avg" \
     "$vhdl_strict_promotion_observed_ratio_avg" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_strict_promotion_observed_ratio_avg")"
+assert_equal \
+    "VHDL family computed status" \
+    "$vhdl_family_status_vhdl" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl")"
+assert_equal \
+    "VHDL family tracker status" \
+    "$vhdl_family_status_vhdl_tracker_status" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_tracker_status")"
+assert_equal \
+    "VHDL family tracker alignment" \
+    "$vhdl_family_status_vhdl_tracker_alignment_ok" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_tracker_alignment_ok")"
+assert_equal \
+    "VHDL family unmet closure criteria count" \
+    "$vhdl_family_status_vhdl_unmet_closure_criteria_count" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_unmet_closure_criteria_count")"
+assert_equal \
+    "VHDL family primary unmet closure criterion" \
+    "$vhdl_family_status_vhdl_primary_unmet_closure_criterion" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_primary_unmet_closure_criterion")"
+assert_equal \
+    "VHDL family closure criteria satisfied count" \
+    "$vhdl_family_status_vhdl_closure_criteria_satisfied_count" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_closure_criteria_satisfied_count")"
+assert_equal \
+    "VHDL family closure criteria total count" \
+    "$vhdl_family_status_vhdl_closure_criteria_total_count" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_closure_criteria_total_count")"
+assert_equal \
+    "VHDL family closure criteria unsatisfied count" \
+    "$vhdl_family_status_vhdl_closure_criteria_unsatisfied_count" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count")"
 
 {
     echo "VHDL Combined Telemetry Contract Gate Summary"
@@ -190,6 +242,8 @@ assert_equal \
     echo "sota_state_dir: $sota_state_dir"
     echo "sota_policy_env_file: $SOTA_POLICY_ENV_FILE"
     echo "vhdl_parser_family_contract_summary_txt: $vhdl_family_summary_txt"
+    echo "vhdl_parser_family_status_summary_txt: $vhdl_family_status_summary_txt"
+    echo "vhdl_parser_family_status_summary_json: $vhdl_family_status_summary_json"
     echo "vhdl_family_quality_closed_loop_initial_status: $vhdl_quality_closed_loop_initial_status"
     echo "vhdl_family_quality_closed_loop_replay_status: $vhdl_quality_closed_loop_replay_status"
     echo "vhdl_family_quality_closed_loop_initial_targets: $vhdl_quality_closed_loop_initial_targets"
@@ -208,6 +262,14 @@ assert_equal \
     echo "vhdl_family_strict_promotion_observed_ratio_min: $vhdl_strict_promotion_observed_ratio_min"
     echo "vhdl_family_strict_promotion_observed_ratio_max: $vhdl_strict_promotion_observed_ratio_max"
     echo "vhdl_family_strict_promotion_observed_ratio_avg: $vhdl_strict_promotion_observed_ratio_avg"
+    echo "vhdl_family_status_vhdl: $vhdl_family_status_vhdl"
+    echo "vhdl_family_status_vhdl_tracker_status: $vhdl_family_status_vhdl_tracker_status"
+    echo "vhdl_family_status_vhdl_tracker_alignment_ok: $vhdl_family_status_vhdl_tracker_alignment_ok"
+    echo "vhdl_family_status_vhdl_unmet_closure_criteria_count: $vhdl_family_status_vhdl_unmet_closure_criteria_count"
+    echo "vhdl_family_status_vhdl_primary_unmet_closure_criterion: $vhdl_family_status_vhdl_primary_unmet_closure_criterion"
+    echo "vhdl_family_status_vhdl_closure_criteria_satisfied_count: $vhdl_family_status_vhdl_closure_criteria_satisfied_count"
+    echo "vhdl_family_status_vhdl_closure_criteria_total_count: $vhdl_family_status_vhdl_closure_criteria_total_count"
+    echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $vhdl_family_status_vhdl_closure_criteria_unsatisfied_count"
 } | tee "$SUMMARY_TXT"
 
 echo "✅ VHDL combined telemetry contract gate passed."

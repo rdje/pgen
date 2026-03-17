@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-17 - Surface VHDL family status in aggregate sign-off
+### ✅ Achievement Summary
+The VHDL family-status proof is now layered cleanly: `vhdl_parser_family_status_gate` is source-side and depends only on the primary VHDL family proof surface, while aggregate sign-off now consumes and exposes that resulting sidecar directly. `vhdl_combined_telemetry_contract_gate` now proves the aggregate-visible VHDL status fields match the status sidecar exactly.
+
+### Scope of Changes
+- Updated [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh):
+  - removed the recursive dependency on `vhdl_combined_telemetry_contract_gate`
+  - now computes the `vhdl` live row from `vhdl_parser_family_contract_gate` alone
+  - current validated closure counts are now source-side and explicit:
+    - `vhdl_closure_criteria_satisfied_count=6`
+    - `vhdl_closure_criteria_total_count=10`
+    - `vhdl_closure_criteria_unsatisfied_count=4`
+  - current blockers remain unchanged:
+    - `quality_parseability_generation_parser_rejections_total=1 > 0`
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=20 > 0`
+    - `quality_closed_loop_replay_targets=12 > 0`
+    - `formal_exhaustive_closure_surface=missing`
+- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+  - now validates the refactored 10-criterion VHDL status sidecar shape
+  - now expects the source-side proof-surface list rooted only in `family_contract_summary_txt`
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now reruns `vhdl_parser_family_status_gate` over the produced VHDL family-contract artifact
+  - now surfaces:
+    - `vhdl_parser_family_status_summary_txt`
+    - `vhdl_parser_family_status_summary_json`
+    - `vhdl_family_status_vhdl`
+    - `vhdl_family_status_vhdl_tracker_status`
+    - `vhdl_family_status_vhdl_tracker_alignment_ok`
+    - `vhdl_family_status_vhdl_unmet_closure_criteria_count`
+    - `vhdl_family_status_vhdl_primary_unmet_closure_criterion`
+    - `vhdl_family_status_vhdl_closure_criteria_satisfied_count`
+    - `vhdl_family_status_vhdl_closure_criteria_total_count`
+    - `vhdl_family_status_vhdl_closure_criteria_unsatisfied_count`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now requires the produced VHDL family-status sidecar under aggregate state
+  - now proves exact parity for the aggregate-visible VHDL status fields listed above
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that VHDL family status is now source-side and aggregate-visible
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Add VHDL family status contract gate
 ### ✅ Achievement Summary
 The VHDL family-status sidecar now has its own source-side contract proof. `vhdl_parser_family_status_contract_gate` validates the shape and internal consistency of `vhdl_parser_family_status_gate/summary.json` and `summary.txt`, so the new VHDL status row is backed by an artifact contract rather than only by the producer gate.

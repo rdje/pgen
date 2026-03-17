@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: add-vhdl-family-status-contract-gate)
+Last updated: 2026-03-17 (+0100, task: surface-vhdl-family-status-in-aggregate-sign-off)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -75,11 +75,12 @@ Use this file to resume work without replaying full chat history.
   - `vhdl_combined_telemetry_contract_gate` proves those aggregate-visible values match `vhdl_parser_family_contract_gate/summary.txt` exactly.
 - VHDL now also has a conservative machine-checkable family-status proof:
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
-  - can reuse existing `vhdl_stimuli_quality_gate`, `vhdl_strict_promotion_gate`, and `sota_exit_gate` state dirs through pass-through env vars
+  - now computes the `vhdl` row from the source-side `vhdl_parser_family_contract_gate` surface instead of depending on aggregate telemetry
+  - can reuse an existing `vhdl_parser_family_contract_gate` state dir for fast validation
   - current validated summary keeps `vhdl` aligned with the live tracker at `In Progress`
   - current closure counts:
-    - `vhdl_closure_criteria_satisfied_count=7`
-    - `vhdl_closure_criteria_total_count=11`
+    - `vhdl_closure_criteria_satisfied_count=6`
+    - `vhdl_closure_criteria_total_count=10`
     - `vhdl_closure_criteria_unsatisfied_count=4`
   - current blocker surface:
     - `quality_parseability_generation_parser_rejections_total=1 > 0`
@@ -103,6 +104,19 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_false_criteria_count=4`
     - `vhdl_unmet_details_count=4`
     - `vhdl_primary_unmet_detail_criterion=quality_parseability_generation_parser_rejections_zero`
+- Aggregate sign-off now also reuses and surfaces the VHDL family-status sidecar directly:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
+  - current aggregate-visible/parity-checked VHDL status fields include:
+    - `vhdl_parser_family_status_summary_txt`
+    - `vhdl_parser_family_status_summary_json`
+    - `vhdl_family_status_vhdl=In Progress`
+    - `vhdl_family_status_vhdl_tracker_status=In Progress`
+    - `vhdl_family_status_vhdl_tracker_alignment_ok=true`
+    - `vhdl_family_status_vhdl_unmet_closure_criteria_count=4`
+    - `vhdl_family_status_vhdl_primary_unmet_closure_criterion=quality_parseability_generation_parser_rejections_total=1 > 0`
+    - `vhdl_family_status_vhdl_closure_criteria_satisfied_count=6`
+    - `vhdl_family_status_vhdl_closure_criteria_total_count=10`
+    - `vhdl_family_status_vhdl_closure_criteria_unsatisfied_count=4`
 - The SV family-status sidecar now has its own dedicated contract gate:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
   - current validated contract summary from existing-artifact mode:

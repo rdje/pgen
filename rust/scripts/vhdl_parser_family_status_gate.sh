@@ -12,13 +12,10 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 LIVE_TRACKER_FILE="$ROOT_DIR/LIVE_ACHIEVEMENT_STATUS.md"
 
 VHDL_FAMILY_CONTRACT_GATE="$RUST_DIR/scripts/vhdl_parser_family_contract_gate.sh"
-VHDL_COMBINED_TELEMETRY_GATE="$RUST_DIR/scripts/vhdl_combined_telemetry_contract_gate.sh"
 
 EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR:-}"
-EXISTING_VHDL_COMBINED_TELEMETRY_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_COMBINED_TELEMETRY_STATE_DIR:-}"
 EXISTING_VHDL_QUALITY_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_QUALITY_STATE_DIR:-}"
 EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_STRICT_PROMOTION_STATE_DIR:-}"
-EXISTING_VHDL_SOTA_EXIT_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_EXISTING_SOTA_EXIT_STATE_DIR:-}"
 
 DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim."
 
@@ -87,13 +84,11 @@ run_logged() {
 require_tool jq
 require_file "$LIVE_TRACKER_FILE"
 require_file "$VHDL_FAMILY_CONTRACT_GATE"
-require_file "$VHDL_COMBINED_TELEMETRY_GATE"
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
 
 vhdl_family_contract_state_dir="${EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR:-$WORK_DIR/vhdl_parser_family_contract_gate}"
-vhdl_combined_telemetry_state_dir="${EXISTING_VHDL_COMBINED_TELEMETRY_STATE_DIR:-$WORK_DIR/vhdl_combined_telemetry_contract_gate}"
 
 if [[ -z "$EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR" ]]; then
     vhdl_family_contract_cmd=(
@@ -114,25 +109,9 @@ if [[ -z "$EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR" ]]; then
     run_logged "vhdl_parser_family_contract_gate" "${vhdl_family_contract_cmd[@]}"
 fi
 
-if [[ -z "$EXISTING_VHDL_COMBINED_TELEMETRY_STATE_DIR" ]]; then
-    vhdl_combined_telemetry_cmd=(
-        env
-        PGEN_VHDL_COMBINED_TELEMETRY_CONTRACT_STATE_DIR="$vhdl_combined_telemetry_state_dir"
-    )
-    if [[ -n "$EXISTING_VHDL_SOTA_EXIT_STATE_DIR" ]]; then
-        vhdl_combined_telemetry_cmd+=(
-            PGEN_VHDL_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR="$EXISTING_VHDL_SOTA_EXIT_STATE_DIR"
-        )
-    fi
-    vhdl_combined_telemetry_cmd+=("$VHDL_COMBINED_TELEMETRY_GATE")
-    run_logged "vhdl_combined_telemetry_contract_gate" "${vhdl_combined_telemetry_cmd[@]}"
-fi
-
 vhdl_family_contract_summary_txt="$vhdl_family_contract_state_dir/summary.txt"
-vhdl_combined_telemetry_summary_txt="$vhdl_combined_telemetry_state_dir/summary.txt"
 
 require_nonempty_file "$vhdl_family_contract_summary_txt"
-require_nonempty_file "$vhdl_combined_telemetry_summary_txt"
 
 vhdl_quality_closed_loop_initial_status="$(summary_value_from_txt "quality_closed_loop_initial_status" "$vhdl_family_contract_summary_txt")"
 vhdl_quality_closed_loop_replay_status="$(summary_value_from_txt "quality_closed_loop_replay_status" "$vhdl_family_contract_summary_txt")"
@@ -150,16 +129,7 @@ vhdl_strict_promotion_eligible="$(summary_value_from_txt "strict_promotion_eligi
 vhdl_strict_promotion_primary_blocker="$(summary_value_from_txt "strict_promotion_primary_blocker" "$vhdl_family_contract_summary_txt")"
 vhdl_strict_promotion_trial_passed="$(summary_value_from_txt "strict_promotion_trial_passed" "$vhdl_family_contract_summary_txt")"
 
-vhdl_combined_quality_initial_status="$(summary_value_from_txt "vhdl_family_quality_closed_loop_initial_status" "$vhdl_combined_telemetry_summary_txt")"
-vhdl_combined_quality_replay_status="$(summary_value_from_txt "vhdl_family_quality_closed_loop_replay_status" "$vhdl_combined_telemetry_summary_txt")"
-vhdl_combined_quality_replay_targets="$(summary_value_from_txt "vhdl_family_quality_closed_loop_replay_targets" "$vhdl_combined_telemetry_summary_txt")"
-vhdl_combined_quality_parseability_rejected="$(summary_value_from_txt "vhdl_family_quality_parseability_generation_rejected_total" "$vhdl_combined_telemetry_summary_txt")"
-vhdl_combined_recommendation="$(summary_value_from_txt "vhdl_family_strict_promotion_recommendation" "$vhdl_combined_telemetry_summary_txt")"
-vhdl_combined_eligible="$(summary_value_from_txt "vhdl_family_strict_promotion_eligible_for_required_strict_mode" "$vhdl_combined_telemetry_summary_txt")"
-vhdl_combined_primary_blocker="$(summary_value_from_txt "vhdl_family_strict_promotion_primary_blocker" "$vhdl_combined_telemetry_summary_txt")"
-
 vhdl_family_contract_green=true
-vhdl_aggregate_telemetry_contract_green=true
 vhdl_quality_closed_loop_initial_status_pass=false
 vhdl_quality_closed_loop_replay_status_pass=false
 vhdl_quality_parseability_generation_parser_rejections_zero=false
@@ -170,36 +140,35 @@ vhdl_strict_promotion_eligible_for_required_strict_mode=false
 vhdl_strict_promotion_primary_blocker_none=false
 vhdl_formal_exhaustive_closure_surface_green=false
 
-if [[ "$vhdl_quality_closed_loop_initial_status" == "pass" && "$vhdl_combined_quality_initial_status" == "pass" ]]; then
+if [[ "$vhdl_quality_closed_loop_initial_status" == "pass" ]]; then
     vhdl_quality_closed_loop_initial_status_pass=true
 fi
-if [[ "$vhdl_quality_closed_loop_replay_status" == "pass" && "$vhdl_combined_quality_replay_status" == "pass" ]]; then
+if [[ "$vhdl_quality_closed_loop_replay_status" == "pass" ]]; then
     vhdl_quality_closed_loop_replay_status_pass=true
 fi
-if [[ "$vhdl_quality_parseability_generation_parser_rejections_total" == "0" && "$vhdl_combined_quality_parseability_rejected" == "0" ]]; then
+if [[ "$vhdl_quality_parseability_generation_parser_rejections_total" == "0" ]]; then
     vhdl_quality_parseability_generation_parser_rejections_zero=true
 fi
 if [[ "$vhdl_quality_closed_loop_parseability_shadow_parser_rejections_total" == "0" ]]; then
     vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero=true
 fi
-if [[ "$vhdl_quality_closed_loop_replay_targets" == "0" && "$vhdl_combined_quality_replay_targets" == "0" ]]; then
+if [[ "$vhdl_quality_closed_loop_replay_targets" == "0" ]]; then
     vhdl_quality_closed_loop_replay_target_debt_zero=true
 fi
-if [[ "$vhdl_strict_promotion_recommendation" == "enable_required_strict_mode" && "$vhdl_combined_recommendation" == "enable_required_strict_mode" ]]; then
+if [[ "$vhdl_strict_promotion_recommendation" == "enable_required_strict_mode" ]]; then
     vhdl_strict_promotion_recommendation_green=true
 fi
-if [[ "$vhdl_strict_promotion_eligible" == "1" && "$vhdl_combined_eligible" == "1" ]]; then
+if [[ "$vhdl_strict_promotion_eligible" == "1" ]]; then
     vhdl_strict_promotion_eligible_for_required_strict_mode=true
 fi
-if [[ "$vhdl_strict_promotion_primary_blocker" == "none" && "$vhdl_combined_primary_blocker" == "none" ]]; then
+if [[ "$vhdl_strict_promotion_primary_blocker" == "none" ]]; then
     vhdl_strict_promotion_primary_blocker_none=true
 fi
 
-vhdl_closure_criteria_total_count=11
+vhdl_closure_criteria_total_count=10
 vhdl_closure_criteria_satisfied_count=0
 for criterion in \
     "$vhdl_family_contract_green" \
-    "$vhdl_aggregate_telemetry_contract_green" \
     "$vhdl_quality_closed_loop_initial_status_pass" \
     "$vhdl_quality_closed_loop_replay_status_pass" \
     "$vhdl_quality_parseability_generation_parser_rejections_zero" \
@@ -255,11 +224,10 @@ if [[ "$vhdl_formal_exhaustive_closure_surface_green" != true ]]; then
 fi
 
 vhdl_status="Not Started"
-if [[ "$vhdl_family_contract_green" == true || "$vhdl_aggregate_telemetry_contract_green" == true ]]; then
+if [[ "$vhdl_family_contract_green" == true ]]; then
     vhdl_status="In Progress"
 fi
 if [[ "$vhdl_family_contract_green" == true \
-   && "$vhdl_aggregate_telemetry_contract_green" == true \
    && "$vhdl_quality_closed_loop_initial_status_pass" == true \
    && "$vhdl_quality_closed_loop_replay_status_pass" == true \
    && "$vhdl_quality_parseability_generation_parser_rejections_zero" == true \
@@ -313,7 +281,6 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "vhdl_closure_criteria_satisfied_count: $vhdl_closure_criteria_satisfied_count"
     echo "vhdl_closure_criteria_unsatisfied_count: $vhdl_closure_criteria_unsatisfied_count"
     echo "vhdl_family_contract_green: $vhdl_family_contract_green"
-    echo "vhdl_aggregate_telemetry_contract_green: $vhdl_aggregate_telemetry_contract_green"
     echo "vhdl_quality_closed_loop_initial_status_pass: $vhdl_quality_closed_loop_initial_status_pass"
     echo "vhdl_quality_closed_loop_replay_status_pass: $vhdl_quality_closed_loop_replay_status_pass"
     echo "vhdl_quality_parseability_generation_parser_rejections_zero: $vhdl_quality_parseability_generation_parser_rejections_zero"
@@ -339,12 +306,11 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "vhdl_strict_promotion_primary_blocker: $vhdl_strict_promotion_primary_blocker"
     echo "vhdl_strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed"
     echo "vhdl_family_contract_summary_txt: $vhdl_family_contract_summary_txt"
-    echo "vhdl_combined_telemetry_summary_txt: $vhdl_combined_telemetry_summary_txt"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
     --arg gate "vhdl_parser_family_status_gate" \
-    --argjson version 1 \
+    --argjson version 2 \
     --arg generated_at_utc "$generated_at_utc" \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg status_rule_done "$DONE_RULE" \
@@ -359,7 +325,6 @@ jq -n \
     --argjson vhdl_closure_criteria_satisfied_count "$vhdl_closure_criteria_satisfied_count" \
     --argjson vhdl_closure_criteria_unsatisfied_count "$vhdl_closure_criteria_unsatisfied_count" \
     --argjson vhdl_family_contract_green "$vhdl_family_contract_green" \
-    --argjson vhdl_aggregate_telemetry_contract_green "$vhdl_aggregate_telemetry_contract_green" \
     --argjson vhdl_quality_closed_loop_initial_status_pass "$vhdl_quality_closed_loop_initial_status_pass" \
     --argjson vhdl_quality_closed_loop_replay_status_pass "$vhdl_quality_closed_loop_replay_status_pass" \
     --argjson vhdl_quality_parseability_generation_parser_rejections_zero "$vhdl_quality_parseability_generation_parser_rejections_zero" \
@@ -385,7 +350,6 @@ jq -n \
     --arg vhdl_strict_promotion_primary_blocker "$vhdl_strict_promotion_primary_blocker" \
     --argjson vhdl_strict_promotion_trial_passed "$vhdl_strict_promotion_trial_passed" \
     --arg vhdl_family_contract_summary_txt "$vhdl_family_contract_summary_txt" \
-    --arg vhdl_combined_telemetry_summary_txt "$vhdl_combined_telemetry_summary_txt" \
     '{
       gate: $gate,
       version: $version,
@@ -407,7 +371,6 @@ jq -n \
           closure_criteria_unsatisfied_count: $vhdl_closure_criteria_unsatisfied_count,
           criteria: {
             family_contract_green: $vhdl_family_contract_green,
-            aggregate_telemetry_contract_green: $vhdl_aggregate_telemetry_contract_green,
             quality_closed_loop_initial_status_pass: $vhdl_quality_closed_loop_initial_status_pass,
             quality_closed_loop_replay_status_pass: $vhdl_quality_closed_loop_replay_status_pass,
             quality_parseability_generation_parser_rejections_zero: $vhdl_quality_parseability_generation_parser_rejections_zero,
@@ -436,8 +399,7 @@ jq -n \
             strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed
           },
           proof_surfaces: {
-            family_contract_summary_txt: $vhdl_family_contract_summary_txt,
-            combined_telemetry_summary_txt: $vhdl_combined_telemetry_summary_txt
+            family_contract_summary_txt: $vhdl_family_contract_summary_txt
           }
         }
       ]

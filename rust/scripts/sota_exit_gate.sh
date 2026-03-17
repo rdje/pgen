@@ -2246,6 +2246,45 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MAX="$(summary_value_from_txt "strict_promotion_observed_ratio_max" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_AVG="$(summary_value_from_txt "strict_promotion_observed_ratio_avg" "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
     fi
+
+    VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR="${STATE_DIR}/work/vhdl_parser_family_status_gate"
+    VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT="${VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
+    VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON="${VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.json"
+    if [[ "$REQUIRE_VHDL_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_VHDL_STRICT_PROMOTION_STRICT" -eq 1 ]]; then
+        run_check "vhdl_parser_family_status_gate" "required" "strict VHDL family-status proof over produced artifacts" \
+            env \
+                PGEN_VHDL_FAMILY_STATUS_STATE_DIR="$VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash vhdl_parser_family_status_gate
+    else
+        run_check "vhdl_parser_family_status_gate" "informational" "report-only VHDL family-status proof over produced artifacts" \
+            env \
+                PGEN_VHDL_FAMILY_STATUS_STATE_DIR="$VHDL_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                make -C rust SHELL=/bin/bash vhdl_parser_family_status_gate
+    fi
+
+    if [[ ! -f "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
+        VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT="<missing>"
+        VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON="<missing>"
+        VHDL_FAMILY_STATUS_VHDL="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_TRACKER_STATUS="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_TRACKER_ALIGNMENT_OK="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_UNMET_CLOSURE_CRITERIA_COUNT="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_PRIMARY_UNMET_CLOSURE_CRITERION="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_SATISFIED_COUNT="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT="<missing>"
+    else
+        VHDL_FAMILY_STATUS_VHDL="$(summary_value_from_txt "vhdl_status" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_TRACKER_STATUS="$(summary_value_from_txt "vhdl_tracker_status" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "vhdl_tracker_alignment_ok" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "vhdl_unmet_closure_criteria_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_PRIMARY_UNMET_CLOSURE_CRITERION="$(summary_value_from_txt "vhdl_primary_unmet_closure_criterion" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_SATISFIED_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_satisfied_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_total_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_unsatisfied_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+    fi
 fi
 
 {
@@ -2715,6 +2754,16 @@ fi
         echo "vhdl_family_strict_promotion_observed_ratio_min: $VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MIN"
         echo "vhdl_family_strict_promotion_observed_ratio_max: $VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_MAX"
         echo "vhdl_family_strict_promotion_observed_ratio_avg: $VHDL_FAMILY_STRICT_PROMOTION_OBSERVED_RATIO_AVG"
+        echo "vhdl_parser_family_status_summary_txt: $VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT"
+        echo "vhdl_parser_family_status_summary_json: $VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON"
+        echo "vhdl_family_status_vhdl: $VHDL_FAMILY_STATUS_VHDL"
+        echo "vhdl_family_status_vhdl_tracker_status: $VHDL_FAMILY_STATUS_VHDL_TRACKER_STATUS"
+        echo "vhdl_family_status_vhdl_tracker_alignment_ok: $VHDL_FAMILY_STATUS_VHDL_TRACKER_ALIGNMENT_OK"
+        echo "vhdl_family_status_vhdl_unmet_closure_criteria_count: $VHDL_FAMILY_STATUS_VHDL_UNMET_CLOSURE_CRITERIA_COUNT"
+        echo "vhdl_family_status_vhdl_primary_unmet_closure_criterion: $VHDL_FAMILY_STATUS_VHDL_PRIMARY_UNMET_CLOSURE_CRITERION"
+        echo "vhdl_family_status_vhdl_closure_criteria_satisfied_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_SATISFIED_COUNT"
+        echo "vhdl_family_status_vhdl_closure_criteria_total_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT"
+        echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT"
     fi
 } >"$SUMMARY_TXT"
 
