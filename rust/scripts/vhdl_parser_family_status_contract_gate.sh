@@ -8,6 +8,7 @@ STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR:-$RUST_DIR/target/vhdl_p
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 VHDL_FAMILY_STATUS_GATE="$RUST_DIR/scripts/vhdl_parser_family_status_gate.sh"
 EXISTING_FAMILY_STATUS_STATE_DIR="${PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR:-}"
@@ -204,9 +205,12 @@ if [[ "$summary_vhdl_primary_unmet" != "$vhdl_primary_unmet_from_json" ]]; then
     exit 1
 fi
 
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 {
     echo "VHDL Parser Family Status Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
     echo "family_status_state_dir: $family_status_state_dir"
     echo "family_status_summary_json: $family_status_summary_json"
     echo "family_status_summary_txt: $family_status_summary_txt"
@@ -218,6 +222,43 @@ fi
     echo "vhdl_unmet_closure_criteria_json: $vhdl_unmet_json"
     echo "vhdl_unmet_closure_criteria_details_json: $vhdl_details_json"
 } | tee "$SUMMARY_TXT"
+
+jq -n \
+    --arg gate "vhdl_parser_family_status_contract_gate" \
+    --argjson version 1 \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg state_dir "$STATE_DIR" \
+    --arg family_status_state_dir "$family_status_state_dir" \
+    --arg family_status_summary_json "$family_status_summary_json" \
+    --arg family_status_summary_txt "$family_status_summary_txt" \
+    --argjson family_count 1 \
+    --argjson vhdl_tracker_alignment_ok "$vhdl_tracker_alignment_ok" \
+    --argjson vhdl_false_criteria_count "$vhdl_false_criteria_count" \
+    --argjson vhdl_unmet_details_count "$vhdl_details_count" \
+    --arg vhdl_primary_unmet_detail_criterion "$vhdl_primary_unmet_detail_criterion" \
+    --argjson vhdl_unmet_closure_criteria "$vhdl_unmet_json" \
+    --argjson vhdl_unmet_closure_criteria_details "$vhdl_details_json" \
+    '{
+      gate: $gate,
+      version: $version,
+      generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      family_status_state_dir: $family_status_state_dir,
+      family_status_summary_json: $family_status_summary_json,
+      family_status_summary_txt: $family_status_summary_txt,
+      family_count: $family_count,
+      families: [
+        {
+          family: "vhdl",
+          tracker_alignment_ok: $vhdl_tracker_alignment_ok,
+          false_criteria_count: $vhdl_false_criteria_count,
+          unmet_details_count: $vhdl_unmet_details_count,
+          primary_unmet_detail_criterion: $vhdl_primary_unmet_detail_criterion,
+          unmet_closure_criteria: $vhdl_unmet_closure_criteria,
+          unmet_closure_criteria_details: $vhdl_unmet_closure_criteria_details
+        }
+      ]
+    }' >"$SUMMARY_JSON"
 
 echo "✅ VHDL parser-family status contract gate passed."
 echo "Logs: $LOG_DIR"

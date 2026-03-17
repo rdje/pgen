@@ -86,12 +86,14 @@ vhdl_family_summary_txt="$sota_state_dir/work/vhdl_parser_family_contract_gate/s
 vhdl_family_status_summary_txt="$sota_state_dir/work/vhdl_parser_family_status_gate/summary.txt"
 vhdl_family_status_summary_json="$sota_state_dir/work/vhdl_parser_family_status_gate/summary.json"
 vhdl_family_status_contract_summary_txt="$sota_state_dir/work/vhdl_parser_family_status_contract_gate/summary.txt"
+vhdl_family_status_contract_summary_json="$sota_state_dir/work/vhdl_parser_family_status_contract_gate/summary.json"
 
 require_nonempty_file "$sota_summary_txt"
 require_nonempty_file "$vhdl_family_summary_txt"
 require_nonempty_file "$vhdl_family_status_summary_txt"
 require_nonempty_file "$vhdl_family_status_summary_json"
 require_nonempty_file "$vhdl_family_status_contract_summary_txt"
+require_nonempty_file "$vhdl_family_status_contract_summary_json"
 
 assert_equal \
     "VHDL family contract summary path" \
@@ -109,6 +111,10 @@ assert_equal \
     "VHDL family status contract summary txt path" \
     "$vhdl_family_status_contract_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_status_contract_summary_txt")"
+assert_equal \
+    "VHDL family status contract summary json path" \
+    "$vhdl_family_status_contract_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_status_contract_summary_json")"
 
 vhdl_quality_closed_loop_initial_status="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_initial_status")"
 vhdl_quality_closed_loop_replay_status="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_replay_status")"
@@ -346,6 +352,7 @@ assert_equal \
     echo "vhdl_parser_family_status_summary_txt: $vhdl_family_status_summary_txt"
     echo "vhdl_parser_family_status_summary_json: $vhdl_family_status_summary_json"
     echo "vhdl_parser_family_status_contract_summary_txt: $vhdl_family_status_contract_summary_txt"
+    echo "vhdl_parser_family_status_contract_summary_json: $vhdl_family_status_contract_summary_json"
     echo "vhdl_family_quality_closed_loop_initial_status: $vhdl_quality_closed_loop_initial_status"
     echo "vhdl_family_quality_closed_loop_replay_status: $vhdl_quality_closed_loop_replay_status"
     echo "vhdl_family_quality_closed_loop_initial_targets: $vhdl_quality_closed_loop_initial_targets"

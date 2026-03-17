@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-vhdl-status-contract-blocker-arrays)
+Last updated: 2026-03-17 (+0100, task: add-vhdl-status-contract-json-sidecar)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -104,6 +104,8 @@ Use this file to resume work without replaying full chat history.
     - `vhdl_false_criteria_count=4`
     - `vhdl_unmet_details_count=4`
     - `vhdl_primary_unmet_detail_criterion=quality_parseability_generation_parser_rejections_zero`
+  - now also emits:
+    - `summary.json`
 - Aggregate sign-off now also reuses and surfaces the VHDL family-status sidecar directly:
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
   - current aggregate-visible/parity-checked VHDL status fields include:
@@ -134,6 +136,7 @@ Use this file to resume work without replaying full chat history.
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
   - current aggregate-visible/parity-checked VHDL status-contract fields include:
     - `vhdl_parser_family_status_contract_summary_txt`
+    - `vhdl_parser_family_status_contract_summary_json`
     - `vhdl_family_status_contract_family_count=1`
     - `vhdl_family_status_contract_vhdl_tracker_alignment_ok=true`
     - `vhdl_family_status_contract_vhdl_false_criteria_count=4`

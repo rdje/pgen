@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-17 - Add VHDL status-contract JSON sidecar
+### ✅ Achievement Summary
+The VHDL family-status contract proof now has a machine-readable `summary.json` sidecar in addition to `summary.txt`, and aggregate sign-off now surfaces that JSON path directly. `vhdl_combined_telemetry_contract_gate` now proves exact parity for the new aggregate-visible JSON-sidecar path.
+
+### Scope of Changes
+- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+  - now emits `summary.json` alongside `summary.txt`
+  - the JSON sidecar now records contract metadata, provenance paths, and structured blocker arrays
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces:
+    - `vhdl_parser_family_status_contract_summary_json`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now requires the VHDL status-contract `summary.json`
+  - now parity-checks the aggregate-visible JSON-sidecar path
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger machine-readable VHDL status-contract proof surface
+  - recorded that the `vhdl` live-status label remains unchanged at `In Progress`
+
 ## 2026-03-17 - Surface VHDL status-contract blocker arrays
 ### ✅ Achievement Summary
 Aggregate sign-off now carries the full machine-readable blocker arrays from the VHDL family-status contract sidecar, not just its counts and primary unmet-detail criterion. `vhdl_combined_telemetry_contract_gate` now proves those contract-side blocker arrays match aggregate telemetry exactly.

@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Add VHDL status-contract JSON sidecar
+### Context
+The VHDL family-status contract proof already exposed its key facts through `summary.txt`, but it still lacked the same machine-readable sidecar shape we rely on elsewhere for durable proof reuse. The next clean step was to add `summary.json` and surface its path in aggregate sign-off.
+
+### Implementation
+- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+  - now emits `summary.json` alongside `summary.txt`
+  - the JSON sidecar records contract metadata, provenance paths, family counts, and structured blocker arrays
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - now surfaces `vhdl_parser_family_status_contract_summary_json`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - now requires the produced `summary.json`
+  - now proves exact parity for the aggregate-visible JSON-sidecar path
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the stronger machine-readable VHDL status-contract proof surface
+  - recorded that `vhdl` remains `In Progress`
+
 ## 2026-03-17 - Surface VHDL status-contract blocker arrays
 ### Context
 Aggregate sign-off already exposed the VHDL status-contract counts and primary unmet-detail criterion, but it still hid the full contract-side blocker arrays that explain exactly which criteria remain false. The next clean step was to surface those arrays directly and parity-check them at the aggregate layer too.

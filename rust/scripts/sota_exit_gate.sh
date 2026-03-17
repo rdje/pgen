@@ -2312,6 +2312,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
 
     VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/vhdl_parser_family_status_contract_gate"
     VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="${VHDL_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.json"
     if [[ -f "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
         if [[ "$REQUIRE_VHDL_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_VHDL_STRICT_PROMOTION_STRICT" -eq 1 ]]; then
             run_check "vhdl_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced VHDL family-status sidecar" \
@@ -2330,6 +2331,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
 
     if [[ ! -f "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
+        VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT="<missing>"
@@ -2838,6 +2840,7 @@ fi
         echo "vhdl_family_status_vhdl_strict_promotion_primary_blocker_none: $VHDL_FAMILY_STATUS_VHDL_STRICT_PROMOTION_PRIMARY_BLOCKER_NONE"
         echo "vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SURFACE_GREEN"
         echo "vhdl_parser_family_status_contract_summary_txt: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT"
+        echo "vhdl_parser_family_status_contract_summary_json: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON"
         echo "vhdl_family_status_contract_family_count: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT"
         echo "vhdl_family_status_contract_vhdl_tracker_alignment_ok: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK"
         echo "vhdl_family_status_contract_vhdl_false_criteria_count: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT"
