@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-17 - Tighten SV declaration identifiers against control keywords
+### Context
+After the earlier callable/select/port-connection fixes, the focused SV repros still showed one stubborn false parse shape: inside a task-body `seq_block`, text like `end return;` or `end if (...) ...` could still be reinterpreted as a declaration instead of closing the block. The user’s diagnosis was directionally right: this is fundamentally a keyword-vs-identifier discrimination problem, and the current grammar still allowed too many declaration-flavored aliases to fall back to raw `identifier`.
+
+### Implementation
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - expanded `non_keyword_identifier` to reject control/end keywords in addition to the earlier declaration-opening keywords
+  - changed `callable_identifier` to reuse `non_keyword_identifier`
+  - changed `block_identifier`, `formal_identifier`, `formal_port_identifier`, `net_identifier`, `port_identifier`, and `variable_identifier` to use `declaration_identifier`
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same identifier-discipline tightening into the profiled/generated grammar surface
+
+### Outcome
+- Focused generated-parser repros now pass for the previously failing task-body shapes:
+  - package-wrapped `task t; if (1) begin end return; endtask`
+  - package-wrapped `task t; if (1) begin end if (1) return; endtask`
+  - package-wrapped `task t; begin end if (1) return; endtask`
+- Direct probes now show:
+  - `non_keyword_identifier@42` and `declaration_identifier@42` both reject `end`
+  - `data_declaration@42` and `net_declaration@42` no longer accept the old false `end return;` declaration path
+- Fresh external SV triage totals remain `parse_pass_total=2` / `parse_fail_total=10`, so the fix is real but localized: the next FRISCV/UVM/SCR1 blockers are deeper module/package-body constructs rather than this declaration-keyword bug.
+
+## 2026-03-17 - Tighten SV keyword-vs-identifier and instance-select parsing
+### Context
+Once the first external SV preprocess blockers were removed and parser-error detail became visible, the FRISCV RV32I slice exposed a series of grammar-shape bugs rather than one single blocker. The focused probes showed three especially actionable issues:
+- `end;` could still be misparsed as a subroutine call because callable identifier paths accepted reserved control keywords
+- indexed part-select forms like `dbg_regs[1*XLEN+:XLEN]` did not parse cleanly in ordinary expression contexts
+- named instance port maps could be shadowed by the ordered-port-connection branch because ordered connections were tried first even though that branch allows an empty expression
+
+### Implementation
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `callable_identifier` and used it for `tf_identifier` and `hierarchical_tf_identifier`
+  - widened `select` and `constant_select` so direct indexed/part-select brackets are legal as the first selector
+  - reordered `list_of_port_connections` so named connections are preferred before ordered connections
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same active-grammar fixes into the profiled/generated surface
+
+### Outcome
+- Focused rule probes now show:
+  - `subroutine_call_statement@15349` no longer accepts `end;`
+  - `initial begin ... end` in the FRISCV RV32I core slice parses as a whole under `initial_construct`
+  - `expression@18078` now consumes `dbg_regs[ 1*XLEN+:XLEN]`
+  - the `friscv_registers #(...) isa_registers (...)` instantiation now parses as one unit in focused module-item probes
+- Fresh external SV triage totals are unchanged for now (`parse_pass_total=2`, `parse_fail_total=10`), but the remaining FRISCV RV32I parser debt is now deeper than those three fixed bugs.
+
 ## 2026-03-17 - Preserve parser rejection detail in external triage logs
 ### Context
 Once the first external SV preprocess blockers were removed, the next debugging bottleneck was visibility: the triage logs still reduced every parser rejection to the same generic `parse_full rejected sample` message. That made the now-preprocess-green UVM, SCR1, and FRISCV slices harder to debug than they needed to be.

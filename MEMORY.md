@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: surface-parser-error-detail-in-external-triage)
+Last updated: 2026-03-17 (+0100, task: tighten-sv-declaration-keyword-discipline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -93,6 +93,48 @@ Use this file to resume work without replaying full chat history.
     - current first blocker surface:
       - immediate parser rejection across the first compliance/interface/PoC/neorv32/Rudi representative slice
 - A full README-driven documentation pass plus a broad static Rust codebase analysis was completed on 2026-03-17.
+- Current SV external-corpus parser-debug state moved materially deeper on 2026-03-17:
+  - focused grammar fixes landed in:
+    - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+    - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - landed parser-shape fixes:
+    - callable identifier hardening for `tf_identifier` / `hierarchical_tf_identifier`, so reserved control keywords such as `end` no longer parse as subroutine-call identifiers
+    - direct indexed/part-select support as the first selector in `select` and `constant_select`
+    - named-port connections now win before ordered-port connections in `list_of_port_connections`
+  - focused probe outcomes now confirmed:
+    - `subroutine_call_statement@15349` no longer accepts `end;`
+    - the FRISCV RV32I `initial begin ... end` block parses cleanly
+    - `expression@18078` now consumes `dbg_regs[ 1*XLEN+:XLEN]`
+    - the `friscv_registers #(...) isa_registers (...)` module instantiation now parses as a whole in focused probes
+  - current aggregate external SV triage counts remain:
+    - `cases_executed=14`
+    - `preprocess_pass_total=12`
+    - `preprocess_fail_total=2`
+    - `parse_pass_total=2`
+    - `parse_fail_total=10`
+  - remaining immediate SV parser-debug rule:
+    - the FRISCV RV32I failure has moved deeper than the earlier false-call / indexed-select / named-port bugs even though `parse_full` still reports the same top-level stop position
+- Current SV external-corpus parser-debug state moved materially deeper again on 2026-03-17:
+  - focused grammar fixes landed in:
+    - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+    - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - landed identifier-discipline fixes:
+    - `non_keyword_identifier` now excludes control/end keywords such as `begin`, `end`, `if`, `else`, `return`, `break`, `continue`, and `foreach`
+    - `callable_identifier` now reuses that stronger exclusion layer
+    - `block_identifier`, `formal_identifier`, `formal_port_identifier`, `net_identifier`, `port_identifier`, and `variable_identifier` now route through `declaration_identifier`
+  - focused probe outcomes now confirmed:
+    - `non_keyword_identifier@42` and `declaration_identifier@42` both reject `end`
+    - `data_declaration@42` and `net_declaration@42` no longer accept the old false `end return;` path
+    - package-wrapped task repros with `begin ... end return;` and `begin ... end if (...) ...` now parse cleanly under `parseability_probe --parse systemverilog --profile sv_2017`
+  - current aggregate external SV triage counts remain:
+    - `cases_executed=14`
+    - `preprocess_pass_total=12`
+    - `preprocess_fail_total=2`
+    - `parse_pass_total=2`
+    - `parse_fail_total=10`
+  - remaining immediate SV parser-debug rule:
+    - FRISCV header plus synthetic `endmodule` parses cleanly, so the remaining FRISCV debt is later in the module body
+    - UVM and SCR1 now need deeper package/module-body debugging rather than more keyword/declaration cleanup at the first failing boundary
 - Legitimate deferred engineering concerns are now explicitly tracked in the roadmap and must not be forgotten, but they are intentionally lower priority than finishing the parser-family closure work for `systemverilog`, `vhdl`, and `regex`.
 - The recorded deferred concerns are:
   - split [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs) into smaller orchestration modules,
@@ -4753,8 +4795,9 @@ Use this file to resume work without replaying full chat history.
       - continue avoiding grammar-specific heuristics.
    - immediate external-corpus follow-up inside the same area:
      - decide whether the remaining VeeR preprocess blocker should be solved by checked-in include-dir policy or treated as a corpus snapshot gap,
-     - use the new UVM/SCR1/FRISCV parser-stop positions to identify the next grammar/top-level parse bug,
-     - then use the now-preprocess-green UVM and SCR1 slices for parser-rejection triage and grammar hardening.
+     - continue the FRISCV RV32I parser-debug thread from the now-fixed `end;` false-call, indexed part-select, and named-port-map bugs to the next deeper failing construct,
+     - keep using the now-preprocess-green UVM and SCR1 slices for parser-rejection triage and grammar hardening,
+     - then revisit whether the broader SV keyword-vs-identifier discipline should be lifted from surgical fixes into one shared systematic mechanism.
 3. Continue Rust-native EBNF migration hardening:
    - main HDL quality/preprocessor and aggregate sign-off surfaces now expose both primary-entry and alternate-entry telemetry,
    - likely next useful parser-trust increment inside the non-annotation loop is narrower:

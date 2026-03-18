@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-03-17 - Tighten SV declaration keyword discipline in task-body parsing
+### ✅ Achievement Summary
+The SystemVerilog grammar now rejects control/end keywords more systematically in declaration-style identifier positions, which fixes the focused external-corpus debug bug where `end return;` or `end if (...) ...` inside a task block could be reinterpreted as a declaration instead of closing the block. The minimal package-wrapped task repros are now clean, while the broad external SV triage totals remain unchanged and the next parser debt is deeper in real module/package bodies.
+
+### Scope of Changes
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - expanded `non_keyword_identifier` to exclude control/end keywords such as `begin`, `end`, `if`, `else`, `return`, `break`, `continue`, `foreach`, and related control-flow tokens
+  - routed `callable_identifier` through that stronger `non_keyword_identifier`
+  - routed `block_identifier`, `formal_identifier`, `formal_port_identifier`, `net_identifier`, `port_identifier`, and `variable_identifier` through `declaration_identifier`
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same declaration-keyword hardening into the profiled/generated SV grammar surface
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the now-fixed task-body false-declaration path and the remaining deeper external-corpus debug frontier
+
+### Current Measured Debug Surface
+- Focused minimal repros now pass under the generated SV parser:
+  - `task if (...) begin end return; endtask`
+  - `task if (...) begin end if (...) return; endtask`
+  - `task begin end if (...) return; endtask`
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` remains:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=2`
+  - `parse_fail_total=10`
+- The immediate remaining SV parser frontier is now explicitly deeper than the fixed declaration/keyword bug:
+  - FRISCV header + synthetic `endmodule` parses cleanly
+  - the remaining FRISCV debt is later in the module body
+  - UVM and SCR1 still fail in deeper package/module parsing after preprocessing
+
+## 2026-03-17 - Tighten SV keyword and select handling from external-corpus debug
+### ✅ Achievement Summary
+The SystemVerilog grammar was tightened around three real external-corpus parser bugs: `end;` no longer leaks through task/function-call parsing, indexed part-select expressions like `dbg_regs[1*XLEN+:XLEN]` now parse in ordinary expression contexts, and named instance port maps are no longer shadowed by the ordered-port-connection branch. The broad SV external triage totals are unchanged for now, but the FRISCV debug path moved materially deeper and is now hitting later module-body constructs instead of the earlier false-call and select bugs.
+
+### Scope of Changes
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `callable_identifier` and routed `tf_identifier` / `hierarchical_tf_identifier` through it so reserved control keywords like `end` stop masquerading as callable identifiers
+  - widened `select` and `constant_select` to admit direct indexed/part-select forms as the first bracketed selector
+  - reordered `list_of_port_connections` so named `.port(expr)` connections win before the ordered-connection branch with optional expressions
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - kept the profiled/generated SV grammar surface in sync with the active grammar for the same three fixes
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the concrete parser bugs fixed and the current remaining FRISCV debug depth
+
+### Current Measured Debug Surface
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` still records:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=2`
+  - `parse_fail_total=10`
+- But the debug frontier is now deeper and more specific:
+  - `end;` is no longer accepted by `subroutine_call_statement`
+  - `initial begin ... end` now parses cleanly in the FRISCV RV32I core slice
+  - the `friscv_registers #(...) isa_registers (...)` module instantiation now parses as one unit in focused rule probes
+  - the remaining FRISCV RV32I failure is now later than those bugs, even though the aggregate `parse_full` summary still reports the same top-level stop position
+
 ## 2026-03-17 - Surface parser error detail in external HDL triage logs
 ### ✅ Achievement Summary
 `parseability_probe --parse` now preserves the real parser error text instead of collapsing every rejection into the same generic failure banner. That makes the external HDL triage gates materially more actionable for parser debugging without changing their pass/fail policy.

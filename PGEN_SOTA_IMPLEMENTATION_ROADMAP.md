@@ -24,6 +24,8 @@ Execution preference for this roadmap:
 - deterministic reproducibility,
 - embedder-facing diagnostics and AST visibility,
 - checked-in external corpora only count toward closure after they are consumed by repeatable gates or reports rather than merely present in the tree.
+- external-corpus grammar debugging should prefer systematic keyword-vs-identifier discrimination and precise branch-shape fixes over corpus-specific hacks, even when the first landed step is a narrow surgical patch.
+- if repeated keyword-vs-identifier debt keeps surfacing in a family such as SystemVerilog, promote that into one shared systematic grammar/annotation mechanism instead of accumulating ad hoc local exclusions indefinitely.
 
 Interpretation rule:
 - if a claimed parser quality does not have a machine-checkable artifact, gate, contract, or invariant behind it, treat that quality as not yet closed.
