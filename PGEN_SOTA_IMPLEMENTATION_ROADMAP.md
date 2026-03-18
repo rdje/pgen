@@ -106,18 +106,18 @@ Interpretation note:
 - Those external corpora are now first consumed by deterministic source-side triage gates:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
     - checked-in manifest: [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json)
-    - current measured surface: `cases_declared=7`, `cases_executed=12`, `cases_blocked_total=2`, `preprocess_pass_total=12`, `preprocess_fail_total=0`, `parse_pass_total=8`, `parse_fail_total=4`
-    - current onboarding state: VeeR `el2_lsu` is now tracked as blocked external dependency rather than parser/preprocess failure because included file `el2_param.vh` is not present in the checked-out tree
+    - current measured surface: `cases_declared=7`, `cases_executed=14`, `cases_blocked_total=0`, `preprocess_pass_total=14`, `preprocess_fail_total=0`, `parse_pass_total=10`, `parse_fail_total=4`
+    - current onboarding state: VeeR `el2_lsu` is now bootstrapped on demand rather than treated as permanently blocked; the gate runs `configs/veer.config` to generate `snapshots/default/el2_param.vh`, adds `snapshots/default` to the include policy, and then evaluates the real parser case
     - current runtime-hardening note: stale recursion-cycle cache state in the generated-parser runtime has now been removed, so failed speculative recursion probes no longer poison later legitimate parses at the same `(rule, position)`
     - newly green real-corpus parser cases after that runtime fix:
       - `scr1_top_ahb` in both `sv_2017` and `sv_2023`
       - `friscv_rv32i_core` in both `sv_2017` and `sv_2023`
       - `friscv_pipeline` in both `sv_2017` and `sv_2023`
-    - current remaining parser-failure logs now preserve first-stop detail directly, e.g. UVM `position 125952`; `scr1_core_top` is now green in both profiles, and the remaining non-UVM blocker in this slice is VeeR preprocessing
+    - current remaining parser-failure logs now preserve first-stop detail directly, e.g. UVM `position 125952`; `scr1_core_top` and `el2_lsu` are now green in both profiles, and the remaining broad external-SV failures are only the two UVM package files across `sv_2017` / `sv_2023`
     - focused UVM-package debugging has now also removed one concrete call-site hole without changing the broad totals:
       - mixed ordered-plus-named subroutine actuals now parse (`g(a, .b(0))`, `uvm_re_comp(regex, .deglob(0))`)
       - exact `uvm_pkg` package-prefix probes now pass through line `5000`
-      - the broad gate remains honest at `parse_pass_total=8`, `parse_fail_total=4`, so the remaining UVM debt is deeper than this call-argument form
+      - the broad gate remains honest at `parse_pass_total=10`, `parse_fail_total=4`, so the remaining UVM debt is deeper than this call-argument form
     - focused UVM-package debugging has now also removed one concrete queue-dimension hole without changing the broad totals:
       - standalone `$` now tokenizes correctly, so queue declarations like `int m[$];` and `uvm_core_state m[$];` parse
       - exact `uvm_pkg` package-prefix probes now pass through line `5100`

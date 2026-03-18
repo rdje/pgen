@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-queue-dollar-fix)
+Last updated: 2026-03-18 (+0100, task: sv-veer-bootstrap)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -96,14 +96,16 @@ Use this file to resume work without replaying full chat history.
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
     - current measured summary:
       - `cases_declared=7`
-      - `cases_executed=12`
-      - `cases_blocked_total=2`
-      - `preprocess_pass_total=12`
+      - `cases_executed=14`
+      - `cases_blocked_total=0`
+      - `preprocess_pass_total=14`
       - `preprocess_fail_total=0`
-      - `parse_pass_total=8`
+      - `parse_pass_total=10`
       - `parse_fail_total=4`
-    - current blocked external-dependency surface:
-      - `veer_el2_lsu` is blocked for `2017` and `2023` because included file `el2_param.vh` is not present in the checked-out `Cores-VeeR-EL2` tree
+    - current VeeR onboarding surface:
+      - `veer_el2_lsu` is no longer blocked
+      - the gate bootstraps `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh` by running `perl configs/veer.config -target=default -snapshot=default` with `RV_ROOT` set to the VeeR repo root when that file is missing
+      - `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default` is now part of the include-dir policy for that case
     - current parse blocker surface after the latest parser/grammar fixes:
       - UVM package parsing
     - latest focused grammar fix on that UVM frontier:
@@ -119,6 +121,8 @@ Use this file to resume work without replaying full chat history.
       - `friscv_pipeline` (`2017`, `2023`)
     - newly green real-corpus parser cases after the ternary-expression fix:
       - `scr1_core_top` (`2017`, `2023`)
+    - newly green real-corpus parser cases after VeeR snapshot bootstrap:
+      - `el2_lsu` (`2017`, `2023`)
     - current first remaining parser-stop logs are now explicit:
       - UVM: `Parser did not consume full input at position 125952`
     - landed SV preprocessor hardening behind that shift:

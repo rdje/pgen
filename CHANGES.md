@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-18 - Bootstrap VeeR snapshot for SystemVerilog external triage
+### ✅ Achievement Summary
+The VeeR `el2_lsu.sv` slice is no longer blocked by a missing upstream include. The SV external-corpus triage gate now bootstraps the required `snapshots/default/el2_param.vh` artifact by running the checked-in `configs/veer.config` flow inside `stimuli/sv/subs/Cores-VeeR-EL2`, then reuses that generated snapshot directory as part of the include policy. That turns the former blocked external-dependency case into an actually evaluated parser case, and both VeeR profiles are now green.
+
+### Scope of Changes
+- Updated [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json):
+  - replaced the old blocked-case metadata for `veer_el2_lsu` with bootstrap metadata:
+    - `bootstrap_kind=veer_default_snapshot`
+    - `bootstrap_root=stimuli/sv/subs/Cores-VeeR-EL2`
+    - `bootstrap_required_file=stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh`
+  - added `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default` to the VeeR include-dir policy
+- Updated [sv_external_corpus_triage_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_external_corpus_triage_gate.sh):
+  - added manifest-driven bootstrap support for `veer_default_snapshot`
+  - runs `perl configs/veer.config -target=default -snapshot=default` with `RV_ROOT` set to the VeeR repo root when the required snapshot file is absent
+  - only falls back to blocked-external-dependency status if the bootstrap itself fails
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - synced the new bootstrap-backed VeeR onboarding policy and the narrower remaining UVM-only broad-failure surface
+
+### Current Measured SV External-Corpus Surface
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` now records:
+  - `cases_declared=7`
+  - `cases_executed=14`
+  - `cases_blocked_total=0`
+  - `preprocess_pass_total=14`
+  - `preprocess_fail_total=0`
+  - `parse_pass_total=10`
+  - `parse_fail_total=4`
+  - `parse_skipped_total=0`
+- VeeR is now fully evaluated and green:
+  - `case_veer_el2_lsu_2017_preprocess=ok`
+  - `case_veer_el2_lsu_2017_parse_full=ok`
+  - `case_veer_el2_lsu_2023_preprocess=ok`
+  - `case_veer_el2_lsu_2023_parse_full=ok`
+- The remaining broad external SV parser debt is now just:
+  - `uvm_pkg` (`2017`, `2023`)
+  - `uvm_compat_pkg` (`2017`, `2023`)
+
 ## 2026-03-18 - Fix standalone dollar token in SystemVerilog grammar
 ### ✅ Achievement Summary
 Focused UVM package debugging exposed that the active grammar still tokenized bare `$` incorrectly. `kw_dollar` was defined as `/\\$\\b/`, which can never match queue dimensions like `[$]` because there is no word boundary between `$` and `]`. I changed that token to match the standalone symbol directly, which makes queue dimensions parse again and pushes the exact `uvm_pkg` package-prefix frontier deeper.

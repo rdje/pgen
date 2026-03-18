@@ -68,12 +68,14 @@
       "corpus": "veer_el2",
       "path": "stimuli/sv/subs/Cores-VeeR-EL2/design/lsu/el2_lsu.sv",
       "mode": "preprocess_then_parse_full",
-      "blocked_reason": "missing external dependency: include el2_param.vh is not present in the checked-out Cores-VeeR-EL2 tree",
-      "blocked_profiles": ["2017", "2023"],
+      "bootstrap_kind": "veer_default_snapshot",
+      "bootstrap_root": "stimuli/sv/subs/Cores-VeeR-EL2",
+      "bootstrap_required_file": "stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh",
       "profiles": ["2017", "2023"],
       "include_dirs": [
         "stimuli/sv/subs/Cores-VeeR-EL2/design/lsu",
-        "stimuli/sv/subs/Cores-VeeR-EL2/design/include"
+        "stimuli/sv/subs/Cores-VeeR-EL2/design/include",
+        "stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default"
       ]
     }
   ]

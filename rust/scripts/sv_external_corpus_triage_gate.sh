@@ -114,6 +114,28 @@ run_optional_logged() {
     return 1
 }
 
+bootstrap_veer_default_snapshot() {
+    local repo_root="$1"
+    local required_file="$2"
+    local label="$3"
+    local log_file="$LOG_DIR/${label}.log"
+    echo "==> ${label}"
+    if (
+        cd "$repo_root"
+        export RV_ROOT="$repo_root"
+        perl configs/veer.config -target=default -snapshot=default
+    ) >"$log_file" 2>&1; then
+        if [[ -f "$required_file" ]]; then
+            echo "    ok (${log_file})"
+            return 0
+        fi
+        echo "    soft-fail (${log_file})"
+        return 1
+    fi
+    echo "    soft-fail (${log_file})"
+    return 1
+}
+
 if ! [[ "$MAX_CASES" =~ ^[0-9]+$ ]]; then
     echo "error: PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES must be an integer >= 0" >&2
     exit 2
@@ -204,6 +226,9 @@ for case_json in "${case_rows[@]}"; do
     case_source_path="$(resolve_path "$case_source_rel")"
     case_source_dir="$(dirname "$case_source_path")"
     case_blocked_reason="$(jq -r 'if (.blocked_reason | type) == "string" then .blocked_reason else "" end' <<<"$case_json")"
+    case_bootstrap_kind="$(jq -r 'if (.bootstrap_kind | type) == "string" then .bootstrap_kind else "" end' <<<"$case_json")"
+    case_bootstrap_root_rel="$(jq -r 'if (.bootstrap_root | type) == "string" then .bootstrap_root else "" end' <<<"$case_json")"
+    case_bootstrap_required_rel="$(jq -r 'if (.bootstrap_required_file | type) == "string" then .bootstrap_required_file else "" end' <<<"$case_json")"
     require_file "$case_source_path"
 
     if [[ "$case_mode" != "preprocess_then_parse_full" ]]; then
@@ -218,6 +243,24 @@ for case_json in "${case_rows[@]}"; do
 
     mapfile -t case_include_dirs_raw < <(jq -r '.include_dirs[]? | select(type=="string")' <<<"$case_json")
     mapfile -t case_blocked_profiles < <(jq -r '.blocked_profiles[]? | select(type=="string")' <<<"$case_json")
+
+    if [[ "$case_bootstrap_kind" == "veer_default_snapshot" ]]; then
+        if [[ -z "$case_bootstrap_root_rel" || -z "$case_bootstrap_required_rel" ]]; then
+            echo "error: case '$case_name' requires bootstrap_root and bootstrap_required_file for bootstrap_kind '$case_bootstrap_kind'" >&2
+            exit 1
+        fi
+        case_bootstrap_root="$(resolve_path "$case_bootstrap_root_rel")"
+        case_bootstrap_required="$(resolve_path "$case_bootstrap_required_rel")"
+        if [[ ! -f "$case_bootstrap_required" ]]; then
+            bootstrap_label="case_$(printf '%s' "$case_name" | tr -c 'A-Za-z0-9_' '_')_bootstrap"
+            if ! bootstrap_veer_default_snapshot "$case_bootstrap_root" "$case_bootstrap_required" "$bootstrap_label"; then
+                case_blocked_reason="failed to bootstrap VeeR default snapshot via configs/veer.config"
+                if [[ "${#case_blocked_profiles[@]}" -eq 0 ]]; then
+                    case_blocked_profiles=("${case_profiles[@]}")
+                fi
+            fi
+        fi
+    fi
 
     case_name_key="$(printf '%s' "$case_name" | tr -c 'A-Za-z0-9_' '_')"
     for case_profile in "${case_profiles[@]}"; do
