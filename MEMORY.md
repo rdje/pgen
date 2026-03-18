@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-uvm-stringize-fix)
+Last updated: 2026-03-18 (+0100, task: sv-uvm-inline-conditional-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -108,20 +108,21 @@ Use this file to resume work without replaying full chat history.
       - `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default` is now part of the include-dir policy for that case
     - latest focused UVM preprocessor fix:
       - paired stringized arguments of the form `` `"T`"`` in nested macro bodies now consume both delimiters cleanly instead of leaking the closing delimiter into preprocessed text
+      - multiline macro bodies now also normalize inline conditional directive forms such as `` `ifdef SYMBOL payload``, `` `else payload``, and `` `ifndef SYMBOL payload `endif`` before expansion, and directive-bearing expanded text is reprocessed through the directive engine
       - focused validation:
         - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
-          - passes `16/16`
+          - passes `19/19`
         - standalone repro `` `define EMIT(name) logic ``name``_q; string s = `"name`"; ``
           - now preprocesses to `logic hello_q; string s = "hello";`
         - targeted UVM-only rerun:
           - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
           - `cases_executed=4`
           - `preprocess_pass_total=4`
+          - `preprocess_fail_total=0`
           - `parse_fail_total=4`
-          - `uvm_pkg` failure moved `125952 -> 126751`
-          - `uvm_compat_pkg` failure moved `127308 -> 128107`
+          - `parse_skipped_total=0`
       - next remaining UVM frontier after that fix:
-        - broader macro-body directive handling (`\`ifdef` / `\`endif` and related utility-macro residue still survive in preprocessed package code)
+        - parser rejection triage inside `uvm_pkg` / `uvm_compat_pkg`
     - current parse blocker surface after the latest parser/grammar fixes:
       - UVM package parsing
     - latest focused grammar fix on that UVM frontier:
@@ -4879,7 +4880,7 @@ Use this file to resume work without replaying full chat history.
       - recover more SV replay-shadow acceptance from the new `28.53%` bounded level without giving back the replay-debt gain,
       - continue avoiding grammar-specific heuristics.
    - immediate external-corpus follow-up inside the same area:
-     - decide whether the remaining VeeR preprocess blocker should be solved by checked-in include-dir policy or treated as a corpus snapshot gap,
+     - continue the UVM package parser-debug thread now that the focused UVM slice is preprocess-green again (`preprocess_pass_total=4`, `parse_fail_total=4`),
      - continue the FRISCV RV32I parser-debug thread from the now-fixed `end;` false-call, indexed part-select, and named-port-map bugs to the next deeper failing construct,
      - keep using the now-preprocess-green UVM and SCR1 slices for parser-rejection triage and grammar hardening,
      - then revisit whether the broader SV keyword-vs-identifier discipline should be lifted from surgical fixes into one shared systematic mechanism.

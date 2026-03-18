@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-18 - Normalize inline UVM conditional macro bodies in the SV preprocessor
+### ✅ Achievement Summary
+Focused UVM package hardening exposed a deeper SV preprocessor gap after the earlier stringization fix: multiline macro bodies with inline conditional directives such as `` `ifdef SYMBOL payload``, `` `else payload``, and one-line forms like `` `ifndef SYMBOL expr `endif`` were still surviving in ways that either leaked raw directives into expanded output or left the preprocessor thinking a conditional block never closed. The SV preprocessor now normalizes those inline conditional forms before expansion and re-feeds directive-bearing expanded text back through the directive engine.
+
+### Scope of Changes
+- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - preserved newlines while collecting multiline `` `define`` bodies so directive-bearing macro bodies keep structural line boundaries
+  - normalized inline conditional macro-body forms:
+    - `` `ifdef SYMBOL payload``
+    - `` `else payload``
+    - `` `ifndef SYMBOL payload `endif``
+  - reprocessed expanded text when a macro expansion now contains line-start backtick content
+  - added focused regressions for:
+    - multiline directive-bearing macro bodies
+    - enabled/disabled directive branches in macro bodies
+    - inline `ifndef ... `endif payload forms
+    - nested UVM-style field macro expansion with recursive macro expansion plus inline conditionals
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded that UVM is back to parse-only debt under the focused external-corpus slice
+
+### Current Measured UVM-Focused Surface
+- `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
+  - passes `19/19`
+- Focused `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` now records:
+  - `cases_executed=4`
+  - `preprocess_pass_total=4`
+  - `preprocess_fail_total=0`
+  - `parse_fail_total=4`
+  - `parse_skipped_total=0`
+- Interpretation:
+  - the UVM slice is no longer blocked by preprocessor conditional-body handling
+  - remaining UVM debt is now parser debt, not preprocess debt
+  - the next focused frontier is the first true `uvm_pkg` / `uvm_compat_pkg` parser rejection after preprocess completion
+
 ## 2026-03-18 - Tighten SV preprocessor stringized macro expansion
 ### ✅ Achievement Summary
 Focused UVM package debugging exposed that the SV preprocessor was still mishandling stringized macro parameters in nested macro bodies. UVM relies on the paired form `` `"T`"`` inside object-utility macros, but the old substitution logic only consumed the opening half and leaked the closing `` `"`` back into the output. That left broken `type_id` declarations and stray nested macro residue in preprocessed UVM package code. The preprocessor now consumes the full paired form cleanly while still preserving the older one-sided behavior.

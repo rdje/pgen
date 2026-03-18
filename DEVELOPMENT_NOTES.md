@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Normalize inline conditional directives inside SV macro bodies
+### Context
+After the paired-stringization fix, the focused UVM slice briefly regressed from parse-fail to preprocess-fail. That regression was actually informative: it showed that the UVM field/object macro families were carrying inline conditional directives inside multiline macro bodies, including forms such as `` `ifdef SYMBOL payload`` and one-line `` `ifndef SYMBOL expr `endif`` bodies. The older preprocessor either left those directives embedded in expanded output or treated them as unmatched conditional openings.
+
+### Implementation
+- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - preserved line boundaries while collecting multiline `` `define`` bodies
+  - added `normalize_macro_body_for_directives()` so inline conditional forms are split into directive lines plus payload lines before expansion
+  - made inline trailing `` `endif`` detection robust against trailing whitespace
+  - re-fed directive-bearing expanded text through `preprocess_text_internal()` so nested macro expansions get full conditional handling instead of macro substitution only
+  - added focused regressions covering:
+    - multiline define bodies with directive tokens
+    - enabled/disabled directive branches
+    - inline `ifndef ... `endif payload bodies
+    - nested UVM-style field macro expansion
+- Revalidated through:
+  - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
+  - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+
+### Outcome
+- The focused SV preprocessor regression suite is now green at `19/19`
+- Focused UVM triage is back to parser-only debt:
+  - `cases_executed=4`
+  - `preprocess_pass_total=4`
+  - `preprocess_fail_total=0`
+  - `parse_fail_total=4`
+  - `parse_skipped_total=0`
+- This is an important quality shift even though the UVM packages are not green yet:
+  - the UVM slice no longer fails because the preprocessor cannot structurally normalize its conditional macro bodies
+  - the next frontier is pure parser rejection triage inside `uvm_pkg` / `uvm_compat_pkg`
+
 ## 2026-03-18 - Fix paired stringized macro parameters in SV preprocessor
 ### Context
 After the VeeR bootstrap work was done, the remaining broad external SV failures were the two UVM packages. Fresh package-only inspection showed that those failures were no longer primarily about top-level package syntax. The preprocessed UVM package bodies still contained malformed leftovers from nested utility macros, especially paired stringization of the form `` `"T`"`` inside object-registry helpers. The old substitution logic emitted `"arg"` for the opening half but leaked the closing `` `"`` back into the output, which left broken `type_id` declarations and stray `` `uvm_type_name_decl`` invocations in the generated package body.

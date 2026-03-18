@@ -451,7 +451,7 @@ fn preprocess_text_internal(
                 let mut continuation_index = line_index;
                 while line_has_continuation(&raw_line) && continuation_index + 1 < lines.len() {
                     raw_line = format!(
-                        "{}{}",
+                        "{}\n{}",
                         strip_line_continuation(&raw_line),
                         lines[continuation_index + 1]
                     );
@@ -776,13 +776,17 @@ fn preprocess_text_internal(
                 true,
                 String::new(),
             );
-            state.append_output_chunk(
-                &expanded,
-                file_path,
-                line_no,
-                1,
-                logical_line.chars().count().max(1),
-            );
+            if expanded != logical_line && contains_line_start_backtick(&expanded) {
+                preprocess_text_internal(&expanded, file_path, state, depth)?;
+            } else {
+                state.append_output_chunk(
+                    &expanded,
+                    file_path,
+                    line_no,
+                    1,
+                    logical_line.chars().count().max(1),
+                );
+            }
             line_index = last_line_index;
         } else {
             state.push_event(
@@ -983,7 +987,7 @@ fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
     if rest_after_name.starts_with('(') {
         let (params, after) = parse_macro_parameter_list(rest_after_name)
             .with_context(|| "invalid macro parameter list")?;
-        let body = after.trim_start().to_string();
+        let body = normalize_macro_body_for_directives(after.trim_start());
         Ok((
             name.to_string(),
             MacroDefinition {
@@ -996,10 +1000,72 @@ fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
             name.to_string(),
             MacroDefinition {
                 params: None,
-                body: rest_after_name.trim_start().to_string(),
+                body: normalize_macro_body_for_directives(rest_after_name.trim_start()),
             },
         ))
     }
+}
+
+fn normalize_macro_body_for_directives(body: &str) -> String {
+    let mut normalized = Vec::new();
+
+    for raw_line in split_lines_preserve_terminator(body) {
+        let line = raw_line.trim_end_matches(['\r', '\n']);
+        let trimmed = line.trim_start_matches([' ', '\t']);
+        let indent = &line[..line.len().saturating_sub(trimmed.len())];
+
+        if let Some((directive, rest)) = parse_directive_line(trimmed) {
+            match directive {
+                "ifdef" | "ifndef" => {
+                    if let Some((symbol, trailing)) = parse_identifier_token(rest.trim_start()) {
+                        normalized.push(format!("{indent}`{directive} {symbol}"));
+                        append_inline_conditional_payload(
+                            indent,
+                            trailing.trim_start(),
+                            &mut normalized,
+                        );
+                        continue;
+                    }
+                }
+                "else" => {
+                    normalized.push(format!("{indent}`else"));
+                    append_inline_conditional_payload(indent, rest.trim_start(), &mut normalized);
+                    continue;
+                }
+                "endif" => {
+                    normalized.push(format!("{indent}`endif"));
+                    let trailing = rest.trim_start();
+                    if !trailing.is_empty() {
+                        normalized.push(format!("{indent}{trailing}"));
+                    }
+                    continue;
+                }
+                _ => {}
+            }
+        }
+
+        normalized.push(line.to_string());
+    }
+
+    normalized.join("\n")
+}
+
+fn append_inline_conditional_payload(indent: &str, payload: &str, out: &mut Vec<String>) {
+    let trimmed = payload.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+
+    if let Some(prefix) = trimmed.strip_suffix("`endif") {
+        let payload_prefix = prefix.trim_end();
+        if !payload_prefix.is_empty() {
+            out.push(format!("{indent}{payload_prefix}"));
+        }
+        out.push(format!("{indent}`endif"));
+        return;
+    }
+
+    out.push(format!("{indent}{trimmed}"));
 }
 
 fn parse_macro_parameter_list(input: &str) -> Result<(Vec<MacroParameter>, &str)> {
@@ -1197,6 +1263,13 @@ fn strip_line_continuation(raw_line: &str) -> &str {
         .trim_end_matches(['\r', '\n'])
         .strip_suffix('\\')
         .unwrap_or(raw_line)
+}
+
+fn contains_line_start_backtick(text: &str) -> bool {
+    split_lines_preserve_terminator(text)
+        .iter()
+        .map(|line| line.trim_start_matches([' ', '\t']))
+        .any(|trimmed| trimmed.starts_with('`'))
 }
 
 fn expand_macros_in_text(
@@ -1554,10 +1627,12 @@ fn is_ident_continue(b: u8) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
-        PreprocessorDiagnosticSeverity, SvPreprocessorConfig, parse_strict_warning_codes,
+        ConditionalSymbolPolicy, IncludePathPolicy, MacroDefinition, MacroParameter,
+        MacroRedefinitionPolicy, PreprocessorDiagnosticSeverity, SvPreprocessorConfig,
+        expand_function_macro, normalize_macro_body_for_directives, parse_strict_warning_codes,
         preprocess_systemverilog_file,
     };
+    use std::collections::HashMap;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -1778,10 +1853,136 @@ mod tests {
 
         let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
             .expect("preprocess multiline define");
+        assert!(!output.text.contains("`ifdef"));
+        assert!(!output.text.contains("`endif"));
+        assert!(!output.text.contains("logic enabled;"));
         assert!(output
             .diagnostics
             .iter()
             .all(|diagnostic| diagnostic.severity != PreprocessorDiagnosticSeverity::Error));
+    }
+
+    #[test]
+    fn expands_multiline_define_with_directive_tokens_when_enabled() {
+        let dir = create_temp_dir("svpp_multiline_define_enabled");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define ENABLE_FIELD 1\n`define MAYBE_FIELD \\\n`ifdef ENABLE_FIELD \\\nlogic enabled; \\\n`else \\\nlogic disabled; \\\n`endif\nmodule m;\n  `MAYBE_FIELD\nendmodule\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess multiline define with enabled branch");
+        assert!(output.text.contains("logic enabled;"));
+        assert!(!output.text.contains("logic disabled;"));
+        assert!(!output.text.contains("`ifdef"));
+        assert!(!output.text.contains("`else"));
+        assert!(!output.text.contains("`endif"));
+    }
+
+    #[test]
+    fn expands_inline_ifndef_endif_payload_in_macro_body() {
+        let dir = create_temp_dir("svpp_inline_ifndef_endif");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define MAYBE_FIELD \\\n`ifndef DISABLE_FIELD logic enabled; `endif\nmodule m;\n  `MAYBE_FIELD\nendmodule\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess inline ifndef/endif payload");
+        assert!(output.text.contains("logic enabled;"));
+        assert!(!output.text.contains("`ifndef"));
+        assert!(!output.text.contains("`endif"));
+    }
+
+    #[test]
+    fn expands_nested_uvm_style_field_macros_without_leaking_conditionals() {
+        let dir = create_temp_dir("svpp_nested_uvm_field_macros");
+        let input = dir.join("top.sv");
+        let warn_body = normalize_macro_body_for_directives(
+            "begin \n    string behavior; \n    `ifdef UVM_LEGACY_FIELD_MACRO_SEMANTICS behavior = \"legacy\"; \n    `else behavior = \"modern\"; \n    `endif \n  end",
+        );
+        let field_begin_body = normalize_macro_body_for_directives(
+            "`WARN(ARG,FLAG) \n  begin \n    if ( \n       `ifndef UVM_LEGACY_FIELD_MACRO_SEMANTICS (((FLAG)&UVM_SET)) && `endif \n       (!((FLAG)&UVM_NOSET)) \n       ) begin \n      logic enabled; \n    end \n  end",
+        );
+        let mut macros = HashMap::new();
+        macros.insert(
+            "WARN".to_string(),
+            MacroDefinition {
+                params: Some(vec![
+                    MacroParameter {
+                        name: "ARG".to_string(),
+                        default: None,
+                    },
+                    MacroParameter {
+                        name: "FLAG".to_string(),
+                        default: None,
+                    },
+                ]),
+                body: warn_body,
+            },
+        );
+        let field_begin = MacroDefinition {
+            params: Some(vec![
+                MacroParameter {
+                    name: "ARG".to_string(),
+                    default: None,
+                },
+                MacroParameter {
+                    name: "FLAG".to_string(),
+                    default: None,
+                },
+            ]),
+            body: field_begin_body,
+        };
+        let expanded = expand_function_macro(
+            &field_begin,
+            field_begin.params.as_ref().expect("params"),
+            &["ID".to_string(), "UVM_ALL_ON".to_string()],
+            &macros,
+            0,
+            &input,
+            1,
+        );
+        assert!(
+            expanded.contains("string behavior;"),
+            "expanded nested macro body missing expected content:\n{expanded}"
+        );
+        assert!(
+            expanded.contains("`ifndef UVM_LEGACY_FIELD_MACRO_SEMANTICS"),
+            "expanded nested macro body missing ifndef split:\n{expanded}"
+        );
+        assert!(
+            expanded.contains("\n       `endif"),
+            "expanded nested macro body missing endif split:\n{expanded}"
+        );
+        assert!(
+            !expanded.contains(
+                "`ifndef UVM_LEGACY_FIELD_MACRO_SEMANTICS (((UVM_ALL_ON)&UVM_SET)) && `endif"
+            ),
+            "expanded nested macro body still contains unsplit inline conditional:\n{expanded}"
+        );
+
+        fs::write(
+            &input,
+            "`define WARN(ARG,FLAG) \\\n  begin \\\n    string behavior; \\\n    `ifdef UVM_LEGACY_FIELD_MACRO_SEMANTICS behavior = \"legacy\"; \\\n    `else behavior = \"modern\"; \\\n    `endif \\\n  end\n\
+`define FIELD_BEGIN(ARG, FLAG) \\\n  `WARN(ARG,FLAG) \\\n  begin \\\n    if ( \\\n       `ifndef UVM_LEGACY_FIELD_MACRO_SEMANTICS (((FLAG)&UVM_SET)) && `endif \\\n       (!((FLAG)&UVM_NOSET)) \\\n       ) begin \\\n      logic enabled; \\\n    end \\\n  end\n\
+module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess nested UVM-style field macros");
+        assert!(output.text.contains("string behavior;"));
+        assert!(output.text.contains("behavior = \"modern\";"));
+        assert!(output.text.contains("logic enabled;"));
+        assert!(!output.text.contains("`ifdef"));
+        assert!(!output.text.contains("`else"));
+        assert!(!output.text.contains("`ifndef"));
+        assert!(!output.text.contains("`endif"));
     }
 
     #[test]
