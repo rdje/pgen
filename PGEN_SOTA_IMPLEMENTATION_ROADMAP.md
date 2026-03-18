@@ -114,6 +114,10 @@ Interpretation note:
       - `friscv_rv32i_core` in both `sv_2017` and `sv_2023`
       - `friscv_pipeline` in both `sv_2017` and `sv_2023`
     - current remaining parser-failure logs now preserve first-stop detail directly, e.g. UVM `position 125952`; `scr1_core_top` is now green in both profiles, and the remaining non-UVM blocker in this slice is VeeR preprocessing
+    - focused UVM-package debugging has now also removed one concrete call-site hole without changing the broad totals:
+      - mixed ordered-plus-named subroutine actuals now parse (`g(a, .b(0))`, `uvm_re_comp(regex, .deglob(0))`)
+      - exact `uvm_pkg` package-prefix probes now pass through line `5000`
+      - the broad gate remains honest at `parse_pass_total=8`, `parse_fail_total=4`, so the remaining UVM debt is deeper than this call-argument form
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - checked-in manifest: [vhdl_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json)
     - current measured surface: `cases_executed=8`, `parse_pass_total=0`, `parse_fail_total=8`

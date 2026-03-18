@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-ternary-expression-fix)
+Last updated: 2026-03-18 (+0100, task: sv-mixed-actual-call-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -132,6 +132,13 @@ Use this file to resume work without replaying full chat history.
         - `/tmp/sv_case7.sv`
         - `/tmp/sv_case8.sv`
         - `/tmp/sv_member_assign_min.sv`
+    - landed additional UVM-focused grammar hardening after that shift:
+      - mixed ordered-plus-named subroutine actuals now parse in the active SystemVerilog grammar
+      - focused repros now pass:
+        - `/tmp/call_args_3.sv`
+        - `/tmp/uvm_named_arg_min1.sv`
+      - exact `uvm_pkg` package-prefix probes now pass through line `5000`
+      - broad external-corpus totals remain `parse_pass_total=8`, `parse_fail_total=4`, so the remaining UVM parser debt is deeper than the named-actual call form
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - manifest:
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`

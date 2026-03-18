@@ -996,7 +996,15 @@ lifetime := kw_static_a381562a | kw_automatic_ebe88724
 
 limit_value := constant_mintypmax_expression
 
-list_of_arguments := ( expression )? ( comma ( expression )? )* ( comma dot identifier lparen ( expression )? rparen )* | dot identifier lparen ( expression )? rparen ( comma dot identifier lparen ( expression )? rparen )*
+list_of_arguments := list_of_arguments_mixed | list_of_arguments_ordered | list_of_arguments_named
+
+list_of_arguments_mixed := list_of_arguments_mixed_head comma named_argument ( comma named_argument )*
+
+list_of_arguments_mixed_head := expression | ( expression )? comma list_of_arguments_mixed_head
+
+list_of_arguments_ordered := ( expression )? ( comma ( expression )? )*
+
+list_of_arguments_named := named_argument ( comma named_argument )*
 
 list_of_checker_port_connections := ordered_checker_port_connection ( comma ordered_checker_port_connection )* | named_checker_port_connection ( comma named_checker_port_connection )*
 
@@ -1173,6 +1181,8 @@ named_checker_port_connection_sv_2023 := attribute_instance* dot formal_port_ide
 named_checker_port_connection := named_checker_port_connection_sv_2017 | named_checker_port_connection_sv_2023
 
 named_parameter_assignment := dot parameter_identifier lparen ( param_expression )? rparen
+
+named_argument := dot identifier lparen ( expression )? rparen
 
 @profiles: ["sv_2017"]
 named_port_connection_sv_2017 := attribute_instance* dot port_identifier ( lparen ( expression )? rparen )? | attribute_instance* dot_star

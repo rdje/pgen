@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Accept mixed ordered-plus-named subroutine actuals in SystemVerilog
+### Context
+After the ternary-expression fix, focused UVM package bisection moved the first remaining exact `uvm_pkg` failure from the top of the package down into the early function block around:
+
+```systemverilog
+function chandle uvm_dpi_regcomp(string regex);
+  return uvm_re_comp(regex, .deglob(0));
+endfunction
+```
+
+Tiny focused repros then isolated the underlying grammar debt: pure ordered actuals (`g(a)`) and pure named actuals (`g(.b(0))`) already parsed, but mixed ordered-plus-named subroutine actuals (`g(a, .b(0))`) did not.
+
+### Implementation
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - split `list_of_arguments` into ordered-only, named-only, and mixed forms
+  - added `named_argument`
+  - changed the mixed-form front to a recursive `list_of_arguments_mixed_head`, which prevents the ordered branch from greedily consuming the comma that should introduce the named tail
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same call-argument fix into the profiled generated grammar snapshot
+- Revalidated through:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+  - focused `parseability_probe --parse systemverilog` repros and exact `uvm_pkg` prefix probes
+
+### Outcome
+- Focused mixed-actual repros now pass:
+  - `return g(a, .b(0));`
+  - `return uvm_re_comp(regex, .deglob(0));`
+- Exact `uvm_pkg` package-prefix probes now pass through line `5000`
+  - the earlier exact frontier had failed near line `4134`
+- Broad external SV triage totals remain unchanged:
+  - `parse_pass_total=8`
+  - `parse_fail_total=4`
+- Interpretation:
+  - this is a real grammar fix, not a dead-end experiment
+  - but the full UVM package still contains deeper parser debt beyond the mixed-actual call form
+
 ## 2026-03-18 - Remove left-recursive ternary-expression false negatives from SystemVerilog grammar
 ### Context
 After the recursion-guard runtime fix, `scr1_core_top` was still failing in the external corpus even though the module header and earlier body prefixes parsed cleanly. Prefix bisection localized the first bad construct to:

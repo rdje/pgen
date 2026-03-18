@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-03-18 - Fix mixed ordered/named SystemVerilog subroutine actuals
+### ✅ Achievement Summary
+Focused UVM package debugging exposed a real SystemVerilog call-site hole: the active grammar still rejected mixed ordered-plus-named subroutine actuals like `g(a, .b(0))` and UVM's `uvm_re_comp(regex, .deglob(0))`. I fixed that by splitting `list_of_arguments` into explicit ordered-only, named-only, and mixed forms with a recursive mixed-head that does not let the ordered branch steal the comma before the named tail. The broad external-corpus totals do not change yet, but the fix is real and measurable: the minimal mixed-actual repros now pass, and the exact `uvm_pkg` package-prefix frontier moved from failing near line `4134` to parsing cleanly through line `5000`.
+
+### Scope of Changes
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - rewired `list_of_arguments` into:
+    - `list_of_arguments_ordered`
+    - `list_of_arguments_named`
+    - `list_of_arguments_mixed`
+  - added `named_argument`
+  - changed the mixed-argument front so PEG-style parsing keeps the last ordered actual attached to the mixed form instead of consuming the separator before the named tail
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same mixed-actual call fix into the profiled generated grammar snapshot
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the focused UVM-call diagnosis and the current targeted validation surface
+
+### Current Measured SV Focused-UVM Surface
+- Focused parser repros now pass:
+  - `/tmp/call_args_3.sv` (`return g(a, .b(0));`)
+  - `/tmp/uvm_named_arg_min1.sv` (`return uvm_re_comp(regex, .deglob(0));`)
+- Exact `uvm_pkg` package-prefix probes now pass through line `5000`, whereas the previous exact frontier failed near line `4134`
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` remains honest and unchanged at the broad slice:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=8`
+  - `parse_fail_total=4`
+- Remaining external SV blockers are still:
+  - deeper UVM package parsing
+  - VeeR preprocess include resolution for missing `el2_param.vh`
+
 ## 2026-03-18 - Fix SystemVerilog ternary expression parsing in external corpus replay
 ### ✅ Achievement Summary
 Focused external-corpus debugging on `scr1_core_top` exposed that the active SystemVerilog grammar still rejected even a tiny ternary expression like `assign a = c ? d : F;`. I removed that left-recursive hole by factoring a shared `expression_base` and rebuilding the conditional / `inside` expression path on top of it. The immediate effect is concrete and externally measured: the tiny ternary/member-select repros now parse cleanly, `scr1_core_top` is now green in both `sv_2017` and `sv_2023`, and the SV external corpus triage surface improved again from `parse_pass_total=6` / `parse_fail_total=6` to `parse_pass_total=8` / `parse_fail_total=4`.
