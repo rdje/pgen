@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-03-11
+Last updated: 2026-03-18
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -3641,6 +3641,8 @@ LRM conversion workspaces (tracked versioned outputs):
   - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
 - `docs/vhdl/2019/`
   - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
+- `docs/verilog/2005/`
+  - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
 
 Canonical extracted EBNF snapshots:
 - `grammars/systemverilog_2017_lrm_extracted.ebnf`
@@ -3686,6 +3688,17 @@ python3 tools/ieee_lrm_converter.py \
   --standard "IEEE 1076-2019" \
   --domain "VHDL" \
   --clause-depth 1 \
+  --extract-grammar
+
+python3 tools/ieee_lrm_converter.py \
+  --pdf /Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf \
+  --out-root docs/verilog/2005 \
+  --document "Verilog Hardware Description Language Reference Manual" \
+  --standard "IEEE 1364-2005" \
+  --domain "Verilog" \
+  --clause-depth 1 \
+  --toc-max-level 6 \
+  --include-annex \
   --extract-grammar
 ```
 

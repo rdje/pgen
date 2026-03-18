@@ -1,0 +1,93 @@
+---
+title: "Section Annex.D: informative compiler directives"
+document: "Verilog Hardware Description Language Reference Manual"
+standard: "IEEE 1364-2005"
+domain: "Verilog"
+section: "Annex.D"
+source_txt: "section-Annex_D-informative-compiler-directives.txt"
+source_pdf: "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf"
+---
+
+# Section Annex.D: informative compiler directives
+
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+518
+Copyright © 2006 IEEE. All rights reserved.
+Annex D
+(informative)
+Compiler directives
+The compiler directives described in this annex are for informative purposes only and are not part of this
+standard.
+This annex describes additional compiler directives as companions to the compiler directives described in
+Clause 19. The compiler directives described in this annex may not be available in all implementations of
+the Verilog HDL. The following compiler directives are described in this annex:
+The word tool in this annex refers to an implementation of Verilog HDL, typically a logic simulator.
+D.1 `default_decay_time
+The `default_decay_time compiler directive specifies the decay time for the trireg nets that do not have any
+decay time specified in the declaration. This compiler directive applies to all of the trireg nets in all the
+modules that follow it in the source description. An argument specifying the charge decay time shall be used
+with this compiler directive.
+Syntax:
+`default_decay_time
+ integer_constant | real_constant | infinite
+For example:
+Example 1—The following example shows how the default decay time for all trireg nets can be set to
+## 100 time units:
+
+`default_decay_time
+ 100
+Example 2—The following example shows how to avoid charge decay on trireg nets:
+`default_decay_time
+infinite
+The keyword infinite specifies no charge decay for all the trireg nets that do not have decay time
+specification.
+D.2 `default_trireg_strength
+The `default_trireg_strength compiler directive specifies the charge strength of trireg nets.
+Syntax:
+`default_trireg_strength
+ integer_constant
+`default_decay_time[D.1]
+`default_trireg_strength[D.2]
+`delay_mode_distributed[D.3]
+`delay_mode_path[D.4]
+`delay_mode_unit[D.5]
+`delay_mode_zero[D.6]
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+519
+The integer constant shall be between 0 and 250. It indicates the relative strength of the capacitance on the
+trireg net.
+D.3 `delay_mode_distributed
+The `delay_mode_distributed compiler directive specifies the distributed delay mode for all modules that
+follow this directive in the source description.
+Syntax:
+`delay_mode_distributed
+This compiler directive shall be used before the declaration of the module whose delay mode is being
+controlled.
+D.4 `delay_mode_path
+The `delay_mode_path compiler directive specifies the path delay mode for all modules that follow this
+directive in the source description.
+Syntax:
+`delay_mode_path
+This compiler directive shall be used before the declaration of the module whose delay mode is being
+controlled.
+D.5 `delay_mode_unit
+The `delay_mode_unit compiler directive specifies the unit delay mode for all modules that follow this
+directive in the source description.
+Syntax:
+`delay_mode_unit
+This compiler directive shall be used before the declaration of the module whose delay mode is being
+controlled.
+D.6 `delay_mode_zero
+The `delay_mode_zero compiler directive specifies the zero delay mode for all modules that follow this
+directive in the source description.
+Syntax:
+`delay_mode_zero
+This compiler directive shall be used before the declaration of the module whose delay mode is being
+controlled.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.

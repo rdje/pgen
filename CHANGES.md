@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-18 - Add Verilog 1364-2005 LRM conversion workspace
+### ✅ Achievement Summary
+The repository now carries a tracked Verilog LRM conversion workspace parallel to the existing SystemVerilog and VHDL ones. IEEE 1364-2005 has been converted into section-based text and markdown slices under `docs/verilog/2005`, companion lightweight root slices under `docs/verilog/{txt,md}`, and extracted grammar artifacts. I also hardened the shared markdown converter so numeric clause headings like `1. Overview` become stable section titles instead of falling back to boilerplate page text.
+
+### Scope of Changes
+- Added [docs/verilog/README.md](/Users/richarddje/Documents/github/pgen/docs/verilog/README.md):
+  - documents the Verilog LRM workspace layout and the reproducible conversion command for IEEE 1364-2005
+- Added [docs/verilog/.gitignore](/Users/richarddje/Documents/github/pgen/docs/verilog/.gitignore):
+  - mirrors the existing SV/VHDL workspace ignore policy for generated section slices and grammar artifacts
+- Added tracked Verilog conversion outputs under [docs/verilog/2005](/Users/richarddje/Documents/github/pgen/docs/verilog/2005):
+  - `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
+- Added top-level lightweight companion outputs under [docs/verilog](/Users/richarddje/Documents/github/pgen/docs/verilog):
+  - `txt/`, `md/`, `sections_manifest.json`, and mirrored grammar artifacts
+- Updated [tools/txt_to_md_converter.py](/Users/richarddje/Documents/github/pgen/tools/txt_to_md_converter.py):
+  - section heading recognition now accepts clause headings with a trailing dot, such as `1. Overview`
+  - title selection now prefers the exact section heading and otherwise falls back deterministically to the filename-derived title instead of page-front boilerplate
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md), [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md), [tools/LRM_CONVERSION_WORKFLOW.md](/Users/richarddje/Documents/github/pgen/tools/LRM_CONVERSION_WORKFLOW.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - documented the new Verilog workspace and the shared conversion-tool improvement
+
+### Current Measured Conversion Surface
+- Full IEEE 1364-2005 conversion now records:
+  - `detection_mode=pdf_toc`
+  - `sections_written=37`
+  - `files_converted=37`
+  - `rules_extracted=485`
+  - `rule_count=336`
+- Lightweight top-level companion workspace now records:
+  - `sections_written=2`
+  - `files_converted=2`
+
 ## 2026-03-17 - Tighten SV declaration keyword discipline in task-body parsing
 ### ✅ Achievement Summary
 The SystemVerilog grammar now rejects control/end keywords more systematically in declaration-style identifier positions, which fixes the focused external-corpus debug bug where `end return;` or `end if (...) ...` inside a task block could be reinterpreted as a declaration instead of closing the block. The minimal package-wrapped task repros are now clean, while the broad external SV triage totals remain unchanged and the next parser debt is deeper in real module/package bodies.

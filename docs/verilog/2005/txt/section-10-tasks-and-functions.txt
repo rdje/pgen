@@ -1,0 +1,644 @@
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+145
+10. Tasks and functions
+Tasks and functions provide the ability to execute common procedures from several different places in a
+description. They also provide a means of breaking up large procedures into smaller ones to make it easier to
+read and debug the source descriptions. This clause discusses the differences between tasks and functions,
+describes how to define and invoke tasks and functions, and presents examples of each.
+10.1 Distinctions between tasks and functions
+The following rules distinguish tasks from functions:
+—
+A function shall execute in one simulation time unit; a task can contain time-controlling statements.
+—
+A function cannot enable a task; a task can enable other tasks and functions.
+—
+A function shall have at least one input type argument and shall not have an output or inout type
+argument; a task can have zero or more arguments of any type.
+—
+A function shall return a single value; a task shall not return a value.
+The purpose of a function is to respond to an input value by returning a single value. A task can support
+multiple goals and can calculate multiple result values. However, only the output or inout type arguments
+pass result values back from the invocation of a task. A function is used as an operand in an expression; the
+value of that operand is the value returned by the function.
+For example:
+Either a task or a function can be defined to switch bytes in a 16-bit word. The task would return the
+switched word in an output argument; therefore, the source code to enable a task called switch_bytes
+could look like the following example:
+switch_bytes (old_word, new_word);
+The task switch_bytes would take the bytes in old_word, reverse their order, and place the reversed
+bytes in new_word.
+A word-switching function would return the switched word as the return value of the function. Thus, the
+function call for the function switch_bytes could look like the following example:
+new_word = switch_bytes (old_word);
+10.2 Tasks and task enabling
+A task shall be enabled from a statement that defines the argument values to be passed to the task and the
+variables that receive the results. Control shall be passed back to the enabling process after the task has
+completed. Thus, if a task has timing controls inside it, then the time of enabling a task can be different from
+the time at which the control is returned. A task can enable other tasks, which in turn can enable still other
+tasks—with no limit on the number of tasks enabled. Regardless of how many tasks have been enabled,
+control shall not return until all enabled tasks have completed.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+146
+Copyright © 2006 IEEE. All rights reserved.
+10.2.1 Task declarations
+The syntax for defining tasks is given in Syntax 10-1.
+Syntax 10-1—Syntax for task declaration
+task_declaration ::= (From A.2.7)
+task [ automatic ] task_identifier ;
+{ task_item_declaration }
+statement_or_null
+endtask
+| task [ automatic ] task_identifier ( [ task_port_list ] ) ;
+{ block_item_declaration }
+statement_or_null
+endtask
+task_item_declaration ::=
+block_item_declaration
+| { attribute_instance } tf_ input_declaration ;
+| { attribute_instance } tf_output_declaration ;
+| { attribute_instance } tf_inout_declaration ;
+task_port_list ::=
+task_port_item { , task_port_item }
+task_port_item ::=
+{ attribute_instance } tf_input_declaration
+| { attribute_instance } tf_output_declaration
+| { attribute_instance } tf_inout_declaration
+tf_input_declaration  ::=
+input [ reg ] [ signed ] [ range ] list_of_port_identifiers
+| input task_port_type list_of_port_identifiers
+tf_output_declaration ::=
+output [ reg ] [ signed ] [ range ] list_of_port_identifiers
+| output task_port_type list_of_port_identifiers
+tf_inout_declaration  ::=
+inout [ reg ] [ signed ] [ range ] list_of_port_identifiers
+| inout task_port_type list_of_port_identifiers
+task_port_type ::=
+integer | real | realtime | time
+block_item_declaration ::= (From A.2.8)
+{ attribute_instance } reg [ signed ] [ range ]  list_of_block_variable_identifiers ;
+| { attribute_instance } integer list_of_block_variable_identifiers ;
+| { attribute_instance } time list_of_block_variable_identifiers ;
+| { attribute_instance } real list_of_block_real_identifiers ;
+| { attribute_instance } realtime list_of_block_real_identifiers ;
+| { attribute_instance } event_declaration
+| { attribute_instance } local_parameter_declaration ;
+| { attribute_instance } parameter_declaration ;
+list_of_block_variable_identifiers ::=
+block_variable_type { , block_variable_type }
+list_of_block_real_identifiers ::=
+block_real_type { , block_real_type }
+block_variable_type ::=
+variable_identifier { dimension }
+block_real_type ::=
+real_identifier { dimension }
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+147
+There are two alternate task declaration syntaxes.
+The first syntax shall begin with the keyword task, followed by the optional keyword automatic, followed
+by a name for the task and a semicolon, and ending with the keyword endtask. The keyword automatic
+declares an automatic task that is reentrant, with all the task declarations allocated dynamically for each
+concurrent task entry. Task item declarations can specify the following:
+—
+Input arguments
+—
+Output arguments
+—
+Inout arguments
+—
+All data types that can be declared in a procedural block
+The second syntax shall begin with the keyword task, followed by a name for the task and a parenthesis-
+enclosed task_port_list. The task_port_list shall consist of zero or more comma separated task_port_items.
+There shall be a semicolon after the close parenthesis. The task body shall follow and then the keyword
+endtask.
+In both syntaxes, the port declarations shall have the same syntax as defined by the tf_input_declaration,
+tf_output_declaration, and tf_inout_declaration, as detailed in Syntax 10-1 above.
+Tasks without the optional keyword automatic are static tasks, with all declared items being statically
+allocated. These items shall be shared across all uses of the task executing concurrently. Task with the
+optional keyword automatic are automatic tasks. All items declared inside automatic tasks are allocated
+dynamically for each invocation. Automatic task items cannot be accessed by hierarchical references.
+Automatic tasks can be invoked through use of their hierarchical name.
+10.2.2 Task enabling and argument passing
+The task-enabling statement shall pass arguments as a comma-separated list of expressions enclosed in
+parentheses. The formal syntax of the task-enabling statement is given in Syntax 10-2.
+Syntax 10-2—Syntax for task-enabling statement
+If the task definition has no arguments, a list of arguments shall not be provided in the task-enabling
+statement. Otherwise, there shall be an ordered list of expressions that matches the length and order of the
+list of arguments in the task definition. A null expression shall not be used as an argument in a task-enabling
+statement.
+If an argument in the task is declared as an input, then the corresponding expression can be any expression.
+The order of evaluation of the expressions in the argument list is undefined. If the argument is declared as an
+output or an inout, then the expression shall be restricted to an expression that is valid on the left-hand side
+of a procedural assignment (see 9.2). The following items satisfy this requirement:
+—
+reg, integer, real, realtime, and time variables
+—
+Memory references
+—
+Concatenations of reg, integer, and time variables
+—
+Concatenations of memory references
+—
+Bit-selects and part-selects of reg, integer, and time variables
+task_enable ::= (From A.6.9)
+hierarchical_task_identifier [ ( expression { , expression } ) ] ;
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+148
+Copyright © 2006 IEEE. All rights reserved.
+The execution of the task-enabling statement shall pass input values from the expressions listed in the
+enabling statement to the arguments specified within the task. Execution of the return from the task shall
+pass values from the task output and inout type arguments to the corresponding variables in the task-
+enabling statement. All arguments to the task shall be passed by value rather than by reference (that is, a
+pointer to the value).
+For example:
+Example 1—The following example illustrates the basic structure of a task definition with five arguments:
+task my_task;
+input a, b;
+inout c;
+output d, e;
+begin
+. . .
+ // statements that perform the work of the task
+. . .
+c = foo1;  // the assignments that initialize result regs
+d = foo2;
+e = foo3;
+end
+endtask
+Or using the second form of a task declaration, the task could be defined as follows:
+task my_task (input a, b, inout c, output d, e);
+begin
+. . .
+ // statements that perform the work of the task
+. . .
+c = foo1;  // the assignments that initialize result regs
+d = foo2;
+e = foo3;
+end
+endtask
+The following statement enables the task:
+my_task (v, w, x, y, z);
+The task-enabling arguments (v, w, x, y, and z) correspond to the arguments (a, b, c, d, and e) defined by
+the task. At task-enabling time, the input and inout type arguments (a, b, and c) receive the values passed in
+v, w, and x. Thus, execution of the task-enabling call effectively causes the following assignments:
+a = v;
+b = w;
+c = x;
+As part of the processing of the task, the task definition for my_task shall place the computed result values
+into c, d, and e. When the task completes, the following assignments to return the computed values to the
+calling process are performed:
+x = c;
+y = d;
+z = e;
+Example 2—The following example illustrates the use of tasks by describing a traffic light sequencer:
+module traffic_lights;
+reg clock, red, amber, green;
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+149
+parameter on = 1, off = 0, red_tics = 350,
+amber_tics = 30, green_tics = 200;
+// initialize colors.
+initial red = off;
+initial amber = off;
+initial green = off;
+always begin
+// sequence to control the lights.
+red = on;
+// turn red light on
+light(red, red_tics);
+// and wait.
+green = on;
+// turn green light on
+light(green, green_tics);
+// and wait.
+amber = on;
+// turn amber light on
+light(amber, amber_tics);
+// and wait.
+end
+// task to wait for 'tics' positive edge clocks
+// before turning 'color' light off.
+task light;
+output color;
+input [31:0] tics;
+begin
+repeat (tics) @ (posedge clock);
+color = off;
+// turn light off.
+end
+endtask
+always begin
+// waveform for the clock.
+#100 clock = 0;
+#100 clock = 1;
+end
+endmodule // traffic_lights.
+10.2.3 Task memory usage and concurrent activation
+A task may be enabled more than once concurrently. All variables of an automatic task shall be replicated on
+each concurrent task invocation to store state specific to that invocation. All variables of a static task shall be
+static in that there shall be a single variable corresponding to each declared local variable in a module
+instance, regardless of the number of concurrent activations of the task. However, static tasks in different
+instances of a module shall have separate storage from each other.
+Variables declared in static tasks, including input, output, and inout type arguments, shall retain their
+values between invocations. They shall be initialized to the default initialization value as described in 4.2.2.
+Variables declared in automatic tasks, including output type arguments, shall be initialized to the default
+initialization value whenever execution enters their scope. input and inout type arguments shall be
+initialized to the values passed from the expressions corresponding to these arguments listed in the task-
+enabling statements.
+Because variables declared in automatic tasks are deallocated at the end of the task invocation, they shall not
+be used in certain constructs that might refer to them after that point:
+—
+They shall not be assigned values using nonblocking assignments or procedural continuous
+assignments.
+—
+They shall not be referenced by procedural continuous assignments or procedural force statements.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+150
+Copyright © 2006 IEEE. All rights reserved.
+—
+They shall not be referenced in intra-assignment event controls of nonblocking assignments.
+—
+They shall not be traced with system tasks such as $monitor and $dumpvars.
+10.3 Disabling of named blocks and tasks
+The disable statement provides the ability to terminate the activity associated with concurrently active
+procedures, while maintaining the structured nature of Verilog HDL procedural descriptions. The disable
+statement gives a mechanism for terminating a task before it executes all its statements, breaking from a
+looping statement, or skipping statements in order to continue with another iteration of a looping statement.
+It is useful for handling exception conditions such as hardware interrupts and global resets.
+The disable statement has the syntax form shown in Syntax 10-3.
+Syntax 10-3—Syntax for disable statement
+Either form of disable statement shall terminate the activity of a task or a named block. Execution shall
+resume at the statement following the block or following the task-enabling statement. All activities enabled
+within the named block or task shall be terminated as well. If task enable statements are nested (that is, one
+task enables another, and that one enables yet another), then disabling a task within the chain shall disable all
+tasks downward on the chain. If a task is enabled more than once, then disabling such a task shall disable all
+activations of the task.
+The results of the following activities that can be initiated by a task are not specified if the task is disabled:
+—
+Results of output and inout arguments
+—
+Scheduled, but not executed, nonblocking assignments
+—
+Procedural continuous assignments (assign and force statements)
+The disable statement can be used within blocks and tasks to disable the particular block or task containing
+the disable statement. The disable statement can be used to disable named blocks within a function, but
+cannot be used to disable functions. In cases where a disable statement within a function disables a block or
+a task that called the function, the behavior is undefined. Disabling an automatic task or a block inside an
+automatic task proceeds as for regular tasks for all concurrent executions of the task.
+For example:
+Example 1—This example illustrates how a block disables itself.
+begin : block_name
+rega = regb;
+disable block_name;
+regc = rega; // this assignment will never execute
+end
+Example 2—This example shows the disable statement being used within a named block in a manner similar
+to a forward goto. The next statement executed after the disable statement is the one following the named
+block.
+begin : block_name
+...
+disable_statement ::= (From A.6.5)
+disable hierarchical_task_identifier ;
+| disable hierarchical_block_identifier ;
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+151
+...
+if (a == 0)
+disable block_name;
+...
+end
+// end of named block
+// continue with code following named block
+...
+Example 3—This example shows the disable statement being used as an early return from a task. However, a
+task disabling itself using a disable statement is not a shorthand for the return statement found in
+programming languages.
+task proc_a;
+begin
+...
+...
+if (a == 0)
+disable proc_a; // return if true
+...
+...
+end
+endtask
+Example 4—This example shows the disable statement being used in an equivalent way to the two
+statements continue and break in the C programming language. The example illustrates control code that
+would allow a named block to execute until a loop counter reaches n iterations or until the variable a is set to
+the value of b. The named block break contains the code that executes until a == b, at which point the
+disable break; statement terminates execution of that block. The named block continue contains the
+code that executes for each iteration of the for loop. Each time this code executes the disable
+continue; statement, the continue block terminates, and execution passes to the next iteration of the for
+loop. For each iteration of the continue block, a set of statements executes if (a != 0). Another set of
+statements executes if (a! = b).
+begin : break
+for (i = 0; i < n; i = i+1) begin : continue
+@clk
+if (a == 0) // "continue" loop
+disable continue;
+statements
+statements
+@clk
+if (a == b) // "break" from loop
+disable break;
+statements
+statements
+end
+end
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+152
+Copyright © 2006 IEEE. All rights reserved.
+Example 5—This example shows the disable statement being used to disable concurrently a sequence of
+timing controls and the task action when the reset event occurs. The example shows a fork-join block
+within which are a named sequential block (event_expr) and a disable statement that waits for occurrence
+of the event reset. The sequential block and the wait for reset execute in parallel. The event_expr
+block waits for one occurrence of event ev1 and three occurrences of event trig. When these four events
+have happened, plus a delay of d time units, the task action executes. When the event reset occurs,
+regardless of events within the sequential block, the fork-join block terminates—including the task
+action.
+fork
+begin : event_expr
+@ev1;
+repeat (3) @trig;
+#d action (areg, breg);
+end
+@reset disable event_expr;
+join
+Example 6—The next example is a behavioral description of a retriggerable monostable. The named event
+retrig restarts the monostable time period. If retrig continues to occur within 250 time units, then q will
+remain at 1.
+always begin : monostable
+#250 q = 0;
+end
+always @retrig begin
+disable monostable;
+q = 1;
+end
+10.4 Functions and function calling
+The purpose of a function is to return a value that is to be used in an expression. The rest of this clause
+explains how to define and use functions.
+10.4.1 Function declarations
+The syntax for defining a function is given in Syntax 10-4.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+153
+A function definition shall begin with the keyword function, followed by the optional keyword automatic,
+followed by an optional function_range_or_type of the return value from the function, followed by the name
+of the function, followed either by a semicolon or by a function port list enclosed in parentheses and then a
+semicolon, and then shall end with the keyword endfunction.
+The use of a function_range_or_type shall be optional. A function specified without a function_range_or_
+type defaults to a scalar for the return value. If used, function_range_or_type shall specify that the return
+value of the function is a real, an integer, a time, a realtime, or a vector (optionally signed) with a range of
+[n:m] bits.
+function_declaration ::= (From A.2.6)
+function [ automatic ] [ function_range_or_type ]
+function_identifier ;
+function_item_declaration { function_item_declaration }
+function_statement
+endfunction
+| function [ automatic ] [ function_range_or_type ]
+function_identifier ( function_port_list ) ;
+{ block_item_declaration }
+function_statement
+endfunction
+function_item_declaration ::=
+block_item_declaration
+| { attribute_instance } tf_input_declaration ;
+function_port_list ::=
+{ attribute_instance } tf_input_declaration
+{ , { attribute_instance }tf_input_declaration }
+tf_input_declaration  ::=
+input [ reg ] [ signed ] [ range ] list_of_port_identifiers
+| input task_port_type list_of_port_identifiers
+function_range_or_type ::=
+  [ signed ] [ range ]
+| integer
+| real
+| realtime
+| time
+block_item_declaration ::= (From A.2.8)
+{ attribute_instance } reg [ signed ] [ range ]  list_of_block_variable_identifiers ;
+| { attribute_instance } integer list_of_block_variable_identifiers ;
+| { attribute_instance } time list_of_block_variable_identifiers ;
+| { attribute_instance } real list_of_block_real_identifiers ;
+| { attribute_instance } realtime list_of_block_real_identifiers ;
+| { attribute_instance } event_declaration
+| { attribute_instance } local_parameter_declaration ;
+| { attribute_instance } parameter_declaration ;
+list_of_block_variable_identifiers ::=
+block_variable_type { , block_variable_type }
+list_of_block_real_identifiers ::=
+block_real_type { , block_real_type }
+block_variable_type ::=
+variable_identifier { dimension }
+block_real_type ::=
+real_identifier { dimension }
+Syntax 10-4—Syntax for function declaration
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+154
+Copyright © 2006 IEEE. All rights reserved.
+A function shall have at least one input declared.
+The keyword automatic declares an automatic function that is reentrant, with all the function declarations
+allocated dynamically for each concurrent function call. Automatic function items cannot be accessed by
+hierarchical references. Automatic functions can be invoked through the use of their hierarchical name.
+Function inputs shall be declared one of two ways. The first method shall have the name of the function
+followed by a semicolon. After the semicolon, one or more input declarations optionally mixed with block
+item declarations shall follow. After the function item declarations, there shall be a behavioral statement and
+then the endfunction keyword.
+The second method shall have the name of the function, followed by an open parenthesis and one or more
+input declarations, separated by commas. After all the input declarations, there shall be a close parenthesis
+and a semicolon. After the semicolon, there shall be zero or more block item declarations, followed by a
+behavioral statement, and then the endfunction keyword.
+For example:
+The following example defines a function called getbyte, using a range specification:
+function [7:0] getbyte;
+input [15:0] address;
+begin
+// code to extract low-order byte from addressed word
+. . .
+getbyte = result_expression;
+end
+endfunction
+Or using the second form of a function declaration, the function could be defined as follows:
+function [7:0] getbyte (input [15:0] address);
+begin
+// code to extract low-order byte from addressed word
+. . .
+getbyte = result_expression;
+end
+endfunction
+10.4.2 Returning a value from a function
+The function definition shall implicitly declare a variable, internal to the function, with the same name as the
+function. This variable either defaults to a 1-bit reg or is the same type as the type specified in the function
+declaration. The function definition initializes the return value from the function by assigning the function
+result to the internal variable with the same name as the function.
+It is illegal to declare another object with the same name as the function in the scope where the function is
+declared. Inside a function, there is an implied variable with the name of the function, which may be used in
+expressions within the function. It is, therefore, also illegal to declare another object with the same name as
+the function inside the function scope.
+The following line from the example in 10.4.1 illustrates this concept:
+getbyte = result_expression;
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+155
+10.4.3 Calling a function
+A function call is an operand within an expression. The function call has the syntax given in Syntax 10-5.
+Syntax 10-5—Syntax for function call
+The order of evaluation of the arguments to a function call is undefined.
+For example:
+The following example creates a word by concatenating the results of two calls to the function getbyte
+(defined in 10.4.1):
+word = control ? {getbyte(msbyte), getbyte(lsbyte)}:0;
+10.4.4 Function rules
+Functions are more limited than tasks. The following rules govern their usage:
+a)
+A function definition shall not contain any time-controlled statements, that is, any statements con-
+taining #, @, or wait.
+b)
+Functions shall not enable tasks.
+c)
+A function definition shall contain at least one input argument.
+d)
+A function definition shall not have any argument declared as output or inout.
+e)
+A function shall not have any nonblocking assignments or procedural continuous assignments.
+f)
+A function shall not have any event triggers.
+For example:
+This example defines a function called factorial that returns an integer value. The factorial function
+is called iteratively and the results are printed.
+module tryfact;
+// define the function
+function automatic integer factorial;
+input [31:0] operand;
+integer i;
+if (operand >= 2)
+factorial = factorial (operand - 1) * operand;
+else
+factorial = 1;
+endfunction
+// test the function
+integer result;
+integer n;
+initial begin
+for (n = 0; n <= 7; n = n+1) begin
+result = factorial(n);
+$display("%0d factorial=%0d", n, result);
+function_call ::= (From A.8.2)
+hierarchical_function_identifier{ attribute_instance } ( expression { , expression } )
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+156
+Copyright © 2006 IEEE. All rights reserved.
+end
+end
+endmodule // tryfact
+The simulation results are as follows:
+0 factorial=1
+1 factorial=1
+2 factorial=2
+3 factorial=6
+4 factorial=24
+5 factorial=120
+6 factorial=720
+7 factorial=5040
+10.4.5 Use of constant functions
+Constant function calls are used to support the building of complex calculations of values at elaboration time
+(see 12.8). A constant function call shall be a function invocation of a constant function local to the calling
+module where the arguments to the function are constant expressions. Constant functions are a subset of
+normal Verilog functions that shall meet the following constraints:
+—
+They shall contain no hierarchical references.
+—
+Any function invoked within a constant function shall be a constant function local to the current
+module.
+—
+It shall be legal to call any system function that is allowed in a constant_expression (see Clause 5).
+Calls to other system functions shall be illegal.
+—
+All system tasks within a constant function shall be ignored.
+—
+All parameter values used within the function shall be defined before the use of the invoking
+constant function call (i.e., any parameter use in the evaluation of a constant function call constitutes
+a use of that parameter at the site of the original constant function call).
+—
+All identifiers that are not parameters or functions shall be declared locally to the current function.
+—
+If they use any parameter value that is affected directly or indirectly by a defparam statement (see
+12.2.1), the result is undefined. This can produce an error or the constant function can return an
+indeterminate value.
+—
+They shall not be declared inside a generate block (see 12.4).
+—
+They shall not themselves use constant functions in any context requiring a constant expression.
+Constant function calls are evaluated at elaboration time. Their execution has no effect on the initial values
+of the variables used either at simulation time or among multiple invocations of a function at elaboration
+time. In each of these cases, the variables are initialized as they would be for normal simulation.
+For example:
+This example defines a function called clogb2 that returns an integer with the value of the ceiling of the log
+base 2.
+module ram_model (address, write, chip_select, data);
+  parameter data_width = 8;
+  parameter ram_depth = 256;
+  localparam addr_width = clogb2(ram_depth);
+  input [addr_width - 1:0] address;
+  input write, chip_select;
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+157
+  inout [data_width - 1:0] data;
+  //define the clogb2 function
+  function integer clogb2;
+    input [31:0] value;
+    begin
+      value = value - 1;
+      for (clogb2 = 0; value > 0; clogb2 = clogb2 + 1)
+        value = value >> 1;
+    end
+    endfunction
+    reg [data_width - 1:0] data_store[0:ram_depth - 1];
+    //the rest of the ram model
+An instance of this ram_model with parameters assigned is as follows:
+ram_model #(32,421) ram_a0(a_addr,a_wr,a_cs,a_data);
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.

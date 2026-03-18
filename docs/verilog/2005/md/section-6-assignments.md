@@ -1,0 +1,353 @@
+---
+title: "Section 6: Assignments"
+document: "Verilog Hardware Description Language Reference Manual"
+standard: "IEEE 1364-2005"
+domain: "Verilog"
+section: "6"
+source_txt: "section-6-assignments.txt"
+source_pdf: "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf"
+---
+
+# Section 6: Assignments
+
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+68
+Copyright © 2006 IEEE. All rights reserved.
+## 6. Assignments
+
+The assignment is the basic mechanism for placing values into nets and variables. There are two basic forms
+of assignments:
+—
+The continuous assignment, which assigns values to nets
+—
+The procedural assignment, which assigns values to variables
+There are two additional forms of assignments, assign/deassign and force/release, which are called
+procedural continuous assignments, described in 9.3.
+An assignment consists of two parts, a left-hand side and a right-hand side, separated by the equals ( = )
+character; or, in the case of nonblocking procedural assignment, the less-than-equals ( <= ) character pair.
+The right-hand side can be any expression that evaluates to a value. The left-hand side indicates the variable
+to which the right-hand side value is to be assigned. The left-hand side can take one of the forms given in
+Table 6-1, depending on whether the assignment is a continuous assignment or a procedural assignment.
+### 6.1 Continuous assignments
+
+Continuous assignments shall drive values onto nets, both vector and scalar. This assignment shall occur
+whenever the value of the right-hand side changes. Continuous assignments provide a way to model
+combinational logic without specifying an interconnection of gates. Instead, the model specifies the logical
+expression that drives the net.
+Table 6-1—Legal left-hand forms in assignment statements
+Statement type
+Left-hand side
+Continuous assignment
+Net (vector or scalar)
+Constant bit-select of a vector net
+Constant part-select of a vector net
+Constant indexed part-select of a vector net
+Concatenation or nested concatenation of any of the above left-hand side
+Procedural assignment
+Variables (vector or scalar)
+Bit-select of a vector reg, integer, or time variable
+Constant part-select of a vector reg, integer, or time variable
+Indexed part-select of a vector reg, integer, or time variable
+Memory word
+Concatenation or nested concatenation of any of the above left-hand side
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+69
+The syntax for continuous assignments is given in Syntax 6-1.
+Syntax 6-1—Syntax for continuous assignment
+#### 6.1.1 The net declaration assignment
+
+The first two alternatives in the net declaration are discussed in 4.2. The third alternative, the net declaration
+assignment, allows a continuous assignment to be placed on a net in the same statement that declares the net.
+For example:
+The following is an example of the net declaration form of a continuous assignment:
+wire (strong1, pull0) mynet = enable ;
+NOTE—Because a net can be declared only once, only one net declaration assignment can be made for a particular net.
+This contrasts with the continuous assignment statement; one net can receive multiple assignments of the continuous
+assignment form.
+#### 6.1.2 The continuous assignment statement
+
+The continuous assignment statement shall place a continuous assignment on a net data type. The net may be
+explicitly declared or may inherit an implicit declaration in accordance with the implicit declaration rules
+defined in 4.5.
+```ebnf
+net_declaration ::= (From A.2.1.3)
+```
+
+net_type [ signed ]
+[ delay3 ] list_of_net_identifiers ;
+| net_type [ drive_strength ] [ signed ]
+[ delay3 ] list_of_net_decl_assignments ;
+| net_type [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_identifiers ;
+| net_type [ drive_strength ] [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_decl_assignments ;
+| trireg [ charge_strength ] [ signed ]
+[ delay3 ] list_of_net_identifiers ;
+| trireg [ drive_strength ] [ signed ]
+[ delay3 ] list_of_net_decl_assignments ;
+| trireg [ charge_strength ] [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_identifiers ;
+| trireg [ drive_strength ] [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_decl_assignments ;
+```ebnf
+list_of_net_decl_assignments ::= (From A.2.3)
+```
+
+net_decl_assignment { , net_decl_assignment }
+```ebnf
+net_decl_assignment ::= (From A.2.4)
+```
+
+net_identifier = expression
+```ebnf
+continuous_assign ::= (From A.6.1)
+```
+
+assign [ drive_strength ] [ delay3 ] list_of_net_assignments ;
+```ebnf
+list_of_net_assignments ::=
+```
+
+net_assignment { , net_assignment }
+```ebnf
+net_assignment ::=
+```
+
+net_lvalue = expression
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+70
+Copyright © 2006 IEEE. All rights reserved.
+Assignments on nets shall be continuous and automatic. In other words, whenever an operand in the right-
+hand expression changes value, the whole right-hand side shall be evaluated. If the new value is different
+from the previous value, then the new value shall be assigned to the left-hand side.
+For example:
+Example 1—The following is an example of a continuous assignment to a net that has been previously
+declared:
+wire mynet ;
+assign (strong1, pull0) mynet = enable ;
+Example 2—The following is an example of the use of a continuous assignment to model a 4-bit adder with
+carry. The assignment could not be specified directly in the declaration of the nets because it requires a
+concatenation on the left-hand side.
+module adder (sum_out, carry_out, carry_in, ina, inb);
+output [3:0] sum_out;
+output carry_out;
+input [3:0] ina, inb;
+input carry_in;
+wire carry_out, carry_in;
+wire [3:0] sum_out, ina, inb;
+assign {carry_out, sum_out} = ina + inb + carry_in;
+endmodule
+Example 3—The following example describes a module with one 16-bit output bus. It selects between one of
+four input busses and connects the selected bus to the output bus.
+module select_bus(busout, bus0, bus1, bus2, bus3, enable, s);
+parameter n = 16;
+parameter Zee = 16'bz;
+output [1:n] busout;
+input [1:n] bus0, bus1, bus2, bus3;
+input enable;
+input [1:2] s;
+tri [1:n] data;
+// net declaration
+// net declaration with continuous assignment
+tri [1:n] busout = enable ? data : Zee;
+// assignment statement with four continuous assignments
+assign
+data = (s == 0) ? bus0 : Zee,
+data = (s == 1) ? bus1 : Zee,
+data = (s == 2) ? bus2 : Zee,
+data = (s == 3) ? bus3 : Zee;
+endmodule
+The following sequence of events is experienced during simulation of this example:
+a)
+The value of s, a bus selector input variable, is checked in the assign statement. Based on the value
+of s, the net data receives the data from one of the four input buses.
+b)
+The setting of data net triggers the continuous assignment in the net declaration for busout. If
+enable is set, the contents of data are assigned to busout; if enable is 0, the contents of Zee are
+assigned to busout.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+71
+#### 6.1.3 Delays
+
+A delay given to a continuous assignment shall specify the time duration between a right-hand operand
+value change and the assignment made to the left-hand side. If the left-hand references a scalar net, then the
+delay shall be treated in the same way as for gate delays; that is, different delays can be given for the output
+rising, falling, and changing to high impedance (see Clause 7).
+If the left-hand references a vector net, then up to three delays can be applied. The following rules determine
+which delay controls the assignment:
+—
+If the right-hand side makes a transition from nonzero to zero, then the falling delay shall be used.
+—
+If the right-hand side makes a transition to z, then the turn-off delay shall be used.
+—
+For all other cases, the rising delay shall be used.
+Specifying the delay in a continuous assignment that is part of the net declaration shall be treated differently
+from specifying a net delay and then making a continuous assignment to the net. A delay value can be
+applied to a net in a net declaration, as in the following example:
+wire #10 wireA;
+This syntax, called a net delay, means that any value change that is to be applied to wireA by some other
+statement shall be delayed for ten time units before it takes effect. When there is a continuous assignment in
+a declaration, the delay is part of the continuous assignment and is not a net delay. Thus, it shall not be added
+to the delay of other drivers on the net. Furthermore, if the assignment is to a vector net, then the rising and
+falling delays shall not be applied to the individual bits if the assignment is included in the declaration.
+In situations where a right-hand operand changes before a previous change has had time to propagate to the
+left-hand side, then the following steps are taken:
+a)
+The value of the right-hand expression is evaluated.
+b)
+If this right-hand side value differs from the value currently scheduled to propagate to the left-hand
+side, then the currently scheduled propagation event is descheduled.
+c)
+If the new right-hand side value equals the current left-hand side value, no event is scheduled.
+d)
+If the new right-hand side value differs from the current left-hand side value, a delay is calculated in
+the standard way using the current value of the left-hand side, the newly calculated value of the
+right-hand side, and the delays indicated on the statement; a new propagation event is then sched-
+uled to occur delay time units in the future.
+#### 6.1.4 Strength
+
+The driving strength of a continuous assignment can be specified by the user. This applies only to
+assignments to scalar nets of the following types:
+wire
+tri
+trireg
+wand
+triand
+tri0
+wor
+trior
+tri1
+Continuous assignments driving strengths can be specified either in a net declaration or in a stand-alone
+assignment, using the assign keyword. The strength specification, if provided, shall immediately follow the
+keyword (either the keyword for the net type or assign) and precede any delay specified. Whenever the
+continuous assignment drives the net, the strength of the value shall be simulated as specified.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+72
+Copyright © 2006 IEEE. All rights reserved.
+A drive strength specification shall contain one strength value that applies when the value being assigned to
+the net is 1 and a second strength value that applies when the assigned value is 0. The following keywords
+shall specify the strength value for an assignment of 1:
+supply1
+strong1
+pull1
+weak1
+highz1
+The following keywords shall specify the strength value for an assignment of 0:
+supply0
+strong0
+pull0
+weak0
+highz0
+The order of the two strength specifications shall be arbitrary. The following two rules shall constrain the
+use of drive strength specifications:
+—
+The strength specifications (highz1, highz0) and (highz0, highz1) shall be treated as illegal
+constructs.
+—
+If drive strength is not specified, it shall default to (strong1, strong0).
+### 6.2 Procedural assignments
+
+The primary discussion of procedural assignments is in 9.2. However, a description of the basic ideas in this
+clause highlights the differences between continuous assignments and procedural assignments.
+As stated in 6.1, continuous assignments drive nets in a manner similar to the way gates drive nets. The
+expression on the right-hand side can be thought of as a combinatorial circuit that drives the net
+continuously. In contrast, procedural assignments put values in variables. The assignment does not have
+duration; instead, the variable holds the value of the assignment until the next procedural assignment to that
+variable.
+Procedural assignments occur within procedures such as always, initial (see 9.9), task, and function (see
+Clause 10) and can be thought of as “triggered” assignments. The trigger occurs when the flow of execution
+in the simulation reaches an assignment within a procedure. Reaching the assignment can be controlled by
+conditional statements. Event controls, delay controls, if statements, case statements, and looping statements
+can all be used to control whether assignments are evaluated. Clause 9 gives details and examples.
+#### 6.2.1 Variable declaration assignment
+
+The variable declaration assignment is a special case of procedural assignment as it assigns a value to a
+variable. It allows an initial value to be placed in a variable in the same statement that declares the variable.
+The assignment shall be to a constant expression. The assignment does not have duration; instead, the
+variable holds the value until the next assignment to that variable. Variable declaration assignments to an
+array are not allowed. Variable declaration assignments are only allowed at the module level. If the same
+variable is assigned different values both in an initial block and in a variable declaration assignment, the
+order of the evaluation is undefined.
+For example:
+Example 1—Declare a 4-bit reg and assign it the value 4.
+reg[3:0] a = 4'h4;
+This is equivalent to writing
+reg[3:0] a;
+initial a = 4'h4;
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+73
+Example 2—The following example is not legal:
+reg [3:0] array [3:0] = 0;
+Example 3—Declare two integers; the first is assigned the value of 0.
+integer i = 0, j;
+Example 4—Declare two real variables, assigned to the values 2.5 and 300,000.
+real r1 = 2.5, n300k = 3E6;
+Example 5—Declare a time variable and realtime variable with initial values.
+time t1 = 25;
+realtime rt1 = 2.5;
+#### 6.2.2 Variable declaration syntax
+
+The syntax for variable declaration assignments is given in Syntax 6-2.
+Syntax 6-2—Syntax for variable declaration assignment
+```ebnf
+integer_declaration ::= (From A.2.1.3)
+```
+
+integer list_of_variable_identifiers ;
+```ebnf
+real_declaration ::=
+```
+
+real list_of_real_identifiers ;
+```ebnf
+realtime_declaration ::=
+```
+
+realtime list_of_real_identifiers ;
+```ebnf
+reg_declaration ::=
+```
+
+reg [ signed ] [ range ] list_of_variable_identifiers ;
+```ebnf
+time_declaration ::=
+```
+
+time list_of_variable_identifiers ;
+```ebnf
+real_type ::= (From A.2.2.1)
+   real_identifier { dimension }
+| real_identifier = constant_expression
+variable_type ::=
+  variable_identifier { dimension }
+| variable_identifier = constant_expression
+list_of_real_identifiers ::= (From A.2.3)
+```
+
+real_type { , real_type }
+```ebnf
+list_of_variable_identifiers ::=
+```
+
+variable_type { , variable_type }
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.

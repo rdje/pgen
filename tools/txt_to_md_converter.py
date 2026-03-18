@@ -14,7 +14,7 @@ from typing import List
 
 
 SECTION_FILE_RE = re.compile(r"^section-([^-]+)-(.+)\.txt$")
-HEADING_RE = re.compile(r"^(\d+(?:\.\d+)*)\s+(.+)$")
+HEADING_RE = re.compile(r"^(\d+(?:\.\d+)*)(?:\.)?\s+(.+)$")
 
 
 def parse_section_filename(path: Path) -> tuple[str, str]:
@@ -91,18 +91,14 @@ def convert_file(
 
     # Try first meaningful line as the best title.
     title = fallback_title
-    for line in raw.splitlines():
-        s = line.strip()
+    lines = [line.strip() for line in raw.splitlines()]
+    for s in lines:
         if not s:
             continue
         m = HEADING_RE.match(s)
         if m and m.group(1).replace(".", "_") == section_id.replace(".", "_"):
             title = m.group(2)
             break
-        if len(s) > 3 and not s.lower().startswith("ieee std"):
-            title = s[:140]
-            break
-
     frontmatter = (
         "---\n"
         f'title: "Section {section_id}: {title}"\n'
@@ -158,4 +154,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

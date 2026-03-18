@@ -614,6 +614,10 @@ Toolbox baseline to leverage end-to-end:
     - `docs/systemverilog/2017/{txt,md}` + grammar artifacts (`grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`)
     - `docs/systemverilog/2023/{txt,md}` + grammar artifacts (`grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`)
     - extraction fallback hardening added in `tools/split_sections.py` for PDFs without embedded TOC (`page_heading_fallback`) with explicit manifest `detection_mode`.
+  - Progress (2026-03-18): extended that LRM-conversion workspace pattern to IEEE 1364-2005 Verilog:
+    - added tracked workspace `docs/verilog/2005/{txt,md}` plus `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, and `grammar_report.json`
+    - added top-level lightweight companion workspace `docs/verilog/{txt,md}` and mirrored grammar artifacts for quick inspection, matching the existing SV/VHDL repo convention
+    - hardened `tools/txt_to_md_converter.py` so clause headings like `1. Overview` are recognized as real section titles instead of falling back to copyright/front-page boilerplate
   - Progress (2026-03-06): promoted canonical extracted SV EBNF snapshots into `grammars/`:
     - `grammars/systemverilog_2017_lrm_extracted.ebnf`
     - `grammars/systemverilog_2023_lrm_extracted.ebnf`

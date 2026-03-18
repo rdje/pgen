@@ -4,6 +4,7 @@ This workflow adapts the earlier IEEE 1800-2017 scripts into reusable tooling fo
 - IEEE 1800-2017 (SystemVerilog)
 - IEEE 1800-2023 (SystemVerilog)
 - IEEE 1076-2019 (VHDL)
+- IEEE 1364-2005 (Verilog)
 
 ## Scripts
 - `tools/split_sections.py`
@@ -59,6 +60,20 @@ python3 tools/ieee_lrm_converter.py \
   --standard "IEEE 1076-2019" \
   --domain "VHDL" \
   --clause-depth 1 \
+  --extract-grammar
+```
+
+## Verilog (1364-2005)
+```bash
+python3 tools/ieee_lrm_converter.py \
+  --pdf /Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf \
+  --out-root docs/verilog/2005 \
+  --document "Verilog Hardware Description Language Reference Manual" \
+  --standard "IEEE 1364-2005" \
+  --domain "Verilog" \
+  --clause-depth 1 \
+  --toc-max-level 6 \
+  --include-annex \
   --extract-grammar
 ```
 

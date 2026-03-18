@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Add Verilog LRM conversion workspace and harden section-title extraction
+### Context
+The repository already had documented LRM conversion workspaces for SystemVerilog and VHDL, and the user supplied the local IEEE 1364-2005 PDF at `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`. The right move was to reuse the same tracked conversion workflow instead of treating Verilog as a one-off manual extraction.
+
+### Implementation
+- Added [docs/verilog/README.md](/Users/richarddje/Documents/github/pgen/docs/verilog/README.md) and [docs/verilog/.gitignore](/Users/richarddje/Documents/github/pgen/docs/verilog/.gitignore) to mirror the established LRM workspace structure.
+- Ran the shared converter pipeline against the IEEE 1364-2005 PDF:
+  - full versioned workspace at [docs/verilog/2005](/Users/richarddje/Documents/github/pgen/docs/verilog/2005)
+  - lightweight top-level companion workspace at [docs/verilog](/Users/richarddje/Documents/github/pgen/docs/verilog)
+- Updated [tools/txt_to_md_converter.py](/Users/richarddje/Documents/github/pgen/tools/txt_to_md_converter.py):
+  - clause-heading detection now accepts the standard dotted form (`1. Overview`)
+  - title selection now prefers an exact section-heading match and otherwise uses the filename-derived title, which avoids front-page copyright/boilerplate titles in the generated markdown
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md), [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md), [tools/LRM_CONVERSION_WORKFLOW.md](/Users/richarddje/Documents/github/pgen/tools/LRM_CONVERSION_WORKFLOW.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md) so the new workspace is part of the documented repo workflow.
+
+### Outcome
+- The versioned Verilog workspace now contains:
+  - `37` clause/annex section slices under `docs/verilog/2005/{txt,md}`
+  - `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, and `grammar_report.json`
+  - `detection_mode=pdf_toc`
+  - `rule_count=336`
+- The root companion workspace now mirrors the existing repo convention with:
+  - top-level `txt/` and `md/` slices for quick inspection
+  - mirrored grammar artifacts for the same 2005 source
+
 ## 2026-03-17 - Tighten SV declaration identifiers against control keywords
 ### Context
 After the earlier callable/select/port-connection fixes, the focused SV repros still showed one stubborn false parse shape: inside a task-body `seq_block`, text like `end return;` or `end if (...) ...` could still be reinterpreted as a declaration instead of closing the block. The user’s diagnosis was directionally right: this is fundamentally a keyword-vs-identifier discrimination problem, and the current grammar still allowed too many declaration-flavored aliases to fall back to raw `identifier`.

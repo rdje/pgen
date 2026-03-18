@@ -1,0 +1,1313 @@
+---
+title: "Section 4: Data types"
+document: "Verilog Hardware Description Language Reference Manual"
+standard: "IEEE 1364-2005"
+domain: "Verilog"
+section: "4"
+source_txt: "section-4-data-types.txt"
+source_pdf: "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf"
+---
+
+# Section 4: Data types
+
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+21
+## 4. Data types
+
+The set of Verilog HDL data types is designed to represent the data storage and transmission elements found
+in digital hardware.
+### 4.1 Value set
+
+The Verilog HDL value set consists of four basic values:
+## 0 - represents a logic zero, or a false condition
+
+## 1 - represents a logic one, or a true condition
+
+x - represents an unknown logic value
+z - represents a high-impedance state
+The values 0 and 1 are logical complements of one another.
+When the z value is present at the input of a gate or when it is encountered in an expression, the effect is
+usually the same as an x value. Notable exceptions are the metal-oxide semiconductor (MOS) primitives,
+which can pass the z value.
+Almost all of the data types in the Verilog HDL store all four basic values. Exceptions are the event type
+(see 9.7.3), which has no storage, and the real type (see 4.8). All bits of vectors can be independently set to
+one of the four basic values.
+The language includes strength information in addition to the basic value information for net variables. This
+is described in detail in Clause 7.
+### 4.2 Nets and variables
+
+There are two main groups of data types: the variable data types and the net data types. These two groups
+differ in the way that they are assigned and hold values. They also represent different hardware structures.
+#### 4.2.1 Net declarations
+
+The net data types can represent physical connections between structural entities, such as gates. A net shall
+not store a value (except for the trireg net). Instead, its value shall be determined by the values of its drivers,
+such as a continuous assignment or a gate. See Clause 6 and Clause 7 for definitions of these constructs. If
+no driver is connected to a net, its value shall be high-impedance (z) unless the net is a trireg, in which case
+it shall hold the previously driven value. It is illegal to redeclare a name already declared by a net,
+parameter, or variable declaration (see 4.11).
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+22
+Copyright © 2006 IEEE. All rights reserved.
+The syntax for net declarations is given in Syntax 4-1.
+Syntax 4-1—Syntax for net declaration
+```ebnf
+net_declaration ::= (From A.2.1.3)
+```
+
+net_type [ signed ]
+[ delay3 ] list_of_net_identifiers ;
+| net_type [ drive_strength ] [ signed ]
+[ delay3 ] list_of_net_decl_assignments ;
+| net_type [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_identifiers ;
+| net_type [ drive_strength ] [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_decl_assignments ;
+| trireg [ charge_strength ] [ signed ]
+[ delay3 ] list_of_net_identifiers ;
+| trireg [ drive_strength ] [ signed ]
+[ delay3 ] list_of_net_decl_assignments ;
+| trireg [ charge_strength ] [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_identifiers ;
+| trireg [ drive_strength ] [ vectored | scalared ] [ signed ]
+range [ delay3 ] list_of_net_decl_assignments ;
+```ebnf
+net_type ::= (From A.2.2.1)
+```
+
+supply0 | supply1
+| tri | triand | trior | tri0 | tri1 | uwire | wire | wand | wor
+```ebnf
+drive_strength ::= (From A.2.2.2)
+```
+
+( strength0 , strength1 )
+| ( strength1 , strength0 )
+| ( strength0 , highz1 )
+| ( strength1 , highz0 )
+| ( highz0 , strength1 )
+| ( highz1 , strength0 )
+```ebnf
+strength0 ::= supply0 | strong0 | pull0 | weak0
+strength1 ::= supply1 | strong1 | pull1 | weak1
+charge_strength ::= ( small ) | ( medium ) | ( large )
+delay3 ::= (From A.2.2.3)
+  # delay_value
+| # ( mintypmax_expression [ , mintypmax_expression [ , mintypmax_expression ] ] )
+delay2 ::=
+  # delay_value
+| # ( mintypmax_expression [ , mintypmax_expression ] )
+delay_value ::=
+```
+
+unsigned_number
+| real_number
+| identifier
+```ebnf
+list_of_net_decl_assignments ::= (From A.2.3)
+```
+
+net_decl_assignment { , net_decl_assignment }
+```ebnf
+list_of_net_identifiers ::=
+```
+
+net_identifier { dimension }
+{ , net_identifier { dimension } }
+```ebnf
+net_decl_assignment ::= (From A.2.4)
+```
+
+net_identifier = expression
+```ebnf
+dimension ::= (From A.2.5)
+```
+
+[ dimension_constant_expression : dimension_constant_expression ]
+```ebnf
+range ::=
+```
+
+[ msb_constant_expression : lsb_constant_expression ]
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+23
+The first two forms of net declaration are described in this subclause. The third form, called net assignment,
+is described in Clause 6.
+The default initialization value for a net shall be the value z. Nets with drivers shall assume the output value
+of their drivers. The trireg net is an exception. The trireg net shall default to the value x, with the strength
+specified in the net declaration (small, medium, or large).
+#### 4.2.2 Variable declarations
+
+A variable is an abstraction of a data storage element. A variable shall store a value from one assignment to
+the next. An assignment statement in a procedure acts as a trigger that changes the value in the data storage
+element. The initialization value for reg, time, and integer data types shall be the unknown value, x. The
+default initialization value for real and realtime variable data types shall be 0.0. If a variable declaration
+assignment is used (see 6.2.1), the variable shall take this value as if the assignment occurred in a blocking
+assignment in an initial construct. It is illegal to redeclare a name already declared by a net, parameter, or
+variable declaration.
+NOTE—In previous versions of this standard, the term register was used to encompass the reg, integer, time, real, and
+realtime types, but that term is no longer used as a Verilog data type.8
+The syntax for variable declarations is given in Syntax 4-2.
+Syntax 4-2—Syntax for variable declaration
+If a set of nets or variables share the same characteristics, they can be declared in the same declaration
+statement.
+8Notes in text, tables, and figures are given for information only and do not contain requirements needed to implement this standard.
+```ebnf
+integer_declaration ::= (From A.2.1.3)
+```
+
+integer list_of_variable_identifiers ;
+```ebnf
+real_declaration ::=
+```
+
+real list_of_real_identifiers ;
+```ebnf
+realtime_declaration ::=
+```
+
+realtime list_of_real_identifiers ;
+```ebnf
+reg_declaration ::=
+```
+
+reg [ signed ] [ range ] list_of_variable_identifiers ;
+```ebnf
+time_declaration ::=
+```
+
+time list_of_variable_identifiers ;
+```ebnf
+real_type ::= (From A.2.2.1)
+   real_identifier { dimension }
+| real_identifier = constant_expression
+variable_type ::=
+  variable_identifier { dimension }
+| variable_identifier = constant_expression
+list_of_real_identifiers ::= (From A.2.3)
+```
+
+real_type { , real_type }
+```ebnf
+list_of_variable_identifiers ::=
+```
+
+variable_type { , variable_type }
+```ebnf
+dimension ::= (From A.2.5)
+```
+
+[ dimension_constant_expression : dimension_constant_expression ]
+```ebnf
+range ::=
+```
+
+[ msb_constant_expression : lsb_constant_expression ]
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+24
+Copyright © 2006 IEEE. All rights reserved.
+### 4.3 Vectors
+
+A net or reg declaration without a range specification shall be considered 1 bit wide and is known as a
+scalar. Multibit net and reg data types shall be declared by specifying a range, which is known as a vector.
+#### 4.3.1 Specifying vectors
+
+The range specification gives addresses to the individual bits in a multibit net or reg. The most significant
+bit specified by the msb constant expression is the left-hand value in the range, and the least significant bit
+specified by the lsb constant expression is the right-hand value in the range.
+Both the msb constant expression and the lsb constant expression shall be constant integer expressions. The
+msb and lsb constant expressions may be any integer value — positive, negative, or zero. The lsb value may
+be greater than, equal to, or less than the msb value.
+Vector nets and regs shall obey laws of arithmetic modulo-2 to the power n (2n), where n is the number of
+bits in the vector. Vector nets and regs shall be treated as unsigned quantities, unless the net or reg is
+declared to be signed or is connected to a port that is declared to be signed (see 12.2.3).
+For example:
+wand w;
+// a scalar net of type "wand"
+tri [15:0] busa;
+// a three-state 16-bit bus
+trireg (small) storeit;
+// a charge storage node of strength small
+reg a;
+// a scalar reg
+reg[3:0] v;
+// a 4-bit vector reg made up of (from most to
+// least significant)v[3], v[2], v[1], and v[0]
+reg signed [3:0] signed_reg;
+// a 4-bit vector in range -8 to 7
+reg [-1:4] b;
+// a 6-bit vector reg
+wire w1, w2;
+// declares two wires
+reg [4:0] x, y, z;
+// declares three 5-bit regs
+Implementations may set a limit on the maximum length of a vector, but the limit shall be at least
+## 65536 (216) bits.
+
+Implementations are not required to detect overflow of integer operations.
+#### 4.3.2 Vector net accessibility
+
+Vectored and scalared shall be optional advisory keywords to be used in vector net or reg declaration. If
+these keywords are implemented, certain operations on vectors may be restricted. If the keyword vectored is
+used, bit-selects and part-selects and strength specifications may not be permitted, and the PLI may consider
+the object unexpanded. If the keyword scalared is used, bit-selects and part-selects of the object shall be
+permitted, and the PLI shall consider the object expanded.
+CAUTION
+Nets and variables can be assigned negative values, but only integer, real,
+realtime, and signed reg variables and signed nets shall retain the significance
+of the sign. Time and unsigned reg variables and unsigned nets shall treat the
+value assigned to them as an unsigned value. See 5.1.6 for a description of
+how signed and unsigned nets and variables are treated by certain Verilog
+operators.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+25
+For example:
+tri1 scalared [63:0] bus64;
+//a bus that will be expanded
+tri vectored [31:0] data;
+//a bus that may or may not be expanded
+### 4.4 Strengths
+
+Two types of strengths can be specified in a net declaration as follows:
+—
+Charge strength shall only be used when declaring a net of type trireg.
+—
+Drive strength shall only be used when placing a continuous assignment on a net in the same
+statement that declares the net.
+Gate declarations can also specify a drive strength. See Clause 7 for more information on gates and for
+information on strengths.
+#### 4.4.1 Charge strength
+
+The charge strength specification shall be used only with trireg nets. A trireg net shall be used to model
+charge storage; charge strength shall specify the relative size of the capacitance indicated by one of the
+following keywords:
+—
+small
+—
+medium
+—
+large
+The default charge strength of a trireg net shall be medium.
+A trireg net can model a charge storage node whose charge decays over time. The simulation time of a
+charge decay shall be specified in the delay specification for the trireg net (see 7.14.2).
+For example:
+trireg a;
+// trireg net of charge strength medium
+trireg (large) #(0,0,50) cap1;
+// trireg net of charge strength large
+
+// with charge decay time 50 time units
+trireg (small)signed [3:0] cap2;
+// signed 4-bit trireg vector of
+
+// charge strength small
+#### 4.4.2 Drive strength
+
+The drive strength specification allows a continuous assignment to be placed on a net in the same statement
+that declares that net. See Clause 6 for more details. Net strength properties are described in detail in
+Clause 7.
+### 4.5 Implicit declarations
+
+The syntax shown in 4.2 shall be used to declare nets and variables explicitly. In the absence of an explicit
+declaration, an implicit net of default net type shall be assumed in the following circumstances:
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+26
+Copyright © 2006 IEEE. All rights reserved.
+—
+If an identifier is used in a port expression declaration, then an implicit net of default net type shall
+be assumed, with the vector width of the port expression declaration. See 12.3.3 for a discussion of
+port expression declarations.
+—
+If an identifier is used in the terminal list of a primitive instance or a module instance, and that
+identifier has not been declared previously in the scope where the instantiation appears or in any
+scope whose declarations can be directly referenced from the scope where the instantiation appears
+(see 12.7), then an implicit scalar net of default net type shall be assumed.
+—
+If an identifier appears on the left-hand side of a continuous assignment statement, and that identifier
+has not been declared previously in the scope where the continuous assignment statement appears or
+in any scope whose declarations can be directly referenced from the scope where the continuous
+assignment statement appears (see 12.7), then an implicit scalar net of default net type shall be
+assumed. See 6.1.2 for a discussion of continuous assignment statements.
+The implicit net declaration belongs to the scope in which the net reference appears. For example, if the
+implicit net is declared by a reference in a generate block, then the net is implicitly declared only in that
+generate block. Subsequent references to the net from outside the generate block or in another generate
+block within the same module either would be illegal or would create another implicit declaration of a
+different net (depending on whether the reference meets the above criteria). See 12.4 for information about
+generate blocks.
+See 19.2 for a discussion of control of the type for implicitly declared nets with the `default_nettype
+compiler directive.
+### 4.6 Net types
+
+There are several distinct types of nets, as shown in Table 4-1.
+#### 4.6.1 Wire and tri nets
+
+The wire and tri nets connect elements. The net types wire and tri shall be identical in their syntax and
+functions; two names are provided so that the name of a net can indicate the purpose of the net in that model.
+A wire net can be used for nets that are driven by a single gate or continuous assignment. The tri net type
+can be used where multiple drivers drive a net.
+Logical conflicts from multiple sources of the same strength on a wire or a tri net result in x (unknown)
+values.
+Table 4-2 is a truth table for resolving multiple drivers on wire and tri nets. It assumes equal strengths for
+both drivers. See 7.9 for a discussion of logic strength modeling.
+Table 4-1—Net types
+wire
+tri
+tri0
+supply0
+wand
+triand
+tri1
+supply1
+wor
+trior
+trireg
+uwire
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+27
+#### 4.6.2 Wired nets
+
+Wired nets are of type wor, wand, trior, and triand and are used to model wired logic configurations. Wired
+nets use different truth tables to resolve the conflicts that result when multiple drivers drive the same net.
+The wor and trior nets shall create wired or configurations so that when any of the drivers is 1, the resulting
+value of the net is 1. The wand and triand nets shall create wired and configurations so that if any driver is
+0, the value of the net is 0.
+The net types wor and trior shall be identical in their syntax and functionality. The net types wand and
+triand shall be identical in their syntax and functionality. Table 4-3 and Table 4-4 give the truth tables for
+wired nets, assuming equal strengths for both drivers. See 7.9 for a discussion of logic strength modeling.
+Table 4-2—Truth table for wire and tri nets
+wire/tri
+0
+1
+x
+z
+0
+0
+x
+x
+0
+1
+x
+1
+x
+1
+x
+x
+x
+x
+x
+z
+0
+1
+x
+z
+Table 4-3—Truth table for wand and triand nets
+wand/triand
+0
+1
+x
+z
+0
+0
+0
+0
+0
+1
+0
+1
+x
+1
+x
+0
+x
+x
+x
+z
+0
+1
+x
+z
+Table 4-4—Truth table for wor and trior nets
+wor/trior
+0
+1
+x
+z
+0
+0
+1
+x
+0
+1
+1
+1
+1
+1
+x
+x
+1
+x
+x
+z
+0
+1
+x
+z
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+28
+Copyright © 2006 IEEE. All rights reserved.
+#### 4.6.3 Trireg net
+
+The trireg net stores a value and is used to model charge storage nodes. A trireg net can be in one of two
+states:
+Driven state
+When at least one driver of a trireg net has a value of 1, 0, or x, the resolved
+value propagates into the trireg net and is the driven value of the trireg net.
+Capacitive state
+When all the drivers of a trireg net are at the high-impedance value (z), the
+trireg net retains its last driven value; the high-impedance value does not propa-
+gate from the driver to the trireg.
+The strength of the value on the trireg net in the capacitive state can be small, medium, or large, depending
+on the size specified in the declaration of the trireg net. The strength of a trireg net in the driven state can be
+supply, strong, pull, or weak, depending on the strength of the driver.
+For example:
+Figure 4-1 shows a schematic that includes a trireg net whose size is medium, its driver, and the simulation
+results.
+a)
+At simulation time 0, wire a and wire b have a value of 1. A value of 1 with a strong strength prop-
+agates from the and gate through the nmos switches connected to each other by wire c into trireg
+net d.
+b)
+At simulation time 10, wire a changes value to 0, disconnecting wire c from the and gate. When
+wire c is no longer connected to the and gate, the value of wire c changes to HiZ. The value of wire
+b remains 1 so wire c remains connected to trireg net d through the nmos2 switch. The HiZ value
+does not propagate from wire c into trireg net d. Instead, trireg net d enters the capacitive state, stor-
+ing its last driven value of 1. It stores the 1 with a medium strength.
+##### 4.6.3.1 Capacitive networks
+
+A capacitive network is a connection between two or more trireg nets. In a capacitive network whose trireg
+nets are in the capacitive state, logic and strength values can propagate between trireg nets.
+For example:
+Figure 4-2 shows a capacitive network in which the logic value of some trireg nets change the logic value of
+other trireg nets of equal or smaller size.
+nmos1
+nmos2
+wire c
+trireg d
+wire a
+wire b
+simulation time
+wire a wire b
+wire c
+trireg d
+1
+1
+strong 1
+strong 1
+0
+1
+HiZ
+medium 1
+10
+0
+Figure 4-1—Simulation values of a trireg and its driver
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+29
+In Figure 4-2, the capacitive strength of trireg_la net is large, trireg_me1 and trireg_me2 are
+medium, and trireg_sm is small. Simulation reports the following sequence of events:
+a)
+At simulation time 0, wire a and wire b have a value of 1. The wire c drives a value of 1 into
+trireg_la and trireg_sm; wire d drives a value of 1 into trireg_me1 and trireg_me2.
+b)
+At simulation time 10, the value of wire b changes to 0, disconnecting trireg_sm and
+trireg_me2 from their drivers. These trireg nets enter the capacitive state and store the value 1,
+their last driven value.
+c)
+At simulation time 20, wire c drives a value of 0 into trireg_la.
+d)
+At simulation time 30, wire d drives a value of 0 into trireg_me1.
+e)
+At simulation time 40, the value of wire a changes to 0, disconnecting trireg_la and
+trireg_me1 from their drivers. These trireg nets enter the capacitive state and store the value 0.
+f)
+At simulation time 50, the value of wire b changes to 1.
+This change of value in wire b connects trireg_sm to trireg_la; these trireg nets have different
+sizes and stored different values. This connection causes the smaller trireg net to store the value of
+the larger trireg net, and trireg_sm now stores a value of 0.
+This change of value in wire b also connects trireg_me1 to trireg_me2; these trireg nets have
+the same size and stored different values. The connection causes both trireg_me1 and
+trireg_me2 to change value to x.
+40
+0
+0
+0
+0
+0
+1
+0
+1
+trireg_sm
+trireg_la
+trireg_me2
+trireg_me1
+wire a
+wire b
+wire c
+wire d
+simulation
+time
+wire a
+wire b
+wire c
+wire d
+trireg_la
+trireg_sm
+trireg_me1
+trireg_me2
+0
+1
+1
+1
+1
+1
+1
+1
+1
+10
+0
+1
+1
+1
+1
+1
+1
+1
+20
+1
+0
+1
+1
+1
+0
+0
+1
+30
+1
+0
+0
+0
+0
+1
+0
+1
+nmos_1
+nmos_2
+tranif1_2
+50
+0
+1
+0
+0
+0
+0
+x
+x
+tranif1_1
+Figure 4-2—Simulation results of a capacitive network
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+30
+Copyright © 2006 IEEE. All rights reserved.
+In a capacitive network, charge strengths propagate from a larger trireg net to a smaller trireg net. Figure 4-3
+shows a capacitive network and its simulation results.
+In Figure 4-3, the capacitive strength of trireg_la is large, and the capacitive strength of trireg_sm is
+small. Simulation reports the following results:
+a)
+At simulation time 0, the values of wire a, wire b, and wire c are 1, and wire a drives a strong 1
+into trireg_la and trireg_sm.
+b)
+At simulation time 10, the value of wire b changes to 0, disconnecting trireg_la and trireg_sm
+from wire a. The trireg_la and trireg_sm nets enter the capacitive state. Both trireg nets share
+the large charge of trireg_la because they remain connected through tranif1_2.
+c)
+At simulation time 20, the value of wire c changes to 0, disconnecting trireg_sm from
+trireg_la. The trireg_sm no longer shares large charge of trireg_la and now stores a small
+charge.
+d)
+At simulation time 30, the value of wire c changes to 1, connecting the two trireg nets. These trireg
+nets now share the same charge.
+e)
+At simulation time 40, the value of wire c changes again to 0, disconnecting trireg_sm from
+trireg_la. Once again, trireg_sm no longer shares the large charge of trireg_la and now
+stores a small charge.
+##### 4.6.3.2 Ideal capacitive state and charge decay
+
+A trireg net can retain its value indefinitely, or its charge can decay over time. The simulation time of charge
+decay is specified in the delay specification of the trireg net. See 7.14.2 for charge decay explanation.
+tranif1_2
+trireg_sm
+simulation
+time
+wire a
+wire b
+wire c
+tranif1_1
+wire a
+wire b
+trireg_la
+trireg_sm
+0
+strong 1
+wire c
+strong 1
+strong 1
+1
+1
+0
+1
+large 1
+large 1
+strong 1
+10
+20
+0
+0
+small 1
+large 1
+strong 1
+30
+1
+large 1
+large 1
+strong 1
+0
+40
+0
+0
+small 1
+large 1
+strong 1
+trireg_la
+Figure 4-3—Simulation results of charge sharing
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+31
+#### 4.6.4 Tri0 and tri1 nets
+
+The tri0 and tri1 nets model nets with resistive pulldown and resistive pullup devices on them. A tri0 net is
+equivalent to a wire net with a continuous 0 value of pull strength driving it. A tri1 net is equivalent to a
+wire net with a continuous 1 value of pull strength driving it.
+When no driver drives a tri0 net, its value is 0 with strength pull. When no driver drives a tri1 net, its value
+is 1 with strength pull. When there are drivers on a tri0 or tri1 net, the drivers combine with the strength
+pull value implicitly driven on the net to determine the net’s value. See 7.9 for a discussion of logic strength
+modeling.
+Table 4-5 and Table 4-6 are truth tables for modeling multiple drivers of strength strong on tri0 and tri1
+nets. The resulting value on the net has strength strong, unless both drivers are z, in which case the net has
+strength pull.
+#### 4.6.5 Unresolved nets
+
+The uwire net is an unresolved or unidriver wire and is used to model nets that allow only a single driver.
+The uwire type can be used to enforce this restriction. It shall be an error to connect any bit of a uwire net to
+more than one driver. It shall be an error to connect a uwire net to a bidirectional terminal of a bidirectional
+pass switch.
+The port connection rule in 12.3.9.3 ensures that an implementation enforces this restriction across the net
+hierarchy or gives a warning if it does not.
+Table 4-5—Truth table for tri0 net
+tri0
+0
+1
+x
+z
+0
+0
+x
+x
+0
+1
+x
+1
+x
+1
+x
+x
+x
+x
+x
+z
+0
+1
+x
+0
+Table 4-6—Truth table for tri1 net
+tri1
+0
+1
+x
+z
+0
+0
+x
+x
+0
+1
+x
+1
+x
+1
+x
+x
+x
+x
+x
+z
+0
+1
+x
+1
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+32
+Copyright © 2006 IEEE. All rights reserved.
+#### 4.6.6 Supply nets
+
+The supply0 and supply1 nets can be used to model the power supplies in a circuit. These nets shall have
+supply strengths.
+### 4.7 Regs
+
+Assignments to a reg are made by procedural assignments (see 6.2 and 9.2). Because the reg holds a value
+between assignments, it can be used to model hardware registers. Edge-sensitive (i.e., flip-flops) and level-
+sensitive (i.e., reset-set and transparent latches) storage elements can be modeled. A reg need not represent a
+hardware storage element because it can also be used to represent combinatorial logic.
+### 4.8 Integers, reals, times, and realtimes
+
+In addition to modeling hardware, there are other uses for variables in an HDL model. Although reg
+variables can be used for general purposes such as counting the number of times a particular net changes
+value, the integer and time variable data types are provided for convenience and to make the description
+more self-documenting.
+The syntax for  declaring  integer,  time, real, and realtime variables is given in Syntax 4-3 (from
+Syntax 4-2).
+Syntax 4-3—Syntax for integer, time, real, and realtime declarations
+The syntax for a list of reg variables is defined in 4.2.2.
+An integer is a general-purpose variable used for manipulating quantities that are not regarded as hardware
+registers.
+```ebnf
+integer_declaration ::= (From A.2.1.3)
+```
+
+integer list_of_variable_identifiers ;
+```ebnf
+real_declaration ::=
+```
+
+real list_of_real_identifiers ;
+```ebnf
+realtime_declaration ::=
+```
+
+realtime list_of_real_identifiers ;
+```ebnf
+time_declaration ::=
+```
+
+time list_of_variable_identifiers ;
+```ebnf
+real_type ::= (From A.2.2.1)
+   real_identifier { dimension }
+| real_identifier = constant_expression
+variable_type ::=
+  variable_identifier { dimension }
+| variable_identifier = constant_expression
+list_of_real_identifiers ::= (From A.2.3)
+```
+
+real_type { , real_type }
+```ebnf
+list_of_variable_identifiers ::=
+```
+
+variable_type { , variable_type }
+```ebnf
+dimension ::= (From A.2.5)
+```
+
+[ dimension_constant_expression : dimension_constant_expression ]
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+33
+A time variable is used for storing and manipulating simulation time quantities in situations where timing
+checks are required and for diagnostics and debugging purposes. This data type is typically used in
+conjunction with the $time system function (see 17.7.1).
+The integer and time variables shall be assigned values in the same manner as reg. Procedural assignments
+shall be used to trigger their value changes.
+The time variables shall behave the same as a reg of at least 64 bits, with the least significant bit being bit 0.
+They shall be unsigned quantities, and unsigned arithmetic shall be performed on them. In contrast, integer
+variables shall be treated as signed regs with the least significant bit being zero. Arithmetic operations
+performed on integer variables shall produce twos-complement results.
+Bit-selects and part-selects of vector regs, integer variables, and time variables shall be allowed (see 5.2).
+Implementations may limit the maximum size of integer variables, but it shall be at least 32 bits.
+The Verilog HDL supports real number constants and real variable data types in addition to integer and time
+variable data types. Except for the following restrictions, variables declared as real can be used in the same
+places that integer and time variables are used:
+—
+Not all Verilog HDL operators can be used with real number values. See Table 5-2 and Table 5-3 for
+lists of valid and invalid operators for real numbers and real variables.
+—
+Real variables shall not use range in the declaration.
+—
+Real variables shall default to an initial value of zero.
+The realtime declarations shall be treated synonymously with real declarations and can be used
+interchangeably.
+For example:
+integer a;
+// integer value
+time last_chng;
+// time value
+real float ;
+// a variable to store a real value
+realtime rtime ;
+// a variable to store time as a real value
+#### 4.8.1 Operators and real numbers
+
+The result of using logical or relational operators on real numbers and real variables is a single-bit scalar
+value. Not all Verilog HDL operators can be used with expressions involving real numbers and real
+variables. Table 5-2 lists the valid operators for use with real numbers and real variables. Real number
+constants and real variables are also prohibited in the following cases:
+—
+Edge descriptors (posedge, negedge) applied to real variables
+—
+Bit-select or part-select references of variables declared as real
+—
+Real number index expressions of bit-select or part-select references of vectors
+#### 4.8.2 Conversion
+
+Real numbers shall be converted to integers by rounding the real number to the nearest integer, rather than
+by truncating it. Implicit conversion shall take place when a real number is assigned to an integer. If the
+fractional part of the real number is exactly 0.5, it shall be rounded away from zero.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+34
+Copyright © 2006 IEEE. All rights reserved.
+Implicit conversion shall take place when an expression is assigned to a real. Individual bits that are x or z in
+the net or the variable shall be treated as zero upon conversion.
+See 17.8 for a discussion of system tasks that perform explicit conversion.
+### 4.9 Arrays
+
+An array declaration for a net or a variable declares an element type that is either scalar or vector (see 4.3).
+For example:
+NOTE—Array size does not affect the element size.
+Arrays can be used to group elements of the declared element type into multidimensional objects. Arrays
+shall be declared by specifying the element address range(s) after the declared identifier. Each dimension
+shall be represented by an address range. See 4.2.1 and 4.2.2 for net and variable declarations. The
+expressions that specify the indices of the array shall be constant integer expressions. The value of the
+constant expression can be a positive integer, a negative integer, or zero.
+One declaration statement can be used for declaring both arrays and elements of the declared data type. This
+ability makes it convenient to declare both arrays and elements that match the element vector width in the
+same declaration statement.
+An element can be assigned a value in a single assignment, but complete or partial array dimensions cannot.
+Nor can complete or partial array dimensions be used to provide a value to an expression. To assign a value
+to an element of an array, an index for every dimension shall be specified. The index can be an expression.
+This option provides a mechanism to reference different array elements depending on the value of other
+variables and nets in the circuit. For example, a program counter reg can be used to index into a random
+access memory (RAM).
+Implementations may limit the maximum size of an array, but they shall allow at least
+## 16 777 216 (224) elements.
+
+#### 4.9.1 Net arrays
+
+Elements of net arrays can be used in the same fashion as a scalar or vector net. They are useful for
+connecting to ports of module instances inside loop generate constructs (see 12.4.1).
+#### 4.9.2 reg and variable arrays
+
+Arrays for all variables types (reg, integer, time, real, realtime) shall be possible.
+Declaration
+Element type
+reg x[11:0];
+scalar reg
+wire [0:7] y[5:0];
+8-bit-wide vector wire indexed from 0 to 7
+reg [31:0] x [127:0];
+32-bit-wide reg
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+35
+#### 4.9.3 Memories
+
+A one-dimensional array with elements of type reg is also called a memory. These memories can be used to
+model read-only memories (ROMs), random access memories (RAMs), and reg files. Each reg in the array
+is known as an element or word and is addressed by a single array index.
+An n-bit reg can be assigned a value in a single assignment, but a complete memory cannot. To assign a
+value to a memory word, an index shall be specified. The index can be an expression. This option provides a
+mechanism to reference different memory words, depending on the value of other variables and nets in the
+circuit. For example, a program counter reg could be used to index into a RAM.
+##### 4.9.3.1 Array examples
+
+###### 4.9.3.1.1 Array declarations
+
+reg [7:0] mema[0:255];
+// declares a memory mema of 256 8-bit
+
+// registers. The indices are 0 to 255
+reg arrayb[7:0][0:255];
+// declare a two-dimensional array of
+// one bit registers
+wire w_array[7:0][5:0];
+// declare array of wires
+integer inta[1:64];
+// an array of 64 integer values
+time chng_hist[1:1000]
+// an array of 1000 time values
+integer t_index;
+###### 4.9.3.1.2 Assignment to array elements
+
+The assignment statements in this subclause assume the presence of the declarations in 4.9.3.1.1.
+mema = 0;       // Illegal syntax- Attempt to write to entire array
+arrayb[1] = 0;
+// Illegal Syntax - Attempt to write to elements
+
+// [1][0]..[1][255]
+arrayb[1][12:31] = 0; // Illegal Syntax - Attempt to write to
+                      //  elements [1][12]..[1][31]
+mema[1] = 0;      // Assigns 0 to the second element of mema
+arrayb[1][0] = 0; // Assigns 0 to the bit referenced by indices
+                  // [1][0]
+inta[4] = 33559;  // Assign decimal number to integer in array
+chng_hist[t_index] = $time;
+// Assign current simulation time to
+
+//  element addressed by integer index
+###### 4.9.3.1.3 Memory differences
+
+A memory of n 1-bit regs is different from an n-bit vector reg.
+reg [1:n] rega; // An n-bit register is not the same
+reg mema [1:n]; // as a memory of n 1-bit registers
+### 4.10 Parameters
+
+Verilog HDL parameters do not belong to either the variable or the net group. Parameters are not variables;
+they are constants. There are two types of parameters: module parameters and specify parameters. It is
+illegal to redeclare a name already declared by a net, parameter, or variable declaration.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+36
+Copyright © 2006 IEEE. All rights reserved.
+Both types of parameters accept a range specification. By default, parameters and specparams shall be as
+wide as necessary to contain the value of the constant, except when a range specification is present.
+#### 4.10.1 Module parameters
+
+The syntax for module parameter declarations is given in Syntax 4-4.
+Syntax 4-4—Syntax for module parameter declaration
+The list_of_param_assignments shall be a comma-separated list of assignments, where the right-hand side
+of the assignment shall be a constant expression, that is, an expression containing only constant numbers and
+previously defined parameters (see Clause 5).
+The list_of_param_assignments can appear in a module as a set of module_items or in the module
+declaration in the module_parameter_port_list (see 12.1). If any param_assignments appear in a
+module_parameter_port_list, then any param_assignments that appear in the module become local
+parameters and shall not be overridden by any method.
+Parameters represent constants; hence, it is illegal to modify their value at run time. However, module
+parameters can be modified at compilation time to have values that are different from those specified in the
+declaration assignment. This allows customization of module instances. A parameter can be modified with
+the defparam statement or in the module instance statement. Typical uses of parameters are to specify
+delays and width of variables. See 12.2 for details on parameter value assignment.
+A module parameter can have a type specification and a range specification. The type and range of module
+parameters shall be in accordance with the following rules:
+—
+A parameter declaration with no type or range specification shall default to the type and range of the
+final value assigned to the parameter, after any value overrides have been applied.
+—
+A parameter with a range specification, but with no type specification, shall be the range of the
+parameter declaration and shall be unsigned. The sign and range shall not be affected by value
+overrides.
+—
+A parameter with a type specification, but with no range specification, shall be of the type specified.
+A signed parameter shall default to the range of the final value assigned to the parameter, after any
+value overrides have been applied.
+—
+A parameter with a signed type specification and with a range specification shall be signed and shall
+be the range of its declaration. The sign and range shall not be affected by value overrides.
+```ebnf
+local_parameter_declaration ::=  (From A.2.1.1)
+```
+
+localparam [ signed ] [ range ] list_of_param_assignments
+| localparam parameter_type list_of_param_assignments
+```ebnf
+parameter_declaration ::=
+```
+
+parameter [ signed ] [ range ] list_of_param_assignments
+| parameter parameter_type list_of_param_assignments
+```ebnf
+parameter_type ::=
+```
+
+integer | real | realtime | time
+```ebnf
+list_of_param_assignments ::= (From A.2.3)
+```
+
+param_assignment { , param_assignment }
+```ebnf
+param_assignment ::= (From A.2.4)
+```
+
+parameter_identifier = constant_mintypmax_expression
+```ebnf
+range ::=  (From A.2.5)
+```
+
+[ msb_constant_expression : lsb_constant_expression ]
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+37
+—
+A parameter with no range specification and with either a signed type specification or no type
+specification shall have an implied range with an lsb equal to 0 and an msb equal to one less than the
+size of the final value assigned to the parameter.
+—
+A parameter with no range specification, with either a signed type specification or no type
+specification, and for which the final value assigned to it is unsized shall have an implied range with
+an lsb equal to 0 and an msb equal to an implementation-dependent value of at least 31.
+The conversion rules between real and integer values described in 4.8.2 apply to parameters as well.
+Bit-selects and part-selects of parameters that are not of type real shall be allowed (see 5.2).
+For example:
+parameter
+msb = 7;
+// defines msb as a constant value 7
+parameter
+e = 25, f = 9;
+// defines two constant numbers
+parameter
+r = 5.7;
+// declares r as a real parameter
+parameter
+byte_size = 8,
+byte_mask = byte_size - 1;
+parameter
+average_delay = (r + f) / 2;
+parameter signed [3:0] mux_selector = 0;
+parameter real r1 = 3.5e17;
+parameter
+p1 = 13'h7e;
+parameter
+[31:0] dec_const = 1'b1;
+// value converted to 32 bits
+parameter
+newconst = 3'h4;
+// implied range of [2:0]
+parameter
+newconst = 4;
+// implied range of at least [31:0]
+#### 4.10.2 Local parameters (localparam)
+
+Verilog HDL local parameters are identical to parameters except that they cannot directly be modified by
+defparam statements (see 12.2.1) or module instance parameter value assignments (see 12.2.2). Local
+parameters can be assigned constant expressions containing parameters, which can be modified with
+defparam statements or module instance parameter value assignments.
+Bit-selects and part-selects of local parameters that are not of type real shall be allowed (see 5.2).
+The syntax for local parameter declarations is given in Syntax 4-4.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+38
+Copyright © 2006 IEEE. All rights reserved.
+#### 4.10.3 Specify parameters
+
+The syntax for declaring specify parameters is shown in Syntax 4-5.
+Syntax 4-5—Syntax for specparam declaration
+The keyword specparam declares a special type of parameter that is intended only for providing timing and
+delay values, but can appear in any expression that is not assigned to a parameter and is not part of the range
+specification of a declaration. Specify parameters (also called specparams) are permitted both within the
+specify block (see Clause 14) and in the main module body.
+A specify parameter declared outside a specify block shall be declared before it is referenced. The value
+assigned to a specify parameter can be any constant expression. A specify parameter can be used as part of a
+constant expression for a subsequent specify parameter declaration. Unlike a module parameter, a specify
+parameter cannot be modified from within the language, but it can be modified through SDF annotation (see
+Clause 16).
+Specify parameters and module parameters are not interchangeable. In addition, module parameters shall not
+be assigned a constant expression that includes any specify parameters. Table 4-7 summarizes the
+differences between the two types of parameter declarations.
+```ebnf
+specparam_declaration ::= (From A.2.1.1)
+```
+
+specparam [ range ] list_of_specparam_assignments ;
+```ebnf
+list_of_specparam_assignments ::= (From A.2.3)
+```
+
+specparam_assignment { , specparam_assignment }
+```ebnf
+specparam_assignment ::= (From A.2.4)
+```
+
+specparam_identifier = constant_mintypmax_expression
+| pulse_control_specparam
+```ebnf
+pulse_control_specparam ::=
+```
+
+PATHPULSE$ = ( reject_limit_value [ , error_limit_value ] )
+| PATHPULSE$specify_input_terminal_descriptor$specify_output_terminal_descriptor
+= ( reject_limit_value [ , error_limit_value ] )
+```ebnf
+error_limit_value ::=
+```
+
+limit_value
+```ebnf
+reject_limit_value ::=
+```
+
+limit_value
+```ebnf
+limit_value ::=
+```
+
+constant_mintypmax_expression
+```ebnf
+range ::=  (From A.2.5)
+```
+
+[ msb_constant_expression : lsb_constant_expression ]
+Table 4-7—Differences between specparams and parameters
+Specparams (specify parameter)
+Parameters (module parameter)
+Use keyword specparam
+Use keyword parameter
+Shall be declared inside a module or specify block
+Shall be declared outside specify blocks
+May only be used inside a module or specify block
+May not be used inside specify blocks
+May be assigned specparams and parameters
+May not be assigned specparams
+Use SDF annotation to override values
+Use defparam or instance declaration parame-
+ter value passing to override values
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+39
+A specify parameter can have a range specification. The range of specify parameters shall be in accordance
+with the following rules:
+—
+A specparam declaration with no range specification shall default to the range of the final value
+assigned to the parameter, after any value overrides have been applied.
+—
+A specparam with a range specification shall be the range of the parameter declaration. The range
+shall not be affected by value overrides.
+Bit-selects and part-selects of specify parameters that are not of type real shall be allowed (see 5.2).
+For example:
+specify
+specparam tRise_clk_q = 150, tFall_clk_q = 200;
+specparam tRise_control = 40, tFall_control = 50;
+endspecify
+The lines between the keywords specify and endspecify declare four specify parameters. The first line
+declares specify parameters called tRise_clk_q and tFall_clk_q with values 150 and 200,
+respectively; the second line declares tRise_control and tFall_control specify parameters with
+values 40 and 50, respectively.
+For example:
+module RAM16GEN (output [7:0] DOUT, input [7:0] DIN, input [5:0] ADR,
+input WE, CE);
+specparam dhold = 1.0;
+specparam ddly = 1.0;
+parameter width = 1;
+parameter regsize = dhold + 1.0;
+// Illegal - cannot assign
+// specparams to parameters
+endmodule
+### 4.11 Name spaces
+
+In Verilog HDL, there are several name spaces; two are global and the rest are local. The global name spaces
+are definitions and text macros. The definitions name space unifies all the module (see 12.1) and primitive
+(see 8.1) definitions. Once a name is used to define a module or primitive, the name shall not be used again
+to declare another module or primitive.
+The text macro name space is global. Because text macro names are introduced and used with a leading
+` character, they remain unambiguous with any other name space (see 19.3). The text macro names are
+defined in the linear order of appearance in the set of input files that make up the description of the design
+unit. Subsequent definitions of the same name override the previous definitions for the balance of the input
+files.
+The local name spaces are block, module, generate block, port, specify block, and attribute. Once a name is
+defined within the block, module, port, generate block, or specify block name space, it shall not be defined
+again in that space (with the same or a different type). As described in 3.8, it is legal to redefine names
+within the attribute name space.
+The block name space is introduced by the named block (see 9.8), function (see 10.4), and task (see 10.2)
+constructs. It unifies the definitions of the named blocks, functions, tasks, parameters, named events, and
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+40
+Copyright © 2006 IEEE. All rights reserved.
+variable type of declaration (see 4.2.2). The variable type of declaration includes the reg, integer, time,
+real, and realtime declarations.
+The module name space is introduced by the module and primitive constructs. It unifies the definition of
+functions, tasks, named blocks, module instances, generate blocks, parameters, named events, genvars, net
+type of declaration, and variable type of declaration. The net type of declaration includes wire, wor, wand,
+tri, trior, triand, tri0, tri1, trireg, uwire, supply0, and supply1 (see 4.6).
+The generate block name space is introduced by generate constructs (see 12.4). It unifies the definition of
+functions, tasks, named blocks, module instances, generate blocks, local parameters, named events, genvars,
+net type of declaration, and variable type of declaration.
+The port name space is introduced by the module, primitive, function, and task constructs. It provides a
+means of structurally defining connections between two objects that are in two different name spaces. The
+connection can be unidirectional (either input or output) or bidirectional (inout). The port name space
+overlaps the module and the block name spaces. Essentially, the port name space specifies the type of
+connection between names in different name spaces. The port type of declarations include input, output,
+and inout (see 12.3). A port name introduced in the port name space may be reintroduced in the module
+name space by declaring a variable or a wire with the same name as the port name.
+The specify block name space is introduced by the specify construct (see 14.2).
+The attribute name space is enclosed by the (* and *) constructs attached to a language element (see 3.8).
+An attribute name can be defined and used only in the attribute name space. Any other type of name cannot
+be defined in this name space.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.

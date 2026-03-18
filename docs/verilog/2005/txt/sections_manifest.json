@@ -1,0 +1,346 @@
+{
+  "source_pdf": "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf",
+  "standard": "IEEE 1364-2005",
+  "detection_mode": "pdf_toc",
+  "total_pages": 590,
+  "toc_entries": 685,
+  "clause_depth": 1,
+  "include_annex": true,
+  "toc_max_level": 6,
+  "section_count": 37,
+  "sections": [
+    {
+      "section_id": "1",
+      "title": "Overview",
+      "page_start": 31,
+      "page_end": 35,
+      "toc_level": 1,
+      "source_title": "1. Overview",
+      "filename": "section-1-overview.txt"
+    },
+    {
+      "section_id": "2",
+      "title": "Normative references",
+      "page_start": 36,
+      "page_end": 37,
+      "toc_level": 1,
+      "source_title": "2. Normative references",
+      "filename": "section-2-normative-references.txt"
+    },
+    {
+      "section_id": "3",
+      "title": "Lexical conventions",
+      "page_start": 38,
+      "page_end": 50,
+      "toc_level": 1,
+      "source_title": "3. Lexical conventions",
+      "filename": "section-3-lexical-conventions.txt"
+    },
+    {
+      "section_id": "4",
+      "title": "Data types",
+      "page_start": 51,
+      "page_end": 70,
+      "toc_level": 1,
+      "source_title": "4. Data types",
+      "filename": "section-4-data-types.txt"
+    },
+    {
+      "section_id": "5",
+      "title": "Expressions",
+      "page_start": 71,
+      "page_end": 97,
+      "toc_level": 1,
+      "source_title": "5. Expressions",
+      "filename": "section-5-expressions.txt"
+    },
+    {
+      "section_id": "6",
+      "title": "Assignments",
+      "page_start": 98,
+      "page_end": 103,
+      "toc_level": 1,
+      "source_title": "6. Assignments",
+      "filename": "section-6-assignments.txt"
+    },
+    {
+      "section_id": "7",
+      "title": "Gate- and switch-level modeling",
+      "page_start": 104,
+      "page_end": 134,
+      "toc_level": 1,
+      "source_title": "7. Gate- and switch-level modeling",
+      "filename": "section-7-gate-and-switch-level-modeling.txt"
+    },
+    {
+      "section_id": "8",
+      "title": "User-defined primitives (UDPs)",
+      "page_start": 135,
+      "page_end": 145,
+      "toc_level": 1,
+      "source_title": "8. User-defined primitives (UDPs)",
+      "filename": "section-8-user-defined-primitives-udps.txt"
+    },
+    {
+      "section_id": "9",
+      "title": "Behavioral modeling",
+      "page_start": 146,
+      "page_end": 174,
+      "toc_level": 1,
+      "source_title": "9. Behavioral modeling",
+      "filename": "section-9-behavioral-modeling.txt"
+    },
+    {
+      "section_id": "10",
+      "title": "Tasks and functions",
+      "page_start": 175,
+      "page_end": 187,
+      "toc_level": 1,
+      "source_title": "10. Tasks and functions",
+      "filename": "section-10-tasks-and-functions.txt"
+    },
+    {
+      "section_id": "11",
+      "title": "Scheduling semantics",
+      "page_start": 188,
+      "page_end": 192,
+      "toc_level": 1,
+      "source_title": "11. Scheduling semantics",
+      "filename": "section-11-scheduling-semantics.txt"
+    },
+    {
+      "section_id": "12",
+      "title": "Hierarchical structures",
+      "page_start": 193,
+      "page_end": 228,
+      "toc_level": 1,
+      "source_title": "12. Hierarchical structures",
+      "filename": "section-12-hierarchical-structures.txt"
+    },
+    {
+      "section_id": "13",
+      "title": "Configuring the contents of a design",
+      "page_start": 229,
+      "page_end": 240,
+      "toc_level": 1,
+      "source_title": "13. Configuring the contents of a design",
+      "filename": "section-13-configuring-the-contents-of-a-design.txt"
+    },
+    {
+      "section_id": "14",
+      "title": "Specify blocks",
+      "page_start": 241,
+      "page_end": 266,
+      "toc_level": 1,
+      "source_title": "14. Specify blocks",
+      "filename": "section-14-specify-blocks.txt"
+    },
+    {
+      "section_id": "15",
+      "title": "Timing checks",
+      "page_start": 267,
+      "page_end": 298,
+      "toc_level": 1,
+      "source_title": "15. Timing checks",
+      "filename": "section-15-timing-checks.txt"
+    },
+    {
+      "section_id": "16",
+      "title": "Backannotation using the standard delay format (SDF)",
+      "page_start": 299,
+      "page_end": 306,
+      "toc_level": 1,
+      "source_title": "16. Backannotation using the standard delay format (SDF)",
+      "filename": "section-16-backannotation-using-the-standard-delay-format-sdf.txt"
+    },
+    {
+      "section_id": "17",
+      "title": "System tasks and functions",
+      "page_start": 307,
+      "page_end": 354,
+      "toc_level": 1,
+      "source_title": "17. System tasks and functions",
+      "filename": "section-17-system-tasks-and-functions.txt"
+    },
+    {
+      "section_id": "18",
+      "title": "Value change dump (VCD) files",
+      "page_start": 355,
+      "page_end": 378,
+      "toc_level": 1,
+      "source_title": "18. Value change dump (VCD) files",
+      "filename": "section-18-value-change-dump-vcd-files.txt"
+    },
+    {
+      "section_id": "19",
+      "title": "Compiler directives",
+      "page_start": 379,
+      "page_end": 395,
+      "toc_level": 1,
+      "source_title": "19. Compiler directives",
+      "filename": "section-19-compiler-directives.txt"
+    },
+    {
+      "section_id": "20",
+      "title": "Programming language interface (PLI) overview",
+      "page_start": 396,
+      "page_end": 398,
+      "toc_level": 1,
+      "source_title": "20. Programming language interface (PLI) overview",
+      "filename": "section-20-programming-language-interface-pli-overview.txt"
+    },
+    {
+      "section_id": "21",
+      "title": "PLI TF and ACC interface mechanism (deprecated)",
+      "page_start": 399,
+      "page_end": 399,
+      "toc_level": 1,
+      "source_title": "21. PLI TF and ACC interface mechanism (deprecated)",
+      "filename": "section-21-pli-tf-and-acc-interface-mechanism-deprecated.txt"
+    },
+    {
+      "section_id": "22",
+      "title": "Using ACC routines (deprecated)",
+      "page_start": 400,
+      "page_end": 400,
+      "toc_level": 1,
+      "source_title": "22. Using ACC routines (deprecated)",
+      "filename": "section-22-using-acc-routines-deprecated.txt"
+    },
+    {
+      "section_id": "23",
+      "title": "ACC routine definitions (deprecated)",
+      "page_start": 401,
+      "page_end": 401,
+      "toc_level": 1,
+      "source_title": "23. ACC routine definitions (deprecated)",
+      "filename": "section-23-acc-routine-definitions-deprecated.txt"
+    },
+    {
+      "section_id": "24",
+      "title": "Using TF routines (deprecated)",
+      "page_start": 402,
+      "page_end": 402,
+      "toc_level": 1,
+      "source_title": "24. Using TF routines (deprecated)",
+      "filename": "section-24-using-tf-routines-deprecated.txt"
+    },
+    {
+      "section_id": "25",
+      "title": "TF routine definitions (deprecated)",
+      "page_start": 403,
+      "page_end": 403,
+      "toc_level": 1,
+      "source_title": "25. TF routine definitions (deprecated)",
+      "filename": "section-25-tf-routine-definitions-deprecated.txt"
+    },
+    {
+      "section_id": "26",
+      "title": "Using Verilog procedural interface (VPI) routines",
+      "page_start": 404,
+      "page_end": 447,
+      "toc_level": 1,
+      "source_title": "26. Using Verilog procedural interface (VPI) routines",
+      "filename": "section-26-using-verilog-procedural-interface-vpi-routines.txt"
+    },
+    {
+      "section_id": "27",
+      "title": "VPI routine definitions",
+      "page_start": 448,
+      "page_end": 496,
+      "toc_level": 1,
+      "source_title": "27. VPI routine definitions",
+      "filename": "section-27-vpi-routine-definitions.txt"
+    },
+    {
+      "section_id": "28",
+      "title": "Protected envelopes",
+      "page_start": 497,
+      "page_end": 516,
+      "toc_level": 1,
+      "source_title": "28. Protected envelopes",
+      "filename": "section-28-protected-envelopes.txt"
+    },
+    {
+      "section_id": "Annex A",
+      "title": "(normative) Formal syntax definition",
+      "page_start": 517,
+      "page_end": 539,
+      "toc_level": 1,
+      "source_title": "Annex A (normative) Formal syntax definition",
+      "filename": "section-Annex_A-normative-formal-syntax-definition.txt"
+    },
+    {
+      "section_id": "Annex B",
+      "title": "(normative) List of keywords",
+      "page_start": 540,
+      "page_end": 540,
+      "toc_level": 1,
+      "source_title": "Annex B (normative) List of keywords",
+      "filename": "section-Annex_B-normative-list-of-keywords.txt"
+    },
+    {
+      "section_id": "Annex C",
+      "title": "(informative) System tasks and functions",
+      "page_start": 541,
+      "page_end": 547,
+      "toc_level": 1,
+      "source_title": "Annex C (informative) System tasks and functions",
+      "filename": "section-Annex_C-informative-system-tasks-and-functions.txt"
+    },
+    {
+      "section_id": "Annex D",
+      "title": "(informative) Compiler directives",
+      "page_start": 548,
+      "page_end": 549,
+      "toc_level": 1,
+      "source_title": "Annex D (informative) Compiler directives",
+      "filename": "section-Annex_D-informative-compiler-directives.txt"
+    },
+    {
+      "section_id": "Annex E",
+      "title": "(normative) acc_user.h (deprecated)",
+      "page_start": 550,
+      "page_end": 550,
+      "toc_level": 1,
+      "source_title": "Annex E (normative) acc_user.h (deprecated)",
+      "filename": "section-Annex_E-normative-acc-user-h-deprecated.txt"
+    },
+    {
+      "section_id": "Annex F",
+      "title": "(normative) veriuser.h (deprecated)",
+      "page_start": 551,
+      "page_end": 551,
+      "toc_level": 1,
+      "source_title": "Annex F (normative) veriuser.h (deprecated)",
+      "filename": "section-Annex_F-normative-veriuser-h-deprecated.txt"
+    },
+    {
+      "section_id": "Annex G",
+      "title": "(normative) vpi_user.h",
+      "page_start": 552,
+      "page_end": 566,
+      "toc_level": 1,
+      "source_title": "Annex G (normative) vpi_user.h",
+      "filename": "section-Annex_G-normative-vpi-user-h.txt"
+    },
+    {
+      "section_id": "Annex H",
+      "title": "(informative) Encryption/decryption flow",
+      "page_start": 567,
+      "page_end": 571,
+      "toc_level": 1,
+      "source_title": "Annex H (informative) Encryption/decryption flow",
+      "filename": "section-Annex_H-informative-encryption-decryption-flow.txt"
+    },
+    {
+      "section_id": "Annex I",
+      "title": "(informative) Bibliography",
+      "page_start": 572,
+      "page_end": 590,
+      "toc_level": 1,
+      "source_title": "Annex I (informative) Bibliography",
+      "filename": "section-Annex_I-informative-bibliography.txt"
+    }
+  ]
+}

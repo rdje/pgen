@@ -1,0 +1,31 @@
+{
+  "source_pdf": "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf",
+  "standard": "IEEE 1364-2005",
+  "detection_mode": "pdf_toc",
+  "total_pages": 590,
+  "toc_entries": 685,
+  "clause_depth": 1,
+  "include_annex": false,
+  "toc_max_level": 6,
+  "section_count": 2,
+  "sections": [
+    {
+      "section_id": "1",
+      "title": "Overview",
+      "page_start": 31,
+      "page_end": 35,
+      "toc_level": 1,
+      "source_title": "1. Overview",
+      "filename": "section-1-overview.txt"
+    },
+    {
+      "section_id": "2",
+      "title": "Normative references",
+      "page_start": 36,
+      "page_end": 590,
+      "toc_level": 1,
+      "source_title": "2. Normative references",
+      "filename": "section-2-normative-references.txt"
+    }
+  ]
+}

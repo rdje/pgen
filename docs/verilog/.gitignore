@@ -1,0 +1,8 @@
+txt/*.txt
+txt/*.json
+txt/*.log
+md/*.md
+grammar_*.*
+
+!txt/.gitkeep
+!md/.gitkeep

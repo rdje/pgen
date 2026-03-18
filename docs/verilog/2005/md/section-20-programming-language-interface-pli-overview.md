@@ -1,0 +1,159 @@
+---
+title: "Section 20: Programming language interface (PLI) overview"
+document: "Verilog Hardware Description Language Reference Manual"
+standard: "IEEE 1364-2005"
+domain: "Verilog"
+section: "20"
+source_txt: "section-20-programming-language-interface-pli-overview.txt"
+source_pdf: "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf"
+---
+
+# Section 20: Programming language interface (PLI) overview
+
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+366
+Copyright © 2006 IEEE. All rights reserved.
+## 20. Programming language interface (PLI) overview
+
+### 20.1 PLI purpose and history
+
+IEEE Std 1364-2005 has deprecated the task/function (TF) and access (ACC) routines, which were specified
+previously in Clause 21 through Clause 25, Annex E, and Annex F of IEEE Std 1364-2001. Clause 20 has
+been modified to reflect this change. The text of deprecated clauses and annexes has been removed from this
+version of the standard, but the clause headings have been retained. See the corresponding clauses in IEEE
+Std 1364-2001 for the deprecated text.
+Clause 26, Clause 27, and Annex G describe the C language procedural interface standard and interface
+mechanisms that are part of the Verilog HDL. This procedural interface, known as the PLI, provides a
+means for Verilog HDL users to access and modify data in an instantiated Verilog HDL data structure
+dynamically. An instantiated Verilog HDL data structure is the result of compiling Verilog HDL source
+descriptions and generating the hierarchy modeled by module instances, primitive instances, and other
+Verilog HDL constructs that represent scope. The PLI procedural interface provides a library of C language
+functions that can directly access data within an instantiated Verilog HDL data structure.
+A few of the many possible applications for the PLI procedural interface are as follows:
+—
+C language delay calculators for Verilog model libraries that can dynamically scan the data structure
+of a Verilog software product and then dynamically modify the delays of each instance of models
+from the library
+—
+C language applications that dynamically read test vectors or other data from a file and pass the data
+into a Verilog software product
+—
+Custom graphical waveform and debugging environments for Verilog software products
+—
+Source code decompilers that can generate Verilog HDL source code from the compiled data
+structure of a Verilog software product
+—
+Simulation models written in the C language and dynamically linked into Verilog HDL simulations
+—
+Interfaces to actual hardware, such as a hardware modeler, that dynamically interact with
+simulations
+There are three primary generations of the Verilog PLI:
+a)
+Task/function routines, called TF routines, made up the first generation of the PLI. These routines,
+most of which started with the characters tf_, were primarily used for operations involving user-
+defined system task/function arguments, along with utility functions, such as setting up call-back
+mechanisms and writing data to output devices. The TF routines were sometimes referred to as
+utility routines
+NOTE—The TF routines have been deprecated from this version of the standard (see 1.6).
+b)
+Access routines, called ACC routines, formed the second generation of the PLI. These routines,
+which all started with the characters acc_, provided an object-oriented access directly into a Verilog
+HDL structural description. ACC routines were used to access and modify information, such as
+delay values and logic values, on a wide variety of objects that exist in a Verilog HDL description.
+There was some overlap in functionality between ACC routines and TF routines.
+NOTE—The ACC routines have been deprecated from this version of the standard (see 1.6).
+c)
+Verilog procedural interface routines, called VPI routines, are the third generation of the PLI. These
+routines, all of which start with the characters vpi_, provide an object-oriented access for both
+Verilog HDL structural and behavioral objects. The VPI routines are a superset of the functionality
+of the TF routines and ACC routines.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+367
+### 20.2 User-defined system task/function names
+
+A user-defined system task/function name is the name that will be used within a Verilog HDL source file to
+invoke specific PLI applications. The name shall adhere to the following rules:
+—
+The first character of the name shall be the dollar sign ($).
+—
+The remaining characters shall be letters, digits, the underscore character (_), or the dollar sign ($).
+—
+Uppercase and lowercase letters shall be considered to be unique—the name is case sensitive.
+—
+The name can be any size, and all characters are significant.
+### 20.3 User-defined system task/function types
+
+The type of a user-defined system task/function determines how a PLI application is called from the Verilog
+HDL source code. The types are as follows:
+—
+A user task can be used in the same places a Verilog HDL task can be used (see 10.2). A user-
+defined system task can read and modify the arguments of the task, but does not return any value.
+—
+A user function can be used in the same places a Verilog HDL function can be used (see 10.4). A
+user-defined system function can read and modify the arguments of the function, and it returns a
+value. The bit width of a vector shall be determined by a user-supplied sizetf application (see 27.34).
+### 20.4 Overriding built-in system task/function names
+
+Clause 17 defines a number of built-in system tasks and functions that are part of the Verilog language. In
+addition, software products can include other built-in system tasks and functions specific to the product.
+These built-in system task/function names begin with the dollar sign ($) just as user-defined system task/
+function names do.
+If a user-provided PLI application is associated with the same name as a built-in system task/function (using
+the PLI mechanism), the user-provided C application shall override the built-in system task/function,
+replacing its functionality with that of the user-provided C application. For example, a user could write a
+random number generator as a PLI application and then associate the application with the name $random,
+thereby overriding the built-in $random function with the user’s application.
+Verilog timing checks, such as $setup, are not system tasks and cannot be overridden.
+The system functions $signed and $unsigned can be overridden. These system functions are unique in the
+Verilog HDL in that the return width is based on the width of their argument. If overridden, the PLI version
+shall have the same return width for all instances of the system function. The PLI return width is defined by
+the PLI sizetf routine.
+### 20.5 User-supplied PLI applications
+
+User-supplied PLI applications are C language functions that utilize the library of PLI C functions to access
+and interact dynamically with Verilog HDL software implementations as the Verilog HDL source code is
+executed.
+These PLI applications are not independent C programs. They are C functions that are linked into a software
+product and become part of the product. This allows the PLI application to be called when the user-defined
+system task/function $ name is compiled or executed in the Verilog HDL source code (see 26.1).
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+368
+Copyright © 2006 IEEE. All rights reserved.
+### 20.6 PLI mechanism
+
+The PLI mechanism provides a means to have PLI applications called for various reasons when the
+associated system task/function $ name is encountered in the Verilog HDL source description. For example,
+when a Verilog HDL simulator first compiles the Verilog HDL source description, a specific PLI routine
+can be called that performs syntax checking to ensure the user-defined system task/function is being used
+correctly. Then, as simulation is executing, a different PLI routine can be called to perform the operations
+required by the PLI application. Other PLI routines can be automatically called by the simulator for
+miscellaneous reasons, such as the end of a simulation time step or a logic value change on a specific signal
+(see 26.1).
+### 20.7 User-defined system task/function arguments
+
+When a user-defined system task/function is used in a Verilog HDL source file, it can have arguments that
+can be used by the PLI applications associated with the system task/function. In the following example, the
+user-defined system task $get_vector has two arguments:
+$get_vector("test_vector.pat", input_bus);
+The arguments to a system task/function are referred to as task/function arguments (often abbreviated as
+tfargs). These arguments are not the same as C language arguments. When the PLI applications associated
+with a user-defined system task/function are called, the task/function arguments are not passed to the PLI
+application. Instead, a number of PLI routines are provided that allow the PLI applications to read and write
+to the task/function arguments. See Clause 27 for information on specific routines that work with task/
+function arguments.
+### 20.8 PLI include files
+
+The libraries of PLI functions are defined in a C include file, which is a normative part of this standard. This
+file also defines constants, structures, and other data used by the library of PLI routines and the interface
+mechanisms. The file is vpi_user.h (listed in Annex G). PLI applications that use the VPI routines shall
+include the file vpi_user.h.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.

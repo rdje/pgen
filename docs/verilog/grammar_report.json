@@ -1,0 +1,3549 @@
+{
+  "rule_count": 336,
+  "rules": {
+    "always_construct": {
+      "selected_definition": "(From A.6.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.2)",
+        "always statement"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "attr_name": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "attribute_instance": {
+      "selected_definition": "(From A.9.1)",
+      "variant_count": 2,
+      "variants": [
+        "(* attr_spec { , attr_spec } *)",
+        "(From A.9.1)"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "base_expression": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "binary_base2": {
+      "selected_definition": "'[s|S]b | '[s|S]B",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]b | '[s|S]B"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "binary_basea": {
+      "selected_definition": "'[s|S]b | '[s|S]B",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]b | '[s|S]B"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "binary_digit": {
+      "selected_definition": "x_digit | z_digit | 0 | 1",
+      "variant_count": 1,
+      "variants": [
+        "x_digit | z_digit | 0 | 1"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "binary_number": {
+      "selected_definition": "[ size ] binary_base binary_value",
+      "variant_count": 1,
+      "variants": [
+        "[ size ] binary_base binary_value"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "binary_value2": {
+      "selected_definition": "binary_digit { _ | binary_digit }",
+      "variant_count": 1,
+      "variants": [
+        "binary_digit { _ | binary_digit }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "binary_valuea": {
+      "selected_definition": "binary_digit { _ | binary_digit }",
+      "variant_count": 1,
+      "variants": [
+        "binary_digit { _ | binary_digit }"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "block_comment": {
+      "selected_definition": "/* comment_text */",
+      "variant_count": 1,
+      "variants": [
+        "/* comment_text */"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "block_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "block_item_declaration": {
+      "selected_definition": "(From A.2.8)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.8)"
+      ],
+      "sources": [
+        "section-10-tasks-and-functions.md",
+        "section-3-lexical-conventions.md",
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "block_real_type": {
+      "selected_definition": "real_identifier { dimension }",
+      "variant_count": 1,
+      "variants": [
+        "real_identifier { dimension }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "block_variable_type": {
+      "selected_definition": "variable_identifier { dimension }",
+      "variant_count": 1,
+      "variants": [
+        "variable_identifier { dimension }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "blocking_assignment": {
+      "selected_definition": "(From A.6.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.2)",
+        "variable_lvalue = [ delay_or_event_control ] expression"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "case_statement": {
+      "selected_definition": "(From A.6.7)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.7)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "cell_clause": {
+      "selected_definition": "(From A.1.5)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.5)",
+        "cell [ library_identifier.]cell_identifier"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "cell_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "charge_strength": {
+      "selected_definition": "( small ) | ( medium ) | ( large )",
+      "variant_count": 1,
+      "variants": [
+        "( small ) | ( medium ) | ( large )"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "checktime_condition": {
+      "selected_definition": "(From A.7.5.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.7.5.2)",
+        "mintypmax_expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "close_text": {
+      "selected_definition": "final_simulation_time",
+      "variant_count": 1,
+      "variants": [
+        "final_simulation_time"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "cmos_switch_instance": {
+      "selected_definition": "[ name_of_gate_instance ]",
+      "variant_count": 2,
+      "variants": [
+        "[ name_of_gate_instance ]",
+        "[ name_of_gate_instance ] ( output_terminal , input_terminal , ncontrol_terminal , pcontrol_terminal )"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "cmos_switchtype": {
+      "selected_definition": "(From A.3.4)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.3.4)",
+        "cmos | rcmos"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "combinational_body": {
+      "selected_definition": "table combinational_entry { combinational_entry } endtable",
+      "variant_count": 1,
+      "variants": [
+        "table combinational_entry { combinational_entry } endtable"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "combinational_entry": {
+      "selected_definition": "level_input_list : output_symbol ;",
+      "variant_count": 1,
+      "variants": [
+        "level_input_list : output_symbol ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "comment_text": {
+      "selected_definition": "{ASCII_character}",
+      "variant_count": 2,
+      "variants": [
+        "{ Any_ASCII_character }",
+        "{ASCII_character}"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "concatenation": {
+      "selected_definition": "{ expression { , expression } }",
+      "variant_count": 1,
+      "variants": [
+        "{ expression { , expression } }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "conditional_expression": {
+      "selected_definition": "(From A.8.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.8.3)",
+        "expression1 ? { attribute_instance } expression2 : expression3"
+      ],
+      "sources": [
+        "section-5-expressions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "conditional_statement": {
+      "selected_definition": "(From A.6.6)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.6)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "config_declaration": {
+      "selected_definition": "(From A.1.5)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.1.5)"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md"
+      ]
+    },
+    "config_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "constant_base_expression": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "constant_concatenation": {
+      "selected_definition": "{ constant_expression { , constant_expression } }",
+      "variant_count": 1,
+      "variants": [
+        "{ constant_expression { , constant_expression } }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "constant_expression": {
+      "selected_definition": "(From A.8.3)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.8.3)"
+      ],
+      "sources": [
+        "section-5-expressions.md"
+      ]
+    },
+    "constant_function_call": {
+      "selected_definition": "function_identifier { attribute_instance } ( constant_expression { , constant_expression } )",
+      "variant_count": 1,
+      "variants": [
+        "function_identifier { attribute_instance } ( constant_expression { , constant_expression } )"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "constant_multiple_concatenation": {
+      "selected_definition": "{ constant_expression constant_concatenation }",
+      "variant_count": 1,
+      "variants": [
+        "{ constant_expression constant_concatenation }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "constant_primary": {
+      "selected_definition": "(From A.8.4) number | parameter_identifier [ [ constant_range_expression ] ] | specparam_identifier [ [ constant_range_expression ] ] | constant_concatenation | constant_multiple_concatenation | constant_function_call | constant_system_function_call | ( constant_mintypmax_expression ) | string",
+      "variant_count": 1,
+      "variants": [
+        "(From A.8.4) number | parameter_identifier [ [ constant_range_expression ] ] | specparam_identifier [ [ constant_range_expression ] ] | constant_concatenation | constant_multiple_concatenation | constant_function_call | constant_system_function_call | ( constant_mintypmax_expression ) | string"
+      ],
+      "sources": [
+        "section-5-expressions.md"
+      ]
+    },
+    "constant_system_function_call": {
+      "selected_definition": "system_function_identifier ( constant_expression { , constant_expression } )",
+      "variant_count": 1,
+      "variants": [
+        "system_function_identifier ( constant_expression { , constant_expression } )"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "continuous_assign": {
+      "selected_definition": "(From A.6.1)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.1)",
+        "assign [ drive_strength ] [ delay3 ] list_of_net_assignments ;"
+      ],
+      "sources": [
+        "section-6-assignments.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "controlled_reference_event": {
+      "selected_definition": "(From A.7.5.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.7.5.2)",
+        "controlled_timing_check_event"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "current_state": {
+      "selected_definition": "level_symbol",
+      "variant_count": 1,
+      "variants": [
+        "level_symbol"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "data_event": {
+      "selected_definition": "(From A.7.5.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.7.5.2)",
+        "timing_check_event"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "data_source_expression": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "date_section": {
+      "selected_definition": "date_text",
+      "variant_count": 1,
+      "variants": [
+        "date_text"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "decimal_base2": {
+      "selected_definition": "'[s|S]d | '[s|S]D",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]d | '[s|S]D"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "decimal_basea": {
+      "selected_definition": "'[s|S]d | '[s|S]D",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]d | '[s|S]D"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "decimal_digit": {
+      "selected_definition": "0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9",
+      "variant_count": 1,
+      "variants": [
+        "0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "declaration_command": {
+      "selected_definition": "declaration_keyword [command_text] $end",
+      "variant_count": 1,
+      "variants": [
+        "declaration_keyword [command_text] $end"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "default_clause": {
+      "selected_definition": "(From A.1.5)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.5)",
+        "default"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "default_nettype_value": {
+      "selected_definition": "wire | tri | tri0 | tri1 | wand | triand | wor | trior | trireg |",
+      "variant_count": 1,
+      "variants": [
+        "wire | tri | tri0 | tri1 | wand | triand | wor | trior | trireg |"
+      ],
+      "sources": [
+        "section-19-compiler-directives.md"
+      ]
+    },
+    "defparam_assignment": {
+      "selected_definition": "hierarchical_parameter_identifier = constant_mintypmax_expression",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_parameter_identifier = constant_mintypmax_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "delay3": {
+      "selected_definition": "(From A.2.2.3) # delay_value | # ( mintypmax_expression [ , mintypmax_expression [ , mintypmax_expression ] ] )",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.2.3) # delay_value | # ( mintypmax_expression [ , mintypmax_expression [ , mintypmax_expression ] ] )"
+      ],
+      "sources": [
+        "section-4-data-types.md"
+      ]
+    },
+    "delay_control": {
+      "selected_definition": "(From A.6.5)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.5)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "design_statement": {
+      "selected_definition": "design { [library_identifier.]cell_identifier } ;",
+      "variant_count": 1,
+      "variants": [
+        "design { [library_identifier.]cell_identifier } ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "dimension": {
+      "selected_definition": "(From A.2.5)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.5)",
+        "[ dimension_constant_expression : dimension_constant_expression ]"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "dimension_constant_expression": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "disable_statement": {
+      "selected_definition": "(From A.6.5)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.5)"
+      ],
+      "sources": [
+        "section-10-tasks-and-functions.md"
+      ]
+    },
+    "drive_strength": {
+      "selected_definition": "(From A.2.2.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.2.2)"
+      ],
+      "sources": [
+        "section-4-data-types.md"
+      ]
+    },
+    "dumpvars_task": {
+      "selected_definition": "(Not in the Annex A BNF)",
+      "variant_count": 1,
+      "variants": [
+        "(Not in the Annex A BNF)"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "edge_control_specifier": {
+      "selected_definition": "edge [ edge_descriptor { , edge_descriptor } ]",
+      "variant_count": 2,
+      "variants": [
+        "(From A.7.5.3)",
+        "edge [ edge_descriptor { , edge_descriptor } ]"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "edge_descriptora": {
+      "selected_definition": "01 | 10 | z_or_x zero_or_one | zero_or_one z_or_x",
+      "variant_count": 1,
+      "variants": [
+        "01 | 10 | z_or_x zero_or_one | zero_or_one z_or_x"
+      ],
+      "sources": [
+        "section-15-timing-checks.md"
+      ]
+    },
+    "edge_identifier": {
+      "selected_definition": "posedge | negedge",
+      "variant_count": 1,
+      "variants": [
+        "posedge | negedge"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "edge_indicator": {
+      "selected_definition": "( level_symbol level_symbol ) | edge_symbol",
+      "variant_count": 1,
+      "variants": [
+        "( level_symbol level_symbol ) | edge_symbol"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "edge_input_list": {
+      "selected_definition": "{ level_symbol } edge_indicator { level_symbol }",
+      "variant_count": 1,
+      "variants": [
+        "{ level_symbol } edge_indicator { level_symbol }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "edge_sensitive_path_declaration": {
+      "selected_definition": "(From A.7.4)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.4)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "edge_symbol": {
+      "selected_definition": "r | R | f | F | p | P | n | N | *",
+      "variant_count": 1,
+      "variants": [
+        "r | R | f | F | p | P | n | N | *"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "enable_gate_instance": {
+      "selected_definition": "[ name_of_gate_instance ]",
+      "variant_count": 2,
+      "variants": [
+        "[ name_of_gate_instance ]",
+        "[ name_of_gate_instance ] ( output_terminal , input_terminal , enable_terminal )"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "enable_gatetype": {
+      "selected_definition": "bufif0 | bufif1 | notif0 | notif1",
+      "variant_count": 1,
+      "variants": [
+        "bufif0 | bufif1 | notif0 | notif1"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "enable_terminal": {
+      "selected_definition": "(From A.3.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.3.3)",
+        "expression"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "end_edge_offset": {
+      "selected_definition": "mintypmax_expression",
+      "variant_count": 1,
+      "variants": [
+        "mintypmax_expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "endkeywords_directive": {
+      "selected_definition": "`end_keywords",
+      "variant_count": 1,
+      "variants": [
+        "`end_keywords"
+      ],
+      "sources": [
+        "section-19-compiler-directives.md"
+      ]
+    },
+    "error_limit_value": {
+      "selected_definition": "limit_value",
+      "variant_count": 1,
+      "variants": [
+        "limit_value"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "escaped_identifier": {
+      "selected_definition": "(From A.9.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.9.3)",
+        "\\ {Any_ASCII_character_except_white_space} white_space"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "event_based_flag": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "event_declaration": {
+      "selected_definition": "(From A.2.1.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.1.3)",
+        "event list_of_event_identifiers ;"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "event_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "event_trigger": {
+      "selected_definition": "(From A.6.5)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.5)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "exp": {
+      "selected_definition": "e | E",
+      "variant_count": 1,
+      "variants": [
+        "e | E"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "expression1": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "expression2": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "expression3": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "function_call": {
+      "selected_definition": "(From A.8.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.8.2)",
+        "hierarchical_function_identifier{ attribute_instance } ( expression { , expression } )"
+      ],
+      "sources": [
+        "section-10-tasks-and-functions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "function_declaration": {
+      "selected_definition": "(From A.2.6)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.6)"
+      ],
+      "sources": [
+        "section-10-tasks-and-functions.md"
+      ]
+    },
+    "function_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "function_port_list": {
+      "selected_definition": "(From A.2.6)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.6)",
+        "{ attribute_instance } tf_input_declaration { , { attribute_instance }"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "function_statement1": {
+      "selected_definition": "statement",
+      "variant_count": 1,
+      "variants": [
+        "statement"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "gate_instance_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "gate_instantiation": {
+      "selected_definition": "(From A.3.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.3.1)"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md"
+      ]
+    },
+    "generate_block_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "generate_region": {
+      "selected_definition": "(From A.4.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.4.2)"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "genvar_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hex_base2": {
+      "selected_definition": "'[s|S]h | '[s|S]H",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]h | '[s|S]H"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hex_basea": {
+      "selected_definition": "'[s|S]h | '[s|S]H",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]h | '[s|S]H"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "hex_number": {
+      "selected_definition": "[ size ] hex_base hex_value",
+      "variant_count": 1,
+      "variants": [
+        "[ size ] hex_base hex_value"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hex_value2": {
+      "selected_definition": "hex_digit { _ | hex_digit }",
+      "variant_count": 1,
+      "variants": [
+        "hex_digit { _ | hex_digit }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hex_valuea": {
+      "selected_definition": "hex_digit { _ | hex_digit }",
+      "variant_count": 1,
+      "variants": [
+        "hex_digit { _ | hex_digit }"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "hierarchical_block_identifier": {
+      "selected_definition": "hierarchical_identifier",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hierarchical_event_identifier": {
+      "selected_definition": "hierarchical_identifier",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hierarchical_function_identifier": {
+      "selected_definition": "hierarchical_identifier",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hierarchical_identifier": {
+      "selected_definition": "{ identifier [ [ constant_expression ] ] . } identifier",
+      "variant_count": 1,
+      "variants": [
+        "{ identifier [ [ constant_expression ] ] . } identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hierarchical_net_identifier": {
+      "selected_definition": "hierarchical_identifier",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hierarchical_parameter_identifier": {
+      "selected_definition": "hierarchical_identifier",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hierarchical_task_identifier": {
+      "selected_definition": "hierarchical_identifier",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "hierarchical_variable_identifier": {
+      "selected_definition": "hierarchical_identifier",
+      "variant_count": 1,
+      "variants": [
+        "hierarchical_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "identifier": {
+      "selected_definition": "{printable_ASCII_character}",
+      "variant_count": 1,
+      "variants": [
+        "{printable_ASCII_character}"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "if_else_if_statement": {
+      "selected_definition": "(From A.6.6)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.6)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "include_statement": {
+      "selected_definition": "(From A.1.1)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.1)",
+        "include file_path_spec ;"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "index": {
+      "selected_definition": "decimal_number",
+      "variant_count": 1,
+      "variants": [
+        "decimal_number"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "init_val": {
+      "selected_definition": "1'b0 | 1'b1 | 1'bx | 1'bX | 1'B0 | 1'B1 | 1'Bx | 1'BX | 1 | 0",
+      "variant_count": 1,
+      "variants": [
+        "1'b0 | 1'b1 | 1'bx | 1'bX | 1'B0 | 1'B1 | 1'Bx | 1'BX | 1 | 0"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "initial_construct": {
+      "selected_definition": "(From A.6.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.2)",
+        "initial statement"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "inout_declaration": {
+      "selected_definition": "(From A.2.1.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.1.2)",
+        "inout [ net_type ] [ signed ] [ range ] list_of_port_identifiers"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "inout_port_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "inout_terminal": {
+      "selected_definition": "net_lvalue",
+      "variant_count": 1,
+      "variants": [
+        "net_lvalue"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "input_declaration": {
+      "selected_definition": "input [range] list_of_variables ;",
+      "variant_count": 2,
+      "variants": [
+        "input [ net_type ] [ signed ] [ range ] list_of_port_identifiers",
+        "input [range] list_of_variables ;"
+      ],
+      "sources": [
+        "section-1-overview.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "input_identifier": {
+      "selected_definition": "input_port_identifier | inout_port_identifier",
+      "variant_count": 1,
+      "variants": [
+        "input_port_identifier | inout_port_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "input_port_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "input_terminal": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "input_value": {
+      "selected_definition": "D | U | N | Z | d | u",
+      "variant_count": 1,
+      "variants": [
+        "D | U | N | Z | d | u"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "inst_clause": {
+      "selected_definition": "(From A.1.5)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.5)",
+        "instance inst_name"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "inst_name": {
+      "selected_definition": "topmodule_identifier{.instance_identifier}",
+      "variant_count": 1,
+      "variants": [
+        "topmodule_identifier{.instance_identifier}"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "instance_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "integer_declaration": {
+      "selected_definition": "(From A.2.1.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.1.3)",
+        "integer list_of_variable_identifiers ;"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-6-assignments.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "keywords_directive": {
+      "selected_definition": "`begin_keywords \"version_specifier\"",
+      "variant_count": 1,
+      "variants": [
+        "`begin_keywords \"version_specifier\""
+      ],
+      "sources": [
+        "section-19-compiler-directives.md"
+      ]
+    },
+    "level_input_list": {
+      "selected_definition": "level_symbol { level_symbol }",
+      "variant_count": 1,
+      "variants": [
+        "level_symbol { level_symbol }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "level_symbol": {
+      "selected_definition": "0 | 1 | x | X | ? | b | B",
+      "variant_count": 1,
+      "variants": [
+        "0 | 1 | x | X | ? | b | B"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "liblist_clause": {
+      "selected_definition": "(From A.1.5)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.5)",
+        "liblist { library_identifier }"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "library_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "library_text": {
+      "selected_definition": "(From A.1.1)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.1)",
+        "{ library_description }"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "limit_value": {
+      "selected_definition": "constant_mintypmax_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_mintypmax_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_block_real_identifiers": {
+      "selected_definition": "block_real_type { , block_real_type }",
+      "variant_count": 1,
+      "variants": [
+        "block_real_type { , block_real_type }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_block_variable_identifiers": {
+      "selected_definition": "block_variable_type { , block_variable_type }",
+      "variant_count": 1,
+      "variants": [
+        "block_variable_type { , block_variable_type }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_defparam_assignments": {
+      "selected_definition": "defparam_assignment { , defparam_assignment }",
+      "variant_count": 1,
+      "variants": [
+        "defparam_assignment { , defparam_assignment }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_event_identifiers": {
+      "selected_definition": "(From A.2.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.3)",
+        "event_identifier { dimension } { , event_identifier { dimension } }"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_modules_or_variables": {
+      "selected_definition": "(Not in the Annex A BNF)",
+      "variant_count": 1,
+      "variants": [
+        "(Not in the Annex A BNF)"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "list_of_net_assignments": {
+      "selected_definition": "net_assignment { , net_assignment }",
+      "variant_count": 1,
+      "variants": [
+        "net_assignment { , net_assignment }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_net_decl_assignments": {
+      "selected_definition": "(From A.2.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.3)",
+        "net_decl_assignment { , net_decl_assignment }"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-6-assignments.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_net_identifiers": {
+      "selected_definition": "net_identifier { dimension } { , net_identifier { dimension } }",
+      "variant_count": 1,
+      "variants": [
+        "net_identifier { dimension } { , net_identifier { dimension } }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_param_assignments": {
+      "selected_definition": "param_assignment { , param_assignment }",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.3)",
+        "param_assignment { , param_assignment }"
+      ],
+      "sources": [
+        "section-1-overview.md",
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_port_declarations": {
+      "selected_definition": "( port_declaration { , port_declaration } ) | ( )",
+      "variant_count": 1,
+      "variants": [
+        "( port_declaration { , port_declaration } ) | ( )"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "list_of_port_identifiers": {
+      "selected_definition": "(From A.2.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.3)",
+        "port_identifier { , port_identifier }"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_ports": {
+      "selected_definition": "( port { , port } )",
+      "variant_count": 2,
+      "variants": [
+        "( port { , port } )",
+        "(From A.1.3)"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_real_identifiers": {
+      "selected_definition": "(From A.2.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.3)",
+        "real_type { , real_type }"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-6-assignments.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_specparam_assignments": {
+      "selected_definition": "(From A.2.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.3)",
+        "specparam_assignment { , specparam_assignment }"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_variable_identifiers": {
+      "selected_definition": "variable_type { , variable_type }",
+      "variant_count": 1,
+      "variants": [
+        "variable_type { , variable_type }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "list_of_variable_port_identifiers": {
+      "selected_definition": "port_identifier [ = constant_expression ] { , port_identifier [ = constant_expression ] }",
+      "variant_count": 1,
+      "variants": [
+        "port_identifier [ = constant_expression ] { , port_identifier [ = constant_expression ] }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "local_parameter_declaration": {
+      "selected_definition": "(From A.2.1.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.1.1)"
+      ],
+      "sources": [
+        "section-4-data-types.md"
+      ]
+    },
+    "loop_statement": {
+      "selected_definition": "(From A.6.8)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.8)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "lsb_constant_expression": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_declaration": {
+      "selected_definition": "(From A.1.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.1.2)"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "module_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_instance": {
+      "selected_definition": "name_of_module_instance ( [ list_of_port_connections ] )",
+      "variant_count": 1,
+      "variants": [
+        "name_of_module_instance ( [ list_of_port_connections ] )"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_instance_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_instantiation": {
+      "selected_definition": "(From A.4.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.4.1)"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "module_item": {
+      "selected_definition": "(From A.1.4) port_declaration ; | non_port_module_item",
+      "variant_count": 1,
+      "variants": [
+        "(From A.1.4) port_declaration ; | non_port_module_item"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "module_keyword": {
+      "selected_definition": "module | macromodule",
+      "variant_count": 1,
+      "variants": [
+        "module | macromodule"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_or_generate_item": {
+      "selected_definition": "(From A.1.4) { attribute_instance } module_or_generate_item_declaration | { attribute_instance } local_parameter_declaration ; | { attribute_instance } parameter_override | { attribute_instance } continuous_assign | { attribute_instance } gate_instantiation | { attribute_instance } udp_instantiation | { attribute_instance } module_instantiation | { attribute_instance } initial_construct | { attribute_instance } always_construct | { attribute_instance } loop_generate_construct | { attribute_instance } conditional_generate_construct",
+      "variant_count": 1,
+      "variants": [
+        "(From A.1.4) { attribute_instance } module_or_generate_item_declaration | { attribute_instance } local_parameter_declaration ; | { attribute_instance } parameter_override | { attribute_instance } continuous_assign | { attribute_instance } gate_instantiation | { attribute_instance } udp_instantiation | { attribute_instance } module_instantiation | { attribute_instance } initial_construct | { attribute_instance } always_construct | { attribute_instance } loop_generate_construct | { attribute_instance } conditional_generate_construct"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "module_parameter_port_list": {
+      "selected_definition": "(From A.1.3",
+      "variant_count": 2,
+      "variants": [
+        "# ( parameter_declaration { , parameter_declaration } )",
+        "(From A.1.3"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_path_concatenation": {
+      "selected_definition": "{ module_path_expression { , module_path_expression } }",
+      "variant_count": 1,
+      "variants": [
+        "{ module_path_expression { , module_path_expression } }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_path_conditional_expression": {
+      "selected_definition": "module_path_expression ? { attribute_instance } module_path_expression : module_path_expression",
+      "variant_count": 1,
+      "variants": [
+        "module_path_expression ? { attribute_instance } module_path_expression : module_path_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "module_path_multiple_concatenation": {
+      "selected_definition": "{ constant_expression module_path_concatenation }",
+      "variant_count": 1,
+      "variants": [
+        "{ constant_expression module_path_concatenation }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "mos_switch_instance": {
+      "selected_definition": "[ name_of_gate_instance ]",
+      "variant_count": 2,
+      "variants": [
+        "[ name_of_gate_instance ]",
+        "[ name_of_gate_instance ] ( output_terminal , input_terminal , enable_terminal )"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "mos_switchtype": {
+      "selected_definition": "nmos | pmos | rnmos | rpmos",
+      "variant_count": 1,
+      "variants": [
+        "nmos | pmos | rnmos | rpmos"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "msb_constant_expression": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "multiple_concatenation": {
+      "selected_definition": "{ constant_expression concatenation }",
+      "variant_count": 1,
+      "variants": [
+        "{ constant_expression concatenation }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "n_input_gate_instance": {
+      "selected_definition": "[ name_of_gate_instance ]",
+      "variant_count": 2,
+      "variants": [
+        "[ name_of_gate_instance ]",
+        "[ name_of_gate_instance ] ( output_terminal , input_terminal { , input_terminal } )"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "n_input_gatetype": {
+      "selected_definition": "and | nand | or | nor | xor | xnor",
+      "variant_count": 1,
+      "variants": [
+        "and | nand | or | nor | xor | xnor"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "n_output_gate_instance": {
+      "selected_definition": "[ name_of_gate_instance ]",
+      "variant_count": 2,
+      "variants": [
+        "[ name_of_gate_instance ]",
+        "[ name_of_gate_instance ] ( output_terminal { , output_terminal } ,"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "n_output_gatetype": {
+      "selected_definition": "buf | not",
+      "variant_count": 1,
+      "variants": [
+        "buf | not"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "name_of_gate_instance": {
+      "selected_definition": "gate_instance_identifier [ range ]",
+      "variant_count": 1,
+      "variants": [
+        "gate_instance_identifier [ range ]"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "name_of_module_instance": {
+      "selected_definition": "module_instance_identifier [ range ]",
+      "variant_count": 1,
+      "variants": [
+        "module_instance_identifier [ range ]"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "name_of_udp_instance": {
+      "selected_definition": "udp_instance_identifier [ range ]",
+      "variant_count": 1,
+      "variants": [
+        "udp_instance_identifier [ range ]"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "named_parameter_assignment": {
+      "selected_definition": ". parameter_identifier ( [ mintypmax_expression ] )",
+      "variant_count": 1,
+      "variants": [
+        ". parameter_identifier ( [ mintypmax_expression ] )"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "named_port_connection": {
+      "selected_definition": "{ attribute_instance } . port_identifier ( [ expression ] )",
+      "variant_count": 1,
+      "variants": [
+        "{ attribute_instance } . port_identifier ( [ expression ] )"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "ncontrol_terminal": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "net_assignment": {
+      "selected_definition": "(From A.6.1)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.1)",
+        "net_lvalue = expression"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "net_decl_assignment": {
+      "selected_definition": "(From A.2.4)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.4)",
+        "net_identifier = expression"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-6-assignments.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "net_declaration": {
+      "selected_definition": "(From A.2.1.3)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.1.3)"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-6-assignments.md"
+      ]
+    },
+    "net_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "net_lvalue": {
+      "selected_definition": "(From A.8.5) hierarchical_net_identifier [ { [ constant_expression ] } [ constant_range_expression ] ] | { net_lvalue { , net_lvalue } }",
+      "variant_count": 1,
+      "variants": [
+        "(From A.8.5) hierarchical_net_identifier [ { [ constant_expression ] } [ constant_range_expression ] ] | { net_lvalue { , net_lvalue } }"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "net_type": {
+      "selected_definition": "(From A.2.2.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.2.1)"
+      ],
+      "sources": [
+        "section-4-data-types.md"
+      ]
+    },
+    "next_state": {
+      "selected_definition": "output_symbol | -",
+      "variant_count": 1,
+      "variants": [
+        "output_symbol | -"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "non_zero_decimal_digit": {
+      "selected_definition": "1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9",
+      "variant_count": 1,
+      "variants": [
+        "1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "non_zero_unsigned_number2": {
+      "selected_definition": "non_zero_decimal_digit { _ | decimal_digit}",
+      "variant_count": 1,
+      "variants": [
+        "non_zero_decimal_digit { _ | decimal_digit}"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "non_zero_unsigned_numbera": {
+      "selected_definition": "non_zero_decimal_digit { _ | decimal_digit}",
+      "variant_count": 1,
+      "variants": [
+        "non_zero_decimal_digit { _ | decimal_digit}"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "nonblocking_assignment": {
+      "selected_definition": "(From A.6.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.2)",
+        "variable_lvalue <= [ delay_or_event_control ] expression"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "notifier": {
+      "selected_definition": "variable_identifier",
+      "variant_count": 1,
+      "variants": [
+        "variable_identifier"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "number": {
+      "selected_definition": "1 | 10 | 100",
+      "variant_count": 2,
+      "variants": [
+        "(From A.8.7)",
+        "1 | 10 | 100"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md",
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "octal_base2": {
+      "selected_definition": "'[s|S]o | '[s|S]O",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]o | '[s|S]O"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "octal_basea": {
+      "selected_definition": "'[s|S]o | '[s|S]O",
+      "variant_count": 1,
+      "variants": [
+        "'[s|S]o | '[s|S]O"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "octal_digit": {
+      "selected_definition": "x_digit | z_digit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7",
+      "variant_count": 1,
+      "variants": [
+        "x_digit | z_digit | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "octal_number": {
+      "selected_definition": "[ size ] octal_base octal_value",
+      "variant_count": 1,
+      "variants": [
+        "[ size ] octal_base octal_value"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "octal_value2": {
+      "selected_definition": "octal_digit { _ | octal_digit }",
+      "variant_count": 1,
+      "variants": [
+        "octal_digit { _ | octal_digit }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "octal_valuea": {
+      "selected_definition": "octal_digit { _ | octal_digit }",
+      "variant_count": 1,
+      "variants": [
+        "octal_digit { _ | octal_digit }"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "one_line_comment": {
+      "selected_definition": "// comment_text \\n",
+      "variant_count": 1,
+      "variants": [
+        "// comment_text \\n"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "ordered_parameter_assignment": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "ordered_port_connection": {
+      "selected_definition": "(From A.4.1)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.4.1)",
+        "{ attribute_instance } [ expression ]"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "output_identifier": {
+      "selected_definition": "output_port_identifier | inout_port_identifier",
+      "variant_count": 1,
+      "variants": [
+        "output_port_identifier | inout_port_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "output_port_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "output_symbol": {
+      "selected_definition": "0 | 1 | x | X",
+      "variant_count": 1,
+      "variants": [
+        "0 | 1 | x | X"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "output_terminal": {
+      "selected_definition": "net_lvalue",
+      "variant_count": 1,
+      "variants": [
+        "net_lvalue"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "output_value": {
+      "selected_definition": "L | H | X | T | l | h",
+      "variant_count": 1,
+      "variants": [
+        "L | H | X | T | l | h"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "output_variable_type": {
+      "selected_definition": "integer | time",
+      "variant_count": 1,
+      "variants": [
+        "integer | time"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "par_block": {
+      "selected_definition": "(From A.6.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.3)",
+        "fork [ : block_identifier { block_item_declaration } ] { statement } join"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "param_assignment": {
+      "selected_definition": "(From A.2.4)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.4)",
+        "parameter_identifier = constant_mintypmax_expression"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "parameter_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "parameter_override": {
+      "selected_definition": "defparam list_of_defparam_assignments ;",
+      "variant_count": 1,
+      "variants": [
+        "defparam list_of_defparam_assignments ;"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "parameter_value_assignment": {
+      "selected_definition": "# ( list_of_parameter_assignments )",
+      "variant_count": 1,
+      "variants": [
+        "# ( list_of_parameter_assignments )"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "pass_en_switchtype": {
+      "selected_definition": "tranif0 | tranif1 | rtranif1 | rtranif0",
+      "variant_count": 1,
+      "variants": [
+        "tranif0 | tranif1 | rtranif1 | rtranif0"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "pass_enable_switch_instance": {
+      "selected_definition": "[ name_of_gate_instance ]",
+      "variant_count": 2,
+      "variants": [
+        "[ name_of_gate_instance ]",
+        "[ name_of_gate_instance ] ( inout_terminal , inout_terminal ,"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "pass_switch_instance": {
+      "selected_definition": "[ name_of_gate_instance ] ( inout_terminal , inout_terminal )",
+      "variant_count": 1,
+      "variants": [
+        "[ name_of_gate_instance ] ( inout_terminal , inout_terminal )"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "pass_switchtype": {
+      "selected_definition": "tran | rtran",
+      "variant_count": 1,
+      "variants": [
+        "tran | rtran"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "path_declaration": {
+      "selected_definition": "(From A.7.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.2)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "path_delay_expression": {
+      "selected_definition": "constant_mintypmax_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_mintypmax_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "path_delay_value": {
+      "selected_definition": "(From A.7.4)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.4)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "pcontrol_terminal": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "polarity_operator": {
+      "selected_definition": "(From A.7.4)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.7.4)",
+        "+ | -"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "port": {
+      "selected_definition": "[ port_expression ] | . port_identifier ( [ port_expression ] )",
+      "variant_count": 1,
+      "variants": [
+        "[ port_expression ] | . port_identifier ( [ port_expression ] )"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "port_declaration": {
+      "selected_definition": "{attribute_instance} inout_declaration | {attribute_instance} input_declaration | {attribute_instance} output_declaration",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.3)",
+        "{attribute_instance} inout_declaration | {attribute_instance} input_declaration | {attribute_instance} output_declaration"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "port_expression": {
+      "selected_definition": "port_reference | { port_reference { , port_reference } }",
+      "variant_count": 1,
+      "variants": [
+        "port_reference | { port_reference { , port_reference } }"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "port_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "port_reference": {
+      "selected_definition": "port_identifier [ [ constant_range_expression ] ]",
+      "variant_count": 1,
+      "variants": [
+        "port_identifier [ [ constant_range_expression ] ]"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "port_value": {
+      "selected_definition": "input_value | output_value | unknown_direction_value",
+      "variant_count": 1,
+      "variants": [
+        "input_value | output_value | unknown_direction_value"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "pragma_keyword": {
+      "selected_definition": "simple_identifier",
+      "variant_count": 1,
+      "variants": [
+        "simple_identifier"
+      ],
+      "sources": [
+        "section-19-compiler-directives.md"
+      ]
+    },
+    "pragma_name": {
+      "selected_definition": "simple_identifier",
+      "variant_count": 1,
+      "variants": [
+        "simple_identifier"
+      ],
+      "sources": [
+        "section-19-compiler-directives.md"
+      ]
+    },
+    "procedural_continuous_assignments": {
+      "selected_definition": "(From A.6.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.2)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "pull_gate_instance": {
+      "selected_definition": "[ name_of_gate_instance ] ( output_terminal )",
+      "variant_count": 1,
+      "variants": [
+        "[ name_of_gate_instance ] ( output_terminal )"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "pulldown_strength": {
+      "selected_definition": "(From A.3.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.3.2)"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md"
+      ]
+    },
+    "pullup_strength": {
+      "selected_definition": "( strength0 , strength1 ) | ( strength1 , strength0 ) | ( strength1 )",
+      "variant_count": 1,
+      "variants": [
+        "( strength0 , strength1 ) | ( strength1 , strength0 ) | ( strength1 )"
+      ],
+      "sources": [
+        "section-7-gate-and-switch-level-modeling.md"
+      ]
+    },
+    "pulse_control_specparam": {
+      "selected_definition": "(From A.2.4)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.4)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "pulsestyle_declaration": {
+      "selected_definition": "(From A.7.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.1)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "range": {
+      "selected_definition": "(From A.2.5)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.5)",
+        "[ msb_constant_expression : lsb_constant_expression ]"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "real_declaration": {
+      "selected_definition": "real list_of_real_identifiers ;",
+      "variant_count": 1,
+      "variants": [
+        "real list_of_real_identifiers ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "real_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "real_type": {
+      "selected_definition": "(From A.2.2.1) real_identifier { dimension } | real_identifier = constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.2.1) real_identifier { dimension } | real_identifier = constant_expression"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-6-assignments.md"
+      ]
+    },
+    "realtime_declaration": {
+      "selected_definition": "realtime list_of_real_identifiers ;",
+      "variant_count": 1,
+      "variants": [
+        "realtime list_of_real_identifiers ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "realtime_function": {
+      "selected_definition": "$realtime",
+      "variant_count": 1,
+      "variants": [
+        "$realtime"
+      ],
+      "sources": [
+        "section-17-system-tasks-and-functions.md"
+      ]
+    },
+    "reference_event": {
+      "selected_definition": "timing_check_event",
+      "variant_count": 1,
+      "variants": [
+        "timing_check_event"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "reg_declaration": {
+      "selected_definition": "reg [ signed ] [ range ] list_of_variable_identifiers ;",
+      "variant_count": 1,
+      "variants": [
+        "reg [ signed ] [ range ] list_of_variable_identifiers ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "reject_limit_value": {
+      "selected_definition": "limit_value",
+      "variant_count": 1,
+      "variants": [
+        "limit_value"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "remain_active_flag": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "scalar_constant": {
+      "selected_definition": "1'b0 | 1'b1 | 1'B0 | 1'B1 | 'b0 | 'b1 | 'B0 | 'B1 | 1 | 0",
+      "variant_count": 1,
+      "variants": [
+        "1'b0 | 1'b1 | 1'B0 | 1'B1 | 'b0 | 'b1 | 'B0 | 'B1 | 1 | 0"
+      ],
+      "sources": [
+        "section-15-timing-checks.md"
+      ]
+    },
+    "scope_section": {
+      "selected_definition": "scope_type scope_identifier",
+      "variant_count": 1,
+      "variants": [
+        "scope_type scope_identifier"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "seq_block": {
+      "selected_definition": "(From A.6.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.3)",
+        "begin [ : block_identifier { block_item_declaration } ] { statement } end"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "seq_input_list": {
+      "selected_definition": "level_input_list | edge_input_list",
+      "variant_count": 1,
+      "variants": [
+        "level_input_list | edge_input_list"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "sequential_body": {
+      "selected_definition": "[ udp_initial_statement ] table sequential_entry { sequential_entry } endtable",
+      "variant_count": 1,
+      "variants": [
+        "[ udp_initial_statement ] table sequential_entry { sequential_entry } endtable"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "sequential_entry": {
+      "selected_definition": "seq_input_list : current_state : next_state ;",
+      "variant_count": 1,
+      "variants": [
+        "seq_input_list : current_state : next_state ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "showcancelled_declaration": {
+      "selected_definition": "(From A.7.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.1)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "sign": {
+      "selected_definition": "+ | -",
+      "variant_count": 1,
+      "variants": [
+        "+ | -"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "simple_identifier3": {
+      "selected_definition": "[ a-zA-Z_ ] { [ a-zA-Z0-9_$ ] }",
+      "variant_count": 1,
+      "variants": [
+        "[ a-zA-Z_ ] { [ a-zA-Z0-9_$ ] }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "simple_identifiera": {
+      "selected_definition": "[ a-zA-Z_ ] { [ a-zA-Z0-9_$ ] }",
+      "variant_count": 1,
+      "variants": [
+        "[ a-zA-Z_ ] { [ a-zA-Z0-9_$ ] }"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md"
+      ]
+    },
+    "simple_path_declaration": {
+      "selected_definition": "(From A.7.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.2)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "simulation_command": {
+      "selected_definition": "(Not in the Annex A BNF)",
+      "variant_count": 1,
+      "variants": [
+        "(Not in the Annex A BNF)"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "simulation_time": {
+      "selected_definition": "#decimal_number",
+      "variant_count": 1,
+      "variants": [
+        "#decimal_number"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "size": {
+      "selected_definition": "non_zero_unsigned_number",
+      "variant_count": 1,
+      "variants": [
+        "non_zero_unsigned_number"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "source_text": {
+      "selected_definition": "{ description }",
+      "variant_count": 1,
+      "variants": [
+        "{ description }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "specify_block": {
+      "selected_definition": "(From A.7.1)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.7.1)",
+        "specify { specify_item } endspecify"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "specify_input_terminal_descriptor": {
+      "selected_definition": "(From A.7.3)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.3)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "specparam_assignment": {
+      "selected_definition": "(From A.2.4)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.4)"
+      ],
+      "sources": [
+        "section-4-data-types.md"
+      ]
+    },
+    "specparam_declaration": {
+      "selected_definition": "(From A.2.1.1)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.2.1.1)",
+        "specparam [ range ] list_of_specparam_assignments ;"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "specparam_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "stamptime_condition": {
+      "selected_definition": "mintypmax_expression",
+      "variant_count": 1,
+      "variants": [
+        "mintypmax_expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "start_edge_offset": {
+      "selected_definition": "mintypmax_expression",
+      "variant_count": 1,
+      "variants": [
+        "mintypmax_expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "state_dependent_path_declaration": {
+      "selected_definition": "(From A.7.4)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.4)"
+      ],
+      "sources": [
+        "section-14-specify-blocks.md"
+      ]
+    },
+    "strength0": {
+      "selected_definition": "supply0 | strong0 | pull0 | weak0",
+      "variant_count": 1,
+      "variants": [
+        "supply0 | strong0 | pull0 | weak0"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "strength1": {
+      "selected_definition": "supply1 | strong1 | pull1 | weak1",
+      "variant_count": 1,
+      "variants": [
+        "supply1 | strong1 | pull1 | weak1"
+      ],
+      "sources": [
+        "section-4-data-types.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "strength_component": {
+      "selected_definition": "0 | 1 | 2 | 3 | 4 | 5 | 6 | 7",
+      "variant_count": 1,
+      "variants": [
+        "0 | 1 | 2 | 3 | 4 | 5 | 6 | 7"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "string": {
+      "selected_definition": "\" { Any_ASCII_Characters_except_new_line } \"",
+      "variant_count": 1,
+      "variants": [
+        "\" { Any_ASCII_Characters_except_new_line } \""
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "system_function_call": {
+      "selected_definition": "(From A.8.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.8.2)",
+        "system_function_identifier [ ( expression { , expression } ) ]"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "system_function_identifier4": {
+      "selected_definition": "$[ a-zA-Z0-9_$ ]{ [ a-zA-Z0-9_$ ] }",
+      "variant_count": 1,
+      "variants": [
+        "$[ a-zA-Z0-9_$ ]{ [ a-zA-Z0-9_$ ] }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "system_function_identifiera": {
+      "selected_definition": "(From A.9.3)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.9.3)"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "system_task_enable": {
+      "selected_definition": "(From A.6.9)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.9)",
+        "system_task_identifier [ ( [ expression ] { , [ expression ] } ) ] ;"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "system_task_identifier4": {
+      "selected_definition": "$[ a-zA-Z0-9_$ ]{ [ a-zA-Z0-9_$ ] }",
+      "variant_count": 1,
+      "variants": [
+        "$[ a-zA-Z0-9_$ ]{ [ a-zA-Z0-9_$ ] }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "system_timing_check": {
+      "selected_definition": "(From A.7.5.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.5.1)"
+      ],
+      "sources": [
+        "section-15-timing-checks.md"
+      ]
+    },
+    "t01_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "t0x_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "t0z_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "t10_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "t1x_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "t1z_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "t_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "task_declaration": {
+      "selected_definition": "(From A.2.7)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.7)"
+      ],
+      "sources": [
+        "section-10-tasks-and-functions.md"
+      ]
+    },
+    "task_enable": {
+      "selected_definition": "(From A.6.9)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.6.9)",
+        "hierarchical_task_identifier [ ( expression { , expression } ) ] ;"
+      ],
+      "sources": [
+        "section-10-tasks-and-functions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "task_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "task_item_declaration": {
+      "selected_definition": "(From A.2.7)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.2.7)"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "task_port_list": {
+      "selected_definition": "task_port_item { , task_port_item }",
+      "variant_count": 1,
+      "variants": [
+        "task_port_item { , task_port_item }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "terminal_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "text_macro_identifier": {
+      "selected_definition": "(From A.9.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.9.3)",
+        "identifier"
+      ],
+      "sources": [
+        "section-19-compiler-directives.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "tfall_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "threshold": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "time_declaration": {
+      "selected_definition": "time list_of_variable_identifiers ;",
+      "variant_count": 1,
+      "variants": [
+        "time list_of_variable_identifiers ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "time_unit": {
+      "selected_definition": "fs | ps | ns | us | ms | s",
+      "variant_count": 1,
+      "variants": [
+        "fs | ps | ns | us | ms | s"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "timescale_section": {
+      "selected_definition": "number time_unit",
+      "variant_count": 1,
+      "variants": [
+        "number time_unit"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "timing_check_event": {
+      "selected_definition": "(From A.7.5.3)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.7.5.3)"
+      ],
+      "sources": [
+        "section-15-timing-checks.md"
+      ]
+    },
+    "timing_check_event_control": {
+      "selected_definition": "posedge | negedge | edge_control_specifier",
+      "variant_count": 1,
+      "variants": [
+        "posedge | negedge | edge_control_specifier"
+      ],
+      "sources": [
+        "section-15-timing-checks.md"
+      ]
+    },
+    "timing_check_limit": {
+      "selected_definition": "expression",
+      "variant_count": 1,
+      "variants": [
+        "expression"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "topmodule_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "trise_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "tx0_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "tx1_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "txz_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "tz0_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "tz1_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "tz_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "tzx_path_delay_expression": {
+      "selected_definition": "path_delay_expression",
+      "variant_count": 1,
+      "variants": [
+        "path_delay_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_body": {
+      "selected_definition": "(From A.5.3)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.5.3)",
+        "combinational_body | sequential_body"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_declaration": {
+      "selected_definition": "(From A.5.1)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.5.1)"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-8-user-defined-primitives-udps.md"
+      ]
+    },
+    "udp_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_initial_statement": {
+      "selected_definition": "initial output_port_identifier = init_val ;",
+      "variant_count": 1,
+      "variants": [
+        "initial output_port_identifier = init_val ;"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_input_declaration": {
+      "selected_definition": "{ attribute_instance } input list_of_port_identifiers",
+      "variant_count": 1,
+      "variants": [
+        "{ attribute_instance } input list_of_port_identifiers"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_instance": {
+      "selected_definition": "[ name_of_udp_instance ] ( output_terminal , input_terminal { , input_terminal } )",
+      "variant_count": 1,
+      "variants": [
+        "[ name_of_udp_instance ] ( output_terminal , input_terminal { , input_terminal } )"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_instance_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_instantiation": {
+      "selected_definition": "(From A.5.4)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.5.4)",
+        "udp_identifier [ drive_strength ] [ delay2 ] udp_instance { , udp_instance } ;"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_output_declaration": {
+      "selected_definition": "(From A.5.2)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.5.2)"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "udp_port_list": {
+      "selected_definition": "(From A.5.2)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.5.2)",
+        "output_port_identifier , input_port_identifier { , input_port_identifier }"
+      ],
+      "sources": [
+        "section-8-user-defined-primitives-udps.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "udp_reg_declaration": {
+      "selected_definition": "{ attribute_instance } reg variable_identifier",
+      "variant_count": 1,
+      "variants": [
+        "{ attribute_instance } reg variable_identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "unknown_direction_value": {
+      "selected_definition": "0 | 1 | ? | F | A | a | B | b | C | c | f",
+      "variant_count": 1,
+      "variants": [
+        "0 | 1 | ? | F | A | a | B | b | C | c | f"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "unsigned_number2": {
+      "selected_definition": "decimal_digit { _ | decimal_digit }",
+      "variant_count": 1,
+      "variants": [
+        "decimal_digit { _ | decimal_digit }"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "unsigned_numbera": {
+      "selected_definition": "decimal_digit { _ | decimal_digit }",
+      "variant_count": 1,
+      "variants": [
+        "decimal_digit { _ | decimal_digit }"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md"
+      ]
+    },
+    "use_clause": {
+      "selected_definition": "(From A.1.5)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.1.5)",
+        "use [library_identifier.]cell_identifier[:config]"
+      ],
+      "sources": [
+        "section-13-configuring-the-contents-of-a-design.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "value": {
+      "selected_definition": "pport_value 0_strength_component 1_strength_component",
+      "variant_count": 1,
+      "variants": [
+        "pport_value 0_strength_component 1_strength_component"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "value_change": {
+      "selected_definition": "value identifier_code",
+      "variant_count": 1,
+      "variants": [
+        "value identifier_code"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "value_change_dump_definitions": {
+      "selected_definition": "{declaration_command} {simulation_command}",
+      "variant_count": 1,
+      "variants": [
+        "{declaration_command} {simulation_command}"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "var_section": {
+      "selected_definition": "var_type size identifier_code reference",
+      "variant_count": 1,
+      "variants": [
+        "var_type size identifier_code reference"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "variable_assignment": {
+      "selected_definition": "variable_lvalue = expression",
+      "variant_count": 1,
+      "variants": [
+        "variable_lvalue = expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "variable_identifier": {
+      "selected_definition": "identifier",
+      "variant_count": 1,
+      "variants": [
+        "identifier"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "variable_lvalue": {
+      "selected_definition": "(From A.8.5) hierarchical_variable_identifier [ { [ expression ] } [ range_expression ] ] | { variable_lvalue { , variable_lvalue } }",
+      "variant_count": 1,
+      "variants": [
+        "(From A.8.5) hierarchical_variable_identifier [ { [ expression ] } [ range_expression ] ] | { variable_lvalue { , variable_lvalue } }"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "vector_index": {
+      "selected_definition": "[ msb_index : lsb_index ]",
+      "variant_count": 1,
+      "variants": [
+        "[ msb_index : lsb_index ]"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "version_section": {
+      "selected_definition": "version_text",
+      "variant_count": 1,
+      "variants": [
+        "version_text"
+      ],
+      "sources": [
+        "section-18-value-change-dump-vcd-files.md"
+      ]
+    },
+    "wait_statement": {
+      "selected_definition": "(From A.6.5)",
+      "variant_count": 1,
+      "variants": [
+        "(From A.6.5)"
+      ],
+      "sources": [
+        "section-9-behavioral-modeling.md"
+      ]
+    },
+    "white_space": {
+      "selected_definition": "(From A.9.4)",
+      "variant_count": 2,
+      "variants": [
+        "(From A.9.4)",
+        "space | tab | newline | eof5"
+      ],
+      "sources": [
+        "section-12-hierarchical-structures.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "width_constant_expression": {
+      "selected_definition": "constant_expression",
+      "variant_count": 1,
+      "variants": [
+        "constant_expression"
+      ],
+      "sources": [
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "x_digit": {
+      "selected_definition": "x | X",
+      "variant_count": 1,
+      "variants": [
+        "x | X"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "z_digit": {
+      "selected_definition": "z | Z | ?",
+      "variant_count": 1,
+      "variants": [
+        "z | Z | ?"
+      ],
+      "sources": [
+        "section-3-lexical-conventions.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "z_or_x": {
+      "selected_definition": "x | X | z | Z",
+      "variant_count": 1,
+      "variants": [
+        "x | X | z | Z"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    },
+    "zero_or_one": {
+      "selected_definition": "0 | 1",
+      "variant_count": 1,
+      "variants": [
+        "0 | 1"
+      ],
+      "sources": [
+        "section-15-timing-checks.md",
+        "section-Annex_A-normative-formal-syntax-definition.md"
+      ]
+    }
+  }
+}

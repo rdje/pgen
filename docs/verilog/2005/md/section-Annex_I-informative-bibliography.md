@@ -1,0 +1,1989 @@
+---
+title: "Section Annex.I: informative bibliography"
+document: "Verilog Hardware Description Language Reference Manual"
+standard: "IEEE 1364-2005"
+domain: "Verilog"
+section: "Annex.I"
+source_txt: "section-Annex_I-informative-bibliography.txt"
+source_pdf: "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf"
+---
+
+# Section Annex.I: informative bibliography
+
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+542
+Copyright © 2006 IEEE. All rights reserved.
+Annex I
+(informative)
+Bibliography
+[B1] IEEE Std 1497-2001, IEEE Standard for Standard Delay Format (SDF) for the Electronic Design
+Process.11
+11IEEE publications are available from the Institute of Electrical and Electronics Engineers, 445 Hoes Lane, Piscataway, NJ 08854,
+USA (http://standards.ieee.org/).
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+543
+Index
+Symbols
+!
+compared to ‘==0’, 50
+logical negation operator, 42, 49
+!=
+logical inequality operator, 42, 49
+!==
+case inequality operator, 42, 49
+""
+null string, 60
+$, 367, 374
+$async$and$array, 303
+$async$and$plane, 303
+$async$nand$array, 303
+$async$nand$plane, 303
+$async$nor$array, 303
+$async$nor$plane, 303
+$async$or$array, 303
+$async$or$plane, 303
+$bitstoreal, 178, 310–311
+$countdrivers, 511–512
+$display, 278–285
+compared to $monitor, 285–286
+compared to $write, 278
+escape sequences, 278
+format specifications, 279–281
+size of displayed data, 281–282
+$displayb, 278
+$displayh, 278
+$displayo, 278
+$dist_chi_square, 312
+$dist_erlang, 312
+$dist_exponential, 312
+$dist_normal, 312
+$dist_poisson, 312
+$dist_t, 312
+$dist_uniform, 312
+$dumpall, 328, 335
+$dumpfile, 325
+$dumpflush, 328
+$dumplimit, 328
+$dumpoff, 327, 336, 341
+$dumpon, 327
+$dumpports, 338
+rules to use, 339
+$dumpportsall, 340
+$dumpportsflush, 341
+$dumpportslimit, 340
+$dumpportsoff, 339
+$dumpportson, 339
+$dumpvars, 326
+$fclose, 287–289
+$fdisplay, 288–289
+$fdisplayb, 288
+$fdisplayh, 288
+$fdisplayo, 288
+$ferror, 290, 295
+$fflush, 295
+$fgetc, 290
+$finish, 302
+$fmonitor, 288–289
+$fmonitorb, 288
+$fmonitorh, 288
+$fmonitoro, 288
+$fopen, 287–289
+$fscanf, 291
+$fseek, 290, 294
+$fstrobe, 288–289
+$fstrobeb, 288
+$fstrobeh, 288
+$fstrobeo, 288
+$ftell, 294
+$fullskew, 252
+$fwrite, 288–289
+$fwriteb, 288
+$fwriteh, 288
+$fwriteo, 288
+$getpattern, 512
+$hold, 242
+$incsave, 515
+$input, 513
+$itor, 310
+$key, 513
+$list, 513
+$log, 514
+$monitor, 286
+compared to $display, 286
+$monitorb, 286
+$monitorh, 286
+$monitoro, 286
+$monitoroff, 286
+$monitoron, 286
+$nochange, 257
+$nokey, 513
+$nolog, 514
+$period, 256
+$printtimescale, 299
+$q_add, 307
+$q_exam, 308
+$q_full, 308
+$q_initialize, 307
+$q_remove, 307
+$random, 311
+$readmemb, 296–297
+and loading logic array personality, 304
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+544
+Copyright © 2006 IEEE. All rights reserved.
+$readmemh, 296–297
+and loading logic array personality, 304
+$realtime, 310
+$realtobits, 178, 310–311
+$recovery, 246
+$recrem, 247
+$removal, 245
+$reset, 514
+$reset_count, 514
+$reset_value, 514
+$restart, 515
+$rewind, 294
+$rtoi, 310
+$save, 515
+$scale, 516
+$scope, 516
+$sdf_annotate system task, 297
+$setup, 241
+$setuphold, 243
+$sformat, 289
+$showscopes, 516
+$showvars, 516
+$signed, 65
+$skew, 249
+$sreadmemb, 517
+$sreadmemh, 517
+$sscanf, 291
+$stime, 309
+$stop, 302
+$strobe, 285
+compared to $display, 285
+$strobeb, 285
+$strobeh, 285
+$strobeo, 285
+$swrite, 289
+$swriteb, 289
+$swriteh, 289
+$swriteo, 289
+$sync$and$array, 303
+$sync$and$plane, 303
+$sync$nand$array, 303
+$sync$nand$plane, 303
+$sync$nor$array, 303
+$sync$nor$plane, 303
+$sync$or$array, 303
+$sync$or$plane, 303
+$test$plusargs, 320
+$time, 33, 309
+$timeformat, 300–302
+$timeskew, 250
+$ungetc, 290
+$unsigned, 65
+$vcdclose, 341
+$width, 255–256
+$write, 278–285
+compared to $display, 278
+escape sequences, 278
+format specifications, 279–281
+size of displayed data, 281–282
+$writeb, 278
+$writeh, 278
+$writeo, 278
+%
+in format specifications, 278, 282
+modulus operator, 42
+&
+bitwise AND operator, 42
+reduction AND operator, 42
+&&
+logical AND operator, 42, 49
+(??)
+in state table, 108
+(01)
+in state table, 108
+(0x)
+in state table, 108
+(1x)
+in state table, 108
+(vw)
+in state table, 108
+(x1)
+in state table, 108
+*
+arithmetic multiplication operator, 42
+in state table, 108
+**, 45
+,,
+in null expressions, 278
+/
+arithmetic division operator, 42
+<
+relational less-than operator, 42, 48
+<<
+left shift operator, 53
+logical left shift operator, 42
+<<<
+arithmetic left shift operator, 42
+<=
+relational less-than-or-equal operator, 42, 48
+=
+in assignment statement, 68
+==
+logical equality operator, 42, 49
+===
+case equality operator, 42, 49
+>
+relational greater-than operator, 42, 48
+>=
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+545
+relational greater-than-or-equal operator, 42, 48
+>>
+logical right shift operator, 42
+right shift operator, 53
+>>>
+arithmetic right shift operator, 42
+?
+equivalent to z in literal number values, 11, 129
+in state table, 108, 111
+?:
+conditional operator, 42
+@
+for addressing memory, 296
+\
+backslash character, 14
+for escape sequences in strings, 278
+\"
+as " character, 14
+\ddd
+specify character as octal digits, 14
+\t
+tab character, 14
+^
+bitwise exclusive OR operator, 42
+reduction XOR operator, 42
+^~
+bitwise equivalence operator, 42
+reduction XNOR operator, 42
+`
+in compiler directives, 349
+`celldefine, 349
+`default_decay_time, 518
+`default_nettype, 349
+`default_trireg_strength, 518
+`define, 350
+and text macro substitutions, 352
+`delay_mode_distributed, 519
+`delay_mode_path, 519
+`delay_mode_unit, 519
+`delay_mode_zero, 519
+`else, 352
+`elsif, 353
+`endcelldefine, 349
+`endif, 353
+`ifdef, 352
+`ifndef, 352
+`include, 356
+`nounconnected_drive, 360
+`resetall, 356
+`timescale, 358
+`unconnected_drive, 360
+`undef, 352
+{{}}
+replication operator, 42
+{}
+concatenation operator, 42, 54
+|
+bitwise inclusive OR operator, 42
+reduction OR operator, 42
+||
+logical OR operator, 42, 49
+~
+bitwise negation operator, 42
+~&
+reduction NAND operator, 42
+~^
+bitwise equivalence operator, 42
+reduction XNOR operator, 42
+~|
+reduction NOR operator, 42
+Numerics
+0
+for minimizing bit lengths of expressions, 282
+in state table, 108
+logic zero, 21, 283
+## 01 transition, 111
+
+1
+in state table, 108
+logic one, 21, 283
+A
+access routines
+history, 366
+accurate simulation
+requirements, 261
+addressing memory, 296–297
+always
+and activity flow, 116
+ambiguous strength, 89–99
+and gate, 80–81
+arguments
+system task/function, 368
+arithmetic operators, 42, 45–46
+–, 45
+%, 45
+*, 45
+**, 45
++, 45
+/, 45
+and unknown logic values, 46
+arrays, 34
+element, 35
+format, 304
+index, 35
+word, 35
+assign, 161
+assign procedural continuous assignment state-
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+546
+Copyright © 2006 IEEE. All rights reserved.
+ment, 123
+assignment, 68–72
+continuous, 68–72, 117
+left-hand side, 68
+of delays to module paths, 222–224
+procedural, 117–125
+procedural versus continuous, 117
+right-hand side, 68
+steps for evaluating, 66
+variable declaration, 72
+assignments
+scheduling implications, 161
+asynchronous arrays, 303–307
+attributes, 16
+B
+b
+binary number format, 10
+in state table, 108
+backannotation, 269
+backslash character, 14
+base format
+binary, 10
+decimal, 10
+hexadecimal, 10
+octal, 10
+basic configuration elements, 200
+begin-end block statement, 125, 140
+behavioral modeling, 116–144
+bidirectional pass gate, 84
+binary display format, 10
+and high-impedance state, 283
+and unknown logic value, 283
+Binary operators, 8
+binary operators
+{}, 54
+binding instances, 199
+bit-select
+of vector net or register, 56
+out of bounds, 56, 58
+references of real numbers, 33
+bitwise operators, 50
+AND, 42
+equivalence, 42
+exclusive OR, 42
+inclusive OR, 42
+negation, 42
+blank port connection, 166
+block comment, 8
+block statement, 139–142
+fork-join, 139
+naming of, 141–142
+parallel, 140
+sequential, 139
+start and finish times, 142
+timing for embedded blocks, 142
+blocking assignment statement, 161
+process, 161
+blocking assignments, 117
+blocking procedural assignment, 117
+buf gate, 81–82
+bufif gate, 82–83
+C
+calltf routines, 462
+capacitive networks, 28–30
+capacitive state, 28
+case
+item expressions, 127
+case equality operator, 42
+case inequality operator, 42
+case statement, 127–129
+compared to if-else-if statement, 128
+constant expression, 129
+with do-not-care, 128–129
+casex, 128
+casez, 128
+cbAfterDelay, 459
+cbAssign, 454
+cbAtEndOfSimTime, 459
+cbAtStartOfSimTime, 458
+cbDeassign, 454
+cbDisable, 454
+cbEndOfCompile, 460
+cbEndOfRestart, 460
+cbEndOfSave, 460
+cbEndOfSimulation, 460
+cbEnterInteractive, 460
+cbError, 460
+cbExitInteractive, 460
+cbForce, 454
+cbInteractiveScopeChange, 460
+cbNBASynch, 458
+cbNextSimTime, 459
+cbPLIError, 460
+cbReadOnlySynch, 459
+cbReadWriteSynch, 459
+cbRelease, 454
+cbSignal, 460
+cbStartOfRestart, 460
+cbStartOfSave, 460
+cbStartOfSimulation, 460
+cbStmt, 454
+cbTchkViolation, 460
+cbUnresolvedSystf, 460
+cbValueChange, 454
+cell, 199
+multiple, 202
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+547
+CELL declaration, 269
+DELAY, 269
+LABEL, 269
+TIMINGCHECK, 269
+characters
+specified as octal digits, 14
+charge decay, 30, 103
+charge decay process, 103
+charge decay time, 103
+delay specification, 103
+charge storage
+strength, 25
+charge storage strength, 88
+classes of PLI routines
+calltf, 462
+compiletf, 462
+clause
+cell, 204
+using, 207
+default, 203
+using, 207
+instance, 203
+using, 208
+liblist, 204
+use, 204
+cmos, 83, 85
+cmos gate, 85–86
+combinational UDPs, 105, 109
+compared to level-sensitive sequential, 110
+input and output fields in state table, 107
+combined signal strengths, 88–99
+combined signal values, 88–99
+command line considerations, 206
+comments, 8
+compare
+string operation, 59
+Compiler directives, 15
+compiletf routines, 462
+concatenation
+and unsized numbers, 54
+of names, 191
+operator, 42, 54
+string operation, 59
+concurrency
+of activity flow, 116
+condition
+deterministic, 265
+nondeterministic, 265
+conditional compilation, 352
+conditional expression, 215
+conditional operator, 42, 53–54
+modeling three-state output busses, 54
+conditional statement, 125–126
+conditioned event, 265–266
+versus unconditioned event, 265
+config, 199
+configurations, 199, 202
+hierarchical, 205
+conflicts, 26–27
+connecting ports
+by name, 177–178
+by position with ordered list, 176
+rules, 179–180
+connection
+difference between full and parallel, 220
+full, 219
+parallel, 219
+constant expression, 41
+constant function, 156
+constant numbers, 9
+context-determined expression, 62
+continuous assignment, 68–72, 161
+and connecting ports, 179
+and driving strength, 88, 283
+and net variables, 117
+and wire nets, 26
+driving strength of, 71
+explicit declaration, 69
+implicit declaration, 69
+versus procedural assignment, 72
+control string, 291
+conversion, 12, 33
+copy
+string operation, 59
+counting number of drivers, 512
+D
+d (decimal number format), 10
+data types, 21–40
+deassign, 161
+deassign procedural statement, 123
+decimal display format, 10
+and high-impedance state, 282
+and unknown logic value, 282
+compatibility with $monitor, 282
+decimal notation, 12
+declaring
+events, 133
+multiple module paths in a single statement, 220
+parameters in specify blocks, 38–39
+default
+in case statement, 127
+in if-else-if statements, 126
+default statement, 200
+defparam, 168–170
+delay
+calculating for high-impedance (z) transitions,
+101
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+548
+Copyright © 2006 IEEE. All rights reserved.
+calculating for unknown logic value (x)
+transitions, 101
+control, 131–132
+default, 101
+distributed, 211–226
+fall, 101
+falling, 102
+for continuous assignment, 71
+gate, 101–103
+minimum:typical:maximum values, 102
+module path, 211–226
+net, 101–103
+propagation, 77, 101
+rise, 101–102
+rules for delays controling the assignment, 71
+specify one value, 101
+specify three values, 101
+specify two values, 101
+trireg charge decay, 103
+turn-off, 102
+delay selection, 225
+delay specification, 77
+delays
+inertial, 451
+pure transport, 451
+transport, 451
+describing simple module paths, 213
+design, 200
+design statement, 202
+determinism in simulation execution, 160
+diagnostic messages
+from $stop and $finish, 302
+disable
+named blocks, 150
+tasks, 150
+use of, 150
+displaying information, 278–285
+displaying library binding information, 208
+do-not-care bits
+in case statements, 129
+double quote character, 14
+drive strength specification, 76
+driven state, 28
+driving strength, 88
+compared to charge storage strength, 283
+keywords, 72
+E
+edge transitions, 259
+edge-control specifiers, 258–259
+edge-sensitive paths, 214–218
+edge-sensitive state-dependent paths, 217
+edge-sensitive UDPs, 110
+compared to level-sensitive UDPs, 110
+element (reg in array), 35
+else, 126
+embedding modules, 163, 165
+enable, 136
+enabling tasks, 145
+end
+sequential block, 139
+endconfig, 199
+endspecify, 39, 211
+equality operators, 49
+!=, 49
+!==, 49
+==, 49
+===, 49
+and ambiguous results, 49
+and operands of different sizes, 49
+precedence, 49
+escape sequences, 278
+escaped identifiers, 14
+espresso format, 305
+event
+active, 159
+control, 131–132
+evaluation, 158
+explicit, 131
+expression, 131
+future, 159
+implicit, 131
+inactive, 159
+level sensitive control, 136
+monitor, 159
+named, 133–134, 158
+nonblocking assign update, 159
+OR construct, 134
+queue, 158
+update, 158
+event control
+repeat, 137–139
+event queue, 158
+scheduling an event, 158
+event simulation, 158
+exit simulator, 302
+expanded object, 24
+expansion
+of vector nets, 24
+explicit event, 131
+explicit zero delay, 159
+expressions, 41–64
+bit lengths, 62–64
+constant, 41
+context-determined, 62
+self-determined, 62
+steps for evaluating, 65
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+549
+F
+f (in state table), 108
+fall delay, 101–102
+file descriptor, 288
+file inclusion, 356
+file path resolution, 201
+file positioning, 294
+finish time
+in parallel block statements, 142
+in sequential block statements, 142
+flushing output, 295
+for loop, 130
+force, 161
+forever loop, 130
+fork-join block statement, 139
+fork-join construct, 138
+format specifications, 279–281
+ASCII character, 279
+b or B, 279
+binary, 279
+c or C, 279
+d or D, 279
+decimal, 279
+h or H, 279
+hexadecimal, 279
+hierarchical name, 280
+library binding, 280
+m or M, 280
+net signal strength, 280, 283–285
+o or O, 279
+octal, 279
+s or S, 280
+string, 280, 285
+t or T, 280–281
+time format, 280
+timescales, 281
+u or U, 280
+v or V, 280
+z or Z, 280
+formats
+array, 304
+of logic array personality, 304–307
+plane, 305
+formatting data to a string, 289
+frames, 404
+full connection, 219–220
+fullname, 438
+function
+call, 155
+constant
+calls, 156
+functions, 152–156, 162
+and scope, 195
+as structured procedures, 143
+definition, 143
+purpose, 145
+returning a value, 154
+rules, 155
+G
+gate type specification, 76
+gate-level modeling, 74–104
+gates
+and, 80–81
+bidirectional pass, 84
+delay specifications, 85
+buf, 81–82
+bufif, 82–83
+cmos, 85–86
+delay specification, 85
+compared to continuous assignments, 74
+connection list, 78
+delay, 101–103
+MOS, 83–84
+nand, 80–81
+nor, 80–81
+not, 81–82
+notif, 82–83
+notif0, 82–83
+notif1, 82–83
+or, 80–81
+pulldown, 86
+pullup, 86
+rules for instance connections, 78
+terminal list, 78
+xnor, 80–81
+xor, 80–81
+H
+h (hexadecimal number format), 10
+H (logic 1 or high-impedance state in strength for-
+mat), 283
+handles
+vpiHandle data type, 378
+hexadecimal display format, 10
+and high-impedance state, 282
+and unknown logic value, 282
+Hi (high-impedance in strength format), 284
+hierarchical config
+using, 208
+hierarchical configurations, 205
+hierarchical path name, 191
+hierarchy
+level, 191
+name referencing, 191, 280
+of modules, 163
+scope, 191
+scope rules for naming, 195–196
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+550
+Copyright © 2006 IEEE. All rights reserved.
+structures, 163–197
+high-impedance state
+and numbers, 10
+and trireg nets, 28
+and UDPs, 113
+display formats, 282–284
+effect in different bases, 10
+strength display format, 284
+symbolic representation, 21
+highz0, 77
+highz1, 77
+I
+I/O error status, 295
+identifiers, 14
+escaped, 14
+keywords, 15
+if-else statement
+omitting else from nested if, 125
+purpose, 125
+If-else-if, 126
+if-else-if statement
+compared to case statement, 128
+ifnone condition, 218
+implicit
+declarations, 25, 349
+event, 131
+implicit bidirectional connections, 162
+implicit continuous assignment statements, 162
+implicit conversion, 12, 33
+implicit event, 132
+include command, 202
+incremental restart, 515
+incremental save, 515
+index
+of array, 35
+of memory, 35
+inertial delays, 451
+initial, 143
+and activity flow, 116
+for specifying waveforms, 144
+initial statements
+in UDPs, 111–112
+instance statement, 200
+instantiation
+of modules, 163–167
+integer constants, 10
+integers, 32
+division, 45
+intra-assignment timing controls, 136–139
+K
+keywords, 15
+L
+L (logic 0 or high impedance state in strength for-
+mat), 283
+La (large capacitor in strength format), 284
+large, 25, 28
+left-hand index, 77
+level-sensitive
+event control, 136
+paths, 215–219
+sequential UDPs, 110
+versus combinational UDP, 110
+level-sensitive UDPs
+compared to edge-sensitive UDPs, 110
+lexical conventions, 8–16
+lexical token
+comment, 8
+definition of, 8
+number, 9
+operator, 8
+types, 8
+white space, 8
+liblist clause, 200
+libraries, 200
+library map
+library declaration, 200
+library notation, 199
+loading memory data from a file, 296
+loading timing data from an SDF file, 297
+logic array
+personality declaration and loading, 304
+logic array personality, 304–307
+declaration, 304
+formats, 304–307
+loading, 304
+logic gates
+and, 80–81
+bidirectional pass, 84
+buf, 81–82
+bufif, 82–83
+cmos, 85–86
+compared to continuous assignments, 74
+delay, 101–103
+MOS, 83–84
+nand, 80–81
+nor, 80–81
+not, 81–82
+notif, 82–83
+or, 80–81
+pulldown, 86
+pullup, 86
+xnor, 80–81
+xor, 80–81
+logic one, 21
+logic planes, 304
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+551
+logic strength modeling, 86–101
+logic zero, 21
+logical operators, 49
+!, 49
+&&, 49
+||, 49
+AND, 42
+and ambiguous results, 49
+and unknown logic value, 49
+equality, 42
+inequality, 42
+negation, 42
+OR, 42
+precedence, 49
+looping statement, 130–131
+for loop, 130
+forever loop, 130
+repeat loop, 130
+while loop, 130
+lsb (least significant bit), 24
+M
+mapping source files to libraries, 202
+Me (medium capacitor in strength format), 284
+medium, 25, 28
+memory, 34–35
+addressing, 57
+assigning values to, 35
+index, 35
+minimum:typical:maximum values
+delay, 102
+for module path delays, 222–223
+format, 61–62
+minus sign(-)
+arithmetic subtraction operator, 42
+in state table, 108
+mixing path and distributed delays, 225
+modeling
+asynchronous clear/preset on an edge-triggered D
+flip-flop, 123
+logic strength, 86–101
+module, 163–166
+and user-defined primitives (UDPs), 105
+definition, 163–164
+hierarchy, 163
+instance parameter value assignment, 170
+instance parameter value assignment by ordered
+list, 170
+instantiation, 165–167
+overriding parameter values, 167–173
+parameter assignment by name, 171
+parameter dependencies, 173
+port, 166
+terminal, 166
+top-level, 165
+module parameter, 36
+dependencies, 173
+overriding values, 167–173
+passing to tasks, 147–148
+module path
+definition, 212
+delay, 222–226
+destination, 211, 213, 220
+polarity, 220–221
+simple, 213
+source, 211, 213, 220
+module path restrictions, 212
+modulus operator, 42
+definition, 45
+monitor flag, 286
+monitoring
+continuous, 286
+strobed, 285
+MOS gate, 83–84
+nmos, 84
+pmos, 84
+rnmos, 84
+rpmos, 84
+MOS strength handling, 100
+msb (most significant bit), 24
+mtm_flag, 425, 448
+multichannel descriptor, 287–288
+multiple drivers
+at same strength level, 98
+driving the same net, 27
+inside a module, 226
+outside a module, 227
+multiple library map files, 202
+multiple module path delays
+assigning in one statement, 220
+multi-way decisions
+if-else-if statement, 126
+multiway decisions
+case statement, 127
+N
+n (in state table), 108
+name, 374, 438
+name space, 39
+block name space, 39
+definitions, 39
+module name space, 40
+port name space, 40
+specify block name space, 40
+name spaces, 39
+named blocks
+and hierarchical names, 191
+and scope, 195
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+552
+Copyright © 2006 IEEE. All rights reserved.
+purpose, 141–142
+named events, 133–134, 158
+used with event expressions, 133
+names
+of hierarchical paths, 191
+nand gate, 80–81
+negative numbers, 10
+negedge, 133, 214, 259
+net and register bit addressing, 57
+net arrays, 34
+net delay, 71
+net type resolution rule, 180
+net type table, 180
+net types, 26
+nets, 21–32
+delay, 101–103
+trireg strength, 88
+types of, 26–32
+wired logic, 98
+new line character, 14, 279
+newline character, 14
+nmos, 83–84
+node
+in hierarchical name tree, 191
+nonblocking assignment statement, 161
+nonblocking procedural assignment, 118–122
+evaluating assignments, 119
+multiple assignments, 121
+nondeterminism in simulation execution, 160
+nor gate, 80–81
+not gate, 81–82
+notif gate, 82–83
+notif0, 83
+notif1, 83
+notifier, 259–261
+in edge-sensitive UDP, 260–261
+notifiers
+user-defined responses to timing violations, 259
+null (expression), 278
+numbers, 9
+base format, 10
+size specification, 10
+O
+o (octal number format), 10
+octal display format, 10
+on/off control
+of monitoring tasks, 286
+one-line comment, 8
+opening and closing files, 287
+operands, 55–60
+definition, 41
+strings, 58–60
+operators, 41
+–, 42
+!, 42, 49
+!=, 42, 49
+!==, 42, 49
+%, 42
+&, 42
+&&, 42, 49
+*, 42
+**, 42
+*>, 213–220
++, 42
+/, 42
+<, 42, 48
+<<, 42, 53
+<<<, 42, 53
+<=, 42, 48
+=, 68
+==, 42, 49
+===, 42, 49
+=>, 213–220
+>, 42, 48
+>=, 42, 48
+>>, 42, 53
+>>>, 42, 53
+?:, 42
+^, 42
+^~, 42
+{{}}, 42
+{}, 42, 54
+|, 42
+||, 42, 49
+~, 42
+~&, 42
+~^, 42
+~|, 42
+and real numbers, 33
+arithmetic, 42, 45–46
+binary, 8
+bitwise, 50
+bitwise AND, 42
+bitwise equivalence, 42
+bit-wise exclusive OR, 42
+bitwise inclusive OR, 42
+bit-wise negation, 42
+case equality, 42
+case inequality, 42
+concatenation, 42, 54
+conditional, 8, 42, 53–54
+definition, 8
+equality, 49
+left shift
+arithmetic, 42
+logical, 42
+logical, 49
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+553
+logical AND, 42
+logical equality, 42
+logical inequality, 42
+logical negation, 42
+logical OR, 42
+modulus, 42
+reduction, 51–52
+reduction AND, 42, 51
+reduction NAND, 42, 51
+reduction NOR, 42, 51
+reduction OR, 42, 51
+reduction XNOR, 42, 51
+reduction XOR, 42, 51
+relational, 42, 48
+replication, 42
+right shift
+arithmetic, 42
+logical, 42
+shift, 53
+unary, 8
+unary reduction, 51
+or gate, 80–81
+output
+to files, 286–289
+overloading system task/function names, 367
+overriding module parameter values, 167–173
+assigning values in-line within module instances,
+170
+defparam, 168
+P
+p (in state table), 108
+parallel block, 141
+parallel block statement
+finish time, 142
+start time, 142
+parallel connection, 219–220
+parameters, 35
+parentheses
+and changing operator precedence, 43
+part-select
+of vector net or register, 56
+references of real numbers, 33
+PATHPULSE$ specparam, 228
+personality
+memory, 303
+of logic array, 304–307
+PLA devices
+array logic types, 304
+array types, 303–307
+list of system tasks, 303
+logic array personality declaration, 304
+logic array personality formats, 304–307
+logic array personality loading, 304
+plane
+format, 305
+in programmable logic arrays, 304
+PLI history, 366
+PLI mechanism, 368
+plus sign(+)
+arithmetic addition operator, 42
+pmos, 83–84
+polarity, 220–221
+negative, 221
+positive, 221
+unknown, 221
+port, 173–191
+connecting
+by name, 177–178
+by position with ordered list, 176
+rules for, 179–180
+connecting module instance ports by name, 177
+connecting module instance ports by ordered
+list, 176
+declaration, 174
+definition, 173
+module, 166
+port connections, 162
+port expression, 177
+posedge, 133, 214, 259
+power supplies
+modeled by supply nets, 32
+precedence
+equality operators, 49
+logical operators, 49
+relational operators, 48
+precompiling using a separate compilation tool,
+206
+primitive instance identifier, 77
+probabilistic distribution functions, 311–312
+$dist_chi_square, 312
+$dist_erlang, 312
+$dist_exponential, 312
+$dist_normal, 312
+$dist_poisson, 312
+$dist_t, 312
+$dist_uniform, 312
+procedural assignment, 117–125
+and integers, 33
+and time variables, 33
+blocking, 117
+nonblocking, 118–122
+versus continuous assignment, 72
+procedural assignments
+blocking assignment, 117
+procedural continuous assignment, 161
+procedural continuous assignments, 122–125
+assign, 123–124
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+554
+Copyright © 2006 IEEE. All rights reserved.
+deassign, 123–124
+force, 124
+release, 124
+procedural statements
+in behavioral models, 116
+procedural timing controls, 131–139
+delay control, 132
+event control, 131
+fork-join block, 141
+intra-assignment timing controls, 136–139
+procedure
+always construct, 143
+function, 143
+initial construct, 143
+task, 143
+process, 158
+programmable logic arrays
+list of system tasks, 303
+logic types, 304
+personality
+declaration, 304
+formats, 304–307
+loading, 304
+types, 303–307
+propagation delay
+for gates and nets, 101
+Pu (pull drive in strength format), 284
+pull, 28
+pull0, 77, 360
+pull1, 76, 360
+pulldown, 76
+pulldown source, 86
+pullup, 76
+pullup source, 86
+pulse
+negative
+detection, 232
+pulse control, 425, 448
+detailed capabilities, 230
+pulse filtering
+on-event versus on-detect, 230
+pulse limit value, 228
+global control of, 230
+SDF annotation, 230
+specify block control, 229
+pulsere_flag, 425, 448
+pure transport delays, 451
+Q
+qualified paths, 214–218
+edge-sensitive, 214–218
+level-sensitive, 215–220
+queue management, 307–308
+$q_add, 307
+$q_exam, 307–308
+$q_full, 307–308
+$q_initialize, 307
+$q_remove, 307
+status parameters, 308
+queueing models, 307
+R
+r (in state table), 108
+race condition, 138
+race conditions, 160
+random access memory(RAM)
+modeled by register arrays, 35
+random number generators
+probabilistic distribution functions, 311
+range specification, 77
+rcmos, 83, 85
+reading a character at a time, 290
+reading a line at a time, 290
+reading binary data, 293
+reading formatted data, 291
+read-only memory(ROM)
+modeled by register arrays, 35
+real constant numbers, 12
+real declarations, 33
+real number constants, 33
+real numbers, 32
+and operators, 33
+conversion to integers, 12, 33
+format specifications used with, 281
+in port connections, 178
+operators with real number operands, 42–43
+real variable data types, 33
+realtime
+variables, 32
+realtime declarations, 33
+recursive, see frames, 404
+reducing pessimism, 128
+reduction operators, 51–52
+&, 42
+~&, 42
+inclusive OR, 42
+unary AND, 42
+unary NAND, 42
+unary NOR, 42
+XNOR, 42
+XOR, 42
+reentrant, see frames, 404
+reg arrays, 34
+reg declaration, 23
+registers
+and level-sensitive sequential UDPs, 110
+notifier, 259
+used in procedural assignments, 72
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+555
+regs, 32
+relational operators, 42, 48
+<, 48
+<=, 48
+>, 48
+>=, 48
+precedence, 48
+release, 161
+repeat event control, 137–139
+repeat loop, 130
+replication
+operator, 42
+restrictions on data types
+in continuous assignments, 68, 179
+in procedural assignments, 68, 72, 117
+when connecting ports, 179
+right-hand index, 77
+rise delay, 101–102
+rnmos, 83–84
+rpmos, 83–84
+rtran, 84
+rtranif0, 84
+rtranif1, 84
+rules
+for delays controling the assignment, 71
+for describing module paths, 220
+for expression bit lengths, 62
+for expression types, 65
+for instance connections, 78
+net type resolution, 180
+to use the $dumpports, 339
+S
+s (in string display format), 285
+s_vpi_delay structure, 424
+s_vpi_time structure, 424
+scalared, 24
+scalars
+compared to vectors, 24
+scalar nets and driving strength of continuous as-
+signment, 71
+scheduling semantics, 158
+scientific notation, 12
+scope
+and hierarchical names, 191
+rules, 195–196
+SDF
+INTERCONNECT construct, 273
+interconnect delay annotation, 273
+multiple annotations, 274
+pulse limit annotation, 275
+to Verilog delay value mapping, 276
+SDF annotation
+down-hierarchy annotation, 274
+hierarchically overlapping annotations, 274
+NETDELAY construct, 273
+of interconnect delays, 273
+of specparams, 272
+PATHPULSE, 275
+PATHPULSEPERCENT, 275
+PORT construct, 273
+up-hierarchy annotations, 274
+SDF annotator, 269
+SDF constructs
+mapping to Verilog, 269
+SDF delay constructs
+mapping to Verilog declarations, 269
+SDF files
+backannotation, 269
+SDF timing check constructs
+mapping to Verilog, 271
+seed, 312
+self-determined expression, 62
+sequential block, 116
+sequential block statement, 140
+finish time, 142
+start time, 142
+sequential UDP initialization, 111–112
+sequential UDPs
+input and output fields in state table, 108
+set of values (0, 1, x, z), 21
+shift operators, 42, 53
+<<, 53
+<<<, 53
+>>, 53
+>>>, 53
+short-circuiting, 45
+showcancelled behavior, 232
+signed expressions, 64
+handling ’X’ and ’Z’, 66
+signed integers, 10
+simple decimal number, 10
+simple state-dependent paths, 216
+simulating module path delays
+when driving wired logic, 226–227
+simulation
+going back with incremental restart, 515
+simulation cycle, 159
+simulation reference model, 159
+simulation time, 158
+single-pass use model
+elaboration-time compiling, 206
+precompiling, 205
+size constant, 10
+size of displayed data, 281–282
+sized numbers, 10
+Sm (small capacitor in strength format), 284
+small, 25, 28
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+556
+Copyright © 2006 IEEE. All rights reserved.
+source
+pulldown, 86
+pullup, 86
+specify, 39, 211
+specify block, 211–236
+specify block system tasks
+$hold, 242
+$period, 256
+$recovery, 246
+$setuphold, 243
+$skew, 249
+$timeskew, 250
+$width, 255–256
+specify parameters, 38–39
+as run time constant in specify block, 212
+specifying the time unit of delays entered interactive-
+ly, 300
+specifying transition delays on module paths, 222–
+224
+x transitions, 224
+specparam, 38–39, 272
+St (strong drive in strength format), 284
+standard output, 287
+start time
+in parallel block statements, 142
+in sequential block statements, 142
+state dependent path delays, 215–220
+stochastic analysis, 311–312
+probabilistic distribution functions, 311–312
+queue management, 307–308
+stop, 302
+strength, 76–77
+ambiguous, 89–99
+classifications, 89
+and MOS gates, 100
+and scalar net variables, 21
+charge storage, 88
+driving, 88
+gates that accept specifications, 76
+of combined signals, 88–99
+on trireg nets, 28
+range of possible values, 90
+reduction by nonresistive devices, 100
+reduction by resistive devices, 100
+reduction table, 100
+scale of strengths, 88
+specification, 87
+supply net, 101
+tri0, 100
+tri1, 100
+trireg, 100
+strength display format, 283–285
+high impedance, 284
+large capacitor, 284
+logic value 0,1,H,L,X,Z, 283
+medium capacitor, 284
+pull drive, 284
+small capacitor, 284
+strong drive, 284
+supply drive, 284
+weak drive, 284
+strengths, 25
+of net types, 100
+strings, 12–14, 58–279
+definition, 12
+display format, 280, 285
+in vector variables, 59
+manipulation, 13
+operations, 59
+padding, 13
+special characters, 13
+value padding, 59–60
+variable declaration, 13
+strobed monitoring, 285
+strong, 28
+strong0, 77
+strong1, 76
+structured procedure, 143–144
+always construct, 143
+function, 143
+initial construct, 143
+task, 143
+Su (supply drive in strength format), 284
+supply, 28
+supply net strength, 101
+supply nets, 32
+supply0, 77
+supply1, 76
+switch processing, 161
+switches
+MOS, 83–84
+synchronous arrays, 303–307
+system functions, 277–312
+system task/function arguments, 368
+system task/function name, 374
+system tasks, 277–312
+for continuous monitoring, 286
+for displaying information, 278–285
+for interrupting the simulator, 302
+for processing stimulus patterns faster, 512
+for showing number of drivers, 512
+for writing formatted output to files, 286–289
+generating a checkpoint in the value change
+dump file, 328
+limiting the size of the value change dump file,
+328
+reading the value change dump file during a sim-
+ulation, 328
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+557
+resuming the dump into the value change dump
+file, 327
+showing the timescale of a module, 299
+specifying how %t reports time information, 300–
+302
+specifying the name of the value change dump
+file, 325
+specifying the variables to be dumped in the value
+change dump file, 326
+stopping the dump into the value change dump
+file, 327
+System tasks and functions, 15
+system tasks and functions, 277–312
+T
+t (timescale format), 281
+tab character, 14
+task/function arguments, 368
+task/function name, 374
+task/function routines
+history, 366
+task-enabling statement, 147
+tasks, 145–156, 162
+and hierarchical names, 191
+and scope, 195
+as structured procedures, 143
+definition, 143
+disabling within a nested chain, 150
+passing parameters, 147–148
+purpose, 145
+text macro substitutions, 350–352
+and `define, 350
+definition, 350
+redefinition, 352
+with arguments, 350
+text output
+vpi_mcd_close(), 440
+vpi_mcd_name(), 441
+vpi_mcd_open(), 442
+vpi_mcd_printf(), 443
+vpi_printf(), 444
+tf_synchrnize(), 159
+tfargs, 368
+time
+arithmetic operations performed on time vari-
+ables, 33
+variables, 32
+time precision, 358
+time unit, 358
+timing checks, 237–268
+$hold, 242
+$period, 256
+$recovery, 246
+$recrem, 247
+$removal, 245
+$setup, 241
+$setuphold, 243
+$skew, 249
+$timeskew, 250
+$width, 255–256
+negative, 266
+conditions, 263
+notifiers, 264
+using a stability window, 240
+vector signals, 266
+timing checks for clock and control signals, 248
+top-level module, 165
+tran, 84
+tranif0, 84
+tranif1, 84
+transistors, 84
+transitions
+01, 111
+unspecified, 110
+transport delays, 451
+tree structure
+of hierarchical names, 191
+tri nets, 26
+tri0 (net type), 100
+tri1 (net type), 100
+triand, 27
+trior, 27
+trireg
+and charge storage strength, 88
+turn-off delay, 102
+types of nets
+supply nets, 32
+tri nets, 26
+tri0, 31, 100
+tri1, 31, 100
+triand, 27
+trior, 27
+trireg, 28, 100, 283
+wire, 26
+wired AND, 27
+wired logic, 98
+wired nets, 27
+wired OR, 27
+U
+UDP port declarations, 107
+UDPs, 105–115
+- in state table, 108
+(??) in state table, 108
+(01) in state table, 108
+(0x) in state table, 108
+(1x) in state table, 108
+(vw) in state table, 108
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+558
+Copyright © 2006 IEEE. All rights reserved.
+(x1) in state table, 108
+* in state table, 108
+? in state table, 108
+## 0 in state table, 108
+
+## 1 in state table, 108
+
+b in state table, 108
+combinational UDPs, 109
+definition, 105–107
+edge-sensitive UDPs, 110
+f in state table, 108
+instances, 113–114
+level-sensitive dominance, 115
+level-sensitive sequential UDPs, 110
+mixing level- and edge-sensitive descriptions,
+114–115
+n in state table, 108
+p in state table, 108
+ports, 107
+r in state table, 108
+state table, 107
+summary of symbols in state table, 108
+x in state table, 108
+unary arithmetic operators, 46
+unary operators, 8
+!, 49
+<<, 53
+>>, 53
+unconnected port, 166
+undescore character, 11
+unexpanded object, 24
+unknown logic value
+and numbers, 10
+display formats, 282–284
+effect in different bases, 10
+in state table, 108, 111
+symbolic representation, 21
+unsigned integers, 10
+unsigned number, 10
+unspecified transitions, 110
+upwards name referencing, 193
+User-defined primitives, 105
+user-defined primitives (UDPs), 105
+user-defined system tasks and functions, 374
+name overloading, 367
+names, 367, 374
+types, 367
+V
+value change dump file, 325–348
+creating, 325–329
+creating the extended file, 338
+extended VCD node information, 344
+format, 329–337
+formats of variable values, 331–332
+general rules for extended VCD system tasks,
+341
+generating a checkpoint, 328, 340
+keyword commands
+$comment, 332
+$date, 332
+$dumpall, 335
+$dumpoff, 336, 341
+$enddefinitions, 333
+$scope, 333
+$timescale, 334
+$upscope, 334
+$var, 334
+$version, 335
+limiting the size, 328
+limiting the size of the dump file, 340
+reading the dump file during simulation, 341
+reading the value change dump file during a sim-
+ulation, 328
+resuming the dump, 327
+rules to conflicts, 347
+specifying the dump file name and the ports to
+be dumped, 338
+specifying the name, 325
+specifying the variables to be dumped, 326
+stopping and resuming the dump, 339
+stopping the dump, 327
+value changes, 346
+value set (0, 1, x, z), 21
+values
+of combined signals, 88–99
+variables, 23–24
+VCD file
+extended, 342
+vectored, 24
+vectors, 24
+and vector net expansion, 24
+vlog_startup_routines array, 463
+VPI data model diagrams
+active time format, 414
+assignments, 410
+attributes, 415
+case statement, 412
+continuous assignments, 406
+delay controls, 410
+delay terminals, 405
+event controls, 410
+expressions, 408
+expressions, simple, 407
+for loops, 411
+forever loops, 411
+frames, 404
+function calls, 403
+functions, 402
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+559
+if statement, 412
+instance arrays, 388
+inter-module paths, 401
+IO declarations, 389
+iterator, 416
+memories, 396
+module paths, 401
+modules, 387
+named events, 397, 409
+net drivers and loads, 405
+nets, 391
+object range, 396
+parameters, 398
+path term, 401
+ports, 390
+primitives, 399
+procedural assign statement, 413
+procedural blocks, 409
+procedural deassign statement, 413
+procedural disable statement, 413
+procedural force statement, 413
+procedural release statement, 413
+process, 409
+reg drivers and loads, 406
+regs, 393
+repeat controls, 411
+repeat loops, 411
+scopes, 389
+simple expressions, 407
+specparams, 398
+statements, 409
+task calls, 403
+tasks, 402
+timing check, 402
+UDPs, 400
+variables, 395
+wait control, 411
+while loops, 411
+VPI mechanism, 375
+VPI routines
+callback overview, 375
+error handling, 376
+history, 366
+key to data model diagrams, 383
+lsited by functional groups, 381
+object access overview, 376
+object classifications, 377
+object types, 379
+traversing expressions, 377
+vpi_chk_error(), 418
+vpi_compare_objects(), 420
+vpi_control(), 420
+vpi_flush(), 421
+vpi_free_object(), 421
+vpi_get(), 422
+vpi_get_cb_info(), 422
+vpi_get_data(), 423
+vpi_get_delays(), 424
+vpi_get_str(), 426
+vpi_get_systf_info(), 427
+vpi_get_time(), 428
+vpi_get_userdata(), 429
+vpi_get_value(), 429
+vpi_get_vlog_info(), 435
+vpi_handle(), 436
+vpi_handle_by_index(), 437
+vpi_handle_by_multi_index(), 438
+vpi_handle_by_name(), 438
+vpi_handle_multi(), 439
+vpi_iterate(), 439
+vpi_mcd_close(), 440
+vpi_mcd_flush(), 441
+vpi_mcd_name(), 441
+vpi_mcd_open(), 442
+vpi_mcd_printf(), 443
+vpi_mcd_vprintf(), 444
+vpi_printf(), 444
+vpi_put_data(), 445
+vpi_put_delays(), 447
+vpi_put_userdata(), 450
+vpi_put_value(), 450
+vpi_register_cb(), 159, 453
+vpi_register_systf(), 461
+vpi_remove_cb(), 465
+vpi_scan(), 465
+vpi_vprintf(), 466
+vpiCancelEvent, 451
+vpiFile, 380
+vpiForceFlag, 451
+vpiHandle, 378
+vpiInertialDelay, 451
+vpiInterModPath, 439
+vpiIntFunc, 462
+vpiIterator, 439
+vpiLineNo, 380
+vpiNoDelay, 451
+vpiPureTransportDelay, 451
+vpiRealFunc, 462
+vpiReleaseFlag, 451
+vpiReturnEvent, 451
+vpiScaledRealTime, 453
+vpiSchedEvent, 451
+vpiScheduled, 451
+vpiSizedFunc, 462
+vpiSizedSignedFunc, 462
+vpiSysFunction, 462
+vpiSysTask, 462
+vpiTimeFunc, 462
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+560
+Copyright © 2006 IEEE. All rights reserved.
+vpiTimeUnit, 422
+vpiTransportDelay, 451
+vpiType, 379
+W
+wait statement
+as level-sensitive event control, 136
+to advance simulation time, 132
+wand, 27
+We (weak drive in strength format), 284
+weak, 28
+weak0, 77
+weak1, 76
+while loop, 130
+white space, 8
+wired AND configurations, 27
+wired logic nets
+wand, 98
+wired AND configurations, 27
+wired OR configurations, 27
+wor, 98
+wired OR configurations, 27
+wires, 26
+wor, 27
+word (reg in array), 35
+writing formatted output to files, 286–289
+X
+X
+as display format for unknown logic value, 282
+unknown logic value in strength format, 283
+x
+as display format for unknown logic value, 282
+in state table, 108
+unknown logic value, 21
+xnor gate, 80–81
+xor gate, 80–81
+Z
+Z
+as display format for high impedance state, 282
+high-impedance state in strength format, 283
+z
+as display format for high impedance state, 282
+high-impedance state, 21
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.

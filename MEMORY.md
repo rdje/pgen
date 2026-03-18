@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-17 (+0100, task: tighten-sv-declaration-keyword-discipline)
+Last updated: 2026-03-18 (+0100, task: add-verilog-lrm-conversion-workspace)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,22 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Technical Snapshot
+- The repository now also has a tracked Verilog LRM conversion workspace sourced from `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`:
+  - versioned workspace:
+    - `/Users/richarddje/Documents/github/pgen/docs/verilog/2005`
+    - contains `txt/`, `md/`, `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, `grammar_report.json`
+    - current measured conversion summary:
+      - `detection_mode=pdf_toc`
+      - `sections_written=37`
+      - `rules_extracted=485`
+      - `rule_count=336`
+  - lightweight top-level companion workspace:
+    - `/Users/richarddje/Documents/github/pgen/docs/verilog`
+    - contains `txt/`, `md/`, `sections_manifest.json`, and mirrored grammar artifacts
+  - shared-tooling improvement now landed in:
+    - `/Users/richarddje/Documents/github/pgen/tools/txt_to_md_converter.py`
+    - clause headings like `1. Overview` are now recognized as real section titles
+    - when no exact heading is found, the converter now falls back deterministically to the filename-derived title instead of front-page boilerplate
 - The repository now tracks and executes a wider external HDL corpus base for parser hardening:
   - VHDL submodules:
     - `stimuli/vhdl/subs/PoC`

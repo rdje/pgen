@@ -1,0 +1,196 @@
+Copyright © 2006 IEEE. All rights reserved.
+1
+IEEE Standard for Verilog®
+Hardware Description Language
+1. Overview
+1.1 Scope
+Verilog is a hardware description language (HDL) that was standardized as IEEE Std 1364™-1995 and first
+revised as IEEE Std 1364-2001. This revision corrects and clarifies features ambiguously described in the
+1995 and 2001 editions. It also resolves incompatibilities and inconsistencies of IEEE 1364-2001 with IEEE
+Std 1800™-2005.
+The intent of this standard is to serve as a complete specification of the Verilog HDL. This standard contains
+the following:
+—
+The formal syntax and semantics of all Verilog HDL constructs
+—
+The formal syntax and semantics of standard delay format (SDF) constructs
+—
+Simulation system tasks and functions, such as text output display commands
+—
+Compiler directives, such as text substitution macros and simulation time scaling
+—
+The programming language interface (PLI) binding mechanism
+—
+The formal syntax and semantics of the Verilog procedural interface (VPI)
+—
+Informative usage examples
+—
+Informative delay model for SDF
+—
+The VPI header file
+1.2 Conventions used in this standard
+This standard is organized into clauses, each of which focuses on a specific area of the language. There are
+subclauses within each clause to discuss individual constructs and concepts. The discussion begins with an
+introduction and an optional rationale for the construct or the concept, followed by syntax and semantic
+descriptions, followed by some examples and notes.
+The term shall is used throughout this standard to indicate mandatory requirements, whereas the term may is
+used to indicate optional features. These terms denote different meanings to different readers of this
+standard:
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+2
+Copyright © 2006 IEEE. All rights reserved.
+a)
+To the developers of tools that process the Verilog HDL, the term shall denotes a requirement that
+the standard imposes. The resulting implementation is required to enforce the requirements and to
+issue an error if the requirement is not met by the input.
+b)
+To the Verilog HDL model developer, the term shall denotes that the characteristics of the Verilog
+HDL are natural consequences of the language definition. The model developer is required to adhere
+to the constraint implied by the characteristic. The term may denotes optional features that the model
+developer can exercise at discretion. If such features are used, however, the model developer is
+required to follow the requirements set forth by the language definition.
+c)
+To the Verilog HDL model user, the term shall denotes that the characteristics of the models are nat-
+ural consequences of the language definition. The model user can depend on the characteristics of
+the model implied by its Verilog HDL source text.
+1.3 Syntactic description
+The formal syntax of the Verilog HDL is described using Backus-Naur Form (BNF). The following
+conventions are used:
+—
+Lowercase words, some containing embedded underscores, are used to denote syntactic categories.
+For example:
+module_declaration
+—
+Boldface words are used to denote reserved keywords, operators, and punctuation marks as a
+required part of the syntax. For example:
+module      =>       ;
+—
+A vertical bar separates alternative items unless it appears in boldface, in which case it stands for
+itself. For example:
+unary_operator ::=
+  + |  -  |  ! |  ~ |  & |   ~& |   |  |  ~|  |  ^  |  ~^ |  ^~
+—
+Square brackets enclose optional items. For example:
+input_declaration ::= input [range]  list_of_variables ;
+—
+Braces ({}) enclose a repeated item unless it appears in boldface, in which case it stands for itself.
+The item may appear zero or more times; the repetitions occur from left to right as with an
+equivalent left-recursive rule. Thus, the following two rules are equivalent:
+list_of_param_assignments ::= param_assignment  { , param_assignment }
+list_of_param_assignments ::=
+ param_assignment
+| list_of_param_assignment , param_assignment
+—
+If the name of any category starts with an italicized part, it is equivalent to the category name
+without the italicized part. The italicized part is intended to convey some semantic information. For
+example, “msb_index” and “lsb_index” are equivalent to “index.”
+The main text uses italicized font when a term is being defined and uses constant-width font for
+examples, file names, and constants, especially 0, 1, x, and z values.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+3
+1.4 Use of color in this standard
+This standard uses a minimal amount of color to enhance readability. The coloring is not essential and does
+not affect the accuracy of this standard when viewed in pure black and white. Color is used to show cross
+references that are hyperlinked to other portions of this standard. These hyperlinked cross references are
+shown in underlined-blue text (hyperlinking works when this standard is viewed interactively as a PDF file).
+1.5 Contents of this standard
+A synopsis of the clauses and annexes is presented as a quick reference. There are 28 clauses and 9 annexes.
+All clauses, as well as Annex A, Annex B, and Annex G, are normative parts of this standard. Annex C,
+Annex D, Annex H, and Annex I are included for informative purposes only.
+IEEE Std 1364-2005 has deprecated the task/function (TF) and access (ACC) routines, which were specified
+previously in Clause 21 through Clause 25, Annex E, and Annex F of IEEE Std 1364-20011. Clause 20 has
+been modified to reflect this change. The text of deprecated clauses and annexes has been removed from this
+version of the standard, but the clause headings have been retained. See the corresponding clauses in IEEE
+Std 1364-2001 for the deprecated text.
+Clause 1 discusses the conventions used in this standard and its contents.
+Clause 2 lists references to other publications that are required in order to implement this standard.
+Clause 3 describes the lexical tokens used in Verilog HDL source text and their conventions. It describes
+how to specify and interpret the lexical tokens.
+Clause 4 describes net and variable data types. This clause also discusses the parameter data type for
+constant values and describes drive and charge strength of the values on nets.
+Clause 5 describes the operators and operands that can be used in expressions.
+Clause 6 compares the two main types of assignment statements in the Verilog HDL—continuous
+assignments and procedural assignments. It describes the continuous assignment statement that drives values
+onto nets.
+Clause 7 describes the gate- and switch-level primitives and logic strength modeling.
+Clause 8 describes how a primitive can be defined in the Verilog HDL and how these primitives are
+included in Verilog HDL models.
+Clause 9 describes procedural assignments, procedural continuous assignments, and behavioral language
+statements.
+Clause 10 describes tasks and functions—procedures that can be called from more than one place in a
+behavioral model. It describes how tasks can be used like subroutines and how functions can be used to
+define new operators. The clause describes how to disable the execution of a task and a named block of
+statements.
+Clause 11 describes the scheduling semantics of the Verilog HDL.
+1For information on references, see Clause 2.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+4
+Copyright © 2006 IEEE. All rights reserved.
+Clause 12 describes how hierarchies are created in the Verilog HDL and how parameter values declared in a
+module can be overridden. It describes how generated constructs can be used to do conditional or multiple
+instantiations in a design.
+Clause 13 describes how to configure the contents of a design.
+Clause 14 describes how to specify timing relationships between input and output ports of a module.
+Clause 15 describes how timing checks are used in specify blocks to determine whether signals obey the
+timing constraints.
+Clause 16 describes syntax and semantics of SDF constructs.
+Clause 17 describes the system tasks and functions.
+Clause 18 describes the system tasks associated with value change dump (VCD) file and the format of the
+file.
+Clause 19 describes the compiler directives.
+Clause 20 previews the C language procedural interface standard (i.e., PLI) and interface mechanisms that
+are part of the Verilog HDL.
+Clause 21 has been deprecated. See IEEE Std 1364-2001 for the contents of this clause.
+Clause 22 has been deprecated. See IEEE Std 1364-2001 for the contents of this clause.
+Clause 23 has been deprecated. See IEEE Std 1364-2001 for the contents of this clause.
+Clause 24 has been deprecated. See IEEE Std 1364-2001 for the contents of this clause.
+Clause 25 has been deprecated. See IEEE Std 1364-2001 for the contents of this clause.
+Clause 26 provides an overview of the types of operations that are done with the VPI routines.
+Clause 27 describes the VPI routines.
+Clause 28 describes encryption and decryption of source text regions.
+Annex A (normative) describes, using BNF, the syntax of the Verilog HDL.
+Annex B (normative) lists the Verilog HDL keywords.
+Annex C (informative) describes system tasks and functions that are frequently used, but that are not part of
+this standard.
+Annex D (informative) describes compiler directives that are frequently used, but that are not part of this
+standard.
+Annex E has been deprecated. See IEEE Std 1364-2001 for the contents of this annex.
+Annex F has been deprecated. See IEEE Std 1364-2001 for the contents of this annex.
+Annex G (normative) provides a listing of the contents of the vpi_user.h file.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+5
+Annex H (informative) describes the various scenarios that can be used for intellectual property (IP)
+protection, and it also shows how the relevant pragmas will be used to achieve the desired effect of securely
+protecting, distributing, and decrypting the model.
+Annex I (informative) contains bibliographic entries pertaining to this standard.
+1.6 Deprecated clauses
+IEEE Std 1364-2005 deprecates the Verilog PLI TF and ACC routines that were contained in previous
+versions of this standard. These routines were described in Clause 21 through Clause 25, Annex E, and
+Annex F. The text of these clauses and annexes have been removed from this version of the standard. The
+text of these deprecated clauses and annexes can be found in IEEE Std 1364-2001.
+1.7 Header file listings
+The header file listings included in Annex G for vpi_user.h are a normative part of this standard. All
+compliant software tools should use the same function declarations, constant definitions, and structure
+definitions contained in these header file listings.
+1.8 Examples
+Several small examples in the Verilog HDL and the C programming language are shown throughout this
+standard. These examples are informative. They are intended to illustrate the usage of Verilog HDL
+constructs and PLI functions in a simple context and do not define the full syntax.
+1.9 Prerequisites
+Clause 20, Clause 26, Clause 27, and Annex G presuppose a working knowledge of the C programming
+language.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.

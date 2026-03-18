@@ -1,0 +1,2320 @@
+---
+title: "Section 26: Using Verilog procedural interface (VPI) routines"
+document: "Verilog Hardware Description Language Reference Manual"
+standard: "IEEE 1364-2005"
+domain: "Verilog"
+section: "26"
+source_txt: "section-26-using-verilog-procedural-interface-vpi-routines.txt"
+source_pdf: "/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf"
+---
+
+# Section 26: Using Verilog procedural interface (VPI) routines
+
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+374
+Copyright © 2006 IEEE. All rights reserved.
+## 26. Using Verilog procedural interface (VPI) routines
+
+Clause 26 and Clause 27 specify the VPI for the Verilog HDL. This clause describes how the VPI routines
+are used, and Clause 27 defines each of the routines in alphabetical order.
+### 26.1 VPI system tasks and functions
+
+User-defined system tasks and functions are created using the routine vpi_register_systf() (see 27.34). The
+registration of system tasks must occur prior to elaboration or the resolution of references.
+The intended use model would be to place a reference to a routine within the vlog_startup_routines[] array.
+This routine would register all user-defined system tasks and functions when it is called.
+Through VPI, an application can perform the following:
+—
+Specify a user-defined system task/function name that can be included in Verilog HDL source
+descriptions; the user-defined system task/function name shall begin with a dollar sign ($), such as
+$get_vector.
+—
+Provide one or more PLI C applications to be called by a software product (such as a logic
+simulator).
+—
+Define which PLI C applications are to be called—and when the applications should be called—
+when the user-defined system task/function name is encountered in the Verilog HDL source
+description.
+—
+Define whether the PLI applications should be treated as functions (which return a value) or tasks
+(analogous to subroutines in other programming languages).
+—
+Define a data argument to be passed to the PLI applications each time they are called.
+It is also possible through the callback mechanisms in VPI to create applications that are not directly tied to
+a user-defined system task/function.
+VPI-based system tasks have sizetf, compiletf, and calltf routines, which perform specific actions for the
+task/function. The sizetf, compiletf, and calltf routines are called during specific periods during processing.
+The purpose of each of these routines is explained in 26.1.1 through 26.1.4.
+#### 26.1.1 sizetf VPI application routine
+
+A sizetf VPI application routine can be used in conjunction with user-defined system functions. A function
+shall return a value, and software products that execute the system function need to determine how many
+bits wide that return value shall be. When sizetf shall be called is described in 26.2.4 and 27.34.1. Each sizetf
+routine shall be called at most once. It shall be called if its associated system function appears in the design.
+The value returned by the sizetf routine shall be the number of bits that the calltf routine shall provide as the
+return value for the system function. If no sizetf routine is specified, a user-defined system function shall
+return 32 bits. The sizetf routine shall not be called for user-defined system tasks or for functions whose
+sysfunctype is set to vpiRealFunc.
+#### 26.1.2 compiletf VPI application routine
+
+A compiletf VPI application routine shall be called when the user-defined system task/function name is
+encountered during parsing or compiling the Verilog HDL source code. This routine is typically used to
+check the correctness of any arguments passed to the user-defined system task/function in the Verilog HDL
+source code. The compiletf routine shall be called one time for each instance of a system task/function in the
+source description. Providing a compiletf routine is optional, but it is recommended that any arguments used
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+375
+with the system task/function be checked for correctness to avoid problems when the calltf or other PLI
+routines read and perform operations on the arguments. When the compiletf is called is described in 26.2.4
+and 27.34.1.
+#### 26.1.3 calltf VPI application routine
+
+A calltf VPI application routine shall be called each time the associated user-defined system task/function is
+executed within the Verilog HDL source code. For example, the following Verilog loop would call the calltf
+routine that is associated with the $get_vector user-defined system task name 1024 times:
+for (i = 1; i <= 1024; i = i + 1)
+@(posedge clk) $get_vector("test_vector.pat", input_bus);
+In this example, the calltf might read a test vector from a file called test_vector.pat (the first task/
+function argument), perhaps manipulate the vector to put it in a proper format for Verilog, and then assign
+the vector value to the second task/function argument called input_bus.
+#### 26.1.4 Arguments to sizetf, compiletf, and calltf application routines
+
+The sizetf, compiletf, and calltf routines all take one argument. When the software product calls these
+routines, it will pass to them the value supplied in the s_vpi_systf_data structure’s user_data field when
+the user-defined system task/function was registered. See 27.34.
+### 26.2 VPI mechanism
+
+VPI provides routines that allow application developers to access information contained in a Verilog design
+and that allow facilities to interact dynamically with a software product. Applications of VPI can include
+delay calculators and annotators, connecting a Verilog simulator with other simulation and CAE systems,
+and customized debugging tasks.
+The functions of VPI can be grouped into two main areas:
+—
+Dynamic software product interaction using VPI callbacks
+—
+Access to Verilog HDL objects and simulation-specific objects
+#### 26.2.1 VPI callbacks
+
+Dynamic software product interaction shall be accomplished with a registered callback mechanism. VPI
+callbacks shall allow an application to request that a Verilog HDL software product, such as a logic
+simulator, call a user-defined application when a specific activity occurs. For example, the application can
+request that the application routine my_monitor() be called when a particular net changes value or that
+my_cleanup() be called when the software product execution has completed.
+The VPI callback facility shall provide the application with the means to interact dynamically with a
+software product, detecting the occurrence of value changes, advancement of time, end of simulation, etc.
+This feature allows integration with other simulation systems, specialized timing checks, complex
+debugging features, etc.
+The reasons for which callbacks shall be provided can be separated into four categories:
+—
+Simulation event (e.g., a value change on a net or a behavioral statement execution)
+—
+Simulation time (e.g., the end of a time queue or after certain amount of time)
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+376
+Copyright © 2006 IEEE. All rights reserved.
+—
+Simulator action or feature (e.g., the end of compile, end of simulation, restart, or enter interactive
+mode)
+—
+User-defined system task/function execution
+VPI callbacks shall be registered by the application with the functions vpi_register_cb() and vpi_register_
+systf(). These routines indicate the specific reason for the callback, the application routines to be called, and
+what system and user_data shall be passed to the callback application when the callback occurs. A facility is
+also provided to call the callback functions when a Verilog HDL product is first invoked. A primary use of
+this facility shall be for registration of user-defined system tasks and functions.
+#### 26.2.2 VPI access to Verilog HDL objects and simulation objects
+
+Accessible Verilog HDL objects and simulation objects and their relationships and properties are described
+using data model diagrams. These diagrams are presented in 26.6. The data model diagrams indicate the
+routines and constants that are required to access and manipulate objects within an application environment.
+An associated set of routines to access these objects is defined in Clause 27.
+VPI also includes a set of utility routines for functions such as handle comparison, file handling, and
+redirected printing, which are described in Table 26-9 (in 26.4).
+VPI routines provide access to objects in an instantiated Verilog design. An instantiated design is one where
+each instance of an object is uniquely accessible. For instance, if a module m contains wire w and is
+instantiated twice as m1 and m2, then m1.w and m2.w are two distinct objects, each with its own set of related
+objects and properties.
+VPI is designed as a simulation interface, with access to both Verilog HDL objects and specific simulation
+objects. This simulation interface is different from a hierarchical language interface, which would provide
+access to HDL information, but would not provide information about simulation objects.
+#### 26.2.3 Error handling
+
+To determine whether an error occurred, the routine vpi_chk_error() shall be provided. The vpi_chk_
+error() routine shall return a nonzero value if an error occurred in the previously called VPI routine.
+Callbacks can be set up for when an error occurs as well. The vpi_chk_error() routine can provide detailed
+information about the error.
+#### 26.2.4 Function availability
+
+Certain features of VPI must occur early in the execution of a tool. In order to allow this process to occur in
+an orderly manner, some functionality must be restricted in these early stages. Specifically, when the
+routines within the vlog_startup_routines[ ] array are executed, there is very little functionality available.
+Only two routines can be called at this time:
+—
+vpi_register_systf()
+—
+vpi_register_cb()
+In addition, the vpi_register_cb() routine can only be called for the following reasons:
+—
+cbEndOfCompile
+—
+cbStartOfSimulation
+—
+cbEndOfSimulation
+—
+cbUnresolvedSystf
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+377
+—
+cbError
+—
+cbPLIError
+See 27.34 for a further explanation of the use of the vlog_startup_routines[ ] array.
+The next earliest phase is when the sizetf routines are called for the user-defined system functions. At this
+phase, no additional access is permitted. After the sizetf routines are called, the routines registered for reason
+cbEndOfCompile are called. At this point, and continuing until the tool has finished execution, all
+functionality is available.
+#### 26.2.5 Traversing expressions
+
+The VPI routines provide access to any expression that can be written in the HDL. Dealing with these
+expressions can be complex because very complex expressions can be written in the HDL. Expressions with
+multiple operands will result in a handle of type vpiOperation. To determine how many operands, access
+the property vpiOpType. This operation will be evaluated after its subexpressions. Therefore, it has the least
+precedence in the expression.
+An example of a routine that traverses an entire complex expression is listed below:
+void traverseExpr(vpiHandle expr)
+{
+vpiHandle subExprI, subExprH;
+switch (vpi_get(vpiExpr,expr))
+{
+case vpiOperation:
+subExprI = vpi_iterate(vpiOperand, expr);
+if (subExprI)
+while (subExprH = vpi_scan(subExprI))
+traverseExpr(subExprH);
+/* else it is of op type vpiNullOp */
+break;
+default:
+/* Do whatever to the leaf object. */
+break;
+}
+}
+### 26.3 VPI object classifications
+
+VPI objects are classified using data model diagrams. These diagrams provide a graphical representation of
+those objects within a Verilog design to which the VPI routines shall provide access. The diagrams shall
+show the relationships between objects and the properties of each object. Objects with sufficient
+commonality are placed in groups. Group relationships and properties apply to all the objects in the group.
+As an example, the simplified diagram in Figure 26-1 shows that there is a one-to-many relationship from
+objects of type module to objects of type net and a one-to-one relationship from objects of type net
+to objects of type module. Objects of type net have properties vpiName, vpiVector, and vpiSize with data
+types string, boolean, and integer, respectively.
+The VPI data model diagrams are presented in 26.6.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+378
+Copyright © 2006 IEEE. All rights reserved.
+For object relationships (unless a special tag is shown in the diagram), the type used for access is determined
+by adding “vpi” to the beginning of the word within the enclosure with each word’s first letter being a
+capital. Using the above example, if an application has a handle to a net and wants to go to the module
+instance where the net is defined, the call would be as follows:
+modH = vpi_handle(vpiModule,netH);
+where netH is a handle to the net. As another example, to access a “named event” object, use the type
+vpiNamedEvent.
+#### 26.3.1 Accessing object relationships and properties
+
+VPI defines the C data type of vpiHandle. All objects are manipulated via a vpiHandle variable. Object
+handles can be accessed from a relationship with another object or from a hierarchical name as the following
+example demonstrates:
+vpiHandle net;
+net = vpi_handle_by_name("top.m1.w1", NULL);
+This example call retrieves a handle to wire top.m1.w1 and assigns it to the vpiHandle variable net. The
+NULL second argument directs the routine to search for the name from the top level of the design.
+VPI provides generic functions for tasks, such as traversing relationships and determining property values.
+One-to-one relationships are traversed with routine vpi_handle(). In the following example, the module that
+contains net is derived from a handle to that net:
+vpiHandle net, mod;
+net = vpi_handle_by_name("top.m1.w1", NULL);
+mod = vpi_handle(vpiModule, net);
+The call to vpi_handle() in the above example shall return a handle to module top.m1.
+Sometimes it is necessary to access a class of objects that do not have a name or whose name is ambiguous
+with another class of objects that can be accessed from the reference handle. Tags are used in this situation,
+as shown in Figure 26-2.
+module
+net
+-> name
+str: vpiName
+str: vpiFullName
+-> vector
+bool: vpiVector
+-> size
+int: vpiSize
+Figure 26-1—Example of object relationships diagram
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+379
+In this example, the tags vpiLeftRange and vpiRightRange are used to access the expressions that make up
+the range of the part-select. These tags are used instead of vpiExpr to get to the expressions. Without the
+tags, VPI would not know which expression should be accessed. For example:
+vpi_handle(vpiExpr, part_select_handle)
+would be illegal when the reference handle (part_select_handle) is a handle to a part-select because the part-
+select can refer to two expressions, a left-range and a right-range.
+Properties of objects shall be derived with routines in the vpi_get family. The routine vpi_get() returns
+integer and boolean properties. Integer and boolean properties shall be defined to be of type PLI_INT32.
+For boolean properties, a value of 1 shall represent TRUE and a value of 0 shall represent FALSE. The routine
+vpi_get_str() accesses string properties. String properties shall be defined to be of type PLI_BYTE8 *. For
+example, to retrieve a pointer to the full hierarchical name of the object referenced by handle mod, the
+following call would be made:
+PLI_BYTE8 *name = vpi_get_str(vpiFullName, mod);
+In the above example, the pointer name shall now point to the string "top.m1".
+One-to-many relationships are traversed with an iteration mechanism. The routine vpi_iterate() creates an
+object of type vpiIterator, which is then passed to the routine vpi_scan() to traverse the desired objects. In
+the following example, each net in module top.m1 is displayed:
+vpiHandle itr;
+itr = vpi_iterate(vpiNet,mod);
+while (net = vpi_scan(itr) )
+vpi_printf("\t%s\n", vpi_get_str(vpiFullName, net) );
+As the above examples illustrate, the routine naming convention is a ‘vpi’ prefix with ‘_’ word delimiters
+(with the exception of callback-related defined values, which use the ‘cb’ prefix). Macro-defined types and
+properties have the ‘vpi’ prefix, and they use capitalization for word delimiters.
+The routines for traversing Verilog HDL structures and accessing objects are described in Clause 27.
+#### 26.3.2 Object type properties
+
+All objects have a vpiType property, which is not shown in the data model diagrams.
+-> type
+int: vpiType
+Using vpi_get(vpiType, <object_handle>) returns an integer constant that represents the type of the object.
+part select
+expr
+expr
+vpiLeftRange
+vpiRightRange
+Figure 26-2—Accessing a class of objects using tags
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+380
+Copyright © 2006 IEEE. All rights reserved.
+Using vpi_get_str(vpiType, <object_handle>) returns a pointer to a string containing the name of the type
+constant. The name of the type constant is derived from the name of the object as it is shown in the data
+model diagram (see 26.3 for a description of how type constant names are derived from object names).
+Some objects have additional type properties that are shown in the data model diagrams: vpiDelayType,
+vpiNetType, vpiOpType, vpiPrimType, vpiResolvedNetType, and vpiTchkType. Using vpi_get(<type_
+property>, <object_handle>) returns an integer constant that represents the additional type of the object.
+See vpi_user.h in Annex G for the types that can be returned for these additional type properties. The
+constant names of the types returned for these additional type properties can be accessed using
+vpi_get_str().
+#### 26.3.3 Object file and line properties
+
+Most objects have two location properties, which are not shown in the data model diagrams:
+-> location
+int: vpiLineNo
+str: vpiFile
+The properties vpiLineNo and vpiFile can be affected by the `line compiler directive. See 19.7 for more
+details on the `line compiler directive. These properties are applicable to every object that corresponds to
+some object within the HDL. The exceptions are objects of the following types:
+—
+vpiCallback
+—
+vpiDelayTerm
+—
+vpiDelayDevice
+—
+vpiInterModPath
+—
+vpiIterator
+—
+vpiTimeQueue
+—
+vpiGenScopeArray
+—
+vpiGenScope
+#### 26.3.4 Delays and values
+
+Most properties are of type integer, boolean, or string. Delay and logic value properties, however, are more
+complex and require specialized routines and associated structures. The routines vpi_get_delays() and
+vpi_put_delays() use structure pointers, where the structure contains the pertinent information about delays.
+Similarly, simulation values are also handled with the routines vpi_get_value() and vpi_put_value(), along
+with an associated set of structures.
+The routines, C structures, and some examples for handling delays and logic values are presented in
+Clause 27. See 27.14 for vpi_get_value(), 27.32 for vpi_put_value(), 27.9 for vpi_get_delays(), and 27.30
+for vpi_put_delays().
+Nets, primitives, module paths, timing checks, and continuous assignments can have delays specified within
+the HDL. Additional delays may exist, such as module input port delays or inter-module path delays, that do
+not appear within the HDL. To access the delay expressions that are specified within the HDL, use the
+method vpiDelay. These expressions shall be either an expression that evaluates to a constant if there is only
+one delay specified or an operation if there are more than one delay specified. If multiple delays are
+specified, then the operation’s vpiOpType shall be vpiListOp. To access the actual delays being used by
+the tool, use the routine vpi_get_delays() on any of these objects.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+381
+#### 26.3.5 Object protection properties
+
+All objects have a vpiIsProtected property, which is not shown in the data model diagrams.
+-> IsProtected
+bool: vpiIsProtected
+Using vpi_get(vpiIsProtected, object_handle) returns a boolean constant that indicates whether the object
+represents code contained in a decryption envelope. The vpiIsProtected property shall be TRUE if the
+object_handle represents code that is protected; otherwise, it shall be FALSE. Unless otherwise specified,
+access to relationships and properties of a protected object shall be an error. Restrictions on access to
+complex properties are specified in the function reference descriptions for the corresponding VPI functions.
+Access to the vpiType property and the vpiIsProtected property of a protected object shall be permitted for
+all objects.
+NOTE—Protected objects can be returned through object relationships or by direct lookup using VPI functions that
+return handles.
+### 26.4 List of VPI routines by functional category
+
+The VPI routines can be divided into groups based on primary functionality:
+—
+Simulation-related callbacks
+—
+System task/function callbacks
+—
+Traversing Verilog HDL hierarchy
+—
+Accessing properties of objects
+—
+Accessing objects from properties
+—
+Delay processing
+—
+Logic and strength value processing
+—
+Simulation time processing
+—
+Miscellaneous utilities
+Table 26-1 through Table 26-9 list the VPI routines by major category. Clause 27 defines each of the VPI
+routines, listed in alphabetical order.
+Table 26-1—VPI routines for simulation-related callbacks
+To
+Use
+Register a simulation-related callback
+vpi_register_cb()
+Remove a simulation-related callback
+vpi_remove_cb()
+Get information about a simulation-related callback
+vpi_get_cb_info()
+Table 26-2—VPI routines for system task/function callbacks
+To
+Use
+Register a system task/function callback
+vpi_register_systf()
+Get information about a system task/function callback
+vpi_get_systf_info()
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+382
+Copyright © 2006 IEEE. All rights reserved.
+Table 26-3—VPI routines for traversing Verilog HDL hierarchy
+To
+Use
+Obtain a handle for an object with a one-to-one relationship
+vpi_handle()
+Obtain handles for objects in a one-to-many relationship
+vpi_iterate()
+vpi_scan()
+Obtain a handle for an object in a many-to-one relationship
+vpi_handle_multi()
+Table 26-4—VPI routines for accessing properties of objects
+To
+Use
+Get the value of objects with types of int or bool
+vpi_get()
+Get the value of objects with types of string
+vpi_get_str()
+Table 26-5—VPI routines for accessing objects from properties
+To
+Use
+Obtain a handle for a named object
+vpi_handle_by_name()
+Obtain a handle for an indexed object
+vpi_handle_by_index()
+Obtain a handle to a word or bit in an array
+vpi_handle_by_multi_index()
+Table 26-6—VPI routines for delay processing
+To
+Use
+Retrieve delays or timing limits of an object
+vpi_get_delays()
+Write delays or timing limits to an object
+vpi_put_delays()
+Table 26-7—VPI routines for logic and strength value processing
+To
+Use
+Retrieve logic value or strength value of an object
+vpi_get_value()
+Write logic value or strength value to an object
+vpi_put_value()
+Table 26-8—VPI routines for simulation time processing
+To
+Use
+Find the current simulation time or the scheduled time of future events
+vpi_get_time()
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+383
+### 26.5 Key to data model diagrams
+
+This subclause contains the keys to the symbols used in the data model diagrams. Keys are provided for
+objects and classes, traversing relationships, and accessing properties.
+Table 26-9—VPI routines for miscellaneous utilities
+To
+Use
+Write to the output channel of the software product that invoked the PLI
+application and the current log file
+vpi_printf()
+Write to the output channel of the software product that invoked the PLI
+application and the current log file using varargs
+vpi_vprintf()
+Flush data from the current simulator output buffers
+vpi_flush()
+Open a file for writing
+vpi_mcd_open()
+Close one or more files
+vpi_mcd_close()
+Write to one or more files
+vpi_mcd_printf()
+Write to one or more open files using varargs
+vpi_mcd_vprintf()
+Flush data from a given mcd output buffer
+vpi_mcd_flush()
+Retrieve the name of an open file
+vpi_mcd_name()
+Retrieve data about product invocation options
+vpi_get_vlog_info()
+See whether two handles refer to the same object
+vpi_compare_objects()
+Obtain error status and error information about the previous call to a
+VPI routine
+vpi_chk_error()
+Free memory allocated by VPI routines
+vpi_free_object()
+Add application-allocated storage to application saved data
+vpi_put_data()
+Retrieve application-allocated storage from application saved data
+vpi_get_data()
+Store user data in VPI work area
+vpi_put_userdata()
+Retrieve user data from VPI work area
+vpi_get_userdata()
+Control simulation execution (e.g., stop, finish)
+vpi_sim_control()
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+384
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.5.1 Diagram key for objects and classes
+
+#### 26.5.2 Diagram key for accessing properties
+
+class defn
+obj defn
+class
+object
+obj defn
+object
+class
+obj1
+obj2
+Object definition:
+Bold letters in a solid enclosure indicate an object definition. The
+properties of the object are defined in this location.
+Unnamed class:
+A dotted enclosure with no name is an unnamed class. It is sometimes
+convenient to group objects although they shall not be referenced as a
+group elsewhere; therefore, a name is not indicated.
+Object reference:
+Normal letters in a solid enclosure indicate an object reference.
+Class definition:
+Bold italic letters in a dotted enclosure indicate a class definition,
+where the class groups other objects and classes. Properties of the
+class are defined in this location. The class definition can contain an
+object definition.
+Class reference:
+Italic letters in a dotted enclosure indicate a class reference.
+obj
+obj
+object
+String properties are accessed with routine vpi_get_str(). String
+properties are of type PLI_BYTE8 *.
+For example:
+PLI_BYTE8 *name = vpi_get_str(vpiName, obj_h);
+Integer and boolean properties are accessed with the routine vpi_get().
+These properties are of type PLI_INT32.
+For example: Given handle obj_h to an object of type vpiObj, test if
+the object is a vector, and get the size of the object.
+PLI_INT32 vect_flag = vpi_get(vpivector, obj_h);
+PLI_INT32 size = vpi_get(vpiSize, obj_h);
+Complex properties for time and logic value are accessed with the
+indicated routines. See the descriptions of the routines for usage.
+-> vector
+bool: vpiVector
+-> size
+int: vpiSize
+-> complex
+func1()
+func2()
+-> name
+str: vpiName
+str: vpiFullName
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+385
+#### 26.5.3 Diagram key for traversing relationships
+
+ref
+obj
+ref
+obj
+Tag
+ref
+obj
+ref
+obj
+Tag
+obj
+obj
+A single arrow indicates a one-to-one relationship accessed
+with the routine vpi_handle().
+For example: Given vpiHandle variable ref_h of type ref,
+access obj_h of type Obj:
+    obj_h = vpi_handle(Obj, ref_h);
+A tagged one-to-one relationship is traversed similarly, using
+Tag instead of Obj.
+For example:
+    obj_h = vpi_handle(Tag, ref_h);
+A one-to-one relationship which originates from a circle is
+traversed using NULL for the ref_h.
+For example:
+    obj_h = vpi_handle(Obj, NULL);
+A double arrow indicates a one-to-many relationship accessed
+with the routine vpi_scan().
+For example: Given vpiHandle variable ref_h of type ref,
+scan objects of type Obj:
+    itr = vpi_iterate(Obj, ref_h);
+    while (obj_h = vpi_scan(itr) )
+      /* process 'obj_h' */
+A tagged one-to-many relationship is traversed similarly, using
+Tag instead of Obj.
+For example:
+    itr = vpi_iterate(Tag, ref_h);
+    while (obj_h = vpi_scan(itr) )
+      /* process 'obj_h' */
+A one-to-many relationship that originates from a circle is
+traversed using NULL for the ref_h.
+For example:
+    itr = vpi_iterate(Obj, NULL);
+    while (obj_h = vpi_scan(itr) )
+      /* process 'obj_h' */
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+386
+Copyright © 2006 IEEE. All rights reserved.
+For relationships that do not have a tag, the type used for access is determined by adding “vpi” to the
+beginning of the word within the enclosure with each word’s first letter being a capital. See 26.3 for more
+details on VPI access constant names.
+### 26.6 Object data model diagrams
+
+Subclauses 26.6.1 through 26.6.43 contain the data model diagrams that define the accessible objects and
+groups of objects, along with their relationships and properties.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+387
+#### 26.6.1 Module
+
+Details:
+a)
+Top-level modules shall be accessed using vpi_iterate() with a NULL reference object.
+b)
+Passing a NULL handle to vpi_get() with properties vpiTimePrecision or vpiTimeUnit shall return
+the smallest time precision of all modules in the instantiated design.
+net
+reg
+variables
+mod path
+tchk
+reg array
+scope
+process
+module
+ cont assign
+port
+module
+io decl
+vpiInternalScope
+def param
+param assign
+primitive
+parameter
+spec param
+-> array member
+bool: vpiArray
+-> cell
+bool: vpiCellInstance
+-> decay time
+int: vpiDefDecayTime
+-> default net type
+int: vpiDefNetType
+-> definition location
+int: vpiDefLineNo
+str: vpiDefFile
+-> definition name
+str: vpiDefName
+-> delay mode
+int: vpiDefDelayMode
+-> name
+str: vpiName
+str: vpiFullName
+-> protected
+bool: vpiProtected
+-> timeprecision
+int: vpiTimePrecision
+-> timeunit
+int: vpiTimeUnit
+-> top module
+bool: vpiTopModule
+-> unconnected drive
+int: vpiUnconnDrive
+-> Configuration
+str: vpiLibrary
+str: vpiCell
+str: vpiConfig
+named event
+module array
+primitive array
+module array
+expr
+vpiIndex
+named event array
+net array
+reg array
+vpiMemory
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+388
+Copyright © 2006 IEEE. All rights reserved.
+c)
+The properties vpiDefLineNo and vpiDefFile can be affected by the `line compiler directive. See
+### 19.7 for more details on the `line compiler directive.
+
+d)
+If a module is an element within a module array, the vpiIndex transition is used to access the index
+within the array. If a module is not part of a module array, this transition shall return NULL.
+#### 26.6.2 Instance arrays
+
+Details:
+Traversing from the instance array to expr shall return a simple expression object of type vpiOperation
+with a vpiOpType of vpiListOp. This expression may be used to access the actual list of connections to the
+module or primitive instance array in the Verilog source code.
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> name
+str: vpiName
+str: vpiFullName
+-> size
+int: vpiSize
+vpiLeftRange
+expr
+vpiRightRange
+expr
+module
+primitive
+instance array
+module array
+primitive array
+vpiDelay
+primitive array
+switch array
+gate array
+udp array
+expr
+expr
+param assign
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+389
+#### 26.6.3 Scope
+
+#### 26.6.4 IO declaration
+
+scope
+module
+named event
+variables
+reg array
+task func
+scope
+parameter
+vpiInternalScope
+reg
+named begin
+named fork
+stmt
+-> name
+str: vpiName
+str: vpiFullName
+module
+reg array
+named event array
+vpiInternalScope
+vpiMemory
+gen scope
+expr
+io decl
+expr
+vpiRightRange
+vpiLeftRange
+udp defn
+module
+reg
+net
+variables
+vpiExpr
+-> direction
+int: vpiDirection
+-> name
+str: vpiName
+-> scalar
+bool: vpiScalar
+-> sign
+bool: vpiSigned
+-> size
+int: vpiSize
+-> vector
+bool: vpiVector
+task func
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+390
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.5 Ports
+
+Details:
+a)
+vpiHighConn shall indicate the hierarchically higher (closer to the top module) port connection.
+b)
+vpiLowConn shall indicate the lower (further from the top module) port connection.
+c)
+Properties vpiScalar and vpiVector shall indicate if the port is 1 bit or more than 1 bit. They shall
+not indicate anything about what is connected to the port.
+d)
+Properties vpiIndex and vpiName shall not apply for port bits.
+e)
+If a port is explicitly named, then the explicit name shall be returned. If not and a name exists, then
+that name shall be returned. Otherwise, NULL shall be returned.
+f)
+vpiPortIndex can be used to determine the port order. The first port has a port index of zero.
+g)
+vpiLowConn shall return NULL if the module port is a null port (e.g., "module M();").
+vpiHighConn shall return NULL if the instance of the module does not have a connection to the port.
+h)
+vpiSize for a null port shall return 0.
+vpiHighConn
+vpiBit
+vpiParent
+vpiLowConn
+module
+port
+port bit
+ports
+expr
+expr
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> connected by name
+bool: vpiConnByName
+-> delay (mipd)
+vpi_get_delays()
+vpi_put_delays()
+-> direction
+int: vpiDirection
+-> explicitly named
+bool: vpiExplicitName
+-> index
+int: vpiPortIndex
+-> name
+str: vpiName
+-> scalar
+bool: vpiScalar
+-> size
+int: vpiSize
+-> vector
+bool: vpiVector
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+391
+#### 26.6.6 Nets and net arrays
+
+vpiParent
+nets
+net
+net bit
+module
+vpiPortInst
+vpiHighConn
+ports
+vpiLowConn
+vpiDelay
+ports
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> array member
+bool: vpiArray
+-> delay
+vpi_get_delays()
+-> expanded
+bool: vpiExpanded
+-> implicitly declared
+bool: vpiImplicitDecl
+-> name
+str: vpiName
+str: vpiFullName
+-> strength
+int: vpiStrength0
+int: vpiStrength1
+int: vpiChargeStrength
+-> value
+vpi_get_value()
+vpi_put_value()
+-> vector
+bool: vpiVector
+-> vectored declaration
+bool: vpiExplicitVectored
+-> constant selection
+bool: vpiConstantSelect
+prim term
+vpiLeftRange
+vpiRightRange
+cont assign
+tchck term
+path term
+vpiLocalDriver
+vpiLocalLoad
+(Details on next page)
+net drivers
+net loads
+expr
+expr
+vpiBit
+net array
+vpiSimNet
+nets
+expr
+range
+-> net decl assign
+bool: vpiNetDeclAssign
+-> net type
+int: vpiNetType
+int: vpiResolvedNetType
+-> scalar
+bool: vpiScalar
+-> scalared declaration
+bool: vpiExplicitScalared
+-> sign
+bool: vpiSigned
+-> size
+int: vpiSize
+vpiIndex
+expr
+vpiIndex
+vpiIndex
+net
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> name
+str: vpiName
+str: vpiFullName
+-> size
+int: vpiSize
+-> scalar
+bool: vpiScalar
+-> vector
+bool: vpiVector
+expr
+expr
+module
+vpiParent
+vpiDriver
+vpiLoad
+net drivers
+net loads
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+392
+Copyright © 2006 IEEE. All rights reserved.
+Details:
+a)
+For vectors, net bits shall be available regardless of vector expansion.
+b)
+Continuous assignments and primitive terminals shall be accessed regardless of hierarchical
+boundaries.
+c)
+Continuous assignments and primitive terminals shall only be accessed from scalar nets or
+bit-selects.
+d)
+For vpiPorts, if the reference handle is a bit, then port bits shall be returned. If it is the entire vector,
+then a handle to the entire port shall be returned.
+e)
+For vpiPortInst, if the reference handle is a bit or scalar, then port bits or scalar ports shall be
+returned, unless the highconn for the port is a complex expression where the bit index cannot be
+determined. If this is the case, then the entire port shall be returned. If the reference handle is a vec-
+tor, then the entire port shall be returned.
+f)
+For vpiPortInst, it is possible for the reference handle to be part of the highconn expression, but not
+connected to any of the bits of the port. This may occur if there is a size mismatch. In this situation,
+the port shall not qualify as a member for that iteration.
+g)
+For implicit nets, vpiLineNo shall return 0, and vpiFile shall return the file name where the implicit
+net is first referenced.
+h)
+vpi_handle(vpiIndex, net_bit_handle) shall return the bit index for the net bit. vpi_iterate(vpiIn-
+dex, net_bit_handle) shall return the set of indices for a multidimensional net array bit-select, start-
+ing with the index for the net bit and working outward.
+i)
+Only active forces and assign statements shall be returned for vpiLoad.
+j)
+Only active forces shall be returned for vpiDriver.
+k)
+vpiDriver shall also return ports that are driven by objects other than nets and net bits.
+l)
+vpiLocalLoad and vpiLocalDriver return only the loads or drivers that are local, i.e., contained by
+the module instance that contains the net, including any ports connected to the net (output and inout
+ports are loads, input and inout ports are drivers).
+m)
+For vpiLoad, vpiLocalLoad, vpiDriver, and vpiLocalDriver iterators, if the object is vpiNet for a
+vector net, then all loads or drivers are returned exactly once as the loading or driving object. In
+other words, if a part-select loads or drives only some bits, the load or driver returned is the part-
+select. If a driver is repeated, it is only returned once. To trace exact bit-by-bit connectivity, pass a
+vpiNetBit object to vpi_iterate.
+n)
+An iteration on loads or drivers for a variable bit-select shall return the set of loads or drivers for
+whatever bit that the bit-select is referring to at the beginning of the iteration.
+o)
+vpiSimNet shall return a unique net if an implementation collapses nets across hierarchy (see
+#### 12.3.10 for the definition of simulated net and collapsed net).
+
+p)
+The property vpiExpanded on an object of type vpiNetBit shall return the property’s value for the
+parent.
+q)
+The loads and drivers returned from (vpiLoad, obj_handle) and vpi_iterate(vpiDriver,
+obj_handle) may not be the same in different implementations due to allowable net collapsing (see
+12.3.10). The loads and drivers returned from vpi_iterate(vpiLocalLoad, obj_handle) and
+vpi_iterate(vpiLocalDriver, obj_handle) shall be the same for all implementations.
+r)
+The boolean property vpiConstantSelect returns TRUE if the expression that constitutes the index or
+indices evaluates to a constant and FALSE otherwise.
+s)
+vpi_get(vpiSize, net_handle) returns the number of bits in the net. vpi_get(vpiSize,
+net_array_handle) returns the total number of nets in the array.
+t)
+vpi_iterate(vpiIndex, net_handle) shall return the set of indices for a net within an array, starting
+with the index for the net and working outward. If the net is not part of an array, a NULL shall be
+returned.
+u)
+vpi_iterate(vpiRange, net_array_handle) shall return the set of array range declarations beginning
+with the leftmost range of the array declaration and iterate to the rightmost range of the array
+declaration.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+393
+#### 26.6.7 Regs and reg arrays
+
+vpiBit
+vpiParent
+regs
+reg
+reg bit
+vpiPortInst
+vpiHighConn
+vpiLowConn
+vpiIndex
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> array member
+bool: vpiArray
+-> name
+str: vpiName
+str: vpiFullName
+-> scalar
+bool: vpiScalar
+-> constant selection
+bool: vpiConstantSelect
+cont assign
+prim term
+reg loads
+path term
+tchk term
+reg drivers
+expr
+expr
+vpiDriver
+vpiLoad
+vpiLeftRange
+vpiRightRange
+expr
+scope
+ports
+module
+ports
+(Details on next page)
+-> sign
+bool: vpiSigned
+-> size
+int: vpiSize
+-> value
+vpi_get_value()
+vpi_put_value()
+-> vector
+bool: vpiVector
+expr
+expr
+vpiIndex
+reg array
+range
+vpiIndex
+expr
+reg
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> name
+str: vpiName
+str: vpiFullName
+-> size
+int: vpiSize
+-> scalar
+bool: vpiScalar
+-> vector
+bool: vpiVector
+module
+vpiParent
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+394
+Copyright © 2006 IEEE. All rights reserved.
+Details:
+a)
+Continuous assignments and primitive terminals shall be accessed regardless of hierarchical
+boundaries.
+b)
+Continuous assignments and primitive terminals shall only be accessed from scalar regs and
+bit-selects.
+c)
+For vpiPorts, if the reference handle is a bit, then port bits shall be returned. If it is the entire vector,
+then a handle to the entire port shall be returned.
+d)
+For vpiPortInst, if the reference handle is a bit or scalar, then port bits or scalar ports shall be
+returned, unless the highconn for the port is a complex expression where the bit index cannot be
+determined. If this is the case, then the entire port shall be returned. If the reference handle is a vec-
+tor, then the entire port shall be returned.
+e)
+For vpiPortInst, it is possible for the reference handle to be part of the highconn expression, but not
+connected to any of the bits of the port. This may occur if there is a size mismatch. In this case, the
+port shall not qualify as a member for that iteration.
+f)
+vpi_handle(vpiIndex, reg_bit_handle) shall return the bit index for the reg bit. vpi_iterate(vpiIn-
+dex, reg_bit_handle) shall return the set of indices for a multidimensional reg array bit-select, start-
+ing with the index for the reg bit and working outward.
+g)
+Only active forces and assign statements shall be returned for vpiLoad and vpiDriver.
+h)
+For vpiLoad and vpiDriver iterators, if the object is vpiReg for a vectored reg, then all loads or
+drivers are returned exactly once as the loading or driving object. In other words, if a part-select
+loads or drives only some bits, the load or driver returned is the part-select. If a driver is repeated, it
+is only returned once. To trace exact bit-by-bit connectivity, pass a vpiRegBit object to the iterator.
+i)
+The loads and drivers returned from vpi_iterate(vpiLoad, obj_handle) and vpi_iterate(vpiDriver,
+obj_handle) may not be the same in different implementations due to allowable net collapsing (see
+12.3.10).
+j)
+An iteration on loads or drivers for a variable bit-select shall return the set of loads or drivers for
+whatever bit that the bit-select is referring to at the beginning of the iteration.
+k)
+If the reg has a default initialization assignment, the expression can be accessed using
+vpi_handle(vpiExpr, reg_handle) or vpi_handle(vpiExpr, reg_bit_handle).
+l)
+vpi_get(vpiSize, reg_handle) returns the number of bits in the reg. vpi_get(vpiSize,
+reg_array_handle) returns the total number of regs in the array.
+m)
+vpi_iterate(vpiIndex, reg_handle) shall return the set of indices for a reg within an array, starting
+with the index for the reg and working outward. If the reg is not part of an array, a NULL shall be
+returned.
+n)
+vpi_iterate(vpiRange, array_handle) shall return the set of array range declarations beginning
+with the leftmost range of the array declaration and iterate to the rightmost range of the array
+declaration.
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+395
+#### 26.6.8 Variables
+
+Details:
+a)
+A var select is a word selected from a variable array.
+b)
+The VPI does not provide access to bits of variables. If a handle to a bit-select of a variable is
+obtained, the object shall be a vpiBitSelect in the simple expression class. The variable containing
+the bit can be accessed using vpiParent. See 26.6.25.
+c)
+The boolean property vpiArray shall be TRUE if the variable handle references an array of variables
+and FALSE otherwise. If the variable is an array, iterate on vpiVarSelect to obtain handles to each
+variable in the array.
+d)
+vpi_handle(vpiIndex, var_select_handle) shall return the index of a var select in a one-
+dimensional array. vpi_iterate(vpiIndex, var_select_handle) shall return the set of indices for a
+var select in a multidimensional array, starting with the index for the var select and working
+outward.
+e)
+vpiRange shall apply to variables when vpiArray is
+TRUE. vpi_iterate(vpiRange,
+variable_array_handle) shall return the set of array range declarations beginning with the leftmost
+range of the array declaration and iterate to the rightmost range of the array declaration.
+f)
+vpiLeftRange and vpiRightRange shall apply to variables when vpiArray is TRUE and represent
+the array range declaration of the rightmost range of an array. These relationships are a shortcut for
+accessing the range declarations of a one-dimensional variable array. To access the range declara-
+tions for all dimensions of a multidimensional array, first iterate on vpiRange.
+g)
+vpiSize for a variable array shall return the number of variables in the array. For nonarray variables,
+it shall return the size of the variable in bits.
+h)
+vpiSize for a var select shall return the number of bits in the var select.
+i)
+Variables whose boolean property vpiArray is TRUE do not have a value property.
+vpiParent
+variables
+integer var
+var select
+real var
+time var
+scope
+vpiPortInst
+ports
+vpiHighConn
+vpiLowConn
+expr
+expr
+vpiLeftRange
+vpiRightRange
+ports
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> array
+bool: vpiArray
+-> name
+str: vpiName
+str: vpiFullName
+-> constant selection
+bool: vpiConstantSelect
+> name
+str: vpiName
+str: vpiFullName
+-> size
+int: vpiSize
+-> value
+vpi_get_value()
+vpi_put_value()
+range
+module
+vpiIndex
+vpiIndex
+expr
+expr
+-> signed
+bool: vpiSigned
+-> size
+int: vpiSize
+-> value
+vpi_get_value()
+vpi_put_value()
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+396
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.9 Memory
+
+Details:
+The objects vpiMemory and vpiMemoryWord have been generalized with the addition of arrays of regs.
+To preserve backward compatibility, they have been converted into methods that will return objects of type
+vpiRegArray and vpiReg, respectively. See 26.6.7 for the definitions of regs and reg arrays.
+#### 26.6.10 Object range
+
+scope
+reg array
+vpiParent
+reg
+vpiLeftRange
+vpiRightRange
+vpiLeftRange
+expr
+expr
+expr
+expr
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> is a memory
+bool: vpiIsMemory
+module
+expr
+vpiIndex
+vpiRightRange
+vpiMemory
+vpiMemoryWord
+range
+vpiLeftRange
+vpiRightRange
+expr
+expr
+-> size
+int: vpiSize
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+397
+#### 26.6.11 Named event
+
+Details:
+vpi_iterate(vpiIndex, named_event_handle) shall return the set of indices for a named event within an
+array, starting with the index for the named event and working outward. If the named event is not part of an
+array, a NULL shall be returned.
+named event
+-> array member
+bool: vpiArray
+-> name
+str: vpiName
+str: vpiFullName
+-> value
+vpi_put_value()
+scope
+module
+named event array
+range
+vpiIndex
+expr
+-> access by index
+vpi_handle_by_index()
+vpi_handle_by_multi_index()
+-> name
+str: vpiName
+str: vpiFullName
+module
+named event
+vpiParent
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+398
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.12 Parameter, specparam
+
+Details:
+a)
+Obtaining the value from the object parameter shall return the final value of the parameter after all
+module instantiation overrides and defparams have been resolved.
+b)
+vpiLhs from a param assign object shall return a handle to the overridden parameter.
+c)
+If a parameter does not have an explicitly defined range, vpiLeftRange and vpiRightRange shall
+return a NULL handle.
+parameter
+vpiRhs
+expr
+vpiLhs
+parameter
+spec param
+vpiRhs
+expr
+vpiLhs
+parameter
+expr
+-> constant type
+int: vpiConstType
+-> local
+bool: vpiLocalParam
+-> name
+str: vpiName
+str: vpiFullName
+-> sign
+bool: vpiSigned
+-> size
+int: vpiSize
+-> value
+vpi_get_value()
+-> constant type
+int: vpiConstType
+-> name
+str: vpiName
+str: vpiFullName
+-> size
+int: vpiSize
+-> value
+vpi_get_value()
+-> connection by name
+bool: vpiConnByName
+vpiLeftRange
+vpiRightRange
+expr
+expr
+expr
+def param
+module
+module
+module
+param assign
+scope
+module
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+399
+#### 26.6.13 Primitive, prim term
+
+Details:
+a)
+vpiSize shall return the number of inputs.
+b)
+For primitives, vpi_put_value() shall only be used with sequential UDP primitives.
+c)
+vpiTermIndex can be used to determine the terminal order. The first terminal has a term index of
+zero.
+d)
+If a primitive is an element within a primitive array, the vpiIndex transition is used to access the
+index within the array. If a primitive is not part of a primitive array, this transition shall return NULL.
+prim term
+module
+primitive
+gate
+switch
+udp
+udp defn
+vpiDelay
+expr
+-> array member
+bool: vpiArray
+-> definition name
+str: vpiDefName
+-> delay
+vpi_get_delays()
+vpi_put_delays()
+-> name
+str: vpiName
+str: vpiFullName
+-> primitive type
+int: vpiPrimType
+-> number of inputs
+int: vpiSize
+->strength
+int: vpiStrength0
+int: vpiStrength1
+-> value
+vpi_get_value()
+vpi_put_value()
+-> direction
+int: vpiDirection
+-> index
+int: vpiTermIndex
+-> value
+vpi_get_value()
+primitive array
+vpiIndex
+expr
+expr
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+400
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.14 UDP
+
+Details:
+a)
+Only string (decompilation) and vector (ASCII values) shall be obtained for table entry objects
+using vpi_get_value(). See the definition of vpi_get_value() for additional details.
+b)
+vpiPrimType returns vpiSeqPrim for sequential UDPs and vpiCombPrim for combinatorial
+UDPs.
+udp defn
+udp
+table entry
+initial
+io decl
+-> definition name
+str: vpiDefName
+-> number of inputs
+int: vpiSize
+-> protected
+bool: vpiProtected
+-> type
+int: vpiPrimType
+-> number of symbol entries
+int: vpiSize
+-> value
+vpi_get_value()
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+401
+#### 26.6.15 Module path, path term
+
+#### 26.6.16 Intermodule path
+
+Details:
+To get to an intermodule path, vpi_handle_multi(vpiInterModPath, port1, port2) can be used.
+path term
+module
+expr
+expr
+mod path
+expr
+vpiDelay
+-> delay
+vpi_get_delays()
+vpi_put_delays()
+-> path type
+int: vpiPathType
+-> polarity
+int: vpiPolarity
+int: vpiDataPolarity
+-> hasIfNone
+bool: vpiModPathHasIfNone
+vpiCondition
+path term
+path term
+vpiModPathIn
+vpiModPathOut
+vpiModDataPathIn
+-> direction
+int: vpiDirection
+-> edge
+int: vpiEdge
+inter mod path
+ports
+-> delay
+vpi_get_delays()
+vpi_put_delays()
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+402
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.17 Timing check
+
+Details:
+a)
+For the timing checks in 15.1, the relationship vpiTchkRefTerm shall denote the reference_event
+or controlled_reference_event, while vpiTchkDataTerm shall denote the data_event, if any.
+b)
+When iterating over vpiExpr from a tchk, the handles returned for a reference_event, a
+controlled_reference_event, or a data_event shall have the type vpiTchkTerm. All other arguments
+shall have types matching the expression.
+#### 26.6.18 Task, function declaration
+
+Details:
+A Verilog HDL function shall contain an object with the same name, size, and type as the function.
+module
+tchk
+tchk term
+vpiTchkRefTerm
+vpiTchkNotifier
+regs
+expr
+vpiCondition
+expr
+vpiTchkDataTerm
+expr
+-> limit
+vpi_get_delays()
+vpi_put_delays()
+-> tchk type
+int: vpiTchkType
+expr
+vpiDelay
+tchk term
+vpiExpr
+tchk term
+tchk term
+-> edge
+int: vpiEdge
+task func
+task
+function
+-> sign
+bool: vpiSigned
+-> size
+int: vpiSize
+-> type
+int: vpiFuncType
+vpiLeftRange
+vpiRightRange
+expr
+expr
+task call
+func call
+io decl
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+403
+#### 26.6.19 Task/function call
+
+Details:
+a)
+The
+system
+task/function
+that
+invoked
+an
+application
+shall
+be
+accessed
+with
+vpi_handle(vpiSysTfCall, NULL)
+b)
+vpi_get_value() shall return the current value of the system function.
+c)
+If the vpiUserDefn property of a system task/function call is true, then the properties of the corre-
+sponding systf object shall be obtained via vpi_get_systf_info().
+d)
+All user-defined system tasks or functions shall be retrieved using vpi_iterate() with vpiUserSystf
+as the type argument and with a NULL reference argument.
+e)
+Arguments to PLI tasks or functions are not evaluated until an application requests their value.
+Effectively, the value of any argument is not known until the application asks for it. When an argu-
+ment is an HDL or system function call, the function cannot be evaluated until the application asks
+for its value. If the application never asks for the value of the function, it is never evaluated. If the
+application has a handle to an HDL or system function, it may ask for its value at any time in the
+simulation. When this happens, the function is called and evaluated at this time.
+f)
+A null argument is an expression with a vpiType of vpiOperation and a vpiOpType of vpiNullOp.
+tf call
+sys task call
+sys func call
+task call
+func call
+expr
+task
+function
+vpiArgument
+user systf
+vpiSysTfCall
+-> tf name
+str: vpiName
+-> systf info
+p_vpi_systf_data:
+  vpi_get_systf_info()
+-> type
+int: vpiFuncType
+-> value
+vpi_put_value()
+vpi_get_value()
+-> user-defined
+bool: vpiUserDefn
+-> decompile
+str: vpiDecompile
+scope
+primitive
+named event
+-> type
+int: vpiFuncType
+-> value
+vpi_get_value()
+scope
+named event array
+net array
+reg array
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+404
+Copyright © 2006 IEEE. All rights reserved.
+g)
+The property vpiDecompile shall return a string with a functionally equivalent system task/function
+call to what was in the original HDL. The arguments shall be decompiled using the same manner as
+any expression is decompiled. See 26.6.26 for a description of expression decompilation.
+h)
+System task/function calls that are protected shall allow iteration over the vpiArgument
+relationship.
+#### 26.6.20 Frames
+
+Details:
+a)
+It shall be illegal to place value change callbacks on automatic variables.
+b)
+It shall be illegal to put a value with a delay on automatic variables.
+c)
+There is at most only one active frame at any time. To get a handle to the currently active frame, use
+vpi_handle(vpiFrame, NULL). The frame-to-stmt transition shall return the currently active state-
+ment within the frame.
+d)
+Frame handles must be freed using vpi_free_object() once the application no longer needs the
+handle. If the handle is not freed, it shall continue to exist, even after the frame has completed
+execution.
+frame
+task call
+func call
+regs
+function
+vpiAutomatic
+vpiParent
+-> validity
+int: vpiValid
+-> active
+bool: vpiActive
+variables
+stmt
+named event
+parameter
+frame
+task
+-> validity
+int: vpiValid
+-> automatic
+bool: vpiAutomatic
+vpiScope
+named event array
+reg array
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+405
+#### 26.6.21 Delay terminals
+
+Details:
+a)
+The value of the input delay term shall change before the delay associated with the delay device.
+b)
+The value of the output delay term shall not change until after the delay has occurred.
+#### 26.6.22 Net drivers and loads
+
+Details:
+Complex expressions on input ports that are not concatenations shall be considered a load for the net.
+Iterating on loads for trinet in the following example will cause the fourth port of ram to be a load:
+module my_module;
+tri trinet;
+ram r0 (a, write, read, !trinet);
+endmodule
+Access to the complex expression shall be available using vpi_handle(vpiHighConn, portH) where portH
+is the handle to the port returned when iterating on loads.
+delay term
+-> delay type
+int: vpiDelayType
+-> value
+vpi_get_value()
+vpiLoad
+delay device
+-> delay type
+int: vpiDelayType
+delay term
+vpiInTerm
+vpiOutTerm
+vpiDriver
+module
+net drivers
+net loads
+prim term
+cont assign
+ports
+force
+assign stmt
+delay term
+prim term
+cont assign bit
+force
+delay term
+cont assign
+net loads
+cont assign bit
+net drivers
+nets
+vpiLoad
+vpiDriver
+ports
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+406
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.23 Reg drivers and loads
+
+#### 26.6.24 Continuous assignment
+
+Details:
+a)
+The size of a cont assign bit is always scalar.
+b)
+Callbacks for value changes can be placed onto cont assign or a cont assign bit.
+c)
+vpiOffset shall return zero for the least significant bit.
+assign stmt
+force
+assign stmt
+cont assign bit
+force
+prim term
+cont assign
+reg loads
+reg drivers
+regs
+vpiLoad
+vpiDriver
+-> delay
+vpi_get_delays()
+-> net decl assign
+bool: vpiNetDeclAssign
+-> strength
+int: vpiStrength0
+int: vpiStrength1
+-> value
+vpi_get_value()
+cont assign
+vpiRhs
+expr
+vpiLhs
+expr
+module
+expr
+vpiDelay
+cont assign bit
+vpiBit
+vpiParent
+-> offset from LSB
+int: vpiOffset
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+407
+#### 26.6.25 Simple expressions
+
+Details:
+a)
+For vectors, the vpiUse relationship shall access any use of the vector or part-selects or bit-selects
+thereof.
+b)
+For bit-selects, the vpiUse relationship shall access any specific use of that bit, any use of the parent
+vector, and any part-select that contains that bit.
+simple expr
+variables
+expr
+nets
+regs
+var select
+vpiUse
+prim term
+stmt
+ports
+path term
+delay term
+cont assign
+vpiIndex
+parameter
+specparam
+bit select
+time var
+integer var
+parameter
+specparam
+var select
+vpiParent
+-> name
+str: vpiName
+str: vpiFullName
+-> constant select
+bool:
+vpiConstantSelect
+tchk term
+cont assign bit
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+408
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.26 Expressions
+
+Details:
+a)
+For an operator whose type is vpiMultiConcatOp, the first operand shall be the multiplier expres-
+sion. The remaining operands shall be the expressions within the concatenation.
+b)
+The property vpiDecompile shall return a string with a functionally equivalent expression to the
+original expression within the HDL. Parentheses shall be added only to preserve precedence. Each
+operand and operator shall be separated by a single space character. No additional white space shall
+be added due to parentheses.
+c)
+Expressions that are protected shall permit access to the vpiSize property.
+expr
+operation
+constant
+simple expr
+part select
+vpiParent
+vpiOperand
+func call
+sys func call
+expr
+expr
+vpiLeftRange
+vpiRightRange
+expr
+-> constant selection
+bool: vpiConstantSelect
+-> decompile
+str: vpiDecompile
+-> size
+int: vpiSize
+-> value
+vpi_get_value()
+-> operation type
+int: vpiOpType
+-> constant type
+int: vpiConstType
+expr
+expr
+vpiBaseExpr
+vpiWidthExpr
+-> constant selection
+bool: vpiConstantSelect
+-> indexed part select type
+int: vpiIndexedPartSelectType
+indexed part select
+vpiParent
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+409
+#### 26.6.27 Process, block, statement, event statement
+
+module
+initial
+process
+always
+block
+stmt
+atomic stmt
+block
+stmt
+atomic stmt
+assignment
+deassign
+case
+for
+delay control
+event control
+event stmt
+assign stmt
+if
+if else
+while
+repeat
+wait
+tf call
+disable
+force
+release
+null stmt
+forever
+begin
+fork
+named begin
+named fork
+scope
+event stmt ‘->’
+named event
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+410
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.28 Assignment
+
+#### 26.6.29 Delay control
+
+Details:
+For delay control associated with assignment, the statement shall always be NULL.
+#### 26.6.30 Event control
+
+Details:
+For event control associated with assignment, the statement shall always be NULL.
+assignment
+vpiRhs
+expr
+vpiLhs
+expr
+delay control
+event control
+repeat control
+-> blocking
+bool: vpiBlocking
+delay control ‘#’
+stmt
+expr
+vpiDelay
+-> delay
+vpi_get_delays()
+vpiCondition
+expr
+stmt
+event control ‘@’
+named event
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+411
+#### 26.6.31 Repeat control
+
+#### 26.6.32 While, repeat, wait
+
+#### 26.6.33 For
+
+#### 26.6.34 Forever
+
+repeat control
+expr
+event control
+vpiCondition
+expr
+stmt
+while
+repeat
+wait
+stmt
+for
+vpiForInitStmt
+stmt
+vpiCondition
+expr
+vpiForIncStmt
+stmt
+forever
+stmt
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+412
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.35 If, if-else
+
+#### 26.6.36 Case
+
+Details:
+a)
+The case item shall group all case conditions that branch to the same statement.
+b)
+vpi_iterate() shall return NULL for the default case item because there is no expression with the
+default case.
+vpiElseStmt
+stmt
+if
+if else
+vpiCondition
+expr
+stmt
+case
+vpiCondition
+expr
+case item
+expr
+stmt
+-> case type
+int: vpiCaseType
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+413
+#### 26.6.37 Assign statement, deassign, force, release
+
+#### 26.6.38 Disable
+
+vpiRhs
+expr
+vpiLhs
+expr
+force
+assign stmt
+deassign
+vpiLhs
+expr
+release
+function
+task
+named fork
+disable
+vpiExpr
+named begin
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+414
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.39 Callback
+
+Details:
+a)
+To get information about the callback object, the routine vpi_get_cb_info() can be used.
+b)
+To get callback objects not related to the above objects, the second argument to vpi_iterate() shall
+be NULL.
+#### 26.6.40 Time queue
+
+Details:
+a)
+The time queue objects shall be returned in increasing order of simulation time.
+b)
+vpi_iterate() shall return NULL if there is nothing left in the simulation queue.
+c)
+The current time queue shall only be returned as part of the iteration if there are events that precede
+read only sync.
+#### 26.6.41 Active time format
+
+Details:
+If $timeformat() has not been called, vpi_handle(vpiActiveTimeFormat,NULL) shall return a NULL.
+callback
+prim term
+time queue
+stmt
+expr
+-> cb info
+p_cb_data: vpi_get_cb_info()
+time queue
+-> time
+vpi_get_time()
+vpiActiveTimeFormat
+tf call
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+415
+#### 26.6.42 Attributes
+
+Details:
+The property vpiDefAttribute shall return true if the attribute was defined on a module as part of the
+module definition. The property shall return false for attributes defined on a module as part of a module
+instantiation or for any object other than a module.
+attribute
+vpiParent
+-> name
+str: vpiName
+-> On definition
+bool: vpiDefAttribute
+-> value:
+vpi_get_value()
+path term
+primitive
+mod path
+prim term
+port
+module
+process
+operation
+variables
+net
+reg
+tchk
+param assign
+spec param
+task func
+stmt
+table entry
+named event
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+Std 1364-2005
+IEEE STANDARD FOR VERILOG®
+416
+Copyright © 2006 IEEE. All rights reserved.
+#### 26.6.43 Iterator
+
+Details:
+a)
+vpi_handle(vpiUse, iterator_handle) shall return the reference handle used to create the iterator.
+b)
+It is possible to have a NULL reference handle, in which case vpi_handle(vpiUse, iterator_handle)
+shall return NULL.
+variables
+inter mod path
+instance array
+primitive
+mod path
+prim term
+udp defn
+iterator
+vpiUse
+frame
+-> type
+int: vpiIteratorType
+ports
+nets
+regs
+expr
+stmt
+tf call
+net array
+reg array
+time queue
+path term
+case item
+delay term
+tchk
+param assign
+process
+scope
+named event array
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
+IEEE
+HARDWARE DESCRIPTION LANGUAGE
+Std 1364-2005
+Copyright © 2006 IEEE. All rights reserved.
+417
+#### 26.6.44 Generates
+
+Details:
+a)
+The size for a genscope array is the number of elements in the array.
+b)
+For unnamed generates, an implicit scope shall be created. Its vpiImplicitDecl property shall return
+TRUE.
+c)
+References to genvars within the genscope shall be treated as local parameters.
+d)
+Parameters within the genscope must be local parameters.
+gen scope array
+-> size
+int: vpiSize
+-> name
+str: vpiName
+str: vpiFullName
+module
+vpiIndex
+-> array member
+bool: vpiArray
+-> name
+str: vpiName
+str: vpiFullName
+-> protected
+bool: vpiProtected
+-> is implicitly declared
+bool: vpiImplicitDecl
+-> name
+str: vpiName
+str: vpiFullName
+vpiInternalScope
+gen scope
+gen var
+def param
+primitive array
+primitive
+module array
+module
+gen scope array
+net array
+net
+reg
+reg array
+variables
+reg array
+named event
+named event array
+process
+cont assign
+parameter
+scope
+vpiMemory
+expr
+Authorized licensed use limited to: Bucknell University. Downloaded on June 12,2014 at 13:56:54 UTC from IEEE Xplore.  Restrictions apply.
