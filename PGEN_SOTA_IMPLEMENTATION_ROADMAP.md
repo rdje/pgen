@@ -118,6 +118,10 @@ Interpretation note:
       - mixed ordered-plus-named subroutine actuals now parse (`g(a, .b(0))`, `uvm_re_comp(regex, .deglob(0))`)
       - exact `uvm_pkg` package-prefix probes now pass through line `5000`
       - the broad gate remains honest at `parse_pass_total=8`, `parse_fail_total=4`, so the remaining UVM debt is deeper than this call-argument form
+    - focused UVM-package debugging has now also removed one concrete queue-dimension hole without changing the broad totals:
+      - standalone `$` now tokenizes correctly, so queue declarations like `int m[$];` and `uvm_core_state m[$];` parse
+      - exact `uvm_pkg` package-prefix probes now pass through line `5100`
+      - the next remaining exact failure is still before line `5200`, so the remaining UVM debt is deeper than queue-dimension syntax itself
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - checked-in manifest: [vhdl_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json)
     - current measured surface: `cases_executed=8`, `parse_pass_total=0`, `parse_fail_total=8`

@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Fix standalone `$` token so queue dimensions parse
+### Context
+After the mixed-actual-call fix, the next exact `uvm_pkg` package-prefix failure moved to line `5004`:
+
+```systemverilog
+uvm_core_state m_uvm_core_state[$];
+```
+
+Tiny focused repros isolated the real issue. Dynamic-array declarations such as `m[]` parsed, but queue declarations such as `int m[$];` and `uvm_core_state m[$];` did not.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed `kw_dollar` from `/\$\b/` to `/\$/`
+- Updated [systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same fix into the profiled generated grammar snapshot
+- Revalidated through:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - focused `parseability_probe --parse systemverilog` repros
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+
+### Outcome
+- The focused queue repros now pass:
+  - `int m[$];`
+  - `typedef int uvm_core_state; uvm_core_state m[$];`
+- Exact `uvm_pkg` package-prefix probes now pass through line `5100`
+  - the old exact frontier failed immediately after line `5000`
+  - the next remaining exact failure is still before line `5200`
+- Broad external SV totals remain unchanged:
+  - `parse_pass_total=8`
+  - `parse_fail_total=4`
+- Interpretation:
+  - this is a real grammar fix, not a corpus-specific workaround
+  - but the remaining UVM package debt is deeper than the queue-dimension syntax itself
+
 ## 2026-03-18 - Distinguish blocked external SV corpus cases from parser debt
 ### Context
 The remaining VeeR representative file in the current SV external-corpus slice, `el2_lsu.sv`, was still appearing as preprocess debt even though the failure was not a parser/preprocessor correctness bug. The checked-out `Cores-VeeR-EL2` tree simply does not contain the included file `el2_param.vh`, so there is no local way to know the intended preprocessed source for that case.

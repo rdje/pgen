@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-18 - Fix standalone dollar token in SystemVerilog grammar
+### ✅ Achievement Summary
+Focused UVM package debugging exposed that the active grammar still tokenized bare `$` incorrectly. `kw_dollar` was defined as `/\\$\\b/`, which can never match queue dimensions like `[$]` because there is no word boundary between `$` and `]`. I changed that token to match the standalone symbol directly, which makes queue dimensions parse again and pushes the exact `uvm_pkg` package-prefix frontier deeper.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed `kw_dollar` from `/\\$\\b/` to `/\\$/`
+- Updated [systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same standalone-dollar fix into the profiled generated grammar snapshot
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the queue-dimension diagnosis and the focused UVM frontier shift
+
+### Current Measured SV Surface
+- Fresh grammar validation passed:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+- Focused queue repros now pass:
+  - `/tmp/sv_q1.sv` (`int m[$];`)
+  - `/tmp/sv_q2.sv` (`typedef int uvm_core_state; uvm_core_state m[$];`)
+- Exact `uvm_pkg` package-prefix probes now pass through line `5100`
+  - the previous exact frontier failed immediately after line `5000`
+  - the next remaining exact failure is still before line `5200`
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` stays honest at the broad slice:
+  - `cases_declared=7`
+  - `cases_executed=12`
+  - `cases_blocked_total=2`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=0`
+  - `parse_pass_total=8`
+  - `parse_fail_total=4`
+
 ## 2026-03-18 - Classify missing VeeR include as blocked external dependency
 ### ✅ Achievement Summary
 The SV external-corpus triage gate now distinguishes real parser debt from missing-upstream-artifact debt. `el2_lsu.sv` is no longer counted as a preprocess/parser failure in the current representative slice because the checked-out VeeR tree does not contain the required included file `el2_param.vh`. Instead, the manifest now marks that case/profile pair as blocked by missing external dependency, and the gate surfaces that state explicitly.

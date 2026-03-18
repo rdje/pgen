@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-external-blocked-case-accounting)
+Last updated: 2026-03-18 (+0100, task: sv-queue-dollar-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -106,6 +106,13 @@ Use this file to resume work without replaying full chat history.
       - `veer_el2_lsu` is blocked for `2017` and `2023` because included file `el2_param.vh` is not present in the checked-out `Cores-VeeR-EL2` tree
     - current parse blocker surface after the latest parser/grammar fixes:
       - UVM package parsing
+    - latest focused grammar fix on that UVM frontier:
+      - standalone `$` now tokenizes correctly for queue dimensions (`kw_dollar := /\$/` instead of `/\$\b/`)
+      - focused queue repros now pass:
+        - `int m[$];`
+        - `typedef int uvm_core_state; uvm_core_state m[$];`
+      - exact `uvm_pkg` package-prefix frontier now passes through line `5100`
+      - the next exact failure is still before line `5200`
     - newly green real-corpus parser cases after the runtime fix:
       - `scr1_top_ahb` (`2017`, `2023`)
       - `friscv_rv32i_core` (`2017`, `2023`)

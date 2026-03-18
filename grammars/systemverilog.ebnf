@@ -2360,7 +2360,7 @@ kw_dist_02450072 := trivia /dist\b/
 
 kw_do_eadcd9bd := trivia /do\b/
 
-kw_dollar := trivia /\$\b/
+kw_dollar := trivia /\$/
 
 kw_e_58e6b3a4 := trivia /e\b/
 
