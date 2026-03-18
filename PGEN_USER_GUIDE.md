@@ -3647,6 +3647,7 @@ LRM conversion workspaces (tracked versioned outputs):
 Canonical extracted EBNF snapshots:
 - `grammars/systemverilog_2017_lrm_extracted.ebnf`
 - `grammars/systemverilog_2023_lrm_extracted.ebnf`
+- `grammars/verilog_2005_lrm_extracted.ebnf`
 
 LRM conversion tooling (adapted scripts under `tools/`):
 - `tools/split_sections.py`

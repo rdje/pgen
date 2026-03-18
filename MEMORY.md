@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: add-verilog-lrm-conversion-workspace)
+Last updated: 2026-03-18 (+0100, task: harden-verilog-extracted-grammar)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -55,6 +55,24 @@ Use this file to resume work without replaying full chat history.
     - `/Users/richarddje/Documents/github/pgen/tools/txt_to_md_converter.py`
     - clause headings like `1. Overview` are now recognized as real section titles
     - when no exact heading is found, the converter now falls back deterministically to the filename-derived title instead of front-page boilerplate
+- The repository now also tracks canonical extracted Verilog grammar snapshot:
+  - `/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf`
+  - promoted directly from `/Users/richarddje/Documents/github/pgen/docs/verilog/2005/grammar_clean.ebnf`
+  - current measured blocker for active `grammars/verilog.ebnf` promotion:
+    - refreshed extracted surface:
+      - `rules_extracted=943`
+      - `rule_count=508`
+      - `0` remaining placeholder references of the form `(From A.x.y)`
+      - frontend validation commands now pass:
+        - `perl tools/ebnf_to_json.pl --validate-only docs/verilog/2005/grammar_clean.ebnf`
+        - `perl tools/ebnf_to_json.pl --validate-only grammars/verilog_2005_lrm_extracted.ebnf`
+    - current active-promotion blocker:
+      - frontend-derived unresolved rule references: `339`
+      - dominant unresolveds are bare Verilog terminals/keywords (`module`, `endmodule`, `input`, `output`, `reg`, `signed`, `config`, `end`, etc.)
+      - remaining lexical unresolveds come from Annex character-class shorthand (`a`, `zA`, `Z0`, `_`, etc.)
+  - continuity rule:
+    - keep the extracted snapshot tracked,
+    - do not claim active Verilog parser grammar promotion until the extracted surface is normalized into real terminals/lexical rules with acceptable unresolved-reference closure.
 - The repository now tracks and executes a wider external HDL corpus base for parser hardening:
   - VHDL submodules:
     - `stimuli/vhdl/subs/PoC`

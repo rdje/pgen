@@ -618,6 +618,22 @@ Toolbox baseline to leverage end-to-end:
     - added tracked workspace `docs/verilog/2005/{txt,md}` plus `grammar_catalog.txt`, `grammar_normalized.ebnf`, `grammar_clean.ebnf`, and `grammar_report.json`
     - added top-level lightweight companion workspace `docs/verilog/{txt,md}` and mirrored grammar artifacts for quick inspection, matching the existing SV/VHDL repo convention
     - hardened `tools/txt_to_md_converter.py` so clause headings like `1. Overview` are recognized as real section titles instead of falling back to copyright/front-page boilerplate
+  - Progress (2026-03-18): hardened the Verilog extraction/promotion tooling and refreshed the IEEE 1364-2005 grammar artifacts:
+    - `tools/extract_grammar.py` now keeps multiline/split-across-page Annex productions intact instead of truncating them at fences/page noise,
+    - `tools/extract_grammar_v2.py` now prefers stronger recovered variants and repairs the remaining lexical alias case (`system_function_identifiera` -> sibling concrete definition),
+    - `tools/extract_grammar_v2.py` and `tools/create_clean_grammar.py` now emit PGEN-friendly header comments instead of `(* ... *)`, removing the false frontend blocker.
+  - Progress (2026-03-18): the refreshed Verilog extracted snapshot now reaches:
+    - `rules_extracted=943`
+    - `rule_count=508`
+    - `0` remaining `(From A.x.y)` placeholders in `docs/verilog/2005/grammar_normalized.ebnf`, `docs/verilog/2005/grammar_clean.ebnf`, and `grammars/verilog_2005_lrm_extracted.ebnf`
+    - clean frontend validation:
+      - `perl tools/ebnf_to_json.pl --validate-only docs/verilog/2005/grammar_clean.ebnf`
+      - `perl tools/ebnf_to_json.pl --validate-only grammars/verilog_2005_lrm_extracted.ebnf`
+  - Progress (2026-03-18): active `grammars/verilog.ebnf` promotion remains intentionally blocked, but the blocker is now narrower and more honest:
+    - current frontend-derived unresolved-rule-reference count for the cleaned extracted grammar is `339`,
+    - many of those unresolveds are true Verilog terminals still spelled as bare words (`module`, `endmodule`, `input`, `output`, `reg`, `signed`, `config`, `end`, etc.),
+    - the rest are lexical shorthand fragments from Annex productions (`a`, `zA`, `Z0`, `_`, etc.),
+    - next Verilog-specific task is promotion-oriented terminal/lexical normalization, not Annex placeholder burn-down.
   - Progress (2026-03-06): promoted canonical extracted SV EBNF snapshots into `grammars/`:
     - `grammars/systemverilog_2017_lrm_extracted.ebnf`
     - `grammars/systemverilog_2023_lrm_extracted.ebnf`

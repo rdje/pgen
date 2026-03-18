@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Harden Verilog extracted grammar to frontend-valid state
+### Context
+The first promoted Verilog snapshot was honest but still rough: it preserved the IEEE 1364-2005 extraction exactly as recovered at the time, which meant `96` `(From A.x.y)` placeholders and an `EBNF -> JSON` failure caused partly by the tool-emitted `(* ... *)` header comments. The next task was to separate “real Verilog promotion debt” from “our extraction helpers are still dropping/mis-emitting grammar.”
+
+### Implementation
+- Hardened [tools/extract_grammar.py](/Users/richarddje/Documents/github/pgen/tools/extract_grammar.py):
+  - rule heads now allow empty same-line RHS so multiline Annex productions are captured
+  - structurally incomplete rules now continue through blank lines, code fences, and page-noise headers/footers instead of truncating early
+- Hardened [tools/extract_grammar_v2.py](/Users/richarddje/Documents/github/pgen/tools/extract_grammar_v2.py):
+  - variant selection now prefers complete non-placeholder recovered definitions
+  - added lexical alias repair for suffix-`a` rules that can be resolved from sibling numbered variants
+  - changed generated header comments to `# ...` so frontend validation is no longer poisoned by `(* ... *)`
+- Hardened [tools/create_clean_grammar.py](/Users/richarddje/Documents/github/pgen/tools/create_clean_grammar.py):
+  - changed generated header comments to `# ...`
+- Regenerated the Verilog artifacts in:
+  - [docs/verilog/2005](/Users/richarddje/Documents/github/pgen/docs/verilog/2005)
+  - [docs/verilog](/Users/richarddje/Documents/github/pgen/docs/verilog)
+  - [grammars/verilog_2005_lrm_extracted.ebnf](/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf)
+- Revalidated the refreshed extracted grammar surface:
+  - `rules_extracted=943`
+  - `rule_count=508`
+  - `0` remaining `(From A.x.y)` placeholders
+  - `perl tools/ebnf_to_json.pl --validate-only docs/verilog/2005/grammar_clean.ebnf` passes
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/verilog_2005_lrm_extracted.ebnf` passes
+
+### Outcome
+- The extracted Verilog grammar is now frontend-valid and much closer to a promotable parser grammar.
+- The blocker for active `grammars/verilog.ebnf` promotion is now the real semantic one:
+  - `339` unresolved rule references remain in the cleaned extracted surface
+  - many are true Verilog keywords still spelled as bare symbols (`module`, `endmodule`, `input`, `output`, `reg`, `signed`, `config`, `end`, etc.)
+  - the rest are lexical shorthand fragments from Annex character-class notation (`a`, `zA`, `Z0`, `_`, etc.)
+- The next Verilog task is terminal/lexical normalization for active promotion, not more Annex placeholder recovery.
+
+## 2026-03-18 - Promote extracted Verilog grammar snapshot honestly
+### Context
+After the IEEE 1364-2005 workspace landed, the next natural question was whether that immediately implies an active `grammars/verilog.ebnf`. The answer turned out to be “not yet”: the extracted grammar is valuable and worth preserving, but it still contains unresolved syntax-annex cross-reference placeholders that the current EBNF frontend cannot ingest unchanged.
+
+### Implementation
+- Added [grammars/verilog_2005_lrm_extracted.ebnf](/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf) as the canonical promoted snapshot from [docs/verilog/2005/grammar_clean.ebnf](/Users/richarddje/Documents/github/pgen/docs/verilog/2005/grammar_clean.ebnf).
+- Validated the current extracted grammar surface:
+  - `336` total `::=` rules
+  - `96` placeholder references matching `(From A.x.y)`
+  - current frontend run
+    - `perl tools/ebnf_to_json.pl --verbosity debug --pretty docs/verilog/2005/grammar_clean.ebnf -o /tmp/verilog_2005_from_docs.json`
+    - fails with `Error: '(' occurrence with no container rule context`
+- Updated the workspace/docs continuity files to make the boundary explicit: the snapshot is tracked, but active `grammars/verilog.ebnf` promotion remains intentionally blocked until those placeholders are normalized.
+
+### Outcome
+- The repo now has a stable canonical Verilog 2005 extracted grammar file in `grammars/`.
+- We avoided creating a misleading active `grammars/verilog.ebnf` that would immediately fail the normal `EBNF -> JSON` parser-generation path.
+- The next real Verilog grammar task is no longer “extract the LRM”; it is “resolve the Annex A placeholder references into concrete productions.”
+
 ## 2026-03-18 - Add Verilog LRM conversion workspace and harden section-title extraction
 ### Context
 The repository already had documented LRM conversion workspaces for SystemVerilog and VHDL, and the user supplied the local IEEE 1364-2005 PDF at `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`. The right move was to reuse the same tracked conversion workflow instead of treating Verilog as a one-off manual extraction.

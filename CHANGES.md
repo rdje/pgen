@@ -1,4 +1,62 @@
 # CHANGES.md
+## 2026-03-18 - Harden Verilog extracted grammar to frontend-valid state
+### ✅ Achievement Summary
+The IEEE 1364-2005 Verilog extraction is no longer stuck at raw placeholder triage. I hardened the shared extraction tools so the refreshed Verilog grammar artifacts now recover multiline Annex productions correctly, eliminate the last `(From A.x.y)` placeholder alias, and pass the normal `EBNF -> JSON` frontend path unchanged. The extracted grammar is still not ready to become active `grammars/verilog.ebnf`, but the blocker is now the real one: unresolved bare terminals and lexical shorthand, not broken extraction scaffolding.
+
+### Scope of Changes
+- Updated [tools/extract_grammar.py](/Users/richarddje/Documents/github/pgen/tools/extract_grammar.py):
+  - keeps multiline grammar rules alive across blank lines, code fences, and page-noise headers when the current rule is structurally incomplete
+  - recovers split Annex-A productions that were previously truncated at page/fence boundaries
+- Updated [tools/extract_grammar_v2.py](/Users/richarddje/Documents/github/pgen/tools/extract_grammar_v2.py):
+  - prefers stronger non-placeholder/complete variants instead of first-seen wins
+  - repairs the remaining lexical alias placeholder (`system_function_identifiera`) from its sibling concrete definition
+  - emits PGEN-friendly `#` header comments so generated grammar artifacts do not fail frontend parsing on `(* ... *)`
+- Updated [tools/create_clean_grammar.py](/Users/richarddje/Documents/github/pgen/tools/create_clean_grammar.py):
+  - emits PGEN-friendly `#` header comments
+- Refreshed the Verilog grammar artifacts in the versioned workspace under [docs/verilog/2005](/Users/richarddje/Documents/github/pgen/docs/verilog/2005), refreshed the tracked mirrored grammar artifacts under [docs/verilog](/Users/richarddje/Documents/github/pgen/docs/verilog), and refreshed [verilog_2005_lrm_extracted.ebnf](/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf):
+  - `grammar_catalog.txt`
+  - `grammar_normalized.ebnf`
+  - `grammar_clean.ebnf`
+  - `grammar_report.json`
+- Updated [docs/verilog/README.md](/Users/richarddje/Documents/github/pgen/docs/verilog/README.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - replaced the old placeholder-only blocker story with the new frontend-valid-but-terminal-unresolved status
+
+### Current Measured Verilog Promotion Surface
+- Refreshed extraction metrics:
+  - `rules_extracted=943`
+  - `rule_count=508`
+  - `0` remaining `(From A.x.y)` placeholders in the normalized/clean extracted grammar outputs
+- Refreshed frontend validation:
+  - `perl tools/ebnf_to_json.pl --validate-only docs/verilog/2005/grammar_clean.ebnf` ✅
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/verilog_2005_lrm_extracted.ebnf` ✅
+- Current active-promotion blocker:
+  - frontend-derived unresolved rule references: `339`
+  - leading unresolveds are now the real terminal/lexical normalization debt:
+    - Verilog keywords/bare terminals like `module`, `endmodule`, `input`, `output`, `reg`, `signed`, `config`, `end`
+    - lexical shorthand fragments like `a`, `zA`, `Z0`, and `_`
+
+## 2026-03-18 - Promote extracted Verilog 2005 grammar snapshot
+### ✅ Achievement Summary
+The repository now tracks the canonical extracted IEEE 1364-2005 Verilog grammar snapshot in [verilog_2005_lrm_extracted.ebnf](/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf). I also documented the important boundary condition: this snapshot is faithful to the current LRM extraction, but it is not yet eligible to become active `grammars/verilog.ebnf` because the extraction still contains unresolved Annex cross-reference placeholders.
+
+### Scope of Changes
+- Added [grammars/verilog_2005_lrm_extracted.ebnf](/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf):
+  - canonical promoted snapshot sourced from [docs/verilog/2005/grammar_clean.ebnf](/Users/richarddje/Documents/github/pgen/docs/verilog/2005/grammar_clean.ebnf)
+- Updated [docs/verilog/README.md](/Users/richarddje/Documents/github/pgen/docs/verilog/README.md), [README.md](/Users/richarddje/Documents/github/pgen/README.md), [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that the Verilog extracted grammar is now tracked in `grammars/`
+  - made the current promotion blocker explicit rather than implying a parser-ready grammar exists
+
+### Current Measured Promotion Blocker
+- `docs/verilog/2005/grammar_clean.ebnf` currently contains:
+  - `336` rules total
+  - `96` unresolved placeholder references of the form `(From A.x.y)`
+- Current frontend validation:
+  - `perl tools/ebnf_to_json.pl --verbosity debug --pretty docs/verilog/2005/grammar_clean.ebnf -o /tmp/verilog_2005_from_docs.json`
+  - fails with `Error: '(' occurrence with no container rule context`
+- Practical meaning:
+  - extracted Verilog snapshot is now preserved
+  - active `grammars/verilog.ebnf` promotion still requires placeholder normalization first
+
 ## 2026-03-18 - Add Verilog 1364-2005 LRM conversion workspace
 ### ✅ Achievement Summary
 The repository now carries a tracked Verilog LRM conversion workspace parallel to the existing SystemVerilog and VHDL ones. IEEE 1364-2005 has been converted into section-based text and markdown slices under `docs/verilog/2005`, companion lightweight root slices under `docs/verilog/{txt,md}`, and extracted grammar artifacts. I also hardened the shared markdown converter so numeric clause headings like `1. Overview` become stable section titles instead of falling back to boilerplate page text.

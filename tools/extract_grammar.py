@@ -14,7 +14,42 @@ from pathlib import Path
 from typing import List, Tuple
 
 
-RULE_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*::=\s*(.+?)\s*$")
+RULE_RE = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*::=\s*(.*?)\s*$")
+SECTION_HEADING_RE = re.compile(r"^(?:Annex\s+[A-Z]|[A-Z]\.\d+(?:\.\d+)*|\d+(?:\.\d+)*)\b")
+
+
+def is_fence_line(line: str) -> bool:
+    return line.strip().startswith("```")
+
+
+def is_page_noise_line(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if stripped.startswith("Authorized licensed use limited to:"):
+        return True
+    if stripped in {"IEEE", "HARDWARE DESCRIPTION LANGUAGE", "IEEE STANDARD FOR VERILOG®"}:
+        return True
+    if stripped.startswith("Std 1364-2005"):
+        return True
+    if stripped.startswith("Copyright ©"):
+        return True
+    if stripped.isdigit():
+        return True
+    return False
+
+
+def looks_incomplete(parts: List[str]) -> bool:
+    if not parts:
+        return True
+    text = " ".join(parts).rstrip()
+    if text.endswith(("::=", "|", "{", ",", "(")):
+        return True
+    return (
+        text.count("(") != text.count(")")
+        or text.count("[") != text.count("]")
+        or text.count("{") != text.count("}")
+    )
 
 
 def extract_rules_from_text(text: str) -> List[Tuple[str, str]]:
@@ -28,15 +63,32 @@ def extract_rules_from_text(text: str) -> List[Tuple[str, str]]:
             i += 1
             continue
         name = m.group(1)
-        parts = [m.group(2).strip()]
+        parts = []
+        first_rhs = m.group(2).strip()
+        if first_rhs:
+            parts.append(first_rhs)
         i += 1
         while i < len(lines):
             nxt = lines[i].strip()
+            if is_fence_line(lines[i]) or is_page_noise_line(lines[i]):
+                if looks_incomplete(parts):
+                    i += 1
+                    continue
+                break
             if not nxt:
+                if looks_incomplete(parts):
+                    i += 1
+                    continue
+                break
+            if SECTION_HEADING_RE.match(nxt):
                 break
             if RULE_RE.match(lines[i]):
                 break
             if nxt.startswith("|") or lines[i].startswith(" "):
+                parts.append(nxt)
+                i += 1
+                continue
+            if looks_incomplete(parts):
                 parts.append(nxt)
                 i += 1
                 continue
@@ -85,4 +137,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
