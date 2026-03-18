@@ -614,32 +614,20 @@ impl RecursionGuard {
     }
 
     pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {
-        if let Some(cached) = self.cycle_cache.get(&(rule_name.to_string(), position)) {
-            return cached.clone();
-        }
         for (r, p) in self.parse_stack.iter() {
             if r == rule_name && *p == position {
-                let cycle = CycleType::Infinite;
-                self.cycle_cache
-                    .insert((rule_name.to_string(), position), cycle.clone());
-                return cycle;
+                return CycleType::Infinite;
             }
             if r == rule_name && *p > position {
-                let cycle = CycleType::LeftRecursive;
-                self.cycle_cache
-                    .insert((rule_name.to_string(), position), cycle.clone());
-                return cycle;
+                return CycleType::LeftRecursive;
             }
         }
         if self.parse_stack.len() >= self.max_depth {
             let rules: Vec<String> = self.parse_stack.iter().map(|(r, _)| r.clone()).collect();
-            let cycle = CycleType::MutualRecursive {
+            return CycleType::MutualRecursive {
                 depth: self.parse_stack.len(),
                 rules,
             };
-            self.cycle_cache
-                .insert((rule_name.to_string(), position), cycle.clone());
-            return cycle;
         }
         CycleType::None
     }
@@ -678,6 +666,10 @@ pub enum ASTNode {
     Quantified {
         element: Box<ASTNode>,
         quantifier: String,
+    },
+    Lookahead {
+        element: Box<ASTNode>,
+        positive: bool,
     },
 }
 
@@ -799,6 +791,7 @@ enum RawRuleElement {
     GroupOpen,
     GroupClose,
     Quantifier(String),
+    Lookahead(bool),
 }
 
 #[derive(Debug, Clone)]
@@ -1216,6 +1209,7 @@ impl RustASTPipeline {
                     Some(Self::build_or_node(suffixes))
                 }
             }
+            ASTNode::Lookahead { .. } => None,
             _ => None,
         }
     }
@@ -1828,6 +1822,18 @@ impl RustASTPipeline {
                     );
                     Some(RawRuleElement::Quantifier(elem_value.to_string()))
                 }
+                "&" => {
+                    eprintln!(
+                        "                👀  \x1b[32mPOSITIVE LOOKAHEAD\x1b[0m (&) - Assert next primary without consuming"
+                    );
+                    Some(RawRuleElement::Lookahead(true))
+                }
+                "!" => {
+                    eprintln!(
+                        "                🚫  \x1b[32mNEGATIVE LOOKAHEAD\x1b[0m (!) - Reject matching next primary without consuming"
+                    );
+                    Some(RawRuleElement::Lookahead(false))
+                }
                 _ => {
                     eprintln!(
                         "                ⚙️   \x1b[33mNON-STRUCTURAL OPERATOR\x1b[0m '{}' - treat as terminal",
@@ -1941,47 +1947,84 @@ impl RustASTPipeline {
         let mut idx = 0usize;
 
         while idx < branch.len() {
-            let mut primary = match &branch[idx] {
-                RawRuleElement::Atom(node) => {
-                    idx += 1;
-                    node.clone()
-                }
-                RawRuleElement::GroupOpen => {
-                    let (inner, next_idx) = self.extract_group_contents(branch, idx)?;
-                    idx = next_idx;
-                    self.build_ast_from_elements(&inner)?
-                }
-                RawRuleElement::GroupClose => {
-                    eprintln!(
-                        "  ⚠️ [mod.rs][step2_5_handle_parentheses()] unexpected group_close at idx={}",
-                        idx
-                    );
-                    idx += 1;
-                    continue;
-                }
-                RawRuleElement::OrOperator => {
-                    eprintln!(
-                        "  ⚠️ [mod.rs][step2_5_handle_parentheses()] unexpected top-level OR token inside branch at idx={}",
-                        idx
-                    );
-                    idx += 1;
-                    continue;
-                }
-                RawRuleElement::Quantifier(q) => {
-                    eprintln!(
-                        "  ⚠️ [mod.rs][step2_5_handle_parentheses()] dangling quantifier '{}' at idx={} (ignored)",
-                        q, idx
-                    );
-                    idx += 1;
-                    continue;
-                }
-            };
-
-            primary = self.step4_handle_quantifiers(primary, branch, &mut idx);
-            result.push(primary);
+            if let Some(primary) = self.parse_branch_primary(branch, &mut idx)? {
+                result.push(primary);
+            }
         }
 
         Ok(result)
+    }
+
+    fn parse_branch_primary(
+        &self,
+        branch: &[RawRuleElement],
+        idx: &mut usize,
+    ) -> Result<Option<ASTNode>> {
+        if *idx >= branch.len() {
+            return Ok(None);
+        }
+
+        let mut lookahead_polarity = Vec::new();
+        while *idx < branch.len() {
+            match &branch[*idx] {
+                RawRuleElement::Lookahead(positive) => {
+                    lookahead_polarity.push(*positive);
+                    *idx += 1;
+                }
+                _ => break,
+            }
+        }
+
+        if *idx >= branch.len() {
+            return Ok(None);
+        }
+
+        let mut primary = match &branch[*idx] {
+            RawRuleElement::Atom(node) => {
+                *idx += 1;
+                node.clone()
+            }
+            RawRuleElement::GroupOpen => {
+                let (inner, next_idx) = self.extract_group_contents(branch, *idx)?;
+                *idx = next_idx;
+                self.build_ast_from_elements(&inner)?
+            }
+            RawRuleElement::GroupClose => {
+                eprintln!(
+                    "  ⚠️ [mod.rs][parse_branch_primary()] unexpected group_close at idx={}",
+                    *idx
+                );
+                *idx += 1;
+                return Ok(None);
+            }
+            RawRuleElement::OrOperator => {
+                eprintln!(
+                    "  ⚠️ [mod.rs][parse_branch_primary()] unexpected top-level OR token inside branch at idx={}",
+                    *idx
+                );
+                *idx += 1;
+                return Ok(None);
+            }
+            RawRuleElement::Quantifier(q) => {
+                eprintln!(
+                    "  ⚠️ [mod.rs][parse_branch_primary()] dangling quantifier '{}' at idx={} (ignored)",
+                    q, *idx
+                );
+                *idx += 1;
+                return Ok(None);
+            }
+            RawRuleElement::Lookahead(_) => unreachable!("lookahead prefixes already consumed"),
+        };
+
+        primary = self.step4_handle_quantifiers(primary, branch, idx);
+        for positive in lookahead_polarity.into_iter().rev() {
+            primary = ASTNode::Lookahead {
+                element: Box::new(primary),
+                positive,
+            };
+        }
+
+        Ok(Some(primary))
     }
 
     fn extract_group_contents(
@@ -2089,6 +2132,8 @@ impl RustASTPipeline {
             RawRuleElement::GroupOpen => "group_open",
             RawRuleElement::GroupClose => "group_close",
             RawRuleElement::Quantifier(_) => "quantifier",
+            RawRuleElement::Lookahead(true) => "positive_lookahead",
+            RawRuleElement::Lookahead(false) => "negative_lookahead",
         }
     }
 
@@ -2281,6 +2326,26 @@ impl RustASTPipeline {
                                     Ok(Some(ASTNode::Quantified {
                                         element: Box::new(ASTNode::Sequence { elements: vec![] }), // Placeholder
                                         quantifier: "+".to_string(),
+                                    }))
+                                }
+                                "&" => {
+                                    eprintln!(
+                                        "                    👀  \x1b[32mPOSITIVE LOOKAHEAD\x1b[0m (&) - Placeholder lookahead node"
+                                    );
+                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    Ok(Some(ASTNode::Lookahead {
+                                        element: Box::new(ASTNode::Sequence { elements: vec![] }),
+                                        positive: true,
+                                    }))
+                                }
+                                "!" => {
+                                    eprintln!(
+                                        "                    🚫  \x1b[32mNEGATIVE LOOKAHEAD\x1b[0m (!) - Placeholder lookahead node"
+                                    );
+                                    eprintln!("                    File: {}:{}", file!(), line!());
+                                    Ok(Some(ASTNode::Lookahead {
+                                        element: Box::new(ASTNode::Sequence { elements: vec![] }),
+                                        positive: false,
                                     }))
                                 }
                                 "|" => {
@@ -2523,6 +2588,37 @@ mod tests {
         match value_rule {
             ASTNode::Or { alternatives } => assert_eq!(alternatives.len(), 2),
             other => panic!("expected merged alternation, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn transform_from_raw_ast_preserves_lookahead_prefixes() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![json!([
+            ["rule", "ident_like"],
+            ["operator", "!"],
+            ["rule_reference", "kw_parameter"],
+            ["rule_reference", "identifier"]
+        ])];
+
+        let (grammar_tree, _rule_order, _annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+
+        let ident_like = grammar_tree.get("ident_like").expect("ident_like rule");
+        match ident_like {
+            ASTNode::Sequence { elements } => {
+                assert_eq!(elements.len(), 2);
+                assert!(matches!(
+                    &elements[0],
+                    ASTNode::Lookahead {
+                        positive: false,
+                        ..
+                    }
+                ));
+                assert!(matches!(&elements[1], ASTNode::Atom { .. }));
+            }
+            other => panic!("expected lookahead sequence, got {:?}", other),
         }
     }
 }

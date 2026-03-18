@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Remove stale recursion-cycle false negatives from generated SV parsing
+### Context
+Focused external-corpus debugging had already shown that plain concatenation forms like `{a,b}` should be parseable in the active SystemVerilog grammar, yet the generated parser still rejected tiny repros and several real RTL files. The trace finally exposed the real culprit: speculative branches were caching `RecursionGuard` cycle results by `(rule, position)`, and those cached `Infinite` results survived after the speculative stack unwound. Once `expression@48` was marked recursive on one failed path, later legitimate parses of `expression@48` failed immediately too.
+
+### Implementation
+- Updated [rust/src/ast_pipeline/mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - removed sticky cycle-result memoization from `RecursionGuard::check_cycle()`
+  - cycle detection is still enforced against the live parse stack, but no longer poisons later parses after speculative backtracking
+- Updated [rust/src/ast_pipeline/mutual_recursion_handler.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mutual_recursion_handler.rs):
+  - mirrored the same change into the sibling helper so recursion handling stays internally consistent
+- Revalidated the generated-parser behavior through:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - focused repro probes with `parseability_probe --parse systemverilog`
+
+### Outcome
+- The false-negative concatenation debt is gone:
+  - `/tmp/concat_two.sv` now passes
+  - `/tmp/concat_rhs_only.sv` now passes
+  - `/tmp/port_concat.sv` now passes
+- Fresh external SV triage improved materially:
+  - before this fix: `parse_pass_total=2`, `parse_fail_total=10`
+  - after this fix: `parse_pass_total=6`, `parse_fail_total=6`
+- New green real-corpus cases:
+  - `scr1_top_ahb` in both `sv_2017` and `sv_2023`
+  - `friscv_rv32i_core` in both `sv_2017` and `sv_2023`
+  - `friscv_pipeline` in both `sv_2017` and `sv_2023`
+- Remaining external SV frontier is now cleaner:
+  - UVM package parsing is still a real deeper-package-body issue
+  - `scr1_core_top` now backtracks to `module scr1_core_top (` at byte `35210`, which means the module as a whole still fails later and then rewinds to its start
+  - VeeR remains blocked in preprocessing by unresolved include `el2_param.vh`
+
 ## 2026-03-18 - Harden Verilog extracted grammar to frontend-valid state
 ### Context
 The first promoted Verilog snapshot was honest but still rough: it preserved the IEEE 1364-2005 extraction exactly as recovered at the time, which meant `96` `(From A.x.y)` placeholders and an `EBNF -> JSON` failure caused partly by the tool-emitted `(* ... *)` header comments. The next task was to separate “real Verilog promotion debt” from “our extraction helpers are still dropping/mis-emitting grammar.”

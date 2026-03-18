@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-17
+Last updated: 2026-03-18
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -106,9 +106,14 @@ Interpretation note:
 - Those external corpora are now first consumed by deterministic source-side triage gates:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
     - checked-in manifest: [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json)
-    - current measured surface: `cases_executed=14`, `preprocess_pass_total=12`, `preprocess_fail_total=2`, `parse_pass_total=0`, `parse_fail_total=12`
-    - current onboarding state: UVM and SCR1 now preprocess successfully after SV preprocessor hardening; the remaining preprocess blocker in the current representative slice is VeeR include resolution for missing `el2_param.vh`, while UVM, SCR1, and FRISCV now feed parser-rejection triage directly
-    - current parser-failure logs now preserve first-stop detail directly, e.g. UVM `position 125319`, SCR1 core top `position 1724`, and FRISCV RV32I core `position 89`
+    - current measured surface: `cases_executed=14`, `preprocess_pass_total=12`, `preprocess_fail_total=2`, `parse_pass_total=6`, `parse_fail_total=6`
+    - current onboarding state: the remaining preprocess blocker in the current representative slice is VeeR include resolution for missing `el2_param.vh`
+    - current runtime-hardening note: stale recursion-cycle cache state in the generated-parser runtime has now been removed, so failed speculative recursion probes no longer poison later legitimate parses at the same `(rule, position)`
+    - newly green real-corpus parser cases after that runtime fix:
+      - `scr1_top_ahb` in both `sv_2017` and `sv_2023`
+      - `friscv_rv32i_core` in both `sv_2017` and `sv_2023`
+      - `friscv_pipeline` in both `sv_2017` and `sv_2023`
+    - current remaining parser-failure logs now preserve first-stop detail directly, e.g. UVM `position 125952` and SCR1 core top rewinding to module start at `position 35210`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - checked-in manifest: [vhdl_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json)
     - current measured surface: `cases_executed=8`, `parse_pass_total=0`, `parse_fail_total=8`

@@ -43,27 +43,16 @@ impl RecursionGuard {
 
     /// Check if entering this rule would create a cycle
     pub fn check_cycle(&mut self, rule_name: &str, position: usize) -> CycleType {
-        // Check cache first
-        if let Some(cached) = self.cycle_cache.get(&(rule_name.to_string(), position)) {
-            return cached.clone();
-        }
-
         // Check for direct infinite recursion
         for (_i, (r, p)) in self.parse_stack.iter().enumerate() {
             if r == rule_name && *p == position {
                 // Exact same rule at same position = infinite loop
-                let cycle = CycleType::Infinite;
-                self.cycle_cache
-                    .insert((rule_name.to_string(), position), cycle.clone());
-                return cycle;
+                return CycleType::Infinite;
             }
 
             if r == rule_name && *p > position {
                 // Same rule but consumed input = left recursion
-                let cycle = CycleType::LeftRecursive;
-                self.cycle_cache
-                    .insert((rule_name.to_string(), position), cycle.clone());
-                return cycle;
+                return CycleType::LeftRecursive;
             }
         }
 
@@ -82,13 +71,10 @@ impl RecursionGuard {
 
             if found_repeat && rules_in_cycle.len() > 1 {
                 // Mutual recursion detected
-                let cycle = CycleType::MutualRecursive {
+                return CycleType::MutualRecursive {
                     depth: self.parse_stack.len(),
                     rules: rules_in_cycle.into_iter().collect(),
                 };
-                self.cycle_cache
-                    .insert((rule_name.to_string(), position), cycle.clone());
-                return cycle;
             }
         }
 

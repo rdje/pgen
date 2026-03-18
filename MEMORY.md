@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: harden-verilog-extracted-grammar)
+Last updated: 2026-03-18 (+0100, task: sv-recursion-guard-cache-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -98,18 +98,20 @@ Use this file to resume work without replaying full chat history.
       - `cases_executed=14`
       - `preprocess_pass_total=12`
       - `preprocess_fail_total=2`
-      - `parse_pass_total=0`
-      - `parse_fail_total=12`
+      - `parse_pass_total=6`
+      - `parse_fail_total=6`
     - current preprocess blocker surface:
       - VeeR include resolution for missing `el2_param.vh`
-    - current parse blocker surface after preprocess hardening:
+    - current parse blocker surface after the recursion-guard cache fix:
       - UVM package parsing
-      - SCR1 parser acceptance
-      - FRISCV parser acceptance
-    - current first parser-stop logs are now explicit:
-      - UVM: `Parser did not consume full input at position 125319`
-      - SCR1 core top: `Parser did not consume full input at position 1724`
-      - FRISCV RV32I core: `Parser did not consume full input at position 89`
+      - SCR1 deeper module-body parsing (`scr1_core_top` now rewinds to `module scr1_core_top (` at byte `35210`)
+    - newly green real-corpus parser cases after the runtime fix:
+      - `scr1_top_ahb` (`2017`, `2023`)
+      - `friscv_rv32i_core` (`2017`, `2023`)
+      - `friscv_pipeline` (`2017`, `2023`)
+    - current first remaining parser-stop logs are now explicit:
+      - UVM: `Parser did not consume full input at position 125952`
+      - SCR1 core top: `Parser did not consume full input at position 35210`
     - landed SV preprocessor hardening behind that shift:
       - default-valued macro parameter support
       - adjacency-based function-like macro recognition
@@ -117,6 +119,12 @@ Use this file to resume work without replaying full chat history.
       - non-UTF-8 source fallback with `W_SVPP_NON_UTF8_SOURCE`
     - landed parser-triage observability behind the next shift:
       - `parseability_probe --parse` now preserves the real parser error string through `parser_registry::parse_sample_detail_with_profile`
+    - landed runtime hardening behind the latest shift:
+      - `RecursionGuard` no longer caches stale cycle results across speculative backtracking
+      - tiny focused false-negative repros now pass again:
+        - `/tmp/concat_two.sv`
+        - `/tmp/concat_rhs_only.sv`
+        - `/tmp/port_concat.sv`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - manifest:
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`

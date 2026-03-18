@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-18 - Fix stale recursion-cycle cache in generated parser runtime
+### ✅ Achievement Summary
+The generated-parser runtime was carrying stale recursion-cycle results across speculative backtracking, which turned real SystemVerilog parses into false negatives. Fixing that cache leak in the shared recursion guard removed a major source of external-corpus noise: the minimal plain-concatenation repros now parse cleanly again, and the SV external corpus triage surface improved from `parse_pass_total=2` / `parse_fail_total=10` to `parse_pass_total=6` / `parse_fail_total=6` without any new corpus-specific grammar hacks.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - stopped `RecursionGuard::check_cycle()` from memoizing `Infinite` / `LeftRecursive` / depth-cycle results across later parse attempts
+  - this prevents stale speculative failures from poisoning later legitimate parses at the same `(rule, position)`
+- Updated [rust/src/ast_pipeline/mutual_recursion_handler.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mutual_recursion_handler.rs):
+  - mirrored the same non-sticky cycle-detection behavior into the sibling mutual-recursion helper
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the engine-level diagnosis and the new external-corpus measurement surface
+
+### Current Measured SV External-Corpus Surface
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` now records:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=6`
+  - `parse_fail_total=6`
+  - `parse_skipped_total=2`
+- New green external SV cases after the runtime fix:
+  - `scr1_top_ahb` (`2017`, `2023`)
+  - `friscv_rv32i_core` (`2017`, `2023`)
+  - `friscv_pipeline` (`2017`, `2023`)
+- Remaining external SV blockers are now cleaner:
+  - UVM packages still fail in deeper package parsing
+  - `scr1_core_top` now backtracks to the module start at `position 35210`, which localizes the next debt to deeper module-body parsing rather than the header
+  - VeeR remains preprocess-blocked by missing include `el2_param.vh`
+- Focused parser repros now confirm the false-negative concatenation debt is removed:
+  - `/tmp/concat_two.sv` passes
+  - `/tmp/concat_rhs_only.sv` passes
+  - `/tmp/port_concat.sv` passes
+
 ## 2026-03-18 - Harden Verilog extracted grammar to frontend-valid state
 ### ✅ Achievement Summary
 The IEEE 1364-2005 Verilog extraction is no longer stuck at raw placeholder triage. I hardened the shared extraction tools so the refreshed Verilog grammar artifacts now recover multiline Annex productions correctly, eliminate the last `(From A.x.y)` placeholder alias, and pass the normal `EBNF -> JSON` frontend path unchanged. The extracted grammar is still not ready to become active `grammars/verilog.ebnf`, but the blocker is now the real one: unresolved bare terminals and lexical shorthand, not broken extraction scaffolding.
