@@ -20,7 +20,9 @@ constant_expression := constant_expression_operand ( binary_operator attribute_i
 
 expression_operand := unary_operator attribute_instance* primary | inc_or_dec_expression | primary
 
-expression := conditional_expression | inside_expression | tagged_union_expression | lparen operator_assignment rparen | expression_operand ( binary_operator attribute_instance* expression_operand )*
+expression_base := tagged_union_expression | lparen operator_assignment rparen | expression_operand ( binary_operator attribute_instance* expression_operand )*
+
+expression := conditional_expression | inside_expression | expression_base
 
 identifier := escaped_identifier | simple_identifier
 
@@ -358,7 +360,7 @@ concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_st
 
 concurrent_assertion_statement := assert_property_statement | assume_property_statement | cover_property_statement | cover_sequence_statement | restrict_property_statement
 
-cond_pattern := expression kw_matches_9f3e9242 pattern
+cond_pattern := expression_base kw_matches_9f3e9242 pattern
 
 cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_pattern )*
 
@@ -700,7 +702,7 @@ exp := kw_e_58e6b3a4 | kw_E_e0184ade
 
 expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen action_block
 
-expression_or_cond_pattern := expression | cond_pattern
+expression_or_cond_pattern := expression_base | cond_pattern
 
 expression_or_dist := expression ( kw_dist_02450072 dist_list* )?
 
@@ -887,10 +889,10 @@ input_port_identifier := identifier
 input_terminal := expression
 
 @profiles: ["sv_2017"]
-inside_expression_sv_2017 := expression kw_inside_fcc53788 open_range_list*
+inside_expression_sv_2017 := expression_base kw_inside_fcc53788 open_range_list*
 
 @profiles: ["sv_2023"]
-inside_expression_sv_2023 := expression kw_inside_fcc53788 range_list*
+inside_expression_sv_2023 := expression_base kw_inside_fcc53788 range_list*
 
 inside_expression := inside_expression_sv_2017 | inside_expression_sv_2023
 

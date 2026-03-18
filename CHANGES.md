@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-18 - Fix SystemVerilog ternary expression parsing in external corpus replay
+### ✅ Achievement Summary
+Focused external-corpus debugging on `scr1_core_top` exposed that the active SystemVerilog grammar still rejected even a tiny ternary expression like `assign a = c ? d : F;`. I removed that left-recursive hole by factoring a shared `expression_base` and rebuilding the conditional / `inside` expression path on top of it. The immediate effect is concrete and externally measured: the tiny ternary/member-select repros now parse cleanly, `scr1_core_top` is now green in both `sv_2017` and `sv_2023`, and the SV external corpus triage surface improved again from `parse_pass_total=6` / `parse_fail_total=6` to `parse_pass_total=8` / `parse_fail_total=4`.
+
+### Scope of Changes
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - introduced `expression_base`
+  - rewired `expression`, `cond_pattern`, `expression_or_cond_pattern`, and both `inside_expression` profile rules to consume the non-left-recursive base form
+  - preserved the SystemVerilog-specific ternary condition surface (`cond_predicate`, `matches`, `&&&`) without the old self-recursive front door
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same expression-shape fix into the profiled generated grammar snapshot
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the grammar-level diagnosis and the fresh external-corpus measurements
+
+### Current Measured SV External-Corpus Surface
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` now records:
+  - `cases_executed=14`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=2`
+  - `parse_pass_total=8`
+  - `parse_fail_total=4`
+  - `parse_skipped_total=2`
+- Newly green external SV cases after this expression fix:
+  - `scr1_core_top` (`2017`, `2023`)
+- Focused parser repros now confirm the ternary/member-select debt is removed:
+  - `/tmp/sv_case5.sv` (`assign a = c ? d : F;`) passes
+  - `/tmp/sv_case7.sv` (`assign a = c ? d[0] : F;`) passes
+  - `/tmp/sv_case8.sv` (`assign a = c ? (d.e) : F;`) passes
+  - `/tmp/sv_member_assign_min.sv` (`assign a.b = c ? d.e : F;`) passes
+- Remaining external SV blockers are now narrower:
+  - UVM package parsing still fails in deeper package-body parsing (`uvm_pkg`, `uvm_compat_pkg`)
+  - VeeR remains preprocess-blocked by missing include `el2_param.vh`
+
 ## 2026-03-18 - Fix stale recursion-cycle cache in generated parser runtime
 ### ✅ Achievement Summary
 The generated-parser runtime was carrying stale recursion-cycle results across speculative backtracking, which turned real SystemVerilog parses into false negatives. Fixing that cache leak in the shared recursion guard removed a major source of external-corpus noise: the minimal plain-concatenation repros now parse cleanly again, and the SV external corpus triage surface improved from `parse_pass_total=2` / `parse_fail_total=10` to `parse_pass_total=6` / `parse_fail_total=6` without any new corpus-specific grammar hacks.

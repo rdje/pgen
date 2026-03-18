@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-recursion-guard-cache-fix)
+Last updated: 2026-03-18 (+0100, task: sv-ternary-expression-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -98,20 +98,20 @@ Use this file to resume work without replaying full chat history.
       - `cases_executed=14`
       - `preprocess_pass_total=12`
       - `preprocess_fail_total=2`
-      - `parse_pass_total=6`
-      - `parse_fail_total=6`
+      - `parse_pass_total=8`
+      - `parse_fail_total=4`
     - current preprocess blocker surface:
       - VeeR include resolution for missing `el2_param.vh`
-    - current parse blocker surface after the recursion-guard cache fix:
+    - current parse blocker surface after the latest parser/grammar fixes:
       - UVM package parsing
-      - SCR1 deeper module-body parsing (`scr1_core_top` now rewinds to `module scr1_core_top (` at byte `35210`)
     - newly green real-corpus parser cases after the runtime fix:
       - `scr1_top_ahb` (`2017`, `2023`)
       - `friscv_rv32i_core` (`2017`, `2023`)
       - `friscv_pipeline` (`2017`, `2023`)
+    - newly green real-corpus parser cases after the ternary-expression fix:
+      - `scr1_core_top` (`2017`, `2023`)
     - current first remaining parser-stop logs are now explicit:
       - UVM: `Parser did not consume full input at position 125952`
-      - SCR1 core top: `Parser did not consume full input at position 35210`
     - landed SV preprocessor hardening behind that shift:
       - default-valued macro parameter support
       - adjacency-based function-like macro recognition
@@ -125,6 +125,13 @@ Use this file to resume work without replaying full chat history.
         - `/tmp/concat_two.sv`
         - `/tmp/concat_rhs_only.sv`
         - `/tmp/port_concat.sv`
+    - landed grammar hardening behind the latest shift:
+      - `expression_base` now removes the old left-recursive ternary / `inside` front door from the active SystemVerilog grammar
+      - tiny focused ternary/member-select repros now pass again:
+        - `/tmp/sv_case5.sv`
+        - `/tmp/sv_case7.sv`
+        - `/tmp/sv_case8.sv`
+        - `/tmp/sv_member_assign_min.sv`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
     - manifest:
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`

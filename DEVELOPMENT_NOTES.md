@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Remove left-recursive ternary-expression false negatives from SystemVerilog grammar
+### Context
+After the recursion-guard runtime fix, `scr1_core_top` was still failing in the external corpus even though the module header and earlier body prefixes parsed cleanly. Prefix bisection localized the first bad construct to:
+
+```systemverilog
+assign dm_hart_status_qlfy.dbg_state = hdu2dm_rdc_qlfy ? dm_hart_status.dbg_state
+                                                       : SCR1_HDU_DBGSTATE_RESET;
+```
+
+From there, tiny focused repros showed the real issue was broader than SCR1 itself: the active grammar still rejected even minimal ternary expressions like `assign a = c ? d : F;`, which pointed to the `expression` / `conditional_expression` / `inside_expression` wiring rather than to one corpus-specific module form.
+
+### Implementation
+- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - introduced `expression_base`
+  - rewired `expression`, `cond_pattern`, `expression_or_cond_pattern`, and both profile-specific `inside_expression` rules to consume that non-left-recursive base
+  - kept the richer SystemVerilog conditional surface (`matches`, `&&&`, `inside`) while removing the old self-recursive front door that prevented ordinary `?:` parsing
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - mirrored the same expression fix into the profiled generated grammar snapshot
+- Revalidated the grammar and the generated-parser behavior through:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+  - focused `parseability_probe --parse systemverilog` repros
+
+### Outcome
+- Minimal ternary/member-select repros now parse cleanly:
+  - `/tmp/sv_case5.sv`
+  - `/tmp/sv_case7.sv`
+  - `/tmp/sv_case8.sv`
+  - `/tmp/sv_member_assign_min.sv`
+- Fresh external SV triage improved again:
+  - before this fix: `parse_pass_total=6`, `parse_fail_total=6`
+  - after this fix: `parse_pass_total=8`, `parse_fail_total=4`
+- New green real-corpus cases:
+  - `scr1_core_top` in both `sv_2017` and `sv_2023`
+- Remaining external SV frontier is now tighter:
+  - UVM package parsing still fails in deeper package-body work
+  - VeeR remains blocked in preprocessing by unresolved include `el2_param.vh`
+
 ## 2026-03-18 - Remove stale recursion-cycle false negatives from generated SV parsing
 ### Context
 Focused external-corpus debugging had already shown that plain concatenation forms like `{a,b}` should be parseable in the active SystemVerilog grammar, yet the generated parser still rejected tiny repros and several real RTL files. The trace finally exposed the real culprit: speculative branches were caching `RecursionGuard` cycle results by `(rule, position)`, and those cached `Infinite` results survived after the speculative stack unwound. Once `expression@48` was marked recursive on one failed path, later legitimate parses of `expression@48` failed immediately too.
