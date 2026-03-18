@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Distinguish blocked external SV corpus cases from parser debt
+### Context
+The remaining VeeR representative file in the current SV external-corpus slice, `el2_lsu.sv`, was still appearing as preprocess debt even though the failure was not a parser/preprocessor correctness bug. The checked-out `Cores-VeeR-EL2` tree simply does not contain the included file `el2_param.vh`, so there is no local way to know the intended preprocessed source for that case.
+
+### Implementation
+- Updated [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json):
+  - added manifest-level blocked-case metadata for `veer_el2_lsu`
+  - blocked both `2017` and `2023` profiles with the explicit reason that `el2_param.vh` is absent from the checked-out tree
+- Updated [sv_external_corpus_triage_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_external_corpus_triage_gate.sh):
+  - added generic blocked-profile handling before preprocess/parse execution
+  - blocked cases now write explanatory logs, preserve the source-file reference, and emit `status=blocked_external_dependency`
+  - blocked cases are excluded from preprocess/parser failure totals but counted separately via `cases_blocked_total` and `primary_blocked_*`
+- Revalidated through:
+  - `bash -n rust/scripts/sv_external_corpus_triage_gate.sh`
+  - `jq -e '.version == 1 and (.cases | length > 0) and ([.cases[] | select(.name == "veer_el2_lsu")][0].blocked_reason | type == "string")' rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+
+### Outcome
+- The current representative SV surface is now cleaner and more honest:
+  - `cases_executed=12`
+  - `cases_blocked_total=2`
+  - `preprocess_fail_total=0`
+  - `parse_fail_total=4`
+- `el2_lsu.sv` is still visible in the proof surface, but as blocked external dependency rather than parser debt
+- The active remaining SV parser frontier is now unambiguous:
+  - `uvm_pkg` (`2017`, `2023`)
+  - `uvm_compat_pkg` (`2017`, `2023`)
+
 ## 2026-03-18 - Accept mixed ordered-plus-named subroutine actuals in SystemVerilog
 ### Context
 After the ternary-expression fix, focused UVM package bisection moved the first remaining exact `uvm_pkg` failure from the top of the package down into the early function block around:

@@ -165,6 +165,7 @@ if (( cases_declared == 0 )); then
 fi
 
 cases_executed=0
+cases_blocked_total=0
 preprocess_pass_total=0
 preprocess_fail_total=0
 parse_pass_total=0
@@ -181,6 +182,10 @@ parse_max_ms=0
 primary_preprocess_failure_case="<none>"
 primary_preprocess_failure_profile="<none>"
 primary_preprocess_failure_corpus="<none>"
+primary_blocked_case="<none>"
+primary_blocked_profile="<none>"
+primary_blocked_corpus="<none>"
+primary_blocked_reason="<none>"
 primary_parse_failure_case="<none>"
 primary_parse_failure_profile="<none>"
 primary_parse_failure_corpus="<none>"
@@ -198,6 +203,7 @@ for case_json in "${case_rows[@]}"; do
     case_source_rel="$(jq -er '.path | strings' <<<"$case_json")"
     case_source_path="$(resolve_path "$case_source_rel")"
     case_source_dir="$(dirname "$case_source_path")"
+    case_blocked_reason="$(jq -r 'if (.blocked_reason | type) == "string" then .blocked_reason else "" end' <<<"$case_json")"
     require_file "$case_source_path"
 
     if [[ "$case_mode" != "preprocess_then_parse_full" ]]; then
@@ -211,6 +217,7 @@ for case_json in "${case_rows[@]}"; do
     fi
 
     mapfile -t case_include_dirs_raw < <(jq -r '.include_dirs[]? | select(type=="string")' <<<"$case_json")
+    mapfile -t case_blocked_profiles < <(jq -r '.blocked_profiles[]? | select(type=="string")' <<<"$case_json")
 
     case_name_key="$(printf '%s' "$case_name" | tr -c 'A-Za-z0-9_' '_')"
     for case_profile in "${case_profiles[@]}"; do
@@ -228,6 +235,20 @@ for case_json in "${case_rows[@]}"; do
         case_sample_bytes="$(file_size_bytes "$case_input_file")"
         if (( case_sample_bytes > sample_bytes_max )); then
             sample_bytes_max="$case_sample_bytes"
+        fi
+
+        case_profile_blocked=0
+        if [[ -n "$case_blocked_reason" ]]; then
+            if [[ "${#case_blocked_profiles[@]}" -eq 0 ]]; then
+                case_profile_blocked=1
+            else
+                for blocked_profile in "${case_blocked_profiles[@]}"; do
+                    if [[ "$blocked_profile" == "$case_profile" ]]; then
+                        case_profile_blocked=1
+                        break
+                    fi
+                done
+            fi
         fi
 
         preprocess_args=(
@@ -248,39 +269,56 @@ for case_json in "${case_rows[@]}"; do
             preprocess_args+=(--sv-include-dir "$include_dir_resolved")
         done
 
-        case_preprocess_started_ms="$(now_ms)"
-        if run_optional_logged "$case_preprocess_label" "${preprocess_args[@]}"; then
-            case_preprocess_status="pass"
-            preprocess_pass_total=$((preprocess_pass_total + 1))
-        else
-            case_preprocess_status="fail"
-            preprocess_fail_total=$((preprocess_fail_total + 1))
-            if [[ "$primary_preprocess_failure_case" == "<none>" ]]; then
-                primary_preprocess_failure_case="$case_name"
-                primary_preprocess_failure_profile="$case_profile"
-                primary_preprocess_failure_corpus="$case_corpus"
-            fi
-        fi
-        case_preprocess_elapsed_ms=$(( $(now_ms) - case_preprocess_started_ms ))
-        preprocess_total_ms=$((preprocess_total_ms + case_preprocess_elapsed_ms))
-        if (( case_preprocess_elapsed_ms > preprocess_max_ms )); then
-            preprocess_max_ms="$case_preprocess_elapsed_ms"
-        fi
-
         case_warning_count=0
         case_error_count=0
-        if [[ -s "$case_diagnostics_json" ]]; then
-            case_warning_count="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$case_diagnostics_json")"
-            case_error_count="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$case_diagnostics_json")"
-        fi
-        preprocess_warning_total=$((preprocess_warning_total + case_warning_count))
-        preprocess_error_total=$((preprocess_error_total + case_error_count))
-
-        case_parse_status="skipped"
+        case_preprocess_elapsed_ms=0
+        case_preprocess_status="blocked"
+        case_parse_status="blocked"
         case_parse_elapsed_ms=0
         case_preprocessed_bytes=0
-        case_status="preprocess_fail"
-        case_note="preprocess failed"
+        case_status="blocked_external_dependency"
+        case_note="$case_blocked_reason"
+
+        if (( case_profile_blocked == 1 )); then
+            printf 'blocked: %s\n' "$case_blocked_reason" >"$case_preprocess_log"
+            printf 'blocked: %s\n' "$case_blocked_reason" >"$case_parse_log"
+            cases_blocked_total=$((cases_blocked_total + 1))
+            if [[ "$primary_blocked_case" == "<none>" ]]; then
+                primary_blocked_case="$case_name"
+                primary_blocked_profile="$case_profile"
+                primary_blocked_corpus="$case_corpus"
+                primary_blocked_reason="$case_blocked_reason"
+            fi
+        else
+            case_preprocess_started_ms="$(now_ms)"
+            if run_optional_logged "$case_preprocess_label" "${preprocess_args[@]}"; then
+                case_preprocess_status="pass"
+                preprocess_pass_total=$((preprocess_pass_total + 1))
+            else
+                case_preprocess_status="fail"
+                preprocess_fail_total=$((preprocess_fail_total + 1))
+                case_parse_status="skipped"
+                case_status="preprocess_fail"
+                case_note="preprocess failed"
+                if [[ "$primary_preprocess_failure_case" == "<none>" ]]; then
+                    primary_preprocess_failure_case="$case_name"
+                    primary_preprocess_failure_profile="$case_profile"
+                    primary_preprocess_failure_corpus="$case_corpus"
+                fi
+            fi
+            case_preprocess_elapsed_ms=$(( $(now_ms) - case_preprocess_started_ms ))
+            preprocess_total_ms=$((preprocess_total_ms + case_preprocess_elapsed_ms))
+            if (( case_preprocess_elapsed_ms > preprocess_max_ms )); then
+                preprocess_max_ms="$case_preprocess_elapsed_ms"
+            fi
+
+            if [[ -s "$case_diagnostics_json" ]]; then
+                case_warning_count="$(jq -er '[.[] | select(.severity == "warning")] | length | numbers' "$case_diagnostics_json")"
+                case_error_count="$(jq -er '[.[] | select(.severity == "error")] | length | numbers' "$case_diagnostics_json")"
+            fi
+            preprocess_warning_total=$((preprocess_warning_total + case_warning_count))
+            preprocess_error_total=$((preprocess_error_total + case_error_count))
+        fi
 
         if [[ "$case_preprocess_status" == "pass" ]]; then
             case_preprocessed_bytes="$(file_size_bytes "$case_preprocessed_file")"
@@ -311,11 +349,13 @@ for case_json in "${case_rows[@]}"; do
             if (( case_parse_elapsed_ms > parse_max_ms )); then
                 parse_max_ms="$case_parse_elapsed_ms"
             fi
-        else
+        elif [[ "$case_preprocess_status" == "fail" ]]; then
             parse_skipped_total=$((parse_skipped_total + 1))
         fi
 
-        cases_executed=$((cases_executed + 1))
+        if (( case_profile_blocked == 0 )); then
+            cases_executed=$((cases_executed + 1))
+        fi
 
         include_dirs_json="$(jq -c '(.include_dirs // []) | map(select(type=="string"))' <<<"$case_json")"
         jq -n \
@@ -333,6 +373,7 @@ for case_json in "${case_rows[@]}"; do
             --arg parse_status "$case_parse_status" \
             --arg status "$case_status" \
             --arg note "$case_note" \
+            --arg blocked_reason "$case_blocked_reason" \
             --argjson sample_bytes "$case_sample_bytes" \
             --argjson preprocessed_bytes "$case_preprocessed_bytes" \
             --argjson preprocess_ms "$case_preprocess_elapsed_ms" \
@@ -354,6 +395,7 @@ for case_json in "${case_rows[@]}"; do
                 include_dirs: $include_dirs,
                 status: $status,
                 note: $note,
+                blocked_reason: (if $blocked_reason == "" then null else $blocked_reason end),
                 observed: {
                     preprocess_status: $preprocess_status,
                     parse_status: $parse_status,
@@ -368,7 +410,7 @@ for case_json in "${case_rows[@]}"; do
     done
 done
 
-if (( cases_executed == 0 )); then
+if (( cases_executed == 0 && cases_blocked_total == 0 )); then
     echo "error: no SystemVerilog external triage cases executed" >&2
     exit 1
 fi
@@ -386,6 +428,7 @@ jq -n \
     --argjson corpus_count "$corpus_count" \
     --argjson cases_declared "$cases_declared" \
     --argjson cases_executed "$cases_executed" \
+    --argjson cases_blocked_total "$cases_blocked_total" \
     --argjson preprocess_pass_total "$preprocess_pass_total" \
     --argjson preprocess_fail_total "$preprocess_fail_total" \
     --argjson parse_pass_total "$parse_pass_total" \
@@ -402,6 +445,10 @@ jq -n \
     --arg primary_preprocess_failure_case "$primary_preprocess_failure_case" \
     --arg primary_preprocess_failure_profile "$primary_preprocess_failure_profile" \
     --arg primary_preprocess_failure_corpus "$primary_preprocess_failure_corpus" \
+    --arg primary_blocked_case "$primary_blocked_case" \
+    --arg primary_blocked_profile "$primary_blocked_profile" \
+    --arg primary_blocked_corpus "$primary_blocked_corpus" \
+    --arg primary_blocked_reason "$primary_blocked_reason" \
     --arg primary_parse_failure_case "$primary_parse_failure_case" \
     --arg primary_parse_failure_profile "$primary_parse_failure_profile" \
     --arg primary_parse_failure_corpus "$primary_parse_failure_corpus" \
@@ -416,6 +463,7 @@ jq -n \
             corpus_count: $corpus_count,
             cases_declared: $cases_declared,
             cases_executed: $cases_executed,
+            cases_blocked_total: $cases_blocked_total,
             preprocess_pass_total: $preprocess_pass_total,
             preprocess_fail_total: $preprocess_fail_total,
             parse_pass_total: $parse_pass_total,
@@ -434,6 +482,12 @@ jq -n \
             case_name: $primary_preprocess_failure_case,
             profile: $primary_preprocess_failure_profile,
             corpus: $primary_preprocess_failure_corpus
+        },
+        primary_blocked_case: {
+            case_name: $primary_blocked_case,
+            profile: $primary_blocked_profile,
+            corpus: $primary_blocked_corpus,
+            reason: $primary_blocked_reason
         },
         primary_parse_failure: {
             case_name: $primary_parse_failure_case,
@@ -454,6 +508,7 @@ cp "$REPORT_JSON" "$SUMMARY_JSON"
     echo "corpus_count: $corpus_count"
     echo "cases_declared: $cases_declared"
     echo "cases_executed: $cases_executed"
+    echo "cases_blocked_total: $cases_blocked_total"
     echo "preprocess_pass_total: $preprocess_pass_total"
     echo "preprocess_fail_total: $preprocess_fail_total"
     echo "parse_pass_total: $parse_pass_total"
@@ -470,6 +525,10 @@ cp "$REPORT_JSON" "$SUMMARY_JSON"
     echo "primary_preprocess_failure_case: $primary_preprocess_failure_case"
     echo "primary_preprocess_failure_profile: $primary_preprocess_failure_profile"
     echo "primary_preprocess_failure_corpus: $primary_preprocess_failure_corpus"
+    echo "primary_blocked_case: $primary_blocked_case"
+    echo "primary_blocked_profile: $primary_blocked_profile"
+    echo "primary_blocked_corpus: $primary_blocked_corpus"
+    echo "primary_blocked_reason: $primary_blocked_reason"
     echo "primary_parse_failure_case: $primary_parse_failure_case"
     echo "primary_parse_failure_profile: $primary_parse_failure_profile"
     echo "primary_parse_failure_corpus: $primary_parse_failure_corpus"

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-mixed-actual-call-fix)
+Last updated: 2026-03-18 (+0100, task: sv-external-blocked-case-accounting)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -95,13 +95,15 @@ Use this file to resume work without replaying full chat history.
     - manifest:
       - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
     - current measured summary:
-      - `cases_executed=14`
+      - `cases_declared=7`
+      - `cases_executed=12`
+      - `cases_blocked_total=2`
       - `preprocess_pass_total=12`
-      - `preprocess_fail_total=2`
+      - `preprocess_fail_total=0`
       - `parse_pass_total=8`
       - `parse_fail_total=4`
-    - current preprocess blocker surface:
-      - VeeR include resolution for missing `el2_param.vh`
+    - current blocked external-dependency surface:
+      - `veer_el2_lsu` is blocked for `2017` and `2023` because included file `el2_param.vh` is not present in the checked-out `Cores-VeeR-EL2` tree
     - current parse blocker surface after the latest parser/grammar fixes:
       - UVM package parsing
     - newly green real-corpus parser cases after the runtime fix:

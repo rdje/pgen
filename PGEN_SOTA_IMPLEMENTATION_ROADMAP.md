@@ -106,8 +106,8 @@ Interpretation note:
 - Those external corpora are now first consumed by deterministic source-side triage gates:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
     - checked-in manifest: [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json)
-    - current measured surface: `cases_executed=14`, `preprocess_pass_total=12`, `preprocess_fail_total=2`, `parse_pass_total=8`, `parse_fail_total=4`
-    - current onboarding state: the remaining preprocess blocker in the current representative slice is VeeR include resolution for missing `el2_param.vh`
+    - current measured surface: `cases_declared=7`, `cases_executed=12`, `cases_blocked_total=2`, `preprocess_pass_total=12`, `preprocess_fail_total=0`, `parse_pass_total=8`, `parse_fail_total=4`
+    - current onboarding state: VeeR `el2_lsu` is now tracked as blocked external dependency rather than parser/preprocess failure because included file `el2_param.vh` is not present in the checked-out tree
     - current runtime-hardening note: stale recursion-cycle cache state in the generated-parser runtime has now been removed, so failed speculative recursion probes no longer poison later legitimate parses at the same `(rule, position)`
     - newly green real-corpus parser cases after that runtime fix:
       - `scr1_top_ahb` in both `sv_2017` and `sv_2023`

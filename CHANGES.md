@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-18 - Classify missing VeeR include as blocked external dependency
+### ✅ Achievement Summary
+The SV external-corpus triage gate now distinguishes real parser debt from missing-upstream-artifact debt. `el2_lsu.sv` is no longer counted as a preprocess/parser failure in the current representative slice because the checked-out VeeR tree does not contain the required included file `el2_param.vh`. Instead, the manifest now marks that case/profile pair as blocked by missing external dependency, and the gate surfaces that state explicitly.
+
+### Scope of Changes
+- Updated [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json):
+  - marked `veer_el2_lsu` as blocked for `2017` and `2023`
+  - recorded the explicit blocker reason: missing included file `el2_param.vh` in the checked-out `Cores-VeeR-EL2` tree
+- Updated [sv_external_corpus_triage_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_external_corpus_triage_gate.sh):
+  - added manifest-driven blocked-profile support
+  - blocked cases now emit `status=blocked_external_dependency` instead of inflating preprocess/parser failure totals
+  - summary/report surfaces now include:
+    - `cases_blocked_total`
+    - `primary_blocked_case`
+    - `primary_blocked_profile`
+    - `primary_blocked_corpus`
+    - `primary_blocked_reason`
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - synced the new blocked-case accounting and clarified that current active SV parser debt is the UVM package surface, not the missing VeeR include
+
+### Current Measured SV External-Corpus Surface
+- Fresh `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` now records:
+  - `cases_declared=7`
+  - `cases_executed=12`
+  - `cases_blocked_total=2`
+  - `preprocess_pass_total=12`
+  - `preprocess_fail_total=0`
+  - `parse_pass_total=8`
+  - `parse_fail_total=4`
+  - `parse_skipped_total=0`
+- Current primary blocked case is now explicit:
+  - `primary_blocked_case=veer_el2_lsu`
+  - `primary_blocked_reason=missing external dependency: include el2_param.vh is not present in the checked-out Cores-VeeR-EL2 tree`
+- Current real remaining SV parser debt in this representative slice stays:
+  - `uvm_pkg` (`2017`, `2023`)
+  - `uvm_compat_pkg` (`2017`, `2023`)
+
 ## 2026-03-18 - Fix mixed ordered/named SystemVerilog subroutine actuals
 ### ✅ Achievement Summary
 Focused UVM package debugging exposed a real SystemVerilog call-site hole: the active grammar still rejected mixed ordered-plus-named subroutine actuals like `g(a, .b(0))` and UVM's `uvm_re_comp(regex, .deglob(0))`. I fixed that by splitting `list_of_arguments` into explicit ordered-only, named-only, and mixed forms with a recursive mixed-head that does not let the ordered branch steal the comma before the named tail. The broad external-corpus totals do not change yet, but the fix is real and measurable: the minimal mixed-actual repros now pass, and the exact `uvm_pkg` package-prefix frontier moved from failing near line `4134` to parsing cleanly through line `5000`.
