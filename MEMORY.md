@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-veer-bootstrap)
+Last updated: 2026-03-18 (+0100, task: sv-uvm-stringize-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -106,6 +106,22 @@ Use this file to resume work without replaying full chat history.
       - `veer_el2_lsu` is no longer blocked
       - the gate bootstraps `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh` by running `perl configs/veer.config -target=default -snapshot=default` with `RV_ROOT` set to the VeeR repo root when that file is missing
       - `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default` is now part of the include-dir policy for that case
+    - latest focused UVM preprocessor fix:
+      - paired stringized arguments of the form `` `"T`"`` in nested macro bodies now consume both delimiters cleanly instead of leaking the closing delimiter into preprocessed text
+      - focused validation:
+        - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
+          - passes `16/16`
+        - standalone repro `` `define EMIT(name) logic ``name``_q; string s = `"name`"; ``
+          - now preprocesses to `logic hello_q; string s = "hello";`
+        - targeted UVM-only rerun:
+          - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+          - `cases_executed=4`
+          - `preprocess_pass_total=4`
+          - `parse_fail_total=4`
+          - `uvm_pkg` failure moved `125952 -> 126751`
+          - `uvm_compat_pkg` failure moved `127308 -> 128107`
+      - next remaining UVM frontier after that fix:
+        - broader macro-body directive handling (`\`ifdef` / `\`endif` and related utility-macro residue still survive in preprocessed package code)
     - current parse blocker surface after the latest parser/grammar fixes:
       - UVM package parsing
     - latest focused grammar fix on that UVM frontier:

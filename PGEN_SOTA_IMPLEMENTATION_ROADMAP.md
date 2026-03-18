@@ -114,6 +114,11 @@ Interpretation note:
       - `friscv_rv32i_core` in both `sv_2017` and `sv_2023`
       - `friscv_pipeline` in both `sv_2017` and `sv_2023`
     - current remaining parser-failure logs now preserve first-stop detail directly, e.g. UVM `position 125952`; `scr1_core_top` and `el2_lsu` are now green in both profiles, and the remaining broad external-SV failures are only the two UVM package files across `sv_2017` / `sv_2023`
+    - focused UVM preprocessor hardening has now also removed one real nested stringization bug:
+      - paired stringized arguments of the form `` `"T`"`` are now consumed cleanly in nested macro bodies instead of leaking the closing delimiter into preprocessed code
+      - the focused SV preprocessor suite now passes `16/16`
+      - a UVM-only rerun (`PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2`) still records `parse_fail_total=4`, but the failure offsets moved deeper from `uvm_pkg: 125952 -> 126751` and `uvm_compat_pkg: 127308 -> 128107`
+      - the next UVM frontier is now broader macro-body directive handling (`\`ifdef` / `\`endif` and related utility-macro residue), not the older broken paired-stringization case
     - focused UVM-package debugging has now also removed one concrete call-site hole without changing the broad totals:
       - mixed ordered-plus-named subroutine actuals now parse (`g(a, .b(0))`, `uvm_re_comp(regex, .deglob(0))`)
       - exact `uvm_pkg` package-prefix probes now pass through line `5000`

@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-18 - Tighten SV preprocessor stringized macro expansion
+### ✅ Achievement Summary
+Focused UVM package debugging exposed that the SV preprocessor was still mishandling stringized macro parameters in nested macro bodies. UVM relies on the paired form `` `"T`"`` inside object-utility macros, but the old substitution logic only consumed the opening half and leaked the closing `` `"`` back into the output. That left broken `type_id` declarations and stray nested macro residue in preprocessed UVM package code. The preprocessor now consumes the full paired form cleanly while still preserving the older one-sided behavior.
+
+### Scope of Changes
+- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - fixed `substitute_function_macro_body()` so paired stringized arguments of the form `` `"TOKEN`"`` emit one clean quoted argument and consume the closing delimiter instead of leaving stray `` `"`` text behind
+  - preserved the older one-sided `` `"TOKEN`` behavior so the older token-paste/stringize regression still passes
+  - added a focused nested-macro regression covering an object-style helper macro that expands through `TYPE_NAME_DECL("c")` rather than leaving backticks behind
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the new UVM-focused preprocessor fix and the next remaining frontier
+
+### Current Measured UVM-Focused Surface
+- `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
+  - passes `16/16`
+- Focused standalone repro now preprocesses correctly:
+  - input: `` `define EMIT(name) logic ``name``_q; string s = `"name`"; ``
+  - output: `logic hello_q; string s = "hello";`
+- Focused `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` now records:
+  - `cases_executed=4`
+  - `preprocess_pass_total=4`
+  - `parse_fail_total=4`
+- The UVM package parse frontier moved deeper but is not closed yet:
+  - `uvm_pkg`: failure moved from `position 125952` to `position 126751`
+  - `uvm_compat_pkg`: failure moved from `position 127308` to `position 128107`
+- Interpretation:
+  - the old paired-stringization bug is real and fixed
+  - the next remaining UVM preprocessor debt is broader macro-body handling, especially surviving expanded directives/macros such as `` `ifdef`` / `` `endif`` and later UVM utility-macro residue inside generated package code
+
 ## 2026-03-18 - Bootstrap VeeR snapshot for SystemVerilog external triage
 ### ✅ Achievement Summary
 The VeeR `el2_lsu.sv` slice is no longer blocked by a missing upstream include. The SV external-corpus triage gate now bootstraps the required `snapshots/default/el2_param.vh` artifact by running the checked-in `configs/veer.config` flow inside `stimuli/sv/subs/Cores-VeeR-EL2`, then reuses that generated snapshot directory as part of the include policy. That turns the former blocked external-dependency case into an actually evaluated parser case, and both VeeR profiles are now green.

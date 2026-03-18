@@ -444,9 +444,9 @@ fn preprocess_text_internal(
         let line_no = line_index + 1;
         let active = conditionals.last().map(|c| c.current_active).unwrap_or(true);
         let mut raw_line = lines[line_index].clone();
-        let mut trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
+        let initial_trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
 
-        if let Some((directive, _)) = parse_directive_line(&trimmed) {
+        if let Some((directive, _)) = parse_directive_line(&initial_trimmed) {
             if directive == "define" {
                 let mut continuation_index = line_index;
                 while line_has_continuation(&raw_line) && continuation_index + 1 < lines.len() {
@@ -457,12 +457,17 @@ fn preprocess_text_internal(
                     );
                     continuation_index += 1;
                 }
-                trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
                 line_index = continuation_index;
             }
         }
 
-        if let Some((directive, rest)) = parse_directive_line(&trimmed) {
+        let trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
+        let directive_parse = parse_directive_line(&trimmed).filter(|(directive, _)| {
+            !state.macros.contains_key(*directive)
+                && expand_builtin_macro(directive, file_path, line_no).is_none()
+        });
+
+        if let Some((directive, rest)) = directive_parse {
             match directive {
                 "define" => {
                     state.push_event(
@@ -754,8 +759,10 @@ fn preprocess_text_internal(
         }
 
         if active {
+            let (logical_line, last_line_index) =
+                collect_multiline_macro_invocation(lines.as_slice(), line_index, raw_line, &state.macros);
             let expanded = expand_macros_in_text(
-                &raw_line,
+                &logical_line,
                 &state.macros,
                 0,
                 &mut state.events,
@@ -774,8 +781,9 @@ fn preprocess_text_internal(
                 file_path,
                 line_no,
                 1,
-                raw_line.chars().count().max(1),
+                logical_line.chars().count().max(1),
             );
+            line_index = last_line_index;
         } else {
             state.push_event(
                 PreprocessorEventKind::SkippedLine,
@@ -795,6 +803,22 @@ fn preprocess_text_internal(
         );
     }
     Ok(())
+}
+
+fn collect_multiline_macro_invocation(
+    lines: &[String],
+    start_index: usize,
+    initial_line: String,
+    macros: &HashMap<String, MacroDefinition>,
+) -> (String, usize) {
+    let mut combined = initial_line;
+    let mut current_index = start_index;
+    while has_unclosed_function_macro_invocation(&combined, macros) && current_index + 1 < lines.len()
+    {
+        combined.push_str(&lines[current_index + 1]);
+        current_index += 1;
+    }
+    (combined, current_index)
 }
 
 fn parse_directive_line(input: &str) -> Option<(&str, &str)> {
@@ -1223,6 +1247,12 @@ fn expand_macros_in_text(
         }
         let name = &text[ident_start..ident_end];
         let Some(def) = macros.get(name) else {
+            if let Some(expanded) = expand_builtin_macro(name, file, line) {
+                out.push_str(&expanded);
+                i = ident_end;
+                expanded_any = true;
+                continue;
+            }
             out.push('`');
             out.push_str(name);
             i = ident_end;
@@ -1231,7 +1261,7 @@ fn expand_macros_in_text(
 
         if let Some(params) = &def.params {
             let mut j = ident_end;
-            while j < bytes.len() && (bytes[j] == b' ' || bytes[j] == b'\t') {
+            while j < bytes.len() && bytes[j].is_ascii_whitespace() {
                 j += 1;
             }
             let Some((args, next_index)) = parse_macro_invocation_args(text, j) else {
@@ -1240,7 +1270,8 @@ fn expand_macros_in_text(
                 i = ident_end;
                 continue;
             };
-            let expanded = expand_function_macro(def, params, &args, macros, depth + 1);
+            let expanded =
+                expand_function_macro(def, params, &args, macros, depth + 1, file, line);
             events.push(PreprocessorEvent {
                 kind: PreprocessorEventKind::MacroExpand,
                 file: file.display().to_string(),
@@ -1252,7 +1283,7 @@ fn expand_macros_in_text(
             i = next_index;
             expanded_any = true;
         } else {
-            let expanded = expand_object_macro(def, macros, depth + 1);
+            let expanded = expand_object_macro(def, macros, depth + 1, file, line);
             events.push(PreprocessorEvent {
                 kind: PreprocessorEventKind::MacroExpand,
                 file: file.display().to_string(),
@@ -1271,6 +1302,61 @@ fn expand_macros_in_text(
     } else {
         out
     }
+}
+
+fn has_unclosed_function_macro_invocation(
+    text: &str,
+    macros: &HashMap<String, MacroDefinition>,
+) -> bool {
+    let bytes = text.as_bytes();
+    let mut i = 0usize;
+
+    while i < bytes.len() {
+        if bytes[i] != b'`' {
+            i += 1;
+            continue;
+        }
+
+        if i + 1 < bytes.len() && (bytes[i + 1] == b'`' || bytes[i + 1] == b'"') {
+            i += 2;
+            continue;
+        }
+
+        let ident_start = i + 1;
+        if ident_start >= bytes.len() || !is_ident_start(bytes[ident_start]) {
+            i += 1;
+            continue;
+        }
+
+        let mut ident_end = ident_start + 1;
+        while ident_end < bytes.len() && is_ident_continue(bytes[ident_end]) {
+            ident_end += 1;
+        }
+
+        let name = &text[ident_start..ident_end];
+        let Some(def) = macros.get(name) else {
+            i = ident_end;
+            continue;
+        };
+
+        if def.params.is_some() {
+            let mut open_paren_idx = ident_end;
+            while open_paren_idx < bytes.len() && bytes[open_paren_idx].is_ascii_whitespace() {
+                open_paren_idx += 1;
+            }
+            if open_paren_idx < bytes.len() && bytes[open_paren_idx] == b'(' {
+                if let Some((_, next_index)) = parse_macro_invocation_args(text, open_paren_idx) {
+                    i = next_index;
+                    continue;
+                }
+                return true;
+            }
+        }
+
+        i = ident_end;
+    }
+
+    false
 }
 
 fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Vec<String>, usize)> {
@@ -1347,14 +1433,16 @@ fn expand_object_macro(
     definition: &MacroDefinition,
     macros: &HashMap<String, MacroDefinition>,
     depth: usize,
+    file: &Path,
+    line: usize,
 ) -> String {
     expand_macros_in_text(
         &definition.body,
         macros,
         depth,
         &mut Vec::new(),
-        Path::new("<macro>"),
-        0,
+        file,
+        line,
     )
 }
 
@@ -1364,6 +1452,8 @@ fn expand_function_macro(
     args: &[String],
     macros: &HashMap<String, MacroDefinition>,
     depth: usize,
+    file: &Path,
+    line: usize,
 ) -> String {
     let mut bindings: HashMap<&str, &str> = HashMap::new();
     for (idx, param) in params.iter().enumerate() {
@@ -1381,9 +1471,24 @@ fn expand_function_macro(
         macros,
         depth,
         &mut Vec::new(),
-        Path::new("<macro>"),
-        0,
+        file,
+        line,
     )
+}
+
+fn expand_builtin_macro(name: &str, file: &Path, line: usize) -> Option<String> {
+    match name {
+        "__FILE__" => Some(encode_sv_string_literal(&file.display().to_string())),
+        "__LINE__" => Some(line.to_string()),
+        _ => None,
+    }
+}
+
+fn encode_sv_string_literal(value: &str) -> String {
+    let escaped = value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"");
+    format!("\"{}\"", escaped)
 }
 
 fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) -> String {
@@ -1404,7 +1509,11 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
                     out.push('"');
                     out.push_str(arg.trim());
                     out.push('"');
-                    i = j;
+                    if j + 1 < bytes.len() && bytes[j] == b'`' && bytes[j + 1] == b'"' {
+                        i = j + 2;
+                    } else {
+                        i = j;
+                    }
                     continue;
                 }
             }
@@ -1556,6 +1665,90 @@ mod tests {
         let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
             .expect("preprocess function-like macro with empty default");
         assert!(output.text.contains("logic signal;"));
+    }
+
+    #[test]
+    fn expands_builtin_file_and_line_macros_at_invocation_site() {
+        let dir = create_temp_dir("svpp_builtin_file_line");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define UVM_FILE `__FILE__\n`define UVM_LINE `__LINE__\nstring f = `UVM_FILE;\nint l = `UVM_LINE;\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess builtin file/line macros");
+        let canonical_input = fs::canonicalize(&input).expect("canonicalize input");
+        assert!(
+            output
+                .text
+                .contains(&format!("string f = \"{}\";", canonical_input.display())),
+            "unexpected preprocessor output: {}",
+            output.text
+        );
+        assert!(
+            output.text.contains("int l = 4;"),
+            "unexpected preprocessor output: {}",
+            output.text
+        );
+    }
+
+    #[test]
+    fn expands_multiline_function_macro_invocation() {
+        let dir = create_temp_dir("svpp_multiline_call");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define CHECKER(condition, msg) if (condition) begin $display(\"%s\", msg); end\ninitial begin\n  `CHECKER((A!=0),\n    \"bad\");\nend\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess multiline macro invocation");
+        assert!(
+            output
+                .text
+                .contains("if ((A!=0)) begin $display(\"%s\", \"bad\"); end"),
+            "unexpected preprocessor output: {}",
+            output.text
+        );
+        assert!(
+            !output.text.contains("`CHECKER"),
+            "unexpected preprocessor output: {}",
+            output.text
+        );
+    }
+
+    #[test]
+    fn expands_nested_macro_with_stringized_parameter() {
+        let dir = create_temp_dir("svpp_nested_stringized_param");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define TYPE_NAME_DECL(TNAME_STRING) function string type_name(); return TNAME_STRING; endfunction\n`define OBJECT_UTILS(T) `TYPE_NAME_DECL(`\"T`\")\npackage p;\nclass c;\n  `OBJECT_UTILS(c)\nendclass\nendpackage\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess nested stringized macro");
+        assert!(
+            output
+                .text
+                .contains("function string type_name(); return \"c\"; endfunction"),
+            "unexpected preprocessor output: {}",
+            output.text
+        );
+        assert!(
+            !output.text.contains("`TYPE_NAME_DECL"),
+            "unexpected preprocessor output: {}",
+            output.text
+        );
+        assert!(
+            !output.text.contains("`\""),
+            "unexpected preprocessor output: {}",
+            output.text
+        );
     }
 
     #[test]
