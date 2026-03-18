@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-18 - Stop expanding SV macros inside comments
+### ✅ Achievement Summary
+Focused UVM package debugging exposed a second real SV preprocessor bug after the earlier inline-conditional work: macro expansion was still firing inside `//` and `/* ... */` comment text. In UVM that was disastrous because documentation examples such as `` // |   `uvm_info_begin(...) `` were being expanded into live package-scope statements, creating fake parser debt near line `474`. The SV preprocessor now treats comment text as inert during macro expansion, so those examples remain comments rather than executable code.
+
+### Scope of Changes
+- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - made `expand_macros_in_text()` comment-aware for both `//` line comments and `/* ... */` block comments
+  - preserved normal macro expansion in real code while leaving comment-contained backtick text untouched
+  - added a focused regression proving that both line-comment and block-comment macro text remain inert
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded that UVM doc-comment macro examples no longer poison parser triage with fake package-body statements
+
+### Current Measured UVM-Focused Surface
+- `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
+  - passes `20/20`
+- Focused comment-inert regression:
+  - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests::does_not_expand_macros_inside_comments --quiet`
+  - passes
+- Direct inspection of [case_uvm_pkg_2017.preprocessed.sv](/Users/richarddje/Documents/github/pgen/rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv):
+  - the old bogus expanded statements at lines `473+` are gone
+  - the UVM documentation example now remains comment text:
+    - `// |   `uvm_info_begin("MY_ID", "This is my message...", UVM_LOW)`
+    - `// |   `uvm_info_end`
+- Focused parser localization now confirms the old false frontier is gone:
+  - `parseability_probe --parse systemverilog` passes for whole-file prefixes through `3800` lines of the preprocessed `uvm_pkg` slice
+  - package-wrapped localization also passes through at least `1200` lines starting at `package uvm_pkg;`
+- Interpretation:
+  - the UVM frontier is now deeper real package-body/parser debt again
+  - doc-comment macro expansion is no longer contaminating the active SV parser-debug surface
+
 ## 2026-03-18 - Normalize inline UVM conditional macro bodies in the SV preprocessor
 ### ✅ Achievement Summary
 Focused UVM package hardening exposed a deeper SV preprocessor gap after the earlier stringization fix: multiline macro bodies with inline conditional directives such as `` `ifdef SYMBOL payload``, `` `else payload``, and one-line forms like `` `ifndef SYMBOL expr `endif`` were still surviving in ways that either leaked raw directives into expanded output or left the preprocessor thinking a conditional block never closed. The SV preprocessor now normalizes those inline conditional forms before expansion and re-feeds directive-bearing expanded text back through the directive engine.

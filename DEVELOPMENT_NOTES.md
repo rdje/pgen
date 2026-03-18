@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-18 - Stop expanding SV macros inside comments
+### Context
+After inline conditional normalization was fixed, the first UVM parser frontier still looked suspicious: `uvm_pkg` and `uvm_compat_pkg` were failing near what should have been ordinary report-message setup code inside documentation examples. Inspection of the preprocessed UVM package showed the real problem immediately: comment lines such as `// |   `uvm_info_begin("MY_ID", ...)` were still triggering macro expansion, which injected live statements into package scope from comment text alone.
+
+### Implementation
+- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - made `expand_macros_in_text()` track three inert regions while scanning:
+    - `//` line comments
+    - `/* ... */` block comments
+    - double-quoted string literals
+  - macro expansion now only runs in actual code regions; comment-contained backticks are copied through verbatim
+  - added focused regression `does_not_expand_macros_inside_comments`
+- Revalidated through:
+  - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests::does_not_expand_macros_inside_comments --quiet`
+  - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
+  - targeted `parseability_probe --parse systemverilog` prefix localization over the preprocessed `uvm_pkg` slice
+
+### Outcome
+- The focused SV preprocessor regression suite is now green at `20/20`
+- The old fake UVM frontier is gone:
+  - the bogus package-scope statements injected from documentation comments no longer appear in preprocessed output
+  - whole-file `uvm_pkg` prefixes now parse cleanly through at least `3800` preprocessed lines
+  - package-wrapped `uvm_pkg` localization now parses through at least `1200` package-body lines before the next deeper real frontier
+- This is another quality shift rather than full closure:
+  - remaining UVM debt is now deeper real parser/package-body work, not comment-side macro leakage
+
 ## 2026-03-18 - Normalize inline conditional directives inside SV macro bodies
 ### Context
 After the paired-stringization fix, the focused UVM slice briefly regressed from parse-fail to preprocess-fail. That regression was actually informative: it showed that the UVM field/object macro families were carrying inline conditional directives inside multiline macro bodies, including forms such as `` `ifdef SYMBOL payload`` and one-line `` `ifndef SYMBOL expr `endif`` bodies. The older preprocessor either left those directives embedded in expanded output or treated them as unmatched conditional openings.

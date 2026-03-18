@@ -1288,8 +1288,72 @@ fn expand_macros_in_text(
     let mut i = 0usize;
     let mut out = String::new();
     let mut expanded_any = false;
+    let mut in_line_comment = false;
+    let mut in_block_comment = false;
+    let mut in_double_quote = false;
+    let mut escaped_in_string = false;
 
     while i < bytes.len() {
+        if in_line_comment {
+            let ch = bytes[i] as char;
+            out.push(ch);
+            i += 1;
+            if ch == '\n' {
+                in_line_comment = false;
+            }
+            continue;
+        }
+
+        if in_block_comment {
+            if i + 1 < bytes.len() && bytes[i] == b'*' && bytes[i + 1] == b'/' {
+                out.push('*');
+                out.push('/');
+                i += 2;
+                in_block_comment = false;
+            } else {
+                out.push(bytes[i] as char);
+                i += 1;
+            }
+            continue;
+        }
+
+        if in_double_quote {
+            let ch = bytes[i] as char;
+            out.push(ch);
+            i += 1;
+            if escaped_in_string {
+                escaped_in_string = false;
+            } else if ch == '\\' {
+                escaped_in_string = true;
+            } else if ch == '"' {
+                in_double_quote = false;
+            }
+            continue;
+        }
+
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'/' {
+            out.push('/');
+            out.push('/');
+            i += 2;
+            in_line_comment = true;
+            continue;
+        }
+
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'*' {
+            out.push('/');
+            out.push('*');
+            i += 2;
+            in_block_comment = true;
+            continue;
+        }
+
+        if bytes[i] == b'"' {
+            out.push('"');
+            i += 1;
+            in_double_quote = true;
+            continue;
+        }
+
         if bytes[i] != b'`' {
             out.push(bytes[i] as char);
             i += 1;
@@ -1896,6 +1960,25 @@ mod tests {
         assert!(output.text.contains("logic enabled;"));
         assert!(!output.text.contains("`ifndef"));
         assert!(!output.text.contains("`endif"));
+    }
+
+    #[test]
+    fn does_not_expand_macros_inside_comments() {
+        let dir = create_temp_dir("svpp_comment_inert_macros");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define DECL(NAME) logic NAME;\nmodule m;\n// `DECL(from_line_comment)\n/* `DECL(from_block_comment) */\n  `DECL(from_code)\nendmodule\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess comment-contained macro text");
+        assert!(output.text.contains("logic from_code;"));
+        assert!(!output.text.contains("logic from_line_comment;"));
+        assert!(!output.text.contains("logic from_block_comment;"));
+        assert!(output.text.contains("// `DECL(from_line_comment)"));
+        assert!(output.text.contains("/* `DECL(from_block_comment) */"));
     }
 
     #[test]

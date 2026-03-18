@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-uvm-inline-conditional-fix)
+Last updated: 2026-03-18 (+0100, task: sv-uvm-comment-inert-macro-expansion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -109,20 +109,22 @@ Use this file to resume work without replaying full chat history.
     - latest focused UVM preprocessor fix:
       - paired stringized arguments of the form `` `"T`"`` in nested macro bodies now consume both delimiters cleanly instead of leaking the closing delimiter into preprocessed text
       - multiline macro bodies now also normalize inline conditional directive forms such as `` `ifdef SYMBOL payload``, `` `else payload``, and `` `ifndef SYMBOL payload `endif`` before expansion, and directive-bearing expanded text is reprocessed through the directive engine
+      - macro expansion is now also comment-aware:
+        - `//` and `/* ... */` comment text is inert during macro expansion
+        - UVM documentation examples such as `` // |   `uvm_info_begin(...) `` no longer inject live statements into package scope
       - focused validation:
         - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests --quiet`
-          - passes `19/19`
+          - passes `20/20`
+        - `cargo test --manifest-path rust/Cargo.toml --lib sv_preprocessor::tests::does_not_expand_macros_inside_comments --quiet`
+          - passes
         - standalone repro `` `define EMIT(name) logic ``name``_q; string s = `"name`"; ``
           - now preprocesses to `logic hello_q; string s = "hello";`
-        - targeted UVM-only rerun:
-          - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
-          - `cases_executed=4`
-          - `preprocess_pass_total=4`
-          - `preprocess_fail_total=0`
-          - `parse_fail_total=4`
-          - `parse_skipped_total=0`
+        - targeted parser localization:
+          - whole-file `uvm_pkg` preprocessed prefixes now parse through at least `3800` lines
+          - package-wrapped `uvm_pkg` localization now parses through at least `1200` lines starting at `package uvm_pkg;`
+          - [case_uvm_pkg_2017.preprocessed.sv](/Users/richarddje/Documents/github/pgen/rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv) now keeps the old doc-example lines commented rather than expanding them into code
       - next remaining UVM frontier after that fix:
-        - parser rejection triage inside `uvm_pkg` / `uvm_compat_pkg`
+        - deeper real parser rejection triage inside `uvm_pkg` / `uvm_compat_pkg` package bodies
     - current parse blocker surface after the latest parser/grammar fixes:
       - UVM package parsing
     - latest focused grammar fix on that UVM frontier:
