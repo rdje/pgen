@@ -21534,3 +21534,25 @@ Practical implementation consequence:
 - before creating a new semantic-fact grammar, widen `UnifiedSemanticAST` and the generated semantic tree-to-typed-AST conversion so named directives can retain structured payloads,
 - then add typed directive lowering / semantic-state execution on top of that richer semantic AST,
 - only introduce new annotation surface syntax if the existing `@name: value` channel proves insufficient after the richer typed lowering exists.
+
+2026-03-19 follow-on implementation checkpoint:
+- the first parser-facing semantic-runtime seam is now present in generated parsers themselves
+- generated parsers expose `with_semantic_runtime_rule_transaction(...)`, which:
+  - temporarily detaches `semantic_runtime_state` from the parser,
+  - opens a rule-scoped semantic transaction against the compiled runtime directives,
+  - runs the actual parse closure,
+  - commits semantic effects only on parse success,
+  - restores semantic state afterward
+- generated per-rule methods now route their `memoized_call(...)` through that helper
+
+Why this specific shape matters:
+- it avoids borrow-checker deadlock from holding a live semantic transaction directly on `self` while parsing,
+- it preserves a parser-shaped integration seam without yet enabling broad semantic steering,
+- and it fixes an important correctness hole for the future semantic runtime model:
+  - successful memo hits now still pass through the semantic runtime rule wrapper,
+  - so rule-boundary semantic effects are not silently skipped just because the parse tree came from memoization.
+
+Current limitation to preserve:
+- this is still rule-boundary execution only
+- inner parse logic does not yet query semantic predicates during branch selection
+- memoization keys are still syntax-only, so semantic-state-sensitive steering must remain off until a context-aware memoization strategy is designed deliberately

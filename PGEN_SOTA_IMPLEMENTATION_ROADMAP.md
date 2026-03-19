@@ -3147,3 +3147,14 @@ Why `rtl_frontend` exists:
   - roadmap implication:
     - this is a real parser-hardening increment worth keeping
     - it is not yet a broad `systemverilog` promotion because the external-corpus rerun was not completed and the deep UVM frontier still stands
+- 2026-03-19: Promoted the semantic-runtime scaffolding into the generated parser skeleton’s first real execution seam.
+  - generated parsers now expose `with_semantic_runtime_rule_transaction(...)`
+  - generated rule methods route their `memoized_call(...)` body through that helper
+  - the helper detaches `semantic_runtime_state`, applies compiled rule directives transactionally, commits only on parse success, and restores state afterward
+  - roadmap consequence:
+    - rule-boundary semantic facts/scopes now have a parser-shaped integration path
+    - successful memo hits no longer bypass future rule-boundary semantic effects
+  - still intentionally deferred before broad semantic steering promotion:
+    - semantic predicate evaluation inside branch selection
+    - semantic-context-aware memoization keys / fingerprints
+    - a first live grammar pilot such as SystemVerilog declaration-vs-statement disambiguation

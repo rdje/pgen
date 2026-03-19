@@ -21593,3 +21593,18 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - so future fact/scope/predicate work should start by widening `UnifiedSemanticAST` and directive-specific lowering before inventing a second annotation surface.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Embedded semantic-runtime transactions into generated rule execution without turning on broad semantic steering yet.
+  - Updated:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - generated parsers now expose `with_semantic_runtime_rule_transaction(...)`,
+    - that helper temporarily detaches `semantic_runtime_state`, applies the compiled per-rule runtime directives transactionally, runs the real parse work, commits on success, and restores state afterward,
+    - generated rule methods now execute their `memoized_call(...)` body through that wrapper, so semantic runtime effects are no longer skipped on memo hits.
+  - Important guidance:
+    - this is a controlled rule-boundary execution seam only,
+    - deep semantic predicates still remain future work because parse-time branch steering has not yet been wired into inner parsing logic or memoization fingerprints.
+  - Live-status effect:
+    - no live-status row changed

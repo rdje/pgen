@@ -627,6 +627,30 @@ impl AstBasedGenerator {
                     .transaction_for_rule(&self.semantic_runtime_annotations, rule_name)
             }
 
+            pub fn with_semantic_runtime_rule_transaction<T, F>(
+                &mut self,
+                rule_name: &str,
+                f: F,
+            ) -> ParseResult<T>
+            where
+                F: FnOnce(&mut Self) -> ParseResult<T>,
+            {
+                let mut semantic_runtime_state =
+                    std::mem::take(&mut self.semantic_runtime_state);
+                let result = {
+                    let (mut semantic_runtime_transaction, _applied_count) =
+                        semantic_runtime_state
+                            .transaction_for_rule(&self.semantic_runtime_annotations, rule_name);
+                    let result = f(self);
+                    if result.is_ok() {
+                        let _ = semantic_runtime_transaction.commit();
+                    }
+                    result
+                };
+                self.semantic_runtime_state = semantic_runtime_state;
+                result
+            }
+
             pub fn recovery_events(&self) -> &[RecoveryEvent] {
                 &self.recovery_events
             }
@@ -810,40 +834,42 @@ impl AstBasedGenerator {
                 // Declare start_pos outside the closure so it can be used outside
                 let start_pos = self.position;
 
-                let result = self.memoized_call(Self::#rule_const, |parser| {
-                    let mut semantic_selected_branch_index: Option<usize> = None;
-                    // Main parsing logic - produces the 'result' variable
-                    #parse_logic;
+                let result = self.with_semantic_runtime_rule_transaction(#rule_name, |parser| {
+                    parser.memoized_call(Self::#rule_const, |parser| {
+                        let mut semantic_selected_branch_index: Option<usize> = None;
+                        // Main parsing logic - produces the 'result' variable
+                        #parse_logic;
 
-                    #relational_guards
+                        #relational_guards
 
-                    let end_pos = parser.position;
-                    parser.record_coverage_target_event(
-                        #rule_name,
-                        start_pos,
-                        end_pos,
-                        semantic_selected_branch_index,
-                        #coverage_target_weight,
-                        #coverage_critical_path,
-                    );
-                    let deterministic_partition_effective_enabled =
-                        parser.effective_deterministic_partition_enabled(#deterministic_partition_enabled);
-                    let deterministic_partition_effective_group = parser.effective_deterministic_partition_group(
-                        #rule_name,
-                        #deterministic_partition_group,
-                    );
-                    parser.record_deterministic_partition_event(
-                        #rule_name,
-                        start_pos,
-                        end_pos,
-                        deterministic_partition_effective_enabled,
-                        &deterministic_partition_effective_group,
-                    );
+                        let end_pos = parser.position;
+                        parser.record_coverage_target_event(
+                            #rule_name,
+                            start_pos,
+                            end_pos,
+                            semantic_selected_branch_index,
+                            #coverage_target_weight,
+                            #coverage_critical_path,
+                        );
+                        let deterministic_partition_effective_enabled =
+                            parser.effective_deterministic_partition_enabled(#deterministic_partition_enabled);
+                        let deterministic_partition_effective_group = parser.effective_deterministic_partition_group(
+                            #rule_name,
+                            #deterministic_partition_group,
+                        );
+                        parser.record_deterministic_partition_event(
+                            #rule_name,
+                            start_pos,
+                            end_pos,
+                            deterministic_partition_effective_enabled,
+                            &deterministic_partition_effective_group,
+                        );
 
-                    Ok(ParseNode {
-                        rule_name: #rule_name,
-                        content: result,
-                        span: start_pos..end_pos,
+                        Ok(ParseNode {
+                            rule_name: #rule_name,
+                            content: result,
+                            span: start_pos..end_pos,
+                        })
                     })
                 });
 
@@ -4396,10 +4422,25 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
+            rendered.contains("pub fn with_semantic_runtime_rule_transaction"),
+            "generated parser should expose the detached state transaction wrapper, got: {}",
+            rendered
+        );
+        assert!(
             rendered.contains(
                 "self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();"
             ),
             "parse() should reset semantic runtime state, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("std::mem::take("),
+            "generated parser helper should detach semantic runtime state before parsing, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.matches("with_semantic_runtime_rule_transaction").count() >= 2,
+            "generated parser should both define and use the semantic runtime transaction wrapper, got: {}",
             rendered
         );
         assert!(

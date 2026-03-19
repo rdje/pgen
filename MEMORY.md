@@ -5319,3 +5319,17 @@ Use this file to resume work without replaying full chat history.
   - Important continuity note:
     - full `sv_external_corpus_triage_gate` rerun was started but intentionally interrupted after the generated parser spent multiple minutes in `case_uvm_pkg_2017_parse_full`
     - resume broad-corpus confirmation from there later if needed
+- 2026-03-19: The first generated-parser semantic-runtime execution seam now wraps real rule parsing instead of only exposing passive helper APIs.
+  - Active code slice:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - generated parsers now expose `with_semantic_runtime_rule_transaction(...)`
+    - that wrapper uses `std::mem::take(&mut self.semantic_runtime_state)` so semantic state can be transacted locally while the parser continues to borrow `self` normally for parsing
+    - generated rule methods now run `memoized_call(...)` through that wrapper
+  - Important continuity consequence:
+    - successful memo hits now still receive rule-boundary semantic runtime effects
+    - this closes a correctness gap that would have appeared if semantic directives only ran on fresh parse executions
+  - Still intentionally deferred:
+    - semantic predicates are not yet consulted inside branch selection
+    - memoization keys are not yet semantic-context-aware
+    - so this slice is infrastructure for future steering, not the steering feature itself
