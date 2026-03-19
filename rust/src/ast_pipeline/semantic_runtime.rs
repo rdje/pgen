@@ -132,6 +132,13 @@ pub struct SemanticRuntimeState {
     facts: Vec<SemanticFactRecord>,
 }
 
+#[derive(Debug)]
+pub struct SemanticRuntimeTransaction<'a> {
+    state: &'a mut SemanticRuntimeState,
+    checkpoint: SemanticRuntimeCheckpoint,
+    committed: bool,
+}
+
 impl Default for SemanticRuntimeState {
     fn default() -> Self {
         Self::new()
@@ -161,6 +168,15 @@ impl SemanticRuntimeState {
         self.scopes
             .last()
             .expect("semantic runtime state always maintains at least the global scope")
+    }
+
+    pub fn transaction(&mut self) -> SemanticRuntimeTransaction<'_> {
+        let checkpoint = self.checkpoint();
+        SemanticRuntimeTransaction {
+            state: self,
+            checkpoint,
+            committed: false,
+        }
     }
 
     pub fn checkpoint(&self) -> SemanticRuntimeCheckpoint {
@@ -229,6 +245,61 @@ impl SemanticRuntimeState {
     }
 }
 
+impl<'a> SemanticRuntimeTransaction<'a> {
+    pub fn state(&self) -> &SemanticRuntimeState {
+        self.state
+    }
+
+    pub fn checkpoint(&self) -> SemanticRuntimeCheckpoint {
+        self.checkpoint
+    }
+
+    pub fn apply_directive(&mut self, directive: &SemanticRuntimeDirective) -> bool {
+        self.state.apply_directive(directive)
+    }
+
+    pub fn apply_directives<'b, I>(&mut self, directives: I) -> usize
+    where
+        I: IntoIterator<Item = &'b SemanticRuntimeDirective>,
+    {
+        let mut applied = 0;
+        for directive in directives {
+            if self.apply_directive(directive) {
+                applied += 1;
+            }
+        }
+        applied
+    }
+
+    pub fn apply_annotations<'b, I>(&mut self, annotations: I) -> Result<Vec<SemanticRuntimeDirective>, String>
+    where
+        I: IntoIterator<Item = &'b SemanticAnnotation>,
+    {
+        let directives = parse_semantic_runtime_directives(annotations)?;
+        self.apply_directives(directives.iter());
+        Ok(directives)
+    }
+
+    pub fn rollback(mut self) {
+        self.state.rollback_to(self.checkpoint);
+        self.committed = true;
+    }
+
+    pub fn commit(mut self) -> bool {
+        let committed = self.state.commit(self.checkpoint);
+        self.committed = true;
+        committed
+    }
+}
+
+impl Drop for SemanticRuntimeTransaction<'_> {
+    fn drop(&mut self) {
+        if !self.committed {
+            self.state.rollback_to(self.checkpoint);
+        }
+    }
+}
+
 pub fn parse_semantic_runtime_directive(
     annotation: &SemanticAnnotation,
 ) -> Result<Option<SemanticRuntimeDirective>, String> {
@@ -244,6 +315,21 @@ pub fn parse_semantic_runtime_directive(
         "predicate" => parse_predicate(annotation.ast()).map(Some),
         _ => Ok(None),
     }
+}
+
+pub fn parse_semantic_runtime_directives<'a, I>(
+    annotations: I,
+) -> Result<Vec<SemanticRuntimeDirective>, String>
+where
+    I: IntoIterator<Item = &'a SemanticAnnotation>,
+{
+    let mut directives = Vec::new();
+    for annotation in annotations {
+        if let Some(directive) = parse_semantic_runtime_directive(annotation)? {
+            directives.push(directive);
+        }
+    }
+    Ok(directives)
 }
 
 fn parse_open_scope(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective, String> {
@@ -414,6 +500,7 @@ mod tests {
     use super::{
         SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState,
         SemanticRuntimeValue, SemanticScopeKind, parse_semantic_runtime_directive,
+        parse_semantic_runtime_directives,
     };
     use crate::ast_pipeline::{SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticValue};
 
@@ -670,5 +757,97 @@ mod tests {
             state.current_scope().name,
             Some(SemanticRuntimeValue::Identifier("committed_pkg".to_string()))
         );
+    }
+
+    #[test]
+    fn transaction_rolls_back_on_drop_without_commit() {
+        let open_scope = structured_named(
+            "open_scope",
+            "{ kind: package, name: dropped_pkg }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("dropped_pkg".to_string()),
+                },
+            ]),
+        );
+
+        let mut state = SemanticRuntimeState::new();
+        let directive = parse_semantic_runtime_directive(&open_scope)
+            .expect("open_scope should parse")
+            .expect("directive should be present");
+
+        {
+            let mut transaction = state.transaction();
+            assert!(transaction.apply_directive(&directive));
+            assert_eq!(transaction.state().scopes().len(), 2);
+        }
+
+        assert_eq!(state.scopes().len(), 1);
+        assert_eq!(state.current_scope().kind, SemanticScopeKind::Global);
+    }
+
+    #[test]
+    fn transaction_apply_annotations_filters_non_runtime_directives() {
+        let annotations = vec![
+            structured_named(
+                "priority",
+                "[1, 2]",
+                UnifiedSemanticValue::Array(vec![
+                    UnifiedSemanticValue::Number("1".to_string()),
+                    UnifiedSemanticValue::Number("2".to_string()),
+                ]),
+            ),
+            structured_named(
+                "open_scope",
+                "{ kind: package, name: batched_pkg }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("package".to_string()),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("batched_pkg".to_string()),
+                    },
+                ]),
+            ),
+            structured_named(
+                "emit_fact",
+                "{ kind: typedef, name: batched_type }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("batched_type".to_string()),
+                    },
+                ]),
+            ),
+        ];
+
+        let directives =
+            parse_semantic_runtime_directives(annotations.iter()).expect("directives should parse");
+        assert_eq!(directives.len(), 2);
+
+        let mut state = SemanticRuntimeState::new();
+        {
+            let mut transaction = state.transaction();
+            let applied = transaction
+                .apply_annotations(annotations.iter())
+                .expect("runtime annotations should apply");
+            assert_eq!(applied.len(), 2);
+            assert!(transaction.commit());
+        }
+
+        assert_eq!(state.scopes().len(), 2);
+        assert_eq!(state.facts().len(), 1);
+        assert_eq!(state.facts()[0].kind, "typedef");
     }
 }

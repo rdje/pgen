@@ -2650,8 +2650,8 @@ pub use semantic_directive_registry::{
 pub use semantic_runtime::{
     SemanticCloseScopeSpec, SemanticFactRecord, SemanticFactSpec, SemanticPredicateSpec,
     SemanticRuntimeCheckpoint, SemanticRuntimeDirective, SemanticRuntimeState,
-    SemanticRuntimeValue, SemanticScopeFrame, SemanticScopeKind, SemanticScopeSpec,
-    parse_semantic_runtime_directive,
+    SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame, SemanticScopeKind,
+    SemanticScopeSpec, parse_semantic_runtime_directive, parse_semantic_runtime_directives,
 };
 pub use semantic_transform::{
     CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,

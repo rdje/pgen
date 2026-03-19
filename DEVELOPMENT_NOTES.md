@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Add RAII transaction helper for semantic runtime
+### Context
+Checkpoints made semantic runtime state reversible, but the next integration hazard was already obvious: if every future parser branch has to remember `checkpoint()`, `rollback_to(...)`, and `commit(...)` manually, transaction safety will drift. The right next increment was therefore an explicit transaction helper that owns the checkpoint and makes rollback the default.
+
+### Implementation
+- Added `SemanticRuntimeTransaction` in [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs).
+- Added `SemanticRuntimeState::transaction()` to open a transaction from the current state.
+- The transaction API now supports:
+  - `apply_directive(...)`
+  - `apply_directives(...)`
+  - `apply_annotations(...)`
+  - `commit()`
+  - `rollback()`
+- Default behavior is safe:
+  - if a transaction is dropped without `commit()`, it rolls back to its checkpoint automatically
+  - non-runtime semantic annotations are ignored by `apply_annotations(...)`, so callers can feed whole annotation lists without pre-filtering
+
+### Why This Matters
+- This gives future parser integration one explicit semantic-state transaction model.
+- It narrows the next parser work to “where should transactions open/commit?” instead of “how should transactions be expressed at all?”
+- It also makes later branch-local instrumentation easier because transaction boundaries are now named objects rather than ad hoc helper calls.
+
+### Remaining Gap
+- Transactions still are not wired into parser execution.
+- No generated parser currently:
+  - opens a semantic transaction per speculative branch
+  - commits on successful branch choice
+  - rolls back on parse failure automatically
+- That is still the next real integration frontier.
+
 ## 2026-03-19 - Add checkpoint/rollback semantics to semantic runtime state
 ### Context
 The first semantic-runtime scaffold established typed facts, scopes, predicates, and a mutable state container. The very next missing piece was transaction shape. Without explicit checkpoints, every future parser-steering experiment would have to reinvent “speculative branch state vs committed state” ad hoc, which is exactly the kind of hidden complexity that later breaks backtracking correctness.

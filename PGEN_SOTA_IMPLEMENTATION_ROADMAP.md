@@ -125,9 +125,13 @@ Near-term rollout:
     - explicit runtime checkpoints
     - rollback-to-checkpoint over scopes/facts
     - commit marker semantics for retained post-checkpoint state
+  - landed the first ergonomic transaction layer:
+    - `SemanticRuntimeTransaction`
+    - automatic rollback on drop
+    - batched runtime-annotation application
   - current boundary remains explicit:
     - parsed and validated, but not yet parser-steering
-    - checkpoint primitives exist, but no parser backtracking/memoization integration yet
+    - semantic transactions exist, but no parser backtracking/memoization integration yet
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

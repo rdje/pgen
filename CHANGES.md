@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-19 - Add semantic runtime transaction helper
+### ✅ Achievement Summary
+Built the first ergonomic transaction API on top of semantic runtime checkpoints. `SemanticRuntimeState` can now open an RAII-style transaction, batch-apply runtime directives or annotations, and either commit explicitly or roll back automatically on drop. This still does not steer the parser, but it gives future parser integration a ready-made transactional API instead of manual checkpoint plumbing.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `SemanticRuntimeTransaction`
+  - added `SemanticRuntimeState::transaction()`
+  - added transaction helpers:
+    - `apply_directive(...)`
+    - `apply_directives(...)`
+    - `apply_annotations(...)`
+    - `rollback()`
+    - `commit()`
+  - added transaction-focused tests for:
+    - rollback-on-drop
+    - batched runtime-annotation application with non-runtime directives filtered out
+- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - re-exported `SemanticRuntimeTransaction`
+  - re-exported `parse_semantic_runtime_directives(...)`
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --no-run`
+- direct lib test binary:
+  - `ast_pipeline::semantic_runtime::tests::transaction_rolls_back_on_drop_without_commit`
+  - `ast_pipeline::semantic_runtime::tests::transaction_apply_annotations_filters_non_runtime_directives`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Important Boundary
+- This is still runtime infrastructure only.
+- Parser branches do not open semantic transactions yet.
+- What changed is the handoff quality for future integration:
+  - parser code can now adopt one transaction abstraction instead of manually pairing checkpoints with rollback calls.
+
 ## 2026-03-19 - Add semantic runtime checkpoints
 ### ✅ Achievement Summary
 Extended the semantic-runtime scaffold with the first transaction primitive: explicit checkpoints plus rollback/commit semantics over scope and fact state. This is still non-steering, but it gives future speculative parsing work a concrete state model for “try, rollback, keep” instead of only prose about transaction safety.
