@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Make `post/raw` predicates truthful across memo hits
+### Context
+The earlier semantic predicate slices had the right surface shape, but there was one architectural lie left in the generated parser path: a `post/raw` predicate could only be correct on fresh parses. As soon as a rule returned from memoization, the generated parser only had the shaped `ParseNode`, so a raw-view `post` predicate would either need to fall back incorrectly or become impossible to evaluate.
+
+### Implementation
+- Extended [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - `MemoEntry` now carries `raw_semantic_content` in addition to the shaped `ParseNode`
+- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added content-aware predicate evaluation over explicit `raw` vs `shaped` content views
+  - added built-in `content_kind_is`
+  - added rule helpers:
+    - `post_predicates_for_rule(...)`
+    - `has_post_predicates_for_rule(...)`
+    - `needs_raw_post_capture_for_rule(...)`
+- Extended [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated rule wrapper now:
+    - evaluates `pre` predicates before parse,
+    - evaluates `post` predicates after successful parse,
+    - applies effect directives only after `post` predicates pass
+  - generated branch logic now preserves raw pre-transform `ParseContent` when a rule has `post/raw` predicates
+  - generated `memoized_call(...)` now memoizes and restores:
+    - shaped `ParseNode`
+    - optional raw semantic content
+
+### Why This Matters
+- This is the first content-aware semantic predicate path that is structurally honest with memoization.
+- It preserves the design rule we just agreed on:
+  - semantic steering defaults to `raw`,
+  - `shaped` is explicit,
+  - and runtime behavior should not quietly change just because a rule returned from cache.
+- It also makes the next semantic-steering step cleaner:
+  - the parser now has a real raw-content handoff at rule success,
+  - instead of a fake one that only worked on non-memoized executions.
+
+### Remaining Gap
+- `branch` predicates are still typed but not consumed.
+- The current content-aware seam is still rule-level `post`, not branch-local ambiguity steering.
+- The next best implementation step is the first live grammar pilot, most likely a narrow SystemVerilog declaration-vs-statement disambiguation using explicit `raw` semantic predicates.
+
 ## 2026-03-19 - Give generated parsers owned semantic-runtime state and a rule transaction helper
 ### Context
 The runtime-side entrypoints were in place, but parser integration still had a gap: generated parsers themselves did not own any semantic runtime state or compiled semantic-runtime directives. That meant even with `transaction_for_rule(...)` available in the runtime module, there was still no generated parser object that could actually host and expose that behavior.

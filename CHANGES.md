@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-19 - Make generated post predicates memo-honest
+### ✅ Achievement Summary
+This slice makes content-aware generated semantic predicates honest across memo hits. Generated parsers now evaluate `post` predicates after successful rule parse, semantic runtime can query `raw` or `shaped` rule content, and memoized rule results retain optional raw semantic content so `post/raw` predicates do not silently fall back to shaped content when a rule returns from cache.
+
+### Scope of Changes
+- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - extended `MemoEntry` with `raw_semantic_content`
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added content-aware predicate evaluation over `raw` vs `shaped` content
+  - added `post_predicates_for_rule(...)`, `has_post_predicates_for_rule(...)`, and `needs_raw_post_capture_for_rule(...)`
+  - added focused tests for content-aware `post` predicate behavior
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated rule wrapper now evaluates `post` predicates after parse success
+  - generated rule code now captures raw pre-transform content when required by `post/raw` predicates
+  - generated memoization now stores and restores optional raw semantic content alongside shaped `ParseNode`s
+  - strengthened the generated-parser semantic-usage proof to assert the richer memo substrate
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::semantic_runtime::tests:: -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::ast_based_generator::semantic_usage_tests::generated_parser_embeds_semantic_runtime_entrypoint_for_runtime_directives -- --exact --nocapture`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Important Boundary
+- `pre` and `post` predicate phases now have real generated-parser execution seams, but `branch` predicates are still not consumed yet.
+- Content-aware predicate steering is still limited to the rule-success seam; the first live grammar pilot is still the next step.
+
 ## 2026-03-19 - Embed semantic runtime into generated parser skeleton
 ### ✅ Achievement Summary
 This is the first generated-parser-side semantic-runtime integration slice. Generated parsers now own both compiled semantic-runtime annotations and live semantic runtime state, reset that state at `parse()`, and expose a generated `semantic_runtime_transaction_for_rule(...)` helper that delegates to the runtime’s `transaction_for_rule(...)` entrypoint.

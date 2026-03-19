@@ -145,11 +145,21 @@ Near-term rollout:
     - generated parser structs now own compiled semantic runtime annotations and live runtime state
     - generated parser API now exposes `semantic_runtime_transaction_for_rule(...)`
     - generated `parse()` resets semantic runtime state per parse run
+  - landed the first typed predicate phase/view contract:
+    - predicates now carry explicit `phase` and `view`
+    - supported phases: `pre`, `branch`, `post`
+    - supported views: `raw`, `shaped`
+  - landed the first generated-parser semantic execution split:
+    - `pre` predicates execute before parse
+    - effect directives execute only after successful parse
+    - `post` predicates now execute after successful parse against explicit `raw` / `shaped` content
+  - landed memo-aware raw semantic content retention:
+    - generated rule memoization now stores optional raw semantic content alongside the shaped `ParseNode`
+    - `post/raw` predicates stay correct on memo hits instead of silently degrading to shaped content
   - current boundary remains explicit:
-    - parsed and validated, but not yet parser-steering
-    - semantic transactions exist, but no parser backtracking/memoization integration yet
-    - runtime directives can now be compiled, applied by rule, loaded into a fresh rule transaction, and embedded into generated parser instances
-    - but no generated parser rule body consumes that transaction seam automatically yet
+    - `branch` predicates are still typed but not executed yet
+    - content-aware predicate steering is still limited to the rule-success seam
+    - no live grammar ambiguity pilot consumes the new semantic predicate phases yet
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

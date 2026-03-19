@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: embed-semantic-runtime-into-generated-parser-skeleton)
+Last updated: 2026-03-19 (+0100, task: make-post-raw-predicates-memo-honest)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -176,18 +176,21 @@ Use this file to resume work without replaying full chat history.
   - compiled semantic runtime annotations
   - live semantic runtime state
   - generated helper `semantic_runtime_transaction_for_rule(...)`
+- Generated parser semantic execution now includes:
+  - `pre` predicates before rule parse
+  - `post` predicates after successful rule parse
+  - effect directives only after `post` predicates pass
+  - optional raw semantic content retention in memoized rule entries so `post/raw` predicates stay correct on memo hits
 - Current boundary remains explicit:
-  - runtime directives can now be precompiled, applied by rule, loaded into a fresh transaction by rule, and embedded into generated parser instances
-  - but generated parsers do not yet execute those transactions automatically during rule parsing
-  - no semantic predicate dispatch yet
-  - no semantic-aware memoization yet
+  - `branch` predicates are typed but not executed yet
+  - content-aware predicate steering is currently limited to the rule-success seam
+  - the first live grammar ambiguity pilot still has not been landed
 - Next likely task:
-  - thread the generated `semantic_runtime_transaction_for_rule(...)` helper into one controlled parser integration point
-  - keep the first pilot small:
-    - compile once,
-    - open a generated-parser rule transaction,
+  - land the first live grammar pilot that consumes explicit `raw` semantic predicates for real ambiguity steering
+  - best current candidate:
+    - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks
+  - keep the first pilot narrow:
     - no broad parser-wide steering flip all at once
-  - continue widening generated semantic tree lowering
   - then start the first semantic-annotation-driven fact/scope/predicate pilot for SV declaration-vs-statement disambiguation
 
 ## Current Semantic Runtime Scaffold

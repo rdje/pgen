@@ -4,22 +4,22 @@
 
 use super::Logger;
 use crate::ast_pipeline::{
-    ast_return_transform::AstReturnTransformer, compile_semantic_runtime_annotations,
-    extract_semantic_directive, normalize_semantic_scalar, parse_canonical_transform_expression,
-    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
-    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
-    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
-    parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
-    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_string_list,
-    parse_semantic_token_class, ASTNode, ASTValue, Annotations, BranchAnnotation,
-    SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy, SemanticRuntimeDirective,
-    SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
-    TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
+    ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
+    SemanticBranchPolicy, SemanticRuntimeDirective, SemanticRuntimeValue, SemanticScopeKind,
+    SemanticTokenClass, SemanticValueConstraints, TokenValue, UnifiedSemanticAST,
+    UnifiedSemanticProperty, UnifiedSemanticValue, ast_return_transform::AstReturnTransformer,
+    compile_semantic_runtime_annotations, extract_semantic_directive, normalize_semantic_scalar,
+    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_branch_priorities,
+    parse_semantic_charset, parse_semantic_constraint_expression,
+    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
+    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
+    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_pattern,
+    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
 };
 use anyhow::Result;
 use prettyplease;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use std::collections::{HashMap, HashSet};
 use syn::Ident;
 
@@ -299,7 +299,7 @@ impl AstBasedGenerator {
             pub struct #parser_name<'input> {
                 input: &'input str,
                 position: usize,
-                memo: HashMap<(RuleId, usize), Option<ParseNode<'input>>>,
+                memo: HashMap<(RuleId, usize), MemoEntry<'input>>,
                 recursion_guard: RecursionGuard,
                 grammar_profile: Option<String>,
                 recovery_events: Vec<RecoveryEvent>,
@@ -633,7 +633,7 @@ impl AstBasedGenerator {
                 f: F,
             ) -> ParseResult<ParseNode<'input>>
             where
-                F: FnOnce(&mut Self) -> ParseResult<ParseNode<'input>>,
+                F: FnOnce(&mut Self) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
             {
                 let mut semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
@@ -660,7 +660,35 @@ impl AstBasedGenerator {
                             position: self.position,
                         })
                     } else {
-                        let node = f(self)?;
+                        let (node, semantic_raw_content) = f(self)?;
+                        let semantic_raw_content =
+                            semantic_raw_content.as_ref().unwrap_or(&node.content);
+                        let mut post_predicate_blocked = false;
+                        for directive in self
+                            .semantic_runtime_annotations
+                            .post_predicates_for_rule(rule_name)
+                        {
+                            match semantic_runtime_transaction
+                                .state()
+                                .evaluate_post_directive_predicate(
+                                    directive,
+                                    semantic_raw_content,
+                                    &node.content,
+                                )
+                            {
+                                Some(true) => {}
+                                Some(false) => {
+                                    post_predicate_blocked = true;
+                                    break;
+                                }
+                                None => {}
+                            }
+                        }
+                        if post_predicate_blocked {
+                            Err(ParseError::Backtrack {
+                                position: node.span.start,
+                            })
+                        } else {
                         for directive in self
                             .semantic_runtime_annotations
                             .effect_directives_for_rule(rule_name)
@@ -673,6 +701,7 @@ impl AstBasedGenerator {
                         }
                         let _ = semantic_runtime_transaction.commit();
                         Ok(node)
+                        }
                     }
                 };
                 self.semantic_runtime_state = semantic_runtime_state;
@@ -1097,7 +1126,11 @@ impl AstBasedGenerator {
 
                 let result = self.with_semantic_runtime_rule_transaction(#rule_name, |parser| {
                     parser.memoized_call(Self::#rule_const, |parser| {
+                        let semantic_capture_raw_for_post =
+                            parser.semantic_runtime_annotations
+                                .needs_raw_post_capture_for_rule(#rule_name);
                         let mut semantic_selected_branch_index: Option<usize> = None;
+                        let mut semantic_raw_content: Option<ParseContent<'input>> = None;
                         // Main parsing logic - produces the 'result' variable
                         #parse_logic;
 
@@ -1126,11 +1159,14 @@ impl AstBasedGenerator {
                             &deterministic_partition_effective_group,
                         );
 
-                        Ok(ParseNode {
-                            rule_name: #rule_name,
-                            content: result,
-                            span: start_pos..end_pos,
-                        })
+                        Ok((
+                            ParseNode {
+                                rule_name: #rule_name,
+                                content: result,
+                                span: start_pos..end_pos,
+                            },
+                            semantic_raw_content,
+                        ))
                     })
                 });
 
@@ -1345,12 +1381,18 @@ impl AstBasedGenerator {
                     Ok(quote! {
                         // Single-branch rule, no transformation needed
                         #branch_logic;  // Sets result
+                        if semantic_capture_raw_for_post {
+                            semantic_raw_content = Some(result.clone());
+                        }
                         semantic_selected_branch_index = Some(1usize);
                     })
                 } else {
                     Ok(quote! {
                         // Single-branch rule with transformation
                         #branch_logic;
+                        if semantic_capture_raw_for_post {
+                            semantic_raw_content = Some(result.clone());
+                        }
 
                         // Apply transformation (reassign result)
                         result = #transform;
@@ -1362,6 +1404,9 @@ impl AstBasedGenerator {
                 Ok(quote! {
                     // Single-branch rule
                     #branch_logic;  // Sets result directly
+                    if semantic_capture_raw_for_post {
+                        semantic_raw_content = Some(result.clone());
+                    }
                     semantic_selected_branch_index = Some(1usize);
                 })
             }
@@ -1541,6 +1586,9 @@ impl AstBasedGenerator {
                                     best_priority = candidate_priority;
                                     best_branch_index = current_branch_index;
                                     best_branch = #branch_num;
+                                    if semantic_capture_raw_for_post {
+                                        best_raw_content = Some(content.clone());
+                                    }
                                     best_content = Some(transformed);
                                 }
                             } else if parser.logger.is_enabled() {
@@ -1555,6 +1603,7 @@ impl AstBasedGenerator {
                 // Multi-branch parsing logic (branch-policy guided)
                 let parse_start = parser.position;
                 let mut best_content: Option<ParseContent<'input>> = None;
+                let mut best_raw_content: Option<ParseContent<'input>> = None;
                 let mut best_end = parse_start;
                 let mut best_priority: i64 = i64::MIN;
                 let mut best_branch_index: usize = 0usize;
@@ -1607,6 +1656,7 @@ impl AstBasedGenerator {
                         ));
                     }
                     result = content;
+                    semantic_raw_content = best_raw_content;
                 } else {
                     #recovery_failure_path
                 }
@@ -3366,27 +3416,32 @@ impl AstBasedGenerator {
                 }
             }
 
-            fn memoized_call<F>(&mut self, rule_id: RuleId, f: F) -> ParseResult<ParseNode<'input>>
+            fn memoized_call<F>(
+                &mut self,
+                rule_id: RuleId,
+                f: F,
+            ) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>
             where
-                F: FnOnce(&mut Self) -> ParseResult<ParseNode<'input>>,
+                F: FnOnce(&mut Self) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
             {
                 let key = (rule_id, self.position);
 
-                if let Some(cached) = self.memo.get(&key) {
-                    if let Some(node) = cached {
-                        self.position = node.span.end;
+                if let Some(entry) = self.memo.get(&key) {
+                    if let Some(node) = &entry.result {
+                        self.position = entry.end_pos;
 
                         if self.logger.is_enabled() {
                             self.logger.log_info(#filename, 0, &format!("💾 Memo hit for rule {} at position {} - reusing cached result", rule_id, self.position));
                         }
 
-                        return Ok(node.clone());
+                        return Ok((node.clone(), entry.raw_semantic_content.clone()));
                     } else {
                         if self.logger.is_enabled() {
                             self.logger.log_warning(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - cached failure", rule_id, self.position));
                         }
+                        self.position = entry.end_pos;
                         return Err(ParseError::Backtrack {
-                            position: self.position,
+                            position: entry.end_pos,
                         });
                     }
                 }
@@ -3395,15 +3450,30 @@ impl AstBasedGenerator {
                     self.logger.log_debug(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
                 }
 
+                let start_pos = key.1;
                 let result = f(self);
 
-                if let Ok(ref node) = result {
-                    self.memo.insert(key, Some(node.clone()));
+                if let Ok((node, raw_semantic_content)) = &result {
+                    self.memo.insert(
+                        key,
+                        MemoEntry {
+                            result: Some(node.clone()),
+                            raw_semantic_content: raw_semantic_content.clone(),
+                            end_pos: node.span.end,
+                        },
+                    );
                     if self.logger.is_enabled() {
                         self.logger.log_info(#filename, 0, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
                     }
                 } else {
-                    self.memo.insert(key, None);
+                    self.memo.insert(
+                        key,
+                        MemoEntry {
+                            result: None,
+                            raw_semantic_content: None,
+                            end_pos: start_pos,
+                        },
+                    );
                     if self.logger.is_enabled() {
                         self.logger.log_warning(#filename, 0, &format!("💾 Memoized failed result for rule {} at position {}", rule_id, self.position));
                     }
@@ -3567,7 +3637,9 @@ impl AstBasedGenerator {
         }
     }
 
-    fn generate_semantic_predicate_phase_tokens(phase: crate::ast_pipeline::SemanticPredicatePhase) -> TokenStream {
+    fn generate_semantic_predicate_phase_tokens(
+        phase: crate::ast_pipeline::SemanticPredicatePhase,
+    ) -> TokenStream {
         match phase {
             crate::ast_pipeline::SemanticPredicatePhase::Pre => {
                 quote! { crate::ast_pipeline::SemanticPredicatePhase::Pre }
@@ -4681,15 +4753,37 @@ mod semantic_usage_tests {
                     UnifiedSemanticValue::Object(vec![
                         UnifiedSemanticProperty {
                             key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier(
-                                "current_scope_is".to_string(),
-                            ),
+                            value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
                         },
                         UnifiedSemanticProperty {
                             key: "args".to_string(),
                             value: UnifiedSemanticValue::Array(vec![
                                 UnifiedSemanticValue::Identifier("global".to_string()),
                             ]),
+                        },
+                    ]),
+                ),
+                structured_named_annotation(
+                    "predicate",
+                    "{ name: content_kind_is, args: [terminal], phase: post, view: raw }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("terminal".to_string()),
+                            ]),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("post".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
                         },
                     ]),
                 ),
@@ -4751,7 +4845,10 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.matches("with_semantic_runtime_rule_transaction").count() >= 2,
+            rendered
+                .matches("with_semantic_runtime_rule_transaction")
+                .count()
+                >= 2,
             "generated parser should both define and use the semantic runtime transaction wrapper, got: {}",
             rendered
         );
@@ -4776,6 +4873,11 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
+            rendered.contains("SemanticPredicatePhase::Post"),
+            "generated parser should embed typed post-predicate directives when present, got: {}",
+            rendered
+        );
+        assert!(
             rendered.contains("pre_predicates_for_rule"),
             "generated parser should use the explicit pre-predicate rule view, got: {}",
             rendered
@@ -4783,6 +4885,41 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("effect_directives_for_rule"),
             "generated parser should use the explicit effect-directive rule view, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("post_predicates_for_rule"),
+            "generated parser should use the explicit post-predicate rule view, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("needs_raw_post_capture_for_rule"),
+            "generated parser should query raw post-predicate capture needs, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("memo: HashMap<(RuleId, usize), MemoEntry<'input>>"),
+            "generated parser should memoize rich entries instead of bare shaped nodes, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("semantic_capture_raw_for_post"),
+            "generated parser should track whether raw post-predicate capture is required, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("semantic_raw_content"),
+            "generated parser should preserve raw content when post/raw predicates require it, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("entry.raw_semantic_content.clone()"),
+            "generated parser should restore memoized raw semantic content on cache hits, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("evaluate_post_directive_predicate"),
+            "generated parser should evaluate post predicates after parse success, got: {}",
             rendered
         );
         assert!(

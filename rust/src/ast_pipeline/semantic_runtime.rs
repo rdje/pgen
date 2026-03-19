@@ -1,5 +1,5 @@
 use super::{
-    Annotations, SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticProperty,
+    Annotations, ParseContent, SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticProperty,
     UnifiedSemanticValue,
 };
 use std::collections::HashMap;
@@ -158,8 +158,19 @@ impl SemanticRuntimeDirective {
         }
     }
 
+    pub fn predicate_view(&self) -> Option<SemanticPredicateContentView> {
+        match self {
+            Self::Predicate(spec) => Some(spec.view),
+            Self::OpenScope(_) | Self::CloseScope(_) | Self::EmitFact(_) => None,
+        }
+    }
+
     pub fn is_pre_predicate(&self) -> bool {
         self.predicate_phase() == Some(SemanticPredicatePhase::Pre)
+    }
+
+    pub fn is_post_predicate(&self) -> bool {
+        self.predicate_phase() == Some(SemanticPredicatePhase::Post)
     }
 
     pub fn is_effect(&self) -> bool {
@@ -221,6 +232,24 @@ impl CompiledSemanticRuntimeAnnotations {
         self.directives_for_rule(rule_name)
             .iter()
             .filter(|directive| directive.is_effect())
+    }
+
+    pub fn post_predicates_for_rule<'a>(
+        &'a self,
+        rule_name: &'a str,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.directives_for_rule(rule_name)
+            .iter()
+            .filter(|directive| directive.is_post_predicate())
+    }
+
+    pub fn has_post_predicates_for_rule(&self, rule_name: &str) -> bool {
+        self.post_predicates_for_rule(rule_name).next().is_some()
+    }
+
+    pub fn needs_raw_post_capture_for_rule(&self, rule_name: &str) -> bool {
+        self.post_predicates_for_rule(rule_name)
+            .any(|directive| directive.predicate_view() == Some(SemanticPredicateContentView::Raw))
     }
 
     pub fn apply_to_rule(&self, state: &mut SemanticRuntimeState, rule_name: &str) -> usize {
@@ -424,30 +453,51 @@ impl SemanticRuntimeState {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
-                Some(
-                    self.facts.iter().any(|fact| {
-                        fact.kind.eq_ignore_ascii_case(expected_kind) && fact.name == expected_name
-                    }),
-                )
+                Some(self.facts.iter().any(|fact| {
+                    fact.kind.eq_ignore_ascii_case(expected_kind) && fact.name == expected_name
+                }))
             }
             "has_fact_in_current_scope" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
                 let current_depth = self.scopes.len().saturating_sub(1);
-                Some(
-                    self.facts.iter().any(|fact| {
-                        fact.scope_depth == current_depth
-                            && fact.kind.eq_ignore_ascii_case(expected_kind)
-                            && fact.name == expected_name
-                    }),
-                )
+                Some(self.facts.iter().any(|fact| {
+                    fact.scope_depth == current_depth
+                        && fact.kind.eq_ignore_ascii_case(expected_kind)
+                        && fact.name == expected_name
+                }))
             }
             "scope_depth_at_least" => {
-                let minimum_depth = scalar_text(predicate.args.first()?)?.parse::<usize>().ok()?;
+                let minimum_depth = scalar_text(predicate.args.first()?)?
+                    .parse::<usize>()
+                    .ok()?;
                 Some(self.scopes.len().saturating_sub(1) >= minimum_depth)
             }
             _ => None,
+        }
+    }
+
+    pub fn evaluate_content_aware_predicate<'input>(
+        &self,
+        predicate: &SemanticPredicateSpec,
+        raw_content: &ParseContent<'input>,
+        shaped_content: &ParseContent<'input>,
+    ) -> Option<bool> {
+        let selected_content = match predicate.view {
+            SemanticPredicateContentView::Raw => raw_content,
+            SemanticPredicateContentView::Shaped => shaped_content,
+        };
+
+        let normalized_name = predicate.name.trim().to_ascii_lowercase();
+        match normalized_name.as_str() {
+            "content_kind_is" => {
+                let expected = scalar_text(predicate.args.first()?)?
+                    .trim()
+                    .to_ascii_lowercase();
+                Some(content_kind_name(selected_content) == expected)
+            }
+            _ => self.evaluate_predicate(predicate),
         }
     }
 
@@ -460,6 +510,25 @@ impl SemanticRuntimeState {
                 if spec.phase == SemanticPredicatePhase::Pre =>
             {
                 self.evaluate_predicate(spec)
+            }
+            SemanticRuntimeDirective::OpenScope(_)
+            | SemanticRuntimeDirective::CloseScope(_)
+            | SemanticRuntimeDirective::EmitFact(_)
+            | SemanticRuntimeDirective::Predicate(_) => None,
+        }
+    }
+
+    pub fn evaluate_post_directive_predicate<'input>(
+        &self,
+        directive: &SemanticRuntimeDirective,
+        raw_content: &ParseContent<'input>,
+        shaped_content: &ParseContent<'input>,
+    ) -> Option<bool> {
+        match directive {
+            SemanticRuntimeDirective::Predicate(spec)
+                if spec.phase == SemanticPredicatePhase::Post =>
+            {
+                self.evaluate_content_aware_predicate(spec, raw_content, shaped_content)
             }
             SemanticRuntimeDirective::OpenScope(_)
             | SemanticRuntimeDirective::CloseScope(_)
@@ -731,12 +800,9 @@ fn parse_predicate(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective,
                     None => SemanticPredicatePhase::Pre,
                 };
                 let view = match property(properties, "view") {
-                    Some(value) => {
-                        SemanticPredicateContentView::parse(value).ok_or_else(|| {
-                            "Directive '@predicate.view' must be either 'raw' or 'shaped'."
-                                .to_string()
-                        })?
-                    }
+                    Some(value) => SemanticPredicateContentView::parse(value).ok_or_else(|| {
+                        "Directive '@predicate.view' must be either 'raw' or 'shaped'.".to_string()
+                    })?,
                     None => SemanticPredicateContentView::Raw,
                 };
                 return Ok(SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
@@ -781,17 +847,28 @@ fn scalar_text(value: &UnifiedSemanticValue) -> Option<&str> {
     }
 }
 
+fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
+    match content {
+        ParseContent::Terminal(_) => "terminal",
+        ParseContent::TransformedTerminal(_) => "transformed_terminal",
+        ParseContent::Sequence(_) => "sequence",
+        ParseContent::Alternative(_) => "alternative",
+        ParseContent::Quantified(_, _) => "quantified",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
-        parse_semantic_runtime_directive, parse_semantic_runtime_directives,
         CompiledSemanticRuntimeAnnotations, SemanticPredicateContentView, SemanticPredicatePhase,
         SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState,
-        SemanticRuntimeValue, SemanticScopeKind,
+        SemanticRuntimeValue, SemanticScopeKind, compile_rule_semantic_runtime_directives,
+        compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
+        parse_semantic_runtime_directives,
     };
     use crate::ast_pipeline::{
-        Annotations, SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticValue,
+        Annotations, ParseContent, ParseNode, SemanticAnnotation, UnifiedSemanticAST,
+        UnifiedSemanticValue,
     };
 
     fn structured_named(
@@ -1561,9 +1638,7 @@ mod tests {
                     UnifiedSemanticValue::Object(vec![
                         crate::ast_pipeline::UnifiedSemanticProperty {
                             key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier(
-                                "current_scope_is".to_string(),
-                            ),
+                            value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
                         },
                         crate::ast_pipeline::UnifiedSemanticProperty {
                             key: "args".to_string(),
@@ -1579,9 +1654,7 @@ mod tests {
                     UnifiedSemanticValue::Object(vec![
                         crate::ast_pipeline::UnifiedSemanticProperty {
                             key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier(
-                                "current_scope_is".to_string(),
-                            ),
+                            value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
                         },
                         crate::ast_pipeline::UnifiedSemanticProperty {
                             key: "args".to_string(),
@@ -1634,10 +1707,62 @@ mod tests {
                 ..
             })
         ));
-        assert!(matches!(
-            effects[0],
-            SemanticRuntimeDirective::OpenScope(_)
-        ));
+        assert!(matches!(effects[0], SemanticRuntimeDirective::OpenScope(_)));
+        assert!(compiled.has_post_predicates_for_rule("package_declaration"));
+        assert!(!compiled.needs_raw_post_capture_for_rule("package_declaration"));
+    }
+
+    #[test]
+    fn post_predicates_can_inspect_raw_or_shaped_content_kind() {
+        let state = SemanticRuntimeState::new();
+        let raw_content = ParseContent::Sequence(vec![ParseNode {
+            rule_name: "inner",
+            content: ParseContent::Terminal("pkg"),
+            span: 0..3,
+        }]);
+        let shaped_content = ParseContent::TransformedTerminal("pkg".to_string());
+
+        assert_eq!(
+            state.evaluate_content_aware_predicate(
+                &SemanticPredicateSpec {
+                    name: "content_kind_is".to_string(),
+                    args: vec![UnifiedSemanticValue::Identifier("sequence".to_string())],
+                    phase: SemanticPredicatePhase::Post,
+                    view: SemanticPredicateContentView::Raw,
+                },
+                &raw_content,
+                &shaped_content,
+            ),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_content_aware_predicate(
+                &SemanticPredicateSpec {
+                    name: "content_kind_is".to_string(),
+                    args: vec![UnifiedSemanticValue::Identifier(
+                        "transformed_terminal".to_string(),
+                    )],
+                    phase: SemanticPredicatePhase::Post,
+                    view: SemanticPredicateContentView::Shaped,
+                },
+                &raw_content,
+                &shaped_content,
+            ),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_post_directive_predicate(
+                &SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
+                    name: "content_kind_is".to_string(),
+                    args: vec![UnifiedSemanticValue::Identifier("terminal".to_string())],
+                    phase: SemanticPredicatePhase::Post,
+                    view: SemanticPredicateContentView::Raw,
+                }),
+                &raw_content,
+                &shaped_content,
+            ),
+            Some(false)
+        );
     }
 
     #[test]
@@ -1820,9 +1945,7 @@ mod tests {
                     UnifiedSemanticValue::Object(vec![
                         crate::ast_pipeline::UnifiedSemanticProperty {
                             key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier(
-                                "current_scope_is".to_string(),
-                            ),
+                            value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
                         },
                         crate::ast_pipeline::UnifiedSemanticProperty {
                             key: "args".to_string(),

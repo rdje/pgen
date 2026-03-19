@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use serde;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -581,6 +581,7 @@ pub struct ParseNode<'input> {
 #[derive(Debug, Clone)]
 pub struct MemoEntry<'input> {
     pub result: Option<ParseNode<'input>>,
+    pub raw_semantic_content: Option<ParseContent<'input>>,
     pub end_pos: usize,
 }
 
@@ -2637,28 +2638,28 @@ pub use annotation_validator::{
     AnnotationValidator, AnnotationValidatorConfig,
 };
 pub use semantic_directive_registry::{
-    extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
-    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
-    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
-    parse_semantic_deterministic_group, parse_semantic_float_list, parse_semantic_group_label,
-    parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
-    parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_pattern,
-    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
-    semantic_directive_spec, SemanticAssociativity, SemanticBranchPolicy,
-    SemanticDeterministicGroupHint, SemanticDirectiveCapability, SemanticDirectiveSpec,
-    SemanticTokenClass, SemanticValueConstraints, UnknownSemanticDirectivePolicy,
+    SemanticAssociativity, SemanticBranchPolicy, SemanticDeterministicGroupHint,
+    SemanticDirectiveCapability, SemanticDirectiveSpec, SemanticTokenClass,
+    SemanticValueConstraints, UnknownSemanticDirectivePolicy, extract_semantic_directive,
+    extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_bool,
+    parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
+    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
+    parse_semantic_float_list, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
+    parse_semantic_numeric_list, parse_semantic_pattern, parse_semantic_reference_list,
+    parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec,
 };
 pub use semantic_runtime::{
-    compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
-    parse_semantic_runtime_directive, parse_semantic_runtime_directives,
     CompiledSemanticRuntimeAnnotations, SemanticCloseScopeSpec, SemanticFactRecord,
-    SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase,
-    SemanticPredicateSpec, SemanticRuntimeCheckpoint, SemanticRuntimeDirective,
-    SemanticRuntimeState, SemanticRuntimeTransaction, SemanticRuntimeValue,
-    SemanticScopeFrame, SemanticScopeKind, SemanticScopeSpec,
+    SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
+    SemanticRuntimeCheckpoint, SemanticRuntimeDirective, SemanticRuntimeState,
+    SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame, SemanticScopeKind,
+    SemanticScopeSpec, compile_rule_semantic_runtime_directives,
+    compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
+    parse_semantic_runtime_directives,
 };
 pub use semantic_transform::{
-    parse_canonical_transform_expression, stimuli_hint_for_target_type, CanonicalSemanticTransform,
+    CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,
 };
 pub use unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
 pub use unified_semantic_ast::{UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue};
