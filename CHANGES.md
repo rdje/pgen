@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-19 - Fix repeated type class parameter headers in SV
+### ✅ Achievement Summary
+Fixed a real SystemVerilog grammar hole exposed by UVM-compatible class headers that repeat `type` across multiple class parameters, such as `#(type REQ = ..., type RSP = ...)`. A fresh generated parser now accepts the minimal reproducer and the reduced UVM proxy-class slice again.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf) and [systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+  - added an explicit high-priority `parameter_port_list` branch for repeated bare `type` declarations in class/module parameter lists
+  - moved bare type-parameter declaration handling ahead of more generic `data_type ...` parameter-port paths
+  - kept targeted `type_assignment` guarding in place for this keyword-vs-identifier corner
+
+### Focused Validation
+- Both grammar files still pass `ebnf_to_json --validate-only`.
+- Fresh generated parser with `PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/pgen_sv_fresh7/systemverilog_parser.rs` now passes:
+  - `/tmp/c3_param_two_ref.sv`
+  - `/tmp/full_uvm_proxy.sv`
+
+### Remaining Frontier
+- This closes the repeated-`type` header syntax bug, but not the broader UVM package-body performance/debug frontier yet.
+- Fresh focused parse of `/tmp/uvm_compat_prefix_732.sv` still times out at `12s`, so the next SV task is deeper large-package parser reduction/performance work rather than this specific header form.
+
 ## 2026-03-19 - Capture full-file roundtrip proof guidance
 ### ✅ Achievement Summary
 Captured the agreed architectural guidance for full-file parser roundtrip proof as a general PGEN parser-family concept rather than an SV/VHDL-only special case. The roadmap and continuity docs now explicitly describe file-level roundtrip as a reusable proof surface with family adapters for preprocessing, normalization, profiles, and canonical rendering.

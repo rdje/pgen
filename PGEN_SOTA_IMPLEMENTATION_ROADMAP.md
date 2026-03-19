@@ -27,6 +27,7 @@ Execution preference for this roadmap:
 - external-corpus grammar debugging should prefer systematic keyword-vs-identifier discrimination and precise branch-shape fixes over corpus-specific hacks, even when the first landed step is a narrow surgical patch.
 - if repeated keyword-vs-identifier debt keeps surfacing in a family such as SystemVerilog, promote that into one shared systematic grammar/annotation mechanism instead of accumulating ad hoc local exclusions indefinitely.
 - current focused SV external-corpus frontier is now deeper parser-only work inside the UVM package bodies again; inline conditional macro-body normalization, comment-side macro leakage, brace-concat macro-argument truncation, and comment-side fake multiline macro collection are no longer active blockers.
+- repeated bare `type` parameter headers in SV class declarations are now a known solved branch-shape issue; the next remaining UVM frontier is broader package parse scaling/reduction rather than that specific header syntax.
 
 Interpretation rule:
 - if a claimed parser quality does not have a machine-checkable artifact, gate, contract, or invariant behind it, treat that quality as not yet closed.

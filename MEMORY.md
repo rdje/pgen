@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: capture-file-roundtrip-proof-guidance)
+Last updated: 2026-03-19 (+0100, task: fix-repeated-type-class-parameter-headers)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,16 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current SV UVM Frontier
+- Latest focused grammar fix:
+  - repeated bare `type` class parameter headers now parse with a fresh generated parser
+  - key repros now green under `PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/pgen_sv_fresh7/systemverilog_parser.rs`:
+    - `/tmp/c3_param_two_ref.sv`
+    - `/tmp/full_uvm_proxy.sv`
+- Key implementation note:
+  - the useful fix was an explicit high-priority `parameter_port_list` branch for repeated `type` declarations, plus type-declaration-first ordering ahead of generic `data_type ...` parameter-port paths
+- Remaining measured frontier:
+  - `/tmp/uvm_compat_prefix_732.sv` still times out at `12s` with the fresh parser
+  - so the next SV task is now larger UVM package reduction/performance debugging, not the repeated-`type` header syntax itself
 - Latest focused SV preprocessor fix:
   - `parse_macro_invocation_args()` now respects `()`, `{}`, and `[]` nesting plus comment/string regions
   - `has_unclosed_function_macro_invocation()` now ignores comment and string text so doc-comment macro examples no longer poison multiline logical-line collection

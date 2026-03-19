@@ -1057,7 +1057,7 @@ list_of_specparam_assignments := specparam_assignment ( comma specparam_assignme
 
 list_of_tf_variable_identifiers := port_identifier variable_dimension* ( assign expression )? ( comma port_identifier variable_dimension* ( assign expression )? )*
 
-list_of_type_assignments := type_assignment ( comma type_assignment )*
+list_of_type_assignments := type_assignment ( !( comma kw_type_d0a3e7f8 ) comma type_assignment )*
 
 list_of_udp_port_identifiers := port_identifier ( comma port_identifier )*
 
@@ -1395,14 +1395,14 @@ parameter_identifier := identifier
 parameter_override := kw_defparam_83d3c70e list_of_defparam_assignments semi
 
 @profiles: ["sv_2017"]
-parameter_port_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments | kw_localparam_7829ee69 list_of_param_assignments | parameter_declaration | local_parameter_declaration | data_type list_of_param_assignments | kw_type_d0a3e7f8 list_of_type_assignments
+parameter_port_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments | kw_localparam_7829ee69 list_of_param_assignments | kw_type_d0a3e7f8 list_of_type_assignments | parameter_declaration | local_parameter_declaration | data_type list_of_param_assignments
 
 @profiles: ["sv_2023"]
-parameter_port_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments | kw_localparam_7829ee69 list_of_param_assignments | parameter_declaration | local_parameter_declaration | data_type list_of_param_assignments | type_parameter_declaration
+parameter_port_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments | kw_localparam_7829ee69 list_of_param_assignments | type_parameter_declaration | parameter_declaration | local_parameter_declaration | data_type list_of_param_assignments
 
 parameter_port_declaration := parameter_port_declaration_sv_2017 | parameter_port_declaration_sv_2023
 
-parameter_port_list := hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen | hash lparen rparen
+parameter_port_list := hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen | hash lparen rparen
 
 @profiles: ["sv_2017"]
 parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen
@@ -1989,10 +1989,10 @@ tx1_path_delay_expression := path_delay_expression
 txz_path_delay_expression := path_delay_expression
 
 @profiles: ["sv_2017"]
-type_assignment_sv_2017 := type_identifier ( assign data_type )?
+type_assignment_sv_2017 := !kw_type_d0a3e7f8 type_identifier ( assign data_type )?
 
 @profiles: ["sv_2023"]
-type_assignment_sv_2023 := type_identifier ( assign data_type_or_incomplete_class_scoped_type )?
+type_assignment_sv_2023 := !kw_type_d0a3e7f8 type_identifier ( assign data_type_or_incomplete_class_scoped_type )?
 
 type_assignment := type_assignment_sv_2017 | type_assignment_sv_2023
 

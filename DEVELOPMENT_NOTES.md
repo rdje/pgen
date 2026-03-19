@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Repeated bare `type` class parameter headers need an explicit SV front door
+### Context
+Fresh UVM-focused reduction showed that generic `parameter_port_list` handling was still over-consuming repeated bare `type` declarations in headers like `#(type REQ = int, type RSP = REQ)`. The parser kept treating the second `type` as if it still belonged to the first type-assignment cluster, which made the whole class/package fail at position `0` even on tiny repros.
+
+### What Worked
+- Tiny fresh generated-parser repro now passes:
+  - `/tmp/c3_param_two_ref.sv`
+  - `/tmp/full_uvm_proxy.sv`
+- The successful shape was not a global keyword ban. The productive fix was:
+  - give `parameter_port_list` an explicit high-priority branch for repeated bare `type` declarations
+  - keep type-oriented branches ahead of more generic `data_type ...` parameter-port branches
+
+### Guidance
+- Treat this as confirmation that repeated bare `type` headers deserve first-class grammar shape in SystemVerilog, not just a generic declaration fallback.
+- Keep using fresh generated-parser validation for this frontier; stale `parseability_probe` binaries can mislead.
+- Remaining SV issue after this fix is no longer the repeated-`type` syntax form itself. The next frontier is larger UVM package parse scaling/reduction.
+
 ## 2026-03-19 - Capture full-file roundtrip doctrine as shared parser-family guidance
 ### Context
 The repository already has strong parser/stimuli roundtrip proof and full-file parse/AST-dump entrypoints for major families, but not yet a general file-level `parse -> canonical AST -> canonical text -> reparse` proof loop for SystemVerilog or VHDL. The right architectural framing is broader than either language: full-file roundtrip is a reusable PGEN parser-family proof surface for any EBNF-backed grammar with meaningful whole-file corpora.
