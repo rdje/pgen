@@ -2992,3 +2992,11 @@ Why `rtl_frontend` exists:
   - fresh focused proofs now pass for synthetic repros plus real UVM package checkpoints through `1743`
   - the next closed focused UVM package-body prefix failure is now `1883`
   - broad external-corpus status promotion remains deferred until the full deterministic triage gate is rerun over the new frontier and the remaining UVM debt is reduced further
+- 2026-03-19: Hardened the shared grammar/frontend substrate while continuing the HDL push, without changing live-status labels.
+  - `fx/specs/ebnf.spec` plus the Rust frontend/generator stack now carry explicit positive/negative lookahead operators (`&` / `!`), which gives future HDL grammar cleanup a cleaner way to express keyword and shape guards when needed.
+  - `parseability_probe` now exposes direct `--trace` / `--trace-log-file` debugging controls, and generated-parser profile routing now normalizes `2017` / `2023` to `sv_2017` / `sv_2023`, reducing debug friction during external SystemVerilog corpus work.
+  - `grammars/vhdl.ebnf` was materially broadened from real-corpus pressure while still validating cleanly, so VHDL hardening is continuing in parallel with the SystemVerilog UVM push instead of being stalled behind it.
+  - This is intentionally enabling work, not a status promotion:
+    - `systemverilog`: remains `Mostly Done`
+    - `systemverilog_preprocessor`: remains `Mostly Done`
+    - `vhdl`: remains `In Progress`

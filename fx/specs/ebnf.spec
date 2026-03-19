@@ -123,6 +123,24 @@ LX {
   }
 }
 
+-> bang_operator {
+  if ($on) {
+    push @rule, call(bang_operator)
+  } else {
+    say "Error: '!' operator occurrence with no container rule context";
+    return undef
+  }
+}
+
+-> amp_operator {
+  if ($on) {
+    push @rule, call(amp_operator)
+  } else {
+    say "Error: '&' operator occurrence with no container rule context";
+    return undef
+  }
+}
+
 -> pipe_operator  {
   if ($on) { 
     push @rule, call(pipe_operator)
@@ -191,6 +209,8 @@ pipe_operator: /\|/                 I {return ["operator", $IMATCH]}
 plus_operator: /\+/                 I {return ["operator", $IMATCH]}
 star_operator: /\*/                 I {return ["operator", $IMATCH]}
 question_operator: /\?/             I {return ["operator", $IMATCH]}
+bang_operator: /!/                  I {return ["operator", $IMATCH]}
+amp_operator: /&/                   I {return ["operator", $IMATCH]}
 return_scalar: /->\s*\K(?:\$\d+|"[^"]*"|'[^']*')/       I {return ["return_scalar", $IMATCH]}
 return_array: /->\s*\K(?&array_structure)(?(DEFINE)(?<array_structure>\[(?&content)\])(?<object_structure>\{(?&content)\})(?<content>(?:[^{}\[\]]*|(?&array_structure)|(?&object_structure))*))/     I {return ["return_array", $IMATCH]}
 return_object: /->\s*\K(?&object_structure)(?(DEFINE)(?<array_structure>\[(?&content)\])(?<object_structure>\{(?&content)\})(?<content>(?:[^{}\[\]]*|(?&array_structure)|(?&object_structure))*))/   I {return ["return_object", $IMATCH]}

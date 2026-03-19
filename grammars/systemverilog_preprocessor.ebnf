@@ -138,7 +138,7 @@ inline_trivia := (space_or_tab | block_comment)*
 trivia := (space_or_tab | line_comment | block_comment)*
 space_or_tab := /[ \t]+/
 line_comment := /\/\/[^\r\n]*/
-block_comment := /\/\*([^*]|\*+[^*/])*\*+\//
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
 
 newline := inline_trivia /\r?\n/
 

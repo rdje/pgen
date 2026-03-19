@@ -3,9 +3,10 @@ use serde::Serialize;
 
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
+use pgen::ast_pipeline::{configure_trace_output, resolve_trace_verbosity, set_global_trace_verbosity};
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES"
+    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--trace] [--trace-log-file [FILE]]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY"
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -41,6 +42,13 @@ struct AstDumpWriteResult {
     truncated: bool,
     bytes_written: usize,
     full_bytes: usize,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct GlobalOptions {
+    profile: Option<String>,
+    trace: bool,
+    trace_log_file: Option<String>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -101,26 +109,53 @@ fn parse_dump_command_tail(args: &[String]) -> Result<(Option<String>, Option<us
     Ok((output_file, max_bytes))
 }
 
-fn strip_profile_flag(args: &[String]) -> Result<(Vec<String>, Option<String>)> {
+fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
     let mut remaining = Vec::new();
-    let mut profile = None;
+    let mut options = GlobalOptions::default();
     let mut idx = 0usize;
     while idx < args.len() {
         if args[idx] == "--profile" {
-            if profile.is_some() {
+            if options.profile.is_some() {
                 bail!("--profile cannot be specified multiple times");
             }
             let value = args
                 .get(idx + 1)
                 .ok_or_else(|| anyhow::anyhow!("--profile requires a value"))?;
-            profile = Some(value.clone());
+            options.profile = Some(value.clone());
             idx += 2;
+            continue;
+        }
+        if args[idx] == "--trace" {
+            options.trace = true;
+            idx += 1;
+            continue;
+        }
+        if args[idx] == "--trace-log-file" {
+            if options.trace_log_file.is_some() {
+                bail!("--trace-log-file cannot be specified multiple times");
+            }
+            if let Some(value) = args.get(idx + 1) {
+                if !value.starts_with("--") {
+                    options.trace_log_file = Some(value.clone());
+                    idx += 2;
+                    continue;
+                }
+            }
+            options.trace_log_file = Some("trace.log".to_string());
+            idx += 1;
             continue;
         }
         remaining.push(args[idx].clone());
         idx += 1;
     }
-    Ok((remaining, profile))
+    Ok((remaining, options))
+}
+
+fn configure_runtime_trace(options: &GlobalOptions) -> Result<()> {
+    configure_trace_output(options.trace_log_file.as_deref())?;
+    let verbosity = resolve_trace_verbosity(None, false, options.trace)?;
+    set_global_trace_verbosity(verbosity);
+    Ok(())
 }
 
 fn canonicalize_json_value(value: serde_json::Value) -> serde_json::Value {
@@ -356,29 +391,29 @@ fn main() -> Result<()> {
         std::process::exit(2);
     }
 
+    let (remaining, options) = strip_global_flags(&args[2..])?;
+    configure_runtime_trace(&options)?;
+
     match args[1].as_str() {
         "--supports" => {
-            let (remaining, profile) = strip_profile_flag(&args[2..])?;
             if remaining.len() != 1 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            command_supports(&remaining[0], profile.as_deref())
+            command_supports(&remaining[0], options.profile.as_deref())
         }
         "--parse" => {
-            let (remaining, profile) = strip_profile_flag(&args[2..])?;
             if remaining.len() != 2 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            command_parse(&remaining[0], &remaining[1], profile.as_deref())
+            command_parse(&remaining[0], &remaining[1], options.profile.as_deref())
         }
         "--parse-dump-ast" => {
             if args.len() < 4 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            let (remaining, profile) = strip_profile_flag(&args[2..])?;
             if remaining.len() < 2 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
@@ -397,7 +432,7 @@ fn main() -> Result<()> {
                 &remaining[0],
                 &remaining[1],
                 output_file.as_deref(),
-                profile.as_deref(),
+                options.profile.as_deref(),
                 false,
                 max_bytes,
             )
@@ -407,7 +442,6 @@ fn main() -> Result<()> {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            let (remaining, profile) = strip_profile_flag(&args[2..])?;
             if remaining.len() < 2 {
                 eprintln!("{}", usage());
                 std::process::exit(2);
@@ -426,7 +460,7 @@ fn main() -> Result<()> {
                 &remaining[0],
                 &remaining[1],
                 output_file.as_deref(),
-                profile.as_deref(),
+                options.profile.as_deref(),
                 true,
                 max_bytes,
             )
@@ -441,8 +475,8 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        canonicalize_json_value, parse_dump_command_tail, parse_positive_usize,
-        write_json_dump_with_limit,
+        GlobalOptions, canonicalize_json_value, parse_dump_command_tail, parse_positive_usize,
+        strip_global_flags, write_json_dump_with_limit,
     };
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -499,6 +533,49 @@ mod tests {
     fn parse_positive_usize_rejects_zero() {
         let err = parse_positive_usize("0", "label").expect_err("zero must fail");
         assert!(err.to_string().contains(">= 1"));
+    }
+
+    #[test]
+    fn strip_global_flags_extracts_profile_and_trace_flags() {
+        let args = vec![
+            "systemverilog".to_string(),
+            "sample.sv".to_string(),
+            "--profile".to_string(),
+            "2017".to_string(),
+            "--trace".to_string(),
+            "--trace-log-file".to_string(),
+            "trace.out".to_string(),
+        ];
+        let (remaining, options) =
+            strip_global_flags(&args).expect("global flags should parse successfully");
+        assert_eq!(
+            remaining,
+            vec!["systemverilog".to_string(), "sample.sv".to_string()]
+        );
+        assert_eq!(
+            options,
+            GlobalOptions {
+                profile: Some("2017".to_string()),
+                trace: true,
+                trace_log_file: Some("trace.out".to_string()),
+            }
+        );
+    }
+
+    #[test]
+    fn strip_global_flags_defaults_trace_log_file_name() {
+        let args = vec!["--trace-log-file".to_string()];
+        let (remaining, options) =
+            strip_global_flags(&args).expect("trace-log-file should parse successfully");
+        assert!(remaining.is_empty());
+        assert_eq!(
+            options,
+            GlobalOptions {
+                profile: None,
+                trace: false,
+                trace_log_file: Some("trace.log".to_string()),
+            }
+        );
     }
 
     #[test]

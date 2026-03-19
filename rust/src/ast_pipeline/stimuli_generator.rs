@@ -1701,6 +1701,9 @@ impl<'a> StimuliGenerator<'a> {
             ASTNode::Quantified { element, .. } => {
                 self.collect_rule_references(element, out);
             }
+            ASTNode::Lookahead { element, .. } => {
+                self.collect_rule_references(element, out);
+            }
             ASTNode::Atom { value } => match value {
                 ASTValue::Node(node) => self.collect_rule_references(node, out),
                 ASTValue::Token(parts) => {
@@ -1805,6 +1808,10 @@ impl<'a> StimuliGenerator<'a> {
             ASTNode::Quantified { element, .. } => {
                 let quantified_path = format!("{}/q", node_path);
                 Self::collect_branch_groups(rule_name, element, &quantified_path, groups);
+            }
+            ASTNode::Lookahead { element, .. } => {
+                let lookahead_path = format!("{}/l", node_path);
+                Self::collect_branch_groups(rule_name, element, &lookahead_path, groups);
             }
             ASTNode::Atom { value } => {
                 if let ASTValue::Node(node) = value {
@@ -2079,6 +2086,7 @@ impl<'a> StimuliGenerator<'a> {
                 call_stack,
                 node_path,
             ),
+            ASTNode::Lookahead { .. } => Ok(String::new()),
         }
     }
 
@@ -2721,6 +2729,9 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
             ASTNode::Quantified { element, .. } => {
+                self.count_rule_references(element, current_rule)
+            }
+            ASTNode::Lookahead { element, .. } => {
                 self.count_rule_references(element, current_rule)
             }
         }

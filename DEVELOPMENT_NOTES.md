@@ -21045,3 +21045,45 @@ Important policy outcome:
 - closed UVM package-body checkpoints now pass through `1743`
 - the next closed focused UVM package-body prefix failure is now `1883`
 - live status is unchanged; this is still parser hardening inside `systemverilog=Mostly Done`
+
+## 2026-03-19 - Shared EBNF lookahead support plus VHDL grammar hardening
+
+This atomic slice bundled together the currently uncommitted frontend/parser work rather than splitting it into several tiny commits with incomplete context.
+
+- Added explicit `&` / `!` lookahead operators to the checked-in EBNF dialect surface:
+  - `fx/specs/ebnf.spec`
+  - `rust/src/ebnf_frontend.rs`
+  - `rust/src/ast_pipeline/annotation_validator.rs`
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+- Practical outcome:
+  - the frontend now tokenizes lookahead intentionally
+  - validator/generator/stimuli layers now understand `ASTNode::Lookahead`
+  - future grammar work can use positive/negative lookahead directly instead of encoding the behavior indirectly
+
+- Hardened generated-parser debugging and profile plumbing:
+  - `rust/src/bin/parseability_probe.rs` now exposes `--trace` and `--trace-log-file`
+  - profile parsing was centralized through `strip_global_flags`
+  - `rust/src/parser_registry.rs` now normalizes bare `2017` / `2023` requests to the generated parser's `sv_2017` / `sv_2023` profile names
+
+- Broadened `grammars/vhdl.ebnf` materially from real-corpus pressure:
+  - more declarative items
+  - `subprogram_body`
+  - richer package/generic/instantiation/view forms
+  - richer sequential statements, aggregates, names, literals, and constraints
+  - validation now reports `215` rules for the active VHDL grammar
+
+- Small but real companion grammar fix:
+  - `grammars/systemverilog_preprocessor.ebnf` regex escaping was refreshed and still validates cleanly
+
+- Validation completed for this slice:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_preprocessor.ebnf`
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/vhdl.ebnf`
+  - `cargo test --manifest-path rust/Cargo.toml tokenizes_lookahead_operators --quiet`
+  - `cargo test --manifest-path rust/Cargo.toml strip_global_flags --quiet`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+- Live status is unchanged:
+  - `systemverilog`: `Mostly Done`
+  - `systemverilog_preprocessor`: `Mostly Done`
+  - `vhdl`: `In Progress`

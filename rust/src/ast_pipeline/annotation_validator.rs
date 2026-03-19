@@ -1459,6 +1459,7 @@ impl AnnotationValidator {
             ASTNode::Or { alternatives } => alternatives.iter().any(Self::rule_has_regex_atom),
             ASTNode::Sequence { elements } => elements.iter().any(Self::rule_has_regex_atom),
             ASTNode::Quantified { element, .. } => Self::rule_has_regex_atom(element),
+            ASTNode::Lookahead { element, .. } => Self::rule_has_regex_atom(element),
             ASTNode::Atom { value } => match value {
                 ASTValue::Node(inner) => Self::rule_has_regex_atom(inner),
                 ASTValue::Token(parts) => {
@@ -1873,6 +1874,7 @@ impl AnnotationValidator {
                 element,
                 quantifier,
             } if quantifier == "+" => self.branch_leading_terminal_fingerprint(element),
+            ASTNode::Lookahead { .. } => None,
             ASTNode::Or { alternatives } => {
                 let mut shared: Option<String> = None;
                 for alternative in alternatives {
@@ -2011,6 +2013,17 @@ impl AnnotationValidator {
                 if min_repeat == 0 {
                     element_first.nullable = true;
                 }
+                element_first
+            }
+            ASTNode::Lookahead { element, .. } => {
+                let mut element_first = self.branch_first_set(
+                    element,
+                    grammar_tree,
+                    first_set_cache,
+                    visiting_rules,
+                    depth + 1,
+                );
+                element_first.nullable = true;
                 element_first
             }
         }

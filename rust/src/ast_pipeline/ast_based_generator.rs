@@ -439,6 +439,9 @@ impl AstBasedGenerator {
             ASTNode::Quantified { element, .. } => {
                 Self::collect_rule_references(element, out);
             }
+            ASTNode::Lookahead { element, .. } => {
+                Self::collect_rule_references(element, out);
+            }
             ASTNode::Atom { value } => {
                 if let ASTValue::Token(parts) = value {
                     if parts.len() >= 2 {
@@ -899,6 +902,80 @@ impl AstBasedGenerator {
                 );
                 self.generate_quantified_logic(element, quantifier, rule_name, filename)
             }
+            ASTNode::Lookahead { element, positive } => {
+                eprintln!(
+                    "        Processing {} lookahead node - File: {}:{}",
+                    if *positive { "positive" } else { "negative" },
+                    file!(),
+                    line!()
+                );
+                self.generate_lookahead_logic(element, *positive, rule_name, filename)
+            }
+        }
+    }
+
+    fn generate_lookahead_logic(
+        &self,
+        element: &ASTNode,
+        positive: bool,
+        rule_name: &str,
+        filename: &str,
+    ) -> Result<TokenStream> {
+        let inner_logic = self.generate_node_parsing_logic(element, rule_name, filename)?;
+        let lookahead_kind = if positive {
+            "positive lookahead"
+        } else {
+            "negative lookahead"
+        };
+
+        if positive {
+            Ok(quote! {
+                let lookahead_start = parser.position;
+                let matched = parser.try_parse(|p| {
+                    let parser = p;
+                    #inner_logic;
+                    Ok(())
+                });
+                parser.position = lookahead_start;
+                if matched.is_none() {
+                    return Err(ParseError::Backtrack {
+                        position: lookahead_start,
+                    });
+                }
+                if parser.logger.is_enabled() {
+                    parser.logger.log_debug(#filename, 0, &format!(
+                        "👀 Rule '{}' satisfied {} at position {}",
+                        #rule_name,
+                        #lookahead_kind,
+                        lookahead_start
+                    ));
+                }
+                let result = ParseContent::Sequence(Vec::new());
+            })
+        } else {
+            Ok(quote! {
+                let lookahead_start = parser.position;
+                let matched = parser.try_parse(|p| {
+                    let parser = p;
+                    #inner_logic;
+                    Ok(())
+                });
+                parser.position = lookahead_start;
+                if matched.is_some() {
+                    return Err(ParseError::Backtrack {
+                        position: lookahead_start,
+                    });
+                }
+                if parser.logger.is_enabled() {
+                    parser.logger.log_debug(#filename, 0, &format!(
+                        "🚫 Rule '{}' satisfied {} at position {}",
+                        #rule_name,
+                        #lookahead_kind,
+                        lookahead_start
+                    ));
+                }
+                let result = ParseContent::Sequence(Vec::new());
+            })
         }
     }
 
@@ -2685,17 +2762,6 @@ impl AstBasedGenerator {
                     let bytes = self.input.as_bytes();
                     let len = bytes.len();
 
-                    if bytes[self.position] == b'#' {
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
                     if self.position + 1 < len
                         && bytes[self.position] == b'/'
                         && bytes[self.position + 1] == b'/'
@@ -2750,17 +2816,6 @@ impl AstBasedGenerator {
                     let bytes = self.input.as_bytes();
                     let len = bytes.len();
 
-                    if bytes[self.position] == b'#' {
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
                     if self.position + 1 < len
                         && bytes[self.position] == b'/'
                         && bytes[self.position + 1] == b'/'
@@ -2812,12 +2867,6 @@ impl AstBasedGenerator {
                         b'\n' | b'\r' => {
                             saw_newline = true;
                             i += 1;
-                            continue;
-                        }
-                        b'#' => {
-                            while i < len && bytes[i] != b'\n' && bytes[i] != b'\r' {
-                                i += 1;
-                            }
                             continue;
                         }
                         b'/' if i + 1 < len && bytes[i + 1] == b'/' => {

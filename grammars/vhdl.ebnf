@@ -13,6 +13,7 @@ vhdl_file := design_unit*
 
 design_unit := library_clause
              | use_clause
+             | context_reference_clause
              | entity_declaration
              | architecture_body
              | package_declaration
@@ -27,9 +28,11 @@ design_unit := library_clause
 
 library_clause := kw_library identifier (comma identifier)* semi
 use_clause := kw_use selected_name (comma selected_name)* semi
+context_reference_clause := kw_context selected_name semi
 context_declaration := kw_context identifier kw_is context_item* kw_end kw_context? identifier? semi
 context_item := library_clause
               | use_clause
+              | context_reference_clause
               | semi
 
 selected_name := identifier (dot identifier)*
@@ -43,12 +46,16 @@ entity_declaration := kw_entity identifier kw_is entity_declarative_item* kw_end
 
 entity_declarative_item := generic_clause
                          | port_clause
+                         | component_declaration
                          | use_clause
                          | semi
 
 generic_clause := kw_generic lparen generic_interface_list rparen semi
 generic_interface_list := generic_interface_element (semi generic_interface_element)*
 generic_interface_element := identifier_list colon subtype_indication (assign expression)?
+                           | package_generic_interface_element
+package_generic_interface_element := kw_package identifier kw_is kw_new selected_name generic_map_aspect?
+generic_map_aspect := kw_generic kw_map association_list
 
 port_clause := kw_port lparen port_interface_list rparen semi
 port_interface_list := port_interface_element (semi port_interface_element)*
@@ -64,35 +71,77 @@ architecture_body := kw_architecture identifier kw_of identifier kw_is architect
 
 architecture_declarative_item := signal_declaration
                                | constant_declaration
+                               | file_declaration
                                | type_declaration
                                | subtype_declaration
+                               | component_declaration
+                               | subprogram_declaration
+                               | subprogram_body
+                               | package_instantiation_declaration
+                               | alias_declaration
                                | use_clause
                                | semi
 
-package_declaration := kw_package identifier kw_is package_declarative_item* kw_end kw_package? identifier? semi
-package_body := kw_package kw_body identifier kw_is package_body_declarative_item* kw_end kw_package kw_body? identifier? semi
+package_declaration := kw_package identifier kw_is package_header? package_declarative_item* kw_end kw_package? identifier? semi
+package_body := kw_package kw_body identifier kw_is package_body_declarative_item* kw_end kw_package? kw_body? identifier? semi
+package_header := generic_clause
 
 package_declarative_item := subprogram_declaration
+                          | subprogram_body
                           | type_declaration
                           | subtype_declaration
                           | constant_declaration
                           | signal_declaration
+                          | file_declaration
+                          | component_declaration
+                          | package_instantiation_declaration
+                          | view_declaration
+                          | alias_declaration
                           | use_clause
                           | semi
 
 package_body_declarative_item := subprogram_declaration
+                               | subprogram_body
                                | constant_declaration
                                | signal_declaration
+                               | file_declaration
+                               | alias_declaration
                                | use_clause
                                | semi
+
+package_instantiation_declaration := kw_package identifier kw_is kw_new selected_name generic_map_aspect? semi
+view_declaration := kw_view identifier kw_of selected_name kw_is view_element+ kw_end kw_view semi
+view_element := identifier colon view_mode semi
+view_mode := kw_in
+           | kw_out
+           | kw_inout
+           | kw_buffer
+           | kw_linkage
+alias_declaration := kw_alias identifier kw_is selected_name tick kw_converse semi
 
 configuration_declaration := kw_configuration identifier kw_of identifier kw_is configuration_item* kw_end kw_configuration? identifier? semi
 configuration_item := kw_for selected_name kw_end kw_for semi
                     | use_clause
                     | semi
 
-subprogram_declaration := kw_procedure identifier parameter_list? semi
-                        | kw_function identifier parameter_list? kw_return subtype_indication semi
+subprogram_declaration := procedure_specification semi
+                        | function_specification semi
+
+subprogram_body := procedure_specification kw_is subprogram_declarative_item* kw_begin sequential_statement* kw_end kw_procedure? identifier? semi
+                 | function_specification kw_is subprogram_declarative_item* kw_begin sequential_statement* kw_end kw_function? identifier? semi
+
+procedure_specification := kw_procedure identifier parameter_list?
+function_specification := kw_impure? kw_function identifier parameter_list? kw_return subtype_indication
+
+subprogram_declarative_item := variable_declaration
+                             | file_declaration
+                             | constant_declaration
+                             | type_declaration
+                             | subtype_declaration
+                             | subprogram_declaration
+                             | subprogram_body
+                             | use_clause
+                             | semi
 
 parameter_list := lparen parameter_interface_element (semi parameter_interface_element)* rparen
 parameter_interface_element := identifier_list colon parameter_mode? subtype_indication (assign expression)?
@@ -107,7 +156,10 @@ parameter_mode := kw_in
 
 signal_declaration := kw_signal identifier_list colon subtype_indication (assign expression)? semi
 constant_declaration := kw_constant identifier_list colon subtype_indication assign expression semi
+variable_declaration := kw_variable identifier_list colon subtype_indication (assign expression)? semi
+file_declaration := kw_file identifier_list colon subtype_indication (kw_open expression)? kw_is expression semi
 subtype_declaration := kw_subtype identifier kw_is subtype_indication semi
+component_declaration := kw_component identifier kw_is? generic_clause? port_clause? kw_end kw_component? identifier? semi
 
 type_declaration := kw_type identifier kw_is type_definition semi
 type_definition := enumeration_type_definition
@@ -119,10 +171,16 @@ array_type_definition := kw_array lparen discrete_range rparen kw_of subtype_ind
 record_type_definition := kw_record record_element_declaration+ kw_end kw_record
 record_element_declaration := identifier_list colon subtype_indication semi
 
-subtype_indication := selected_name range_constraint?
+subtype_indication := selected_name constraint?
+constraint := range_constraint
+           | index_constraint
 range_constraint := kw_range range_expression
+index_constraint := lparen discrete_range (comma discrete_range)* rparen
 discrete_range := range_expression
+                | attribute_name
+                | selected_name
                 | subtype_indication kw_range range_expression
+                | subtype_indication kw_range box
 
 range_expression := expression kw_to expression
                   | expression kw_downto expression
@@ -132,21 +190,29 @@ range_expression := expression kw_to expression
 # ---------------------------------------------------------------------------
 
 concurrent_statement := concurrent_signal_assignment_statement
+                      | assert_statement
                       | process_statement
                       | component_instantiation_statement
                       | generate_statement
                       | block_statement
                       | semi
 
-concurrent_signal_assignment_statement := target lte expression semi
-target := selected_name
+concurrent_signal_assignment_statement := target lte signal_assignment_rhs semi
+target := selected_name actual_parameter_part?
+        | lparen target (comma target)+ rparen
 
-component_instantiation_statement := identifier colon selected_name kw_port kw_map association_list semi
+component_instantiation_statement := identifier colon instantiated_unit generic_map_aspect? port_map_aspect? semi
+instantiated_unit := selected_name
+                   | kw_entity selected_name
+                   | kw_configuration selected_name
+port_map_aspect := kw_port kw_map association_list
 association_list := lparen association_element (comma association_element)* rparen
-association_element := (identifier arrow)? expression
+association_element := (identifier arrow)? actual_part
+actual_part := expression
+            | kw_open
 
-generate_statement := kw_for identifier kw_in discrete_range kw_generate concurrent_statement* kw_end kw_generate semi
-                    | kw_if expression kw_generate concurrent_statement* kw_end kw_generate semi
+generate_statement := (identifier colon)? kw_for identifier kw_in discrete_range kw_generate concurrent_statement* kw_end kw_generate semi
+                    | (identifier colon)? kw_if expression kw_generate concurrent_statement* kw_end kw_generate semi
 
 block_statement := identifier colon kw_block (kw_is architecture_declarative_item*)? kw_begin concurrent_statement* kw_end kw_block identifier? semi
 
@@ -154,26 +220,42 @@ block_statement := identifier colon kw_block (kw_is architecture_declarative_ite
 # Process and sequential statements
 # ---------------------------------------------------------------------------
 
-process_statement := process_label? kw_process sensitivity_clause? kw_begin sequential_statement* kw_end kw_process? identifier? semi
+process_statement := process_label? kw_process sensitivity_clause? kw_is? process_declarative_item* kw_begin sequential_statement* kw_end kw_process? identifier? semi
 process_label := identifier colon
 sensitivity_clause := lparen sensitivity_list rparen
 sensitivity_list := selected_name (comma selected_name)*
+
+process_declarative_item := variable_declaration
+                          | file_declaration
+                          | constant_declaration
+                          | type_declaration
+                          | subtype_declaration
+                          | subprogram_declaration
+                          | subprogram_body
+                          | use_clause
+                          | semi
 
 sequential_statement := signal_assignment_statement
                       | variable_assignment_statement
                       | if_statement
                       | case_statement
                       | loop_statement
+                      | exit_statement
                       | wait_statement
+                      | assert_statement
+                      | report_statement
                       | null_statement
                       | return_statement
                       | procedure_call_statement
                       | semi
 
-signal_assignment_statement := target lte expression semi
-variable_assignment_statement := selected_name assign expression semi
+signal_assignment_statement := target lte signal_assignment_rhs semi
+variable_assignment_statement := target assign expression semi
 procedure_call_statement := selected_name actual_parameter_part? semi
-actual_parameter_part := lparen association_element (comma association_element)* rparen
+actual_parameter_part := lparen actual_parameter_element (comma actual_parameter_element)* rparen
+actual_parameter_element := association_element
+                          | range_expression
+signal_assignment_rhs := expression (kw_when expression kw_else expression (kw_when expression kw_else expression)*)?
 
 if_statement := kw_if expression kw_then sequential_statement* (kw_elsif expression kw_then sequential_statement*)* (kw_else sequential_statement*)? kw_end kw_if semi
 
@@ -187,7 +269,10 @@ loop_statement := kw_while expression kw_loop sequential_statement* kw_end kw_lo
                 | kw_for identifier kw_in discrete_range kw_loop sequential_statement* kw_end kw_loop semi
                 | kw_loop sequential_statement* kw_end kw_loop semi
 
+exit_statement := kw_exit (kw_when expression | identifier (kw_when expression)?)? semi
 wait_statement := kw_wait (kw_for expression)? semi
+assert_statement := kw_assert expression (kw_report expression)? (kw_severity expression)? semi
+report_statement := kw_report expression (kw_severity expression)? semi
 null_statement := kw_null semi
 return_statement := kw_return expression? semi
 
@@ -197,14 +282,30 @@ return_statement := kw_return expression? semi
 
 expression := relation (logical_operator relation)*
 relation := simple_expression (relational_operator simple_expression)?
-simple_expression := term ((plus | minus | ampersand) term)*
+simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
 term := factor ((star | slash | kw_mod | kw_rem) factor)*
 factor := primary (power primary)?
 
 primary := literal
+         | aggregate
+         | attribute_name
+         | selected_name actual_parameter_part?
          | selected_name
          | lparen expression rparen
          | kw_not primary
+
+attribute_name := selected_name actual_parameter_part? tick identifier actual_parameter_part?
+
+aggregate := lparen aggregate_choice_list arrow expression (comma aggregate_element_association)* rparen
+           | lparen expression comma aggregate_element_association (comma aggregate_element_association)* rparen
+aggregate_element_association := aggregate_choice_list arrow expression
+                               | expression
+aggregate_choice_list := aggregate_choice (bar aggregate_choice)*
+aggregate_choice := kw_others
+                  | selected_name
+                  | decimal_literal
+                  | character_literal
+                  | string_literal
 
 logical_operator := kw_and
                   | kw_or
@@ -220,14 +321,18 @@ relational_operator := equal
                      | gt
                      | gteq
 
-literal := decimal_literal
+literal := physical_literal
+         | decimal_literal
          | based_literal
+         | bit_string_literal
          | string_literal
          | character_literal
 
+physical_literal := trivia /[0-9][0-9_]*(?:\.[0-9][0-9_]*)?[ \t\r\n]+(?:fs|ps|ns|us|ms|sec|min|hr)\b/
 decimal_literal := unsigned_number
 based_literal := unsigned_number hash based_value hash
 based_value := /[0-9A-Fa-f_]+/
+bit_string_literal := trivia /[0-9]*[bBoOxX]"[0-9A-Fa-f_xXzZ]+"/
 
 # ---------------------------------------------------------------------------
 # Lexical
@@ -250,6 +355,8 @@ dot := trivia /\./
 bar := trivia /\|/
 lparen := trivia /\(/
 rparen := trivia /\)/
+box := trivia /<>/
+tick := trivia /'/
 arrow := trivia /=>/
 assign := trivia /:=/
 lte := trivia /<=/
@@ -268,61 +375,74 @@ gt := trivia />/
 gteq := trivia />=/
 hash := trivia /#/
 
-kw_library := trivia /library\b/
-kw_use := trivia /use\b/
-kw_context := trivia /context\b/
-kw_entity := trivia /entity\b/
-kw_architecture := trivia /architecture\b/
-kw_configuration := trivia /configuration\b/
-kw_package := trivia /package\b/
-kw_body := trivia /body\b/
-kw_procedure := trivia /procedure\b/
-kw_function := trivia /function\b/
-kw_return := trivia /return\b/
-kw_is := trivia /is\b/
-kw_begin := trivia /begin\b/
-kw_end := trivia /end\b/
-kw_generic := trivia /generic\b/
-kw_port := trivia /port\b/
-kw_map := trivia /map\b/
-kw_signal := trivia /signal\b/
-kw_constant := trivia /constant\b/
-kw_type := trivia /type\b/
-kw_subtype := trivia /subtype\b/
-kw_array := trivia /array\b/
-kw_record := trivia /record\b/
-kw_of := trivia /of\b/
-kw_range := trivia /range\b/
-kw_to := trivia /to\b/
-kw_downto := trivia /downto\b/
-kw_block := trivia /block\b/
-kw_process := trivia /process\b/
-kw_loop := trivia /loop\b/
-kw_generate := trivia /generate\b/
-kw_if := trivia /if\b/
-kw_then := trivia /then\b/
-kw_elsif := trivia /elsif\b/
-kw_else := trivia /else\b/
-kw_case := trivia /case\b/
-kw_when := trivia /when\b/
-kw_for := trivia /for\b/
-kw_while := trivia /while\b/
-kw_wait := trivia /wait\b/
-kw_null := trivia /null\b/
-kw_others := trivia /others\b/
+kw_library := trivia /(?i:library)\b/
+kw_use := trivia /(?i:use)\b/
+kw_context := trivia /(?i:context)\b/
+kw_entity := trivia /(?i:entity)\b/
+kw_architecture := trivia /(?i:architecture)\b/
+kw_configuration := trivia /(?i:configuration)\b/
+kw_package := trivia /(?i:package)\b/
+kw_body := trivia /(?i:body)\b/
+kw_component := trivia /(?i:component)\b/
+kw_view := trivia /(?i:view)\b/
+kw_alias := trivia /(?i:alias)\b/
+kw_converse := trivia /(?i:converse)\b/
+kw_procedure := trivia /(?i:procedure)\b/
+kw_function := trivia /(?i:function)\b/
+kw_impure := trivia /(?i:impure)\b/
+kw_return := trivia /(?i:return)\b/
+kw_is := trivia /(?i:is)\b/
+kw_begin := trivia /(?i:begin)\b/
+kw_end := trivia /(?i:end)\b/
+kw_variable := trivia /(?i:variable)\b/
+kw_file := trivia /(?i:file)\b/
+kw_open := trivia /(?i:open)\b/
+kw_generic := trivia /(?i:generic)\b/
+kw_port := trivia /(?i:port)\b/
+kw_map := trivia /(?i:map)\b/
+kw_signal := trivia /(?i:signal)\b/
+kw_constant := trivia /(?i:constant)\b/
+kw_type := trivia /(?i:type)\b/
+kw_subtype := trivia /(?i:subtype)\b/
+kw_array := trivia /(?i:array)\b/
+kw_record := trivia /(?i:record)\b/
+kw_of := trivia /(?i:of)\b/
+kw_range := trivia /(?i:range)\b/
+kw_to := trivia /(?i:to)\b/
+kw_downto := trivia /(?i:downto)\b/
+kw_block := trivia /(?i:block)\b/
+kw_process := trivia /(?i:process)\b/
+kw_loop := trivia /(?i:loop)\b/
+kw_generate := trivia /(?i:generate)\b/
+kw_new := trivia /(?i:new)\b/
+kw_if := trivia /(?i:if)\b/
+kw_then := trivia /(?i:then)\b/
+kw_elsif := trivia /(?i:elsif)\b/
+kw_else := trivia /(?i:else)\b/
+kw_case := trivia /(?i:case)\b/
+kw_when := trivia /(?i:when)\b/
+kw_for := trivia /(?i:for)\b/
+kw_while := trivia /(?i:while)\b/
+kw_exit := trivia /(?i:exit)\b/
+kw_wait := trivia /(?i:wait)\b/
+kw_assert := trivia /(?i:assert)\b/
+kw_report := trivia /(?i:report)\b/
+kw_severity := trivia /(?i:severity)\b/
+kw_null := trivia /(?i:null)\b/
+kw_others := trivia /(?i:others)\b/
 
-kw_in := trivia /in\b/
-kw_out := trivia /out\b/
-kw_inout := trivia /inout\b/
-kw_buffer := trivia /buffer\b/
-kw_linkage := trivia /linkage\b/
+kw_in := trivia /(?i:in)\b/
+kw_out := trivia /(?i:out)\b/
+kw_inout := trivia /(?i:inout)\b/
+kw_buffer := trivia /(?i:buffer)\b/
+kw_linkage := trivia /(?i:linkage)\b/
 
-kw_and := trivia /and\b/
-kw_or := trivia /or\b/
-kw_xor := trivia /xor\b/
-kw_nand := trivia /nand\b/
-kw_nor := trivia /nor\b/
-kw_xnor := trivia /xnor\b/
-kw_not := trivia /not\b/
-kw_mod := trivia /mod\b/
-kw_rem := trivia /rem\b/
+kw_and := trivia /(?i:and)\b/
+kw_or := trivia /(?i:or)\b/
+kw_xor := trivia /(?i:xor)\b/
+kw_nand := trivia /(?i:nand)\b/
+kw_nor := trivia /(?i:nor)\b/
+kw_xnor := trivia /(?i:xnor)\b/
+kw_not := trivia /(?i:not)\b/
+kw_mod := trivia /(?i:mod)\b/
+kw_rem := trivia /(?i:rem)\b/

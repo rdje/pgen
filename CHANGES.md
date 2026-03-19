@@ -21200,3 +21200,29 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - next closed focused UVM prefix failure is now `1883`
   - Live-status effect:
     - `systemverilog`: remains `Mostly Done`
+- 2026-03-19: Landed a shared frontend/parser-hardening slice across the EBNF spec, frontend, generated-parser plumbing, and `vhdl.ebnf` without changing any live-status labels.
+  - Updated:
+    - `fx/specs/ebnf.spec`
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - `grammars/vhdl.ebnf`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/bin/parseability_probe.rs`
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/parser_registry.rs`
+  - What changed:
+    - promoted explicit positive/negative lookahead operators (`&` / `!`) into the checked-in EBNF spec, frontend tokenizer, validator, AST-based generator, and stimuli generator so the PGEN dialect can carry grammar-level lookahead intentionally instead of via ad hoc grammar tricks
+    - added generated-parser profile normalization so external-corpus and debug callers that pass `2017` / `2023` are mapped to the generated SystemVerilog adapter's expected `sv_2017` / `sv_2023` profiles
+    - upgraded `parseability_probe` with first-class `--trace` / `--trace-log-file` support and centralized global-flag stripping, making focused parser debugging easier without relying on one-off wrappers
+    - refreshed `grammars/systemverilog_preprocessor.ebnf` regex escaping and significantly broadened `grammars/vhdl.ebnf` to cover more real-corpus declarations, subprogram bodies, package/view forms, aggregates, sequential statements, literals, and constraint/name shapes exposed by the new external VHDL corpus
+  - Focused validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_preprocessor.ebnf`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/vhdl.ebnf`
+    - `cargo test --manifest-path rust/Cargo.toml tokenizes_lookahead_operators --quiet`
+    - `cargo test --manifest-path rust/Cargo.toml strip_global_flags --quiet`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - Live-status effect:
+    - `systemverilog`: remains `Mostly Done`
+    - `systemverilog_preprocessor`: remains `Mostly Done`
+    - `vhdl`: remains `In Progress`

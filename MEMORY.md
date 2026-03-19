@@ -5094,3 +5094,29 @@ Use this file to resume work without replaying full chat history.
     - `/tmp/uvm_pkg_top_1634.sv`
   - Closed UVM package-body prefix checkpoints now pass through `1743`
   - Next closed focused UVM prefix failure is now `1883`
+- 2026-03-19: The currently uncommitted frontend/parser slice was grouped and committed as one shared hardening increment instead of being split into partial micro-commits.
+  - Scope:
+    - `fx/specs/ebnf.spec`
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - `grammars/vhdl.ebnf`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/bin/parseability_probe.rs`
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/parser_registry.rs`
+  - Key outcomes:
+    - PGEN EBNF now has first-class `&` / `!` lookahead support through spec, tokenizer, validator, generator, and stimuli layers
+    - `parseability_probe` now supports direct `--trace` / `--trace-log-file` usage for focused parser debugging
+    - generated parser registry normalizes bare SV profile requests (`2017`, `2023`) to generated-adapter names (`sv_2017`, `sv_2023`)
+    - `vhdl.ebnf` was broadened significantly from external-corpus hardening pressure and still validates cleanly at `215` rules
+  - Validation recorded:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_preprocessor.ebnf`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/vhdl.ebnf`
+    - `cargo test --manifest-path rust/Cargo.toml tokenizes_lookahead_operators --quiet`
+    - `cargo test --manifest-path rust/Cargo.toml strip_global_flags --quiet`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - Live status unchanged:
+    - `systemverilog`: `Mostly Done`
+    - `systemverilog_preprocessor`: `Mostly Done`
+    - `vhdl`: `In Progress`

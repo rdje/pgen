@@ -467,7 +467,7 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                 }
                 idx += 1;
             }
-            '|' | '*' | '+' | '?' => {
+            '|' | '*' | '+' | '?' | '!' | '&' => {
                 tokens.push(json!(["operator", ch.to_string()]));
                 idx += 1;
             }
@@ -809,6 +809,17 @@ mod tests {
         assert!(rendered.contains("[\"rule_reference\",\"foo\"]"));
         assert!(rendered.contains("[\"group_close\",\")\"]"));
         assert!(rendered.contains("[\"operator\",\"?\"]"));
+    }
+
+    #[test]
+    fn tokenizes_lookahead_operators() {
+        let tokens =
+            tokenize_rule_expression("!keyword &identifier").expect("lookahead tokenization");
+        let rendered = serde_json::to_string(&tokens).expect("json");
+        assert!(rendered.contains("[\"operator\",\"!\"]"));
+        assert!(rendered.contains("[\"operator\",\"&\"]"));
+        assert!(rendered.contains("[\"rule_reference\",\"keyword\"]"));
+        assert!(rendered.contains("[\"rule_reference\",\"identifier\"]"));
     }
 
     #[test]

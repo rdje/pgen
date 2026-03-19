@@ -24,6 +24,24 @@ use serde_json::Value as JsonValue;
 
 type ParseSampleFn = fn(&str) -> bool;
 
+fn normalize_generated_grammar_profile<'a>(
+    grammar_name: &str,
+    grammar_profile: Option<&'a str>,
+) -> Option<&'a str> {
+    let profile = grammar_profile?.trim();
+    if profile.is_empty() {
+        return None;
+    }
+    match grammar_name {
+        "systemverilog" => match profile.to_ascii_lowercase().as_str() {
+            "2017" | "ieee1800-2017" | "ieee_1800_2017" => Some("sv_2017"),
+            "2023" | "ieee1800-2023" | "ieee_1800_2023" => Some("sv_2023"),
+            _ => grammar_profile,
+        },
+        _ => grammar_profile,
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct GeneratedParserRegistryEntry {
     pub grammar_name: &'static str,
@@ -216,7 +234,10 @@ fn parse_with_systemverilog(sample: &str) -> bool {
 fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>) -> bool {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
-    parser.set_grammar_profile(grammar_profile);
+    parser.set_grammar_profile(normalize_generated_grammar_profile(
+        "systemverilog",
+        grammar_profile,
+    ));
     parser.parse_full_systemverilog_file().is_ok()
 }
 
@@ -227,7 +248,10 @@ fn parse_with_systemverilog_detail_profile(
 ) -> Result<(), String> {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
-    parser.set_grammar_profile(grammar_profile);
+    parser.set_grammar_profile(normalize_generated_grammar_profile(
+        "systemverilog",
+        grammar_profile,
+    ));
     parser
         .parse_full_systemverilog_file()
         .map(|_| ())
@@ -246,7 +270,10 @@ fn parse_with_systemverilog_ast_json_profile(
 ) -> Result<JsonValue, String> {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
-    parser.set_grammar_profile(grammar_profile);
+    parser.set_grammar_profile(normalize_generated_grammar_profile(
+        "systemverilog",
+        grammar_profile,
+    ));
     let parsed = parser
         .parse_full_systemverilog_file()
         .map_err(|err| err.to_string())?;
