@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-19 - Precompile rule-level semantic runtime directives
+### ✅ Achievement Summary
+Added the first compiled rule-level view over semantic-runtime-capable annotations. `Annotations.semantic_annotations` can now be lowered once into `CompiledSemanticRuntimeAnnotations`, so future parser integration can look up runtime directives for a rule directly instead of reparsing whole semantic-annotation lists ad hoc.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `CompiledSemanticRuntimeAnnotations`
+  - added `compile_rule_semantic_runtime_directives(...)`
+  - added `compile_semantic_runtime_annotations(...)`
+  - added focused tests for:
+    - per-rule order preservation,
+    - non-runtime annotation filtering,
+    - rule-local error context,
+    - wrapper/free-function parity
+- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - re-exported the compiled semantic-runtime annotation helpers/types
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --no-run`
+- direct lib test binary:
+  - `ast_pipeline::semantic_runtime::tests::compile_rule_directives_preserves_runtime_order_and_skips_other_annotations`
+  - `ast_pipeline::semantic_runtime::tests::compile_annotations_groups_runtime_directives_by_rule`
+  - `ast_pipeline::semantic_runtime::tests::compile_annotations_reports_rule_context_for_invalid_runtime_payloads`
+  - `ast_pipeline::semantic_runtime::tests::compiled_annotation_wrapper_matches_free_function`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Important Boundary
+- This is still a preprocessing/lookup layer for semantic runtime, not parser steering.
+- Generated parsers do not yet:
+  - open semantic transactions automatically,
+  - consult compiled runtime directives during branch execution,
+  - or incorporate semantic-state-sensitive memoization.
+
 ## 2026-03-19 - Add semantic runtime transaction helper
 ### ✅ Achievement Summary
 Built the first ergonomic transaction API on top of semantic runtime checkpoints. `SemanticRuntimeState` can now open an RAII-style transaction, batch-apply runtime directives or annotations, and either commit explicitly or roll back automatically on drop. This still does not steer the parser, but it gives future parser integration a ready-made transactional API instead of manual checkpoint plumbing.

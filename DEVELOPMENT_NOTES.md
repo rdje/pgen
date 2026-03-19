@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Precompile semantic runtime directives by rule
+### Context
+The semantic-runtime scaffold now had typed directives, checkpoints, and transactions, but one integration bottleneck was still obvious: future parser code would otherwise have to re-scan and re-parse whole semantic-annotation lists every time it wanted runtime behavior for a rule. That would duplicate work and blur where runtime-compilable directives stop and general semantic annotations begin.
+
+### Implementation
+- Added `CompiledSemanticRuntimeAnnotations` in [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs).
+- Added:
+  - `compile_rule_semantic_runtime_directives(...)`
+  - `compile_semantic_runtime_annotations(...)`
+  - `CompiledSemanticRuntimeAnnotations::compile(...)`
+  - `CompiledSemanticRuntimeAnnotations::directives_for_rule(...)`
+- Compilation semantics are intentionally narrow:
+  - only runtime-capable directives (`emit_fact`, `open_scope`, `close_scope`, `predicate`) are retained,
+  - per-rule directive order is preserved,
+  - rules with only non-runtime semantic annotations are omitted from the compiled map,
+  - runtime parse errors now report rule name and annotation index for easier later parser integration.
+
+### Why This Matters
+- Future parser integration now has a natural handoff object:
+  - compile semantic runtime directives once from `Annotations`,
+  - query them by rule during parse execution.
+- This keeps the semantic-runtime boundary cleaner:
+  - semantic annotation parsing/lowering happens up front,
+  - runtime execution can stay focused on state transitions and transactions.
+
+### Remaining Gap
+- Compiled rule lookup is still passive:
+  - no generated parser currently consumes `CompiledSemanticRuntimeAnnotations`,
+  - no branch-local automatic transaction opening yet,
+  - no semantic-aware memoization or predicate dispatch yet.
+- The next useful implementation step is to thread this compiled rule view into a narrow parser-facing execution seam rather than adding more runtime directive surface area first.
+
 ## 2026-03-19 - Add RAII transaction helper for semantic runtime
 ### Context
 Checkpoints made semantic runtime state reversible, but the next integration hazard was already obvious: if every future parser branch has to remember `checkpoint()`, `rollback_to(...)`, and `commit(...)` manually, transaction safety will drift. The right next increment was therefore an explicit transaction helper that owns the checkpoint and makes rollback the default.

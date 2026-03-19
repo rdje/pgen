@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use serde;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -902,7 +902,8 @@ impl RustASTPipeline {
                         }
                         if let Some(existing_rule) = grammar_tree.get(&rule_name).cloned() {
                             let mut merged_alternatives = Self::as_alternatives(&existing_rule);
-                            merged_alternatives.extend(Self::as_alternatives(&parsed_rule.ast_node));
+                            merged_alternatives
+                                .extend(Self::as_alternatives(&parsed_rule.ast_node));
                             grammar_tree
                                 .insert(rule_name, Self::build_or_node(merged_alternatives));
                         } else {
@@ -2636,27 +2637,27 @@ pub use annotation_validator::{
     AnnotationValidator, AnnotationValidatorConfig,
 };
 pub use semantic_directive_registry::{
-    SemanticAssociativity, SemanticBranchPolicy, SemanticDeterministicGroupHint,
-    SemanticDirectiveCapability, SemanticDirectiveSpec, SemanticTokenClass,
-    SemanticValueConstraints, UnknownSemanticDirectivePolicy, extract_semantic_directive,
-    extract_semantic_directive_name, normalize_semantic_scalar, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
-    parse_semantic_float_list, parse_semantic_group_label, parse_semantic_implication,
-    parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
-    parse_semantic_numeric_list, parse_semantic_pattern, parse_semantic_reference_list,
-    parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec,
+    extract_semantic_directive, extract_semantic_directive_name, normalize_semantic_scalar,
+    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
+    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+    parse_semantic_deterministic_group, parse_semantic_float_list, parse_semantic_group_label,
+    parse_semantic_implication, parse_semantic_len_bounds, parse_semantic_nonnegative_usize,
+    parse_semantic_numeric_bounds, parse_semantic_numeric_list, parse_semantic_pattern,
+    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
+    semantic_directive_spec, SemanticAssociativity, SemanticBranchPolicy,
+    SemanticDeterministicGroupHint, SemanticDirectiveCapability, SemanticDirectiveSpec,
+    SemanticTokenClass, SemanticValueConstraints, UnknownSemanticDirectivePolicy,
 };
 pub use semantic_runtime::{
-    SemanticCloseScopeSpec, SemanticFactRecord, SemanticFactSpec, SemanticPredicateSpec,
-    SemanticRuntimeCheckpoint, SemanticRuntimeDirective, SemanticRuntimeState,
-    SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame, SemanticScopeKind,
-    SemanticScopeSpec, parse_semantic_runtime_directive, parse_semantic_runtime_directives,
+    compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
+    parse_semantic_runtime_directive, parse_semantic_runtime_directives,
+    CompiledSemanticRuntimeAnnotations, SemanticCloseScopeSpec, SemanticFactRecord,
+    SemanticFactSpec, SemanticPredicateSpec, SemanticRuntimeCheckpoint, SemanticRuntimeDirective,
+    SemanticRuntimeState, SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame,
+    SemanticScopeKind, SemanticScopeSpec,
 };
 pub use semantic_transform::{
-    CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,
+    parse_canonical_transform_expression, stimuli_hint_for_target_type, CanonicalSemanticTransform,
 };
 pub use unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
-pub use unified_semantic_ast::{
-    UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
-};
+pub use unified_semantic_ast::{UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue};

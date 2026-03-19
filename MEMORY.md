@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: add-semantic-runtime-transaction-helper)
+Last updated: 2026-03-19 (+0100, task: precompile-semantic-runtime-directives-by-rule)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -157,7 +157,25 @@ Use this file to resume work without replaying full chat history.
   - no semantic fact tables yet
   - no predicate runtime yet
   - no backtracking-aware semantic state yet
+- Runtime backbone now includes:
+  - typed runtime directives (`emit_fact`, `open_scope`, `close_scope`, `predicate`)
+  - scoped semantic runtime state
+  - explicit checkpoints
+  - rollback-on-drop transactions
+  - compiled rule-level runtime directive lookup via:
+    - `CompiledSemanticRuntimeAnnotations`
+    - `compile_rule_semantic_runtime_directives(...)`
+    - `compile_semantic_runtime_annotations(...)`
+- Current boundary remains explicit:
+  - runtime directives can now be precompiled by rule, but generated parsers do not yet consume that compiled map during parse execution
+  - no semantic predicate dispatch yet
+  - no semantic-aware memoization yet
 - Next likely task:
+  - thread `CompiledSemanticRuntimeAnnotations` into a narrow parser-facing execution seam
+  - keep the first pilot small:
+    - rule-level directive lookup
+    - transaction open/apply/commit at a controlled integration point
+    - no broad parser-wide steering flip all at once
   - continue widening generated semantic tree lowering
   - then start the first semantic-annotation-driven fact/scope/predicate pilot for SV declaration-vs-statement disambiguation
 

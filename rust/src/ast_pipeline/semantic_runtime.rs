@@ -1,4 +1,8 @@
-use super::{SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue};
+use super::{
+    Annotations, SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticProperty,
+    UnifiedSemanticValue,
+};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SemanticScopeKind {
@@ -104,6 +108,44 @@ pub enum SemanticRuntimeDirective {
     CloseScope(SemanticCloseScopeSpec),
     EmitFact(SemanticFactSpec),
     Predicate(SemanticPredicateSpec),
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct CompiledSemanticRuntimeAnnotations {
+    directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
+}
+
+impl CompiledSemanticRuntimeAnnotations {
+    pub fn compile(annotations: &Annotations) -> Result<Self, String> {
+        compile_semantic_runtime_annotations(annotations)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.directives_by_rule.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.directives_by_rule.len()
+    }
+
+    pub fn has_rule(&self, rule_name: &str) -> bool {
+        self.directives_by_rule.contains_key(rule_name)
+    }
+
+    pub fn directives_for_rule(&self, rule_name: &str) -> &[SemanticRuntimeDirective] {
+        self.directives_by_rule
+            .get(rule_name)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub fn iter(
+        &self,
+    ) -> impl Iterator<Item = (&str, &[SemanticRuntimeDirective])> + ExactSizeIterator + '_ {
+        self.directives_by_rule
+            .iter()
+            .map(|(rule_name, directives)| (rule_name.as_str(), directives.as_slice()))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -271,7 +313,10 @@ impl<'a> SemanticRuntimeTransaction<'a> {
         applied
     }
 
-    pub fn apply_annotations<'b, I>(&mut self, annotations: I) -> Result<Vec<SemanticRuntimeDirective>, String>
+    pub fn apply_annotations<'b, I>(
+        &mut self,
+        annotations: I,
+    ) -> Result<Vec<SemanticRuntimeDirective>, String>
     where
         I: IntoIterator<Item = &'b SemanticAnnotation>,
     {
@@ -332,17 +377,55 @@ where
     Ok(directives)
 }
 
+pub fn compile_rule_semantic_runtime_directives<'a, I>(
+    rule_name: &str,
+    annotations: I,
+) -> Result<Vec<SemanticRuntimeDirective>, String>
+where
+    I: IntoIterator<Item = &'a SemanticAnnotation>,
+{
+    let mut directives = Vec::new();
+    for (index, annotation) in annotations.into_iter().enumerate() {
+        match parse_semantic_runtime_directive(annotation) {
+            Ok(Some(directive)) => directives.push(directive),
+            Ok(None) => {}
+            Err(err) => {
+                return Err(format!(
+                    "Failed to compile semantic runtime directive for rule '{}' at annotation #{}: {}",
+                    rule_name, index, err
+                ));
+            }
+        }
+    }
+    Ok(directives)
+}
+
+pub fn compile_semantic_runtime_annotations(
+    annotations: &Annotations,
+) -> Result<CompiledSemanticRuntimeAnnotations, String> {
+    let mut directives_by_rule = HashMap::new();
+    for (rule_name, semantic_annotations) in &annotations.semantic_annotations {
+        let directives =
+            compile_rule_semantic_runtime_directives(rule_name, semantic_annotations.iter())?;
+        if !directives.is_empty() {
+            directives_by_rule.insert(rule_name.clone(), directives);
+        }
+    }
+    Ok(CompiledSemanticRuntimeAnnotations { directives_by_rule })
+}
+
 fn parse_open_scope(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective, String> {
-    let payload = ast
-        .structured_value()
-        .ok_or_else(|| "Directive '@open_scope' expects a structured object payload.".to_string())?;
+    let payload = ast.structured_value().ok_or_else(|| {
+        "Directive '@open_scope' expects a structured object payload.".to_string()
+    })?;
     let properties = object_properties(payload)
         .ok_or_else(|| "Directive '@open_scope' expects an object payload.".to_string())?;
     let kind = property(properties, "kind")
         .ok_or_else(|| "Directive '@open_scope' requires a 'kind' field.".to_string())
         .and_then(|value| {
-            SemanticScopeKind::parse(value)
-                .ok_or_else(|| "Directive '@open_scope.kind' must be a known scope kind.".to_string())
+            SemanticScopeKind::parse(value).ok_or_else(|| {
+                "Directive '@open_scope.kind' must be a known scope kind.".to_string()
+            })
         })?;
     let name = property(properties, "name")
         .map(|value| {
@@ -367,8 +450,9 @@ fn parse_close_scope(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirectiv
 
     let kind = property(properties, "kind")
         .map(|value| {
-            SemanticScopeKind::parse(value)
-                .ok_or_else(|| "Directive '@close_scope.kind' must be a known scope kind.".to_string())
+            SemanticScopeKind::parse(value).ok_or_else(|| {
+                "Directive '@close_scope.kind' must be a known scope kind.".to_string()
+            })
         })
         .transpose()?;
     let name = property(properties, "name")
@@ -379,10 +463,9 @@ fn parse_close_scope(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirectiv
         })
         .transpose()?;
 
-    Ok(SemanticRuntimeDirective::CloseScope(SemanticCloseScopeSpec {
-        kind,
-        name,
-    }))
+    Ok(SemanticRuntimeDirective::CloseScope(
+        SemanticCloseScopeSpec { kind, name },
+    ))
 }
 
 fn parse_emit_fact(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective, String> {
@@ -449,9 +532,8 @@ fn parse_predicate(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective,
                 let args = match property(properties, "args") {
                     Some(UnifiedSemanticValue::Array(values)) => values.clone(),
                     Some(_) => {
-                        return Err(
-                            "Directive '@predicate.args' must be an array when present.".to_string(),
-                        );
+                        return Err("Directive '@predicate.args' must be an array when present."
+                            .to_string());
                     }
                     None => Vec::new(),
                 };
@@ -498,13 +580,20 @@ fn scalar_text(value: &UnifiedSemanticValue) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState,
-        SemanticRuntimeValue, SemanticScopeKind, parse_semantic_runtime_directive,
-        parse_semantic_runtime_directives,
+        compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
+        parse_semantic_runtime_directive, parse_semantic_runtime_directives,
+        CompiledSemanticRuntimeAnnotations, SemanticPredicateSpec, SemanticRuntimeDirective,
+        SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
     };
-    use crate::ast_pipeline::{SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticValue};
+    use crate::ast_pipeline::{
+        Annotations, SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticValue,
+    };
 
-    fn structured_named(name: &str, canonical: &str, value: UnifiedSemanticValue) -> SemanticAnnotation {
+    fn structured_named(
+        name: &str,
+        canonical: &str,
+        value: UnifiedSemanticValue,
+    ) -> SemanticAnnotation {
         SemanticAnnotation::Named {
             name: name.to_string(),
             ast: UnifiedSemanticAST::Structured {
@@ -591,8 +680,7 @@ mod tests {
             ]),
         );
 
-        let parsed =
-            parse_semantic_runtime_directive(&predicate).expect("predicate should parse");
+        let parsed = parse_semantic_runtime_directive(&predicate).expect("predicate should parse");
         assert_eq!(
             parsed,
             Some(SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
@@ -755,7 +843,9 @@ mod tests {
         assert_eq!(state.scopes().len(), 2);
         assert_eq!(
             state.current_scope().name,
-            Some(SemanticRuntimeValue::Identifier("committed_pkg".to_string()))
+            Some(SemanticRuntimeValue::Identifier(
+                "committed_pkg".to_string()
+            ))
         );
     }
 
@@ -849,5 +939,191 @@ mod tests {
         assert_eq!(state.scopes().len(), 2);
         assert_eq!(state.facts().len(), 1);
         assert_eq!(state.facts()[0].kind, "typedef");
+    }
+
+    #[test]
+    fn compile_rule_directives_preserves_runtime_order_and_skips_other_annotations() {
+        let annotations = vec![
+            structured_named(
+                "category",
+                "\"metadata\"",
+                UnifiedSemanticValue::String("metadata".to_string()),
+            ),
+            structured_named(
+                "open_scope",
+                "{ kind: package, name: batched_pkg }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("package".to_string()),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("batched_pkg".to_string()),
+                    },
+                ]),
+            ),
+            structured_named(
+                "emit_fact",
+                "{ kind: typedef, name: batched_type }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("batched_type".to_string()),
+                    },
+                ]),
+            ),
+        ];
+
+        let directives =
+            compile_rule_semantic_runtime_directives("package_declaration", annotations.iter())
+                .expect("runtime directives should compile");
+
+        assert_eq!(directives.len(), 2);
+        assert!(matches!(
+            directives.first(),
+            Some(SemanticRuntimeDirective::OpenScope(_))
+        ));
+        assert!(matches!(
+            directives.get(1),
+            Some(SemanticRuntimeDirective::EmitFact(_))
+        ));
+    }
+
+    #[test]
+    fn compile_annotations_groups_runtime_directives_by_rule() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![
+                structured_named(
+                    "open_scope",
+                    "{ kind: package, name: batched_pkg }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("batched_pkg".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "emit_fact",
+                    "{ kind: typedef, name: batched_type }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("batched_type".to_string()),
+                        },
+                    ]),
+                ),
+            ],
+        );
+        annotations.semantic_annotations.insert(
+            "metadata_only_rule".to_string(),
+            vec![structured_named(
+                "category",
+                "\"metadata\"",
+                UnifiedSemanticValue::String("metadata".to_string()),
+            )],
+        );
+        annotations.semantic_annotations.insert(
+            "function_declaration".to_string(),
+            vec![structured_named(
+                "predicate",
+                "{ name: is_type_reference_start, args: [lhs] }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier(
+                            "is_type_reference_start".to_string(),
+                        ),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "args".to_string(),
+                        value: UnifiedSemanticValue::Array(vec![UnifiedSemanticValue::Identifier(
+                            "lhs".to_string(),
+                        )]),
+                    },
+                ]),
+            )],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+
+        assert_eq!(compiled.len(), 2);
+        assert!(compiled.has_rule("package_declaration"));
+        assert!(compiled.has_rule("function_declaration"));
+        assert!(!compiled.has_rule("metadata_only_rule"));
+        assert_eq!(compiled.directives_for_rule("package_declaration").len(), 2);
+        assert_eq!(
+            compiled.directives_for_rule("function_declaration").len(),
+            1
+        );
+        assert!(compiled.directives_for_rule("missing_rule").is_empty());
+    }
+
+    #[test]
+    fn compile_annotations_reports_rule_context_for_invalid_runtime_payloads() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![structured_named(
+                "open_scope",
+                "{ name: broken_pkg }",
+                UnifiedSemanticValue::Object(vec![crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("broken_pkg".to_string()),
+                }]),
+            )],
+        );
+
+        let err = compile_semantic_runtime_annotations(&annotations)
+            .expect_err("invalid runtime payload should fail compilation");
+
+        assert!(err.contains("rule 'package_declaration'"));
+        assert!(err.contains("annotation #0"));
+        assert!(err.contains("@open_scope"));
+    }
+
+    #[test]
+    fn compiled_annotation_wrapper_matches_free_function() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![structured_named(
+                "emit_fact",
+                "{ kind: typedef, name: batched_type }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("batched_type".to_string()),
+                    },
+                ]),
+            )],
+        );
+
+        let via_wrapper = CompiledSemanticRuntimeAnnotations::compile(&annotations)
+            .expect("wrapper compilation should succeed");
+        let via_function = compile_semantic_runtime_annotations(&annotations)
+            .expect("free-function compilation should succeed");
+
+        assert_eq!(via_wrapper, via_function);
     }
 }
