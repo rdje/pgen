@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-03-19 - Add semantic runtime checkpoints
+### ✅ Achievement Summary
+Extended the semantic-runtime scaffold with the first transaction primitive: explicit checkpoints plus rollback/commit semantics over scope and fact state. This is still non-steering, but it gives future speculative parsing work a concrete state model for “try, rollback, keep” instead of only prose about transaction safety.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `SemanticRuntimeCheckpoint`
+  - added `SemanticRuntimeState::checkpoint()`
+  - added `SemanticRuntimeState::rollback_to(...)`
+  - added `SemanticRuntimeState::commit(...)`
+  - added focused tests for speculative rollback and retained committed state
+- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - re-exported `SemanticRuntimeCheckpoint`
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --no-run`
+- direct lib test binary:
+  - `ast_pipeline::semantic_runtime::tests::runtime_state_rolls_back_speculative_changes_to_checkpoint`
+  - `ast_pipeline::semantic_runtime::tests::runtime_state_commit_keeps_accumulated_changes`
+
+### Important Boundary
+- This still does **not** integrate semantic runtime into parser backtracking or memoization.
+- What is now true is narrower and valuable:
+  - semantic state has an explicit checkpoint shape,
+  - speculative changes can be unwound deterministically,
+  - the next parser-steering work no longer needs to invent transaction semantics from scratch.
+
 ## 2026-03-19 - Add semantic-runtime directive scaffold
 ### ✅ Achievement Summary
 Landed the first executable semantic-runtime backbone for semantic annotations without changing parser behavior yet. The registry now recognizes `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate`, the validator checks their structured payload shapes, and a new runtime module can parse them into typed directives plus maintain a scoped semantic-state stack.

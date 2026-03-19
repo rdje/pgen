@@ -121,9 +121,13 @@ Near-term rollout:
     - new typed runtime directives `emit_fact`, `open_scope`, `close_scope`, `predicate`
     - new `semantic_runtime` module with typed scope/fact/predicate/state structures
     - validator coverage for the new directive payload shapes
+  - landed the first transaction primitive for semantic state:
+    - explicit runtime checkpoints
+    - rollback-to-checkpoint over scopes/facts
+    - commit marker semantics for retained post-checkpoint state
   - current boundary remains explicit:
     - parsed and validated, but not yet parser-steering
-    - no speculative rollback or memoization integration yet
+    - checkpoint primitives exist, but no parser backtracking/memoization integration yet
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: add-semantic-runtime-directive-scaffold)
+Last updated: 2026-03-19 (+0100, task: add-semantic-runtime-checkpoints)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -181,13 +181,20 @@ Use this file to resume work without replaying full chat history.
   - directives are parsed and validated
   - state can be built and updated explicitly
   - parser/runtime does **not** consult this state during parsing yet
-  - no speculative rollback or memoization integration is implemented yet
+  - parser/runtime does **not** consult this state during parsing yet
+- New transaction primitive now landed:
+  - `SemanticRuntimeCheckpoint`
+  - `SemanticRuntimeState::checkpoint()`
+  - `SemanticRuntimeState::rollback_to(...)`
+  - `SemanticRuntimeState::commit(...)`
+  - rollback currently truncates scopes/facts to the saved snapshot
+  - commit currently marks the retained post-checkpoint state as valid, but does not yet hook into parser control flow
 - Focused validations completed:
   - `cargo test --manifest-path rust/Cargo.toml --no-run`
   - direct lib tests for runtime directive parsing, runtime state flow, validator acceptance/rejection, and registry capability coverage
   - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
 - Next likely task:
-  - define transaction semantics for semantic state under speculative parsing
+  - wire these checkpoints into actual speculative parser execution points
   - then wire the first bounded predicate/query pilot into one narrow SV ambiguity family
 
 ## Current Technical Snapshot

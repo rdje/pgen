@@ -120,6 +120,12 @@ pub struct SemanticFactRecord {
     pub attributes: Vec<UnifiedSemanticProperty>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SemanticRuntimeCheckpoint {
+    scope_len: usize,
+    fact_len: usize,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SemanticRuntimeState {
     scopes: Vec<SemanticScopeFrame>,
@@ -155,6 +161,24 @@ impl SemanticRuntimeState {
         self.scopes
             .last()
             .expect("semantic runtime state always maintains at least the global scope")
+    }
+
+    pub fn checkpoint(&self) -> SemanticRuntimeCheckpoint {
+        SemanticRuntimeCheckpoint {
+            scope_len: self.scopes.len(),
+            fact_len: self.facts.len(),
+        }
+    }
+
+    pub fn rollback_to(&mut self, checkpoint: SemanticRuntimeCheckpoint) {
+        let scope_len = checkpoint.scope_len.max(1).min(self.scopes.len());
+        let fact_len = checkpoint.fact_len.min(self.facts.len());
+        self.scopes.truncate(scope_len);
+        self.facts.truncate(fact_len);
+    }
+
+    pub fn commit(&self, checkpoint: SemanticRuntimeCheckpoint) -> bool {
+        checkpoint.scope_len <= self.scopes.len() && checkpoint.fact_len <= self.facts.len()
     }
 
     pub fn open_scope(&mut self, spec: SemanticScopeSpec) {
@@ -388,8 +412,8 @@ fn scalar_text(value: &UnifiedSemanticValue) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::{
-        SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeValue,
-        SemanticScopeKind, parse_semantic_runtime_directive,
+        SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState,
+        SemanticRuntimeValue, SemanticScopeKind, parse_semantic_runtime_directive,
     };
     use crate::ast_pipeline::{SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticValue};
 
@@ -562,5 +586,89 @@ mod tests {
             SemanticRuntimeValue::Identifier("my_type".to_string())
         );
         assert_eq!(state.facts()[0].scope_depth, 1);
+    }
+
+    #[test]
+    fn runtime_state_rolls_back_speculative_changes_to_checkpoint() {
+        let open_scope = structured_named(
+            "open_scope",
+            "{ kind: package, name: trial_pkg }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("trial_pkg".to_string()),
+                },
+            ]),
+        );
+        let emit_fact = structured_named(
+            "emit_fact",
+            "{ kind: typedef, name: transient_type }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("transient_type".to_string()),
+                },
+            ]),
+        );
+
+        let mut state = SemanticRuntimeState::new();
+        let checkpoint = state.checkpoint();
+        let open_directive = parse_semantic_runtime_directive(&open_scope)
+            .expect("open_scope should parse")
+            .expect("directive should be present");
+        let fact_directive = parse_semantic_runtime_directive(&emit_fact)
+            .expect("emit_fact should parse")
+            .expect("directive should be present");
+
+        assert!(state.apply_directive(&open_directive));
+        assert!(state.apply_directive(&fact_directive));
+        assert_eq!(state.scopes().len(), 2);
+        assert_eq!(state.facts().len(), 1);
+
+        state.rollback_to(checkpoint);
+
+        assert_eq!(state.scopes().len(), 1);
+        assert_eq!(state.facts().len(), 0);
+        assert_eq!(state.current_scope().kind, SemanticScopeKind::Global);
+    }
+
+    #[test]
+    fn runtime_state_commit_keeps_accumulated_changes() {
+        let open_scope = structured_named(
+            "open_scope",
+            "{ kind: package, name: committed_pkg }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("committed_pkg".to_string()),
+                },
+            ]),
+        );
+
+        let mut state = SemanticRuntimeState::new();
+        let checkpoint = state.checkpoint();
+        let open_directive = parse_semantic_runtime_directive(&open_scope)
+            .expect("open_scope should parse")
+            .expect("directive should be present");
+
+        assert!(state.apply_directive(&open_directive));
+        assert!(state.commit(checkpoint));
+        assert_eq!(state.scopes().len(), 2);
+        assert_eq!(
+            state.current_scope().name,
+            Some(SemanticRuntimeValue::Identifier("committed_pkg".to_string()))
+        );
     }
 }

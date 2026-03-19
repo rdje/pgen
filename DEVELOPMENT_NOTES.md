@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Add checkpoint/rollback semantics to semantic runtime state
+### Context
+The first semantic-runtime scaffold established typed facts, scopes, predicates, and a mutable state container. The very next missing piece was transaction shape. Without explicit checkpoints, every future parser-steering experiment would have to reinvent “speculative branch state vs committed state” ad hoc, which is exactly the kind of hidden complexity that later breaks backtracking correctness.
+
+### Implementation
+- Added `SemanticRuntimeCheckpoint` in [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs).
+- Added:
+  - `SemanticRuntimeState::checkpoint()`
+  - `SemanticRuntimeState::rollback_to(...)`
+  - `SemanticRuntimeState::commit(...)`
+- The current semantics are intentionally simple:
+  - checkpoint captures `scope_len` and `fact_len`
+  - rollback truncates scopes/facts back to that snapshot
+  - commit is currently a validity marker for “state after this checkpoint may be retained”
+- Added focused tests proving:
+  - speculative scope/fact changes are removed by rollback
+  - committed scope changes remain visible afterwards
+
+### Why This Matters
+- This is the first explicit semantic-state transaction contract in code.
+- It does not solve parser integration yet, but it narrows the next design problem from “how should semantic state roll back at all?” to “where do parse branches take checkpoints and when do they commit?”
+
+### Remaining Gap
+- Parser integration is still open:
+  - no branch-local automatic checkpoint push/pop
+  - no memoization interaction rules
+  - no semantic predicate execution at parse time
+- But future steering work can now build on an explicit checkpoint model rather than a vague requirement.
+
 ## 2026-03-19 - Add semantic-runtime directive scaffold without enabling steering
 ### Context
 After widening `UnifiedSemanticAST`, the next missing piece was not “more payload retention.” It was a concrete runtime home for semantic facts, scopes, and predicate intent. The clean incremental move was to add typed semantic-runtime directives and a scoped runtime-state model, but to keep parser behavior unchanged until backtracking and memoization design are ready.
