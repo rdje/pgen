@@ -150,6 +150,26 @@ pub enum SemanticRuntimeDirective {
     Predicate(SemanticPredicateSpec),
 }
 
+impl SemanticRuntimeDirective {
+    pub fn predicate_phase(&self) -> Option<SemanticPredicatePhase> {
+        match self {
+            Self::Predicate(spec) => Some(spec.phase),
+            Self::OpenScope(_) | Self::CloseScope(_) | Self::EmitFact(_) => None,
+        }
+    }
+
+    pub fn is_pre_predicate(&self) -> bool {
+        self.predicate_phase() == Some(SemanticPredicatePhase::Pre)
+    }
+
+    pub fn is_effect(&self) -> bool {
+        matches!(
+            self,
+            Self::OpenScope(_) | Self::CloseScope(_) | Self::EmitFact(_)
+        )
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CompiledSemanticRuntimeAnnotations {
     directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
@@ -183,6 +203,24 @@ impl CompiledSemanticRuntimeAnnotations {
             .get(rule_name)
             .map(Vec::as_slice)
             .unwrap_or(&[])
+    }
+
+    pub fn pre_predicates_for_rule<'a>(
+        &'a self,
+        rule_name: &'a str,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.directives_for_rule(rule_name)
+            .iter()
+            .filter(|directive| directive.is_pre_predicate())
+    }
+
+    pub fn effect_directives_for_rule<'a>(
+        &'a self,
+        rule_name: &'a str,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.directives_for_rule(rule_name)
+            .iter()
+            .filter(|directive| directive.is_effect())
     }
 
     pub fn apply_to_rule(&self, state: &mut SemanticRuntimeState, rule_name: &str) -> usize {
@@ -364,7 +402,7 @@ impl SemanticRuntimeState {
         compiled: &CompiledSemanticRuntimeAnnotations,
         rule_name: &str,
     ) -> usize {
-        self.apply_directives(compiled.directives_for_rule(rule_name).iter())
+        self.apply_directives(compiled.effect_directives_for_rule(rule_name))
     }
 
     pub fn evaluate_predicate(&self, predicate: &SemanticPredicateSpec) -> Option<bool> {
@@ -1512,6 +1550,97 @@ mod tests {
     }
 
     #[test]
+    fn compiled_annotations_split_pre_predicates_from_effects() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![
+                structured_named(
+                    "predicate",
+                    "{ name: current_scope_is, args: [global] }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier(
+                                "current_scope_is".to_string(),
+                            ),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("global".to_string()),
+                            ]),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "predicate",
+                    "{ name: current_scope_is, args: [package], phase: post, view: shaped }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier(
+                                "current_scope_is".to_string(),
+                            ),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("package".to_string()),
+                            ]),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("post".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("shaped".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "open_scope",
+                    "{ kind: package, name: pkg }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("pkg".to_string()),
+                        },
+                    ]),
+                ),
+            ],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+        let pre_predicates = compiled
+            .pre_predicates_for_rule("package_declaration")
+            .collect::<Vec<_>>();
+        let effects = compiled
+            .effect_directives_for_rule("package_declaration")
+            .collect::<Vec<_>>();
+
+        assert_eq!(pre_predicates.len(), 1);
+        assert_eq!(effects.len(), 1);
+        assert!(matches!(
+            pre_predicates[0],
+            SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
+                phase: SemanticPredicatePhase::Pre,
+                ..
+            })
+        ));
+        assert!(matches!(
+            effects[0],
+            SemanticRuntimeDirective::OpenScope(_)
+        ));
+    }
+
+    #[test]
     fn compile_annotations_reports_rule_context_for_invalid_runtime_payloads() {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
@@ -1682,6 +1811,24 @@ mod tests {
                         crate::ast_pipeline::UnifiedSemanticProperty {
                             key: "name".to_string(),
                             value: UnifiedSemanticValue::Identifier("speculative_pkg".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "predicate",
+                    "{ name: current_scope_is, args: [global] }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier(
+                                "current_scope_is".to_string(),
+                            ),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("global".to_string()),
+                            ]),
                         },
                     ]),
                 ),

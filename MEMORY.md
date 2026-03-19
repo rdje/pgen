@@ -5385,3 +5385,9 @@ Use this file to resume work without replaying full chat history.
     - generated parsers embed those typed defaults into compiled semantic runtime directives
     - the current rule-entry seam only evaluates `pre` predicates
     - `branch` / `post` predicates are preserved as typed intent but intentionally ignored at that seam for now
+- 2026-03-19: Split compiled semantic directives into explicit pre-predicate and effect views.
+  - Continuity points:
+    - `CompiledSemanticRuntimeAnnotations::pre_predicates_for_rule(...)` now owns the rule-entry guard view
+    - `CompiledSemanticRuntimeAnnotations::effect_directives_for_rule(...)` now owns the post-success mutation view
+    - `apply_compiled_rule(...)` / `transaction_for_rule(...)` now apply only effect directives
+    - generated parsers now iterate those two views explicitly instead of walking one mixed directive list

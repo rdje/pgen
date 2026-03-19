@@ -3225,3 +3225,12 @@ Why `rtl_frontend` exists:
     - the runtime can now preserve predicate intent without overloading the old rule-entry contract
     - current rule-entry execution still applies only to `pre` predicates
     - `branch` / `post` content-aware execution remains the next steering milestone rather than an implicit behavior change
+- 2026-03-19: Split compiled semantic rule directives into explicit pre-predicate and effect views.
+  - `CompiledSemanticRuntimeAnnotations` now exposes:
+    - `pre_predicates_for_rule(...)`
+    - `effect_directives_for_rule(...)`
+  - generic compiled-rule effect application now consumes only the effect view
+  - generated rule-entry parsing now consumes the pre-predicate view separately from the effect view
+  - roadmap consequence:
+    - predicate guards and semantic mutations are no longer conflated in the generic rule-helper path
+    - this is the correct execution seam before adding real `branch` / `post` content-aware predicate evaluation

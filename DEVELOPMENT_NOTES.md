@@ -21690,6 +21690,19 @@ Practical consequence:
 - this is the right substrate for the next step:
   - a real content-aware branch/post predicate execution seam
 
+2026-03-19 directive-stream split milestone:
+- compiled semantic runtime annotations now expose separate rule-level views for:
+  - pre-parse predicates
+  - effect directives
+- effect application paths (`apply_compiled_rule`, `transaction_for_rule`) now apply only effect directives
+- generated parsers now use:
+  - `pre_predicates_for_rule(...)` for rule-entry guards
+  - `effect_directives_for_rule(...)` for post-success semantic mutations
+
+Practical consequence:
+- predicates are no longer counted as “applied” runtime effects in generic compiled-rule helpers
+- the mixed directive stream now has an explicit parser-facing split, which is the right setup before adding true `branch` / `post` execution
+
 Why this default matters:
 - return annotations are primarily for output shaping
 - parser semantics should not silently change just because output shaping changes

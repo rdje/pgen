@@ -21704,3 +21704,25 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - generated parser semantic-runtime entrypoint proof passed
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Split compiled semantic rule directives into explicit pre-predicate and effect views.
+  - Updated:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - What changed:
+    - `CompiledSemanticRuntimeAnnotations` now exposes:
+      - `pre_predicates_for_rule(...)`
+      - `effect_directives_for_rule(...)`
+    - generic compiled-rule application now applies only effect directives instead of counting predicates as runtime mutations,
+    - generated rule-entry parsing now iterates those explicit views instead of treating all directives for a rule as one mixed stream.
+  - Why this matters:
+    - predicates are now treated as guards, not as effectful runtime directives,
+    - this removes a semantic mismatch in `apply_compiled_rule(...)` / `transaction_for_rule(...)`,
+    - it also creates the clean seam needed for later `branch` / `post` execution without overloading the old rule-entry path.
+  - Validation:
+    - semantic runtime focused suite passed: `21 passed; 0 failed`
+    - generated parser semantic-runtime entrypoint proof passed
+  - Live-status effect:
+    - no live-status row changed

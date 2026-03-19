@@ -640,7 +640,7 @@ impl AstBasedGenerator {
                 let result = {
                     let mut semantic_runtime_transaction = semantic_runtime_state.transaction();
                     let mut predicate_blocked = false;
-                    for directive in self.semantic_runtime_annotations.directives_for_rule(rule_name)
+                    for directive in self.semantic_runtime_annotations.pre_predicates_for_rule(rule_name)
                     {
                         match semantic_runtime_transaction
                             .state()
@@ -661,15 +661,10 @@ impl AstBasedGenerator {
                         })
                     } else {
                         let node = f(self)?;
-                        for directive in
-                            self.semantic_runtime_annotations.directives_for_rule(rule_name)
+                        for directive in self
+                            .semantic_runtime_annotations
+                            .effect_directives_for_rule(rule_name)
                         {
-                            if matches!(
-                                directive,
-                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_)
-                            ) {
-                                continue;
-                            }
                             let _ = self.apply_semantic_runtime_effect_directive(
                                 &mut semantic_runtime_transaction,
                                 directive,
@@ -4778,6 +4773,16 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("SemanticPredicateContentView::Raw"),
             "generated parser should embed typed predicate content-view defaults, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pre_predicates_for_rule"),
+            "generated parser should use the explicit pre-predicate rule view, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("effect_directives_for_rule"),
+            "generated parser should use the explicit effect-directive rule view, got: {}",
             rendered
         );
         assert!(
