@@ -48,7 +48,7 @@ Current implementation reality:
 - generated parser code currently consumes that typed return AST only to shape branch results through `AstReturnTransformer`,
 - semantic annotations are the existing directive/control channel today:
   - they are stored separately as `Annotations.semantic_annotations`,
-  - parsed into `SemanticAnnotation::{Named, Legacy}` plus `UnifiedSemanticAST::{TransformExpr, Raw}`,
+  - parsed into `SemanticAnnotation::{Named, Legacy}` plus `UnifiedSemanticAST::{TransformExpr, Structured, Raw}`,
   - and already drive validator/codegen/stimuli/runtime behavior such as branch policy, associativity, profiles, token steering, regex transforms, value constraints, and recovery hints.
 
 Future extension direction:
@@ -59,7 +59,10 @@ Future extension direction:
 - likely no brand-new top-level annotation grammar is needed for the first iteration:
   - `grammars/semantic_annotation.ebnf` already accepts custom directive names plus rich structured payloads (arrays, objects, expressions, references),
   - `grammars/builtin_semantic_annotation.ebnf` is already intentionally permissive for bootstrap survival,
-  - the current limiting layer is the typed lowering/runtime surface because `UnifiedSemanticAST` still collapses nearly everything to `TransformExpr` or `Raw`.
+  - the current limiting layer is the typed lowering/runtime surface; the first widening slice is now landed, but most semantic-fact runtime behavior is still ahead:
+    - `UnifiedSemanticAST` now includes `Structured { canonical, value }`,
+    - current directive consumers still intentionally read canonical `payload_text()` for backward compatibility,
+    - future fact/scope/predicate work still needs richer lowering and semantic runtime execution.
 
 Target fact families:
 - package names,
@@ -103,6 +106,12 @@ Near-term rollout:
   - add structured payload variants instead of flattening most named directives to `Raw`,
   - add directive-specific lowering for future fact/scope/predicate directives,
   - preserve bootstrap permissiveness while making non-bootstrap typed lowering richer,
+- Progress (2026-03-19):
+  - landed the first typed widening slice:
+    - `UnifiedSemanticValue` / `UnifiedSemanticProperty`
+    - `UnifiedSemanticAST::Structured { canonical, value }`
+    - canonical payload preservation via `payload_text()` across validator/codegen/stimuli/runtime consumers
+  - this closes the “all non-transform named payloads must stay raw” bottleneck, but does not yet provide semantic fact tables or predicate execution,
 - stabilize the semantic fact model first,
 - define a minimal predicate API that semantic annotations can query,
 - pilot the model on one narrow high-value frontier:

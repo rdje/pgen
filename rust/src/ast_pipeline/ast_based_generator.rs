@@ -3149,15 +3149,12 @@ impl AstBasedGenerator {
 
     fn semantic_directive_parts(annotation: &SemanticAnnotation) -> Option<(String, String)> {
         if let Some(name) = annotation.name() {
-            let normalized = name.trim().to_ascii_lowercase();
-            if !normalized.is_empty() {
-                let payload = match annotation.ast() {
-                    UnifiedSemanticAST::TransformExpr { expression } => expression.clone(),
-                    UnifiedSemanticAST::Raw { content } => content.clone(),
-                };
-                return Some((normalized, payload.trim().to_string()));
+                let normalized = name.trim().to_ascii_lowercase();
+                if !normalized.is_empty() {
+                    let payload = annotation.ast().payload_text().to_string();
+                    return Some((normalized, payload.trim().to_string()));
+                }
             }
-        }
 
         match annotation.ast() {
             UnifiedSemanticAST::TransformExpr { expression } => {
@@ -3166,7 +3163,7 @@ impl AstBasedGenerator {
                 }
                 Some(("transform".to_string(), expression.clone()))
             }
-            UnifiedSemanticAST::Raw { content } => extract_semantic_directive(content),
+            _ => extract_semantic_directive(annotation.ast().payload_text()),
         }
     }
 

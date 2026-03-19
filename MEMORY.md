@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: clarify-current-annotation-pipeline-and-future-semantic-facts)
+Last updated: 2026-03-19 (+0100, task: start-typed-semantic-payload-retention)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -96,7 +96,7 @@ Use this file to resume work without replaying full chat history.
     - `Annotations.branch_return_annotations`
     - `Annotations.semantic_annotations`
   - return annotations become per-branch `BranchAnnotation { annotation_type, annotation_content, parsed_ast }`
-  - semantic annotations become `SemanticAnnotation::{Named, Legacy}` with `UnifiedSemanticAST::{TransformExpr, Raw}`
+  - semantic annotations become `SemanticAnnotation::{Named, Legacy}` with `UnifiedSemanticAST::{TransformExpr, Structured, Raw}`
 - Current generated-parser use is:
   - return annotations:
     - parse text -> generated return parser -> `UnifiedReturnAST`
@@ -124,10 +124,42 @@ Use this file to resume work without replaying full chat history.
 - Additional concrete implementation insight:
   - `grammars/semantic_annotation.ebnf` is already broad enough to carry many future fact/scope/predicate payloads,
   - `grammars/builtin_semantic_annotation.ebnf` is already permissive enough for bootstrap continuity,
-  - the immediate bottleneck is that `rust/src/ast_pipeline/unified_semantic_ast.rs` currently lowers almost everything to only:
+  - the immediate bottleneck was that `rust/src/ast_pipeline/unified_semantic_ast.rs` only lowered semantic payloads to:
     - `TransformExpr`
     - `Raw`
-  - so future semantic-fact work should likely start by widening `UnifiedSemanticAST` and typed directive lowering before inventing a new annotation grammar surface.
+  - first widening slice is now landed:
+    - `UnifiedSemanticAST::Structured { canonical, value }`
+    - `UnifiedSemanticValue::{String, Number, Boolean, Null, Identifier, RuleReference, Array, Object}`
+    - current runtime consumers now use canonical `payload_text()` for backward compatibility
+  - remaining next step:
+    - continue typed semantic lowering/runtime work before inventing a new annotation grammar surface.
+
+## Current Semantic Annotation Runtime Frontier
+- First widening slice is now in-tree:
+  - [unified_semantic_ast.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_semantic_ast.rs) now retains a first structured subset for named semantic payloads instead of flattening everything to `Raw`
+  - bootstrap semantic parsing can now retain:
+    - arrays
+    - objects
+    - strings
+    - numbers
+    - identifiers / dotted identifiers
+    - rule references
+- Backward-compatibility rule currently in force:
+  - existing directive consumers in validator/codegen/stimuli/runtime read semantic payloads through `payload_text()`
+  - this keeps current steering behavior stable while typed semantic retention grows
+- Focused validations completed for this slice:
+  - `cargo test --manifest-path rust/Cargo.toml --no-run`
+  - direct lib test binary:
+    - `ast_pipeline::unified_semantic_ast::tests::bootstrap_semantic_structures_simple_array_payload`
+    - `ast_pipeline::tests::transform_from_raw_ast_preserves_return_and_semantic_annotations`
+    - `test_runner::parsers::tests::test_semantic_annotation_parser`
+- Important non-goal for this slice:
+  - no semantic fact tables yet
+  - no predicate runtime yet
+  - no backtracking-aware semantic state yet
+- Next likely task:
+  - continue widening generated semantic tree lowering
+  - then start the first semantic-annotation-driven fact/scope/predicate pilot for SV declaration-vs-statement disambiguation
 
 ## Current Technical Snapshot
 - The repository now also has a tracked Verilog LRM conversion workspace sourced from `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`:

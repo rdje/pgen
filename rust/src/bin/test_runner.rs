@@ -122,12 +122,7 @@ impl Parser for GeneratedSemanticAnnotationParser {
                     Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e))
                         as Box<dyn std::error::Error>
                 })?;
-                let unparsed = match ast {
-                    UnifiedSemanticAST::TransformExpr { expression } => {
-                        format!("@{}: {}", name, expression)
-                    }
-                    UnifiedSemanticAST::Raw { content } => format!("@{}: {}", name, content),
-                };
+                let unparsed = format!("@{}: {}", name, ast.payload_text());
                 Ok(unparsed)
             }
             Err(e) => Err(Box::new(e)),

@@ -138,10 +138,7 @@ impl SemanticAnnotationParser {
 
     /// Convert AST back to original string format for round-trip validation
     fn unparse_ast(&self, ast: &UnifiedSemanticAST) -> String {
-        match ast {
-            UnifiedSemanticAST::TransformExpr { expression } => expression.clone(),
-            UnifiedSemanticAST::Raw { content } => content.clone(),
-        }
+        ast.payload_text().to_string()
     }
 }
 

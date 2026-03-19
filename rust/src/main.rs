@@ -1504,12 +1504,7 @@ fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profi
     let mut allowed_profiles: Option<Vec<String>> = None;
     for annotation in entries {
         let payload = match annotation.name() {
-            Some(name) if name.trim().eq_ignore_ascii_case("profiles") => match annotation.ast() {
-                pgen::ast_pipeline::UnifiedSemanticAST::TransformExpr { expression } => {
-                    expression.as_str()
-                }
-                pgen::ast_pipeline::UnifiedSemanticAST::Raw { content } => content.as_str(),
-            },
+            Some(name) if name.trim().eq_ignore_ascii_case("profiles") => annotation.ast().payload_text(),
             _ => match annotation.ast() {
                 pgen::ast_pipeline::UnifiedSemanticAST::TransformExpr { expression } => {
                     let Some((name, payload)) = extract_semantic_directive(expression) else {
@@ -1526,7 +1521,8 @@ fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profi
                     });
                     continue;
                 }
-                pgen::ast_pipeline::UnifiedSemanticAST::Raw { content } => {
+                _ => {
+                    let content = annotation.ast().payload_text();
                     let Some((name, payload)) = extract_semantic_directive(content) else {
                         continue;
                     };

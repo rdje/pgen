@@ -436,6 +436,7 @@ impl AnnotationValidator {
             UnifiedSemanticAST::TransformExpr { expression } => {
                 self.validate_transform_expression(rule_name, annotation_index, expression, report);
             }
+            UnifiedSemanticAST::Structured { .. } => {}
             UnifiedSemanticAST::Raw { content } => {
                 if content.contains("::parse::<") || content.contains(">().unwrap_or(") {
                     report.diagnostics.push(AnnotationDiagnostic {
@@ -1497,10 +1498,16 @@ impl AnnotationValidator {
             SemanticAnnotation::Legacy(UnifiedSemanticAST::TransformExpr { expression }) => {
                 expression.clone()
             }
+            SemanticAnnotation::Legacy(UnifiedSemanticAST::Structured { canonical, .. }) => {
+                canonical.clone()
+            }
             SemanticAnnotation::Legacy(UnifiedSemanticAST::Raw { content }) => content.clone(),
             SemanticAnnotation::Named { name, ast } => match ast {
                 UnifiedSemanticAST::TransformExpr { expression } => {
                     format!("@{}: {}", name, expression)
+                }
+                UnifiedSemanticAST::Structured { canonical, .. } => {
+                    format!("@{}: {}", name, canonical)
                 }
                 UnifiedSemanticAST::Raw { content } => format!("@{}: {}", name, content),
             },
@@ -1522,7 +1529,7 @@ impl AnnotationValidator {
                 }
                 Some("transform".to_string())
             }
-            UnifiedSemanticAST::Raw { content } => extract_semantic_directive_name(content),
+            _ => extract_semantic_directive_name(semantic_annotation.ast().payload_text()),
         }
     }
 
@@ -1533,10 +1540,7 @@ impl AnnotationValidator {
         if let Some(name) = semantic_annotation.name() {
             let normalized = name.trim().to_ascii_lowercase();
             if !normalized.is_empty() {
-                let payload = match semantic_annotation.ast() {
-                    UnifiedSemanticAST::TransformExpr { expression } => expression.clone(),
-                    UnifiedSemanticAST::Raw { content } => content.clone(),
-                };
+                let payload = semantic_annotation.ast().payload_text().to_string();
                 return Some((normalized, payload.trim().to_string()));
             }
         }
@@ -1548,7 +1552,7 @@ impl AnnotationValidator {
                 }
                 Some(("transform".to_string(), expression.trim().to_string()))
             }
-            UnifiedSemanticAST::Raw { content } => extract_semantic_directive(content),
+            _ => extract_semantic_directive(semantic_annotation.ast().payload_text()),
         }
     }
 

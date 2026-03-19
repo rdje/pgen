@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Start typed semantic payload retention in `UnifiedSemanticAST`
+### Context
+The roadmap direction was already clear: before inventing a new annotation surface for semantic facts, PGEN should first widen the typed semantic AST so semantic annotations can retain more than `TransformExpr` or opaque raw text. This slice implements that first runtime step and also locks in the user correction that semantic-fact work belongs under semantic annotations, not by silently redefining return annotations.
+
+### Implementation
+- Added a richer semantic value model in [unified_semantic_ast.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_semantic_ast.rs):
+  - `UnifiedSemanticValue::{String, Number, Boolean, Null, Identifier, RuleReference, Array, Object}`
+  - `UnifiedSemanticProperty { key, value }`
+  - `UnifiedSemanticAST::Structured { canonical, value }`
+- Added a first structured payload parser for semantic annotation values:
+  - arrays
+  - objects
+  - quoted strings
+  - numbers
+  - identifiers / dotted identifiers
+  - rule references like `$1`
+- Preserved runtime compatibility by routing existing directive consumers through `payload_text()`:
+  - parser/runtime profile filtering
+  - validator directive decoding
+  - codegen/stimuli directive decoding
+  - semantic annotation round-trip helpers
+
+### Why This Is The Right First Step
+- It keeps the current annotation split honest:
+  - return annotations still shape returned AST only
+  - semantic annotations remain the steering/control channel
+- It gives future semantic-fact work a typed landing zone without forcing immediate semantic-state runtime design into the same commit.
+- It avoids breaking current directive consumers while still proving that typed semantic retention can grow incrementally.
+
+### Important Limits
+- This does **not** yet implement:
+  - scoped semantic fact tables
+  - semantic predicate execution
+  - transactional backtracking-aware fact emission
+  - semantic-aware memoization
+- Generated-parser semantic tests for some named structured payload paths remain feature-gated; the code path is compiled, but the default validation surface for this task stayed focused on compile closure plus default-feature unit coverage.
+
+### Next Step
+- Continue widening semantic lowering so generated semantic parse trees retain more structure directly, rather than relying only on canonical payload text plus the current first structured subset parser.
+- After that, start the first narrow semantic-runtime pilot under semantic annotations:
+  - scoped fact capture
+  - bounded predicate query
+  - SV declaration-vs-statement disambiguation for scoped type declarations inside blocks
+
 ## 2026-03-19 - Promote return annotations into semantic-fact producers
 ### Context
 The remaining SystemVerilog UVM ambiguity debt is increasingly driven by information the parser already sees while matching the file: package names, typedef/type names, function/task names, declaration categories, and scoped symbol reuse. That means the clean long-term answer is no longer "just keep reordering grammar branches." PGEN now needs to make full use of its combined asset set: `EBNF + semantic annotations + return annotations`.

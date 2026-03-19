@@ -1,13 +1,14 @@
 use super::{
     ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
     SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
-    TraceVerbosity, UnifiedSemanticAST, extract_semantic_directive, global_trace_verbosity,
-    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
-    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
-    parse_semantic_numeric_bounds, parse_semantic_pattern, parse_semantic_reference_list,
-    parse_semantic_string_list, parse_semantic_token_class, stimuli_hint_for_target_type,
+    TraceVerbosity, UnifiedSemanticAST, UnifiedSemanticValue, extract_semantic_directive,
+    global_trace_verbosity, normalize_semantic_scalar, parse_canonical_transform_expression,
+    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
+    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_pattern,
+    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
+    stimuli_hint_for_target_type,
 };
 use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
@@ -3365,6 +3366,28 @@ impl<'a> StimuliGenerator<'a> {
                         return Some(trimmed[1..trimmed.len() - 1].to_string());
                     }
                 }
+                UnifiedSemanticAST::Structured { canonical, value } => {
+                    if matches!(
+                        directive_name.as_deref(),
+                        Some(name)
+                            if !matches!(name, "sample" | "literal" | "example" | "stimulus")
+                    ) {
+                        continue;
+                    }
+
+                    match value {
+                        UnifiedSemanticValue::String(text) => return Some(text.clone()),
+                        _ => {
+                            let trimmed = canonical.trim();
+                            if trimmed.len() >= 2
+                                && ((trimmed.starts_with('"') && trimmed.ends_with('"'))
+                                    || (trimmed.starts_with('\'') && trimmed.ends_with('\'')))
+                            {
+                                return Some(trimmed[1..trimmed.len() - 1].to_string());
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -4872,8 +4895,7 @@ impl<'a> StimuliGenerator<'a> {
             let normalized = name.trim().to_ascii_lowercase();
             if !normalized.is_empty() {
                 let payload = match annotation.ast() {
-                    UnifiedSemanticAST::TransformExpr { expression } => expression.clone(),
-                    UnifiedSemanticAST::Raw { content } => content.clone(),
+                    _ => annotation.ast().payload_text().to_string(),
                 };
                 return Some((normalized, payload.trim().to_string()));
             }
@@ -4886,7 +4908,7 @@ impl<'a> StimuliGenerator<'a> {
                 }
                 Some(("transform".to_string(), expression.clone()))
             }
-            UnifiedSemanticAST::Raw { content } => extract_semantic_directive(content),
+            _ => extract_semantic_directive(annotation.ast().payload_text()),
         }
     }
 

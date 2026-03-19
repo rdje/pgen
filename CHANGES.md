@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-19 - Retain structured semantic annotation payloads
+### ✅ Achievement Summary
+Started the first code-bearing semantic-annotation widening slice by teaching `UnifiedSemanticAST` to retain structured named payloads instead of flattening almost everything to raw text. Named semantic directives now preserve both their canonical payload text and a first structured subset (`arrays`, `objects`, scalars, identifiers, and rule references), while existing validator/codegen/stimuli/runtime consumers stay backward-compatible through a shared `payload_text()` path.
+
+### Scope of Changes
+- Updated [unified_semantic_ast.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_semantic_ast.rs):
+  - added `UnifiedSemanticValue` and `UnifiedSemanticProperty`
+  - added `UnifiedSemanticAST::Structured { canonical, value }`
+  - added `payload_text()`, `structured_value()`, and `from_named_payload(...)`
+  - taught bootstrap semantic parsing to retain a first structured payload subset instead of collapsing all non-transform content to `Raw`
+- Updated the semantic-annotation runtime surface:
+  - [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs)
+  - [main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs)
+  - [annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs)
+  - [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs)
+  - [stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs)
+  - [parsers.rs](/Users/richarddje/Documents/github/pgen/rust/src/test_runner/parsers.rs)
+  - [test_runner.rs](/Users/richarddje/Documents/github/pgen/rust/src/bin/test_runner.rs)
+- Compatibility rule for this slice:
+  - current directive consumers now read semantic payloads through canonical `payload_text()` rather than assuming only `TransformExpr` or `Raw`
+  - this keeps current behavior stable while typed semantic lowering becomes richer
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --no-run`
+- direct lib test binary checks:
+  - `ast_pipeline::unified_semantic_ast::tests::bootstrap_semantic_structures_simple_array_payload`
+  - `ast_pipeline::tests::transform_from_raw_ast_preserves_return_and_semantic_annotations`
+  - `test_runner::parsers::tests::test_semantic_annotation_parser`
+
+### Important Boundary
+- This is not semantic-fact runtime yet.
+- `return_annotation.ebnf` remains shaping-only.
+- The new implementation step is specifically richer semantic payload retention inside the existing semantic-annotation channel so future fact/scope/predicate work has a typed place to land.
+
 ## 2026-03-19 - Fix repeated type class parameter headers in SV
 ### ✅ Achievement Summary
 Fixed a real SystemVerilog grammar hole exposed by UVM-compatible class headers that repeat `type` across multiple class parameters, such as `#(type REQ = ..., type RSP = ...)`. A fresh generated parser now accepts the minimal reproducer and the reduced UVM proxy-class slice again.

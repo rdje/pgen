@@ -1637,15 +1637,7 @@ impl RustASTPipeline {
     }
 
     fn semantic_named_ast(&self, name: &str, payload: &str) -> UnifiedSemanticAST {
-        if name.eq_ignore_ascii_case("transform") {
-            UnifiedSemanticAST::TransformExpr {
-                expression: payload.trim().to_string(),
-            }
-        } else {
-            UnifiedSemanticAST::Raw {
-                content: payload.trim().to_string(),
-            }
-        }
+        UnifiedSemanticAST::from_named_payload(name, payload)
     }
 
     fn semantic_value_to_string(&self, value: &serde_json::Value) -> String {
@@ -2464,7 +2456,7 @@ mod tests {
                 assert_eq!(name, "priority");
                 assert!(matches!(
                     ast,
-                    UnifiedSemanticAST::Raw { content } if content == "[9, 1]"
+                    UnifiedSemanticAST::Structured { canonical, .. } if canonical == "[9, 1]"
                 ));
             }
             _ => panic!("semantic annotation should be captured as named directive"),
@@ -2658,4 +2650,6 @@ pub use semantic_transform::{
     CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,
 };
 pub use unified_return_ast::{ExtractionTarget, UnifiedReturnAST};
-pub use unified_semantic_ast::UnifiedSemanticAST;
+pub use unified_semantic_ast::{
+    UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
+};

@@ -13,6 +13,24 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum UnifiedSemanticValue {
+    String(String),
+    Number(String),
+    Boolean(bool),
+    Null,
+    Identifier(String),
+    RuleReference(String),
+    Array(Vec<UnifiedSemanticValue>),
+    Object(Vec<UnifiedSemanticProperty>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UnifiedSemanticProperty {
+    pub key: String,
+    pub value: UnifiedSemanticValue,
+}
+
 /// The unified AST representation of a semantic annotation
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum UnifiedSemanticAST {
@@ -22,11 +40,49 @@ pub enum UnifiedSemanticAST {
         expression: String, // The raw transform expression for now
     },
 
+    /// Structured payload retained for future directive/runtime use while also
+    /// preserving the canonical textual payload for existing directive consumers.
+    Structured {
+        canonical: String,
+        value: UnifiedSemanticValue,
+    },
+
     /// Raw annotation that couldn't be parsed
     Raw { content: String },
 }
 
 impl UnifiedSemanticAST {
+    pub fn payload_text(&self) -> &str {
+        match self {
+            UnifiedSemanticAST::TransformExpr { expression } => expression.as_str(),
+            UnifiedSemanticAST::Structured { canonical, .. } => canonical.as_str(),
+            UnifiedSemanticAST::Raw { content } => content.as_str(),
+        }
+    }
+
+    pub fn structured_value(&self) -> Option<&UnifiedSemanticValue> {
+        match self {
+            UnifiedSemanticAST::Structured { value, .. } => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn from_named_payload(annotation_name: &str, payload: &str) -> Self {
+        let trimmed = payload.trim().to_string();
+        if annotation_name.trim().eq_ignore_ascii_case("transform") {
+            UnifiedSemanticAST::TransformExpr {
+                expression: trimmed,
+            }
+        } else if let Some(value) = Self::parse_structured_payload(&trimmed) {
+            UnifiedSemanticAST::Structured {
+                canonical: trimmed,
+                value,
+            }
+        } else {
+            UnifiedSemanticAST::Raw { content: trimmed }
+        }
+    }
+
     /// Build semantic AST from a generated-parser parse tree.
     /// This is used by non-bootstrap generated parser paths.
     pub fn parse_generated_semantic_annotation<'input>(
@@ -93,18 +149,7 @@ impl UnifiedSemanticAST {
             );
         }
 
-        let ast = if name_text == "transform" {
-            UnifiedSemanticAST::TransformExpr {
-                expression: value_text,
-            }
-        } else {
-            // Named semantic directives already carry their key out-of-band in the
-            // pipeline (`SemanticAnnotation::Named { name, ast }`), so raw payload
-            // stores only the value text.
-            UnifiedSemanticAST::Raw {
-                content: value_text,
-            }
-        };
+        let ast = Self::from_named_payload(&name_text, &value_text);
 
         Ok((name_text, ast))
     }
@@ -137,6 +182,18 @@ impl UnifiedSemanticAST {
             Ok(UnifiedSemanticAST::TransformExpr {
                 expression: trimmed.to_string(),
             })
+        } else if let Some(value) = Self::parse_structured_payload(trimmed) {
+            if logger.is_enabled() {
+                logger.log_success(
+                    "unified_semantic_ast.rs",
+                    line!(),
+                    "Recognized as structured semantic payload",
+                );
+            }
+            Ok(UnifiedSemanticAST::Structured {
+                canonical: trimmed.to_string(),
+                value,
+            })
         } else {
             if logger.is_enabled() {
                 logger.log_info(
@@ -149,6 +206,11 @@ impl UnifiedSemanticAST {
                 content: trimmed.to_string(),
             })
         }
+    }
+
+    fn parse_structured_payload(input: &str) -> Option<UnifiedSemanticValue> {
+        let mut parser = StructuredSemanticValueParser::new(input);
+        parser.parse_root()
     }
 
     fn find_first_rule_node<'a, 'input>(
@@ -195,10 +257,261 @@ impl UnifiedSemanticAST {
             UnifiedSemanticAST::TransformExpr { expression } => {
                 format!("TransformExpr({})", expression)
             }
+            UnifiedSemanticAST::Structured { canonical, value } => {
+                format!("Structured({}, {:?})", canonical, value)
+            }
             UnifiedSemanticAST::Raw { content } => {
                 format!("Raw({})", content)
             }
         }
+    }
+}
+
+struct StructuredSemanticValueParser<'a> {
+    input: &'a str,
+    position: usize,
+}
+
+impl<'a> StructuredSemanticValueParser<'a> {
+    fn new(input: &'a str) -> Self {
+        Self { input, position: 0 }
+    }
+
+    fn parse_root(&mut self) -> Option<UnifiedSemanticValue> {
+        self.skip_ws();
+        let value = self.parse_value()?;
+        self.skip_ws();
+        if self.position == self.input.len() {
+            Some(value)
+        } else {
+            None
+        }
+    }
+
+    fn parse_value(&mut self) -> Option<UnifiedSemanticValue> {
+        self.skip_ws();
+        let ch = self.peek_char()?;
+        match ch {
+            '[' => self.parse_array(),
+            '{' => self.parse_object(),
+            '"' | '\'' => self.parse_string().map(UnifiedSemanticValue::String),
+            '$' => self.parse_rule_reference().map(UnifiedSemanticValue::RuleReference),
+            '+' | '-' | '0'..='9' => self.parse_number().map(UnifiedSemanticValue::Number),
+            _ => {
+                let ident = self.parse_identifier_like()?;
+                let lowered = ident.to_ascii_lowercase();
+                if matches!(
+                    lowered.as_str(),
+                    "true"
+                        | "false"
+                        | "yes"
+                        | "no"
+                        | "on"
+                        | "off"
+                        | "enabled"
+                        | "disabled"
+                        | "active"
+                        | "inactive"
+                ) {
+                    let value = matches!(
+                        lowered.as_str(),
+                        "true" | "yes" | "on" | "enabled" | "active"
+                    );
+                    Some(UnifiedSemanticValue::Boolean(value))
+                } else if matches!(
+                    lowered.as_str(),
+                    "null" | "nil" | "none" | "undefined" | "void"
+                ) {
+                    Some(UnifiedSemanticValue::Null)
+                } else {
+                    Some(UnifiedSemanticValue::Identifier(ident))
+                }
+            }
+        }
+    }
+
+    fn parse_array(&mut self) -> Option<UnifiedSemanticValue> {
+        self.expect_char('[')?;
+        let mut elements = Vec::new();
+        loop {
+            self.skip_ws();
+            if self.consume_char_if(']') {
+                break;
+            }
+            let value = self.parse_value()?;
+            elements.push(value);
+            self.skip_ws();
+            if self.consume_char_if(']') {
+                break;
+            }
+            self.expect_char(',')?;
+        }
+        Some(UnifiedSemanticValue::Array(elements))
+    }
+
+    fn parse_object(&mut self) -> Option<UnifiedSemanticValue> {
+        self.expect_char('{')?;
+        let mut properties = Vec::new();
+        loop {
+            self.skip_ws();
+            if self.consume_char_if('}') {
+                break;
+            }
+            let key = self.parse_object_key()?;
+            self.skip_ws();
+            self.expect_char(':')?;
+            let value = self.parse_value()?;
+            properties.push(UnifiedSemanticProperty { key, value });
+            self.skip_ws();
+            if self.consume_char_if('}') {
+                break;
+            }
+            self.expect_char(',')?;
+        }
+        Some(UnifiedSemanticValue::Object(properties))
+    }
+
+    fn parse_object_key(&mut self) -> Option<String> {
+        self.skip_ws();
+        match self.peek_char()? {
+            '"' | '\'' => self.parse_string(),
+            _ => self.parse_identifier_like(),
+        }
+    }
+
+    fn parse_string(&mut self) -> Option<String> {
+        let quote = self.next_char()?;
+        let mut output = String::new();
+        loop {
+            let ch = self.next_char()?;
+            if ch == quote {
+                break;
+            }
+            if ch == '\\' {
+                let escaped = self.next_char()?;
+                let mapped = match escaped {
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    '\\' => '\\',
+                    '\'' => '\'',
+                    '"' => '"',
+                    other => other,
+                };
+                output.push(mapped);
+            } else {
+                output.push(ch);
+            }
+        }
+        Some(output)
+    }
+
+    fn parse_rule_reference(&mut self) -> Option<String> {
+        self.expect_char('$')?;
+        let start = self.position;
+        let first = self.peek_char()?;
+        if first.is_ascii_digit() {
+            self.consume_while(|ch| ch.is_ascii_digit());
+        } else if first.is_ascii_alphabetic() || first == '_' {
+            self.consume_while(|ch| ch.is_ascii_alphanumeric() || ch == '_');
+        } else {
+            return None;
+        }
+        Some(self.input[start..self.position].to_string())
+    }
+
+    fn parse_number(&mut self) -> Option<String> {
+        let start = self.position;
+        self.consume_char_if('+');
+        self.consume_char_if('-');
+        let int_start = self.position;
+        self.consume_while(|ch| ch.is_ascii_digit());
+        let mut consumed_any = self.position > int_start;
+        if self.consume_char_if('.') {
+            let frac_start = self.position;
+            self.consume_while(|ch| ch.is_ascii_digit());
+            consumed_any |= self.position > frac_start;
+        }
+        if matches!(self.peek_char(), Some('e' | 'E')) {
+            let checkpoint = self.position;
+            self.position += 1;
+            self.consume_char_if('+');
+            self.consume_char_if('-');
+            let exp_start = self.position;
+            self.consume_while(|ch| ch.is_ascii_digit());
+            if self.position == exp_start {
+                self.position = checkpoint;
+            } else {
+                consumed_any = true;
+            }
+        }
+        if !consumed_any {
+            return None;
+        }
+        Some(self.input[start..self.position].to_string())
+    }
+
+    fn parse_identifier_like(&mut self) -> Option<String> {
+        let start = self.position;
+        let first = self.peek_char()?;
+        if !(first.is_ascii_alphabetic() || first == '_') {
+            return None;
+        }
+        self.position += first.len_utf8();
+        self.consume_while(|ch| ch.is_ascii_alphanumeric() || ch == '_');
+        while self.consume_char_if('.') {
+            let first = self.peek_char()?;
+            if !(first.is_ascii_alphabetic() || first == '_') {
+                return None;
+            }
+            self.position += first.len_utf8();
+            self.consume_while(|ch| ch.is_ascii_alphanumeric() || ch == '_');
+        }
+        Some(self.input[start..self.position].to_string())
+    }
+
+    fn skip_ws(&mut self) {
+        self.consume_while(|ch| ch.is_whitespace());
+    }
+
+    fn consume_while<F>(&mut self, predicate: F)
+    where
+        F: Fn(char) -> bool,
+    {
+        while let Some(ch) = self.peek_char() {
+            if !predicate(ch) {
+                break;
+            }
+            self.position += ch.len_utf8();
+        }
+    }
+
+    fn expect_char(&mut self, expected: char) -> Option<()> {
+        if self.consume_char_if(expected) {
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    fn consume_char_if(&mut self, expected: char) -> bool {
+        match self.peek_char() {
+            Some(ch) if ch == expected => {
+                self.position += ch.len_utf8();
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn next_char(&mut self) -> Option<char> {
+        let ch = self.peek_char()?;
+        self.position += ch.len_utf8();
+        Some(ch)
+    }
+
+    fn peek_char(&self) -> Option<char> {
+        self.input[self.position..].chars().next()
     }
 }
 
@@ -248,7 +561,18 @@ mod tests {
             .expect("bootstrap semantic parser should trim outer whitespace");
         assert!(matches!(
             parsed,
-            UnifiedSemanticAST::Raw { ref content } if content == "value"
+            UnifiedSemanticAST::Structured { ref canonical, .. } if canonical == "value"
+        ));
+    }
+
+    #[test]
+    fn bootstrap_semantic_structures_simple_array_payload() {
+        let logger = crate::test_runner::NoOpLogger;
+        let parsed = UnifiedSemanticAST::parse_bootstrap(" [9, $1, foo] ", &logger)
+            .expect("bootstrap semantic parser should retain structured subset payloads");
+        assert!(matches!(
+            parsed,
+            UnifiedSemanticAST::Structured { ref canonical, .. } if canonical == "[9, $1, foo]"
         ));
     }
 
@@ -286,7 +610,7 @@ mod tests {
                 .expect("generated tree -> semantic ast should succeed for named raw");
         assert!(matches!(
             raw_ast,
-            UnifiedSemanticAST::Raw { ref content } if content == "[9, 1]"
+            UnifiedSemanticAST::Structured { ref canonical, .. } if canonical == "[9, 1]"
         ));
     }
 
@@ -310,7 +634,7 @@ mod tests {
         assert_eq!(name, "priority");
         assert!(matches!(
             ast,
-            UnifiedSemanticAST::Raw { ref content } if content == "[9, 1]"
+            UnifiedSemanticAST::Structured { ref canonical, .. } if canonical == "[9, 1]"
         ));
     }
 
@@ -335,10 +659,7 @@ mod tests {
         }
 
         fn ast_payload(ast: &UnifiedSemanticAST) -> &str {
-            match ast {
-                UnifiedSemanticAST::TransformExpr { expression } => expression.as_str(),
-                UnifiedSemanticAST::Raw { content } => content.as_str(),
-            }
+            ast.payload_text()
         }
 
         let logger = crate::test_runner::NoOpLogger;
@@ -403,8 +724,8 @@ mod tests {
                     );
                 } else {
                     assert!(
-                        matches!(entry_ast, UnifiedSemanticAST::Raw { .. }),
-                        "non-transform directive should convert to Raw payload AST for '{} / {}' (input='{}')",
+                        !matches!(entry_ast, UnifiedSemanticAST::TransformExpr { .. }),
+                        "non-transform directive should not convert to TransformExpr for '{} / {}' (input='{}')",
                         suite.name,
                         test.name,
                         test.input
