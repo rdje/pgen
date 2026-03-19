@@ -21240,3 +21240,32 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - the broader `vhdl` live row stays conservative until the remaining family-status closure surfaces are also green
   - Live-status effect:
     - `vhdl`: remains `In Progress`
+- 2026-03-19: Stabilized another real SystemVerilog expression-frontier slice without changing the live status rows.
+  - Updated:
+    - `grammars/systemverilog.ebnf`
+    - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - What changed:
+    - kept the earlier UVM-focused method-call chaining and `if/else` lookahead hardening in the active grammar slice
+    - guarded `conditional_expression` with explicit `&question`
+    - reordered `expression_base` so ordinary operand/binary-expression parsing is preferred before `( operator_assignment )`
+    - reordered `expression` so plain expressions are tried before `inside_expression` / `conditional_expression`
+  - Focused validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+    - `parseability_probe --parse systemverilog /tmp/sv_direct_shiftmask_stmt.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/sv_block_rep_shift_full.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/sv_q_ternary.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/sv_q_ternary_member.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/sv_inside_expr.sv --profile 2017`
+  - Practical result:
+    - the previously failing direct function-statement shiftmask repro now parses cleanly
+    - the matching `begin ... end` block-wrapped shiftmask repro also parses cleanly
+    - ternary and `inside` smoke tests stayed green after the ordering changes
+    - the reduced real UVM package snapshot still fails at the same deep frontier:
+      - `/tmp/uvm_compat_pkg_now.sv` -> `Parser did not consume full input at position 114993`
+  - Important scope note:
+    - a full `sv_external_corpus_triage_gate` rerun was started but intentionally interrupted after spending several minutes in `uvm_pkg_2017`
+    - this slice is therefore recorded from focused generated-parser proofs, not from a completed broad-corpus rerun
+  - Live-status effect:
+    - `systemverilog`: remains `Mostly Done`
+    - `systemverilog_preprocessor`: remains `Mostly Done`

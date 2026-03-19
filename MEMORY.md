@@ -5133,3 +5133,24 @@ Use this file to resume work without replaying full chat history.
     - the tracked external VHDL corpus slice is now fully parser-green on the live tree
     - this is a real milestone worth preserving for crash continuity
     - it is still narrower than full VHDL-family closure, so the live `vhdl` row remains `In Progress`
+- 2026-03-19: Focused SystemVerilog grammar ordering hardening fixed the reduced direct-vs-block shiftmask false negative without moving the live row yet.
+  - Active grammar slice in:
+    - `grammars/systemverilog.ebnf`
+    - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - Effective grammar changes now present together:
+    - `conditional_expression` guarded by `&question`
+    - `conditional_statement` on explicit `else` lookahead
+    - generalized chained `method_call`
+    - `expression_base` reordered to prefer ordinary operand/binary parsing before `( operator_assignment )`
+    - `expression` reordered to prefer `expression_base` before `inside_expression` / `conditional_expression`
+  - Focused parser proofs now green:
+    - `/tmp/sv_direct_shiftmask_stmt.sv`
+    - `/tmp/sv_block_rep_shift_full.sv`
+    - `/tmp/sv_q_ternary.sv`
+    - `/tmp/sv_q_ternary_member.sv`
+    - `/tmp/sv_inside_expr.sv`
+  - Remaining boundary after the fix:
+    - `/tmp/uvm_compat_pkg_now.sv` still rejects at `position 114993`
+  - Important continuity note:
+    - full `sv_external_corpus_triage_gate` rerun was started but intentionally interrupted after the generated parser spent multiple minutes in `case_uvm_pkg_2017_parse_full`
+    - resume broad-corpus confirmation from there later if needed

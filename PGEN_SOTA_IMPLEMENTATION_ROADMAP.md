@@ -3013,3 +3013,22 @@ Why `rtl_frontend` exists:
     - remaining VHDL promotion work is now more clearly concentrated in the broader family-status / exhaustive-proof surfaces rather than the checked-in external corpus roster itself
   - no live-row promotion yet:
     - `vhdl` remains `In Progress`
+- 2026-03-19: Focused SystemVerilog expression-frontier hardening closed a real generated-parser false negative on reduced UVM-shaped expressions, but broad SV status remains conservative.
+  - grammar slice:
+    - `grammars/systemverilog.ebnf`
+    - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - concrete hardening in this slice:
+    - `conditional_expression` now requires explicit `?` lookahead
+    - `expression_base` now prefers ordinary operand/binary parsing before `( operator_assignment )`
+    - `expression` now prefers `expression_base` before `inside_expression` / `conditional_expression`
+    - previously landed chained-method / `else` lookahead fixes remain part of the same active SystemVerilog grammar slice
+  - focused proofs now green:
+    - direct reduced shiftmask assignment
+    - block-wrapped reduced shiftmask assignment
+    - ternary smoke tests
+    - `inside` operator smoke test
+  - current remaining frontier:
+    - reduced real UVM package snapshot still rejects at `position 114993`
+  - roadmap implication:
+    - this is a real parser-hardening increment worth keeping
+    - it is not yet a broad `systemverilog` promotion because the external-corpus rerun was not completed and the deep UVM frontier still stands

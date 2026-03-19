@@ -20,9 +20,9 @@ constant_expression := constant_expression_operand ( binary_operator attribute_i
 
 expression_operand := unary_operator attribute_instance* primary | inc_or_dec_expression | primary
 
-expression_base := tagged_union_expression | lparen operator_assignment rparen | expression_operand ( binary_operator attribute_instance* expression_operand )*
+expression_base := tagged_union_expression | expression_operand ( binary_operator attribute_instance* expression_operand )* | lparen operator_assignment rparen
 
-expression := conditional_expression | inside_expression | expression_base
+expression := expression_base | inside_expression | conditional_expression
 
 identifier := escaped_identifier | simple_identifier
 
@@ -369,11 +369,11 @@ cond_pattern := expression_base kw_matches_9f3e9242 pattern
 
 cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_pattern )*
 
-conditional_expression := cond_predicate question attribute_instance* expression colon expression
+conditional_expression := cond_predicate &question question attribute_instance* expression colon expression
 
 conditional_generate_construct := if_generate_construct | case_generate_construct
 
-conditional_statement := ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null ( kw_else_ae050f5b kw_if_958f57f5 lparen cond_predicate rparen statement_or_null )* ( kw_else_ae050f5b statement_or_null )?
+conditional_statement := ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null &kw_else_ae050f5b kw_else_ae050f5b ( conditional_statement | statement_or_null ) | ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null !kw_else_ae050f5b
 
 config_declaration := kw_config_dfba7aad config_identifier semi ( local_parameter_declaration semi )* design_statement config_rule_statement* kw_endconfig_3fd27f95 ( colon config_identifier )?
 
@@ -1085,7 +1085,11 @@ loop_variables := ( index_variable_identifier )? ( comma ( index_variable_identi
 
 member_identifier := identifier
 
-method_call := method_call_root dot method_call_body
+method_call := method_call_initial ( dot method_call_body )*
+
+method_call_initial := direct_method_call | class_scoped_tf_call | tf_call | system_tf_call
+
+direct_method_call := method_call_root dot method_call_body
 
 @branch_policy: priority_first
 method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen | method_identifier attribute_instance*

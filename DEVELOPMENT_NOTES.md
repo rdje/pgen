@@ -21106,3 +21106,44 @@ After the latest `vhdl.ebnf` hardening landed, I re-ran the external VHDL corpus
 - Important non-overclaim:
   - this does **not** by itself promote the overall `vhdl` status row
   - broader family-status debt still exists outside this one external-corpus proof surface
+
+## 2026-03-19 - SystemVerilog expression front-door ordering fix
+
+This atomic SystemVerilog slice closes a real context-sensitive expression hole that showed up while debugging the UVM package failures.
+
+- Grammar changes in:
+  - `grammars/systemverilog.ebnf`
+  - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+- Effective shape of the change:
+  - `conditional_expression` now has explicit `&question` guarding
+  - `conditional_statement` remains on explicit `else` lookahead to keep dangling-`else` behavior deterministic
+  - `method_call` stays generalized through `method_call_initial` / `direct_method_call`
+  - `expression_base` now prefers ordinary operand/binary parsing before `( operator_assignment )`
+  - `expression` now prefers ordinary `expression_base` before the more specialized `inside_expression` / `conditional_expression` paths
+
+- Why this mattered:
+  - the generated parser previously rejected a reduced direct function statement of the form:
+    - `v = ({$bits(byte){1'b1}} >> ($bits(byte)-(m_pack_iter%$bits(byte))));`
+  - after the first ordering experiment, the direct statement passed but the matching `begin ... end` block form still failed
+  - moving plain `expression_base` to the front of `expression` resolved both contexts together
+
+- Focused proofs that now pass:
+  - `/tmp/sv_direct_shiftmask_stmt.sv`
+  - `/tmp/sv_block_rep_shift_full.sv`
+  - `/tmp/sv_q_ternary.sv`
+  - `/tmp/sv_q_ternary_member.sv`
+  - `/tmp/sv_inside_expr.sv`
+
+- Current boundary after this slice:
+  - the reduced real UVM package snapshot still fails at the same deep location:
+    - `/tmp/uvm_compat_pkg_now.sv` -> `position 114993`
+  - so this is real parser hardening, but not yet a broad external-corpus status promotion
+
+- Validation recorded:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - focused `parseability_probe --parse systemverilog ... --profile 2017` runs over the direct-shiftmask, block-shiftmask, ternary, and `inside` repros
+
+- Important note:
+  - I started a full `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` rerun, but stopped it after it spent several minutes in `case_uvm_pkg_2017_parse_full`
+  - this commit therefore carries focused parser proof, not a completed broad-corpus rerun
