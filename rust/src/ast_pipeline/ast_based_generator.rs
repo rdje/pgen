@@ -638,14 +638,36 @@ impl AstBasedGenerator {
                 let mut semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
                 let result = {
-                    let (mut semantic_runtime_transaction, _applied_count) =
-                        semantic_runtime_state
-                            .transaction_for_rule(&self.semantic_runtime_annotations, rule_name);
-                    let result = f(self);
-                    if result.is_ok() {
-                        let _ = semantic_runtime_transaction.commit();
+                    let mut semantic_runtime_transaction = semantic_runtime_state.transaction();
+                    let mut predicate_blocked = false;
+                    for directive in self.semantic_runtime_annotations.directives_for_rule(rule_name)
+                    {
+                        match semantic_runtime_transaction
+                            .state()
+                            .evaluate_directive_predicate(directive)
+                        {
+                            Some(true) => {}
+                            Some(false) => {
+                                predicate_blocked = true;
+                                break;
+                            }
+                            None => {
+                                let _ = semantic_runtime_transaction.apply_directive(directive);
+                            }
+                        }
                     }
-                    result
+
+                    if predicate_blocked {
+                        Err(ParseError::Backtrack {
+                            position: self.position,
+                        })
+                    } else {
+                        let result = f(self);
+                        if result.is_ok() {
+                            let _ = semantic_runtime_transaction.commit();
+                        }
+                        result
+                    }
                 };
                 self.semantic_runtime_state = semantic_runtime_state;
                 result
@@ -4368,20 +4390,40 @@ mod semantic_usage_tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "package_declaration".to_string(),
-            vec![structured_named_annotation(
-                "open_scope",
-                "{ kind: package, name: pkg }",
-                UnifiedSemanticValue::Object(vec![
-                    UnifiedSemanticProperty {
-                        key: "kind".to_string(),
-                        value: UnifiedSemanticValue::Identifier("package".to_string()),
-                    },
-                    UnifiedSemanticProperty {
-                        key: "name".to_string(),
-                        value: UnifiedSemanticValue::Identifier("pkg".to_string()),
-                    },
-                ]),
-            )],
+            vec![
+                structured_named_annotation(
+                    "open_scope",
+                    "{ kind: package, name: pkg }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("pkg".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named_annotation(
+                    "predicate",
+                    "{ name: current_scope_is, args: [global] }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier(
+                                "current_scope_is".to_string(),
+                            ),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("global".to_string()),
+                            ]),
+                        },
+                    ]),
+                ),
+            ],
         );
 
         let generator = AstBasedGenerator {
@@ -4441,6 +4483,16 @@ mod semantic_usage_tests {
         assert!(
             rendered.matches("with_semantic_runtime_rule_transaction").count() >= 2,
             "generated parser should both define and use the semantic runtime transaction wrapper, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("evaluate_directive_predicate"),
+            "generated parser should consult semantic runtime predicates before parsing, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("predicate_blocked"),
+            "generated parser should track predicate failures inside the transaction wrapper, got: {}",
             rendered
         );
         assert!(

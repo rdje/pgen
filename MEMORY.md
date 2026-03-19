@@ -5344,3 +5344,13 @@ Use this file to resume work without replaying full chat history.
   - Important continuity note:
     - `@predicate` payloads now have concrete runtime query meaning,
     - but generated parsers still do not consume those answers for branch steering yet.
+- 2026-03-19: Generated parser rule-entry transactions now consume semantic predicate results before real parsing begins.
+  - Active code slice:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - generated `with_semantic_runtime_rule_transaction(...)` now iterates compiled directives in order
+    - `@predicate` false now causes immediate `Backtrack` before the parse closure runs
+    - non-predicate directives still apply transactionally and only commit on successful parse
+  - Important continuity note:
+    - unknown predicates are still treated as no-op today
+    - steering remains rule-entry-only; inner branch selection is still unaffected

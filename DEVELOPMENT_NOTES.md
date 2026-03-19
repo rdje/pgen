@@ -21576,3 +21576,21 @@ Current boundary to preserve:
 - predicate evaluation is still explicit and manual
 - generated parsers do not yet consult these predicate outcomes during branch selection or declaration-vs-statement disambiguation
 - so this slice is predicate capability, not full semantic steering promotion
+
+2026-03-19 rule-entry semantic steering checkpoint:
+- generated parsers now consume predicate outcomes at the rule-entry transaction seam
+- inside `with_semantic_runtime_rule_transaction(...)`, generated code now:
+  - iterates the compiled directives for the rule in order,
+  - evaluates `@predicate` directives against the current transactional semantic state,
+  - backtracks immediately if a predicate returns `false`,
+  - otherwise continues into the real parse closure,
+  - and still commits non-predicate semantic effects only on parse success
+
+Why this matters:
+- this is the first point where predicate answers can actually influence parse control flow
+- because it happens before the memoized parse closure, rule-boundary semantic guards now participate in whether the parser even attempts the rule body
+
+Current limitation to preserve:
+- unknown predicates are still treated as no-op rather than hard semantic errors
+- predicate steering is only at rule entry
+- inner OR-branch selection and declaration-vs-statement disambiguation still do not consume semantic predicates yet

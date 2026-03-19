@@ -3170,3 +3170,14 @@ Why `rtl_frontend` exists:
   - still intentionally deferred:
     - generated parser branch logic does not yet consume predicate outcomes
     - memoization remains syntax-only until a semantic-context strategy is chosen
+- 2026-03-19: Activated the first narrow parser-control use of semantic predicates at generated rule entry.
+  - generated `with_semantic_runtime_rule_transaction(...)` now evaluates rule directives in order before parsing
+  - a rule-entry `@predicate` that returns `false` now blocks that rule with `Backtrack`
+  - non-predicate directives still remain transactional and only commit on parse success
+  - roadmap consequence:
+    - predicate outcomes now influence parse control flow at one narrow, auditable seam
+    - this is the first live step from semantic-runtime capability toward semantic steering
+  - still intentionally deferred:
+    - unknown predicates are not yet hard failures
+    - inner branch selection / declaration-vs-statement steering still does not consume semantic predicates
+    - memoization is still syntax-only rather than semantic-context-aware

@@ -21627,3 +21627,19 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - generated parsers still do not use predicate outcomes to steer branch selection yet.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Made generated rule transactions actually consume semantic predicate outcomes at rule entry.
+  - Updated:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - generated `with_semantic_runtime_rule_transaction(...)` now walks the compiled rule directives in order before parsing,
+    - `@predicate` directives are evaluated against the current semantic runtime state,
+    - a predicate that returns `false` now blocks the rule with `ParseError::Backtrack` before the parse closure runs,
+    - non-predicate directives still apply transactionally and commit only on successful parse.
+  - Important guidance:
+    - unknown predicates still act as no-op today rather than hard failure,
+    - this is a narrow rule-entry steering seam, not full inner-branch semantic steering.
+  - Live-status effect:
+    - no live-status row changed
