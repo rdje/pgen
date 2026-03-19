@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: start-typed-semantic-payload-retention)
+Last updated: 2026-03-19 (+0100, task: add-semantic-runtime-directive-scaffold)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -160,6 +160,35 @@ Use this file to resume work without replaying full chat history.
 - Next likely task:
   - continue widening generated semantic tree lowering
   - then start the first semantic-annotation-driven fact/scope/predicate pilot for SV declaration-vs-statement disambiguation
+
+## Current Semantic Runtime Scaffold
+- New typed runtime scaffold is now in-tree:
+  - [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs)
+  - exposes:
+    - `SemanticRuntimeDirective`
+    - `SemanticRuntimeState`
+    - `SemanticScopeKind`
+    - `SemanticFactSpec` / `SemanticFactRecord`
+    - `SemanticPredicateSpec`
+    - `parse_semantic_runtime_directive(...)`
+- Semantic directive registry now recognizes:
+  - `emit_fact`
+  - `open_scope`
+  - `close_scope`
+  - `predicate`
+- Validator now checks those payloads as structured runtime directives rather than treating them as unknown semantic metadata.
+- Current honesty boundary:
+  - directives are parsed and validated
+  - state can be built and updated explicitly
+  - parser/runtime does **not** consult this state during parsing yet
+  - no speculative rollback or memoization integration is implemented yet
+- Focused validations completed:
+  - `cargo test --manifest-path rust/Cargo.toml --no-run`
+  - direct lib tests for runtime directive parsing, runtime state flow, validator acceptance/rejection, and registry capability coverage
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- Next likely task:
+  - define transaction semantics for semantic state under speculative parsing
+  - then wire the first bounded predicate/query pilot into one narrow SV ambiguity family
 
 ## Current Technical Snapshot
 - The repository now also has a tracked Verilog LRM conversion workspace sourced from `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`:

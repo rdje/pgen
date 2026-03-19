@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Add semantic-runtime directive scaffold without enabling steering
+### Context
+After widening `UnifiedSemanticAST`, the next missing piece was not “more payload retention.” It was a concrete runtime home for semantic facts, scopes, and predicate intent. The clean incremental move was to add typed semantic-runtime directives and a scoped runtime-state model, but to keep parser behavior unchanged until backtracking and memoization design are ready.
+
+### Implementation
+- Added [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - parses `SemanticAnnotation::Named` entries for:
+    - `@emit_fact`
+    - `@open_scope`
+    - `@close_scope`
+    - `@predicate`
+  - lowers them into typed runtime directives and scope/fact/predicate structures
+  - maintains a minimal `SemanticRuntimeState` with:
+    - persistent global root scope
+    - scope stack push/pop
+    - fact recording with `scope_depth`
+- Updated the semantic directive registry so those directive names are now tracked as `ParsedAndValidated`.
+- Updated annotation validation so malformed structured payloads are diagnosed directly.
+
+### Why This Matters
+- This is the first executable semantic-state backbone in the codebase.
+- It turns “semantic facts/scopes/predicates” from roadmap prose into typed runtime entities.
+- It still preserves the current honesty boundary:
+  - no parser steering behavior changed
+  - no semantic-state-aware memoization yet
+  - no commit/rollback semantics for speculative parse branches yet
+
+### Guidance
+- Keep these directives classified as parsed/validated only until the semantic-state execution model is transaction-safe.
+- The next real semantic-runtime milestone is not adding more directive names; it is designing:
+  - branch-local semantic state rollback,
+  - safe scope commit semantics,
+  - bounded predicate query points,
+  - memoization interaction rules.
+- First eventual steering pilot remains the same:
+  - SV declaration-vs-statement disambiguation for scoped type declarations inside blocks.
+
 ## 2026-03-19 - Start typed semantic payload retention in `UnifiedSemanticAST`
 ### Context
 The roadmap direction was already clear: before inventing a new annotation surface for semantic facts, PGEN should first widen the typed semantic AST so semantic annotations can retain more than `TransformExpr` or opaque raw text. This slice implements that first runtime step and also locks in the user correction that semantic-fact work belongs under semantic annotations, not by silently redefining return annotations.

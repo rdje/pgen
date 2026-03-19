@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-19 - Add semantic-runtime directive scaffold
+### ✅ Achievement Summary
+Landed the first executable semantic-runtime backbone for semantic annotations without changing parser behavior yet. The registry now recognizes `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate`, the validator checks their structured payload shapes, and a new runtime module can parse them into typed directives plus maintain a scoped semantic-state stack.
+
+### Scope of Changes
+- Added [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - `SemanticRuntimeDirective`
+  - `SemanticScopeKind` / `SemanticScopeSpec` / `SemanticCloseScopeSpec`
+  - `SemanticRuntimeValue`
+  - `SemanticFactSpec` / `SemanticFactRecord`
+  - `SemanticPredicateSpec`
+  - `SemanticRuntimeState`
+  - `parse_semantic_runtime_directive(...)`
+- Updated [semantic_directive_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_directive_registry.rs):
+  - registered `emit_fact`, `open_scope`, `close_scope`, and `predicate`
+  - classified them as `ParsedAndValidated` for now
+- Updated [annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs):
+  - added payload validation for the new semantic-runtime directives
+  - invalid structured payloads now surface clear warnings instead of staying unknown/opaque
+- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - exported the new semantic-runtime types and parser helper
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --no-run`
+- direct lib test binary checks:
+  - `ast_pipeline::semantic_runtime::tests::parses_open_scope_and_emit_fact_runtime_directives`
+  - `ast_pipeline::semantic_runtime::tests::parses_predicate_runtime_directive`
+  - `ast_pipeline::semantic_runtime::tests::runtime_state_tracks_scope_stack_and_facts`
+  - `ast_pipeline::annotation_validator::tests::semantic_validator_accepts_valid_emit_fact_runtime_payload`
+  - `ast_pipeline::annotation_validator::tests::semantic_validator_warns_on_invalid_open_scope_runtime_payload`
+  - `ast_pipeline::semantic_directive_registry::tests::recognizes_known_directives`
+  - `ast_pipeline::semantic_directive_registry::tests::directive_capability_matrix_reflects_runtime_surface`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Important Boundary
+- This is still a non-steering scaffold:
+  - no parser memoization changes
+  - no predicate execution during parse
+  - no backtracking-aware semantic fact commits yet
+- The value of this slice is that semantic-fact/scope/predicate directives are now explicit, typed, validated, and stateful rather than remaining only architectural prose.
+
 ## 2026-03-19 - Retain structured semantic annotation payloads
 ### ✅ Achievement Summary
 Started the first code-bearing semantic-annotation widening slice by teaching `UnifiedSemanticAST` to retain structured named payloads instead of flattening almost everything to raw text. Named semantic directives now preserve both their canonical payload text and a first structured subset (`arrays`, `objects`, scalars, identifiers, and rule references), while existing validator/codegen/stimuli/runtime consumers stay backward-compatible through a shared `payload_text()` path.

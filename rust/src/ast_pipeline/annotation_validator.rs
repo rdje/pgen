@@ -7,8 +7,8 @@ use super::{
     parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
     parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
     parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_numeric_list,
-    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_string_list,
-    parse_semantic_token_class, semantic_directive_spec,
+    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_runtime_directive,
+    parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec,
 };
 use regex::Regex;
 use std::collections::HashMap;
@@ -749,6 +749,70 @@ impl AnnotationValidator {
                         rule_name: rule_name.to_string(),
                         annotation_index: Some(annotation_index),
                         message: "Directive '@pattern' expects a non-empty valid regular expression payload.".to_string(),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "emit_fact" => {
+                if let Err(err) = parse_semantic_runtime_directive(semantic_annotation) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_EMIT_FACT_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: format!(
+                            "Directive '@emit_fact' expects a structured object payload with at least 'kind' and 'name': {}",
+                            err
+                        ),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "open_scope" => {
+                if let Err(err) = parse_semantic_runtime_directive(semantic_annotation) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_OPEN_SCOPE_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: format!(
+                            "Directive '@open_scope' expects a structured object payload with a valid 'kind' and optional 'name': {}",
+                            err
+                        ),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "close_scope" => {
+                if let Err(err) = parse_semantic_runtime_directive(semantic_annotation) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_CLOSE_SCOPE_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: format!(
+                            "Directive '@close_scope' expects a structured object payload with optional 'kind' and 'name': {}",
+                            err
+                        ),
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
+            "predicate" => {
+                if let Err(err) = parse_semantic_runtime_directive(semantic_annotation) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_PREDICATE_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: format!(
+                            "Directive '@predicate' expects a predicate name or a structured object payload with 'name' and optional 'args': {}",
+                            err
+                        ),
                         annotation: Some(raw_annotation),
                     });
                 }
@@ -2202,7 +2266,9 @@ impl AnnotationValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ast_pipeline::{ASTValue, TokenValue};
+    use crate::ast_pipeline::{
+        ASTValue, TokenValue, UnifiedSemanticProperty, UnifiedSemanticValue,
+    };
 
     #[test]
     fn return_validator_flags_zero_positional_reference() {
@@ -3827,5 +3893,70 @@ mod tests {
                 && d.kind == AnnotationKind::Grammar
                 && d.rule_name == "statement"
         }));
+    }
+
+    #[test]
+    fn semantic_validator_accepts_valid_emit_fact_runtime_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "emit_fact".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "{ kind: typedef, name: $1, declared_in: current_scope }"
+                        .to_string(),
+                    value: UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::RuleReference("$1".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "declared_in".to_string(),
+                            value: UnifiedSemanticValue::Identifier("current_scope".to_string()),
+                        },
+                    ]),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_EMIT_FACT_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_invalid_open_scope_runtime_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "open_scope".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "{ name: top_pkg }".to_string(),
+                    value: UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                        },
+                    ]),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_OPEN_SCOPE_PAYLOAD")
+        );
     }
 }

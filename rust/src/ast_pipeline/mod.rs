@@ -2624,6 +2624,7 @@ pub mod grouped_quantifier_parser;
 pub mod mutual_recursion_handler;
 pub mod return_annotation_handler;
 pub mod semantic_directive_registry;
+pub mod semantic_runtime;
 pub mod semantic_transform;
 pub mod stimuli_generator;
 pub mod unified_return_ast;
@@ -2645,6 +2646,11 @@ pub use semantic_directive_registry::{
     parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
     parse_semantic_numeric_list, parse_semantic_pattern, parse_semantic_reference_list,
     parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec,
+};
+pub use semantic_runtime::{
+    SemanticCloseScopeSpec, SemanticFactRecord, SemanticFactSpec, SemanticPredicateSpec,
+    SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeFrame,
+    SemanticScopeKind, SemanticScopeSpec, parse_semantic_runtime_directive,
 };
 pub use semantic_transform::{
     CanonicalSemanticTransform, parse_canonical_transform_expression, stimuli_hint_for_target_type,

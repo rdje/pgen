@@ -116,6 +116,14 @@ Near-term rollout:
 - define a minimal predicate API that semantic annotations can query,
 - pilot the model on one narrow high-value frontier:
   - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks.
+- Progress (2026-03-19):
+  - landed the first semantic-runtime scaffold:
+    - new typed runtime directives `emit_fact`, `open_scope`, `close_scope`, `predicate`
+    - new `semantic_runtime` module with typed scope/fact/predicate/state structures
+    - validator coverage for the new directive payload shapes
+  - current boundary remains explicit:
+    - parsed and validated, but not yet parser-steering
+    - no speculative rollback or memoization integration yet
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

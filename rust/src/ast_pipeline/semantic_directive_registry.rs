@@ -340,6 +340,23 @@ const DIRECTIVES: &[SemanticDirectiveSpec] = &[
         name: "profiles",
         capability: SemanticDirectiveCapability::ParserAndStimuliSteering,
     },
+    // Semantic-runtime scaffold directives (parsed/validated now, execution follows).
+    SemanticDirectiveSpec {
+        name: "emit_fact",
+        capability: SemanticDirectiveCapability::ParsedAndValidated,
+    },
+    SemanticDirectiveSpec {
+        name: "open_scope",
+        capability: SemanticDirectiveCapability::ParsedAndValidated,
+    },
+    SemanticDirectiveSpec {
+        name: "close_scope",
+        capability: SemanticDirectiveCapability::ParsedAndValidated,
+    },
+    SemanticDirectiveSpec {
+        name: "predicate",
+        capability: SemanticDirectiveCapability::ParsedAndValidated,
+    },
     // Literal-oriented generation hint directives.
     SemanticDirectiveSpec {
         name: "literal",
@@ -1044,6 +1061,10 @@ mod tests {
         assert!(semantic_directive_spec("negative").is_some());
         assert!(semantic_directive_spec("seed_group").is_some());
         assert!(semantic_directive_spec("deterministic_group").is_some());
+        assert!(semantic_directive_spec("emit_fact").is_some());
+        assert!(semantic_directive_spec("open_scope").is_some());
+        assert!(semantic_directive_spec("close_scope").is_some());
+        assert!(semantic_directive_spec("predicate").is_some());
         assert!(semantic_directive_spec("unknown_directive").is_none());
     }
 
@@ -1084,6 +1105,22 @@ mod tests {
         assert_eq!(
             semantic_directive_spec("coverage_target").map(|s| s.capability),
             Some(SemanticDirectiveCapability::ParserAndStimuliSteering)
+        );
+        assert_eq!(
+            semantic_directive_spec("emit_fact").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParsedAndValidated)
+        );
+        assert_eq!(
+            semantic_directive_spec("open_scope").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParsedAndValidated)
+        );
+        assert_eq!(
+            semantic_directive_spec("close_scope").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParsedAndValidated)
+        );
+        assert_eq!(
+            semantic_directive_spec("predicate").map(|s| s.capability),
+            Some(SemanticDirectiveCapability::ParsedAndValidated)
         );
         assert_eq!(
             semantic_directive_spec("literal").map(|s| s.capability),
