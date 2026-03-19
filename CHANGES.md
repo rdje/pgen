@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-19 - Add rule-driven semantic runtime execution seam
+### ✅ Achievement Summary
+Extended the compiled semantic-runtime layer from passive lookup into direct rule-driven execution. `CompiledSemanticRuntimeAnnotations` can now apply a rule’s directives to `SemanticRuntimeState`, and transactions can apply compiled rule directives with automatic rollback semantics. This is the first narrow parser-facing execution seam over compiled runtime directives.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `CompiledSemanticRuntimeAnnotations::apply_to_rule(...)`
+  - added `SemanticRuntimeState::apply_directives(...)`
+  - added `SemanticRuntimeState::apply_compiled_rule(...)`
+  - added `SemanticRuntimeTransaction::apply_compiled_rule(...)`
+  - added focused tests for:
+    - applying only the requested rule,
+    - missing-rule no-op behavior,
+    - transaction rollback after compiled rule application
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --no-run`
+- direct lib test binary:
+  - `ast_pipeline::semantic_runtime::tests::compiled_annotations_apply_only_requested_rule`
+  - `ast_pipeline::semantic_runtime::tests::compiled_annotations_missing_rule_is_a_noop`
+  - `ast_pipeline::semantic_runtime::tests::transaction_apply_compiled_rule_rolls_back_without_commit`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Important Boundary
+- This is still not broad parser steering.
+- What exists now is a narrow handoff seam:
+  - compile runtime directives by rule,
+  - ask the runtime to apply one rule’s directives,
+  - use transaction semantics to keep speculative changes reversible.
+
 ## 2026-03-19 - Precompile rule-level semantic runtime directives
 ### ✅ Achievement Summary
 Added the first compiled rule-level view over semantic-runtime-capable annotations. `Annotations.semantic_annotations` can now be lowered once into `CompiledSemanticRuntimeAnnotations`, so future parser integration can look up runtime directives for a rule directly instead of reparsing whole semantic-annotation lists ad hoc.

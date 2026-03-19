@@ -134,10 +134,14 @@ Near-term rollout:
     - `compile_rule_semantic_runtime_directives(...)`
     - `compile_semantic_runtime_annotations(...)`
     - rule-local runtime parse errors now carry rule name + annotation index context
+  - landed the first rule-driven runtime execution seam:
+    - `CompiledSemanticRuntimeAnnotations::apply_to_rule(...)`
+    - `SemanticRuntimeState::apply_compiled_rule(...)`
+    - `SemanticRuntimeTransaction::apply_compiled_rule(...)`
   - current boundary remains explicit:
     - parsed and validated, but not yet parser-steering
     - semantic transactions exist, but no parser backtracking/memoization integration yet
-    - runtime directives can now be compiled by rule, but no generated parser consumes that compiled map during branch execution yet
+    - runtime directives can now be compiled and applied by rule, but no generated parser consumes that seam during branch execution yet
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

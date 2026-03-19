@@ -139,6 +139,10 @@ impl CompiledSemanticRuntimeAnnotations {
             .unwrap_or(&[])
     }
 
+    pub fn apply_to_rule(&self, state: &mut SemanticRuntimeState, rule_name: &str) -> usize {
+        state.apply_compiled_rule(self, rule_name)
+    }
+
     pub fn iter(
         &self,
     ) -> impl Iterator<Item = (&str, &[SemanticRuntimeDirective])> + ExactSizeIterator + '_ {
@@ -285,6 +289,27 @@ impl SemanticRuntimeState {
             SemanticRuntimeDirective::Predicate(_) => true,
         }
     }
+
+    pub fn apply_directives<'b, I>(&mut self, directives: I) -> usize
+    where
+        I: IntoIterator<Item = &'b SemanticRuntimeDirective>,
+    {
+        let mut applied = 0;
+        for directive in directives {
+            if self.apply_directive(directive) {
+                applied += 1;
+            }
+        }
+        applied
+    }
+
+    pub fn apply_compiled_rule(
+        &mut self,
+        compiled: &CompiledSemanticRuntimeAnnotations,
+        rule_name: &str,
+    ) -> usize {
+        self.apply_directives(compiled.directives_for_rule(rule_name).iter())
+    }
 }
 
 impl<'a> SemanticRuntimeTransaction<'a> {
@@ -304,13 +329,15 @@ impl<'a> SemanticRuntimeTransaction<'a> {
     where
         I: IntoIterator<Item = &'b SemanticRuntimeDirective>,
     {
-        let mut applied = 0;
-        for directive in directives {
-            if self.apply_directive(directive) {
-                applied += 1;
-            }
-        }
-        applied
+        self.state.apply_directives(directives)
+    }
+
+    pub fn apply_compiled_rule(
+        &mut self,
+        compiled: &CompiledSemanticRuntimeAnnotations,
+        rule_name: &str,
+    ) -> usize {
+        self.state.apply_compiled_rule(compiled, rule_name)
     }
 
     pub fn apply_annotations<'b, I>(
@@ -1125,5 +1152,161 @@ mod tests {
             .expect("free-function compilation should succeed");
 
         assert_eq!(via_wrapper, via_function);
+    }
+
+    #[test]
+    fn compiled_annotations_apply_only_requested_rule() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![
+                structured_named(
+                    "open_scope",
+                    "{ kind: package, name: pkg_a }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("pkg_a".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "emit_fact",
+                    "{ kind: typedef, name: type_a }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("type_a".to_string()),
+                        },
+                    ]),
+                ),
+            ],
+        );
+        annotations.semantic_annotations.insert(
+            "function_declaration".to_string(),
+            vec![structured_named(
+                "emit_fact",
+                "{ kind: function, name: fn_b }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("function".to_string()),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("fn_b".to_string()),
+                    },
+                ]),
+            )],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+        let mut state = SemanticRuntimeState::new();
+
+        let applied = compiled.apply_to_rule(&mut state, "package_declaration");
+
+        assert_eq!(applied, 2);
+        assert_eq!(state.current_scope().kind, SemanticScopeKind::Package);
+        assert_eq!(state.facts().len(), 1);
+        assert_eq!(state.facts()[0].kind, "typedef");
+        assert_eq!(
+            state.facts()[0].name,
+            SemanticRuntimeValue::Identifier("type_a".to_string())
+        );
+    }
+
+    #[test]
+    fn compiled_annotations_missing_rule_is_a_noop() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![structured_named(
+                "emit_fact",
+                "{ kind: typedef, name: type_a }",
+                UnifiedSemanticValue::Object(vec![
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    },
+                    crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("type_a".to_string()),
+                    },
+                ]),
+            )],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+        let mut state = SemanticRuntimeState::new();
+
+        let applied = state.apply_compiled_rule(&compiled, "missing_rule");
+
+        assert_eq!(applied, 0);
+        assert_eq!(state.scopes().len(), 1);
+        assert!(state.facts().is_empty());
+    }
+
+    #[test]
+    fn transaction_apply_compiled_rule_rolls_back_without_commit() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![
+                structured_named(
+                    "open_scope",
+                    "{ kind: package, name: speculative_pkg }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("speculative_pkg".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "emit_fact",
+                    "{ kind: typedef, name: speculative_type }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("speculative_type".to_string()),
+                        },
+                    ]),
+                ),
+            ],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+        let mut state = SemanticRuntimeState::new();
+
+        {
+            let mut transaction = state.transaction();
+            let applied = transaction.apply_compiled_rule(&compiled, "package_declaration");
+            assert_eq!(applied, 2);
+            assert_eq!(transaction.state().scopes().len(), 2);
+            assert_eq!(transaction.state().facts().len(), 1);
+        }
+
+        assert_eq!(state.scopes().len(), 1);
+        assert!(state.facts().is_empty());
+        assert_eq!(state.current_scope().kind, SemanticScopeKind::Global);
     }
 }

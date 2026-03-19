@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: precompile-semantic-runtime-directives-by-rule)
+Last updated: 2026-03-19 (+0100, task: add-rule-driven-semantic-runtime-execution-seam)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -166,15 +166,19 @@ Use this file to resume work without replaying full chat history.
     - `CompiledSemanticRuntimeAnnotations`
     - `compile_rule_semantic_runtime_directives(...)`
     - `compile_semantic_runtime_annotations(...)`
+  - direct rule-driven execution via:
+    - `CompiledSemanticRuntimeAnnotations::apply_to_rule(...)`
+    - `SemanticRuntimeState::apply_compiled_rule(...)`
+    - `SemanticRuntimeTransaction::apply_compiled_rule(...)`
 - Current boundary remains explicit:
-  - runtime directives can now be precompiled by rule, but generated parsers do not yet consume that compiled map during parse execution
+  - runtime directives can now be precompiled and applied by rule, but generated parsers do not yet consume that seam during parse execution
   - no semantic predicate dispatch yet
   - no semantic-aware memoization yet
 - Next likely task:
-  - thread `CompiledSemanticRuntimeAnnotations` into a narrow parser-facing execution seam
+  - thread this rule-driven execution seam into one controlled parser integration point
   - keep the first pilot small:
-    - rule-level directive lookup
-    - transaction open/apply/commit at a controlled integration point
+    - compile once,
+    - apply one rule’s directives transactionally,
     - no broad parser-wide steering flip all at once
   - continue widening generated semantic tree lowering
   - then start the first semantic-annotation-driven fact/scope/predicate pilot for SV declaration-vs-statement disambiguation

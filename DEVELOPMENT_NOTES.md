@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Add rule-driven execution over compiled semantic runtime directives
+### Context
+Precompiling runtime-capable semantic annotations by rule solved the repeated parsing problem, but it still left parser integration with one awkward step: future parser code would have to fetch a rule’s directives and loop over them manually. The right next increment was to turn the compiled map into an executable seam that can apply one rule’s directives directly to runtime state or a transaction.
+
+### Implementation
+- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - `CompiledSemanticRuntimeAnnotations::apply_to_rule(...)`
+  - `SemanticRuntimeState::apply_directives(...)`
+  - `SemanticRuntimeState::apply_compiled_rule(...)`
+  - `SemanticRuntimeTransaction::apply_compiled_rule(...)`
+- Added focused tests proving:
+  - only the requested rule’s directives are applied,
+  - missing rules are a no-op,
+  - compiled rule application inside a transaction still rolls back on drop without commit
+
+### Why This Matters
+- Future parser integration now has a narrower execution contract:
+  - compile once,
+  - apply by rule name,
+  - keep speculative effects transaction-safe.
+- This is a better parser-facing seam than exposing raw directive vectors everywhere.
+
+### Remaining Gap
+- Generated parsers still do not call this seam automatically.
+- Memoization and semantic predicate dispatch are still untouched.
+- The next implementation step should be one controlled parser integration point that invokes `apply_compiled_rule(...)`, rather than a broad parser-wide semantic steering rollout.
+
 ## 2026-03-19 - Precompile semantic runtime directives by rule
 ### Context
 The semantic-runtime scaffold now had typed directives, checkpoints, and transactions, but one integration bottleneck was still obvious: future parser code would otherwise have to re-scan and re-parse whole semantic-annotation lists every time it wanted runtime behavior for a rule. That would duplicate work and blur where runtime-compilable directives stop and general semantic annotations begin.
