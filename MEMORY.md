@@ -5333,3 +5333,14 @@ Use this file to resume work without replaying full chat history.
     - semantic predicates are not yet consulted inside branch selection
     - memoization keys are not yet semantic-context-aware
     - so this slice is infrastructure for future steering, not the steering feature itself
+- 2026-03-19: Semantic runtime now has built-in predicate evaluation over live scope/fact state.
+  - Active code slice:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+  - Built-ins now present:
+    - `current_scope_is(kind[, name])`
+    - `has_fact(kind, name)`
+    - `has_fact_in_current_scope(kind, name)`
+    - `scope_depth_at_least(n)`
+  - Important continuity note:
+    - `@predicate` payloads now have concrete runtime query meaning,
+    - but generated parsers still do not consume those answers for branch steering yet.

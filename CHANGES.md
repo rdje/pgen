@@ -21608,3 +21608,22 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - deep semantic predicates still remain future work because parse-time branch steering has not yet been wired into inner parsing logic or memoization fingerprints.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Added the first built-in semantic-runtime predicate evaluators over scope/fact state.
+  - Updated:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - `SemanticRuntimeState` can now evaluate built-in predicates:
+      - `current_scope_is(kind[, name])`
+      - `has_fact(kind, name)`
+      - `has_fact_in_current_scope(kind, name)`
+      - `scope_depth_at_least(n)`
+    - added a thin `evaluate_directive_predicate(...)` helper for `SemanticRuntimeDirective::Predicate`
+    - added focused runtime tests covering positive/negative scope and fact queries
+  - Important guidance:
+    - this is query capability only,
+    - generated parsers still do not use predicate outcomes to steer branch selection yet.
+  - Live-status effect:
+    - no live-status row changed

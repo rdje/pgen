@@ -21556,3 +21556,23 @@ Current limitation to preserve:
 - this is still rule-boundary execution only
 - inner parse logic does not yet query semantic predicates during branch selection
 - memoization keys are still syntax-only, so semantic-state-sensitive steering must remain off until a context-aware memoization strategy is designed deliberately
+
+2026-03-19 semantic-runtime query checkpoint:
+- `SemanticRuntimeState` now has the first built-in predicate evaluators over live semantic state:
+  - `current_scope_is(kind[, name])`
+  - `has_fact(kind, name)`
+  - `has_fact_in_current_scope(kind, name)`
+  - `scope_depth_at_least(n)`
+- there is also a small adapter for directive-shaped predicates:
+  - `evaluate_directive_predicate(&SemanticRuntimeDirective::Predicate(...))`
+
+Why this matters:
+- the semantic runtime can now do both halves of the future steering contract:
+  - record scoped semantic facts
+  - query those facts later
+- this is the first point where `@predicate` payloads have a concrete runtime meaning beyond just typed storage
+
+Current boundary to preserve:
+- predicate evaluation is still explicit and manual
+- generated parsers do not yet consult these predicate outcomes during branch selection or declaration-vs-statement disambiguation
+- so this slice is predicate capability, not full semantic steering promotion

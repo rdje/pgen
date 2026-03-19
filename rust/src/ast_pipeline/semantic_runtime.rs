@@ -326,6 +326,64 @@ impl SemanticRuntimeState {
     ) -> usize {
         self.apply_directives(compiled.directives_for_rule(rule_name).iter())
     }
+
+    pub fn evaluate_predicate(&self, predicate: &SemanticPredicateSpec) -> Option<bool> {
+        let normalized_name = predicate.name.trim().to_ascii_lowercase();
+        match normalized_name.as_str() {
+            "current_scope_is" => {
+                let expected_kind = predicate.args.first().and_then(SemanticScopeKind::parse)?;
+                let current_scope = self.current_scope();
+                if current_scope.kind != expected_kind {
+                    return Some(false);
+                }
+                let Some(expected_name_arg) = predicate.args.get(1) else {
+                    return Some(true);
+                };
+                let expected_name = SemanticRuntimeValue::from_semantic_value(expected_name_arg)?;
+                Some(current_scope.name.as_ref() == Some(&expected_name))
+            }
+            "has_fact" => {
+                let expected_kind = scalar_text(predicate.args.first()?)?;
+                let expected_name =
+                    SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
+                Some(
+                    self.facts.iter().any(|fact| {
+                        fact.kind.eq_ignore_ascii_case(expected_kind) && fact.name == expected_name
+                    }),
+                )
+            }
+            "has_fact_in_current_scope" => {
+                let expected_kind = scalar_text(predicate.args.first()?)?;
+                let expected_name =
+                    SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
+                let current_depth = self.scopes.len().saturating_sub(1);
+                Some(
+                    self.facts.iter().any(|fact| {
+                        fact.scope_depth == current_depth
+                            && fact.kind.eq_ignore_ascii_case(expected_kind)
+                            && fact.name == expected_name
+                    }),
+                )
+            }
+            "scope_depth_at_least" => {
+                let minimum_depth = scalar_text(predicate.args.first()?)?.parse::<usize>().ok()?;
+                Some(self.scopes.len().saturating_sub(1) >= minimum_depth)
+            }
+            _ => None,
+        }
+    }
+
+    pub fn evaluate_directive_predicate(
+        &self,
+        directive: &SemanticRuntimeDirective,
+    ) -> Option<bool> {
+        match directive {
+            SemanticRuntimeDirective::Predicate(spec) => self.evaluate_predicate(spec),
+            SemanticRuntimeDirective::OpenScope(_)
+            | SemanticRuntimeDirective::CloseScope(_)
+            | SemanticRuntimeDirective::EmitFact(_) => None,
+        }
+    }
 }
 
 impl<'a> SemanticRuntimeTransaction<'a> {
@@ -733,6 +791,189 @@ mod tests {
                     UnifiedSemanticValue::Identifier("lhs".to_string()),
                 ],
             }))
+        );
+    }
+
+    #[test]
+    fn built_in_predicates_query_current_scope_and_facts() {
+        let open_scope = structured_named(
+            "open_scope",
+            "{ kind: package, name: top_pkg }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                },
+            ]),
+        );
+        let emit_fact = structured_named(
+            "emit_fact",
+            "{ kind: typedef, name: my_type }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("my_type".to_string()),
+                },
+            ]),
+        );
+
+        let open_directive = parse_semantic_runtime_directive(&open_scope)
+            .expect("open_scope should parse")
+            .expect("directive should be present");
+        let fact_directive = parse_semantic_runtime_directive(&emit_fact)
+            .expect("emit_fact should parse")
+            .expect("directive should be present");
+
+        let mut state = SemanticRuntimeState::new();
+        assert!(state.apply_directive(&open_directive));
+        assert!(state.apply_directive(&fact_directive));
+
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "current_scope_is".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("package".to_string()),
+                    UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                ],
+            }),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "current_scope_is".to_string(),
+                args: vec![UnifiedSemanticValue::Identifier("class".to_string())],
+            }),
+            Some(false)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "has_fact".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("my_type".to_string()),
+                ],
+            }),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "has_fact_in_current_scope".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("my_type".to_string()),
+                ],
+            }),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "scope_depth_at_least".to_string(),
+                args: vec![UnifiedSemanticValue::Number("1".to_string())],
+            }),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn built_in_predicates_respect_scope_changes_and_unknowns() {
+        let open_scope = structured_named(
+            "open_scope",
+            "{ kind: package, name: top_pkg }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                },
+            ]),
+        );
+        let emit_fact = structured_named(
+            "emit_fact",
+            "{ kind: typedef, name: my_type }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("my_type".to_string()),
+                },
+            ]),
+        );
+        let close_scope = structured_named(
+            "close_scope",
+            "{ kind: package, name: top_pkg }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                },
+            ]),
+        );
+
+        let open_directive = parse_semantic_runtime_directive(&open_scope)
+            .expect("open_scope should parse")
+            .expect("directive should be present");
+        let fact_directive = parse_semantic_runtime_directive(&emit_fact)
+            .expect("emit_fact should parse")
+            .expect("directive should be present");
+        let close_directive = parse_semantic_runtime_directive(&close_scope)
+            .expect("close_scope should parse")
+            .expect("directive should be present");
+
+        let mut state = SemanticRuntimeState::new();
+        assert!(state.apply_directive(&open_directive));
+        assert!(state.apply_directive(&fact_directive));
+        assert!(state.apply_directive(&close_directive));
+
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "current_scope_is".to_string(),
+                args: vec![UnifiedSemanticValue::Identifier("global".to_string())],
+            }),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "has_fact_in_current_scope".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("my_type".to_string()),
+                ],
+            }),
+            Some(false)
+        );
+        assert_eq!(
+            state.evaluate_directive_predicate(&SemanticRuntimeDirective::Predicate(
+                SemanticPredicateSpec {
+                    name: "unknown_predicate".to_string(),
+                    args: vec![],
+                },
+            )),
+            None
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "scope_depth_at_least".to_string(),
+                args: vec![UnifiedSemanticValue::Identifier("not_a_number".to_string())],
+            }),
+            None
         );
     }
 

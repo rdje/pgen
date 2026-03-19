@@ -3158,3 +3158,15 @@ Why `rtl_frontend` exists:
     - semantic predicate evaluation inside branch selection
     - semantic-context-aware memoization keys / fingerprints
     - a first live grammar pilot such as SystemVerilog declaration-vs-statement disambiguation
+- 2026-03-19: Added the first built-in semantic-runtime predicate evaluators over recorded scope/fact state.
+  - runtime state can now answer:
+    - `current_scope_is(kind[, name])`
+    - `has_fact(kind, name)`
+    - `has_fact_in_current_scope(kind, name)`
+    - `scope_depth_at_least(n)`
+  - roadmap consequence:
+    - semantic runtime now supports both fact capture and fact query,
+    - which is the minimum substrate needed before a live semantic-steering pilot can be credible
+  - still intentionally deferred:
+    - generated parser branch logic does not yet consume predicate outcomes
+    - memoization remains syntax-only until a semantic-context strategy is chosen
