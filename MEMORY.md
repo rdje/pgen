@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: sv-uvm-brace-concat-and-comment-multiline-fix)
+Last updated: 2026-03-19 (+0100, task: capture-file-roundtrip-proof-guidance)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -50,6 +50,27 @@ Use this file to resume work without replaying full chat history.
   - the fake preprocess failure `unterminated conditional block in .../uvm_objection.svh` is gone
 - Next likely task:
   - keep pushing the remaining real UVM parser/package-body debt now that the UVM slice is preprocess-honest again
+
+## Shared File-Roundtrip Guidance
+- Full-file roundtrip is now explicitly captured as a shared parser-family proof surface for PGEN, not as an SV-only or VHDL-only idea.
+- Preferred proof loop:
+  - input file
+  - family-specific normalization/preprocessing
+  - full-file parse
+  - canonical AST dump
+  - AST-to-canonical-text rendering
+  - reparse
+  - canonical text equality
+  - canonical AST equality
+- Family-specific nuance to preserve:
+  - SystemVerilog should usually roundtrip against preprocessed canonical text
+  - VHDL should usually roundtrip against normalized source text
+- Important caution:
+  - text equality is strong but not sufficient alone; keep it paired with parseability, coverage, replay, and realistic-corpus proof
+- Intended rollout order:
+  - shared harness
+  - VHDL file-level roundtrip
+  - SystemVerilog file-level preprocessed roundtrip
 
 ## Current Technical Snapshot
 - The repository now also has a tracked Verilog LRM conversion workspace sourced from `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`:

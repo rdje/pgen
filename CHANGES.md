@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-19 - Capture full-file roundtrip proof guidance
+### ✅ Achievement Summary
+Captured the agreed architectural guidance for full-file parser roundtrip proof as a general PGEN parser-family concept rather than an SV/VHDL-only special case. The roadmap and continuity docs now explicitly describe file-level roundtrip as a reusable proof surface with family adapters for preprocessing, normalization, profiles, and canonical rendering.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - added explicit file-level roundtrip doctrine under the parser deliverable proof rules
+  - documented the shared harness shape and the intended rollout order:
+    - shared harness first
+    - VHDL file-level roundtrip next
+    - SystemVerilog preprocessed file-level roundtrip after that
+- Updated [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - captured the implementation guidance for future work and crash-resume continuity
+
+### Guidance Captured
+- canonical proof loop:
+  - input file
+  - family-specific normalization/preprocessing
+  - full-file parse
+  - canonical AST dump
+  - AST-to-canonical-text rendering
+  - reparse
+  - canonical text equality
+  - canonical AST equality
+- family nuance:
+  - SystemVerilog should usually target preprocessed canonical text
+  - VHDL should usually target normalized source text
+- proof doctrine nuance:
+  - file-level canonical text equality is a major proof surface, but it is not sufficient by itself and should remain paired with parseability, coverage, replay, and realistic-corpus proof
+
 ## 2026-03-19 - Fix UVM brace-concat macro args and comment-side multiline collection
 ### ✅ Achievement Summary
 Focused UVM package debugging exposed two more real SV preprocessor bugs in the same neighborhood. First, function-like macro argument splitting still ignored `{}` and `[]`, so UVM warning/error calls with brace-concatenation message arguments were being truncated at the first inner comma. Second, the multiline logical-line collector still scanned comment text as if it were live code, so documentation examples like `` //| `DECL("ID", `` could make later directive lines look swallowed and trigger fake `unterminated conditional block` failures. Both issues are now fixed.

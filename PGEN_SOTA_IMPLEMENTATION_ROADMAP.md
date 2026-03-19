@@ -55,10 +55,38 @@ Required deliverable shape:
 Required proof shape:
 - parser acceptance/rejection proof,
 - roundtrip proof between generated stimuli and generated parser,
+- file-level roundtrip proof where a family has meaningful whole-file inputs,
 - parser coverage proof,
 - stimuli-generation coverage/gap proof,
 - deterministic replay proof,
 - machine-checkable artifacts/gates behind every closure claim.
+
+Full-file roundtrip doctrine:
+- full-file roundtrip is a general PGEN parser-family proof surface, not a one-off feature for SystemVerilog or VHDL,
+- when a grammar family has meaningful whole-file corpora, the preferred proof loop is:
+  - input file,
+  - family-specific normalization/preprocessing,
+  - full-file parse,
+  - canonical AST dump,
+  - AST-to-canonical-text rendering,
+  - full-file reparse,
+  - canonical text equality check,
+  - canonical AST equality check,
+- the harness should be shared across EBNF-backed families, with per-family adapters only for:
+  - input preparation,
+  - preprocessing,
+  - profile selection,
+  - canonical text normalization,
+  - canonical AST-to-text rendering,
+  - corpus selection and gating policy,
+- for SystemVerilog, the canonical roundtrip target should usually be the preprocessed file text because the parser consumes post-macro/post-include/post-conditional input,
+- for VHDL, the canonical roundtrip target should usually be the normalized source text directly,
+- canonical text equality is a major proof surface but not sufficient alone; keep it alongside parseability, coverage, replay, and realistic-corpus proof because a parser and renderer can still share the same bug,
+- current intended rollout order:
+  - implement the shared file-roundtrip harness first,
+  - land VHDL full-file canonical roundtrip next,
+  - land SystemVerilog full-file preprocessed canonical roundtrip after that,
+  - then generalize the same proof surface to other file-oriented EBNF families where it is meaningful.
 
 Closure rule for `Done`:
 - `Done` means "formally exhaustive with no possible coverage gap in the proof surface",

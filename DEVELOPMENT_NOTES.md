@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Capture full-file roundtrip doctrine as shared parser-family guidance
+### Context
+The repository already has strong parser/stimuli roundtrip proof and full-file parse/AST-dump entrypoints for major families, but not yet a general file-level `parse -> canonical AST -> canonical text -> reparse` proof loop for SystemVerilog or VHDL. The right architectural framing is broader than either language: full-file roundtrip is a reusable PGEN parser-family proof surface for any EBNF-backed grammar with meaningful whole-file corpora.
+
+### Guidance
+- Treat file-level roundtrip as a shared proof harness, not as an SV-specific or VHDL-specific special case.
+- Use this canonical proof loop:
+  - input file
+  - family-specific normalization/preprocessing
+  - full-file parse
+  - canonical AST dump
+  - AST-to-canonical-text rendering
+  - full-file reparse
+  - canonical text equality check
+  - canonical AST equality check
+- Keep the harness generic and move only family-specific behavior into adapters:
+  - preprocessing
+  - active profile
+  - normalization rules
+  - renderer details
+  - corpus/gate policy
+
+### Important Nuances
+- For SystemVerilog, target the preprocessed canonical file text rather than the raw source text in most cases, because the parser consumes post-macro/post-include/post-conditional input.
+- For VHDL, target normalized source text directly.
+- Canonical text equality is a strong signal but not the only required proof: keep it alongside parseability, coverage, replay, and realistic-corpus evidence because a parser and renderer can share the same bug.
+
+### Intended Rollout
+- shared file-roundtrip harness first
+- VHDL full-file canonical roundtrip next
+- SystemVerilog full-file preprocessed canonical roundtrip after that
+- later generalization to other file-oriented EBNF families
+
 ## 2026-03-19 - Recover UVM preprocess correctness for brace-concat warning macros
 ### Context
 The next UVM frontier after the comment-expansion fix turned out to be half real and half misleading. Preprocessed `uvm_pkg` still contained malformed `uvm_report_warning(...)` calls in which the message argument had been cut off after the first string literal, and a fresh focused rerun then regressed into `unterminated conditional block in .../uvm_objection.svh`. Those symptoms looked unrelated at first, but they actually shared the same root theme: the preprocessor was still treating too much non-code text as if it were top-level macro syntax.
