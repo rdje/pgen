@@ -21123,3 +21123,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - `systemverilog`: remains `Mostly Done`
   - `vhdl`: remains `In Progress`
   - `Parser-family exhaustive proof normalization`: remains `In Progress`
+
+- 2026-03-18: Hardened focused SystemVerilog UVM parser debt around call-shape ambiguity without changing the live status labels.
+  - Updated:
+    - `grammars/systemverilog.ebnf`
+    - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - What changed:
+    - `bit_select` now routes through dedicated `bit_select_expression`, so unparenthesized method calls inside index expressions are accepted intentionally.
+    - `method_call_body` now prefers real calls before the bare identifier fallback, `method_call_root` now uses an explicit receiver surface, and `select` now guards member-selection chains with `!lparen`.
+    - explicit `class_scoped_call_prefix` / `class_scoped_tf_call` now handle parameterized class-scoped callable forms like `uvm_bit_vector_utils#(uvm_bitstream_t)::to_string(...)` without letting `class_scope` absorb the final callable identifier.
+  - Focused validation:
+    - `parseability_probe --parse systemverilog /tmp/index_other_method.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/leaf_if_index_method_only.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/leaf_if_index_len.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/uvm_leaf_scope_pkg.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/sv_param_class_scope_call_min.sv --profile 2017`
+    - `parseability_probe --parse systemverilog /tmp/uvm_pkg_top_1634.sv --profile 2017`
+    - closed focused UVM package-body prefixes now pass at `1643`, `1682`, `1708`, `1716`, and `1743`
+    - next closed focused UVM prefix failure is now `1883`
+  - Live-status effect:
+    - `systemverilog`: remains `Mostly Done`

@@ -223,7 +223,12 @@ bins_selection := bins_keyword bin_identifier assign select_expression ( kw_iff_
 
 bins_selection_or_option := attribute_instance* coverage_option | attribute_instance* bins_selection
 
-bit_select := ( lbrack expression rbrack )*
+direct_index_method_call := ( ( kw_class_qualifier_fa08937d | package_scope )? hierarchical_identifier | implicit_class_handle ) dot method_call_body
+
+@branch_policy: priority_first
+bit_select_expression := direct_index_method_call | method_call | expression
+
+bit_select := ( lbrack bit_select_expression rbrack )*
 
 block_event_expression := block_event_expression kw_or_1758356d block_event_expression | kw_begin_8cbd0a74 hierarchical_btf_identifier | kw_end_7a92f3d2 hierarchical_btf_identifier
 
@@ -1133,9 +1138,18 @@ member_identifier := identifier
 
 method_call := method_call_root dot method_call_body
 
-method_call_body := method_identifier attribute_instance* ( lparen list_of_arguments rparen )? | built_in_method_call
+@branch_policy: priority_first
+method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen | method_identifier attribute_instance*
 
-method_call_root := primary | implicit_class_handle
+@profiles: ["sv_2017"]
+method_call_receiver_sv_2017 := primary_literal | ( kw_class_qualifier_fa08937d | package_scope )? hierarchical_identifier | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
+
+@profiles: ["sv_2023"]
+method_call_receiver_sv_2023 := primary_literal | ( kw_class_qualifier_fa08937d | package_scope )? hierarchical_identifier | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
+
+method_call_receiver := method_call_receiver_sv_2017 | method_call_receiver_sv_2023
+
+method_call_root := method_call_receiver | implicit_class_handle
 
 method_identifier := declaration_identifier
 
@@ -1598,7 +1612,8 @@ ps_or_hierarchical_property_identifier := ( package_scope )? property_identifier
 
 ps_or_hierarchical_sequence_identifier := ( package_scope )? sequence_identifier | hierarchical_sequence_identifier
 
-ps_or_hierarchical_tf_identifier := ( package_scope )? tf_identifier | hierarchical_tf_identifier
+@branch_policy: priority_first
+ps_or_hierarchical_tf_identifier := class_scope tf_identifier | package_scope tf_identifier | hierarchical_tf_identifier | tf_identifier
 
 ps_parameter_identifier := ( package_scope | class_scope )? parameter_identifier | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier
 
@@ -1743,7 +1758,7 @@ scalar_constant := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick
 
 scalar_timing_check_condition := expression | tilde expression | expression equal scalar_constant | expression case_equal scalar_constant | expression not_equal scalar_constant | expression case_not_equal scalar_constant
 
-select := ( ( dot member_identifier bit_select )* dot member_identifier )? ( lbrack part_select_range rbrack | bit_select ( lbrack part_select_range rbrack )? | epsilon )
+select := ( ( dot member_identifier !lparen bit_select )* dot member_identifier !lparen )? ( lbrack part_select_range rbrack | bit_select ( lbrack part_select_range rbrack )? | epsilon )
 
 select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_intersect_6c96caaf covergroup_range_list* )?
 
@@ -1881,7 +1896,8 @@ struct_union_member := attribute_instance* ( random_qualifier )? data_type_or_vo
 
 structure_pattern_key := member_identifier | assignment_pattern_key
 
-subroutine_call := tf_call | system_tf_call | method_call | ( kw_std_55ec981f scope_resolution )? randomize_call
+@branch_policy: priority_first
+subroutine_call := class_scoped_tf_call | tf_call | system_tf_call | method_call | ( kw_std_55ec981f scope_resolution )? randomize_call
 
 subroutine_call_statement := subroutine_call semi | kw_void_e9cede9b tick lparen function_subroutine_call rparen semi
 
@@ -2983,3 +2999,5 @@ wildcard_equal := trivia "==?"
 wildcard_not_equal := trivia "!=?"
 
 xor_assign := trivia "^="
+class_scoped_call_prefix := ps_class_identifier ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
+class_scoped_tf_call := class_scoped_call_prefix tf_identifier attribute_instance* ( lparen list_of_arguments rparen )?

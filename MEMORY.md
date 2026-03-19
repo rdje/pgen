@@ -5045,3 +5045,18 @@ Use this file to resume work without replaying full chat history.
     - `unreachable_branches=3`
     - `target_debt_count=48`
   - `sv_parser_family_status_gate` now also requires this preprocessor syntax-closure surface to stay green for the preprocessor family status.
+- 2026-03-18: Focused SystemVerilog UVM parser debugging removed another concrete call-shape false-negative cluster without changing live status.
+  - Active grammar hardening in the current atomic slice:
+    - dedicated `bit_select_expression` / `direct_index_method_call`
+    - `method_call_body` priority ordering and explicit `method_call_receiver`
+    - `select` `!lparen` guards
+    - explicit `class_scoped_call_prefix` / `class_scoped_tf_call`
+  - Fresh focused validations now pass for:
+    - `/tmp/index_other_method.sv`
+    - `/tmp/leaf_if_index_method_only.sv`
+    - `/tmp/leaf_if_index_len.sv`
+    - `/tmp/uvm_leaf_scope_pkg.sv`
+    - `/tmp/sv_param_class_scope_call_min.sv`
+    - `/tmp/uvm_pkg_top_1634.sv`
+  - Closed UVM package-body prefix checkpoints now pass through `1743`
+  - Next closed focused UVM prefix failure is now `1883`

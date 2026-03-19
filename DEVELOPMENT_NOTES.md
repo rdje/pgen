@@ -20972,3 +20972,21 @@ Important policy outcome:
 - these gates are intentionally triage-first, not promotion-first
 - they make the imported HDL corpora repeatable and machine-inspectable
 - they do not by themselves justify a live-status upgrade until the external corpora are integrated into broader status-bearing realistic-corpus or exhaustive-closure criteria
+
+2026-03-18 focused SV UVM parser-debug notes:
+- the next real UVM package-body debt was isolated with closed package-body wrappers instead of whole-file reruns
+- one concrete false-negative cluster was unparenthesized method calls inside index expressions:
+  - `full_name[other.len()]`-style repros now pass
+  - `bit_select_expression`, `direct_index_method_call`, `method_call_body` ordering, and `select` `!lparen` guards were the key fixes
+- the next concrete false-negative cluster was parameterized class-scoped callable forms:
+  - `uvm_bit_vector_utils#(uvm_bitstream_t)::to_string(...)` now parses through explicit `class_scoped_call_prefix` / `class_scoped_tf_call`
+- fresh focused parser evidence now passes for:
+  - `/tmp/index_other_method.sv`
+  - `/tmp/leaf_if_index_method_only.sv`
+  - `/tmp/leaf_if_index_len.sv`
+  - `/tmp/uvm_leaf_scope_pkg.sv`
+  - `/tmp/sv_param_class_scope_call_min.sv`
+  - `/tmp/uvm_pkg_top_1634.sv`
+- closed UVM package-body checkpoints now pass through `1743`
+- the next closed focused UVM package-body prefix failure is now `1883`
+- live status is unchanged; this is still parser hardening inside `systemverilog=Mostly Done`

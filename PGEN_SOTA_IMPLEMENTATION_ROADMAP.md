@@ -2956,3 +2956,11 @@ Why `rtl_frontend` exists:
   - Progress (2026-02-27): added explicit Nexsim convenience parser entry points:
     - `parse_systemverilog_2017*`, `parse_systemverilog_2023*`, `parse_vhdl_1076_2019*`
     - parser embedding contract now exposes per-grammar `profile_matrix` for host-side routing clarity.
+- 2026-03-18: Focused external-UVM hardening moved the current SystemVerilog package-body frontier deeper again without changing the live label.
+  - active SV grammar hardening in this slice covers:
+    - unparenthesized method calls inside index expressions
+    - member-select vs method-call disambiguation
+    - parameterized class-scoped callable forms like `uvm_bit_vector_utils#(uvm_bitstream_t)::to_string(...)`
+  - fresh focused proofs now pass for synthetic repros plus real UVM package checkpoints through `1743`
+  - the next closed focused UVM package-body prefix failure is now `1883`
+  - broad external-corpus status promotion remains deferred until the full deterministic triage gate is rerun over the new frontier and the remaining UVM debt is reduced further
