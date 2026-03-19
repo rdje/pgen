@@ -21594,3 +21594,28 @@ Current limitation to preserve:
 - unknown predicates are still treated as no-op rather than hard semantic errors
 - predicate steering is only at rule entry
 - inner OR-branch selection and declaration-vs-statement disambiguation still do not consume semantic predicates yet
+
+2026-03-19 semantic-effect timing correction:
+- generated parsers now distinguish two phases inside `with_semantic_runtime_rule_transaction(...)`:
+  - pre-parse:
+    - evaluate `@predicate` directives against the current semantic runtime state
+  - post-parse success:
+    - resolve and apply `@open_scope`, `@close_scope`, and `@emit_fact`
+
+Why this change was necessary:
+- runtime effect directives can carry capture references such as `$1`, `$2`, or structured attribute references
+- those references are meaningless until the rule has successfully produced a `ParseNode`
+- applying non-predicate directives before parsing would have stored unresolved symbolic references instead of the actual captured semantic facts
+
+New generated helper surface now present:
+- `apply_semantic_runtime_effect_directive(...)`
+- `resolve_semantic_runtime_value_against_content(...)`
+- `resolve_unified_semantic_value_against_content(...)`
+- scalar coercion helpers that normalize resolved capture text back into:
+  - `SemanticRuntimeValue`
+  - `UnifiedSemanticValue`
+
+Practical consequence:
+- rule-entry predicate steering remains available
+- capture-based semantic fact/scope emission is now aligned with actual parse output
+- this is a necessary substrate before a real HDL grammar pilot can emit useful type/package facts from successful declarations

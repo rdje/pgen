@@ -3181,3 +3181,14 @@ Why `rtl_frontend` exists:
     - unknown predicates are not yet hard failures
     - inner branch selection / declaration-vs-statement steering still does not consume semantic predicates
     - memoization is still syntax-only rather than semantic-context-aware
+- 2026-03-19: Corrected the generated semantic runtime execution model so parse-time guards and post-parse semantic effects are no longer conflated.
+  - generated parsers now use a two-phase rule transaction:
+    - pre-parse `@predicate` evaluation
+    - post-parse application of `@open_scope`, `@close_scope`, and `@emit_fact`
+  - rule-reference captures in semantic runtime values and structured attributes are now resolved against the successful rule `ParseNode`
+  - roadmap consequence:
+    - capture-based semantic fact emission is now plausible for a real grammar pilot
+    - this removes a key correctness blocker before using annotations to track typedef/package/class facts in SystemVerilog
+  - still intentionally deferred:
+    - semantic effect resolution is only wired in generated parsers, not yet used by a live HDL grammar slice
+    - inner branch steering / memoization-awareness remain future work

@@ -627,13 +627,13 @@ impl AstBasedGenerator {
                     .transaction_for_rule(&self.semantic_runtime_annotations, rule_name)
             }
 
-            pub fn with_semantic_runtime_rule_transaction<T, F>(
+            pub fn with_semantic_runtime_rule_transaction<F>(
                 &mut self,
                 rule_name: &str,
                 f: F,
-            ) -> ParseResult<T>
+            ) -> ParseResult<ParseNode<'input>>
             where
-                F: FnOnce(&mut Self) -> ParseResult<T>,
+                F: FnOnce(&mut Self) -> ParseResult<ParseNode<'input>>,
             {
                 let mut semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
@@ -651,9 +651,7 @@ impl AstBasedGenerator {
                                 predicate_blocked = true;
                                 break;
                             }
-                            None => {
-                                let _ = semantic_runtime_transaction.apply_directive(directive);
-                            }
+                            None => {}
                         }
                     }
 
@@ -662,15 +660,261 @@ impl AstBasedGenerator {
                             position: self.position,
                         })
                     } else {
-                        let result = f(self);
-                        if result.is_ok() {
-                            let _ = semantic_runtime_transaction.commit();
+                        let node = f(self)?;
+                        for directive in
+                            self.semantic_runtime_annotations.directives_for_rule(rule_name)
+                        {
+                            if matches!(
+                                directive,
+                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_)
+                            ) {
+                                continue;
+                            }
+                            let _ = self.apply_semantic_runtime_effect_directive(
+                                &mut semantic_runtime_transaction,
+                                directive,
+                                &node.content,
+                            )?;
                         }
-                        result
+                        let _ = semantic_runtime_transaction.commit();
+                        Ok(node)
                     }
                 };
                 self.semantic_runtime_state = semantic_runtime_state;
                 result
+            }
+
+            fn apply_semantic_runtime_effect_directive(
+                &mut self,
+                transaction: &mut crate::ast_pipeline::SemanticRuntimeTransaction<'_>,
+                directive: &crate::ast_pipeline::SemanticRuntimeDirective,
+                root_content: &ParseContent<'input>,
+            ) -> ParseResult<bool> {
+                match directive {
+                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_) => Ok(false),
+                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(spec) => {
+                        let resolved_name = spec
+                            .name
+                            .as_ref()
+                            .map(|value| {
+                                self.resolve_semantic_runtime_value_against_content(
+                                    value,
+                                    root_content,
+                                )
+                                .ok_or_else(|| {
+                                    self.create_contextual_error(&format!(
+                                        "Semantic runtime could not resolve scope name for directive in current parse result"
+                                    ))
+                                })
+                            })
+                            .transpose()?;
+                        Ok(transaction.apply_directive(
+                            &crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(
+                                crate::ast_pipeline::SemanticScopeSpec {
+                                    kind: spec.kind.clone(),
+                                    name: resolved_name,
+                                },
+                            ),
+                        ))
+                    }
+                    crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(spec) => {
+                        let resolved_name = spec
+                            .name
+                            .as_ref()
+                            .map(|value| {
+                                self.resolve_semantic_runtime_value_against_content(
+                                    value,
+                                    root_content,
+                                )
+                                .ok_or_else(|| {
+                                    self.create_contextual_error(&format!(
+                                        "Semantic runtime could not resolve close-scope name for directive in current parse result"
+                                    ))
+                                })
+                            })
+                            .transpose()?;
+                        Ok(transaction.apply_directive(
+                            &crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                crate::ast_pipeline::SemanticCloseScopeSpec {
+                                    kind: spec.kind.clone(),
+                                    name: resolved_name,
+                                },
+                            ),
+                        ))
+                    }
+                    crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(spec) => {
+                        let resolved_name = self
+                            .resolve_semantic_runtime_value_against_content(
+                                &spec.name,
+                                root_content,
+                            )
+                            .ok_or_else(|| {
+                                self.create_contextual_error(&format!(
+                                    "Semantic runtime could not resolve fact name for directive in current parse result"
+                                ))
+                            })?;
+                        let resolved_attributes = self
+                            .resolve_unified_semantic_properties_against_content(
+                                &spec.attributes,
+                                root_content,
+                            )?;
+                        Ok(transaction.apply_directive(
+                            &crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(
+                                crate::ast_pipeline::SemanticFactSpec {
+                                    kind: spec.kind.clone(),
+                                    name: resolved_name,
+                                    attributes: resolved_attributes,
+                                },
+                            ),
+                        ))
+                    }
+                }
+            }
+
+            fn resolve_semantic_runtime_value_against_content(
+                &self,
+                value: &crate::ast_pipeline::SemanticRuntimeValue,
+                root_content: &ParseContent<'input>,
+            ) -> Option<crate::ast_pipeline::SemanticRuntimeValue> {
+                match value {
+                    crate::ast_pipeline::SemanticRuntimeValue::RuleReference(reference) => self
+                        .resolve_semantic_reference(root_content, reference)
+                        .map(|resolved| self.coerce_semantic_runtime_scalar(&resolved)),
+                    crate::ast_pipeline::SemanticRuntimeValue::String(text) => Some(
+                        crate::ast_pipeline::SemanticRuntimeValue::String(text.clone()),
+                    ),
+                    crate::ast_pipeline::SemanticRuntimeValue::Identifier(text) => Some(
+                        crate::ast_pipeline::SemanticRuntimeValue::Identifier(text.clone()),
+                    ),
+                    crate::ast_pipeline::SemanticRuntimeValue::Number(text) => Some(
+                        crate::ast_pipeline::SemanticRuntimeValue::Number(text.clone()),
+                    ),
+                    crate::ast_pipeline::SemanticRuntimeValue::Boolean(value) => Some(
+                        crate::ast_pipeline::SemanticRuntimeValue::Boolean(*value),
+                    ),
+                    crate::ast_pipeline::SemanticRuntimeValue::Null => Some(
+                        crate::ast_pipeline::SemanticRuntimeValue::Null,
+                    ),
+                }
+            }
+
+            fn resolve_unified_semantic_properties_against_content(
+                &self,
+                properties: &[crate::ast_pipeline::UnifiedSemanticProperty],
+                root_content: &ParseContent<'input>,
+            ) -> ParseResult<Vec<crate::ast_pipeline::UnifiedSemanticProperty>> {
+                let mut resolved = Vec::with_capacity(properties.len());
+                for property in properties {
+                    resolved.push(crate::ast_pipeline::UnifiedSemanticProperty {
+                        key: property.key.clone(),
+                        value: self.resolve_unified_semantic_value_against_content(
+                            &property.value,
+                            root_content,
+                        )?,
+                    });
+                }
+                Ok(resolved)
+            }
+
+            fn resolve_unified_semantic_value_against_content(
+                &self,
+                value: &crate::ast_pipeline::UnifiedSemanticValue,
+                root_content: &ParseContent<'input>,
+            ) -> ParseResult<crate::ast_pipeline::UnifiedSemanticValue> {
+                match value {
+                    crate::ast_pipeline::UnifiedSemanticValue::RuleReference(reference) => self
+                        .resolve_semantic_reference(root_content, reference)
+                        .map(|resolved| self.coerce_unified_semantic_scalar(&resolved))
+                        .ok_or_else(|| {
+                            self.create_contextual_error(&format!(
+                                "Semantic runtime could not resolve attribute reference '{}'",
+                                reference
+                            ))
+                        }),
+                    crate::ast_pipeline::UnifiedSemanticValue::String(text) => {
+                        Ok(crate::ast_pipeline::UnifiedSemanticValue::String(text.clone()))
+                    }
+                    crate::ast_pipeline::UnifiedSemanticValue::Identifier(text) => Ok(
+                        crate::ast_pipeline::UnifiedSemanticValue::Identifier(text.clone()),
+                    ),
+                    crate::ast_pipeline::UnifiedSemanticValue::Number(text) => {
+                        Ok(crate::ast_pipeline::UnifiedSemanticValue::Number(text.clone()))
+                    }
+                    crate::ast_pipeline::UnifiedSemanticValue::Boolean(value) => Ok(
+                        crate::ast_pipeline::UnifiedSemanticValue::Boolean(*value),
+                    ),
+                    crate::ast_pipeline::UnifiedSemanticValue::Null => {
+                        Ok(crate::ast_pipeline::UnifiedSemanticValue::Null)
+                    }
+                    crate::ast_pipeline::UnifiedSemanticValue::Array(elements) => {
+                        let mut resolved = Vec::with_capacity(elements.len());
+                        for element in elements {
+                            resolved.push(
+                                self.resolve_unified_semantic_value_against_content(
+                                    element,
+                                    root_content,
+                                )?,
+                            );
+                        }
+                        Ok(crate::ast_pipeline::UnifiedSemanticValue::Array(resolved))
+                    }
+                    crate::ast_pipeline::UnifiedSemanticValue::Object(properties) => Ok(
+                        crate::ast_pipeline::UnifiedSemanticValue::Object(
+                            self.resolve_unified_semantic_properties_against_content(
+                                properties,
+                                root_content,
+                            )?,
+                        ),
+                    ),
+                }
+            }
+
+            fn coerce_semantic_runtime_scalar(
+                &self,
+                value: &str,
+            ) -> crate::ast_pipeline::SemanticRuntimeValue {
+                let normalized = value.trim();
+                if normalized.eq_ignore_ascii_case("true") {
+                    return crate::ast_pipeline::SemanticRuntimeValue::Boolean(true);
+                }
+                if normalized.eq_ignore_ascii_case("false") {
+                    return crate::ast_pipeline::SemanticRuntimeValue::Boolean(false);
+                }
+                if normalized.parse::<f64>().is_ok() {
+                    return crate::ast_pipeline::SemanticRuntimeValue::Number(
+                        normalized.to_string(),
+                    );
+                }
+                if self.semantic_identifier(normalized) {
+                    return crate::ast_pipeline::SemanticRuntimeValue::Identifier(
+                        normalized.to_string(),
+                    );
+                }
+                crate::ast_pipeline::SemanticRuntimeValue::String(normalized.to_string())
+            }
+
+            fn coerce_unified_semantic_scalar(
+                &self,
+                value: &str,
+            ) -> crate::ast_pipeline::UnifiedSemanticValue {
+                let normalized = value.trim();
+                if normalized.eq_ignore_ascii_case("true") {
+                    return crate::ast_pipeline::UnifiedSemanticValue::Boolean(true);
+                }
+                if normalized.eq_ignore_ascii_case("false") {
+                    return crate::ast_pipeline::UnifiedSemanticValue::Boolean(false);
+                }
+                if normalized.parse::<f64>().is_ok() {
+                    return crate::ast_pipeline::UnifiedSemanticValue::Number(
+                        normalized.to_string(),
+                    );
+                }
+                if self.semantic_identifier(normalized) {
+                    return crate::ast_pipeline::UnifiedSemanticValue::Identifier(
+                        normalized.to_string(),
+                    );
+                }
+                crate::ast_pipeline::UnifiedSemanticValue::String(normalized.to_string())
             }
 
             pub fn recovery_events(&self) -> &[RecoveryEvent] {
@@ -4393,7 +4637,7 @@ mod semantic_usage_tests {
             vec![
                 structured_named_annotation(
                     "open_scope",
-                    "{ kind: package, name: pkg }",
+                    "{ kind: package, name: $1 }",
                     UnifiedSemanticValue::Object(vec![
                         UnifiedSemanticProperty {
                             key: "kind".to_string(),
@@ -4401,7 +4645,7 @@ mod semantic_usage_tests {
                         },
                         UnifiedSemanticProperty {
                             key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier("pkg".to_string()),
+                            value: UnifiedSemanticValue::RuleReference("$1".to_string()),
                         },
                     ]),
                 ),
@@ -4493,6 +4737,26 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("predicate_blocked"),
             "generated parser should track predicate failures inside the transaction wrapper, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("apply_semantic_runtime_effect_directive"),
+            "generated parser should apply semantic runtime effects after parse success, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("resolve_semantic_runtime_value_against_content"),
+            "generated parser should resolve runtime values against parse content, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("resolve_unified_semantic_value_against_content"),
+            "generated parser should resolve structured semantic attribute values against parse content, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("coerce_semantic_runtime_scalar"),
+            "generated parser should coerce resolved capture text into semantic runtime scalar values, got: {}",
             rendered
         );
         assert!(

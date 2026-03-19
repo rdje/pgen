@@ -21643,3 +21643,19 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - this is a narrow rule-entry steering seam, not full inner-branch semantic steering.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Corrected generated semantic-effect timing so capture-based facts/scopes resolve after successful parse, not before.
+  - Updated:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - `@predicate` remains a pre-parse rule-entry guard,
+    - non-predicate semantic directives are now applied after the rule’s `ParseNode` exists,
+    - generated parsers now resolve `SemanticRuntimeValue::RuleReference` and structured attribute references against the successful parse content before applying runtime effects,
+    - resolved scalar capture text is coerced back into semantic runtime / unified semantic scalar types.
+  - Important guidance:
+    - this is the first generated-parser path where `$1`/`$2`-style semantic runtime references become meaningfully usable,
+    - rule-entry predicate blocking stays in place, but fact/scope mutation is now post-parse and capture-aware.
+  - Live-status effect:
+    - no live-status row changed

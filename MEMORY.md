@@ -5354,3 +5354,12 @@ Use this file to resume work without replaying full chat history.
   - Important continuity note:
     - unknown predicates are still treated as no-op today
     - steering remains rule-entry-only; inner branch selection is still unaffected
+- 2026-03-19: Generated semantic runtime effects now resolve capture references after parse success instead of mutating state too early.
+  - Active code slice:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - `@predicate` still runs before parse as a rule-entry guard
+    - `@open_scope`, `@close_scope`, and `@emit_fact` now apply only after a successful `ParseNode` exists
+    - generated helpers now resolve `SemanticRuntimeValue::RuleReference` and structured attribute references against parse content before applying runtime effects
+  - Important continuity note:
+    - this is the first point where capture-based semantic runtime facts become meaningfully usable for future HDL pilots
