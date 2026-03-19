@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-19 - Embed semantic runtime into generated parser skeleton
+### ✅ Achievement Summary
+This is the first generated-parser-side semantic-runtime integration slice. Generated parsers now own both compiled semantic-runtime annotations and live semantic runtime state, reset that state at `parse()`, and expose a generated `semantic_runtime_transaction_for_rule(...)` helper that delegates to the runtime’s `transaction_for_rule(...)` entrypoint.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `CompiledSemanticRuntimeAnnotations::from_rule_directives(...)` for generated-parser construction
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated parser struct now includes:
+    - `semantic_runtime_annotations`
+    - `semantic_runtime_state`
+  - generated constructor now embeds compiled runtime directives derived from semantic annotations
+  - generated `parse()` now resets semantic runtime state per parse run
+  - generated parser API now exposes:
+    - `semantic_runtime_annotations()`
+    - `semantic_runtime_state()`
+    - `semantic_runtime_state_mut()`
+    - `semantic_runtime_transaction_for_rule(...)`
+  - added a focused generator test that exercises real parser emission with an `@open_scope` semantic-runtime directive
+
+### Focused Validation
+- direct lib test binary:
+  - `ast_pipeline::ast_based_generator::semantic_usage_tests::generated_parser_embeds_semantic_runtime_entrypoint_for_runtime_directives`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Important Boundary
+- Generated parsers now *own* semantic runtime infrastructure, but they still do not automatically execute runtime directives during rule parsing.
+- The new handoff is explicit:
+  - generated parser code can open a semantic runtime transaction for a rule,
+  - but parser branch/control-flow wiring is still the next step.
+
 ## 2026-03-19 - Add transactional rule entrypoint for semantic runtime
 ### ✅ Achievement Summary
 Added the first parser-shaped semantic-runtime entrypoint: `SemanticRuntimeState::transaction_for_rule(...)`. This opens a transaction, applies one rule’s compiled directives up front, and returns both the live transaction and applied-count so future parser code can decide whether to commit after the parse branch succeeds.

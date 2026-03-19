@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Give generated parsers owned semantic-runtime state and a rule transaction helper
+### Context
+The runtime-side entrypoints were in place, but parser integration still had a gap: generated parsers themselves did not own any semantic runtime state or compiled semantic-runtime directives. That meant even with `transaction_for_rule(...)` available in the runtime module, there was still no generated parser object that could actually host and expose that behavior.
+
+### Implementation
+- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `CompiledSemanticRuntimeAnnotations::from_rule_directives(...)`
+  - this gives generated code a clean constructor path for precompiled runtime directives
+- Extended [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated parser structs now own:
+    - compiled semantic runtime annotations
+    - live semantic runtime state
+  - generated constructor now embeds rule-compiled runtime directives when present
+  - generated `parse()` resets semantic runtime state before each parse run
+  - generated parser API now exposes:
+    - read access to compiled semantic runtime annotations
+    - read/write access to semantic runtime state
+    - `semantic_runtime_transaction_for_rule(...)` as the first generated-parser-side runtime entrypoint
+
+### Why This Matters
+- This is the first time the generated parser skeleton itself has a semantic-runtime home.
+- It closes the gap between:
+  - runtime-side semantic infrastructure,
+  - and parser-side ownership of that infrastructure.
+- The next parser-steering work no longer needs to invent where compiled runtime directives or runtime state should live.
+
+### Remaining Gap
+- Generated parsers still do not automatically wrap rule bodies with runtime transactions.
+- Memoization and semantic predicates are still not parser-active.
+- The next controlled integration point should be one specific rule-path or branch-path that calls the generated `semantic_runtime_transaction_for_rule(...)` helper and commits only on success.
+
 ## 2026-03-19 - Add `transaction_for_rule(...)` as the first parser-shaped entrypoint
 ### Context
 The previous slice gave the runtime a clean rule-driven execution seam, but parser integration would still have had to spell out two steps manually every time: open a transaction, then apply the compiled directives for the current rule. That is exactly the kind of repeated ceremony that tends to drift once it gets copied into parser code.

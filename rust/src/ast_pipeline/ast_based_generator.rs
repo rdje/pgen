@@ -4,20 +4,22 @@
 
 use super::Logger;
 use crate::ast_pipeline::{
-    ASTNode, ASTValue, Annotations, BranchAnnotation, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue,
-    UnifiedSemanticAST, ast_return_transform::AstReturnTransformer, extract_semantic_directive,
-    normalize_semantic_scalar, parse_canonical_transform_expression, parse_semantic_bool,
-    parse_semantic_branch_priorities, parse_semantic_charset, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
-    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
-    parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds, parse_semantic_pattern,
-    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
+    ast_return_transform::AstReturnTransformer, compile_semantic_runtime_annotations,
+    extract_semantic_directive, normalize_semantic_scalar, parse_canonical_transform_expression,
+    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
+    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
+    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_string_list,
+    parse_semantic_token_class, ASTNode, ASTValue, Annotations, BranchAnnotation,
+    SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy, SemanticRuntimeDirective,
+    SemanticRuntimeValue, SemanticScopeKind, SemanticTokenClass, SemanticValueConstraints,
+    TokenValue, UnifiedSemanticAST, UnifiedSemanticProperty, UnifiedSemanticValue,
 };
 use anyhow::Result;
 use prettyplease;
 use proc_macro2::TokenStream;
-use quote::{ToTokens, format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use std::collections::{HashMap, HashSet};
 use syn::Ident;
 
@@ -312,6 +314,8 @@ impl AstBasedGenerator {
                 deterministic_partition_events: Vec<DeterministicPartitionEvent>,
                 deterministic_partition_rule_hits: HashMap<String, usize>,
                 deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode,
+                semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
+                semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
                 logger: Box<dyn Logger>,
             }
         }
@@ -329,7 +333,7 @@ impl AstBasedGenerator {
         let rule_constants = self.generate_rule_constants(rule_order);
 
         // Generate constructor and main parse method
-        let constructor = self.generate_constructor();
+        let constructor = self.generate_constructor()?;
         let parse_method = self.generate_parse_method(entry_rule);
 
         // Generate rule methods
@@ -521,8 +525,11 @@ impl AstBasedGenerator {
         }
     }
 
-    fn generate_constructor(&self) -> TokenStream {
-        quote! {
+    fn generate_constructor(&self) -> Result<TokenStream> {
+        let compiled_semantic_runtime_annotations =
+            self.generate_compiled_semantic_runtime_annotations_tokens()?;
+
+        Ok(quote! {
             pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
                 Self {
                     input,
@@ -542,10 +549,12 @@ impl AstBasedGenerator {
                     deterministic_partition_events: Vec::new(),
                     deterministic_partition_rule_hits: HashMap::new(),
                     deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode::AnnotationDriven,
+                    semantic_runtime_annotations: #compiled_semantic_runtime_annotations,
+                    semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
                     logger,
                 }
             }
-        }
+        })
     }
 
     fn generate_parse_method(&self, entry_rule: &str) -> TokenStream {
@@ -564,6 +573,7 @@ impl AstBasedGenerator {
                 self.negative_case_rule_hits.clear();
                 self.deterministic_partition_events.clear();
                 self.deterministic_partition_rule_hits.clear();
+                self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
                 self.#parse_method()
             }
 
@@ -591,6 +601,30 @@ impl AstBasedGenerator {
 
             pub fn grammar_profile(&self) -> Option<&str> {
                 self.grammar_profile.as_deref()
+            }
+
+            pub fn semantic_runtime_annotations(
+                &self,
+            ) -> &crate::ast_pipeline::CompiledSemanticRuntimeAnnotations {
+                &self.semantic_runtime_annotations
+            }
+
+            pub fn semantic_runtime_state(&self) -> &crate::ast_pipeline::SemanticRuntimeState {
+                &self.semantic_runtime_state
+            }
+
+            pub fn semantic_runtime_state_mut(
+                &mut self,
+            ) -> &mut crate::ast_pipeline::SemanticRuntimeState {
+                &mut self.semantic_runtime_state
+            }
+
+            pub fn semantic_runtime_transaction_for_rule(
+                &mut self,
+                rule_name: &str,
+            ) -> (crate::ast_pipeline::SemanticRuntimeTransaction<'_>, usize) {
+                self.semantic_runtime_state
+                    .transaction_for_rule(&self.semantic_runtime_annotations, rule_name)
             }
 
             pub fn recovery_events(&self) -> &[RecoveryEvent] {
@@ -3118,6 +3152,228 @@ impl AstBasedGenerator {
         Self::semantic_directive_parts(annotation).map(|(name, _)| name)
     }
 
+    fn generate_compiled_semantic_runtime_annotations_tokens(&self) -> Result<TokenStream> {
+        let Some(annotations) = &self.annotations else {
+            return Ok(quote! {
+                crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::default()
+            });
+        };
+
+        let compiled = compile_semantic_runtime_annotations(annotations).map_err(|err| {
+            anyhow::anyhow!(
+                "Failed to compile semantic runtime annotations for generated parser '{}': {}",
+                self.grammar_name,
+                err
+            )
+        })?;
+
+        if compiled.is_empty() {
+            return Ok(quote! {
+                crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::default()
+            });
+        }
+
+        let rule_entries = compiled.iter().map(|(rule_name, directives)| {
+            let directive_tokens = directives
+                .iter()
+                .map(Self::generate_semantic_runtime_directive_tokens);
+            quote! {
+                directives_by_rule.insert(#rule_name.to_string(), vec![#(#directive_tokens),*]);
+            }
+        });
+
+        Ok(quote! {
+            {
+                let mut directives_by_rule = std::collections::HashMap::new();
+                #(#rule_entries)*
+                crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::from_rule_directives(
+                    directives_by_rule
+                )
+            }
+        })
+    }
+
+    fn generate_semantic_runtime_directive_tokens(
+        directive: &SemanticRuntimeDirective,
+    ) -> TokenStream {
+        match directive {
+            SemanticRuntimeDirective::OpenScope(spec) => {
+                let kind = Self::generate_semantic_scope_kind_tokens(&spec.kind);
+                let name =
+                    Self::generate_optional_semantic_runtime_value_tokens(spec.name.as_ref());
+                quote! {
+                    crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(
+                        crate::ast_pipeline::SemanticScopeSpec {
+                            kind: #kind,
+                            name: #name,
+                        }
+                    )
+                }
+            }
+            SemanticRuntimeDirective::CloseScope(spec) => {
+                let kind = match &spec.kind {
+                    Some(kind) => {
+                        let kind_tokens = Self::generate_semantic_scope_kind_tokens(kind);
+                        quote! { Some(#kind_tokens) }
+                    }
+                    None => quote! { None },
+                };
+                let name =
+                    Self::generate_optional_semantic_runtime_value_tokens(spec.name.as_ref());
+                quote! {
+                    crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                        crate::ast_pipeline::SemanticCloseScopeSpec {
+                            kind: #kind,
+                            name: #name,
+                        }
+                    )
+                }
+            }
+            SemanticRuntimeDirective::EmitFact(spec) => {
+                let name = Self::generate_semantic_runtime_value_tokens(&spec.name);
+                let attributes = spec
+                    .attributes
+                    .iter()
+                    .map(Self::generate_unified_semantic_property_tokens);
+                let kind = spec.kind.as_str();
+                quote! {
+                    crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(
+                        crate::ast_pipeline::SemanticFactSpec {
+                            kind: #kind.to_string(),
+                            name: #name,
+                            attributes: vec![#(#attributes),*],
+                        }
+                    )
+                }
+            }
+            SemanticRuntimeDirective::Predicate(spec) => {
+                let name = spec.name.as_str();
+                let args = spec
+                    .args
+                    .iter()
+                    .map(Self::generate_unified_semantic_value_tokens);
+                quote! {
+                    crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                        crate::ast_pipeline::SemanticPredicateSpec {
+                            name: #name.to_string(),
+                            args: vec![#(#args),*],
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    fn generate_optional_semantic_runtime_value_tokens(
+        value: Option<&SemanticRuntimeValue>,
+    ) -> TokenStream {
+        match value {
+            Some(value) => {
+                let value_tokens = Self::generate_semantic_runtime_value_tokens(value);
+                quote! { Some(#value_tokens) }
+            }
+            None => quote! { None },
+        }
+    }
+
+    fn generate_semantic_runtime_value_tokens(value: &SemanticRuntimeValue) -> TokenStream {
+        match value {
+            SemanticRuntimeValue::String(text) => quote! {
+                crate::ast_pipeline::SemanticRuntimeValue::String(#text.to_string())
+            },
+            SemanticRuntimeValue::Identifier(text) => quote! {
+                crate::ast_pipeline::SemanticRuntimeValue::Identifier(#text.to_string())
+            },
+            SemanticRuntimeValue::RuleReference(text) => quote! {
+                crate::ast_pipeline::SemanticRuntimeValue::RuleReference(#text.to_string())
+            },
+            SemanticRuntimeValue::Number(text) => quote! {
+                crate::ast_pipeline::SemanticRuntimeValue::Number(#text.to_string())
+            },
+            SemanticRuntimeValue::Boolean(value) => quote! {
+                crate::ast_pipeline::SemanticRuntimeValue::Boolean(#value)
+            },
+            SemanticRuntimeValue::Null => quote! {
+                crate::ast_pipeline::SemanticRuntimeValue::Null
+            },
+        }
+    }
+
+    fn generate_semantic_scope_kind_tokens(kind: &SemanticScopeKind) -> TokenStream {
+        match kind {
+            SemanticScopeKind::Global => quote! { crate::ast_pipeline::SemanticScopeKind::Global },
+            SemanticScopeKind::File => quote! { crate::ast_pipeline::SemanticScopeKind::File },
+            SemanticScopeKind::Package => {
+                quote! { crate::ast_pipeline::SemanticScopeKind::Package }
+            }
+            SemanticScopeKind::Class => quote! { crate::ast_pipeline::SemanticScopeKind::Class },
+            SemanticScopeKind::Interface => {
+                quote! { crate::ast_pipeline::SemanticScopeKind::Interface }
+            }
+            SemanticScopeKind::Type => quote! { crate::ast_pipeline::SemanticScopeKind::Type },
+            SemanticScopeKind::Function => {
+                quote! { crate::ast_pipeline::SemanticScopeKind::Function }
+            }
+            SemanticScopeKind::Task => quote! { crate::ast_pipeline::SemanticScopeKind::Task },
+            SemanticScopeKind::Block => quote! { crate::ast_pipeline::SemanticScopeKind::Block },
+            SemanticScopeKind::Custom(text) => quote! {
+                crate::ast_pipeline::SemanticScopeKind::Custom(#text.to_string())
+            },
+        }
+    }
+
+    fn generate_unified_semantic_property_tokens(
+        property: &UnifiedSemanticProperty,
+    ) -> TokenStream {
+        let key = property.key.as_str();
+        let value = Self::generate_unified_semantic_value_tokens(&property.value);
+        quote! {
+            crate::ast_pipeline::UnifiedSemanticProperty {
+                key: #key.to_string(),
+                value: #value,
+            }
+        }
+    }
+
+    fn generate_unified_semantic_value_tokens(value: &UnifiedSemanticValue) -> TokenStream {
+        match value {
+            UnifiedSemanticValue::String(text) => quote! {
+                crate::ast_pipeline::UnifiedSemanticValue::String(#text.to_string())
+            },
+            UnifiedSemanticValue::Number(text) => quote! {
+                crate::ast_pipeline::UnifiedSemanticValue::Number(#text.to_string())
+            },
+            UnifiedSemanticValue::Boolean(value) => quote! {
+                crate::ast_pipeline::UnifiedSemanticValue::Boolean(#value)
+            },
+            UnifiedSemanticValue::Null => quote! {
+                crate::ast_pipeline::UnifiedSemanticValue::Null
+            },
+            UnifiedSemanticValue::Identifier(text) => quote! {
+                crate::ast_pipeline::UnifiedSemanticValue::Identifier(#text.to_string())
+            },
+            UnifiedSemanticValue::RuleReference(text) => quote! {
+                crate::ast_pipeline::UnifiedSemanticValue::RuleReference(#text.to_string())
+            },
+            UnifiedSemanticValue::Array(values) => {
+                let values = values
+                    .iter()
+                    .map(Self::generate_unified_semantic_value_tokens);
+                quote! {
+                    crate::ast_pipeline::UnifiedSemanticValue::Array(vec![#(#values),*])
+                }
+            }
+            UnifiedSemanticValue::Object(properties) => {
+                let properties = properties
+                    .iter()
+                    .map(Self::generate_unified_semantic_property_tokens);
+                quote! {
+                    crate::ast_pipeline::UnifiedSemanticValue::Object(vec![#(#properties),*])
+                }
+            }
+        }
+    }
+
     fn rule_has_semantic_bool_directive(&self, rule_name: &str, names: &[&str]) -> bool {
         let Some(annotations) = &self.annotations else {
             return false;
@@ -3149,12 +3405,12 @@ impl AstBasedGenerator {
 
     fn semantic_directive_parts(annotation: &SemanticAnnotation) -> Option<(String, String)> {
         if let Some(name) = annotation.name() {
-                let normalized = name.trim().to_ascii_lowercase();
-                if !normalized.is_empty() {
-                    let payload = annotation.ast().payload_text().to_string();
-                    return Some((normalized, payload.trim().to_string()));
-                }
+            let normalized = name.trim().to_ascii_lowercase();
+            if !normalized.is_empty() {
+                let payload = annotation.ast().payload_text().to_string();
+                return Some((normalized, payload.trim().to_string()));
             }
+        }
 
         match annotation.ast() {
             UnifiedSemanticAST::TransformExpr { expression } => {
@@ -3840,6 +4096,7 @@ mod semantic_usage_tests {
     use super::*;
     use crate::ast_pipeline::{
         ASTNode, ASTValue, Annotations, SemanticAnnotation, TokenValue, UnifiedSemanticAST,
+        UnifiedSemanticProperty, UnifiedSemanticValue,
     };
     use std::collections::HashMap;
 
@@ -3909,6 +4166,20 @@ mod semantic_usage_tests {
             annotations: Some(annotations),
             branch_return_annotations: HashMap::new(),
             enable_debug: false,
+        }
+    }
+
+    fn structured_named_annotation(
+        name: &str,
+        canonical: &str,
+        value: UnifiedSemanticValue,
+    ) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: name.to_string(),
+            ast: UnifiedSemanticAST::Structured {
+                canonical: canonical.to_string(),
+                value,
+            },
         }
     }
 
@@ -4062,6 +4333,78 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("[A-Za-z_][A-Za-z0-9_]*"),
             "token_class steering should replace grammar regex with token-class matcher, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_embeds_semantic_runtime_entrypoint_for_runtime_directives() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![structured_named_annotation(
+                "open_scope",
+                "{ kind: package, name: pkg }",
+                UnifiedSemanticValue::Object(vec![
+                    UnifiedSemanticProperty {
+                        key: "kind".to_string(),
+                        value: UnifiedSemanticValue::Identifier("package".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("pkg".to_string()),
+                    },
+                ]),
+            )],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "package_declaration".to_string(),
+            token("quoted_string", "pkg"),
+        );
+        let rule_order = vec!["package_declaration".to_string()];
+
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "semantic_runtime_usage.rs")
+            .expect("parser generation should succeed");
+
+        assert!(
+            rendered.contains(
+                "semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations"
+            ),
+            "generated parser should own compiled semantic runtime annotations, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState"),
+            "generated parser should own semantic runtime state, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("pub fn semantic_runtime_transaction_for_rule"),
+            "generated parser should expose a rule-transaction helper, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains(
+                "self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();"
+            ),
+            "parse() should reset semantic runtime state, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("CompiledSemanticRuntimeAnnotations::from_rule_directives"),
+            "generated parser constructor should embed compiled runtime annotations, got: {}",
             rendered
         );
     }

@@ -120,6 +120,12 @@ impl CompiledSemanticRuntimeAnnotations {
         compile_semantic_runtime_annotations(annotations)
     }
 
+    pub fn from_rule_directives(
+        directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
+    ) -> Self {
+        Self { directives_by_rule }
+    }
+
     pub fn is_empty(&self) -> bool {
         self.directives_by_rule.is_empty()
     }

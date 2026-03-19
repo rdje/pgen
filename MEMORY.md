@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: add-transaction-for-rule-semantic-runtime-entrypoint)
+Last updated: 2026-03-19 (+0100, task: embed-semantic-runtime-into-generated-parser-skeleton)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -172,15 +172,20 @@ Use this file to resume work without replaying full chat history.
     - `SemanticRuntimeTransaction::apply_compiled_rule(...)`
   - parser-shaped transaction entrypoint via:
     - `SemanticRuntimeState::transaction_for_rule(...)`
+- Generated parser skeleton now owns:
+  - compiled semantic runtime annotations
+  - live semantic runtime state
+  - generated helper `semantic_runtime_transaction_for_rule(...)`
 - Current boundary remains explicit:
-  - runtime directives can now be precompiled, applied by rule, and loaded into a fresh transaction by rule, but generated parsers do not yet consume that seam during parse execution
+  - runtime directives can now be precompiled, applied by rule, loaded into a fresh transaction by rule, and embedded into generated parser instances
+  - but generated parsers do not yet execute those transactions automatically during rule parsing
   - no semantic predicate dispatch yet
   - no semantic-aware memoization yet
 - Next likely task:
-  - thread `transaction_for_rule(...)` into one controlled parser integration point
+  - thread the generated `semantic_runtime_transaction_for_rule(...)` helper into one controlled parser integration point
   - keep the first pilot small:
     - compile once,
-    - open a rule transaction,
+    - open a generated-parser rule transaction,
     - no broad parser-wide steering flip all at once
   - continue widening generated semantic tree lowering
   - then start the first semantic-annotation-driven fact/scope/predicate pilot for SV declaration-vs-statement disambiguation
