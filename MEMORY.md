@@ -5120,3 +5120,16 @@ Use this file to resume work without replaying full chat history.
     - `systemverilog`: `Mostly Done`
     - `systemverilog_preprocessor`: `Mostly Done`
     - `vhdl`: `In Progress`
+- 2026-03-19: Refreshed the live VHDL external-corpus gate after the latest grammar hardening instead of relying on the older 2026-03-17 artifact snapshot.
+  - Command:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
+  - Fresh result:
+    - `cases_declared=8`
+    - `cases_executed=8`
+    - `parse_pass_total=8`
+    - `parse_fail_total=0`
+    - `primary_parse_failure_case=<none>`
+  - Interpretation:
+    - the tracked external VHDL corpus slice is now fully parser-green on the live tree
+    - this is a real milestone worth preserving for crash continuity
+    - it is still narrower than full VHDL-family closure, so the live `vhdl` row remains `In Progress`

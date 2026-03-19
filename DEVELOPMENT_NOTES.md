@@ -21087,3 +21087,22 @@ This atomic slice bundled together the currently uncommitted frontend/parser wor
   - `systemverilog`: `Mostly Done`
   - `systemverilog_preprocessor`: `Mostly Done`
   - `vhdl`: `In Progress`
+
+## 2026-03-19 - Live VHDL external corpus slice now fully parser-green
+
+After the latest `vhdl.ebnf` hardening landed, I re-ran the external VHDL corpus gate instead of relying on the older 2026-03-17 snapshot.
+
+- Validation:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
+- Fresh live result:
+  - `cases_declared=8`
+  - `cases_executed=8`
+  - `parse_pass_total=8`
+  - `parse_fail_total=0`
+  - `primary_parse_failure_case=<none>`
+- Meaning:
+  - the tracked external VHDL slice now parses cleanly across the current live corpus roster
+  - the earlier external blockers `PoC mem.pkg.vhdl` and `Rudi-RV32I riscv_cpu.vhd` are no longer failing in the refreshed gate run
+- Important non-overclaim:
+  - this does **not** by itself promote the overall `vhdl` status row
+  - broader family-status debt still exists outside this one external-corpus proof surface

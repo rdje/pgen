@@ -21226,3 +21226,17 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `systemverilog`: remains `Mostly Done`
     - `systemverilog_preprocessor`: remains `Mostly Done`
     - `vhdl`: remains `In Progress`
+- 2026-03-19: Re-ran the live VHDL external-corpus triage after the latest grammar hardening and confirmed the whole tracked external slice is now parser-green.
+  - Validation:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
+  - Current measured result:
+    - `cases_declared=8`
+    - `cases_executed=8`
+    - `parse_pass_total=8`
+    - `parse_fail_total=0`
+    - former external blockers `poc_mem_pkg` and `rudi_riscv_cpu` now pass in the live rerun
+  - Important scope note:
+    - this is an external-corpus milestone, not full VHDL-family closure
+    - the broader `vhdl` live row stays conservative until the remaining family-status closure surfaces are also green
+  - Live-status effect:
+    - `vhdl`: remains `In Progress`

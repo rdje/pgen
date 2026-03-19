@@ -3000,3 +3000,16 @@ Why `rtl_frontend` exists:
     - `systemverilog`: remains `Mostly Done`
     - `systemverilog_preprocessor`: remains `Mostly Done`
     - `vhdl`: remains `In Progress`
+- 2026-03-19: The refreshed live VHDL external-corpus triage gate is now fully green (`8/8` parse-pass).
+  - command:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
+  - refreshed live result:
+    - `cases_declared=8`
+    - `cases_executed=8`
+    - `parse_pass_total=8`
+    - `parse_fail_total=0`
+  - roadmap implication:
+    - external realistic-corpus pressure is no longer the immediate VHDL blocker on this tracked slice
+    - remaining VHDL promotion work is now more clearly concentrated in the broader family-status / exhaustive-proof surfaces rather than the checked-in external corpus roster itself
+  - no live-row promotion yet:
+    - `vhdl` remains `In Progress`
