@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-19 - Add transactional rule entrypoint for semantic runtime
+### ✅ Achievement Summary
+Added the first parser-shaped semantic-runtime entrypoint: `SemanticRuntimeState::transaction_for_rule(...)`. This opens a transaction, applies one rule’s compiled directives up front, and returns both the live transaction and applied-count so future parser code can decide whether to commit after the parse branch succeeds.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `SemanticRuntimeState::transaction_for_rule(...)`
+  - added focused tests for:
+    - directive application before commit,
+    - missing-rule transaction safety
+
+### Focused Validation
+- direct lib test binary:
+  - `ast_pipeline::semantic_runtime::tests::transaction_for_rule_applies_directives_before_commit`
+  - `ast_pipeline::semantic_runtime::tests::transaction_for_rule_missing_rule_is_still_transaction_safe`
+- existing semantic-runtime focused tests stayed green after the change:
+  - `ast_pipeline::semantic_runtime::tests::compiled_annotations_apply_only_requested_rule`
+  - `ast_pipeline::semantic_runtime::tests::compiled_annotations_missing_rule_is_a_noop`
+  - `ast_pipeline::semantic_runtime::tests::transaction_apply_compiled_rule_rolls_back_without_commit`
+
+### Important Boundary
+- This still does not wire semantic runtime into generated parser control flow.
+- What changed is the handoff shape:
+  - parser integration no longer has to separately open a transaction and then remember to apply the rule’s directives;
+  - one helper now does both and returns a reversible transaction object.
+
 ## 2026-03-19 - Add rule-driven semantic runtime execution seam
 ### ✅ Achievement Summary
 Extended the compiled semantic-runtime layer from passive lookup into direct rule-driven execution. `CompiledSemanticRuntimeAnnotations` can now apply a rule’s directives to `SemanticRuntimeState`, and transactions can apply compiled rule directives with automatic rollback semantics. This is the first narrow parser-facing execution seam over compiled runtime directives.

@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Add `transaction_for_rule(...)` as the first parser-shaped entrypoint
+### Context
+The previous slice gave the runtime a clean rule-driven execution seam, but parser integration would still have had to spell out two steps manually every time: open a transaction, then apply the compiled directives for the current rule. That is exactly the kind of repeated ceremony that tends to drift once it gets copied into parser code.
+
+### Implementation
+- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added `SemanticRuntimeState::transaction_for_rule(...)`
+  - the helper:
+    - opens a fresh transaction,
+    - applies one rule’s compiled directives immediately,
+    - returns `(SemanticRuntimeTransaction, applied_count)`
+- Added focused tests proving:
+  - the transaction already contains the rule’s semantic effects before commit,
+  - missing-rule entry is still transaction-safe and remains a no-op
+
+### Why This Matters
+- This is the first semantic-runtime API that looks like something parser code can call directly.
+- It narrows future integration to:
+  - choose the parser branch point,
+  - call `transaction_for_rule(...)`,
+  - commit on successful parse branch,
+  - otherwise let rollback happen naturally.
+
+### Remaining Gap
+- Generated parsers still do not invoke this helper.
+- No memoization or predicate execution changes yet.
+- The next good step is to route one controlled parser integration point through `transaction_for_rule(...)` rather than adding more runtime helpers first.
+
 ## 2026-03-19 - Add rule-driven execution over compiled semantic runtime directives
 ### Context
 Precompiling runtime-capable semantic annotations by rule solved the repeated parsing problem, but it still left parser integration with one awkward step: future parser code would have to fetch a rule’s directives and loop over them manually. The right next increment was to turn the compiled map into an executable seam that can apply one rule’s directives directly to runtime state or a transaction.

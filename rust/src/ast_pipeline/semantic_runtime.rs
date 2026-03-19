@@ -225,6 +225,16 @@ impl SemanticRuntimeState {
         }
     }
 
+    pub fn transaction_for_rule<'a>(
+        &'a mut self,
+        compiled: &CompiledSemanticRuntimeAnnotations,
+        rule_name: &str,
+    ) -> (SemanticRuntimeTransaction<'a>, usize) {
+        let mut transaction = self.transaction();
+        let applied = transaction.apply_compiled_rule(compiled, rule_name);
+        (transaction, applied)
+    }
+
     pub fn checkpoint(&self) -> SemanticRuntimeCheckpoint {
         SemanticRuntimeCheckpoint {
             scope_len: self.scopes.len(),
@@ -1308,5 +1318,79 @@ mod tests {
         assert_eq!(state.scopes().len(), 1);
         assert!(state.facts().is_empty());
         assert_eq!(state.current_scope().kind, SemanticScopeKind::Global);
+    }
+
+    #[test]
+    fn transaction_for_rule_applies_directives_before_commit() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![
+                structured_named(
+                    "open_scope",
+                    "{ kind: package, name: committed_pkg }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("committed_pkg".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "emit_fact",
+                    "{ kind: typedef, name: committed_type }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("typedef".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("committed_type".to_string()),
+                        },
+                    ]),
+                ),
+            ],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+        let mut state = SemanticRuntimeState::new();
+
+        {
+            let (transaction, applied) =
+                state.transaction_for_rule(&compiled, "package_declaration");
+            assert_eq!(applied, 2);
+            assert_eq!(transaction.state().scopes().len(), 2);
+            assert_eq!(transaction.state().facts().len(), 1);
+            assert!(transaction.commit());
+        }
+
+        assert_eq!(state.current_scope().kind, SemanticScopeKind::Package);
+        assert_eq!(state.facts().len(), 1);
+        assert_eq!(
+            state.facts()[0].name,
+            SemanticRuntimeValue::Identifier("committed_type".to_string())
+        );
+    }
+
+    #[test]
+    fn transaction_for_rule_missing_rule_is_still_transaction_safe() {
+        let compiled = CompiledSemanticRuntimeAnnotations::default();
+        let mut state = SemanticRuntimeState::new();
+
+        {
+            let (transaction, applied) = state.transaction_for_rule(&compiled, "missing_rule");
+            assert_eq!(applied, 0);
+            assert_eq!(transaction.state().scopes().len(), 1);
+            assert!(transaction.state().facts().is_empty());
+        }
+
+        assert_eq!(state.scopes().len(), 1);
+        assert!(state.facts().is_empty());
     }
 }

@@ -138,10 +138,13 @@ Near-term rollout:
     - `CompiledSemanticRuntimeAnnotations::apply_to_rule(...)`
     - `SemanticRuntimeState::apply_compiled_rule(...)`
     - `SemanticRuntimeTransaction::apply_compiled_rule(...)`
+  - landed the first parser-shaped transaction entrypoint:
+    - `SemanticRuntimeState::transaction_for_rule(...)`
+    - applies one rule’s compiled directives before parser code decides whether to commit
   - current boundary remains explicit:
     - parsed and validated, but not yet parser-steering
     - semantic transactions exist, but no parser backtracking/memoization integration yet
-    - runtime directives can now be compiled and applied by rule, but no generated parser consumes that seam during branch execution yet
+    - runtime directives can now be compiled, applied by rule, and loaded into a fresh rule transaction, but no generated parser consumes that seam during branch execution yet
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.
