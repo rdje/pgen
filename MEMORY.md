@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-18 (+0100, task: sv-uvm-comment-inert-macro-expansion)
+Last updated: 2026-03-19 (+0100, task: sv-uvm-brace-concat-and-comment-multiline-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -37,6 +37,19 @@ Use this file to resume work without replaying full chat history.
   - the current live-status snapshot,
   - and whether that snapshot changed or stayed unchanged.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
+
+## Current SV UVM Frontier
+- Latest focused SV preprocessor fix:
+  - `parse_macro_invocation_args()` now respects `()`, `{}`, and `[]` nesting plus comment/string regions
+  - `has_unclosed_function_macro_invocation()` now ignores comment and string text so doc-comment macro examples no longer poison multiline logical-line collection
+- Concrete measured result:
+  - [case_uvm_pkg_2017.preprocessed.sv](/Users/richarddje/Documents/github/pgen/rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv) now preserves:
+    - `uvm_report_warning("find_type-no match", {"Instance of type '",TYPE::type_name, ... start.get_full_name()}, ...)`
+    - `uvm_report_warning("find_type-multi match", {"More than one instance of type '",TYPE::type_name, ... start.get_full_name()}, ...)`
+  - focused rerun confirms `case_uvm_pkg_2017_preprocess` is green again
+  - the fake preprocess failure `unterminated conditional block in .../uvm_objection.svh` is gone
+- Next likely task:
+  - keep pushing the remaining real UVM parser/package-body debt now that the UVM slice is preprocess-honest again
 
 ## Current Technical Snapshot
 - The repository now also has a tracked Verilog LRM conversion workspace sourced from `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`:

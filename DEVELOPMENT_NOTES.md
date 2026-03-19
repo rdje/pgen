@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Recover UVM preprocess correctness for brace-concat warning macros
+### Context
+The next UVM frontier after the comment-expansion fix turned out to be half real and half misleading. Preprocessed `uvm_pkg` still contained malformed `uvm_report_warning(...)` calls in which the message argument had been cut off after the first string literal, and a fresh focused rerun then regressed into `unterminated conditional block in .../uvm_objection.svh`. Those symptoms looked unrelated at first, but they actually shared the same root theme: the preprocessor was still treating too much non-code text as if it were top-level macro syntax.
+
+### Implementation
+- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - `parse_macro_invocation_args()` now tracks `paren_depth`, `brace_depth`, and `bracket_depth`, and only splits function-like macro arguments on commas at true top level
+  - the same function now ignores `//` comments, `/* ... */` comments, and double-quoted strings while scanning macro actuals
+  - `has_unclosed_function_macro_invocation()` now ignores comment and string regions too, so comment-contained example macros no longer trigger multiline logical-line collection
+  - added focused regressions:
+    - `preserves_brace_concat_function_macro_argument`
+    - `ignores_unclosed_macro_examples_inside_comments_when_collecting_lines`
+
+### Outcome
+- The old malformed UVM warning expansions are fixed in [case_uvm_pkg_2017.preprocessed.sv](/Users/richarddje/Documents/github/pgen/rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv):
+  - `TYPE::type_name` and `start.get_full_name()` now stay inside the brace-concatenation message payload instead of being displaced by later macro arguments
+- The focused `uvm_pkg` preprocess regression is gone:
+  - `case_uvm_pkg_2017_preprocess` is green again
+  - the fake `unterminated conditional block in .../uvm_objection.svh` failure no longer reproduces
+- This is another “make the UVM slice honest again” step:
+  - the remaining UVM work is once again real parser/package-body debt rather than preprocessor corruption from brace-concat argument splitting or comment-driven multiline collection
+
 ## 2026-03-18 - Stop expanding SV macros inside comments
 ### Context
 After inline conditional normalization was fixed, the first UVM parser frontier still looked suspicious: `uvm_pkg` and `uvm_compat_pkg` were failing near what should have been ordinary report-message setup code inside documentation examples. Inspection of the preprocessed UVM package showed the real problem immediately: comment lines such as `// |   `uvm_info_begin("MY_ID", ...)` were still triggering macro expansion, which injected live statements into package scope from comment text alone.

@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-03-19 - Fix UVM brace-concat macro args and comment-side multiline collection
+### ✅ Achievement Summary
+Focused UVM package debugging exposed two more real SV preprocessor bugs in the same neighborhood. First, function-like macro argument splitting still ignored `{}` and `[]`, so UVM warning/error calls with brace-concatenation message arguments were being truncated at the first inner comma. Second, the multiline logical-line collector still scanned comment text as if it were live code, so documentation examples like `` //| `DECL("ID", `` could make later directive lines look swallowed and trigger fake `unterminated conditional block` failures. Both issues are now fixed.
+
+### Scope of Changes
+- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+  - made `parse_macro_invocation_args()` respect top-level nesting across `()`, `{}`, and `[]`, while also ignoring comments and double-quoted strings
+  - made `has_unclosed_function_macro_invocation()` ignore `//` comments, `/* ... */` comments, and string literals so comment-contained example macros no longer poison multiline collection
+  - added focused regressions:
+    - `preserves_brace_concat_function_macro_argument`
+    - `ignores_unclosed_macro_examples_inside_comments_when_collecting_lines`
+- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md), and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded that the UVM slice is preprocess-green again for the previously broken `uvm_pkg` frontier
+
+### Current Measured UVM-Focused Surface
+- Direct inspection of [case_uvm_pkg_2017.preprocessed.sv](/Users/richarddje/Documents/github/pgen/rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv):
+  - the old malformed warning expansions are fixed
+  - the preprocessed UVM package now preserves the full brace-concatenation payloads:
+    - `uvm_report_warning("find_type-no match", {"Instance of type '",TYPE::type_name, ... start.get_full_name()}, ...)`
+    - `uvm_report_warning("find_type-multi match", {"More than one instance of type '",TYPE::type_name, ... start.get_full_name()}, ...)`
+- Focused external-corpus rerun (`env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`):
+  - `case_uvm_pkg_2017_preprocess`: `ok`
+  - the previous fake preprocess failure `unterminated conditional block in .../uvm_objection.svh` is gone
+- Interpretation:
+  - this removes two more false preprocess blockers from the UVM path
+  - remaining UVM debt is again downstream parser/package-body work, not broken brace-concat argument handling or comment-side multiline collection
+
 ## 2026-03-18 - Stop expanding SV macros inside comments
 ### ✅ Achievement Summary
 Focused UVM package debugging exposed a second real SV preprocessor bug after the earlier inline-conditional work: macro expansion was still firing inside `//` and `/* ... */` comment text. In UVM that was disastrous because documentation examples such as `` // |   `uvm_info_begin(...) `` were being expanded into live package-scope statements, creating fake parser debt near line `474`. The SV preprocessor now treats comment text as inert during macro expansion, so those examples remain comments rather than executable code.

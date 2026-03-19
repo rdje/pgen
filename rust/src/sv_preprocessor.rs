@@ -1447,8 +1447,60 @@ fn has_unclosed_function_macro_invocation(
 ) -> bool {
     let bytes = text.as_bytes();
     let mut i = 0usize;
+    let mut in_line_comment = false;
+    let mut in_block_comment = false;
+    let mut in_double_quote = false;
+    let mut escaped_in_string = false;
 
     while i < bytes.len() {
+        if in_line_comment {
+            if bytes[i] == b'\n' {
+                in_line_comment = false;
+            }
+            i += 1;
+            continue;
+        }
+
+        if in_block_comment {
+            if i + 1 < bytes.len() && bytes[i] == b'*' && bytes[i + 1] == b'/' {
+                in_block_comment = false;
+                i += 2;
+            } else {
+                i += 1;
+            }
+            continue;
+        }
+
+        if in_double_quote {
+            if escaped_in_string {
+                escaped_in_string = false;
+            } else if bytes[i] == b'\\' {
+                escaped_in_string = true;
+            } else if bytes[i] == b'"' {
+                in_double_quote = false;
+            }
+            i += 1;
+            continue;
+        }
+
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'/' {
+            in_line_comment = true;
+            i += 2;
+            continue;
+        }
+
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'*' {
+            in_block_comment = true;
+            i += 2;
+            continue;
+        }
+
+        if bytes[i] == b'"' {
+            in_double_quote = true;
+            i += 1;
+            continue;
+        }
+
         if bytes[i] != b'`' {
             i += 1;
             continue;
@@ -1501,51 +1553,75 @@ fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Ve
     if open_paren_idx >= bytes.len() || bytes[open_paren_idx] != b'(' {
         return None;
     }
-    let mut depth = 0usize;
-    let mut i = open_paren_idx;
+    let mut paren_depth = 1usize;
+    let mut brace_depth = 0usize;
+    let mut bracket_depth = 0usize;
+    let mut i = open_paren_idx + 1;
     let mut start = open_paren_idx + 1;
     let mut args = Vec::new();
-    let mut in_single_quote = false;
     let mut in_double_quote = false;
+    let mut in_line_comment = false;
+    let mut in_block_comment = false;
     let mut escaped = false;
 
     while i < bytes.len() {
         let ch = bytes[i] as char;
+        if in_line_comment {
+            if ch == '\n' {
+                in_line_comment = false;
+            }
+            i += 1;
+            continue;
+        }
+        if in_block_comment {
+            if i + 1 < bytes.len() && bytes[i] == b'*' && bytes[i + 1] == b'/' {
+                in_block_comment = false;
+                i += 2;
+            } else {
+                i += 1;
+            }
+            continue;
+        }
         if escaped {
             escaped = false;
             i += 1;
             continue;
         }
-        if ch == '\\' && (in_single_quote || in_double_quote) {
+        if ch == '\\' && in_double_quote {
             escaped = true;
             i += 1;
             continue;
         }
-        if ch == '"' && !in_single_quote {
+        if ch == '"' {
             in_double_quote = !in_double_quote;
             i += 1;
             continue;
         }
-        if ch == '\'' && !in_double_quote {
-            in_single_quote = !in_single_quote;
+        if in_double_quote {
             i += 1;
             continue;
         }
-        if in_single_quote || in_double_quote {
-            i += 1;
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'/' {
+            in_line_comment = true;
+            i += 2;
+            continue;
+        }
+        if i + 1 < bytes.len() && bytes[i] == b'/' && bytes[i + 1] == b'*' {
+            in_block_comment = true;
+            i += 2;
             continue;
         }
         match ch {
             '(' => {
-                depth += 1;
+                paren_depth += 1;
                 i += 1;
             }
             ')' => {
-                if depth == 0 {
+                if paren_depth == 0 {
                     return None;
                 }
-                depth -= 1;
-                if depth == 0 {
+                paren_depth -= 1;
+                if paren_depth == 0 {
                     let segment = input[start..i].trim();
                     if !segment.is_empty() || !args.is_empty() {
                         args.push(segment.to_string());
@@ -1554,7 +1630,23 @@ fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Ve
                 }
                 i += 1;
             }
-            ',' if depth == 1 => {
+            '{' => {
+                brace_depth += 1;
+                i += 1;
+            }
+            '}' => {
+                brace_depth = brace_depth.saturating_sub(1);
+                i += 1;
+            }
+            '[' => {
+                bracket_depth += 1;
+                i += 1;
+            }
+            ']' => {
+                bracket_depth = bracket_depth.saturating_sub(1);
+                i += 1;
+            }
+            ',' if paren_depth == 1 && brace_depth == 0 && bracket_depth == 0 => {
                 let segment = input[start..i].trim();
                 args.push(segment.to_string());
                 i += 1;
@@ -1979,6 +2071,37 @@ mod tests {
         assert!(!output.text.contains("logic from_block_comment;"));
         assert!(output.text.contains("// `DECL(from_line_comment)"));
         assert!(output.text.contains("/* `DECL(from_block_comment) */"));
+    }
+
+    #[test]
+    fn ignores_unclosed_macro_examples_inside_comments_when_collecting_lines() {
+        let dir = create_temp_dir("svpp_comment_multiline_collect");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define DECL(ID, MSG) logic seen;\nmodule m;\n//| `DECL(\"ID\",\n`ifndef DISABLE_FIELD\nlogic enabled;\n`endif\nendmodule\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess with comment-contained unclosed macro example");
+        assert!(output.text.contains("logic enabled;"));
+        assert!(output.text.contains("//| `DECL(\"ID\","));
+    }
+
+    #[test]
+    fn preserves_brace_concat_function_macro_argument() {
+        let dir = create_temp_dir("svpp_brace_concat_arg");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define WARN(ID, MSG) uvm_report_warning(ID, MSG, UVM_NONE, `__FILE__, `__LINE__, \"\", 1)\nmodule m;\n  initial begin\n    `WARN(\"find_type-no match\", {\"Instance of type '\", TYPE::type_name, \" not found in component hierarchy beginning at \", start.get_full_name()})\n  end\nendmodule\n",
+        )
+        .expect("write top");
+
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess brace-concat macro arg");
+        assert!(output.text.contains("uvm_report_warning(\"find_type-no match\", {\"Instance of type '\", TYPE::type_name, \" not found in component hierarchy beginning at \", start.get_full_name()}, UVM_NONE,"));
     }
 
     #[test]
