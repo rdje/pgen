@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: fix-repeated-type-class-parameter-headers)
+Last updated: 2026-03-19 (+0100, task: capture-annotation-driven-semantic-steering-guidance)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -59,7 +59,7 @@ Use this file to resume work without replaying full chat history.
   - focused rerun confirms `case_uvm_pkg_2017_preprocess` is green again
   - the fake preprocess failure `unterminated conditional block in .../uvm_objection.svh` is gone
 - Next likely task:
-  - keep pushing the remaining real UVM parser/package-body debt now that the UVM slice is preprocess-honest again
+  - turn the new annotation-driven semantic-steering doctrine into a narrow SV declaration-vs-statement pilot for package/class-scoped type declarations inside blocks
 
 ## Shared File-Roundtrip Guidance
 - Full-file roundtrip is now explicitly captured as a shared parser-family proof surface for PGEN, not as an SV-only or VHDL-only idea.
@@ -81,6 +81,26 @@ Use this file to resume work without replaying full chat history.
   - shared harness
   - VHDL file-level roundtrip
   - SystemVerilog file-level preprocessed roundtrip
+
+## Annotation-Driven Semantic Steering Guidance
+- PGEN should treat `EBNF + semantic annotations + return annotations` as one combined parsing toolkit.
+- Return annotations should be allowed to emit semantic facts during successful matches, not just tailor the returned AST.
+- Those facts should be stored in scoped semantic tables, including:
+  - file/global scope,
+  - package scope,
+  - class/interface scope,
+  - function/task/block scope,
+  - imported-symbol overlays where needed.
+- Semantic annotations should query those facts through bounded predicates rather than relying on arbitrary deeper speculative lookahead.
+- Main SystemVerilog targets for this model:
+  - declaration-vs-statement disambiguation,
+  - keyword-vs-identifier discrimination,
+  - package/class-scoped type recognition,
+  - contextual keyword handling.
+- Recommended first pilot:
+  - SystemVerilog package/class-scoped type declarations inside blocks,
+  - with names/facts collected through return annotations and consumed through semantic predicates such as `is_type_reference_start` or `is_block_declaration_start`.
+- Treat this as the preferred long-term answer to repeated SV ambiguity debt instead of accumulating isolated grammar reorderings indefinitely.
 
 ## Current Technical Snapshot
 - The repository now also has a tracked Verilog LRM conversion workspace sourced from `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`:

@@ -26,6 +26,7 @@ Execution preference for this roadmap:
 - checked-in external corpora only count toward closure after they are consumed by repeatable gates or reports rather than merely present in the tree.
 - external-corpus grammar debugging should prefer systematic keyword-vs-identifier discrimination and precise branch-shape fixes over corpus-specific hacks, even when the first landed step is a narrow surgical patch.
 - if repeated keyword-vs-identifier debt keeps surfacing in a family such as SystemVerilog, promote that into one shared systematic grammar/annotation mechanism instead of accumulating ad hoc local exclusions indefinitely.
+- if repeated parser ambiguity depends on names, declaration categories, or earlier matched constructs, prefer annotation-driven semantic steering over repeated local branch reorderings.
 - current focused SV external-corpus frontier is now deeper parser-only work inside the UVM package bodies again; inline conditional macro-body normalization, comment-side macro leakage, brace-concat macro-argument truncation, and comment-side fake multiline macro collection are no longer active blockers.
 - repeated bare `type` parameter headers in SV class declarations are now a known solved branch-shape issue; the next remaining UVM frontier is broader package parse scaling/reduction rather than that specific header syntax.
 
@@ -36,6 +37,54 @@ Engine generalization rule:
 - shared parser-generator and stimuli-generator fixes must be EBNF-agnostic and justified as engine-wide behavior, not as special handling for one grammar,
 - grammar- or profile-specific behavior belongs in the grammar, contract, corpus, or profile layer unless there is a defensible engine-level reason to generalize it,
 - if a fix only makes sense for one specific EBNF, treat it as grammar debt or contract debt, not as a shared generator improvement.
+
+## Annotation-Driven Semantic Steering Doctrine
+PGEN should treat `EBNF + semantic annotations + return annotations` as one combined parsing toolkit rather than as three unrelated features.
+
+Core direction:
+- return annotations should be able to do more than tailor the returned AST; they should also emit structured semantic facts during successful matches,
+- those facts should be stored in scoped semantic tables rather than in one flat global bag,
+- semantic annotations should be able to query those facts through bounded predicates that steer later ambiguous parses.
+
+Target fact families:
+- package names,
+- typedef names and other type names,
+- class/interface/checker names,
+- enum names,
+- function and task names,
+- parameter and localparam names,
+- imported package symbols,
+- other declaration-category facts that help distinguish type-context from expression-context.
+
+Required scope model:
+- file/global scope,
+- package scope,
+- class/interface scope,
+- function/task/block scope,
+- imported-symbol overlays where needed.
+
+Preferred steering style:
+- use bounded semantic predicates such as:
+  - `is_type_reference_start`,
+  - `is_block_declaration_start`,
+  - `is_package_scoped_type_decl`,
+  - `is_callable_identifier`,
+  - `is_keyword_excluded_identifier`,
+- do not treat arbitrary deeper speculative lookahead as the long-term answer,
+- keep the grammar readable and move ambiguity handling into a small number of shared steering points.
+
+Primary SystemVerilog motivation:
+- declaration-vs-statement ambiguity,
+- keyword-vs-identifier discrimination,
+- package/class-scoped type names,
+- contextual keyword handling,
+- repeated reuse of earlier declarations later in the file.
+
+Near-term rollout:
+- stabilize the semantic fact model first,
+- define a minimal predicate API that semantic annotations can query,
+- pilot the model on one narrow high-value frontier:
+  - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks.
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

@@ -21289,3 +21289,18 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - Live-status effect:
     - `systemverilog`: remains `Mostly Done`
     - `systemverilog_preprocessor`: remains `Mostly Done`
+- 2026-03-19: Captured annotation-driven semantic-steering guidance for future parser hardening.
+  - Updated:
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - documented that PGEN should use `EBNF + semantic annotations + return annotations` as one combined parsing toolkit,
+    - recorded the intended architecture where return annotations emit scoped semantic facts and semantic annotations consume those facts through bounded predicates,
+    - identified the first recommended pilot:
+      - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks.
+  - Important guidance:
+    - prefer shared semantic steering points such as `is_type_reference_start`, `is_block_declaration_start`, and `is_package_scoped_type_decl`,
+    - do not treat arbitrary deeper speculative lookahead as the preferred long-term solution.
+  - Live-status effect:
+    - no live-status row changed

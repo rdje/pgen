@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-19 - Promote return annotations into semantic-fact producers
+### Context
+The remaining SystemVerilog UVM ambiguity debt is increasingly driven by information the parser already sees while matching the file: package names, typedef/type names, function/task names, declaration categories, and scoped symbol reuse. That means the clean long-term answer is no longer "just keep reordering grammar branches." PGEN now needs to make full use of its combined asset set: `EBNF + semantic annotations + return annotations`.
+
+### Guidance
+- Return annotations should serve two roles:
+  - shape the returned AST,
+  - emit structured semantic facts during successful matches.
+- Those facts should be stored in scoped semantic tables, not a flat bag:
+  - file/global scope,
+  - package scope,
+  - class/interface scope,
+  - function/task/block scope,
+  - imported-symbol overlays where needed.
+- Semantic annotations should consume those facts through bounded predicates rather than relying on generic deeper speculative lookahead.
+
+### Preferred Predicate Families
+- `is_type_reference_start`
+- `is_block_declaration_start`
+- `is_package_scoped_type_decl`
+- `is_callable_identifier`
+- `is_keyword_excluded_identifier`
+
+### Why This Matters
+- This is the preferred systematic answer for repeated SystemVerilog ambiguity families:
+  - declaration vs statement,
+  - keyword vs identifier,
+  - package/class-scoped type names,
+  - contextual keyword discrimination.
+- The goal is grammar readability plus a small number of shared semantic steering points, not unlimited deep lookahead.
+
+### Recommended Pilot
+- First narrow implementation target:
+  - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks.
+- Implementation shape:
+  - collect names/facts through return annotations,
+  - store them in scoped tables,
+  - expose bounded semantic predicates,
+  - validate the pilot before broader semantic-steering rollout.
+
 ## 2026-03-19 - Repeated bare `type` class parameter headers need an explicit SV front door
 ### Context
 Fresh UVM-focused reduction showed that generic `parameter_port_list` handling was still over-consuming repeated bare `type` declarations in headers like `#(type REQ = int, type RSP = REQ)`. The parser kept treating the second `type` as if it still belonged to the first type-assignment cluster, which made the whole class/package fail at position `0` even on tiny repros.
