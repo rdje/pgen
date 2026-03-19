@@ -21257,3 +21257,22 @@ This note corrects an important architectural overstatement: current return anno
 Recommended next implementation move after this clarification:
 - extend `semantic_annotation.ebnf` and the semantic runtime model with explicit fact-emission / scope / predicate concepts,
 - keep `return_annotation.ebnf` focused on shaping the returned AST unless a future compatible extension is designed deliberately and documented as such.
+
+Additional concrete finding from the code review:
+- the first blocker is probably **not** the surface annotation grammar itself
+- `grammars/semantic_annotation.ebnf` already supports:
+  - custom directive names,
+  - arrays and objects,
+  - expressions,
+  - rule/type/path/url references,
+  - function-call-shaped payloads
+- `grammars/builtin_semantic_annotation.ebnf` is already permissive enough for bootstrap survival
+- the real lossy layer today is `rust/src/ast_pipeline/unified_semantic_ast.rs`:
+  - it only exposes `UnifiedSemanticAST::TransformExpr`
+  - and `UnifiedSemanticAST::Raw`
+  - so non-`transform` directives lose their internal structured payload shape before runtime/codegen can act on them
+
+Practical implementation consequence:
+- before creating a new semantic-fact grammar, widen `UnifiedSemanticAST` and the generated semantic tree-to-typed-AST conversion so named directives can retain structured payloads,
+- then add typed directive lowering / semantic-state execution on top of that richer semantic AST,
+- only introduce new annotation surface syntax if the existing `@name: value` channel proves insufficient after the richer typed lowering exists.

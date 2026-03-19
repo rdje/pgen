@@ -21324,3 +21324,16 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - if semantic facts are added later, make that an explicit semantic-runtime extension, most likely rooted in `semantic_annotation` and scoped semantic state.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Captured the next concrete annotation-extension design insight after tracing the semantic grammar and lowering path.
+  - Updated:
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - recorded that the first semantic-fact blocker is probably not a missing top-level grammar,
+    - documented that `grammars/semantic_annotation.ebnf` already supports rich custom named payloads and `grammars/builtin_semantic_annotation.ebnf` is already permissive for bootstrap survival,
+    - identified the real current bottleneck as typed lowering:
+      - `UnifiedSemanticAST` still collapses most non-`transform` directives to `Raw`,
+      - so future fact/scope/predicate work should start by widening `UnifiedSemanticAST` and directive-specific lowering before inventing a second annotation surface.
+  - Live-status effect:
+    - no live-status row changed

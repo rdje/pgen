@@ -121,6 +121,13 @@ Use this file to resume work without replaying full chat history.
   - SystemVerilog package/class-scoped type declarations inside blocks,
   - with names/facts collected through an explicit future semantic-fact mechanism and consumed through semantic predicates such as `is_type_reference_start` or `is_block_declaration_start`.
 - Treat this as the preferred long-term answer to repeated SV ambiguity debt instead of accumulating isolated grammar reorderings indefinitely.
+- Additional concrete implementation insight:
+  - `grammars/semantic_annotation.ebnf` is already broad enough to carry many future fact/scope/predicate payloads,
+  - `grammars/builtin_semantic_annotation.ebnf` is already permissive enough for bootstrap continuity,
+  - the immediate bottleneck is that `rust/src/ast_pipeline/unified_semantic_ast.rs` currently lowers almost everything to only:
+    - `TransformExpr`
+    - `Raw`
+  - so future semantic-fact work should likely start by widening `UnifiedSemanticAST` and typed directive lowering before inventing a new annotation grammar surface.
 
 ## Current Technical Snapshot
 - The repository now also has a tracked Verilog LRM conversion workspace sourced from `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`:

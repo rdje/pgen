@@ -56,6 +56,10 @@ Future extension direction:
 - if semantic facts are collected from successful matches, they should be stored in scoped semantic tables rather than in one flat global bag,
 - semantic annotations should be able to query those facts through bounded predicates that steer later ambiguous parses,
 - if return-annotation-shaped capture data is ever reused for semantic-fact collection, that should be an explicit new execution contract, not an implicit reinterpretation of the current return parser.
+- likely no brand-new top-level annotation grammar is needed for the first iteration:
+  - `grammars/semantic_annotation.ebnf` already accepts custom directive names plus rich structured payloads (arrays, objects, expressions, references),
+  - `grammars/builtin_semantic_annotation.ebnf` is already intentionally permissive for bootstrap survival,
+  - the current limiting layer is the typed lowering/runtime surface because `UnifiedSemanticAST` still collapses nearly everything to `TransformExpr` or `Raw`.
 
 Target fact families:
 - package names,
@@ -95,6 +99,10 @@ Near-term rollout:
 - keep the current model explicit in docs and code comments:
   - return annotations shape returned AST today,
   - semantic annotations provide parser/stimuli/codegen steering today,
+- widen `UnifiedSemanticAST` before inventing new surface syntax:
+  - add structured payload variants instead of flattening most named directives to `Raw`,
+  - add directive-specific lowering for future fact/scope/predicate directives,
+  - preserve bootstrap permissiveness while making non-bootstrap typed lowering richer,
 - stabilize the semantic fact model first,
 - define a minimal predicate API that semantic annotations can query,
 - pilot the model on one narrow high-value frontier:
