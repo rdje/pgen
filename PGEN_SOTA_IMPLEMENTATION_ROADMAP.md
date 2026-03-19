@@ -41,10 +41,21 @@ Engine generalization rule:
 ## Annotation-Driven Semantic Steering Doctrine
 PGEN should treat `EBNF + semantic annotations + return annotations` as one combined parsing toolkit rather than as three unrelated features.
 
-Core direction:
-- return annotations should be able to do more than tailor the returned AST; they should also emit structured semantic facts during successful matches,
-- those facts should be stored in scoped semantic tables rather than in one flat global bag,
-- semantic annotations should be able to query those facts through bounded predicates that steer later ambiguous parses.
+Current implementation reality:
+- `return_annotation.ebnf` is currently an AST-shaping DSL, not a semantic-fact DSL,
+- generated and bootstrap return-annotation parsing currently build `UnifiedReturnAST` only,
+- the Rust AST pipeline stores return annotations as per-branch `BranchAnnotation { annotation_type, annotation_content, parsed_ast }`,
+- generated parser code currently consumes that typed return AST only to shape branch results through `AstReturnTransformer`,
+- semantic annotations are the existing directive/control channel today:
+  - they are stored separately as `Annotations.semantic_annotations`,
+  - parsed into `SemanticAnnotation::{Named, Legacy}` plus `UnifiedSemanticAST::{TransformExpr, Raw}`,
+  - and already drive validator/codegen/stimuli/runtime behavior such as branch policy, associativity, profiles, token steering, regex transforms, value constraints, and recovery hints.
+
+Future extension direction:
+- semantic-fact capture should be added as a new semantic-state mechanism rather than by misdescribing the current return-annotation behavior,
+- if semantic facts are collected from successful matches, they should be stored in scoped semantic tables rather than in one flat global bag,
+- semantic annotations should be able to query those facts through bounded predicates that steer later ambiguous parses,
+- if return-annotation-shaped capture data is ever reused for semantic-fact collection, that should be an explicit new execution contract, not an implicit reinterpretation of the current return parser.
 
 Target fact families:
 - package names,
@@ -81,6 +92,9 @@ Primary SystemVerilog motivation:
 - repeated reuse of earlier declarations later in the file.
 
 Near-term rollout:
+- keep the current model explicit in docs and code comments:
+  - return annotations shape returned AST today,
+  - semantic annotations provide parser/stimuli/codegen steering today,
 - stabilize the semantic fact model first,
 - define a minimal predicate API that semantic annotations can query,
 - pilot the model on one narrow high-value frontier:

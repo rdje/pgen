@@ -21204,3 +21204,56 @@ This atomic SystemVerilog slice closes a real context-sensitive expression hole 
 - Important note:
   - I started a full `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` rerun, but stopped it after it spent several minutes in `case_uvm_pkg_2017_parse_full`
   - this commit therefore carries focused parser proof, not a completed broad-corpus rerun
+
+## 2026-03-19 - Clarified current annotation pipeline vs future semantic-fact design
+
+This note corrects an important architectural overstatement: current return annotations do **not** capture semantic facts today.
+
+- Frontend split is explicit in the Rust EBNF frontend:
+  - `rust/src/ebnf_frontend.rs`
+  - `convert_scanned_rule()` emits semantic annotations first as `["semantic_annotation", [name, payload]]`
+  - then emits the tokenized rule expression
+  - then emits the rule return annotation separately as `["return_scalar" | "return_array" | "return_object", body]`
+- AST-pipeline extraction keeps the two channels separate:
+  - `rust/src/ast_pipeline/mod.rs`
+  - `extract_rule_annotations()` strips annotations out of rule-content syntax elements
+  - return annotations become per-branch `BranchAnnotation { annotation_type, annotation_content, parsed_ast }`
+  - semantic annotations become per-rule `SemanticAnnotation::{Named, Legacy}` entries
+  - `Annotations` stores them in separate maps:
+    - `branch_return_annotations`
+    - `semantic_annotations`
+- Current return-annotation execution path:
+  - `parse_return_annotation_ast()` validates with the generated return parser when non-bootstrap
+  - `Return_annotationParser::parse_full_return_annotation()` builds a parse tree
+  - `UnifiedReturnAST::parse_generated_return_annotation()` converts that parse tree into typed `UnifiedReturnAST`
+  - `AstBasedGenerator::generate_return_transform()` reads `BranchAnnotation.parsed_ast`
+  - `AstReturnTransformer::generate_transform()` emits Rust code that reshapes the parsed branch result
+  - if `parsed_ast` is absent, codegen falls back to returning the untransformed branch result with an embedded warning string
+- Current semantic-annotation execution path:
+  - `parse_semantic_annotation_entry()` decides whether an annotation is:
+    - `SemanticAnnotation::Named`
+    - or `SemanticAnnotation::Legacy`
+  - generated semantic parsing goes through:
+    - `Semantic_annotationParser::parse_full_semantic_annotation()`
+    - `UnifiedSemanticAST::parse_generated_semantic_annotation_entry()`
+  - named directives preserve the directive key out-of-band and store only the payload in `UnifiedSemanticAST`
+- Current generated-parser use of semantic annotations is already real and broad:
+  - `AstBasedGenerator` decodes semantic directives and uses them for:
+    - branch policy
+    - associativity
+    - branch priorities / precedence
+    - profiles
+    - deterministic partitioning
+    - recovery hints
+    - regex token steering
+    - regex-match transform behavior
+    - value constraints
+  - `main.rs` also consumes semantic annotations for profile filtering
+- Practical correction to preserve:
+  - `return_annotation.ebnf` is currently a shaping DSL only
+  - `generated/return_annotation_parser.rs` currently parses only that shaping DSL
+  - semantic-fact capture, if added later, should be introduced as an explicit extension to the semantic-steering execution model rather than being described as already-existing return-annotation behavior
+
+Recommended next implementation move after this clarification:
+- extend `semantic_annotation.ebnf` and the semantic runtime model with explicit fact-emission / scope / predicate concepts,
+- keep `return_annotation.ebnf` focused on shaping the returned AST unless a future compatible extension is designed deliberately and documented as such.

@@ -21304,3 +21304,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - do not treat arbitrary deeper speculative lookahead as the preferred long-term solution.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Clarified the current annotation implementation model before extending semantic-fact capture.
+  - Updated:
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - corrected the roadmap/continuity wording so current `return_annotation` support is described accurately as AST-shaping only,
+    - documented the real Rust pipeline split:
+      - `ebnf_frontend` emits semantic and return annotations as separate token families,
+      - `ast_pipeline/mod.rs` stores them separately in `branch_return_annotations` and `semantic_annotations`,
+      - generated return parsing builds `UnifiedReturnAST`,
+      - generated semantic parsing builds `SemanticAnnotation::{Named, Legacy}` over `UnifiedSemanticAST`,
+    - recorded the current generated-parser consumption path:
+      - return annotations feed `AstReturnTransformer` to reshape branch results,
+      - semantic annotations already steer validator/codegen/stimuli/runtime behavior through directive decoding.
+  - Important guidance:
+    - do not describe current `generated/return_annotation_parser.rs` behavior as semantic-fact capture,
+    - if semantic facts are added later, make that an explicit semantic-runtime extension, most likely rooted in `semantic_annotation` and scoped semantic state.
+  - Live-status effect:
+    - no live-status row changed

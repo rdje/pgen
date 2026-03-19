@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: capture-annotation-driven-semantic-steering-guidance)
+Last updated: 2026-03-19 (+0100, task: clarify-current-annotation-pipeline-and-future-semantic-facts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -59,7 +59,8 @@ Use this file to resume work without replaying full chat history.
   - focused rerun confirms `case_uvm_pkg_2017_preprocess` is green again
   - the fake preprocess failure `unterminated conditional block in .../uvm_objection.svh` is gone
 - Next likely task:
-  - turn the new annotation-driven semantic-steering doctrine into a narrow SV declaration-vs-statement pilot for package/class-scoped type declarations inside blocks
+  - pause further ad hoc SV parser-debug churn
+  - design the semantic-fact extension explicitly on top of the existing annotation split before starting the first SV declaration-vs-statement pilot
 
 ## Shared File-Roundtrip Guidance
 - Full-file roundtrip is now explicitly captured as a shared parser-family proof surface for PGEN, not as an SV-only or VHDL-only idea.
@@ -84,14 +85,33 @@ Use this file to resume work without replaying full chat history.
 
 ## Annotation-Driven Semantic Steering Guidance
 - PGEN should treat `EBNF + semantic annotations + return annotations` as one combined parsing toolkit.
-- Return annotations should be allowed to emit semantic facts during successful matches, not just tailor the returned AST.
-- Those facts should be stored in scoped semantic tables, including:
+- Current implementation reality must stay explicit:
+  - `return_annotation.ebnf` is currently an AST-shaping DSL only
+  - generated/typed return parsing currently builds `UnifiedReturnAST` only
+  - `generated/return_annotation_parser.rs` is not currently a semantic-fact capture engine
+  - semantic annotations are the existing steering/control channel today
+- The current Rust AST pipeline split is:
+  - `rust/src/ebnf_frontend.rs` emits semantic and return annotations as separate token families
+  - `rust/src/ast_pipeline/mod.rs` stores them separately in:
+    - `Annotations.branch_return_annotations`
+    - `Annotations.semantic_annotations`
+  - return annotations become per-branch `BranchAnnotation { annotation_type, annotation_content, parsed_ast }`
+  - semantic annotations become `SemanticAnnotation::{Named, Legacy}` with `UnifiedSemanticAST::{TransformExpr, Raw}`
+- Current generated-parser use is:
+  - return annotations:
+    - parse text -> generated return parser -> `UnifiedReturnAST`
+    - feed `AstReturnTransformer`
+    - emit Rust code that reshapes branch parse results
+  - semantic annotations:
+    - feed validator/codegen/stimuli/runtime steering for profiles, branch policy, associativity, precedence/priority, recovery hints, regex transform/token steering, value constraints, and related controls
+- Future semantic-fact model, if added, should be explicit and scoped rather than implied:
+  - semantic facts should be stored in scoped semantic tables, including:
   - file/global scope,
   - package scope,
   - class/interface scope,
   - function/task/block scope,
   - imported-symbol overlays where needed.
-- Semantic annotations should query those facts through bounded predicates rather than relying on arbitrary deeper speculative lookahead.
+- semantic annotations should query those facts through bounded predicates rather than relying on arbitrary deeper speculative lookahead.
 - Main SystemVerilog targets for this model:
   - declaration-vs-statement disambiguation,
   - keyword-vs-identifier discrimination,
@@ -99,7 +119,7 @@ Use this file to resume work without replaying full chat history.
   - contextual keyword handling.
 - Recommended first pilot:
   - SystemVerilog package/class-scoped type declarations inside blocks,
-  - with names/facts collected through return annotations and consumed through semantic predicates such as `is_type_reference_start` or `is_block_declaration_start`.
+  - with names/facts collected through an explicit future semantic-fact mechanism and consumed through semantic predicates such as `is_type_reference_start` or `is_block_declaration_start`.
 - Treat this as the preferred long-term answer to repeated SV ambiguity debt instead of accumulating isolated grammar reorderings indefinitely.
 
 ## Current Technical Snapshot
