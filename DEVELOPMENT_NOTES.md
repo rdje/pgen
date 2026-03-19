@@ -21663,6 +21663,33 @@ Compatibility constraint:
 - if predicates need current-rule or branch content, add that as an explicit `branch` or `post` predicate phase instead
 - this keeps the existing pre-parse guard semantics stable while still allowing richer future semantic steering
 
+2026-03-19 typed predicate phase/view milestone:
+- `SemanticPredicateSpec` now stores:
+  - `name`
+  - `args`
+  - `phase`
+  - `view`
+- supported phases:
+  - `pre`
+  - `branch`
+  - `post`
+- supported views:
+  - `raw`
+  - `shaped`
+- omitted predicate fields currently default to:
+  - `phase = pre`
+  - `view = raw`
+
+Current implementation boundary:
+- generated parsers only consume `pre` predicates at rule entry today
+- `branch` / `post` predicates are parsed, typed, compiled, and preserved, but intentionally not executed yet
+- non-`pre` predicates are ignored at the current rule-entry seam rather than being silently treated as pre-parse guards
+
+Practical consequence:
+- predicate author intent can now be recorded explicitly without destabilizing current parser behavior
+- this is the right substrate for the next step:
+  - a real content-aware branch/post predicate execution seam
+
 Why this default matters:
 - return annotations are primarily for output shaping
 - parser semantics should not silently change just because output shaping changes

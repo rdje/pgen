@@ -100,6 +100,46 @@ pub struct SemanticFactSpec {
 pub struct SemanticPredicateSpec {
     pub name: String,
     pub args: Vec<UnifiedSemanticValue>,
+    pub phase: SemanticPredicatePhase,
+    pub view: SemanticPredicateContentView,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SemanticPredicatePhase {
+    #[default]
+    Pre,
+    Branch,
+    Post,
+}
+
+impl SemanticPredicatePhase {
+    fn parse(value: &UnifiedSemanticValue) -> Option<Self> {
+        let normalized = scalar_text(value)?.trim().to_ascii_lowercase();
+        match normalized.as_str() {
+            "pre" | "rule_entry" | "rule-entry" => Some(Self::Pre),
+            "branch" | "branch_local" | "branch-local" => Some(Self::Branch),
+            "post" | "rule_exit" | "rule-exit" => Some(Self::Post),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SemanticPredicateContentView {
+    #[default]
+    Raw,
+    Shaped,
+}
+
+impl SemanticPredicateContentView {
+    fn parse(value: &UnifiedSemanticValue) -> Option<Self> {
+        let normalized = scalar_text(value)?.trim().to_ascii_lowercase();
+        match normalized.as_str() {
+            "raw" => Some(Self::Raw),
+            "shaped" => Some(Self::Shaped),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -378,10 +418,15 @@ impl SemanticRuntimeState {
         directive: &SemanticRuntimeDirective,
     ) -> Option<bool> {
         match directive {
-            SemanticRuntimeDirective::Predicate(spec) => self.evaluate_predicate(spec),
+            SemanticRuntimeDirective::Predicate(spec)
+                if spec.phase == SemanticPredicatePhase::Pre =>
+            {
+                self.evaluate_predicate(spec)
+            }
             SemanticRuntimeDirective::OpenScope(_)
             | SemanticRuntimeDirective::CloseScope(_)
-            | SemanticRuntimeDirective::EmitFact(_) => None,
+            | SemanticRuntimeDirective::EmitFact(_)
+            | SemanticRuntimeDirective::Predicate(_) => None,
         }
     }
 }
@@ -620,6 +665,8 @@ fn parse_predicate(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective,
                 return Ok(SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
                     name: text.clone(),
                     args: Vec::new(),
+                    phase: SemanticPredicatePhase::Pre,
+                    view: SemanticPredicateContentView::Raw,
                 }));
             }
             UnifiedSemanticValue::Object(properties) => {
@@ -638,9 +685,27 @@ fn parse_predicate(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective,
                     }
                     None => Vec::new(),
                 };
+                let phase = match property(properties, "phase") {
+                    Some(value) => SemanticPredicatePhase::parse(value).ok_or_else(|| {
+                        "Directive '@predicate.phase' must be one of 'pre', 'branch', or 'post'."
+                            .to_string()
+                    })?,
+                    None => SemanticPredicatePhase::Pre,
+                };
+                let view = match property(properties, "view") {
+                    Some(value) => {
+                        SemanticPredicateContentView::parse(value).ok_or_else(|| {
+                            "Directive '@predicate.view' must be either 'raw' or 'shaped'."
+                                .to_string()
+                        })?
+                    }
+                    None => SemanticPredicateContentView::Raw,
+                };
                 return Ok(SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
                     name,
                     args,
+                    phase,
+                    view,
                 }));
             }
             _ => {}
@@ -683,8 +748,9 @@ mod tests {
     use super::{
         compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
         parse_semantic_runtime_directive, parse_semantic_runtime_directives,
-        CompiledSemanticRuntimeAnnotations, SemanticPredicateSpec, SemanticRuntimeDirective,
-        SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
+        CompiledSemanticRuntimeAnnotations, SemanticPredicateContentView, SemanticPredicatePhase,
+        SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState,
+        SemanticRuntimeValue, SemanticScopeKind,
     };
     use crate::ast_pipeline::{
         Annotations, SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticValue,
@@ -790,6 +856,47 @@ mod tests {
                     UnifiedSemanticValue::RuleReference("$1".to_string()),
                     UnifiedSemanticValue::Identifier("lhs".to_string()),
                 ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }))
+        );
+    }
+
+    #[test]
+    fn parses_predicate_runtime_directive_with_explicit_phase_and_view() {
+        let predicate = structured_named(
+            "predicate",
+            "{ name: current_scope_is, args: [package], phase: post, view: shaped }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name".to_string(),
+                    value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "args".to_string(),
+                    value: UnifiedSemanticValue::Array(vec![UnifiedSemanticValue::Identifier(
+                        "package".to_string(),
+                    )]),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "phase".to_string(),
+                    value: UnifiedSemanticValue::Identifier("post".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "view".to_string(),
+                    value: UnifiedSemanticValue::Identifier("shaped".to_string()),
+                },
+            ]),
+        );
+
+        let parsed = parse_semantic_runtime_directive(&predicate).expect("predicate should parse");
+        assert_eq!(
+            parsed,
+            Some(SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
+                name: "current_scope_is".to_string(),
+                args: vec![UnifiedSemanticValue::Identifier("package".to_string())],
+                phase: SemanticPredicatePhase::Post,
+                view: SemanticPredicateContentView::Shaped,
             }))
         );
     }
@@ -843,6 +950,8 @@ mod tests {
                     UnifiedSemanticValue::Identifier("package".to_string()),
                     UnifiedSemanticValue::Identifier("top_pkg".to_string()),
                 ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
             Some(true)
         );
@@ -850,6 +959,8 @@ mod tests {
             state.evaluate_predicate(&SemanticPredicateSpec {
                 name: "current_scope_is".to_string(),
                 args: vec![UnifiedSemanticValue::Identifier("class".to_string())],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
             Some(false)
         );
@@ -860,6 +971,8 @@ mod tests {
                     UnifiedSemanticValue::Identifier("typedef".to_string()),
                     UnifiedSemanticValue::Identifier("my_type".to_string()),
                 ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
             Some(true)
         );
@@ -870,6 +983,8 @@ mod tests {
                     UnifiedSemanticValue::Identifier("typedef".to_string()),
                     UnifiedSemanticValue::Identifier("my_type".to_string()),
                 ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
             Some(true)
         );
@@ -877,6 +992,8 @@ mod tests {
             state.evaluate_predicate(&SemanticPredicateSpec {
                 name: "scope_depth_at_least".to_string(),
                 args: vec![UnifiedSemanticValue::Number("1".to_string())],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
             Some(true)
         );
@@ -946,6 +1063,8 @@ mod tests {
             state.evaluate_predicate(&SemanticPredicateSpec {
                 name: "current_scope_is".to_string(),
                 args: vec![UnifiedSemanticValue::Identifier("global".to_string())],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
             Some(true)
         );
@@ -956,6 +1075,8 @@ mod tests {
                     UnifiedSemanticValue::Identifier("typedef".to_string()),
                     UnifiedSemanticValue::Identifier("my_type".to_string()),
                 ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
             Some(false)
         );
@@ -964,6 +1085,8 @@ mod tests {
                 SemanticPredicateSpec {
                     name: "unknown_predicate".to_string(),
                     args: vec![],
+                    phase: SemanticPredicatePhase::Pre,
+                    view: SemanticPredicateContentView::Raw,
                 },
             )),
             None
@@ -972,7 +1095,36 @@ mod tests {
             state.evaluate_predicate(&SemanticPredicateSpec {
                 name: "scope_depth_at_least".to_string(),
                 args: vec![UnifiedSemanticValue::Identifier("not_a_number".to_string())],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
             }),
+            None
+        );
+    }
+
+    #[test]
+    fn rule_entry_predicate_evaluation_ignores_non_pre_phases() {
+        let state = SemanticRuntimeState::new();
+        assert_eq!(
+            state.evaluate_directive_predicate(&SemanticRuntimeDirective::Predicate(
+                SemanticPredicateSpec {
+                    name: "current_scope_is".to_string(),
+                    args: vec![UnifiedSemanticValue::Identifier("global".to_string())],
+                    phase: SemanticPredicatePhase::Branch,
+                    view: SemanticPredicateContentView::Raw,
+                },
+            )),
+            None
+        );
+        assert_eq!(
+            state.evaluate_directive_predicate(&SemanticRuntimeDirective::Predicate(
+                SemanticPredicateSpec {
+                    name: "current_scope_is".to_string(),
+                    args: vec![UnifiedSemanticValue::Identifier("global".to_string())],
+                    phase: SemanticPredicatePhase::Post,
+                    view: SemanticPredicateContentView::Shaped,
+                },
+            )),
             None
         );
     }

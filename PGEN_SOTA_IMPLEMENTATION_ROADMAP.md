@@ -3210,3 +3210,18 @@ Why `rtl_frontend` exists:
     - the existing rule-entry `@predicate` should keep its current pre-parse meaning rather than being silently redefined
     - content-aware semantic checks should be introduced as explicit `branch` / `post` predicate phases
     - this protects parser-control behavior from silently changing when return annotations are refactored for output presentation only
+- 2026-03-19: Landed typed predicate phase/view support as the first executable half-step toward that model.
+  - `SemanticPredicateSpec` now stores explicit `phase` and `view`
+  - supported phases:
+    - `pre`
+    - `branch`
+    - `post`
+  - supported views:
+    - `raw`
+    - `shaped`
+  - omitted predicate fields default to `pre` + `raw`
+  - generated parsers now embed those typed defaults in compiled semantic runtime directives
+  - roadmap consequence:
+    - the runtime can now preserve predicate intent without overloading the old rule-entry contract
+    - current rule-entry execution still applies only to `pre` predicates
+    - `branch` / `post` content-aware execution remains the next steering milestone rather than an implicit behavior change

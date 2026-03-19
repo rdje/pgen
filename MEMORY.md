@@ -5378,3 +5378,10 @@ Use this file to resume work without replaying full chat history.
       - `shaped`
     - semantic defaults should use `raw`, with `shaped` only as opt-in
     - do not silently redefine the existing rule-entry `@predicate`; add content-aware checks through explicit `branch` / `post` phases instead
+- 2026-03-19: Landed typed predicate phase/view support in semantic runtime and generated parser embedding.
+  - Continuity points:
+    - `SemanticPredicateSpec` now records `phase` and `view` explicitly
+    - default predicate interpretation is currently `pre` + `raw`
+    - generated parsers embed those typed defaults into compiled semantic runtime directives
+    - the current rule-entry seam only evaluates `pre` predicates
+    - `branch` / `post` predicates are preserved as typed intent but intentionally ignored at that seam for now

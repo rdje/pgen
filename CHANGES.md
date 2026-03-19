@@ -21681,3 +21681,26 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - if predicates eventually inspect current-rule content, raw parse content should be the default semantic view.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Promoted predicate phase/view from design guidance into typed semantic-runtime data.
+  - Updated:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `rust/src/ast_pipeline/mod.rs`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - `SemanticPredicateSpec` now carries explicit `phase` and `view`,
+    - supported phases are `pre`, `branch`, `post`,
+    - supported views are `raw`, `shaped`,
+    - omitted fields default to `pre` + `raw`,
+    - generated parsers now embed those typed defaults in compiled semantic runtime directives.
+  - Current execution boundary:
+    - only `pre` predicates are consumed at the current rule-entry seam,
+    - non-`pre` predicates are intentionally ignored there instead of being misapplied,
+    - this keeps existing parser behavior stable while preserving typed intent for the next branch/post steering step.
+  - Validation:
+    - semantic runtime focused suite passed: `20 passed; 0 failed`
+    - generated parser semantic-runtime entrypoint proof passed
+  - Live-status effect:
+    - no live-status row changed

@@ -3544,11 +3544,15 @@ impl AstBasedGenerator {
                     .args
                     .iter()
                     .map(Self::generate_unified_semantic_value_tokens);
+                let phase = Self::generate_semantic_predicate_phase_tokens(spec.phase);
+                let view = Self::generate_semantic_predicate_content_view_tokens(spec.view);
                 quote! {
                     crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
                         crate::ast_pipeline::SemanticPredicateSpec {
                             name: #name.to_string(),
                             args: vec![#(#args),*],
+                            phase: #phase,
+                            view: #view,
                         }
                     )
                 }
@@ -3565,6 +3569,33 @@ impl AstBasedGenerator {
                 quote! { Some(#value_tokens) }
             }
             None => quote! { None },
+        }
+    }
+
+    fn generate_semantic_predicate_phase_tokens(phase: crate::ast_pipeline::SemanticPredicatePhase) -> TokenStream {
+        match phase {
+            crate::ast_pipeline::SemanticPredicatePhase::Pre => {
+                quote! { crate::ast_pipeline::SemanticPredicatePhase::Pre }
+            }
+            crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                quote! { crate::ast_pipeline::SemanticPredicatePhase::Branch }
+            }
+            crate::ast_pipeline::SemanticPredicatePhase::Post => {
+                quote! { crate::ast_pipeline::SemanticPredicatePhase::Post }
+            }
+        }
+    }
+
+    fn generate_semantic_predicate_content_view_tokens(
+        view: crate::ast_pipeline::SemanticPredicateContentView,
+    ) -> TokenStream {
+        match view {
+            crate::ast_pipeline::SemanticPredicateContentView::Raw => {
+                quote! { crate::ast_pipeline::SemanticPredicateContentView::Raw }
+            }
+            crate::ast_pipeline::SemanticPredicateContentView::Shaped => {
+                quote! { crate::ast_pipeline::SemanticPredicateContentView::Shaped }
+            }
         }
     }
 
@@ -4737,6 +4768,16 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("predicate_blocked"),
             "generated parser should track predicate failures inside the transaction wrapper, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("SemanticPredicatePhase::Pre"),
+            "generated parser should embed typed predicate phase defaults, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("SemanticPredicateContentView::Raw"),
+            "generated parser should embed typed predicate content-view defaults, got: {}",
             rendered
         );
         assert!(

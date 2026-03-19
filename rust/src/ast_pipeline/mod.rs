@@ -2652,9 +2652,10 @@ pub use semantic_runtime::{
     compile_rule_semantic_runtime_directives, compile_semantic_runtime_annotations,
     parse_semantic_runtime_directive, parse_semantic_runtime_directives,
     CompiledSemanticRuntimeAnnotations, SemanticCloseScopeSpec, SemanticFactRecord,
-    SemanticFactSpec, SemanticPredicateSpec, SemanticRuntimeCheckpoint, SemanticRuntimeDirective,
-    SemanticRuntimeState, SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame,
-    SemanticScopeKind, SemanticScopeSpec,
+    SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase,
+    SemanticPredicateSpec, SemanticRuntimeCheckpoint, SemanticRuntimeDirective,
+    SemanticRuntimeState, SemanticRuntimeTransaction, SemanticRuntimeValue,
+    SemanticScopeFrame, SemanticScopeKind, SemanticScopeSpec,
 };
 pub use semantic_transform::{
     parse_canonical_transform_expression, stimuli_hint_for_target_type, CanonicalSemanticTransform,
