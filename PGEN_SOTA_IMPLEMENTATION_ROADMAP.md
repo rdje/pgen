@@ -3207,4 +3207,6 @@ Why `rtl_frontend` exists:
   - roadmap consequence:
     - semantic steering should default to `raw` parse content rather than shaped content
     - `shaped` content can be useful later, but only as explicit opt-in
+    - the existing rule-entry `@predicate` should keep its current pre-parse meaning rather than being silently redefined
+    - content-aware semantic checks should be introduced as explicit `branch` / `post` predicate phases
     - this protects parser-control behavior from silently changing when return annotations are refactored for output presentation only

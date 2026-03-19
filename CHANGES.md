@@ -21675,6 +21675,8 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - explicit content views: `raw`, `shaped`,
       - semantic defaults should use `raw`, with `shaped` only as opt-in.
   - Important guidance:
+    - do not silently redefine the current rule-entry `@predicate`,
+    - introduce content-aware checks as explicit `branch` / `post` predicate phases instead,
     - do not let parsing semantics silently depend on return-annotation presentation shaping by default,
     - if predicates eventually inspect current-rule content, raw parse content should be the default semantic view.
   - Live-status effect:

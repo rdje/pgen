@@ -21658,6 +21658,11 @@ Recommended defaults:
 - `post` predicates default to `raw` successful rule content
 - `shaped` content should be opt-in, not the default
 
+Compatibility constraint:
+- do **not** silently redefine the current rule-entry `@predicate`
+- if predicates need current-rule or branch content, add that as an explicit `branch` or `post` predicate phase instead
+- this keeps the existing pre-parse guard semantics stable while still allowing richer future semantic steering
+
 Why this default matters:
 - return annotations are primarily for output shaping
 - parser semantics should not silently change just because output shaping changes

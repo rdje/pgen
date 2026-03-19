@@ -5377,3 +5377,4 @@ Use this file to resume work without replaying full chat history.
       - `raw`
       - `shaped`
     - semantic defaults should use `raw`, with `shaped` only as opt-in
+    - do not silently redefine the existing rule-entry `@predicate`; add content-aware checks through explicit `branch` / `post` phases instead
