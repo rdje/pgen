@@ -21619,3 +21619,46 @@ Practical consequence:
 - rule-entry predicate steering remains available
 - capture-based semantic fact/scope emission is now aligned with actual parse output
 - this is a necessary substrate before a real HDL grammar pilot can emit useful type/package facts from successful declarations
+
+2026-03-19 semantic model clarification that must be preserved:
+- `ParseNode` is **not** the same thing as the return-annotation AST
+- the important layers are:
+  - compile-time return-shaping AST:
+    - `UnifiedReturnAST`
+    - stored in `BranchAnnotation.parsed_ast`
+  - runtime parse node:
+    - `ParseNode { rule_name, content, span }`
+  - runtime parse payload:
+    - `ParseContent::{Terminal, TransformedTerminal, Sequence, Alternative, Quantified}`
+
+Important nuance:
+- generated rule code applies return-shaping transforms before wrapping the final runtime node
+- so `ParseNode.content` may already be return-annotation-shaped when a return annotation is present
+- if no return annotation is present, `ParseNode.content` stays in the default grammar-shaped runtime form
+
+Current predicate boundary:
+- today `@predicate` does **not** inspect the current rule’s `ParseNode` or current rule content at all
+- it runs before the current rule has produced a parse result
+- so its operands currently come only from:
+  - the predicate payload itself
+  - already-committed semantic runtime state (facts/scopes)
+
+Recommended robust future model:
+- make predicate timing explicit:
+  - `pre`
+  - `branch`
+  - `post`
+- make predicate content view explicit:
+  - `raw`
+  - `shaped`
+
+Recommended defaults:
+- `pre` predicates use semantic runtime state only
+- `branch` predicates default to `raw` tentative branch content
+- `post` predicates default to `raw` successful rule content
+- `shaped` content should be opt-in, not the default
+
+Why this default matters:
+- return annotations are primarily for output shaping
+- parser semantics should not silently change just because output shaping changes
+- otherwise a harmless return-annotation refactor could change parse control flow

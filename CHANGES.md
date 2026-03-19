@@ -21659,3 +21659,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - rule-entry predicate blocking stays in place, but fact/scope mutation is now post-parse and capture-aware.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-19: Captured the critical semantic-steering model clarification around `ParseNode`, return shaping, and future predicate phases/views.
+  - Updated:
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - documented that `ParseNode` is the runtime parse tree node, not the compile-time return-annotation AST,
+    - documented that `ParseNode.content` may already be return-annotation-shaped when a rule/branch applies a return transform,
+    - recorded the current limitation:
+      - today `@predicate` does not inspect the current rule’s `ParseNode` at all,
+      - it only sees its own payload plus already-committed semantic runtime state,
+    - recorded the recommended robust long-term predicate model:
+      - explicit phases: `pre`, `branch`, `post`,
+      - explicit content views: `raw`, `shaped`,
+      - semantic defaults should use `raw`, with `shaped` only as opt-in.
+  - Important guidance:
+    - do not let parsing semantics silently depend on return-annotation presentation shaping by default,
+    - if predicates eventually inspect current-rule content, raw parse content should be the default semantic view.
+  - Live-status effect:
+    - no live-status row changed

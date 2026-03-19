@@ -3192,3 +3192,19 @@ Why `rtl_frontend` exists:
   - still intentionally deferred:
     - semantic effect resolution is only wired in generated parsers, not yet used by a live HDL grammar slice
     - inner branch steering / memoization-awareness remain future work
+- 2026-03-19: Clarified the long-term predicate model so future semantic steering does not accidentally depend on return-shaping details.
+  - `ParseNode` is the runtime parse node, not the compile-time return-shaping AST (`UnifiedReturnAST`)
+  - generated rule code may already apply return transforms before building `ParseNode`, so `ParseNode.content` can be return-annotation-shaped when shaping is present
+  - current rule-entry `@predicate` still does not inspect current-rule `ParseNode` content; it only sees predicate payload plus already-committed semantic runtime state
+  - roadmap design constraint for future predicate expansion:
+    - predicate phase must be explicit:
+      - `pre`
+      - `branch`
+      - `post`
+    - predicate content view must be explicit:
+      - `raw`
+      - `shaped`
+  - roadmap consequence:
+    - semantic steering should default to `raw` parse content rather than shaped content
+    - `shaped` content can be useful later, but only as explicit opt-in
+    - this protects parser-control behavior from silently changing when return annotations are refactored for output presentation only

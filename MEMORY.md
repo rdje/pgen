@@ -5363,3 +5363,17 @@ Use this file to resume work without replaying full chat history.
     - generated helpers now resolve `SemanticRuntimeValue::RuleReference` and structured attribute references against parse content before applying runtime effects
   - Important continuity note:
     - this is the first point where capture-based semantic runtime facts become meaningfully usable for future HDL pilots
+- 2026-03-19: Preserved the crucial semantic-steering design clarification about `ParseNode` versus return-shaping and the future predicate model.
+  - Key continuity points:
+    - `ParseNode` is the runtime parse node, not the compile-time `UnifiedReturnAST`
+    - `ParseNode.content` may already be return-annotation-shaped when return transforms are present
+    - today `@predicate` still does not inspect current-rule `ParseNode` content at all
+  - Recommended long-term model now recorded:
+    - predicate phases should be explicit:
+      - `pre`
+      - `branch`
+      - `post`
+    - predicate content views should be explicit:
+      - `raw`
+      - `shaped`
+    - semantic defaults should use `raw`, with `shaped` only as opt-in
