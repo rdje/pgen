@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-20 - Resolve `post` predicate arguments against current parse content
+### Context
+After letting `post` predicates see same-rule facts/scopes, there was still one important limitation left: those predicates could only query with static annotation literals. In other words, semantic facts were visible, but `has_fact(..., $1)` still was not meaningful because predicate args were not being resolved against the current rule’s parse content.
+
+### Implementation
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - added generated helper `resolve_semantic_predicate_spec_against_content(...)`
+  - `post` predicate execution now:
+    - selects `raw` or `shaped` content according to the predicate view,
+    - resolves `UnifiedSemanticValue` args against that content,
+    - then evaluates the resolved predicate against transactional semantic state
+  - the focused generated-parser proof now uses:
+    - `emit_fact` with `$1`
+    - `post` `has_fact(..., $1)`
+    - assertions for parse-content-aware predicate resolution in emitted code
+
+### Why This Matters
+- `post` predicates can now do real content-driven semantic-fact queries instead of only static-literal checks.
+- This is the first slice where semantic facts become genuinely queryable through current-rule captures.
+- It directly reduces the gap between the semantic-runtime scaffold and a live ambiguity-steering pilot.
+
+### Remaining Gap
+- This resolution path exists only for `post` predicates right now.
+- `pre` predicates still cannot resolve current-rule content by definition.
+- `branch` predicates are still not consumed, so the first live ambiguity-steering pilot is still ahead.
+
 ## 2026-03-20 - Let generated `post` predicates see same-rule semantic facts
 ### Context
 The previous slice made `post/raw` predicates truthful across memo hits, but there was still one practical gap in semantic-fact support: `post` predicates were evaluating before the current rule’s transactional semantic effects were applied. That meant `has_fact(...)` and scope predicates could only inspect previously committed state, not the facts/scopes the just-succeeded rule was about to emit.

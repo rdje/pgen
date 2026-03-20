@@ -678,20 +678,37 @@ impl AstBasedGenerator {
                             .semantic_runtime_annotations
                             .post_predicates_for_rule(rule_name)
                         {
-                            match semantic_runtime_transaction
-                                .state()
-                                .evaluate_post_directive_predicate(
-                                    directive,
-                                    semantic_raw_content,
-                                    &node.content,
-                                )
-                            {
-                                Some(true) => {}
-                                Some(false) => {
-                                    post_predicate_blocked = true;
-                                    break;
+                            match directive {
+                                crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec)
+                                    if spec.phase
+                                        == crate::ast_pipeline::SemanticPredicatePhase::Post =>
+                                {
+                                    let resolved_spec = self
+                                        .resolve_semantic_predicate_spec_against_content(
+                                            spec,
+                                            semantic_raw_content,
+                                            &node.content,
+                                        )?;
+                                    match semantic_runtime_transaction
+                                        .state()
+                                        .evaluate_content_aware_predicate(
+                                            &resolved_spec,
+                                            semantic_raw_content,
+                                            &node.content,
+                                        )
+                                    {
+                                        Some(true) => {}
+                                        Some(false) => {
+                                            post_predicate_blocked = true;
+                                            break;
+                                        }
+                                        None => {}
+                                    }
                                 }
-                                None => {}
+                                crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(_)
+                                | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_) => {}
                             }
                         }
                         if post_predicate_blocked {
@@ -838,6 +855,32 @@ impl AstBasedGenerator {
                     });
                 }
                 Ok(resolved)
+            }
+
+            fn resolve_semantic_predicate_spec_against_content(
+                &self,
+                spec: &crate::ast_pipeline::SemanticPredicateSpec,
+                raw_content: &ParseContent<'input>,
+                shaped_content: &ParseContent<'input>,
+            ) -> ParseResult<crate::ast_pipeline::SemanticPredicateSpec> {
+                let selected_content = match spec.view {
+                    crate::ast_pipeline::SemanticPredicateContentView::Raw => raw_content,
+                    crate::ast_pipeline::SemanticPredicateContentView::Shaped => shaped_content,
+                };
+
+                let mut resolved_args = Vec::with_capacity(spec.args.len());
+                for arg in &spec.args {
+                    resolved_args.push(
+                        self.resolve_unified_semantic_value_against_content(arg, selected_content)?,
+                    );
+                }
+
+                Ok(crate::ast_pipeline::SemanticPredicateSpec {
+                    name: spec.name.clone(),
+                    args: resolved_args,
+                    phase: spec.phase,
+                    view: spec.view,
+                })
             }
 
             fn resolve_unified_semantic_value_against_content(
@@ -4749,7 +4792,7 @@ mod semantic_usage_tests {
                 ),
                 structured_named_annotation(
                     "emit_fact",
-                    "{ kind: package_name, name: \"pkg\" }",
+                    "{ kind: package_name, name: $1 }",
                     UnifiedSemanticValue::Object(vec![
                         UnifiedSemanticProperty {
                             key: "kind".to_string(),
@@ -4757,7 +4800,7 @@ mod semantic_usage_tests {
                         },
                         UnifiedSemanticProperty {
                             key: "name".to_string(),
-                            value: UnifiedSemanticValue::String("pkg".to_string()),
+                            value: UnifiedSemanticValue::RuleReference("$1".to_string()),
                         },
                     ]),
                 ),
@@ -4779,7 +4822,7 @@ mod semantic_usage_tests {
                 ),
                 structured_named_annotation(
                     "predicate",
-                    "{ name: has_fact, args: [package_name, \"pkg\"], phase: post }",
+                    "{ name: has_fact, args: [package_name, $1], phase: post }",
                     UnifiedSemanticValue::Object(vec![
                         UnifiedSemanticProperty {
                             key: "name".to_string(),
@@ -4789,7 +4832,7 @@ mod semantic_usage_tests {
                             key: "args".to_string(),
                             value: UnifiedSemanticValue::Array(vec![
                                 UnifiedSemanticValue::Identifier("package_name".to_string()),
-                                UnifiedSemanticValue::String("pkg".to_string()),
+                                UnifiedSemanticValue::RuleReference("$1".to_string()),
                             ]),
                         },
                         UnifiedSemanticProperty {
@@ -4953,8 +4996,13 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("evaluate_post_directive_predicate"),
-            "generated parser should evaluate post predicates after parse success, got: {}",
+            rendered.contains("resolve_semantic_predicate_spec_against_content"),
+            "generated parser should resolve post-predicate args against parse content, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("evaluate_content_aware_predicate"),
+            "generated parser should evaluate resolved content-aware predicates after parse success, got: {}",
             rendered
         );
         assert!(
@@ -4973,10 +5021,10 @@ mod semantic_usage_tests {
             rendered
         );
         let effect_pos = rendered
-            .find("apply_semantic_runtime_effect_directive")
+            .find("apply_semantic_runtime_effect_directive(")
             .expect("generated parser should apply semantic runtime effects");
         let post_pos = rendered
-            .find("evaluate_post_directive_predicate")
+            .find("resolve_semantic_predicate_spec_against_content(")
             .expect("generated parser should evaluate post predicates");
         assert!(
             effect_pos < post_pos,

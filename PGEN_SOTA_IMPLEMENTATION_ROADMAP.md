@@ -159,8 +159,12 @@ Near-term rollout:
   - landed same-rule semantic-effect visibility for `post` predicates:
     - generated parser rule execution now applies semantic effect directives transactionally before `post` predicate evaluation
     - `post` predicates can now inspect the current rule’s just-emitted facts/scopes before commit
+  - landed current-parse-content argument resolution for `post` predicates:
+    - generated parser rule execution now resolves `post` predicate args against the selected `raw` / `shaped` content view before predicate evaluation
+    - `has_fact(..., $n)`-style `post` queries are now meaningful instead of static-only
   - current boundary remains explicit:
-    - fact-query predicate arguments are still static annotation payload values, not current parse-content references
+    - only `post` predicates currently get current-parse-content arg resolution
+    - `pre` predicate args remain static by construction
     - `branch` predicates are still typed but not executed yet
     - content-aware predicate steering is still limited to the rule-success seam
     - no live grammar ambiguity pilot consumes the new semantic predicate phases yet

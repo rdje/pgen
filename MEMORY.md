@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-20 (+0100, task: let-post-predicates-see-same-rule-effects)
+Last updated: 2026-03-20 (+0100, task: resolve-post-predicate-args-against-parse-content)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -180,15 +180,16 @@ Use this file to resume work without replaying full chat history.
   - `pre` predicates before rule parse
   - transactional semantic effects before `post` predicates
   - `post` predicates after successful rule parse
+  - current parse-content resolution for `post` predicate args against the selected `raw` / `shaped` view
   - optional raw semantic content retention in memoized rule entries so `post/raw` predicates stay correct on memo hits
 - Current boundary remains explicit:
-  - fact-query predicate arguments are still static annotation values, not current-rule capture references
+  - `post` predicate args can now resolve current-rule references such as `$1`
+  - `pre` predicate args are still static because no current rule content exists yet
   - `branch` predicates are typed but not executed yet
   - content-aware predicate steering is currently limited to the rule-success seam
   - the first live grammar ambiguity pilot still has not been landed
 - Next likely task:
-  - let predicate arguments resolve against current parse content for semantic-fact queries
-  - then land the first live grammar pilot that consumes explicit `raw` semantic predicates for real ambiguity steering
+  - land the first live grammar pilot that consumes explicit `raw` semantic predicates for real ambiguity steering
   - best current candidate:
     - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks
   - keep the first pilot narrow:

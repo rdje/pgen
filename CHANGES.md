@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-20 - Resolve post predicate args from parse content
+### ✅ Achievement Summary
+This slice lets generated `post` predicates resolve their argument payloads against the current rule’s parse content before evaluation. That means `has_fact(..., $1)`-style checks are now meaningful at rule-success time instead of being limited to static annotation literals.
+
+### Scope of Changes
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - added generated `resolve_semantic_predicate_spec_against_content(...)`
+  - generated `post` predicate execution now resolves predicate args against the selected `raw` or `shaped` content view before calling runtime predicate evaluation
+  - strengthened the semantic-runtime usage proof so generated code now includes:
+    - `emit_fact` with `$1`
+    - `post` `has_fact(..., $1)`
+    - assertions for parse-content-aware predicate resolution
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::ast_based_generator::semantic_usage_tests::generated_parser_embeds_semantic_runtime_entrypoint_for_runtime_directives -- --exact --nocapture`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `git diff --check -- rust/src/ast_pipeline/ast_based_generator.rs`
+
+### Important Boundary
+- This improves semantic-fact querying for `post` predicates only.
+- Remaining limits:
+  - `pre` predicate args are still static because there is no current rule content yet
+  - `branch` predicates are still typed but not executed
+
 ## 2026-03-20 - Let post predicates see same-rule effects
 ### ✅ Achievement Summary
 This follow-up semantic-runtime slice lets generated `post` predicates see the current rule’s just-emitted facts and scope changes. Generated parsers now apply semantic effect directives transactionally before evaluating `post` predicates, so a failing `post` predicate still rolls everything back, but a passing one can validate against the rule’s own semantic facts instead of only previously committed state.
