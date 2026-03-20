@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -3308,3 +3308,26 @@ Why `rtl_frontend` exists:
   - still intentionally deferred:
     - semantic-context-aware memoization keys
     - broader declaration-vs-statement rollout beyond the block-local pilot
+- 2026-03-20: Expanded that first live SystemVerilog semantic-fact pilot from typedef aliases to real class declaration heads.
+  - grammar slice:
+    - `grammars/systemverilog.ebnf`
+  - pilot expansion:
+    - added `declared_class_identifier`
+    - `class_declaration_sv_2017`, `class_declaration_sv_2023`, and `interface_class_declaration` now emit `type_name` facts from successful declaration heads
+    - the existing fact-gated bare block-local class-type front door can now recognize earlier declared class names instead of only typedef-created ones
+  - focused reduced proof:
+    - package-local `class C; ... C value;` now passes in a function/block context
+    - nested `class Inner; ... Inner value;` now passes in a later method body
+    - unknown bare `C value;` still fails
+    - scoped `defs::C value;` still passes
+  - roadmap consequence:
+    - the current pilot has now proven two useful declaration families:
+      - typedef aliases
+      - class/interface-class declaration heads
+    - the next semantic-fact expansions should keep following the same discipline:
+      - annotate only declaration-head identifier roles that are unambiguous,
+      - keep global `data_type` tightening deferred,
+      - use real reduced ambiguity pressure before widening to additional declaration families
+  - still intentionally deferred:
+    - `covergroup` fact emission, because the current 2023 `covergroup` declaration surface is odd enough that the declaration-vs-reference role is not yet cleanly obvious in a “small safe” pilot step
+    - semantic-context-aware memoization keys

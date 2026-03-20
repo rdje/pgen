@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-20 - Broaden SV semantic type facts to class declarations
+### ✅ Achievement Summary
+The first live SystemVerilog semantic-fact pilot now extends beyond local `typedef` aliases. Real `class` and `interface class` declaration heads now emit `type_name` facts, so later bare block-local class-type declarations such as `C value;` can parse when `C` was declared earlier in surrounding SV scope, while unknown bare class names still reject.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `declared_class_identifier` with:
+    - `@emit_fact: { kind: type_name, name: $class_identifier }`
+    - `@predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }`
+  - `class_declaration_sv_2017`
+  - `class_declaration_sv_2023`
+  - `interface_class_declaration`
+  - now use `declared_class_identifier` at the declaration head, so successful class declarations record semantic type facts
+
+### Focused Validation
+- `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline`
+- `rust/target/debug/ast_pipeline /tmp/systemverilog_semantic_class_fact_pilot.json --generate-parser --eliminate-left-recursion --output /tmp/systemverilog_semantic_class_fact_pilot_parser.rs`
+- `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_semantic_class_fact_pilot_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_declared_class_block.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_unknown_class_block.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_nested_class_block.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_scoped_class_block.sv --profile 2017`
+
+### Important Boundary
+- This slice broadens the existing block-local pilot through real class declaration sites only.
+- `covergroup` fact emission is intentionally deferred for now:
+  - the current 2023 `covergroup ... extends ...` grammar alternative is odd enough that it is better to leave that family untouched than risk annotating the wrong identifier role in a “small safe” pilot increment.
+
 ## 2026-03-20 - Split semantic usage generator contract tests
 ### ✅ Achievement Summary
 The oversized `semantic_usage_tests` generator contract surface in [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs) is now split into smaller, focused tests with cached minimal parser fixtures. This keeps the generator-contract coverage, but makes failures local and much easier to diagnose.

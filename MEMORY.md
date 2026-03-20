@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-20 (+0100, task: resolve-post-predicate-args-against-parse-content)
+Last updated: 2026-03-20 (+0100, task: broaden-sv-semantic-class-facts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -5465,6 +5465,24 @@ Use this file to resume work without replaying full chat history.
   - Boundary:
     - this is intentionally a narrow block-local pilot, not a global `data_type` tightening pass
     - broader SystemVerilog semantic steering should expand from this seam only where real ambiguity pressure warrants it
+- 2026-03-20: Expanded the live SystemVerilog semantic-fact pilot from typedef-only names to real class declaration heads.
+  - Active code slice:
+    - `grammars/systemverilog.ebnf`
+  - What changed:
+    - added `declared_class_identifier`
+    - `class_declaration_sv_2017`, `class_declaration_sv_2023`, and `interface_class_declaration` now emit `type_name` facts through that wrapper
+    - this means the existing fact-gated bare block-local class-type front door can now recognize real class names declared earlier in surrounding SV scope
+  - Refreshed reduced proofs:
+    - package-local `class C; ... function void f(); C value; ...` now passes
+    - nested `class Inner; ... function void f(); Inner value; ...` now passes
+    - unknown bare `C value;` still fails
+    - scoped `defs::C value;` still passes
+  - Important continuity note:
+    - this was the right next slice because `block_item_declaration` does not currently admit raw `class_declaration` / `covergroup_declaration` forms
+    - so broadening the pilot meant teaching real declaration heads to emit facts, not widening block syntax
+  - Boundary:
+    - `covergroup` fact emission is still intentionally deferred
+    - the current odd 2023 `covergroup ... extends ...` grammar alternative is the reason to keep that family out of this “small safe” increment
 - 2026-03-20: Split the oversized `semantic_usage_tests` semantic-runtime contract surface into focused cached fixtures and smaller assertions.
   - Active code slice:
     - `rust/src/ast_pipeline/ast_based_generator.rs`

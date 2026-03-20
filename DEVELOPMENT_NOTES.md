@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-20 - Extended the first SV semantic-fact pilot to real class declarations
+### Context
+The first live SystemVerilog semantic-fact pilot proved the block/function-body declaration front door with local `typedef` aliases, but it was still too narrow to help with ordinary class names. The existing fact-gated block-local class-type helpers were already present, yet only typedef aliases were actually populating the `type_name` fact table.
+
+One tempting next move would have been to widen block syntax itself to admit local `class_declaration` / `covergroup_declaration` forms, but the grammar does not currently put those under `block_item_declaration`. That made the right next step much clearer:
+- do not widen block syntax yet,
+- instead make real class declaration heads emit semantic type facts,
+- so the existing block-local class-type gate can recognize declared names that appear earlier in surrounding SV scope.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `declared_class_identifier`
+  - `declared_class_identifier` now:
+    - emits `type_name` facts from successful class declaration heads
+    - post-validates that the just-declared class name is visible in semantic state
+  - rewired the declaration-head identifier in:
+    - `class_declaration_sv_2017`
+    - `class_declaration_sv_2023`
+    - `interface_class_declaration`
+  - closing labels such as `endclass : C` remain plain `class_identifier` references, so this slice only annotates the declaration role itself
+
+### Why This Matters
+- This is the first real expansion of the HDL semantic-fact pilot beyond typedef-only names.
+- It proves the existing block-local declaration front door was already a useful seam:
+  - once real class declarations emit facts,
+  - later bare block-local `C value;` declarations can parse without broadening global `data_type` handling.
+- The strongest reduced proof here is the nested case:
+  - a class declared inside another class,
+  - then used bare inside a later method body,
+  - now parses,
+  - which shows the semantic-runtime state is flowing through real sibling parsing, not just top-level declaration order.
+
+### Remaining Gap
+- `covergroup` fact emission is still intentionally deferred.
+- The grammar already has fact-gated block-local covergroup helper rules, but the current 2023 `covergroup` declaration surface is odd enough that it is better to leave that family untouched in this slice than to risk stamping facts onto a reference position.
+- The next safe semantic-fact expansion should continue following the same rule:
+  - only annotate declaration heads whose identifier role is unambiguous,
+  - keep broad global type tightening deferred until more live corpus pressure justifies it.
+
 ## 2026-03-20 - Broke up the oversized semantic usage generator contract tests
 ### Context
 The earlier `semantic_usage_tests` coverage for semantic runtime and branch predicates had become too coarse. Even after splitting assertions conceptually, one maximal generated-parser fixture was still enabling nearly every semantic path at once, which made the runtime contract surface slow, noisy, and harder to debug than it needed to be.
