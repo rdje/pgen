@@ -5446,3 +5446,22 @@ Use this file to resume work without replaying full chat history.
     - diff vs `HEAD` showed only rustfmt-style wrapping/reordering,
     - no functional behavior was hiding in that leftover dirty set,
     - so they are safe to commit separately as one formatting-only cleanup.
+- 2026-03-20: Landed the first live SystemVerilog semantic-fact pilot at the block/function-body declaration front door.
+  - Active code slice:
+    - `grammars/systemverilog.ebnf`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - local typedef alias declarations now emit `type_name` facts through `declared_type_identifier`
+    - `block_item_declaration` now routes declaration-shaped entries through `block_data_declaration`
+    - bare unscoped block-local type/class/covergroup forms are accepted only through fact-gated helper rules, while explicit scoped/package-qualified forms remain available without the local fact gate
+  - Important continuity note:
+    - the pilot required a real generator fix, not just a grammar tweak:
+      - parent semantic-runtime effects must refresh from child-committed state before they run
+      - otherwise earlier `typedef` facts are lost to later sibling declarations in the same block
+    - refreshed reduced proofs now show:
+      - `typedef int T; T x;` passes
+      - unknown bare `T x;` fails
+      - `pkg::T x;` still passes
+  - Boundary:
+    - this is intentionally a narrow block-local pilot, not a global `data_type` tightening pass
+    - broader SystemVerilog semantic steering should expand from this seam only where real ambiguity pressure warrants it

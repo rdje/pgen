@@ -234,7 +234,15 @@ block_event_expression := block_event_expression kw_or_1758356d block_event_expr
 
 block_identifier := declaration_identifier
 
-block_item_declaration := attribute_instance* data_declaration | attribute_instance* local_parameter_declaration semi | attribute_instance* parameter_declaration semi | attribute_instance* let_declaration
+block_item_declaration := attribute_instance* block_data_declaration | attribute_instance* local_parameter_declaration semi | attribute_instance* parameter_declaration semi | attribute_instance* let_declaration
+
+@profiles: ["sv_2017"]
+block_data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | net_type_declaration
+
+@profiles: ["sv_2023"]
+block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | nettype_declaration
+
+block_data_declaration := block_data_declaration_sv_2017 | block_data_declaration_sv_2023
 
 @profiles: ["sv_2017"]
 blocking_assignment_sv_2017 := variable_lvalue assign delay_or_event_control expression | nonrange_variable_lvalue assign dynamic_array_new | ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_variable_identifier select assign class_new | operator_assignment
@@ -597,6 +605,25 @@ data_declaration := data_declaration_sv_2017 | data_declaration_sv_2023
 data_event := timing_check_event
 
 data_source_expression := expression
+
+@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
+known_unscoped_block_type_identifier := type_identifier packed_dimension*
+
+scoped_block_type_identifier := ( class_scope | package_scope ) type_identifier packed_dimension*
+
+@predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
+known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+
+scoped_block_class_type := package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+
+@predicate: { name: has_fact, args: [type_name, $covergroup_identifier], phase: post }
+known_unscoped_block_covergroup_identifier := covergroup_identifier
+
+scoped_block_covergroup_identifier := package_scope covergroup_identifier
+
+block_data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_block_type_identifier | known_unscoped_block_type_identifier | scoped_block_class_type | known_unscoped_block_class_type | kw_event_5006ed02 | scoped_block_covergroup_identifier | known_unscoped_block_covergroup_identifier | type_reference
+
+block_data_type_or_implicit := block_data_type | implicit_data_type
 
 data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | ( class_scope | package_scope )? type_identifier packed_dimension* | class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
 
@@ -2053,11 +2080,15 @@ type_assignment_sv_2023 := !kw_type_d0a3e7f8 type_identifier ( assign data_type_
 
 type_assignment := type_assignment_sv_2017 | type_assignment_sv_2023
 
+@emit_fact: { kind: type_name, name: $type_identifier }
+@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
+declared_type_identifier := type_identifier
+
 @profiles: ["sv_2017"]
-type_declaration_sv_2017 := kw_typedef_6dc2082b data_type type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_instance_identifier constant_bit_select dot type_identifier type_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 | kw_class_8d767bf5 | kw_interface_5ea2d81a kw_class_8d767bf5 )? type_identifier semi
+type_declaration_sv_2017 := kw_typedef_6dc2082b data_type declared_type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_instance_identifier constant_bit_select dot type_identifier declared_type_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 | kw_class_8d767bf5 | kw_interface_5ea2d81a kw_class_8d767bf5 )? declared_type_identifier semi
 
 @profiles: ["sv_2023"]
-type_declaration_sv_2023 := kw_typedef_6dc2082b data_type_or_incomplete_class_scoped_type type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_port_identifier constant_bit_select dot type_identifier type_identifier semi | kw_typedef_6dc2082b ( forward_type )? type_identifier semi
+type_declaration_sv_2023 := kw_typedef_6dc2082b data_type_or_incomplete_class_scoped_type declared_type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_port_identifier constant_bit_select dot type_identifier declared_type_identifier semi | kw_typedef_6dc2082b ( forward_type )? declared_type_identifier semi
 
 type_declaration := type_declaration_sv_2017 | type_declaration_sv_2023
 

@@ -635,16 +635,15 @@ impl AstBasedGenerator {
             where
                 F: FnOnce(&mut Self) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
             {
-                let mut semantic_runtime_state =
+                let original_semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
-                self.semantic_runtime_state = semantic_runtime_state.clone();
+                self.semantic_runtime_state = original_semantic_runtime_state.clone();
                 let result = {
-                    let mut semantic_runtime_transaction = semantic_runtime_state.transaction();
                     let mut predicate_blocked = false;
                     for directive in self.semantic_runtime_annotations.pre_predicates_for_rule(rule_name)
                     {
-                        match semantic_runtime_transaction
-                            .state()
+                        match self
+                            .semantic_runtime_state
                             .evaluate_directive_predicate(directive)
                         {
                             Some(true) => {}
@@ -664,6 +663,9 @@ impl AstBasedGenerator {
                         let (node, semantic_raw_content) = f(self)?;
                         let semantic_raw_content =
                             semantic_raw_content.as_ref().unwrap_or(&node.content);
+                        let mut semantic_runtime_state =
+                            std::mem::take(&mut self.semantic_runtime_state);
+                        let mut semantic_runtime_transaction = semantic_runtime_state.transaction();
                         for directive in self
                             .semantic_runtime_annotations
                             .effect_directives_for_rule(rule_name)
@@ -717,17 +719,20 @@ impl AstBasedGenerator {
                                 position: node.span.start,
                             })
                         } else {
-                        let _ = semantic_runtime_transaction.commit();
-                        Ok(node)
+                            let _ = semantic_runtime_transaction.commit();
+                            self.semantic_runtime_state = semantic_runtime_state;
+                            Ok(node)
                         }
                     }
                 };
-                self.semantic_runtime_state = semantic_runtime_state;
+                if result.is_err() {
+                    self.semantic_runtime_state = original_semantic_runtime_state;
+                }
                 result
             }
 
             fn apply_semantic_runtime_effect_directive(
-                &mut self,
+                &self,
                 transaction: &mut crate::ast_pipeline::SemanticRuntimeTransaction<'_>,
                 directive: &crate::ast_pipeline::SemanticRuntimeDirective,
                 root_content: &ParseContent<'input>,
@@ -5100,6 +5105,11 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
+            rendered.contains("let original_semantic_runtime_state"),
+            "generated parser helper should preserve the original semantic runtime snapshot for rollback, got: {}",
+            rendered
+        );
+        assert!(
             rendered
                 .matches("with_semantic_runtime_rule_transaction")
                 .count()
@@ -5185,6 +5195,19 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("apply_semantic_runtime_effect_directive"),
             "generated parser should apply semantic runtime effects after parse success, got: {}",
+            rendered
+        );
+        assert!(
+            rendered
+                .matches("std::mem::take(&mut self.semantic_runtime_state)")
+                .count()
+                >= 2,
+            "generated parser should refresh semantic runtime state from child-rule commits before applying parent effects, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("if result.is_err()"),
+            "generated parser should restore the original semantic runtime snapshot when the parent rule fails, got: {}",
             rendered
         );
         assert!(

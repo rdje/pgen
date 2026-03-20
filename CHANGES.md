@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-20 - Pilot SystemVerilog block-local semantic type facts
+### ✅ Achievement Summary
+This lands the first live HDL semantic-fact pilot in the checked-in grammar. SystemVerilog block/function-body declarations now have a semantic-fact-aware front door: local `typedef` aliases emit `type_name` facts, later bare unscoped block-local type uses are accepted only when that fact exists, and scoped/package-qualified forms remain available without the local fact gate.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `block_item_declaration` now routes declaration-shaped block entries through a dedicated `block_data_declaration` front door instead of the global `data_declaration`
+  - added block-local type helpers:
+    - `known_unscoped_block_type_identifier`
+    - `known_unscoped_block_class_type`
+    - `known_unscoped_block_covergroup_identifier`
+    - plus explicit scoped counterparts that are not fact-gated
+  - added `declared_type_identifier` with:
+    - `@emit_fact: { kind: type_name, name: $type_identifier }`
+    - `@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }`
+  - `type_declaration_*` alias positions now use `declared_type_identifier`, so successful `typedef` aliases record semantic type facts
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - fixed `with_semantic_runtime_rule_transaction(...)` so child-rule semantic commits propagate upward before parent post-success semantic effects run
+  - parent failure now restores the original semantic-runtime snapshot instead of leaving partially refreshed state behind
+  - generated `apply_semantic_runtime_effect_directive(...)` now borrows `&self`, which avoids an internal generated-parser borrow conflict during effect application
+
+### Focused Validation
+- `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline`
+- `rust/target/debug/ast_pipeline /tmp/systemverilog_semantic_fact_pilot.json --generate-parser --eliminate-left-recursion --output /tmp/systemverilog_semantic_fact_pilot_parser.rs`
+- `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_semantic_fact_pilot_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_typedef_block.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_unknown_block_type.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_scoped_block_type.sv --profile 2017`
+
+### Important Boundary
+- This pilot is intentionally narrow:
+  - it targets block/function-body declaration fronts only
+  - it does not globally tighten all `data_type` usage yet
+  - it does not require scoped/package-qualified types to have been emitted locally as semantic facts
+- The real enabling bug fix in this slice is semantic-runtime state propagation across nested successful rule parses; without that, earlier `typedef` facts were not reliably visible to later sibling declarations in the same block.
+
 ## 2026-03-20 - Resolve post predicate args from parse content
 ### ✅ Achievement Summary
 This slice lets generated `post` predicates resolve their argument payloads against the current rule’s parse content before evaluation. That means `has_fact(..., $1)`-style checks are now meaningful at rule-success time instead of being limited to static annotation literals.

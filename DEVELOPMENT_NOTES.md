@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-20 - First live SystemVerilog semantic-fact pilot: block-local typedef gating
+### Context
+The semantic-runtime substrate was finally strong enough to stop being only infrastructure. The smallest real ambiguity pilot was the SystemVerilog block/function-body declaration front door: after a local `typedef`, a later bare `T x;` should parse as a declaration, while an unknown bare `T x;` should not quietly succeed just because the generic `data_type` front door is too permissive.
+
+One generator-runtime bug also surfaced while doing this for real: child-rule semantic commits were not being propagated upward correctly before parent rules applied their own post-success semantic effects. In practice that meant:
+- `typedef int T;` could succeed,
+- `pkg::T x;` could succeed,
+- but `typedef int T; T x;` could still fail because the parent parse path was refreshing semantic state from the wrong snapshot.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - introduced a dedicated `block_data_declaration` front door under `block_item_declaration`
+  - added block-local type helpers that distinguish:
+    - known unscoped bare type/class/covergroup names
+    - explicit scoped/package-qualified forms
+  - wired local typedef alias positions through `declared_type_identifier`
+  - `declared_type_identifier` now emits `type_name` facts and post-validates that the just-declared alias is present in semantic state
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - `with_semantic_runtime_rule_transaction(...)` now:
+    - saves the original semantic-runtime snapshot,
+    - parses children against a cloned live state on `self`,
+    - refreshes from the child-committed state before applying parent semantic effects,
+    - restores the original snapshot only on parent failure
+  - generated semantic effect application now uses `&self` to avoid an internal borrow conflict during generated-parser builds
+
+### Why This Matters
+- This is the first checked-in HDL grammar slice where semantic facts materially change parse behavior in a useful way.
+- It proves the architecture can do something concrete:
+  - capture a semantic fact from a successful declaration,
+  - use that fact to accept or reject a later ambiguous declaration-shaped construct,
+  - keep rollback/scoped state semantics intact while doing it.
+- It also validates an important practical design choice:
+  - we did not need a new built-in predicate for the first pilot,
+  - the existing `emit_fact + has_fact` model was enough once the runtime propagation bug was fixed.
+
+### Focused Reduced Proof
+- `typedef int T; T x;` now parses in a function/block context
+- unknown bare `T x;` now fails at that block-local declaration front door
+- scoped `pkg::T x;` still parses
+
+### Remaining Gap
+- This pilot is deliberately local to block/function-body declaration fronts.
+- It does not yet broaden semantic-fact steering across all SystemVerilog `data_type` sites.
+- The next expansion should stay similarly surgical:
+  - extend from typedef aliases to other declaration families only where the ambiguity pressure is real,
+  - avoid turning semantic facts into a global overconstraint before more live corpus pressure is collected.
+
 ## 2026-03-20 - Resolve `post` predicate arguments against current parse content
 ### Context
 After letting `post` predicates see same-rule facts/scopes, there was still one important limitation left: those predicates could only query with static annotation literals. In other words, semantic facts were visible, but `has_fact(..., $1)` still was not meaningful because predicate args were not being resolved against the current rule’s parse content.

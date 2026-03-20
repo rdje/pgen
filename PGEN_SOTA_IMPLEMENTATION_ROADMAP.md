@@ -3285,3 +3285,26 @@ Why `rtl_frontend` exists:
   - still intentionally deferred:
     - the first live grammar pilot itself
     - semantic-context-aware memoization keys
+- 2026-03-20: Landed the first live SystemVerilog semantic-fact pilot on block/function-body declaration fronts.
+  - grammar/runtime slice:
+    - `grammars/systemverilog.ebnf`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - pilot shape:
+    - successful local `typedef` alias declarations now emit `type_name` facts
+    - `block_item_declaration` now uses a dedicated `block_data_declaration` front door
+    - bare unscoped block-local type/class/covergroup starts are now fact-gated
+    - explicit scoped/package-qualified forms are still allowed without the local fact gate
+  - focused reduced proof:
+    - `typedef int T; T x;` passes
+    - unknown bare `T x;` fails
+    - `pkg::T x;` still passes
+  - important architecture result:
+    - the first live pilot exposed and fixed a real generated-parser semantic-runtime bug:
+      - parent rules were not reliably refreshing from child-committed semantic state before applying their own post-success semantic effects
+      - without that fix, earlier typedef facts were not visible to later sibling declarations in the same block
+  - roadmap consequence:
+    - semantic facts are no longer only infrastructure in PGEN; they now steer a real HDL ambiguity seam
+    - the next SystemVerilog semantic-steering steps should expand from this narrow block-local declaration front door rather than introducing a broader global type gate immediately
+  - still intentionally deferred:
+    - semantic-context-aware memoization keys
+    - broader declaration-vs-statement rollout beyond the block-local pilot
