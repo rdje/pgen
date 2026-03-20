@@ -4714,6 +4714,7 @@ mod semantic_usage_tests {
         UnifiedSemanticProperty, UnifiedSemanticValue,
     };
     use std::collections::HashMap;
+    use std::sync::OnceLock;
 
     fn regex_atom(pattern: &str) -> ASTNode {
         ASTNode::Atom {
@@ -4796,6 +4797,219 @@ mod semantic_usage_tests {
                 value,
             },
         }
+    }
+
+    fn pre_runtime_generator() -> AstBasedGenerator {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![structured_named_annotation(
+                "predicate",
+                "{ name: current_scope_is, args: [global] }",
+                UnifiedSemanticValue::Object(vec![
+                    UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "args".to_string(),
+                        value: UnifiedSemanticValue::Array(vec![
+                            UnifiedSemanticValue::Identifier("global".to_string()),
+                        ]),
+                    },
+                ]),
+            )],
+        );
+
+        AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        }
+    }
+
+    fn pre_runtime_rendered_parser() -> &'static str {
+        static RENDERED: OnceLock<String> = OnceLock::new();
+        RENDERED
+            .get_or_init(|| {
+                let generator = pre_runtime_generator();
+                let mut grammar_tree = HashMap::new();
+                grammar_tree.insert(
+                    "package_declaration".to_string(),
+                    token("quoted_string", "pkg"),
+                );
+                let rule_order = vec!["package_declaration".to_string()];
+                generator
+                    .generate_parser(&grammar_tree, &rule_order, "semantic_runtime_usage.rs")
+                    .expect("parser generation should succeed")
+            })
+            .as_str()
+    }
+
+    fn post_runtime_generator() -> AstBasedGenerator {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "package_declaration".to_string(),
+            vec![
+                structured_named_annotation(
+                    "emit_fact",
+                    "{ kind: package_name, name: $1 }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package_name".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::RuleReference("$1".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named_annotation(
+                    "predicate",
+                    "{ name: has_fact, args: [package_name, $1], phase: post }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("has_fact".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("package_name".to_string()),
+                                UnifiedSemanticValue::RuleReference("$1".to_string()),
+                            ]),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("post".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named_annotation(
+                    "predicate",
+                    "{ name: content_kind_is, args: [terminal], phase: post, view: raw }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("terminal".to_string()),
+                            ]),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("post".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                        },
+                    ]),
+                ),
+            ],
+        );
+
+        AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        }
+    }
+
+    fn post_runtime_rendered_parser() -> &'static str {
+        static RENDERED: OnceLock<String> = OnceLock::new();
+        RENDERED
+            .get_or_init(|| {
+                let generator = post_runtime_generator();
+                let mut grammar_tree = HashMap::new();
+                grammar_tree.insert(
+                    "package_declaration".to_string(),
+                    token("quoted_string", "pkg"),
+                );
+                let rule_order = vec!["package_declaration".to_string()];
+                generator
+                    .generate_parser(&grammar_tree, &rule_order, "semantic_runtime_post_usage.rs")
+                    .expect("parser generation should succeed")
+            })
+            .as_str()
+    }
+
+    fn branch_predicate_generator() -> AstBasedGenerator {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "statement_or_decl".to_string(),
+            vec![structured_named_annotation(
+                "predicate",
+                "{ name: content_kind_is, args: [sequence], phase: branch, view: raw }",
+                UnifiedSemanticValue::Object(vec![
+                    UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "args".to_string(),
+                        value: UnifiedSemanticValue::Array(vec![UnifiedSemanticValue::Identifier(
+                            "sequence".to_string(),
+                        )]),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "phase".to_string(),
+                        value: UnifiedSemanticValue::Identifier("branch".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "view".to_string(),
+                        value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                    },
+                ]),
+            )],
+        );
+
+        AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        }
+    }
+
+    fn branch_predicate_rendered_parser() -> &'static str {
+        static RENDERED: OnceLock<String> = OnceLock::new();
+        RENDERED
+            .get_or_init(|| {
+                let generator = branch_predicate_generator();
+                let mut grammar_tree = HashMap::new();
+                grammar_tree.insert(
+                    "statement_or_decl".to_string(),
+                    ASTNode::Or {
+                        alternatives: vec![
+                            ASTNode::Sequence {
+                                elements: vec![
+                                    token("quoted_string", "typedef"),
+                                    token("quoted_string", "pkg"),
+                                ],
+                            },
+                            token("quoted_string", "pkg"),
+                        ],
+                    },
+                );
+                let rule_order = vec!["statement_or_decl".to_string()];
+                generator
+                    .generate_parser(&grammar_tree, &rule_order, "semantic_branch_usage.rs")
+                    .expect("parser generation should succeed")
+            })
+            .as_str()
     }
 
     fn or_rule() -> ASTNode {
@@ -4953,122 +5167,8 @@ mod semantic_usage_tests {
     }
 
     #[test]
-    fn generated_parser_embeds_semantic_runtime_entrypoint_for_runtime_directives() {
-        let mut annotations = Annotations::default();
-        annotations.semantic_annotations.insert(
-            "package_declaration".to_string(),
-            vec![
-                structured_named_annotation(
-                    "open_scope",
-                    "{ kind: package, name: $1 }",
-                    UnifiedSemanticValue::Object(vec![
-                        UnifiedSemanticProperty {
-                            key: "kind".to_string(),
-                            value: UnifiedSemanticValue::Identifier("package".to_string()),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "name".to_string(),
-                            value: UnifiedSemanticValue::RuleReference("$1".to_string()),
-                        },
-                    ]),
-                ),
-                structured_named_annotation(
-                    "emit_fact",
-                    "{ kind: package_name, name: $1 }",
-                    UnifiedSemanticValue::Object(vec![
-                        UnifiedSemanticProperty {
-                            key: "kind".to_string(),
-                            value: UnifiedSemanticValue::Identifier("package_name".to_string()),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "name".to_string(),
-                            value: UnifiedSemanticValue::RuleReference("$1".to_string()),
-                        },
-                    ]),
-                ),
-                structured_named_annotation(
-                    "predicate",
-                    "{ name: current_scope_is, args: [global] }",
-                    UnifiedSemanticValue::Object(vec![
-                        UnifiedSemanticProperty {
-                            key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "args".to_string(),
-                            value: UnifiedSemanticValue::Array(vec![
-                                UnifiedSemanticValue::Identifier("global".to_string()),
-                            ]),
-                        },
-                    ]),
-                ),
-                structured_named_annotation(
-                    "predicate",
-                    "{ name: has_fact, args: [package_name, $1], phase: post }",
-                    UnifiedSemanticValue::Object(vec![
-                        UnifiedSemanticProperty {
-                            key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier("has_fact".to_string()),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "args".to_string(),
-                            value: UnifiedSemanticValue::Array(vec![
-                                UnifiedSemanticValue::Identifier("package_name".to_string()),
-                                UnifiedSemanticValue::RuleReference("$1".to_string()),
-                            ]),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "phase".to_string(),
-                            value: UnifiedSemanticValue::Identifier("post".to_string()),
-                        },
-                    ]),
-                ),
-                structured_named_annotation(
-                    "predicate",
-                    "{ name: content_kind_is, args: [terminal], phase: post, view: raw }",
-                    UnifiedSemanticValue::Object(vec![
-                        UnifiedSemanticProperty {
-                            key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "args".to_string(),
-                            value: UnifiedSemanticValue::Array(vec![
-                                UnifiedSemanticValue::Identifier("terminal".to_string()),
-                            ]),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "phase".to_string(),
-                            value: UnifiedSemanticValue::Identifier("post".to_string()),
-                        },
-                        UnifiedSemanticProperty {
-                            key: "view".to_string(),
-                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
-                        },
-                    ]),
-                ),
-            ],
-        );
-
-        let generator = AstBasedGenerator {
-            grammar_name: "usage_test".to_string(),
-            entry_rule: None,
-            logger: None,
-            annotations: Some(annotations),
-            branch_return_annotations: HashMap::new(),
-            enable_debug: false,
-        };
-
-        let mut grammar_tree = HashMap::new();
-        grammar_tree.insert(
-            "package_declaration".to_string(),
-            token("quoted_string", "pkg"),
-        );
-        let rule_order = vec!["package_declaration".to_string()];
-
-        let rendered = generator
-            .generate_parser(&grammar_tree, &rule_order, "semantic_runtime_usage.rs")
-            .expect("parser generation should succeed");
+    fn generated_parser_runtime_contract_owns_semantic_runtime_fields() {
+        let rendered = pre_runtime_rendered_parser();
 
         assert!(
             rendered.contains(
@@ -5083,6 +5183,29 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
+            rendered.contains(
+                "self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();"
+            ),
+            "parse() should reset semantic runtime state, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("memo: HashMap<(RuleId, usize), MemoEntry<'input>>"),
+            "generated parser should memoize rich entries instead of bare shaped nodes, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("CompiledSemanticRuntimeAnnotations::from_rule_directives"),
+            "generated parser constructor should embed compiled runtime annotations, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_runtime_contract_exposes_transaction_helpers() {
+        let rendered = pre_runtime_rendered_parser();
+
+        assert!(
             rendered.contains("pub fn semantic_runtime_transaction_for_rule"),
             "generated parser should expose a rule-transaction helper, got: {}",
             rendered
@@ -5093,23 +5216,6 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains(
-                "self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();"
-            ),
-            "parse() should reset semantic runtime state, got: {}",
-            rendered
-        );
-        assert!(
-            rendered.contains("std::mem::take("),
-            "generated parser helper should detach semantic runtime state before parsing, got: {}",
-            rendered
-        );
-        assert!(
-            rendered.contains("let original_semantic_runtime_state"),
-            "generated parser helper should preserve the original semantic runtime snapshot for rollback, got: {}",
-            rendered
-        );
-        assert!(
             rendered
                 .matches("with_semantic_runtime_rule_transaction")
                 .count()
@@ -5117,6 +5223,12 @@ mod semantic_usage_tests {
             "generated parser should both define and use the semantic runtime transaction wrapper, got: {}",
             rendered
         );
+    }
+
+    #[test]
+    fn generated_parser_runtime_contract_emits_pre_predicate_guard_flow() {
+        let rendered = pre_runtime_rendered_parser();
+
         assert!(
             rendered.contains("evaluate_directive_predicate"),
             "generated parser should consult semantic runtime predicates before parsing, got: {}",
@@ -5133,23 +5245,24 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("SemanticPredicateContentView::Raw"),
-            "generated parser should embed typed predicate content-view defaults, got: {}",
+            rendered.contains("pre_predicates_for_rule"),
+            "generated parser should use the explicit pre-predicate rule view, got: {}",
             rendered
         );
+    }
+
+    #[test]
+    fn generated_parser_runtime_contract_emits_post_predicate_content_flow() {
+        let rendered = post_runtime_rendered_parser();
+
         assert!(
             rendered.contains("SemanticPredicatePhase::Post"),
             "generated parser should embed typed post-predicate directives when present, got: {}",
             rendered
         );
         assert!(
-            rendered.contains("pre_predicates_for_rule"),
-            "generated parser should use the explicit pre-predicate rule view, got: {}",
-            rendered
-        );
-        assert!(
-            rendered.contains("effect_directives_for_rule"),
-            "generated parser should use the explicit effect-directive rule view, got: {}",
+            rendered.contains("SemanticPredicateContentView::Raw"),
+            "generated parser should embed typed predicate content-view defaults, got: {}",
             rendered
         );
         assert!(
@@ -5160,11 +5273,6 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("needs_raw_post_capture_for_rule"),
             "generated parser should query raw post-predicate capture needs, got: {}",
-            rendered
-        );
-        assert!(
-            rendered.contains("memo: HashMap<(RuleId, usize), MemoEntry<'input>>"),
-            "generated parser should memoize rich entries instead of bare shaped nodes, got: {}",
             rendered
         );
         assert!(
@@ -5192,22 +5300,20 @@ mod semantic_usage_tests {
             "generated parser should evaluate resolved content-aware predicates after parse success, got: {}",
             rendered
         );
+    }
+
+    #[test]
+    fn generated_parser_runtime_contract_orders_effects_before_post_predicates() {
+        let rendered = post_runtime_rendered_parser();
+
+        assert!(
+            rendered.contains("effect_directives_for_rule"),
+            "generated parser should use the explicit effect-directive rule view, got: {}",
+            rendered
+        );
         assert!(
             rendered.contains("apply_semantic_runtime_effect_directive"),
             "generated parser should apply semantic runtime effects after parse success, got: {}",
-            rendered
-        );
-        assert!(
-            rendered
-                .matches("std::mem::take(&mut self.semantic_runtime_state)")
-                .count()
-                >= 2,
-            "generated parser should refresh semantic runtime state from child-rule commits before applying parent effects, got: {}",
-            rendered
-        );
-        assert!(
-            rendered.contains("if result.is_err()"),
-            "generated parser should restore the original semantic runtime snapshot when the parent rule fails, got: {}",
             rendered
         );
         assert!(
@@ -5218,6 +5324,11 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("resolve_unified_semantic_value_against_content"),
             "generated parser should resolve structured semantic attribute values against parse content, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("coerce_semantic_runtime_scalar"),
+            "generated parser should coerce resolved capture text into semantic runtime scalar values, got: {}",
             rendered
         );
         let effect_pos = rendered
@@ -5231,78 +5342,40 @@ mod semantic_usage_tests {
             "generated parser should apply semantic effects before evaluating post predicates so post predicates can see same-rule facts/scopes, got: {}",
             rendered
         );
+    }
+
+    #[test]
+    fn generated_parser_runtime_contract_refreshes_child_state_and_rolls_back_parent_failure() {
+        let rendered = pre_runtime_rendered_parser();
+
         assert!(
-            rendered.contains("coerce_semantic_runtime_scalar"),
-            "generated parser should coerce resolved capture text into semantic runtime scalar values, got: {}",
+            rendered.contains("std::mem::take("),
+            "generated parser helper should detach semantic runtime state before parsing, got: {}",
             rendered
         );
         assert!(
-            rendered.contains("CompiledSemanticRuntimeAnnotations::from_rule_directives"),
-            "generated parser constructor should embed compiled runtime annotations, got: {}",
+            rendered.contains("let original_semantic_runtime_state"),
+            "generated parser helper should preserve the original semantic runtime snapshot for rollback, got: {}",
+            rendered
+        );
+        assert!(
+            rendered
+                .matches("std::mem::take(")
+                .count()
+                >= 2,
+            "generated parser should refresh semantic runtime state from child-rule commits before applying parent effects, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("if result.is_err()"),
+            "generated parser should restore the original semantic runtime snapshot when the parent rule fails, got: {}",
             rendered
         );
     }
 
     #[test]
-    fn generated_parser_embeds_branch_predicate_seam_for_multibranch_rules() {
-        let mut annotations = Annotations::default();
-        annotations.semantic_annotations.insert(
-            "statement_or_decl".to_string(),
-            vec![structured_named_annotation(
-                "predicate",
-                "{ name: content_kind_is, args: [sequence], phase: branch, view: raw }",
-                UnifiedSemanticValue::Object(vec![
-                    UnifiedSemanticProperty {
-                        key: "name".to_string(),
-                        value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
-                    },
-                    UnifiedSemanticProperty {
-                        key: "args".to_string(),
-                        value: UnifiedSemanticValue::Array(vec![UnifiedSemanticValue::Identifier(
-                            "sequence".to_string(),
-                        )]),
-                    },
-                    UnifiedSemanticProperty {
-                        key: "phase".to_string(),
-                        value: UnifiedSemanticValue::Identifier("branch".to_string()),
-                    },
-                    UnifiedSemanticProperty {
-                        key: "view".to_string(),
-                        value: UnifiedSemanticValue::Identifier("raw".to_string()),
-                    },
-                ]),
-            )],
-        );
-
-        let generator = AstBasedGenerator {
-            grammar_name: "usage_test".to_string(),
-            entry_rule: None,
-            logger: None,
-            annotations: Some(annotations),
-            branch_return_annotations: HashMap::new(),
-            enable_debug: false,
-        };
-
-        let mut grammar_tree = HashMap::new();
-        grammar_tree.insert(
-            "statement_or_decl".to_string(),
-            ASTNode::Or {
-                alternatives: vec![
-                    ASTNode::Sequence {
-                        elements: vec![
-                            token("quoted_string", "typedef"),
-                            token("quoted_string", "pkg"),
-                        ],
-                    },
-                    token("quoted_string", "pkg"),
-                ],
-            },
-        );
-        let rule_order = vec!["statement_or_decl".to_string()];
-
-        let rendered = generator
-            .generate_parser(&grammar_tree, &rule_order, "semantic_branch_usage.rs")
-            .expect("parser generation should succeed");
+    fn generated_parser_branch_contract_embeds_branch_phase_view_and_rule_lookup() {
+        let rendered = branch_predicate_rendered_parser();
 
         assert!(
             rendered.contains("SemanticPredicatePhase::Branch"),
@@ -5314,26 +5387,36 @@ mod semantic_usage_tests {
             "generated parser should consult the explicit branch-predicate rule view, got: {}",
             rendered
         );
+    }
+
+    #[test]
+    fn generated_parser_branch_contract_uses_nullable_candidate_capture_resolution() {
+        let rendered = branch_predicate_rendered_parser();
+
         assert!(
             rendered.contains("try_resolve_semantic_predicate_spec_against_content"),
             "generated parser should resolve branch-predicate args with nullable candidate-content support, got: {}",
             rendered
         );
         assert!(
-            rendered.contains("semantic_runtime_state")
-                && rendered.contains("evaluate_content_aware_predicate"),
-            "generated parser should evaluate branch predicates against the semantic-state snapshot, got: {}",
-            rendered
-        );
-        assert!(
-            rendered.contains("try_resolve_semantic_predicate_spec_against_content")
-                && rendered.contains("branch_predicate_blocked"),
+            rendered.contains("branch_predicate_blocked"),
             "generated parser should treat unresolved branch captures as branch rejection rather than fatal parse error, got: {}",
             rendered
         );
+    }
+
+    #[test]
+    fn generated_parser_branch_contract_reads_live_semantic_state_for_candidate_checks() {
+        let rendered = branch_predicate_rendered_parser();
+
         assert!(
-            rendered.contains("self.semantic_runtime_state = semantic_runtime_state.clone();"),
-            "generated parser should snapshot semantic runtime state for branch predicate evaluation, got: {}",
+            rendered.contains(".semantic_runtime_state"),
+            "generated parser should consult semantic runtime state during branch predicate evaluation, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("evaluate_content_aware_predicate"),
+            "generated parser should evaluate branch predicates against semantic state without routing through effect application, got: {}",
             rendered
         );
     }

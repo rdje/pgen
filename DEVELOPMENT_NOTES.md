@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-20 - Broke up the oversized semantic usage generator contract tests
+### Context
+The earlier `semantic_usage_tests` coverage for semantic runtime and branch predicates had become too coarse. Even after splitting assertions conceptually, one maximal generated-parser fixture was still enabling nearly every semantic path at once, which made the runtime contract surface slow, noisy, and harder to debug than it needed to be.
+
+### Implementation
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - replaced the old giant runtime contract test with focused tests grouped around:
+    - parser ownership/reset
+    - transaction helper exposure
+    - pre-predicate flow
+    - post-predicate content flow
+    - effect-before-post ordering
+    - semantic-runtime refresh/rollback
+  - replaced the old giant branch contract test with focused tests grouped around:
+    - branch phase/view embedding
+    - nullable branch capture resolution
+    - live semantic-state reads during branch checks
+  - split the old single heavy runtime fixture into smaller cached rendered-parser helpers:
+    - pre-only runtime fixture
+    - post/effect runtime fixture
+    - branch fixture
+  - each fixture now uses `OnceLock<String>` so repeated assertions reuse the same emitted parser text
+
+### Why This Matters
+- This keeps the generator-contract proof surface, but makes it much more practical.
+- When one contract regresses now, we learn exactly which seam moved:
+  - pre guards
+  - post capture flow
+  - effect ordering
+  - branch candidate rejection
+  - named semantic reference support
+- It also answers the earlier concern directly:
+  - yes, those large tests were breakable,
+  - but the fix needed both smaller assertions and smaller fixtures.
+
+### Result
+- `generated_parser_runtime_contract_` now passes as a focused `6`-test group
+- `generated_parser_branch_contract_` now passes as a focused `3`-test group
+- named semantic-reference regression coverage remains intact
+
 ## 2026-03-20 - First live SystemVerilog semantic-fact pilot: block-local typedef gating
 ### Context
 The semantic-runtime substrate was finally strong enough to stop being only infrastructure. The smallest real ambiguity pilot was the SystemVerilog block/function-body declaration front door: after a local `typedef`, a later bare `T x;` should parse as a declaration, while an unknown bare `T x;` should not quietly succeed just because the generic `data_type` front door is too permissive.

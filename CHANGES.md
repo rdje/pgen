@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-20 - Split semantic usage generator contract tests
+### ✅ Achievement Summary
+The oversized `semantic_usage_tests` generator contract surface in [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs) is now split into smaller, focused tests with cached minimal parser fixtures. This keeps the generator-contract coverage, but makes failures local and much easier to diagnose.
+
+### Scope of Changes
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - replaced the old monolithic semantic-runtime string-contract test with focused runtime tests for:
+    - ownership/reset
+    - helper exposure
+    - pre-predicate flow
+    - post-predicate content flow
+    - effect ordering
+    - child-state refresh/rollback
+  - replaced the old monolithic branch-predicate contract test with focused branch tests for:
+    - phase/view embedding
+    - nullable candidate capture resolution
+    - live semantic-state reads during candidate checks
+  - split the old maximal fixture into:
+    - a minimal pre-only runtime fixture
+    - a lighter post/effect fixture
+    - the existing branch fixture
+  - cached each rendered parser with `OnceLock<String>` so repeated assertions do not regenerate the same parser text
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib generated_parser_runtime_contract_ -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib generated_parser_branch_contract_ -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib semantic_usage_codegen_supports_named_dollar_semantic_references -- --nocapture`
+
+### Important Boundary
+- This is a validation-surface refactor only; generator/runtime behavior is unchanged.
+- The key value is proof-shape quality:
+  - smaller fixtures
+  - smaller assertions
+  - better failure localization
+  - less dependence on one giant emitted parser string as a primary gate
+
 ## 2026-03-20 - Pilot SystemVerilog block-local semantic type facts
 ### ✅ Achievement Summary
 This lands the first live HDL semantic-fact pilot in the checked-in grammar. SystemVerilog block/function-body declarations now have a semantic-fact-aware front door: local `typedef` aliases emit `type_name` facts, later bare unscoped block-local type uses are accepted only when that fact exists, and scoped/package-qualified forms remain available without the local fact gate.

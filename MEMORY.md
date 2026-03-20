@@ -5465,3 +5465,25 @@ Use this file to resume work without replaying full chat history.
   - Boundary:
     - this is intentionally a narrow block-local pilot, not a global `data_type` tightening pass
     - broader SystemVerilog semantic steering should expand from this seam only where real ambiguity pressure warrants it
+- 2026-03-20: Split the oversized `semantic_usage_tests` semantic-runtime contract surface into focused cached fixtures and smaller assertions.
+  - Active code slice:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - the old runtime generator-contract smoke surface was broken into focused tests for:
+      - ownership/reset
+      - helper exposure
+      - pre flow
+      - post flow
+      - effect ordering
+      - refresh/rollback
+    - the old branch contract test was broken into focused tests for:
+      - branch phase/view embedding
+      - nullable capture resolution
+      - semantic-state reads during candidate checks
+    - maximal fixtures were replaced by smaller cached rendered-parser fixtures using `OnceLock<String>`
+  - Important continuity note:
+    - the test split needed fixture splitting too; smaller assertions alone were not enough
+    - the resulting focused gates are now:
+      - `generated_parser_runtime_contract_` -> `6` passing tests
+      - `generated_parser_branch_contract_` -> `3` passing tests
+      - named semantic reference regression still passes
