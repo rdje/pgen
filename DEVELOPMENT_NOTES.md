@@ -21838,3 +21838,18 @@ Why this matters:
 - semantic facts and predicates are much easier to author against named captures than against brittle positional numbering
 - this aligns generated-parser runtime behavior with the surface contract already documented in `semantic_annotation.ebnf`
 - it is also the clean blocker-clearing step before a live HDL semantic-fact pilot, because rules like `$type_identifier` and `$package_identifier` are now expressible directly
+
+2026-03-20 branch-capture rejection fix:
+- branch predicates now use a nullable capture-resolution path that is separate from the strict post/effect path
+- if a branch predicate references a capture that is absent on the current candidate branch, generated parsers now treat that as:
+  - candidate rejection
+  - not fatal parse failure
+
+Why this matters:
+- mixed-alternative rules are the normal case for declaration-vs-statement ambiguities
+- semantic predicates like `has_fact(type_name, $type_identifier)` must be able to reject non-type branches cleanly
+- without this behavior, live grammar pilots would still need awkward positional or structure-homogeneous workarounds
+
+Current boundary:
+- this nullable behavior is intentionally limited to branch-local predicate resolution
+- post predicates and semantic effect emission still use the strict resolver so successful-rule captures remain audited and fail loudly when annotation references are genuinely invalid

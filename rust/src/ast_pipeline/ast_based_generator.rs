@@ -884,6 +884,38 @@ impl AstBasedGenerator {
                 })
             }
 
+            fn try_resolve_semantic_predicate_spec_against_content(
+                &self,
+                spec: &crate::ast_pipeline::SemanticPredicateSpec,
+                raw_content: &ParseContent<'input>,
+                shaped_content: &ParseContent<'input>,
+            ) -> ParseResult<Option<crate::ast_pipeline::SemanticPredicateSpec>> {
+                let selected_content = match spec.view {
+                    crate::ast_pipeline::SemanticPredicateContentView::Raw => raw_content,
+                    crate::ast_pipeline::SemanticPredicateContentView::Shaped => shaped_content,
+                };
+
+                let mut resolved_args = Vec::with_capacity(spec.args.len());
+                for arg in &spec.args {
+                    let Some(resolved_arg) =
+                        self.try_resolve_unified_semantic_value_against_content(
+                            arg,
+                            selected_content,
+                        )?
+                    else {
+                        return Ok(None);
+                    };
+                    resolved_args.push(resolved_arg);
+                }
+
+                Ok(Some(crate::ast_pipeline::SemanticPredicateSpec {
+                    name: spec.name.clone(),
+                    args: resolved_args,
+                    phase: spec.phase,
+                    view: spec.view,
+                }))
+            }
+
             fn resolve_unified_semantic_value_against_content(
                 &self,
                 value: &crate::ast_pipeline::UnifiedSemanticValue,
@@ -934,6 +966,67 @@ impl AstBasedGenerator {
                             )?,
                         ),
                     ),
+                }
+            }
+
+            fn try_resolve_unified_semantic_value_against_content(
+                &self,
+                value: &crate::ast_pipeline::UnifiedSemanticValue,
+                root_content: &ParseContent<'input>,
+            ) -> ParseResult<Option<crate::ast_pipeline::UnifiedSemanticValue>> {
+                match value {
+                    crate::ast_pipeline::UnifiedSemanticValue::RuleReference(reference) => Ok(
+                        self.resolve_semantic_reference(root_content, reference)
+                            .map(|resolved| self.coerce_unified_semantic_scalar(&resolved)),
+                    ),
+                    crate::ast_pipeline::UnifiedSemanticValue::String(text) => Ok(Some(
+                        crate::ast_pipeline::UnifiedSemanticValue::String(text.clone()),
+                    )),
+                    crate::ast_pipeline::UnifiedSemanticValue::Identifier(text) => Ok(Some(
+                        crate::ast_pipeline::UnifiedSemanticValue::Identifier(text.clone()),
+                    )),
+                    crate::ast_pipeline::UnifiedSemanticValue::Number(text) => Ok(Some(
+                        crate::ast_pipeline::UnifiedSemanticValue::Number(text.clone()),
+                    )),
+                    crate::ast_pipeline::UnifiedSemanticValue::Boolean(value) => Ok(Some(
+                        crate::ast_pipeline::UnifiedSemanticValue::Boolean(*value),
+                    )),
+                    crate::ast_pipeline::UnifiedSemanticValue::Null => {
+                        Ok(Some(crate::ast_pipeline::UnifiedSemanticValue::Null))
+                    }
+                    crate::ast_pipeline::UnifiedSemanticValue::Array(elements) => {
+                        let mut resolved = Vec::with_capacity(elements.len());
+                        for element in elements {
+                            let Some(resolved_element) =
+                                self.try_resolve_unified_semantic_value_against_content(
+                                    element,
+                                    root_content,
+                                )?
+                            else {
+                                return Ok(None);
+                            };
+                            resolved.push(resolved_element);
+                        }
+                        Ok(Some(crate::ast_pipeline::UnifiedSemanticValue::Array(resolved)))
+                    }
+                    crate::ast_pipeline::UnifiedSemanticValue::Object(properties) => {
+                        let mut resolved = Vec::with_capacity(properties.len());
+                        for property in properties {
+                            let Some(resolved_value) =
+                                self.try_resolve_unified_semantic_value_against_content(
+                                    &property.value,
+                                    root_content,
+                                )?
+                            else {
+                                return Ok(None);
+                            };
+                            resolved.push(crate::ast_pipeline::UnifiedSemanticProperty {
+                                key: property.key.clone(),
+                                value: resolved_value,
+                            });
+                        }
+                        Ok(Some(crate::ast_pipeline::UnifiedSemanticValue::Object(resolved)))
+                    }
                 }
             }
 
@@ -1588,12 +1681,16 @@ impl AstBasedGenerator {
                                             if spec.phase
                                                 == crate::ast_pipeline::SemanticPredicatePhase::Branch =>
                                         {
-                                            let resolved_spec = parser
-                                                .resolve_semantic_predicate_spec_against_content(
+                                            let Some(resolved_spec) = parser
+                                                .try_resolve_semantic_predicate_spec_against_content(
                                                     spec,
                                                     &raw_content,
                                                     &transformed,
-                                                )?;
+                                                )?
+                                            else {
+                                                branch_predicate_blocked = true;
+                                                break;
+                                            };
                                             match parser
                                                 .semantic_runtime_state
                                                 .evaluate_content_aware_predicate(
@@ -5195,14 +5292,20 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("resolve_semantic_predicate_spec_against_content"),
-            "generated parser should resolve branch-predicate args against candidate content, got: {}",
+            rendered.contains("try_resolve_semantic_predicate_spec_against_content"),
+            "generated parser should resolve branch-predicate args with nullable candidate-content support, got: {}",
             rendered
         );
         assert!(
             rendered.contains("semantic_runtime_state")
                 && rendered.contains("evaluate_content_aware_predicate"),
             "generated parser should evaluate branch predicates against the semantic-state snapshot, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("try_resolve_semantic_predicate_spec_against_content")
+                && rendered.contains("branch_predicate_blocked"),
+            "generated parser should treat unresolved branch captures as branch rejection rather than fatal parse error, got: {}",
             rendered
         );
         assert!(

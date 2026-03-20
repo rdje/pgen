@@ -5419,3 +5419,13 @@ Use this file to resume work without replaying full chat history.
   - Important continuity note:
     - this aligns runtime behavior with the existing `semantic_annotation.ebnf` surface contract
     - it also removes a major ergonomics blocker before the first live HDL semantic-fact pilot, because future rules no longer need to rely only on positional capture numbering
+- 2026-03-20: Branch-local semantic predicates now reject candidates on unresolved captures instead of aborting parse flow.
+  - Active code slice:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - generated branch predicate evaluation now uses a nullable predicate-arg resolver
+    - unresolved branch captures become `branch_predicate_blocked = true`
+    - strict capture resolution remains unchanged for post predicates and semantic effects
+  - Important continuity note:
+    - this is the last obvious runtime blocker before a live mixed-alternative HDL semantic-fact pilot
+    - it specifically enables rules where only some branches carry the named capture a predicate wants to consult

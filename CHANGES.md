@@ -21839,3 +21839,22 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - branch-predicate regression proof passed: `generated_parser_embeds_branch_predicate_seam_for_multibranch_rules`
   - Live-status effect:
     - no live-status row changed
+- 2026-03-20: Made generated `branch` predicates reject unresolved captures instead of aborting the parse.
+  - Updated:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - What changed:
+    - generated parsers now use nullable branch-predicate capture resolution for candidate-local predicate args,
+    - unresolved branch captures no longer raise a fatal semantic-resolution parse error,
+    - instead, the candidate branch is marked blocked and the parser continues evaluating other alternatives.
+  - Why this matters:
+    - this is the missing behavior needed for live semantic-fact pilots over mixed alternatives,
+    - rules can now safely express predicates like `has_fact(type_name, $type_identifier)` even when some candidate branches do not contain `type_identifier`,
+    - post/effect resolution remains strict; only branch-local candidate steering gets the nullable behavior.
+  - Validation:
+    - focused generator branch-seam proof passed: `generated_parser_embeds_branch_predicate_seam_for_multibranch_rules`
+    - `clippy_on_rust_change` passed
+  - Live-status effect:
+    - no live-status row changed

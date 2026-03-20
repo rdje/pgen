@@ -3275,3 +3275,13 @@ Why `rtl_frontend` exists:
     - semantic-fact pilots no longer need to depend solely on positional numbering like `$1` / `$2`
     - future HDL grammar slices can use clearer directives such as `$type_identifier` and `$package_identifier`
   - this is a blocker-clearing step before the first live SystemVerilog semantic-fact pilot, not that pilot itself
+- 2026-03-20: Made branch-local semantic predicates nullable over missing captures.
+  - generated branch predicate execution now treats unresolved candidate-local captures as:
+    - branch rejection
+    - not fatal parse failure
+  - roadmap consequence:
+    - mixed-alternative semantic-fact pilots are now practical,
+    - especially for HDL ambiguities where only some candidate branches expose captures like `$type_identifier`
+  - still intentionally deferred:
+    - the first live grammar pilot itself
+    - semantic-context-aware memoization keys
