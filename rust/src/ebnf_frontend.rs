@@ -756,9 +756,9 @@ fn classify_return_annotation(body: &str) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        classify_return_annotation, parse_ebnf_text_to_raw_ast_envelope,
-        parse_ebnf_file_to_raw_ast_envelope,
-        parse_semantic_annotation_text, tokenize_rule_expression,
+        classify_return_annotation, parse_ebnf_file_to_raw_ast_envelope,
+        parse_ebnf_text_to_raw_ast_envelope, parse_semantic_annotation_text,
+        tokenize_rule_expression,
     };
     use std::collections::BTreeSet;
     use std::path::PathBuf;

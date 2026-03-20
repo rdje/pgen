@@ -409,8 +409,8 @@ fn preprocess_file_internal(
         );
     }
 
-    let content_bytes =
-        fs::read(&canonical_path).with_context(|| format!("failed to read '{}'", canonical_path.display()))?;
+    let content_bytes = fs::read(&canonical_path)
+        .with_context(|| format!("failed to read '{}'", canonical_path.display()))?;
     let content = match String::from_utf8(content_bytes) {
         Ok(content) => content,
         Err(err) => {
@@ -442,7 +442,10 @@ fn preprocess_text_internal(
     let mut line_index = 0usize;
     while line_index < lines.len() {
         let line_no = line_index + 1;
-        let active = conditionals.last().map(|c| c.current_active).unwrap_or(true);
+        let active = conditionals
+            .last()
+            .map(|c| c.current_active)
+            .unwrap_or(true);
         let mut raw_line = lines[line_index].clone();
         let initial_trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
 
@@ -759,8 +762,12 @@ fn preprocess_text_internal(
         }
 
         if active {
-            let (logical_line, last_line_index) =
-                collect_multiline_macro_invocation(lines.as_slice(), line_index, raw_line, &state.macros);
+            let (logical_line, last_line_index) = collect_multiline_macro_invocation(
+                lines.as_slice(),
+                line_index,
+                raw_line,
+                &state.macros,
+            );
             let expanded = expand_macros_in_text(
                 &logical_line,
                 &state.macros,
@@ -817,7 +824,8 @@ fn collect_multiline_macro_invocation(
 ) -> (String, usize) {
     let mut combined = initial_line;
     let mut current_index = start_index;
-    while has_unclosed_function_macro_invocation(&combined, macros) && current_index + 1 < lines.len()
+    while has_unclosed_function_macro_invocation(&combined, macros)
+        && current_index + 1 < lines.len()
     {
         combined.push_str(&lines[current_index + 1]);
         current_index += 1;
@@ -1407,8 +1415,7 @@ fn expand_macros_in_text(
                 i = ident_end;
                 continue;
             };
-            let expanded =
-                expand_function_macro(def, params, &args, macros, depth + 1, file, line);
+            let expanded = expand_function_macro(def, params, &args, macros, depth + 1, file, line);
             events.push(PreprocessorEvent {
                 kind: PreprocessorEventKind::MacroExpand,
                 file: file.display().to_string(),
@@ -1665,14 +1672,7 @@ fn expand_object_macro(
     file: &Path,
     line: usize,
 ) -> String {
-    expand_macros_in_text(
-        &definition.body,
-        macros,
-        depth,
-        &mut Vec::new(),
-        file,
-        line,
-    )
+    expand_macros_in_text(&definition.body, macros, depth, &mut Vec::new(), file, line)
 }
 
 fn expand_function_macro(
@@ -1695,14 +1695,7 @@ fn expand_function_macro(
     }
     let substituted = substitute_function_macro_body(&definition.body, &bindings);
     let pasted = substituted.replace("``", "");
-    expand_macros_in_text(
-        &pasted,
-        macros,
-        depth,
-        &mut Vec::new(),
-        file,
-        line,
-    )
+    expand_macros_in_text(&pasted, macros, depth, &mut Vec::new(), file, line)
 }
 
 fn expand_builtin_macro(name: &str, file: &Path, line: usize) -> Option<String> {
@@ -1714,9 +1707,7 @@ fn expand_builtin_macro(name: &str, file: &Path, line: usize) -> Option<String> 
 }
 
 fn encode_sv_string_literal(value: &str) -> String {
-    let escaped = value
-        .replace('\\', "\\\\")
-        .replace('"', "\\\"");
+    let escaped = value.replace('\\', "\\\\").replace('"', "\\\"");
     format!("\"{}\"", escaped)
 }
 
@@ -1880,7 +1871,11 @@ mod tests {
 
         let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
             .expect("preprocess function-like macro with default");
-        assert!(output.text.contains("logic [0:0] a = uvm_get_report_object();"));
+        assert!(
+            output
+                .text
+                .contains("logic [0:0] a = uvm_get_report_object();")
+        );
     }
 
     #[test]
@@ -2012,10 +2007,12 @@ mod tests {
         assert!(!output.text.contains("`ifdef"));
         assert!(!output.text.contains("`endif"));
         assert!(!output.text.contains("logic enabled;"));
-        assert!(output
-            .diagnostics
-            .iter()
-            .all(|diagnostic| diagnostic.severity != PreprocessorDiagnosticSeverity::Error));
+        assert!(
+            output
+                .diagnostics
+                .iter()
+                .all(|diagnostic| diagnostic.severity != PreprocessorDiagnosticSeverity::Error)
+        );
     }
 
     #[test]

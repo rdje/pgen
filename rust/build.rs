@@ -40,7 +40,10 @@ fn main() {
     let json_resolved = resolve_path(&manifest_dir, &json_configured_path);
     println!("cargo:rerun-if-changed={}", json_resolved.to_string_lossy());
     let regex_resolved = resolve_path(&manifest_dir, &regex_configured_path);
-    println!("cargo:rerun-if-changed={}", regex_resolved.to_string_lossy());
+    println!(
+        "cargo:rerun-if-changed={}",
+        regex_resolved.to_string_lossy()
+    );
     let systemverilog_resolved = resolve_path(&manifest_dir, &systemverilog_configured_path);
     println!(
         "cargo:rerun-if-changed={}",
@@ -134,7 +137,9 @@ fn relativize_for_include(source_dir: &Path, target: &Path) -> PathBuf {
     let normalized_source_dir = source_dir
         .canonicalize()
         .unwrap_or_else(|_| source_dir.to_path_buf());
-    let normalized_target = target.canonicalize().unwrap_or_else(|_| target.to_path_buf());
+    let normalized_target = target
+        .canonicalize()
+        .unwrap_or_else(|_| target.to_path_buf());
     path_relative_from(&normalized_target, &normalized_source_dir)
         .unwrap_or_else(|| normalized_target.clone())
 }

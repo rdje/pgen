@@ -295,7 +295,9 @@ impl<'a> StructuredSemanticValueParser<'a> {
             '[' => self.parse_array(),
             '{' => self.parse_object(),
             '"' | '\'' => self.parse_string().map(UnifiedSemanticValue::String),
-            '$' => self.parse_rule_reference().map(UnifiedSemanticValue::RuleReference),
+            '$' => self
+                .parse_rule_reference()
+                .map(UnifiedSemanticValue::RuleReference),
             '+' | '-' | '0'..='9' => self.parse_number().map(UnifiedSemanticValue::Number),
             _ => {
                 let ident = self.parse_identifier_like()?;

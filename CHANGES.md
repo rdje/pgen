@@ -21858,3 +21858,27 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `clippy_on_rust_change` passed
   - Live-status effect:
     - no live-status row changed
+- 2026-03-20: Grouped the remaining Rust worktree churn into a dedicated formatting-only cleanup slice.
+  - Updated:
+    - `rust/build.rs`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/ast_pipeline/unified_return_ast.rs`
+    - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+    - `rust/src/bin/parseability_probe.rs`
+    - `rust/src/bin/return_annotation_generated_audit.rs`
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/main.rs`
+    - `rust/src/parser_registry.rs`
+    - `rust/src/sv_preprocessor.rs`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+  - What changed:
+    - committed the remaining dirty Rust files as one formatting-only cleanup,
+    - the diff is limited to line wrapping, import ordering, and rustfmt-style expression/test reflow,
+    - no parser/runtime/preprocessor behavior changed in this slice.
+  - Validation:
+    - diff review against `HEAD` confirmed formatting-only changes,
+    - `clippy_on_rust_change` remained green over the dirty Rust workspace.
+  - Live-status effect:
+    - no live-status row changed

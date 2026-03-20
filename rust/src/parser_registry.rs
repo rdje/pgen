@@ -172,7 +172,10 @@ fn parse_with_json(sample: &str) -> bool {
 #[cfg(has_generated_json_parser)]
 fn parse_with_json_detail(sample: &str) -> Result<(), String> {
     let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
-    parser.parse_full_json().map(|_| ()).map_err(|err| err.to_string())
+    parser
+        .parse_full_json()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 #[cfg(has_generated_json_parser)]
@@ -191,7 +194,10 @@ fn parse_with_regex(sample: &str) -> bool {
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex_detail(sample: &str) -> Result<(), String> {
     let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
-    parser.parse_full_regex().map(|_| ()).map_err(|err| err.to_string())
+    parser
+        .parse_full_regex()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 #[cfg(has_generated_regex_parser)]
@@ -203,13 +209,15 @@ fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
 
 #[cfg(has_generated_rtl_const_expr_parser)]
 fn parse_with_rtl_const_expr(sample: &str) -> bool {
-    let mut parser = RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    let mut parser =
+        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
     parser.parse_full_rtl_const_expr().is_ok()
 }
 
 #[cfg(has_generated_rtl_const_expr_parser)]
 fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
-    let mut parser = RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    let mut parser =
+        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
     parser
         .parse_full_rtl_const_expr()
         .map(|_| ())
@@ -218,7 +226,8 @@ fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
 
 #[cfg(has_generated_rtl_const_expr_parser)]
 fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let mut parser = RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    let mut parser =
+        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
     let parsed = parser
         .parse_full_rtl_const_expr()
         .map_err(|err| err.to_string())?;
@@ -322,7 +331,10 @@ fn parse_with_vhdl(sample: &str) -> bool {
 #[cfg(has_generated_vhdl_parser)]
 fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
     let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
-    parser.parse_full_vhdl_file().map(|_| ()).map_err(|err| err.to_string())
+    parser
+        .parse_full_vhdl_file()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 #[cfg(has_generated_vhdl_parser)]
@@ -433,7 +445,9 @@ pub fn parse_sample_detail_with_profile(
         "return_annotation" => Some(parse_with_return_annotation_detail(sample)),
         "semantic_annotation" => Some(parse_with_semantic_annotation_detail(sample)),
         "builtin_return_annotation" => Some(parse_with_builtin_return_annotation_detail(sample)),
-        "builtin_semantic_annotation" => Some(parse_with_builtin_semantic_annotation_detail(sample)),
+        "builtin_semantic_annotation" => {
+            Some(parse_with_builtin_semantic_annotation_detail(sample))
+        }
         #[cfg(feature = "ebnf_dual_run")]
         "ebnf" => Some(parse_with_ebnf_detail(sample)),
         #[cfg(has_generated_json_parser)]
@@ -443,7 +457,10 @@ pub fn parse_sample_detail_with_profile(
         #[cfg(has_generated_rtl_const_expr_parser)]
         "rtl_const_expr" => Some(parse_with_rtl_const_expr_detail(sample)),
         #[cfg(has_generated_systemverilog_parser)]
-        "systemverilog" => Some(parse_with_systemverilog_detail_profile(sample, grammar_profile)),
+        "systemverilog" => Some(parse_with_systemverilog_detail_profile(
+            sample,
+            grammar_profile,
+        )),
         #[cfg(has_generated_systemverilog_preprocessor_parser)]
         "systemverilog_preprocessor" => Some(parse_with_systemverilog_preprocessor_detail(sample)),
         #[cfg(has_generated_vhdl_parser)]
@@ -694,12 +711,7 @@ mod tests {
                         continue;
                     }
                     if parse_sample("return_annotation", payload) != Some(true) {
-                        invalid.push(format!(
-                            "{}:{} -> {}",
-                            file_name,
-                            line_number + 1,
-                            payload
-                        ));
+                        invalid.push(format!("{}:{} -> {}", file_name, line_number + 1, payload));
                     }
                 }
             }

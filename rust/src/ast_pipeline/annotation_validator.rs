@@ -3941,12 +3941,10 @@ mod tests {
                 name: "open_scope".to_string(),
                 ast: UnifiedSemanticAST::Structured {
                     canonical: "{ name: top_pkg }".to_string(),
-                    value: UnifiedSemanticValue::Object(vec![
-                        UnifiedSemanticProperty {
-                            key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
-                        },
-                    ]),
+                    value: UnifiedSemanticValue::Object(vec![UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                    }]),
                 },
             }],
         );

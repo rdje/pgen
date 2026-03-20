@@ -5429,3 +5429,20 @@ Use this file to resume work without replaying full chat history.
   - Important continuity note:
     - this is the last obvious runtime blocker before a live mixed-alternative HDL semantic-fact pilot
     - it specifically enables rules where only some branches carry the named capture a predicate wants to consult
+- 2026-03-20: The remaining dirty Rust files outside the branch-capture slice were audited and are formatting-only.
+  - Affected files:
+    - `rust/build.rs`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/ast_pipeline/unified_return_ast.rs`
+    - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+    - `rust/src/bin/parseability_probe.rs`
+    - `rust/src/bin/return_annotation_generated_audit.rs`
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/main.rs`
+    - `rust/src/parser_registry.rs`
+    - `rust/src/sv_preprocessor.rs`
+  - Continuity note:
+    - diff vs `HEAD` showed only rustfmt-style wrapping/reordering,
+    - no functional behavior was hiding in that leftover dirty set,
+    - so they are safe to commit separately as one formatting-only cleanup.

@@ -73,11 +73,12 @@ fn parse_generated_return_annotation(
         .parse_full_return_annotation()
         .map_err(|err| format!("generated parser failed for '{}': {}", sample, err))?;
     let ast_logger = runtime_logger_box("generated.return_annotation.audit.typed_ast");
-    UnifiedReturnAST::parse_generated_return_annotation(sample, &parse_tree, &*ast_logger)
-        .map_err(|err| {
+    UnifiedReturnAST::parse_generated_return_annotation(sample, &parse_tree, &*ast_logger).map_err(
+        |err| {
             format!(
                 "generated parse tree -> typed AST failed for '{}': {}",
                 sample, err
             )
-        })
+        },
+    )
 }

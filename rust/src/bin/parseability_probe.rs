@@ -1,9 +1,11 @@
 use anyhow::{Context, Result, bail};
 use serde::Serialize;
 
+use pgen::ast_pipeline::{
+    configure_trace_output, resolve_trace_verbosity, set_global_trace_verbosity,
+};
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
-use pgen::ast_pipeline::{configure_trace_output, resolve_trace_verbosity, set_global_trace_verbosity};
 
 fn usage() -> &'static str {
     "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--trace] [--trace-log-file [FILE]]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY"

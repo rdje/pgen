@@ -1504,7 +1504,9 @@ fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profi
     let mut allowed_profiles: Option<Vec<String>> = None;
     for annotation in entries {
         let payload = match annotation.name() {
-            Some(name) if name.trim().eq_ignore_ascii_case("profiles") => annotation.ast().payload_text(),
+            Some(name) if name.trim().eq_ignore_ascii_case("profiles") => {
+                annotation.ast().payload_text()
+            }
             _ => match annotation.ast() {
                 pgen::ast_pipeline::UnifiedSemanticAST::TransformExpr { expression } => {
                     let Some((name, payload)) = extract_semantic_directive(expression) else {
@@ -1765,10 +1767,18 @@ fn build_parseability_counterexample(
         sample_chars: sample.chars().count(),
         shrunk_sample_chars: shrunk_sample.chars().count(),
         shrunk_sample,
-        parser_error: failure_detail.as_ref().map(|detail| detail.parser_error.clone()),
-        failure_position: failure_detail.as_ref().and_then(|detail| detail.failure_position),
-        failure_line: failure_detail.as_ref().and_then(|detail| detail.failure_line),
-        failure_column: failure_detail.as_ref().and_then(|detail| detail.failure_column),
+        parser_error: failure_detail
+            .as_ref()
+            .map(|detail| detail.parser_error.clone()),
+        failure_position: failure_detail
+            .as_ref()
+            .and_then(|detail| detail.failure_position),
+        failure_line: failure_detail
+            .as_ref()
+            .and_then(|detail| detail.failure_line),
+        failure_column: failure_detail
+            .as_ref()
+            .and_then(|detail| detail.failure_column),
         failure_line_excerpt: failure_detail
             .as_ref()
             .and_then(|detail| detail.failure_line_excerpt.clone()),
@@ -1826,10 +1836,10 @@ fn generated_parser_failure_detail(
             let (failure_line, failure_column) = failure_position
                 .map(|position| parse_error_line_column(sample, position))
                 .unwrap_or((None, None));
-            let failure_line_excerpt = failure_line
-                .and_then(|line| parse_error_line_excerpt(sample, line));
-            let failure_context_excerpt = failure_position
-                .and_then(|position| parse_error_context_excerpt(sample, position));
+            let failure_line_excerpt =
+                failure_line.and_then(|line| parse_error_line_excerpt(sample, line));
+            let failure_context_excerpt =
+                failure_position.and_then(|position| parse_error_context_excerpt(sample, position));
             Ok(Some(ParseFailureDetail {
                 parser_error: err,
                 failure_position,
@@ -1869,7 +1879,10 @@ fn extract_position_after_marker(message: &str, marker: &str) -> Option<usize> {
     }
 }
 
-fn parse_error_line_column(sample: &str, failure_position: usize) -> (Option<usize>, Option<usize>) {
+fn parse_error_line_column(
+    sample: &str,
+    failure_position: usize,
+) -> (Option<usize>, Option<usize>) {
     let clamped = clamp_to_char_boundary(sample, failure_position);
     let prefix = &sample[..clamped];
     let line = prefix.chars().filter(|ch| *ch == '\n').count() + 1;
@@ -1882,7 +1895,9 @@ fn parse_error_line_column(sample: &str, failure_position: usize) -> (Option<usi
 }
 
 fn sanitize_excerpt_text(text: &str) -> String {
-    text.replace('\r', "").replace('\n', "\\n").replace('\t', "\\t")
+    text.replace('\r', "")
+        .replace('\n', "\\n")
+        .replace('\t', "\\t")
 }
 
 fn parse_error_line_excerpt(sample: &str, failure_line: usize) -> Option<String> {
@@ -2565,9 +2580,9 @@ mod tests {
         extract_parse_error_position, generate_stimuli_module_source, is_ebnf_input_path,
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
         parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
-        parse_recovery_stimuli_mode, resolve_parseability_max_attempts, resolve_stimuli_module_seed,
-        supported_generated_parseability_grammars, supports_generated_parseability,
-        write_parseability_report,
+        parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
+        resolve_stimuli_module_seed, supported_generated_parseability_grammars,
+        supports_generated_parseability, write_parseability_report,
     };
     use pgen::ast_pipeline::stimuli_generator::{
         BranchCoverageGroup, RecoveryStimuliMode, TargetDriveValidationSummary,
@@ -2794,13 +2809,15 @@ mod tests {
         let sample =
             "alpha\r\n\tbeta and more text that is intentionally long to exercise truncation\r\n";
         let excerpt = parse_error_line_excerpt(sample, 2).expect("line excerpt should exist");
-        assert_eq!(excerpt, "\\tbeta and more text that is intentionally long to exercise truncation");
+        assert_eq!(
+            excerpt,
+            "\\tbeta and more text that is intentionally long to exercise truncation"
+        );
     }
 
     #[test]
     fn parse_error_context_excerpt_centers_failure_position() {
-        let sample =
-            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let sample = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         let excerpt =
             parse_error_context_excerpt(sample, 20).expect("context excerpt should exist");
         assert!(excerpt.contains("0123456789abcdefghijklmnopqrstuvwx"));

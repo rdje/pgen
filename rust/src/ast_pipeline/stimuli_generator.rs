@@ -2732,9 +2732,7 @@ impl<'a> StimuliGenerator<'a> {
             ASTNode::Quantified { element, .. } => {
                 self.count_rule_references(element, current_rule)
             }
-            ASTNode::Lookahead { element, .. } => {
-                self.count_rule_references(element, current_rule)
-            }
+            ASTNode::Lookahead { element, .. } => self.count_rule_references(element, current_rule),
         }
     }
 

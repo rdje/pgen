@@ -21853,3 +21853,20 @@ Why this matters:
 Current boundary:
 - this nullable behavior is intentionally limited to branch-local predicate resolution
 - post predicates and semantic effect emission still use the strict resolver so successful-rule captures remain audited and fail loudly when annotation references are genuinely invalid
+
+2026-03-20 formatting-only cleanup grouping:
+- the remaining dirty Rust files after the branch-capture fix were diffed against `HEAD`
+- they were confirmed to be formatting-only changes:
+  - line wrapping
+  - import ordering/grouping
+  - assertion/test reflow
+  - rustfmt-style call formatting
+- no behavioral deltas were found in:
+  - parser logic
+  - semantic-runtime behavior
+  - annotation lowering
+  - preprocessor control flow
+
+Practical consequence:
+- those files are safe to package as a dedicated formatting-only cleanup commit
+- they should stay isolated from semantic-steering or grammar-hardening slices so future archaeology remains clear
