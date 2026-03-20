@@ -173,6 +173,10 @@ impl SemanticRuntimeDirective {
         self.predicate_phase() == Some(SemanticPredicatePhase::Post)
     }
 
+    pub fn is_branch_predicate(&self) -> bool {
+        self.predicate_phase() == Some(SemanticPredicatePhase::Branch)
+    }
+
     pub fn is_effect(&self) -> bool {
         matches!(
             self,
@@ -241,6 +245,15 @@ impl CompiledSemanticRuntimeAnnotations {
         self.directives_for_rule(rule_name)
             .iter()
             .filter(|directive| directive.is_post_predicate())
+    }
+
+    pub fn branch_predicates_for_rule<'a>(
+        &'a self,
+        rule_name: &'a str,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.directives_for_rule(rule_name)
+            .iter()
+            .filter(|directive| directive.is_branch_predicate())
     }
 
     pub fn has_post_predicates_for_rule(&self, rule_name: &str) -> bool {
@@ -1763,6 +1776,75 @@ mod tests {
             ),
             Some(false)
         );
+    }
+
+    #[test]
+    fn compiled_annotations_expose_branch_predicates_separately() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "statement_or_decl".to_string(),
+            vec![
+                structured_named(
+                    "predicate",
+                    "{ name: content_kind_is, args: [sequence], phase: branch, view: raw }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("sequence".to_string()),
+                            ]),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("branch".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named(
+                    "predicate",
+                    "{ name: current_scope_is, args: [global] }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("global".to_string()),
+                            ]),
+                        },
+                    ]),
+                ),
+            ],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+        let branch_predicates = compiled
+            .branch_predicates_for_rule("statement_or_decl")
+            .collect::<Vec<_>>();
+        let pre_predicates = compiled
+            .pre_predicates_for_rule("statement_or_decl")
+            .collect::<Vec<_>>();
+
+        assert_eq!(branch_predicates.len(), 1);
+        assert_eq!(pre_predicates.len(), 1);
+        assert!(matches!(
+            branch_predicates[0],
+            SemanticRuntimeDirective::Predicate(SemanticPredicateSpec {
+                phase: SemanticPredicatePhase::Branch,
+                ..
+            })
+        ));
     }
 
     #[test]

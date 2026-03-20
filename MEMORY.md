@@ -5397,3 +5397,15 @@ Use this file to resume work without replaying full chat history.
     - `CompiledSemanticRuntimeAnnotations::effect_directives_for_rule(...)` now owns the post-success mutation view
     - `apply_compiled_rule(...)` / `transaction_for_rule(...)` now apply only effect directives
     - generated parsers now iterate those two views explicitly instead of walking one mixed directive list
+- 2026-03-20: Landed the first generated-parser branch-predicate execution seam.
+  - Active code slice:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - compiled semantic runtime annotations now expose `branch_predicates_for_rule(...)`
+    - generated multi-branch rule selection evaluates `phase = branch` predicates against each candidate branch before accepting it
+    - generated rule-entry transactions now copy a semantic-runtime snapshot onto `self.semantic_runtime_state` during parse execution so branch predicates can read current facts/scopes while the real transactional state remains detached for later commit/rollback
+  - Important continuity note:
+    - this is the first real candidate-level semantic steering seam
+    - the branch snapshot is intentionally read-only by convention; committed semantic effects still happen only through the transactional post-success path
+    - the next best step after this slice is a live grammar pilot, likely a narrow SystemVerilog declaration-vs-statement ambiguity that benefits from `phase = branch` plus `view = raw`

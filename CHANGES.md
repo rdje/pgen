@@ -21799,3 +21799,24 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - generated parser semantic-runtime entrypoint proof passed
   - Live-status effect:
     - no live-status row changed
+- 2026-03-20: Added the first generated-parser branch-predicate execution seam for multi-branch rules.
+  - Updated:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - What changed:
+    - `CompiledSemanticRuntimeAnnotations` now exposes `branch_predicates_for_rule(...)`,
+    - generated multi-branch rule selection now evaluates `phase = branch` predicates against each candidate branch before accepting it,
+    - branch predicates resolve against explicit candidate content views, with `raw` as the semantic default and `shaped` still available as opt-in,
+    - generated rule-entry transactions now install a cloned semantic-runtime state snapshot onto `self` during parse execution so branch predicates can read current facts/scopes without mutating the transactional state being prepared for commit.
+  - Why this matters:
+    - this is the first real content-aware branch steering seam rather than more standalone semantic-runtime scaffolding,
+    - it keeps branch predicate evaluation compatible with the earlier “do not silently redefine pre-parse `@predicate`” design rule,
+    - it also preserves the path toward memo-honest semantic steering because branch checks read a stable semantic-state snapshot while post-success effects still commit transactionally.
+  - Validation:
+    - focused semantic runtime branch-view proof passed: `compiled_annotations_expose_branch_predicates_separately`
+    - focused generator proof passed: `generated_parser_embeds_branch_predicate_seam_for_multibranch_rules`
+  - Live-status effect:
+    - no live-status row changed

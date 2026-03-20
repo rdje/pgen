@@ -637,6 +637,7 @@ impl AstBasedGenerator {
             {
                 let mut semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
+                self.semantic_runtime_state = semantic_runtime_state.clone();
                 let result = {
                     let mut semantic_runtime_transaction = semantic_runtime_state.transaction();
                     let mut predicate_blocked = false;
@@ -1572,11 +1573,52 @@ impl AstBasedGenerator {
                                 parser.position = parse_start;
                                 let candidate_priority: i64 = #branch_priority;
                                 let current_branch_index: usize = #branch_index;
+                                let raw_content = content;
                                 let transformed = {
-                                    let content = content;
+                                    let content = raw_content.clone();
                                     #transform
                                 };
-                                let should_take = if #branch_policy_mode == "ordered" {
+                                let mut branch_predicate_blocked = false;
+                                for directive in parser
+                                    .semantic_runtime_annotations
+                                    .branch_predicates_for_rule(#rule_name)
+                                {
+                                    match directive {
+                                        crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec)
+                                            if spec.phase
+                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch =>
+                                        {
+                                            let resolved_spec = parser
+                                                .resolve_semantic_predicate_spec_against_content(
+                                                    spec,
+                                                    &raw_content,
+                                                    &transformed,
+                                                )?;
+                                            match parser
+                                                .semantic_runtime_state
+                                                .evaluate_content_aware_predicate(
+                                                    &resolved_spec,
+                                                    &raw_content,
+                                                    &transformed,
+                                                )
+                                            {
+                                                Some(true) => {}
+                                                Some(false) => {
+                                                    branch_predicate_blocked = true;
+                                                    break;
+                                                }
+                                                None => {}
+                                            }
+                                        }
+                                        crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(_)
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_) => {}
+                                    }
+                                }
+                                let should_take = if branch_predicate_blocked {
+                                    false
+                                } else if #branch_policy_mode == "ordered" {
                                     best_content.is_none()
                                 } else if #branch_policy_mode == "priority_first" {
                                     if best_content.is_none() {
@@ -1630,9 +1672,17 @@ impl AstBasedGenerator {
                                     best_branch_index = current_branch_index;
                                     best_branch = #branch_num;
                                     if semantic_capture_raw_for_post {
-                                        best_raw_content = Some(content.clone());
+                                        best_raw_content = Some(raw_content.clone());
                                     }
                                     best_content = Some(transformed);
+                                } else if branch_predicate_blocked && parser.logger.is_enabled() {
+                                    parser.logger.log_info(#filename, 0, &format!(
+                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
+                                        #branch_num,
+                                        #branch_count,
+                                        #rule_name,
+                                        candidate_end
+                                    ));
                                 }
                             } else if parser.logger.is_enabled() {
                                 parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
@@ -5039,6 +5089,95 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("CompiledSemanticRuntimeAnnotations::from_rule_directives"),
             "generated parser constructor should embed compiled runtime annotations, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_embeds_branch_predicate_seam_for_multibranch_rules() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "statement_or_decl".to_string(),
+            vec![structured_named_annotation(
+                "predicate",
+                "{ name: content_kind_is, args: [sequence], phase: branch, view: raw }",
+                UnifiedSemanticValue::Object(vec![
+                    UnifiedSemanticProperty {
+                        key: "name".to_string(),
+                        value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "args".to_string(),
+                        value: UnifiedSemanticValue::Array(vec![UnifiedSemanticValue::Identifier(
+                            "sequence".to_string(),
+                        )]),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "phase".to_string(),
+                        value: UnifiedSemanticValue::Identifier("branch".to_string()),
+                    },
+                    UnifiedSemanticProperty {
+                        key: "view".to_string(),
+                        value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                    },
+                ]),
+            )],
+        );
+
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "statement_or_decl".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![
+                            token("quoted_string", "typedef"),
+                            token("quoted_string", "pkg"),
+                        ],
+                    },
+                    token("quoted_string", "pkg"),
+                ],
+            },
+        );
+        let rule_order = vec!["statement_or_decl".to_string()];
+
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "semantic_branch_usage.rs")
+            .expect("parser generation should succeed");
+
+        assert!(
+            rendered.contains("SemanticPredicatePhase::Branch"),
+            "generated parser should embed typed branch predicates when present, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("branch_predicates_for_rule"),
+            "generated parser should consult the explicit branch-predicate rule view, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("resolve_semantic_predicate_spec_against_content"),
+            "generated parser should resolve branch-predicate args against candidate content, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("semantic_runtime_state")
+                && rendered.contains("evaluate_content_aware_predicate"),
+            "generated parser should evaluate branch predicates against the semantic-state snapshot, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("self.semantic_runtime_state = semantic_runtime_state.clone();"),
+            "generated parser should snapshot semantic runtime state for branch predicate evaluation, got: {}",
             rendered
         );
     }

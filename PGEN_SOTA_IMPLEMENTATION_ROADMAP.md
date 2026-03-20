@@ -3252,3 +3252,18 @@ Why `rtl_frontend` exists:
   - roadmap consequence:
     - predicate guards and semantic mutations are no longer conflated in the generic rule-helper path
     - this is the correct execution seam before adding real `branch` / `post` content-aware predicate evaluation
+- 2026-03-20: Activated the first content-aware `branch` predicate seam in generated multi-branch parser logic.
+  - `CompiledSemanticRuntimeAnnotations` now exposes:
+    - `branch_predicates_for_rule(...)`
+  - generated multi-branch candidate selection now:
+    - resolves `phase = branch` predicate args against candidate parse content,
+    - evaluates those predicates before accepting a branch candidate,
+    - uses `raw` as the semantic default view while preserving explicit `shaped` opt-in
+  - generated rule-entry transactions now install a cloned semantic-runtime snapshot on `self` during parse execution so branch predicates can inspect current facts/scopes without mutating the detached transactional state
+  - roadmap consequence:
+    - the parser now has its first real candidate-level semantic steering seam
+    - the next milestone should be a narrow live grammar pilot, not more generic scaffold
+  - still intentionally deferred:
+    - semantic-context-aware memoization keys
+    - broad branch-predicate rollout across ambiguous HDL rules
+    - post-parse shaped-content pilots in real grammar slices

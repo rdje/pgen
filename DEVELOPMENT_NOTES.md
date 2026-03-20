@@ -21800,3 +21800,27 @@ Why this default matters:
 - return annotations are primarily for output shaping
 - parser semantics should not silently change just because output shaping changes
 - otherwise a harmless return-annotation refactor could change parse control flow
+
+2026-03-20 branch-predicate execution milestone:
+- compiled semantic runtime annotations now expose a third explicit rule-level view:
+  - `branch_predicates_for_rule(...)`
+- generated multi-branch rule selection now consults that view while evaluating each candidate branch
+- branch predicates are resolved against candidate parse content through the existing content-aware resolver:
+  - `raw` remains the semantic default
+  - `shaped` remains explicit opt-in
+
+Execution model:
+- rule-entry transactions still own the mutable semantic state that may later commit
+- during parse execution, generated parsers now temporarily install a cloned semantic-runtime state snapshot on `self`
+- branch predicates read that snapshot while exploring candidate branches
+- post-success effects still apply transactionally and only commit on successful rule completion
+
+Why this matters:
+- branch predicates now have a real parser-control seam instead of only being typed metadata
+- the existing rule-entry `pre` predicate behavior remains unchanged
+- candidate-level semantic steering can now be introduced without making branch parsing mutate committed semantic state
+
+Current boundary:
+- this is still generator/runtime infrastructure, not yet a live HDL grammar pilot
+- branch predicates can read current semantic facts/scopes plus candidate `raw`/`shaped` content
+- branch predicates do not yet add semantic-context-aware memo keys by themselves
