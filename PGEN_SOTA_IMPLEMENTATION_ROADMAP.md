@@ -156,7 +156,11 @@ Near-term rollout:
   - landed memo-aware raw semantic content retention:
     - generated rule memoization now stores optional raw semantic content alongside the shaped `ParseNode`
     - `post/raw` predicates stay correct on memo hits instead of silently degrading to shaped content
+  - landed same-rule semantic-effect visibility for `post` predicates:
+    - generated parser rule execution now applies semantic effect directives transactionally before `post` predicate evaluation
+    - `post` predicates can now inspect the current rule’s just-emitted facts/scopes before commit
   - current boundary remains explicit:
+    - fact-query predicate arguments are still static annotation payload values, not current parse-content references
     - `branch` predicates are still typed but not executed yet
     - content-aware predicate steering is still limited to the rule-success seam
     - no live grammar ambiguity pilot consumes the new semantic predicate phases yet

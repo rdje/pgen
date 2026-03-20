@@ -663,6 +663,16 @@ impl AstBasedGenerator {
                         let (node, semantic_raw_content) = f(self)?;
                         let semantic_raw_content =
                             semantic_raw_content.as_ref().unwrap_or(&node.content);
+                        for directive in self
+                            .semantic_runtime_annotations
+                            .effect_directives_for_rule(rule_name)
+                        {
+                            let _ = self.apply_semantic_runtime_effect_directive(
+                                &mut semantic_runtime_transaction,
+                                directive,
+                                &node.content,
+                            )?;
+                        }
                         let mut post_predicate_blocked = false;
                         for directive in self
                             .semantic_runtime_annotations
@@ -689,16 +699,6 @@ impl AstBasedGenerator {
                                 position: node.span.start,
                             })
                         } else {
-                        for directive in self
-                            .semantic_runtime_annotations
-                            .effect_directives_for_rule(rule_name)
-                        {
-                            let _ = self.apply_semantic_runtime_effect_directive(
-                                &mut semantic_runtime_transaction,
-                                directive,
-                                &node.content,
-                            )?;
-                        }
                         let _ = semantic_runtime_transaction.commit();
                         Ok(node)
                         }
@@ -4748,6 +4748,20 @@ mod semantic_usage_tests {
                     ]),
                 ),
                 structured_named_annotation(
+                    "emit_fact",
+                    "{ kind: package_name, name: \"pkg\" }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package_name".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::String("pkg".to_string()),
+                        },
+                    ]),
+                ),
+                structured_named_annotation(
                     "predicate",
                     "{ name: current_scope_is, args: [global] }",
                     UnifiedSemanticValue::Object(vec![
@@ -4760,6 +4774,27 @@ mod semantic_usage_tests {
                             value: UnifiedSemanticValue::Array(vec![
                                 UnifiedSemanticValue::Identifier("global".to_string()),
                             ]),
+                        },
+                    ]),
+                ),
+                structured_named_annotation(
+                    "predicate",
+                    "{ name: has_fact, args: [package_name, \"pkg\"], phase: post }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("has_fact".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("package_name".to_string()),
+                                UnifiedSemanticValue::String("pkg".to_string()),
+                            ]),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("post".to_string()),
                         },
                     ]),
                 ),
@@ -4935,6 +4970,17 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("resolve_unified_semantic_value_against_content"),
             "generated parser should resolve structured semantic attribute values against parse content, got: {}",
+            rendered
+        );
+        let effect_pos = rendered
+            .find("apply_semantic_runtime_effect_directive")
+            .expect("generated parser should apply semantic runtime effects");
+        let post_pos = rendered
+            .find("evaluate_post_directive_predicate")
+            .expect("generated parser should evaluate post predicates");
+        assert!(
+            effect_pos < post_pos,
+            "generated parser should apply semantic effects before evaluating post predicates so post predicates can see same-rule facts/scopes, got: {}",
             rendered
         );
         assert!(

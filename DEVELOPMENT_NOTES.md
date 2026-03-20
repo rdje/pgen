@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-20 - Let generated `post` predicates see same-rule semantic facts
+### Context
+The previous slice made `post/raw` predicates truthful across memo hits, but there was still one practical gap in semantic-fact support: `post` predicates were evaluating before the current rule’s transactional semantic effects were applied. That meant `has_fact(...)` and scope predicates could only inspect previously committed state, not the facts/scopes the just-succeeded rule was about to emit.
+
+### Implementation
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated rule execution now applies semantic effect directives into the live transaction before running `post` predicates
+  - rollback safety is preserved because the transaction still commits only after `post` predicates pass
+  - the focused generated-parser semantic usage proof now includes:
+    - an `emit_fact` directive
+    - a `post` `has_fact` predicate
+    - an assertion that effect application renders before post-predicate evaluation
+
+### Why This Matters
+- `post` predicates can now validate the semantic state that the current rule actually produces.
+- This makes semantic facts meaningfully more usable without needing a full branch-phase rollout first.
+- The execution order is now:
+  - `pre` predicates
+  - parse
+  - transactional semantic effects
+  - `post` predicates
+  - commit on success
+
+### Remaining Gap
+- Fact-query predicate arguments are still static annotation values, not current-rule capture references.
+- `branch` predicates still are not consumed.
+- So semantic facts are now better supported, but still not fully supported by predicates.
+
 ## 2026-03-19 - Make `post/raw` predicates truthful across memo hits
 ### Context
 The earlier semantic predicate slices had the right surface shape, but there was one architectural lie left in the generated parser path: a `post/raw` predicate could only be correct on fresh parses. As soon as a rule returned from memoization, the generated parser only had the shaped `ParseNode`, so a raw-view `post` predicate would either need to fall back incorrectly or become impossible to evaluate.

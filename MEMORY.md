@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-19 (+0100, task: make-post-raw-predicates-memo-honest)
+Last updated: 2026-03-20 (+0100, task: let-post-predicates-see-same-rule-effects)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -178,15 +178,17 @@ Use this file to resume work without replaying full chat history.
   - generated helper `semantic_runtime_transaction_for_rule(...)`
 - Generated parser semantic execution now includes:
   - `pre` predicates before rule parse
+  - transactional semantic effects before `post` predicates
   - `post` predicates after successful rule parse
-  - effect directives only after `post` predicates pass
   - optional raw semantic content retention in memoized rule entries so `post/raw` predicates stay correct on memo hits
 - Current boundary remains explicit:
+  - fact-query predicate arguments are still static annotation values, not current-rule capture references
   - `branch` predicates are typed but not executed yet
   - content-aware predicate steering is currently limited to the rule-success seam
   - the first live grammar ambiguity pilot still has not been landed
 - Next likely task:
-  - land the first live grammar pilot that consumes explicit `raw` semantic predicates for real ambiguity steering
+  - let predicate arguments resolve against current parse content for semantic-fact queries
+  - then land the first live grammar pilot that consumes explicit `raw` semantic predicates for real ambiguity steering
   - best current candidate:
     - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks
   - keep the first pilot narrow:

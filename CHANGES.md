@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-20 - Let post predicates see same-rule effects
+### ✅ Achievement Summary
+This follow-up semantic-runtime slice lets generated `post` predicates see the current rule’s just-emitted facts and scope changes. Generated parsers now apply semantic effect directives transactionally before evaluating `post` predicates, so a failing `post` predicate still rolls everything back, but a passing one can validate against the rule’s own semantic facts instead of only previously committed state.
+
+### Scope of Changes
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - moved transactional semantic effect application ahead of `post` predicate evaluation inside generated rule execution
+  - expanded the generated semantic-runtime usage proof to include:
+    - `emit_fact`
+    - a `post` `has_fact` predicate
+    - an order assertion proving effect application occurs before post-predicate evaluation
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::ast_based_generator::semantic_usage_tests::generated_parser_embeds_semantic_runtime_entrypoint_for_runtime_directives -- --exact --nocapture`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `git diff --check -- rust/src/ast_pipeline/ast_based_generator.rs`
+
+### Important Boundary
+- This improves fact visibility for `post` predicates, but semantic facts are still not fully supported by predicates yet.
+- Current remaining limitation:
+  - fact-query predicate arguments are still static payload values, not current-rule capture references
+  - `branch` predicates are still typed but not consumed
+
 ## 2026-03-19 - Make generated post predicates memo-honest
 ### ✅ Achievement Summary
 This slice makes content-aware generated semantic predicates honest across memo hits. Generated parsers now evaluate `post` predicates after successful rule parse, semantic runtime can query `raw` or `shaped` rule content, and memoized rule results retain optional raw semantic content so `post/raw` predicates do not silently fall back to shaped content when a rule returns from cache.
