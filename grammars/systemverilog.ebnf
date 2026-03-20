@@ -358,9 +358,13 @@ class_declaration := class_declaration_sv_2017 | class_declaration_sv_2023
 
 class_identifier := declaration_identifier
 
-@emit_fact: { kind: type_name, name: $class_identifier }
+@emit_fact: { kind: type_name, name: $class_identifier, declaration_family: class }
 @predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
 declared_class_identifier := class_identifier
+
+@emit_fact: { kind: type_name, name: $class_identifier, declaration_family: interface_class }
+@predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
+declared_interface_class_identifier := class_identifier
 
 @profiles: ["sv_2017"]
 class_item_sv_2017 := attribute_instance* class_property | attribute_instance* class_method | attribute_instance* class_constraint | attribute_instance* class_declaration | attribute_instance* covergroup_declaration | local_parameter_declaration semi | parameter_declaration semi | semi
@@ -1003,7 +1007,7 @@ integer_vector_type := kw_bit_026e996a | kw_logic_2c684987 | kw_reg_e06b9586
 
 interface_ansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )? interface_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
 
-interface_class_declaration := kw_interface_5ea2d81a kw_class_8d767bf5 declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 interface_class_type ( comma interface_class_type )* )? semi interface_class_item* kw_endclass_b43ac277 ( colon class_identifier )?
+interface_class_declaration := kw_interface_5ea2d81a kw_class_8d767bf5 declared_interface_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 interface_class_type ( comma interface_class_type )* )? semi interface_class_item* kw_endclass_b43ac277 ( colon class_identifier )?
 
 interface_class_item := type_declaration | attribute_instance* interface_class_method | local_parameter_declaration semi | parameter_declaration semi | semi
 
@@ -2084,7 +2088,7 @@ type_assignment_sv_2023 := !kw_type_d0a3e7f8 type_identifier ( assign data_type_
 
 type_assignment := type_assignment_sv_2017 | type_assignment_sv_2023
 
-@emit_fact: { kind: type_name, name: $type_identifier }
+@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: typedef }
 @predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
 declared_type_identifier := type_identifier
 

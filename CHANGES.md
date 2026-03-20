@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-03-20 - Add minimal attribute-aware semantic fact predicates
+### ✅ Achievement Summary
+Landed the first minimal attribute-aware semantic fact layer. The runtime now supports generic fact-attribute queries, and the checked-in SystemVerilog `type_name` facts now carry declaration-family metadata so future steering can distinguish `typedef`, `class`, and `interface_class` origins without changing current parse behavior.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added built-in predicates:
+    - `has_fact_attribute(kind, name, key)`
+    - `fact_attribute_equals(kind, name, key, value)`
+  - added scalar-friendly semantic value matching for attribute comparisons
+  - extended focused semantic-runtime tests to cover:
+    - positive attribute presence/equality
+    - negative attribute presence/equality
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `declared_type_identifier` now emits:
+    - `declaration_family: typedef`
+  - `declared_class_identifier` now emits:
+    - `declaration_family: class`
+  - added `declared_interface_class_identifier`, which emits:
+    - `declaration_family: interface_class`
+  - `interface_class_declaration` now uses `declared_interface_class_identifier`
+
+### Focused Validation
+- `rust/target/debug/deps/pgen-b24ff383e18e32ce --exact ast_pipeline::semantic_runtime::tests::built_in_predicates_query_current_scope_and_facts --nocapture`
+- `rust/target/debug/deps/pgen-b24ff383e18e32ce --exact ast_pipeline::semantic_runtime::tests::built_in_predicates_respect_scope_changes_and_unknowns --nocapture`
+- `rust/target/debug/deps/pgen-b24ff383e18e32ce --exact ast_pipeline::semantic_runtime::tests::parses_open_scope_and_emit_fact_runtime_directives --nocapture`
+- `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline`
+- `rust/target/debug/ast_pipeline /tmp/systemverilog_semantic_attr_fact_pilot.json --generate-parser --eliminate-left-recursion --output /tmp/systemverilog_semantic_attr_fact_pilot_parser.rs`
+- `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_semantic_attr_fact_pilot_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_declared_class_block.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_unknown_class_block.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_nested_class_block.sv --profile 2017`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_semantic_fact_scoped_class_block.sv --profile 2017`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Important Boundary
+- This is the first minimal attribute-aware semantic-fact layer, not a broad attribute-semantics rollout.
+- Current checked-in live grammar steering still mainly relies on `kind + name`.
+- The new declaration-family attributes are enabling metadata for future ambiguities; they do not yet change the current SV pilot’s acceptance criteria.
+
 ## 2026-03-20 - Capture semantic-fact sequencing rationale
 ### ✅ Achievement Summary
 Recorded the implementation rationale for why the first live semantic-fact rollout uses generic `kind + name` queries instead of richer attribute-aware predicate semantics by default.

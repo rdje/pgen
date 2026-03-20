@@ -3350,3 +3350,20 @@ Why `rtl_frontend` exists:
     - richer attribute-aware semantic predicates should be treated as a next-layer expansion,
     - not as missing proof of the current semantic-runtime architecture,
     - and they should be introduced only once a live ambiguity clearly needs attribute-level matching beyond `kind + name`
+- 2026-03-20: Landed the first minimal attribute-aware semantic-fact extension.
+  - runtime slice:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+  - grammar slice:
+    - `grammars/systemverilog.ebnf`
+  - landed surface:
+    - new generic predicates:
+      - `has_fact_attribute(kind, name, key)`
+      - `fact_attribute_equals(kind, name, key, value)`
+    - checked-in SV `type_name` facts now emit declaration-family metadata for:
+      - `typedef`
+      - `class`
+      - `interface_class`
+  - roadmap consequence:
+    - attribute-aware semantic matching is now available as a small generic engine surface,
+    - but it is still intentionally not the default steering style for checked-in grammar behavior,
+    - the next pilot that uses it should be chosen only when `kind + name` is genuinely insufficient for a live ambiguity

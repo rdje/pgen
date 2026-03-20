@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-20 - Added the first minimal attribute-aware semantic-fact layer
+### Context
+After explicitly recording why the first live semantic-fact rollout started with `kind + name`, the next practical step was not a full attribute-semantics jump. The right incremental move was:
+- add one small generic attribute-aware query layer to the runtime,
+- enrich the existing checked-in SV `type_name` facts with declaration-family metadata,
+- keep current parse behavior unchanged unless a future grammar explicitly asks for those richer queries.
+
+### Implementation
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added:
+    - `has_fact_attribute(kind, name, key)`
+    - `fact_attribute_equals(kind, name, key, value)`
+  - added a small scalar-friendly matcher so attribute values can compare cleanly even when one side is an identifier form and the other is a string form
+  - extended focused semantic-runtime tests to prove:
+    - attribute presence works
+    - attribute equality works
+    - missing or mismatched attributes fail closed
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `declared_type_identifier` now emits `declaration_family: typedef`
+  - `declared_class_identifier` now emits `declaration_family: class`
+  - added `declared_interface_class_identifier` for `declaration_family: interface_class`
+  - `interface_class_declaration` now uses that dedicated wrapper instead of sharing the ordinary class wrapper
+
+### Why This Matters
+- This is the first real bridge between:
+  - the earlier generic `kind + name` core,
+  - and the richer attribute-aware semantics we expected to need later.
+- It keeps the rollout disciplined:
+  - the runtime now knows how to ask richer fact questions,
+  - but the checked-in grammar still is not forced to depend on them until a live ambiguity genuinely benefits.
+- The metadata split also avoids a future trap:
+  - `class` and `interface class` declarations no longer have to share the same emitted semantic fact attributes just because they both use `class_identifier`.
+
+### Remaining Gap
+- No checked-in grammar seam is using `has_fact_attribute(...)` or `fact_attribute_equals(...)` for steering yet.
+- So the current parse-behavior milestone is still:
+  - live semantic-fact steering via `kind + name`,
+  - with richer attributes now available as enabling metadata for the next pilot that actually needs them.
+
 ## 2026-03-20 - Why the first semantic-fact predicates are `kind + name`
 ### Context
 After the first live SystemVerilog semantic-fact pilots landed, an obvious question came up: why is the current built-in predicate surface still mostly generic `kind + name` queries instead of richer attribute-aware semantic matching?

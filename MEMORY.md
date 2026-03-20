@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-20 (+0100, task: capture-semantic-fact-kind-name-rationale)
+Last updated: 2026-03-20 (+0100, task: add-minimal-attribute-aware-semantic-facts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -5506,6 +5506,25 @@ Use this file to resume work without replaying full chat history.
   - Continuity guidance:
     - do not treat the current `kind + name` surface as a hard limit
     - treat it as the intentionally smallest correctness milestone before broader attribute-aware semantics
+- 2026-03-20: Added the first minimal attribute-aware semantic-fact layer.
+  - Active code slice:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `grammars/systemverilog.ebnf`
+  - What changed:
+    - runtime now supports:
+      - `has_fact_attribute(kind, name, key)`
+      - `fact_attribute_equals(kind, name, key, value)`
+    - checked-in SystemVerilog `type_name` facts now carry declaration-family metadata:
+      - `typedef`
+      - `class`
+      - `interface_class`
+    - `interface_class_declaration` now uses a dedicated wrapper so interface-class facts do not inherit ordinary class metadata by accident
+  - Important continuity note:
+    - this is still an enabling layer, not a live grammar-steering change
+    - current checked-in semantic steering still mainly relies on `kind + name`
+    - the new attributes are now available for the first future ambiguity that truly needs attribute-level matching
+  - Refreshed reduced proof:
+    - the existing declared/unknown/scoped nested-class SV semantic-fact pilot still behaves the same under a freshly regenerated parser after the new metadata was added
 - 2026-03-20: Split the oversized `semantic_usage_tests` semantic-runtime contract surface into focused cached fixtures and smaller assertions.
   - Active code slice:
     - `rust/src/ast_pipeline/ast_based_generator.rs`
