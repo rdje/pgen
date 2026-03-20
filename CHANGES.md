@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-20 - Capture semantic-fact sequencing rationale
+### ✅ Achievement Summary
+Recorded the implementation rationale for why the first live semantic-fact rollout uses generic `kind + name` queries instead of richer attribute-aware predicate semantics by default.
+
+### Scope of Changes
+- Updated the semantic-steering continuity docs to make the current intent explicit:
+  - the runtime semantic-fact model is generic and already stores:
+    - `kind`
+    - `name`
+    - `attributes`
+  - the checked-in HDL pilot currently uses `type_name` only because that was the smallest end-to-end fact family needed to prove live parser steering
+  - richer attribute-aware semantic predicates were intentionally deferred:
+    - not because the runtime forbids them,
+    - but because `kind + name` was enough to prove emission, storage, rollback, capture resolution, and real ambiguity control with lower correctness risk
+
+### Important Boundary
+- This is a design-rationale continuity update only.
+- It does not change runtime behavior or grammar behavior.
+
 ## 2026-03-20 - Broaden SV semantic type facts to class declarations
 ### ✅ Achievement Summary
 The first live SystemVerilog semantic-fact pilot now extends beyond local `typedef` aliases. Real `class` and `interface class` declaration heads now emit `type_name` facts, so later bare block-local class-type declarations such as `C value;` can parse when `C` was declared earlier in surrounding SV scope, while unknown bare class names still reject.

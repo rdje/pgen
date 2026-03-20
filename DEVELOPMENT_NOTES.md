@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-20 - Why the first semantic-fact predicates are `kind + name`
+### Context
+After the first live SystemVerilog semantic-fact pilots landed, an obvious question came up: why is the current built-in predicate surface still mostly generic `kind + name` queries instead of richer attribute-aware semantic matching?
+
+The important answer is sequencing, not limitation:
+- the runtime semantic-fact model is already generic,
+- facts already carry `attributes`,
+- but the first live pilot did not need attribute-aware predicates to prove the architecture end to end.
+
+### Implementation Reality
+- The runtime fact model already stores:
+  - `kind`
+  - `name`
+  - `attributes`
+- `@emit_fact` already accepts arbitrary fact families through the generic `kind` field.
+- The current built-in predicate surface is still mainly:
+  - `has_fact(kind, name)`
+  - `has_fact_in_current_scope(kind, name)`
+  - plus scope predicates
+
+### Why This Was The Right First Step
+- `kind + name` was the smallest semantic core that could prove all of the following together:
+  - fact emission from successful declarations
+  - scoped storage
+  - transactional rollback/commit
+  - `pre` / `branch` / `post` predicate timing
+  - capture-aware predicate argument resolution
+  - real grammar steering on a checked-in HDL ambiguity
+- For the first live SV pilot, the real question was simply:
+  - “is this name already known as a type?”
+- That made richer attribute-aware matching unnecessary for the first correctness milestone.
+
+### Why Attributes Were Deferred
+- Attribute-aware predicates would immediately force broader design choices:
+  - which attributes are canonical,
+  - how they are normalized,
+  - how partial matching works,
+  - how attributes interact with scoped lookup,
+  - and which attribute families are truly worth making first-class.
+- That bigger semantic design surface was not needed to prove the first live parser-steering loop.
+
+### Resulting Guidance
+- Do not misread the current `kind + name` surface as a hard engine limit.
+- Read it as the intentionally smallest end-to-end semantic-fact core.
+- The next meaningful semantic-runtime expansion can and likely should add richer attribute-aware predicates once a live ambiguity genuinely needs them.
+
 ## 2026-03-20 - Extended the first SV semantic-fact pilot to real class declarations
 ### Context
 The first live SystemVerilog semantic-fact pilot proved the block/function-body declaration front door with local `typedef` aliases, but it was still too narrow to help with ordinary class names. The existing fact-gated block-local class-type helpers were already present, yet only typedef aliases were actually populating the `type_name` fact table.

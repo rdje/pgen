@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-20 (+0100, task: broaden-sv-semantic-class-facts)
+Last updated: 2026-03-20 (+0100, task: capture-semantic-fact-kind-name-rationale)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -5483,6 +5483,29 @@ Use this file to resume work without replaying full chat history.
   - Boundary:
     - `covergroup` fact emission is still intentionally deferred
     - the current odd 2023 `covergroup ... extends ...` grammar alternative is the reason to keep that family out of this “small safe” increment
+- 2026-03-20: Captured why the current semantic-fact query surface is still mostly `kind + name`.
+  - Engine reality:
+    - the semantic runtime already stores generic facts as:
+      - `kind`
+      - `name`
+      - `attributes`
+    - `@emit_fact` already accepts arbitrary fact families through generic `kind`
+  - Current checked-in usage:
+    - the live HDL pilot still mainly uses `type_name`
+    - the current built-in predicate surface still mainly uses:
+      - `has_fact(kind, name)`
+      - `has_fact_in_current_scope(kind, name)`
+  - Design rationale:
+    - `kind + name` was the smallest end-to-end semantic-fact core that was sufficient to prove:
+      - emission
+      - scoped storage
+      - rollback/commit correctness
+      - capture-aware predicate resolution
+      - real grammar steering
+    - richer attribute-aware predicate semantics were intentionally deferred, not ruled out
+  - Continuity guidance:
+    - do not treat the current `kind + name` surface as a hard limit
+    - treat it as the intentionally smallest correctness milestone before broader attribute-aware semantics
 - 2026-03-20: Split the oversized `semantic_usage_tests` semantic-runtime contract surface into focused cached fixtures and smaller assertions.
   - Active code slice:
     - `rust/src/ast_pipeline/ast_based_generator.rs`

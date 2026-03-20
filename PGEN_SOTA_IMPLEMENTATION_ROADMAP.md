@@ -3331,3 +3331,22 @@ Why `rtl_frontend` exists:
   - still intentionally deferred:
     - `covergroup` fact emission, because the current 2023 `covergroup` declaration surface is odd enough that the declaration-vs-reference role is not yet cleanly obvious in a “small safe” pilot step
     - semantic-context-aware memoization keys
+- 2026-03-20: Captured why the first semantic-fact query layer stays mostly `kind + name`.
+  - runtime reality:
+    - semantic facts are already generic records with:
+      - `kind`
+      - `name`
+      - `attributes`
+    - `@emit_fact` already allows arbitrary fact families through generic `kind`
+  - rollout rationale:
+    - the first live parser-steering milestone did not require attribute-aware predicates
+    - `kind + name` was enough to prove:
+      - fact emission
+      - scoped storage
+      - transactional correctness
+      - capture-aware predicate resolution
+      - live ambiguity control
+  - roadmap consequence:
+    - richer attribute-aware semantic predicates should be treated as a next-layer expansion,
+    - not as missing proof of the current semantic-runtime architecture,
+    - and they should be introduced only once a live ambiguity clearly needs attribute-level matching beyond `kind + name`
