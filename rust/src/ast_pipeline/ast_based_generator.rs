@@ -2853,7 +2853,17 @@ impl AstBasedGenerator {
                 };
 
                 let resolved = if core_reference.starts_with('$') {
-                    self.resolve_positional_semantic_reference(root_content, core_reference)
+                    let dollar_reference_body = core_reference[1..].trim();
+                    let dollar_reference_is_positional = dollar_reference_body
+                        .as_bytes()
+                        .first()
+                        .map(|byte| byte.is_ascii_digit())
+                        .unwrap_or(false);
+                    if dollar_reference_is_positional {
+                        self.resolve_positional_semantic_reference(root_content, core_reference)
+                    } else {
+                        self.resolve_named_semantic_reference(root_content, dollar_reference_body)
+                    }
                 } else {
                     self.resolve_named_semantic_reference(root_content, core_reference)
                 }?;
@@ -3016,7 +3026,27 @@ impl AstBasedGenerator {
                     return false;
                 }
                 if normalized.starts_with('$') {
-                    return self.parse_semantic_reference_segments(normalized).is_some();
+                    let dollar_reference_body = normalized[1..].trim();
+                    if dollar_reference_body.is_empty() {
+                        return false;
+                    }
+                    let dollar_reference_is_positional = dollar_reference_body
+                        .as_bytes()
+                        .first()
+                        .map(|byte| byte.is_ascii_digit())
+                        .unwrap_or(false);
+                    if dollar_reference_is_positional {
+                        return self.parse_semantic_reference_segments(normalized).is_some();
+                    }
+
+                    let mut segments = dollar_reference_body.split('.');
+                    let Some(first) = segments.next() else {
+                        return false;
+                    };
+                    if !self.semantic_identifier(first) {
+                        return false;
+                    }
+                    return segments.all(|segment| self.semantic_identifier(segment));
                 }
 
                 let mut segments = normalized.split('.');
@@ -6562,6 +6592,35 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("fn enforce_relational_requires"),
             "helper methods should include @requires contract enforcement support, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_supports_named_dollar_semantic_references() {
+        let generator = AstBasedGenerator {
+            grammar_name: "usage_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            enable_debug: false,
+        };
+
+        let rendered = generator
+            .generate_helper_methods("semantic_usage.rs")
+            .to_string();
+
+        assert!(
+            rendered.contains("dollar_reference_body")
+                && rendered.contains("dollar_reference_is_positional"),
+            "helper methods should split named $rule_name references from positional $1 references explicitly, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("resolve_named_semantic_reference")
+                && rendered.contains("core_reference [1 ..] . trim ()"),
+            "helper methods should route named $rule_name references through named descendant resolution, got: {}",
             rendered
         );
     }

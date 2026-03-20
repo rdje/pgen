@@ -21820,3 +21820,22 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - focused generator proof passed: `generated_parser_embeds_branch_predicate_seam_for_multibranch_rules`
   - Live-status effect:
     - no live-status row changed
+- 2026-03-20: Fixed generated semantic-reference handling so semantic annotations can use named `$rule_name` captures instead of only positional `$1` / `$2`.
+  - Updated:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - What changed:
+    - generated semantic-reference resolution now distinguishes `$1`-style positional captures from `$rule_name`-style named captures,
+    - named dollar references now route through descendant lookup instead of being rejected by the positional-only parser,
+    - semantic-reference syntax validation now explicitly accepts named `$rule_name(.child)*` forms.
+  - Why this matters:
+    - the annotation DSL in `semantic_annotation.ebnf` already advertised named rule references,
+    - this closes the runtime mismatch that would otherwise make live semantic-fact pilots awkward and brittle,
+    - grammar authors can now write clearer semantic directives without depending on positional child numbering alone.
+  - Validation:
+    - focused generator proof passed: `semantic_usage_codegen_supports_named_dollar_semantic_references`
+    - branch-predicate regression proof passed: `generated_parser_embeds_branch_predicate_seam_for_multibranch_rules`
+  - Live-status effect:
+    - no live-status row changed

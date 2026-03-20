@@ -3267,3 +3267,11 @@ Why `rtl_frontend` exists:
     - semantic-context-aware memoization keys
     - broad branch-predicate rollout across ambiguous HDL rules
     - post-parse shaped-content pilots in real grammar slices
+- 2026-03-20: Fixed generated semantic-reference resolution so named `$rule_name` captures are now first-class at runtime.
+  - generated helper methods now distinguish:
+    - `$<digits>` for positional captures
+    - `$<identifier>(.<identifier>)*` for named descendant captures
+  - roadmap consequence:
+    - semantic-fact pilots no longer need to depend solely on positional numbering like `$1` / `$2`
+    - future HDL grammar slices can use clearer directives such as `$type_identifier` and `$package_identifier`
+  - this is a blocker-clearing step before the first live SystemVerilog semantic-fact pilot, not that pilot itself

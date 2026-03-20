@@ -5409,3 +5409,13 @@ Use this file to resume work without replaying full chat history.
     - this is the first real candidate-level semantic steering seam
     - the branch snapshot is intentionally read-only by convention; committed semantic effects still happen only through the transactional post-success path
     - the next best step after this slice is a live grammar pilot, likely a narrow SystemVerilog declaration-vs-statement ambiguity that benefits from `phase = branch` plus `view = raw`
+- 2026-03-20: Closed the named semantic-reference runtime gap for generated parsers.
+  - Active code slice:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - What changed:
+    - generated helper methods now accept named dollar references like `$package_identifier` and `$type_identifier` in addition to positional `$1`, `$2`, ...
+    - runtime resolution now routes `$<identifier>` through named descendant lookup rather than rejecting it as invalid positional syntax
+    - semantic-reference syntax validation now explicitly recognizes named dollar-reference forms
+  - Important continuity note:
+    - this aligns runtime behavior with the existing `semantic_annotation.ebnf` surface contract
+    - it also removes a major ergonomics blocker before the first live HDL semantic-fact pilot, because future rules no longer need to rely only on positional capture numbering

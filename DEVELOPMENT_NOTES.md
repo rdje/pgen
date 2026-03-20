@@ -21824,3 +21824,17 @@ Current boundary:
 - this is still generator/runtime infrastructure, not yet a live HDL grammar pilot
 - branch predicates can read current semantic facts/scopes plus candidate `raw`/`shaped` content
 - branch predicates do not yet add semantic-context-aware memo keys by themselves
+
+2026-03-20 named semantic-reference compatibility fix:
+- the semantic annotation DSL already supports both:
+  - positional captures like `$1`
+  - named captures like `$rule_name`
+- generated semantic-reference resolution had only been honoring the positional form at runtime
+- helper generation now distinguishes:
+  - `$<digits>` => positional capture lookup
+  - `$<identifier>(.<identifier>)*` => named descendant lookup
+
+Why this matters:
+- semantic facts and predicates are much easier to author against named captures than against brittle positional numbering
+- this aligns generated-parser runtime behavior with the surface contract already documented in `semantic_annotation.ebnf`
+- it is also the clean blocker-clearing step before a live HDL semantic-fact pilot, because rules like `$type_identifier` and `$package_identifier` are now expressible directly
