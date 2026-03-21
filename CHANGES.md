@@ -22126,3 +22126,32 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `clippy_on_rust_change` passed.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-21: Added the first branch-specific semantic-annotation preservation path from Rust EBNF frontend tokenization into the normalized AST pipeline.
+  - Updated:
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/ast_pipeline/mod.rs`
+    - `rust/src/main.rs`
+    - `grammars/ebnf.ebnf`
+    - `generated/ebnf.json`
+    - `generated/ebnf.rs`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - What changed:
+    - inline rule-body semantic annotations like `@predicate: ...` now tokenize as `semantic_annotation_inline`,
+    - normalized `Annotations` now preserve `branch_semantic_annotations` separately from rule-level semantic annotations,
+    - profile filtering and annotation preservation paths were widened to keep the new branch-local semantic map alive,
+    - tracked `ebnf` grammar/parser artifacts now admit inline semantic annotations inside `sequence_element`,
+    - Rust EBNF raw-AST export now skips generated-parser verification when inline semantic annotation tokens are present, matching the existing “scanner is authoritative here” fallback pattern already used for multiline annotation shapes.
+  - Validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/ebnf.ebnf` passed,
+    - `rust/target/debug/deps/pgen-b24ff383e18e32ce ast_pipeline::tests::transform_from_raw_ast_preserves_branch_semantic_annotations --exact --nocapture` passed,
+    - `cargo run --manifest-path rust/Cargo.toml --features 'generated_parsers ebnf_dual_run' --bin ast_pipeline -- /tmp/inline_semantic_branch.ebnf --emit-raw-ast-json /tmp/inline_semantic_branch.json` succeeded,
+    - `/tmp/inline_semantic_branch.json` contains `semantic_annotation_inline` plus the expected `alpha`/`beta` branch tokens,
+    - `clippy_on_rust_change` passed,
+    - `git diff --check` and `git diff --cached --check` passed.
+  - Important boundary:
+    - branch-local semantic annotations are now preserved and addressable, but live grammar consumption is still limited to the parser-control seams already wired in generated parsers,
+    - the Rust EBNF verifier fallback for inline rule-body annotations is intentionally conservative because that path is not yet cost-stable enough to be a required gate.
+  - Live-status effect:
+    - no live-status row changed

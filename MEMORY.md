@@ -5605,3 +5605,29 @@ Use this file to resume work without replaying full chat history.
       - branch-specific semantic annotations,
       - or an equivalent branch-local semantic control seam,
       - are the next high-value extension before attempting another live package-vs-type disambiguation patch
+- 2026-03-21: Preserved branch-local semantic annotations from the Rust EBNF frontend into normalized annotations.
+  - Active code slice:
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/ast_pipeline/mod.rs`
+    - `rust/src/main.rs`
+    - `grammars/ebnf.ebnf`
+    - `generated/ebnf.json`
+    - `generated/ebnf.rs`
+  - What changed:
+    - inline rule-body semantic annotations now tokenize as:
+      - `semantic_annotation_inline`
+    - normalized annotations now preserve:
+      - `branch_semantic_annotations: HashMap<String, Vec<Vec<SemanticAnnotation>>>`
+    - annotation/profile filtering was widened so branch-local semantic data is not dropped just because there are no rule-level semantic annotations on that rule
+    - tracked EBNF grammar/parser artifacts now admit inline semantic annotations inside `sequence_element`
+    - Rust EBNF raw-AST export now skips generated-parser verification when inline semantic annotation tokens are present
+  - Practical consequence:
+    - the parser stack finally has a preserved container for “this semantic directive belongs to branch N of rule R”
+    - this is the missing structural prerequisite for targeting surviving `T::f()`-style alternate fronts without another global grammar reorder
+  - Important continuity note:
+    - the strongest proof for this slice is now the live CLI path, not the feature-gated `ebnf_frontend` unit harness
+    - validated flow:
+      - `ast_pipeline --emit-raw-ast-json` on a tiny EBNF with inline `@predicate`
+      - emitted JSON contains `semantic_annotation_inline` plus the expected branch tokens
+    - the generated EBNF verifier fallback is intentional for now:
+      - scanner/raw-AST export remains authoritative on this shape until the verifier becomes cost-stable enough to re-enable as a hard check

@@ -31,14 +31,20 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
         .flat_map(|rule| rule.annotations.iter())
         .any(|annotation| annotation.contains('\n'));
     let mut raw_ast = Vec::with_capacity(scanned_rules.len());
+    let mut has_inline_semantic_annotations = false;
     for rule in &scanned_rules {
-        raw_ast.push(convert_scanned_rule(rule)?);
+        let converted = convert_scanned_rule(rule)?;
+        has_inline_semantic_annotations |=
+            contains_token_type(&converted, "semantic_annotation_inline");
+        raw_ast.push(converted);
     }
 
-    let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
-    if let Err(err) = parser.parse_full_grammar_file() {
-        if !has_multiline_annotations {
-            return Err(anyhow!("Rust EBNF parser failed: {}", err));
+    if !has_inline_semantic_annotations {
+        let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
+        if let Err(err) = parser.parse_full_grammar_file() {
+            if !has_multiline_annotations {
+                return Err(anyhow!("Rust EBNF parser failed: {}", err));
+            }
         }
     }
     let source_file_value = source_file.unwrap_or("<memory>");
@@ -56,6 +62,20 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
         },
         "raw_ast": raw_ast
     }))
+}
+
+fn contains_token_type(rule_tokens: &Value, expected_type: &str) -> bool {
+    rule_tokens
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|token| {
+            token
+                .as_array()
+                .and_then(|parts| parts.first())
+                .and_then(Value::as_str)
+                == Some(expected_type)
+        })
 }
 
 #[derive(Debug)]
@@ -480,7 +500,13 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                 }
             }
             '@' => {
-                if let Some((probability, next_idx)) = parse_probability_quantifier(expression, idx)
+                if let Some(((name, payload), next_idx)) =
+                    parse_inline_semantic_annotation(expression, idx)?
+                {
+                    tokens.push(json!(["semantic_annotation_inline", [name, payload]]));
+                    idx = next_idx;
+                } else if let Some((probability, next_idx)) =
+                    parse_probability_quantifier(expression, idx)
                 {
                     tokens.push(json!(["probability", probability]));
                     idx = next_idx;
@@ -533,6 +559,66 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
     }
 
     Ok(tokens)
+}
+
+fn parse_inline_semantic_annotation(
+    input: &str,
+    start: usize,
+) -> Result<Option<((String, String), usize)>> {
+    let bytes = input.as_bytes();
+    if bytes.get(start).copied() != Some(b'@') {
+        return Ok(None);
+    }
+
+    let mut idx = start + 1;
+    while idx < bytes.len() && (bytes[idx] as char).is_whitespace() && bytes[idx] != b'\n' {
+        idx += 1;
+    }
+
+    let Some(first) = bytes.get(idx).copied().map(char::from) else {
+        return Ok(None);
+    };
+    if !(first == '_' || first.is_ascii_alphabetic()) {
+        return Ok(None);
+    }
+
+    let mut saw_non_whitespace = false;
+    let mut tracker = DelimiterTracker::default();
+    while idx < input.len() {
+        let Some(ch) = input[idx..].chars().next() else {
+            break;
+        };
+        let next_idx = idx + ch.len_utf8();
+        let next_char = input[next_idx..].chars().next();
+
+        if ch == '\n' && tracker.is_top_level() && saw_non_whitespace {
+            break;
+        }
+
+        tracker.consume(ch, next_char, ScanMode::Annotations);
+        if !ch.is_whitespace() {
+            saw_non_whitespace = true;
+        }
+        idx = next_idx;
+    }
+
+    let raw_annotation = input
+        .get(start..idx)
+        .map(str::trim_end)
+        .unwrap_or_default()
+        .to_string();
+    if raw_annotation.is_empty() {
+        return Ok(None);
+    }
+
+    let Some(parsed) = parse_semantic_annotation_text(&raw_annotation) else {
+        return Err(anyhow!(
+            "unterminated or malformed inline semantic annotation '{}'",
+            raw_annotation
+        ));
+    };
+
+    Ok(Some((parsed, idx)))
 }
 
 fn parse_quoted_literal(input: &str, start: usize) -> Option<(String, usize)> {
@@ -922,6 +1008,35 @@ entry = alpha
         assert!(
             first_rule.contains("[\"rule_reference\",\"beta\"]"),
             "expected second alternative in raw_ast, got: {}",
+            first_rule
+        );
+    }
+
+    #[test]
+    fn tokenizes_inline_semantic_annotations_inside_rule_body() {
+        let expression = r#"
+  @predicate: { name: has_fact, args: [type_name, $alpha], phase: branch, view: raw }
+  alpha
+| beta
+"#;
+        let tokens = tokenize_rule_expression(expression)
+            .expect("inline semantic annotation tokenization should succeed");
+        let first_rule = serde_json::to_string(&tokens).expect("token json");
+        assert!(
+            first_rule.contains(
+                "[\"semantic_annotation_inline\",[\"predicate\",\"{ name: has_fact, args: [type_name, $alpha], phase: branch, view: raw }\"]]"
+            ),
+            "expected inline semantic annotation token in token stream, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"rule_reference\",\"alpha\"]"),
+            "expected alpha token in token stream, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"rule_reference\",\"beta\"]"),
+            "expected beta token in token stream, got: {}",
             first_rule
         );
     }

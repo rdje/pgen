@@ -3435,3 +3435,36 @@ Why `rtl_frontend` exists:
     - it should be one of:
       - branch-specific semantic annotations,
       - or an equivalent branch-local steering surface that can reject one qualified alternative while preserving sibling alternatives and unknown external package-like names
+- 2026-03-21: Landed the first preserved branch-specific semantic-annotation path through the Rust EBNF frontend and normalized AST pipeline.
+  - frontend slice:
+    - `rust/src/ebnf_frontend.rs`
+  - normalization slice:
+    - `rust/src/ast_pipeline/mod.rs`
+    - `rust/src/main.rs`
+  - grammar/bootstrap slice:
+    - `grammars/ebnf.ebnf`
+    - `generated/ebnf.json`
+    - `generated/ebnf.rs`
+  - landed surface:
+    - inline rule-body semantic annotations now tokenize as:
+      - `semantic_annotation_inline`
+    - normalized annotations now preserve:
+      - `branch_semantic_annotations`
+    - profile filtering retains/prunes the new branch-local map consistently
+    - tracked EBNF grammar artifacts now admit inline semantic annotations in sequence position
+    - Rust EBNF raw-AST export skips generated-parser verification when inline semantic annotation tokens are present
+  - focused proof:
+    - direct AST-pipeline branch-preservation test passed
+    - live CLI proof via:
+      - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
+      - on a reduced grammar with inline `@predicate`
+    - emitted JSON contains:
+      - `semantic_annotation_inline`
+      - the expected branch tokens
+  - roadmap consequence:
+    - the architecture now has a real preserved container for branch-local semantic directives
+    - the next high-value step is no longer “invent branch-local storage”
+    - it is:
+      - consume `branch_semantic_annotations` in one live grammar pilot,
+      - ideally the reduced SystemVerilog package-vs-type seam that still accepts `T::f()`
+    - the Rust EBNF verifier fallback for inline rule-body annotations should be treated as temporary until that path is cost-stable enough to promote back into a required gate

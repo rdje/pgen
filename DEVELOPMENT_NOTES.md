@@ -22199,3 +22199,48 @@ Practical consequence:
 - it is a more precise branch-local semantic-annotation/control seam that can say:
   - this specific qualified alternative should reject when the head is already a known local `type_name`
   - while sibling alternatives and unknown external package-like names remain allowed
+
+2026-03-21 branch-local semantic annotation preservation:
+- the next real blocker after the package/type frontier write-up was not another SV grammar tweak
+- it was infrastructure:
+  - the Rust EBNF frontend could only emit rule-level `semantic_annotation` tokens,
+  - while the normalized AST pipeline only had:
+    - per-branch return annotations,
+    - plus flat per-rule semantic annotations
+- that meant there was still no place to preserve a semantic directive that is intended to govern one specific branch of an alternation
+
+What landed:
+- `rust/src/ebnf_frontend.rs`
+  - `tokenize_rule_expression(...)` now recognizes inline rule-body semantic annotations and emits:
+    - `["semantic_annotation_inline", [name, payload]]`
+  - the Rust EBNF raw-AST export path now scans converted rule tokens for `semantic_annotation_inline`
+  - when inline rule-body semantic annotations are present, it intentionally skips the generated-parser verification pass for that file
+    - this mirrors the earlier “scanner remains authoritative” fallback already used when multiline annotation shapes exceed the verifying parser’s comfort zone
+- `rust/src/ast_pipeline/mod.rs`
+  - `Annotations` now carries:
+    - `branch_semantic_annotations: HashMap<String, Vec<Vec<SemanticAnnotation>>>`
+  - raw-AST extraction preserves inline semantic annotations by branch index rather than flattening them into the existing rule-level map
+  - annotation preservation gates now keep `Annotations` alive when branch-semantic data is the only annotation surface present
+- `rust/src/main.rs`
+  - profile-filtering now retains/prunes `branch_semantic_annotations` consistently with the existing return/rule-level annotation maps
+- `grammars/ebnf.ebnf`
+  - `sequence_element` now admits `inline_semantic_annotation := semantic_annotation`
+  - tracked `generated/ebnf.json` and `generated/ebnf.rs` were regenerated from that grammar update
+
+Validation that mattered:
+- `perl tools/ebnf_to_json.pl --validate-only grammars/ebnf.ebnf`
+- direct AST-pipeline proof:
+  - `rust/target/debug/deps/pgen-b24ff383e18e32ce ast_pipeline::tests::transform_from_raw_ast_preserves_branch_semantic_annotations --exact --nocapture`
+- live CLI proof:
+  - `cargo run --manifest-path rust/Cargo.toml --features 'generated_parsers ebnf_dual_run' --bin ast_pipeline -- /tmp/inline_semantic_branch.ebnf --emit-raw-ast-json /tmp/inline_semantic_branch.json`
+  - the emitted JSON contains:
+    - `semantic_annotation_inline`
+    - the expected inline payload
+    - the expected `alpha` / `beta` branch tokens
+
+Important continuity note:
+- the feature-gated `ebnf_frontend` test harness remains less trustworthy than the live CLI proof for this slice
+- so the meaningful contract for now is:
+  - inline rule-body semantic annotations survive Rust EBNF raw-AST export,
+  - branch-local semantic annotations survive normalization into `Annotations`,
+  - and the generated-parser verification step is conservatively skipped on that shape until it becomes cost-stable enough to re-promote into a hard gate

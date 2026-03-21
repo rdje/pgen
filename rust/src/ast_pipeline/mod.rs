@@ -718,6 +718,9 @@ pub struct Annotations {
     #[serde(default)]
     pub branch_return_annotations: std::collections::HashMap<String, Vec<Option<BranchAnnotation>>>,
     #[serde(default)]
+    pub branch_semantic_annotations:
+        std::collections::HashMap<String, Vec<Vec<SemanticAnnotation>>>,
+    #[serde(default)]
     pub semantic_annotations: std::collections::HashMap<String, Vec<SemanticAnnotation>>,
 }
 
@@ -799,6 +802,7 @@ enum RawRuleElement {
 struct ParsedRuleContent {
     ast_node: ASTNode,
     branch_return_annotations: Vec<Option<BranchAnnotation>>,
+    branch_semantic_annotations: Vec<Vec<SemanticAnnotation>>,
     semantic_annotations: Vec<SemanticAnnotation>,
 }
 
@@ -806,6 +810,7 @@ struct ParsedRuleContent {
 struct ExtractedRuleAnnotations {
     syntax_elements: Vec<serde_json::Value>,
     branch_return_annotations: Vec<Option<BranchAnnotation>>,
+    branch_semantic_annotations: Vec<Vec<SemanticAnnotation>>,
     semantic_annotations: Vec<SemanticAnnotation>,
 }
 
@@ -893,6 +898,17 @@ impl RustASTPipeline {
                                     .or_default()
                                     .extend(parsed_rule.branch_return_annotations.clone());
                             }
+                            if parsed_rule
+                                .branch_semantic_annotations
+                                .iter()
+                                .any(|entry| !entry.is_empty())
+                            {
+                                annotations
+                                    .branch_semantic_annotations
+                                    .entry(rule_name.clone())
+                                    .or_default()
+                                    .extend(parsed_rule.branch_semantic_annotations.clone());
+                            }
                             if !parsed_rule.semantic_annotations.is_empty() {
                                 annotations
                                     .semantic_annotations
@@ -950,6 +966,7 @@ impl RustASTPipeline {
 
         let annotations = if self.config.preserve_annotations
             && (!annotations.branch_return_annotations.is_empty()
+                || !annotations.branch_semantic_annotations.is_empty()
                 || !annotations.semantic_annotations.is_empty())
         {
             Some(annotations)
@@ -1238,6 +1255,7 @@ impl RustASTPipeline {
             return Ok(ParsedRuleContent {
                 ast_node: ASTNode::Sequence { elements: vec![] },
                 branch_return_annotations: vec![None],
+                branch_semantic_annotations: vec![Vec::new()],
                 semantic_annotations: Vec::new(),
             });
         }
@@ -1248,19 +1266,25 @@ impl RustASTPipeline {
 
         let extracted = self.extract_rule_annotations(content)?;
         eprintln!(
-            "        Annotation extraction: {} branch return slot(s), {} semantic annotation(s)",
+            "        Annotation extraction: {} branch return slot(s), {} branch semantic slot(s), {} rule semantic annotation(s)",
             extracted.branch_return_annotations.len(),
+            extracted.branch_semantic_annotations.len(),
             extracted.semantic_annotations.len()
         );
 
         if extracted.syntax_elements.is_empty() {
             let mut branch_return_annotations = extracted.branch_return_annotations;
+            let mut branch_semantic_annotations = extracted.branch_semantic_annotations;
             if branch_return_annotations.is_empty() {
                 branch_return_annotations.push(None);
+            }
+            if branch_semantic_annotations.is_empty() {
+                branch_semantic_annotations.push(Vec::new());
             }
             return Ok(ParsedRuleContent {
                 ast_node: ASTNode::Sequence { elements: vec![] },
                 branch_return_annotations,
+                branch_semantic_annotations,
                 semantic_annotations: extracted.semantic_annotations,
             });
         }
@@ -1304,6 +1328,7 @@ impl RustASTPipeline {
         eprintln!("       File: {}:{}", file!(), line!());
 
         let mut branch_return_annotations = extracted.branch_return_annotations;
+        let mut branch_semantic_annotations = extracted.branch_semantic_annotations;
         let branch_count = match &result {
             ASTNode::Or { alternatives } => alternatives.len(),
             _ => 1,
@@ -1313,10 +1338,16 @@ impl RustASTPipeline {
         } else if branch_return_annotations.len() > branch_count {
             branch_return_annotations.truncate(branch_count);
         }
+        if branch_semantic_annotations.len() < branch_count {
+            branch_semantic_annotations.resize_with(branch_count, Vec::new);
+        } else if branch_semantic_annotations.len() > branch_count {
+            branch_semantic_annotations.truncate(branch_count);
+        }
 
         Ok(ParsedRuleContent {
             ast_node: result,
             branch_return_annotations,
+            branch_semantic_annotations,
             semantic_annotations: extracted.semantic_annotations,
         })
     }
@@ -1327,6 +1358,7 @@ impl RustASTPipeline {
     ) -> Result<ExtractedRuleAnnotations> {
         let mut syntax_elements = Vec::with_capacity(content.len());
         let mut branch_return_annotations: Vec<Option<BranchAnnotation>> = vec![None];
+        let mut branch_semantic_annotations: Vec<Vec<SemanticAnnotation>> = vec![Vec::new()];
         let mut semantic_annotations = Vec::new();
 
         let mut group_depth = 0usize;
@@ -1356,6 +1388,9 @@ impl RustASTPipeline {
                         branch_idx = branch_idx.saturating_add(1);
                         if branch_return_annotations.len() <= branch_idx {
                             branch_return_annotations.push(None);
+                        }
+                        if branch_semantic_annotations.len() <= branch_idx {
+                            branch_semantic_annotations.push(Vec::new());
                         }
                     }
                     syntax_elements.push(item.clone());
@@ -1398,6 +1433,23 @@ impl RustASTPipeline {
                         );
                     }
                 }
+                "semantic_annotation_inline" => {
+                    if let Some(payload) = arr.get(1) {
+                        if let Some(annotation) =
+                            self.parse_semantic_annotation_entry(payload, item)?
+                        {
+                            if branch_semantic_annotations.len() <= branch_idx {
+                                branch_semantic_annotations.resize_with(branch_idx + 1, Vec::new);
+                            }
+                            branch_semantic_annotations[branch_idx].push(annotation);
+                        }
+                    } else {
+                        eprintln!(
+                            "[mod.rs][extract_rule_annotations()] ⚠️ inline semantic annotation missing payload: {:?}",
+                            item
+                        );
+                    }
+                }
                 _ => syntax_elements.push(item.clone()),
             }
         }
@@ -1405,6 +1457,7 @@ impl RustASTPipeline {
         Ok(ExtractedRuleAnnotations {
             syntax_elements,
             branch_return_annotations,
+            branch_semantic_annotations,
             semantic_annotations,
         })
     }
@@ -2462,6 +2515,60 @@ mod tests {
                 ));
             }
             _ => panic!("semantic annotation should be captured as named directive"),
+        }
+
+        let branch_semantic_annotations = annotations
+            .branch_semantic_annotations
+            .get("expr")
+            .expect("rule branch semantic annotations should exist");
+        assert_eq!(branch_semantic_annotations.len(), 2);
+        assert!(branch_semantic_annotations[0].is_empty());
+        assert!(branch_semantic_annotations[1].is_empty());
+    }
+
+    #[test]
+    fn transform_from_raw_ast_preserves_branch_semantic_annotations() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![json!([
+            ["rule", "expr"],
+            ["rule_reference", "lhs"],
+            ["operator", "|"],
+            [
+                "semantic_annotation_inline",
+                [
+                    "predicate",
+                    "{ name: has_fact, args: [type_name, $rhs], phase: branch, view: raw }"
+                ]
+            ],
+            ["rule_reference", "rhs"]
+        ])];
+
+        let (_grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        let branch_semantic_annotations = annotations
+            .branch_semantic_annotations
+            .get("expr")
+            .expect("branch semantic annotations should exist");
+        assert_eq!(branch_semantic_annotations.len(), 2);
+        assert!(branch_semantic_annotations[0].is_empty());
+        assert_eq!(branch_semantic_annotations[1].len(), 1);
+        match &branch_semantic_annotations[1][0] {
+            SemanticAnnotation::Named { name, ast } => {
+                assert_eq!(name, "predicate");
+                assert!(matches!(
+                    ast,
+                    UnifiedSemanticAST::Structured { canonical, .. }
+                        if canonical
+                            == "{ name: has_fact, args: [type_name, $rhs], phase: branch, view: raw }"
+                ));
+            }
+            other => panic!(
+                "branch semantic annotation should be captured as named directive, got {:?}",
+                other
+            ),
         }
     }
 

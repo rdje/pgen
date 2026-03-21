@@ -108,7 +108,16 @@ sequence := sequence_element+
     -> {type: "sequence", elements: [$1*]}
 
 # Elements that can appear in a sequence
-sequence_element := (quantified_element | primary_element)
+sequence_element := (
+    inline_semantic_annotation |
+    quantified_element |
+    primary_element
+)
+    -> $1
+
+# Inline semantic annotations can steer a specific sequence/branch without
+# needing to sit at rule scope.
+inline_semantic_annotation := semantic_annotation
     -> $1
 
 # Quantified elements: element?, element*, element+, element{n,m}

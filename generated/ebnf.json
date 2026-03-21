@@ -5,10 +5,10 @@
       "documentation" : "See docs/ast_transformation_pipeline.md for detailed transformation algorithms",
       "ebnf_version" : "1.0",
       "format" : "raw_ast",
-      "generated_at" : "2026-03-07T10:41:15Z",
+      "generated_at" : "2026-03-21T01:49:24Z",
       "generator" : "ebnf_to_json.pl",
       "next_step" : "Apply transformation pipeline: step2_group_by_or → step2_5_handle_parentheses → step3_parse_sequences → step4_handle_quantifiers → step5_build_tree_structure",
-      "source_file" : "/Users/richarddje/Documents/github/pgen/grammars/ebnf.ebnf"
+      "source_file" : "grammars/ebnf.ebnf"
    },
    "raw_ast" : [
       [
@@ -537,6 +537,14 @@
          ],
          [
             "rule_reference",
+            "inline_semantic_annotation"
+         ],
+         [
+            "operator",
+            "|"
+         ],
+         [
+            "rule_reference",
             "quantified_element"
          ],
          [
@@ -550,6 +558,20 @@
          [
             "group_close",
             ")"
+         ],
+         [
+            "return_scalar",
+            "$1"
+         ]
+      ],
+      [
+         [
+            "rule",
+            "inline_semantic_annotation"
+         ],
+         [
+            "rule_reference",
+            "semantic_annotation"
          ],
          [
             "return_scalar",
