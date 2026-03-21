@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: use-attribute-facts-for-interface-class-type)
+Last updated: 2026-03-21 (+0100, task: use-attribute-facts-for-base-class-type)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -5541,6 +5541,23 @@ Use this file to resume work without replaying full chat history.
   - Important continuity note:
     - this is the first checked-in parser behavior that truly needs attribute-aware facts rather than plain `kind + name`
     - the seam is intentionally narrow because the current fact table still records unqualified names, not fully qualified scoped identities
+- 2026-03-21: Landed the second live attribute-aware grammar pilot on the `extends` base-class seam.
+  - Active code slice:
+    - `grammars/systemverilog.ebnf`
+  - What changed:
+    - added `base_class_type`
+    - unscoped base-class names now require:
+      - `fact_attribute_equals(type_name, $class_identifier, declaration_family, class)`
+    - both `class_declaration_sv_2017` and `class_declaration_sv_2023` now use `base_class_type` at `extends`
+    - scoped `pkg::Base` forms remain available through a separate ungated path
+  - Refreshed reduced proof:
+    - under `--profile 2023`:
+      - `class Base; class D extends Base;` passes
+      - `interface class I; class D extends I;` fails
+      - `class D extends defs::Base;` still passes
+  - Important continuity note:
+    - this intentionally does not tighten the broader `class_type` rule
+    - only the inheritance seam is constrained, because that is the specific place where ordinary class vs interface-class provenance matters
 - 2026-03-20: Split the oversized `semantic_usage_tests` semantic-runtime contract surface into focused cached fixtures and smaller assertions.
   - Active code slice:
     - `rust/src/ast_pipeline/ast_based_generator.rs`

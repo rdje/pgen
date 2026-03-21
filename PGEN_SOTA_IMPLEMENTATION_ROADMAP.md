@@ -3387,3 +3387,26 @@ Why `rtl_frontend` exists:
     - the next attribute-aware pilots should target other seams where:
       - `kind + name` is genuinely too coarse
       - but a fully qualified scoped semantic identity model is not yet required
+- 2026-03-21: Landed the second live attribute-aware grammar pilot on base-class inheritance.
+  - grammar slice:
+    - `grammars/systemverilog.ebnf`
+  - pilot seam:
+    - `extends` base-class matching
+  - landed behavior:
+    - unscoped base-class names now require:
+      - `fact_attribute_equals(type_name, $class_identifier, declaration_family, class)`
+    - interface-class names no longer satisfy the unscoped inheritance seam just because they are known `type_name` facts
+    - scoped `pkg::Base` forms remain intentionally available through a separate ungated path
+  - focused reduced proof:
+    - under the `sv_2023` profile:
+      - `class Base; class D extends Base;` passes
+      - `interface class I; class D extends I;` fails
+      - `class D extends defs::Base;` still passes
+  - roadmap consequence:
+    - attribute-aware semantic facts are now proven useful across both sides of the class-family split:
+      - `implements` for interface classes
+      - `extends` for ordinary base classes
+    - the next good pilots should keep the same pattern:
+      - target one narrow semantic seam,
+      - prefer unscoped cases first,
+      - avoid pretending fully qualified scoped identity is already solved

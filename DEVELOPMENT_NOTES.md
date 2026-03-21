@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Second live attribute-aware pilot: `extends` now distinguishes class bases
+### Context
+After the first live attribute-aware pilot tightened `interface_class_type` for `implements`, the natural mirror seam was `extends`.
+
+This was another place where `kind + name` is too coarse:
+- a real base class should be accepted,
+- an `interface class` should not be accepted as an unscoped `extends` base,
+- but broadening that distinction across the whole `class_type` rule would have been too aggressive because `class_type` is reused in other contexts.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `known_unscoped_base_class_type_identifier`
+    - gated by:
+      - `fact_attribute_equals(type_name, $class_identifier, declaration_family, class)`
+  - added `scoped_base_class_type_identifier`
+  - added `base_class_type`
+  - rewired:
+    - `class_declaration_sv_2017`
+    - `class_declaration_sv_2023`
+    - so `extends` uses `base_class_type` instead of the broader `class_type`
+
+### Why This Matters
+- This is the second checked-in grammar seam where attribute-aware facts prove their value.
+- It also shows the discipline we want:
+  - do not globally tighten `class_type` just because one use site needs more precision,
+  - instead create a narrower semantically constrained front door at the exact ambiguity/invariant seam.
+- That keeps the parser more trustworthy:
+  - `extends` now matches the real declaration-family intent better,
+  - without silently changing every other class-like context.
+
+### Focused Reduced Proof
+- under `--profile 2023`:
+  - `class Base; class D extends Base;` passes
+  - `interface class I; class D extends I;` fails
+  - `class D extends defs::Base;` still passes
+
+### Remaining Gap
+- Scoped inheritance forms are still intentionally ungated semantically.
+- As with the `implements defs::I` pilot, the current fact model does not yet carry fully qualified package identity, so broader scoped inheritance tightening should wait for a stronger scoped semantic representation instead of being approximated locally.
+
 ## 2026-03-21 - First live grammar use of attribute-aware semantic predicates
 ### Context
 After landing generic attribute-aware fact predicates plus declaration-family metadata on checked-in SV `type_name` facts, the next step needed to be a real grammar seam where `kind + name` alone was genuinely insufficient.

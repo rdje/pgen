@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-21 - Use semantic fact attributes for base classes
+### ✅ Achievement Summary
+This lands the second live grammar use of attribute-aware semantic facts. The unscoped `extends` base-class seam in SystemVerilog now requires `declaration_family: class`, which means `class D extends Base;` accepts a real class base while `class D extends I;` rejects an `interface class I` in that same unscoped role.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `known_unscoped_base_class_type_identifier`
+    - gated by `fact_attribute_equals(type_name, $class_identifier, declaration_family, class)`
+  - added `scoped_base_class_type_identifier`
+  - added `base_class_type`
+  - rewired both `class_declaration_sv_2017` and `class_declaration_sv_2023` so `extends` now consumes `base_class_type` instead of the broader `class_type`
+
+### Focused Validation
+- `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+- `rust/target/debug/ast_pipeline /tmp/systemverilog_base_class_attr_pilot.json --generate-parser --eliminate-left-recursion --output /tmp/systemverilog_base_class_attr_pilot_parser.rs`
+- `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_base_class_attr_pilot_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_base_class_attr_good.sv --profile 2023`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_base_class_attr_bad.sv --profile 2023`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_base_class_attr_scoped.sv --profile 2023`
+
+### Important Boundary
+- This is a narrow inheritance seam only.
+- The broader `class_type` rule remains intentionally unchanged in this slice, so other class-like contexts are not implicitly tightened.
+- Scoped `pkg::Base` forms remain intentionally ungated because the current fact model still stores unqualified declaration names rather than full qualified semantic identities.
+
 ## 2026-03-21 - Use attribute-aware facts for SV interface-class matching
 ### ✅ Achievement Summary
 This lands the first real checked-in grammar use of the new attribute-aware semantic-fact predicates. Unscoped `interface_class_type` in SystemVerilog now requires an emitted `type_name` fact with `declaration_family: interface_class`, which means `implements I` accepts a real `interface class I` but rejects an ordinary `class C` in the same unscoped role.

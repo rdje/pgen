@@ -349,10 +349,10 @@ class_constructor_prototype_sv_2023 := kw_function_c218e39e kw_new_c2a6b03f ( lp
 class_constructor_prototype := class_constructor_prototype_sv_2017 | class_constructor_prototype_sv_2023
 
 @profiles: ["sv_2017"]
-class_declaration_sv_2017 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( lifetime )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 class_type ( lparen list_of_arguments rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
+class_declaration_sv_2017 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( lifetime )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 base_class_type ( lparen list_of_arguments rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
 
 @profiles: ["sv_2023"]
-class_declaration_sv_2023 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( final_specifier )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 class_type ( lparen ( list_of_arguments | kw_default_7505d64a )? rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
+class_declaration_sv_2023 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( final_specifier )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 base_class_type ( lparen ( list_of_arguments | kw_default_7505d64a )? rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
 
 class_declaration := class_declaration_sv_2017 | class_declaration_sv_2023
 
@@ -383,6 +383,13 @@ class_new := ( class_scope )? kw_new_c2a6b03f ( lparen list_of_arguments rparen 
 class_property := property_qualifier* data_declaration | kw_const_b42f3f6f class_item_qualifier* data_type const_identifier ( assign constant_expression )? semi
 
 class_scope := class_type scope_resolution
+
+@predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
+known_unscoped_base_class_type_identifier := class_identifier
+
+scoped_base_class_type_identifier := package_scope class_identifier
+
+base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
 class_type := ps_class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
