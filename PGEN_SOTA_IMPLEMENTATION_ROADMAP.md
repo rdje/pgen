@@ -3410,3 +3410,28 @@ Why `rtl_frontend` exists:
       - target one narrow semantic seam,
       - prefer unscoped cases first,
       - avoid pretending fully qualified scoped identity is already solved
+- 2026-03-21: Added package facts and a negative fact predicate, and clarified the next missing semantic-steering capability.
+  - runtime slice:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+  - grammar slice:
+    - `grammars/systemverilog.ebnf`
+  - landed surface:
+    - new generic predicate:
+      - `lacks_fact(kind, name)`
+    - SystemVerilog `package_declaration` now emits:
+      - `package_name`
+  - refreshed reduced proof:
+    - `C::new()` still passes
+    - `T::new()` still rejects
+    - `C::f()` still passes
+    - local-package `defs::f()` still passes
+    - unknown external-like `extpkg::f()` still passes
+    - `T::f()` still passes
+  - roadmap consequence:
+    - the remaining `T::f()` acceptance is now pinned to a concrete architectural gap:
+      - semantic annotations are still applied at rule granularity,
+      - but the surviving ambiguity needs branch-specific semantic control
+    - so the next semantic-steering milestone should not be another broad package-scope hardening attempt
+    - it should be one of:
+      - branch-specific semantic annotations,
+      - or an equivalent branch-local steering surface that can reject one qualified alternative while preserving sibling alternatives and unknown external package-like names

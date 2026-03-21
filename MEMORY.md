@@ -5580,3 +5580,28 @@ Use this file to resume work without replaying full chat history.
       - `generated_parser_runtime_contract_` -> `6` passing tests
       - `generated_parser_branch_contract_` -> `3` passing tests
       - named semantic reference regression still passes
+- 2026-03-21: Added `package_name` facts and the first generic negative fact predicate.
+  - Active code slice:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `grammars/systemverilog.ebnf`
+  - What changed:
+    - semantic runtime now supports `lacks_fact(kind, name)`
+    - `package_declaration` now emits `package_name`
+    - the checked-in class-family semantic gates remain active on:
+      - `class_scope`
+      - class-scoped call prefix heads
+  - Refreshed reduced proof:
+    - `C::new()` still passes
+    - `T::new()` still rejects
+    - `C::f()` still passes
+    - `defs::f()` still passes
+    - unknown external-like `extpkg::f()` still passes
+    - `T::f()` still passes
+  - Important continuity note:
+    - the remaining `T::f()` acceptance is now understood as a control-surface limitation, not a mystery regression
+    - the already-landed class/type/package facts are sufficient to *describe* the disambiguation
+    - what is still missing is the ability to apply that discrimination to the exact surviving alternate front door without collateral damage
+    - in practice that means:
+      - branch-specific semantic annotations,
+      - or an equivalent branch-local semantic control seam,
+      - are the next high-value extension before attempting another live package-vs-type disambiguation patch

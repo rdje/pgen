@@ -470,6 +470,14 @@ impl SemanticRuntimeState {
                     fact.kind.eq_ignore_ascii_case(expected_kind) && fact.name == expected_name
                 }))
             }
+            "lacks_fact" => {
+                let expected_kind = scalar_text(predicate.args.first()?)?;
+                let expected_name =
+                    SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
+                Some(!self.facts.iter().any(|fact| {
+                    fact.kind.eq_ignore_ascii_case(expected_kind) && fact.name == expected_name
+                }))
+            }
             "has_fact_in_current_scope" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
@@ -1146,6 +1154,18 @@ mod tests {
         );
         assert_eq!(
             state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "lacks_fact".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("missing_type".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
                 name: "has_fact_in_current_scope".to_string(),
                 args: vec![
                     UnifiedSemanticValue::Identifier("typedef".to_string()),
@@ -1300,6 +1320,18 @@ mod tests {
                     UnifiedSemanticValue::Identifier("my_type".to_string()),
                     UnifiedSemanticValue::Identifier("declaration_family".to_string()),
                     UnifiedSemanticValue::Identifier("class".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            Some(false)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "lacks_fact".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("my_type".to_string()),
                 ],
                 phase: SemanticPredicatePhase::Pre,
                 view: SemanticPredicateContentView::Raw,

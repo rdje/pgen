@@ -382,7 +382,17 @@ class_new := ( class_scope )? kw_new_c2a6b03f ( lparen list_of_arguments rparen 
 
 class_property := property_qualifier* data_declaration | kw_const_b42f3f6f class_item_qualifier* data_type const_identifier ( assign constant_expression )? semi
 
-class_scope := class_type scope_resolution
+@predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
+known_unscoped_class_scope_class_identifier := class_identifier
+
+@predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
+known_unscoped_class_scope_interface_class_identifier := class_identifier
+
+scoped_class_scope_identifier := package_scope class_identifier
+
+class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+
+class_scope := class_scope_type scope_resolution
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
 known_unscoped_base_class_type_identifier := class_identifier
@@ -1434,6 +1444,7 @@ output_symbol := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_x_11f6ad8e | kw_X_c032ad
 
 output_terminal := net_lvalue
 
+@emit_fact: { kind: package_name, name: $package_identifier }
 package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
 
 package_export_declaration := kw_export_51713409 star scope_resolution star semi | kw_export_51713409 package_import_item ( comma package_import_item )* semi
@@ -3054,5 +3065,13 @@ wildcard_equal := trivia "==?"
 wildcard_not_equal := trivia "!=?"
 
 xor_assign := trivia "^="
-class_scoped_call_prefix := ps_class_identifier ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
+@predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
+known_unscoped_class_scoped_call_class_identifier := class_identifier
+
+@predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
+known_unscoped_class_scoped_call_interface_class_identifier := class_identifier
+
+scoped_class_scoped_call_prefix_identifier := package_scope class_identifier
+
+class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
 class_scoped_tf_call := class_scoped_call_prefix tf_identifier attribute_instance* ( lparen list_of_arguments rparen )?

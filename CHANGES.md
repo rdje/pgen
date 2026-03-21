@@ -22094,3 +22094,35 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `clippy_on_rust_change` remained green over the dirty Rust workspace.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-21: Added package semantic facts plus a negative fact predicate, and documented the remaining package-vs-type front door limitation precisely.
+  - Updated:
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `grammars/systemverilog.ebnf`
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - What changed:
+    - semantic runtime now supports `lacks_fact(kind, name)` alongside the existing positive fact predicates,
+    - SystemVerilog `package_declaration` now emits `package_name` semantic facts,
+    - the checked-in `class_scope` / class-scoped-call hardening remains in place for known unscoped class and interface-class names,
+    - reduced `C::new()` still parses while reduced `T::new()` still rejects,
+    - reduced local-package and unknown-external-like package-qualified calls both still parse.
+  - Important boundary:
+    - reduced `T::f()` still parses today,
+    - the remaining leak is no longer mysterious: it survives through alternate package/`let_expression`-style fronts that cannot yet be targeted with branch-specific semantic annotations,
+    - so the next required capability is a cleaner branch-local semantic control surface, not another blind global grammar reorder.
+  - Validation:
+    - exact semantic runtime predicate test `built_in_predicates_respect_scope_changes_and_unknowns` passed,
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf` passed,
+    - regenerated parser proof kept these reduced cases green:
+      - `/tmp/sv_class_scoped_call_attr_good.sv`
+      - `/tmp/sv_class_scope_new_attr_good.sv`
+      - `/tmp/sv_tf_call_local_package_good.sv`
+      - `/tmp/sv_tf_call_unknown_package_ok.sv`
+      - `/tmp/sv_interface_class_attr_good.sv`
+      - `/tmp/sv_base_class_attr_good.sv`
+    - reduced `/tmp/sv_class_scope_new_attr_bad.sv` still rejects as intended,
+    - reduced `/tmp/sv_class_scope_typedef_bad.sv` still passes and is now recorded explicitly as the remaining frontier,
+    - `clippy_on_rust_change` passed.
+  - Live-status effect:
+    - no live-status row changed

@@ -22160,3 +22160,42 @@ Current boundary:
 Practical consequence:
 - those files are safe to package as a dedicated formatting-only cleanup commit
 - they should stay isolated from semantic-steering or grammar-hardening slices so future archaeology remains clear
+
+2026-03-21 package-fact and negative-predicate enablement:
+- semantic runtime now has a first generic negative fact query:
+  - `lacks_fact(kind, name)`
+- this was added as the smallest missing complement to:
+  - `has_fact`
+  - `has_fact_in_current_scope`
+  - `has_fact_attribute`
+  - `fact_attribute_equals`
+
+Why this matters:
+- several real SV ambiguities are not “is this known as X?” but rather:
+  - “do not treat this identifier as package-like if we already know it is a local type”
+- a negative fact query is the smallest runtime surface that expresses that cleanly without introducing a bigger boolean predicate DSL first
+
+SystemVerilog continuity:
+- `package_declaration` now emits `package_name` facts
+- the earlier unscoped class-family gates still stand:
+  - `class_scope` only accepts known unscoped `class` / `interface_class` facts on its tightened path
+  - the class-scoped call prefix is also narrowed to known unscoped class-family facts
+- refreshed reduced proof still shows:
+  - `C::new()` passes
+  - `T::new()` rejects
+  - `C::f()` passes
+  - local `defs::f()` package-qualified calls pass
+  - unknown external-like `extpkg::f()` package-qualified calls still pass
+
+Current frontier:
+- reduced `T::f()` still parses
+- the important new understanding is architectural, not just empirical:
+  - the surviving acceptance is not coming through the already-tightened class-family front doors,
+  - it survives through alternate package-like / `let_expression`-like fronts,
+  - and those fronts cannot yet be targeted precisely enough because semantic annotations are still rule-level rather than truly branch-specific
+
+Practical consequence:
+- the next required semantic-steering capability is not another broad grammar reorder
+- it is a more precise branch-local semantic-annotation/control seam that can say:
+  - this specific qualified alternative should reject when the head is already a known local `type_name`
+  - while sibling alternatives and unknown external package-like names remain allowed
