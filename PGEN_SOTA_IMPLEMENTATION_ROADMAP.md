@@ -232,6 +232,17 @@ Near-term rollout:
       - preserve local known checker declarations unscoped,
       - reject local typedef heads on the package-like scoped side,
       - preserve unknown external package-like prefixes
+  - class-family coherence tightening also landed:
+    - the remaining raw scoped helpers now route through `non_typedef_package_scope`:
+      - `scoped_class_scope_identifier`
+      - `scoped_base_class_type_identifier`
+      - `scoped_interface_class_type_identifier`
+      - `scoped_class_scoped_call_prefix_identifier`
+    - this keeps the checked-in package-vs-local-type steering policy consistent across:
+      - `class_scope`
+      - `base_class_type`
+      - `interface_class_type`
+      - `class_scoped_call_prefix`
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

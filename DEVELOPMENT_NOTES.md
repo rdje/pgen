@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Tighten the remaining scoped class-family package fronts
+### Context
+After the reduced global `T::U value;` declaration leak was closed, a few neighboring class-family helpers were still structurally broader than the live semantic-steering policy:
+- `scoped_class_scope_identifier := package_scope class_identifier`
+- `scoped_base_class_type_identifier := package_scope class_identifier`
+- `scoped_interface_class_type_identifier := package_scope class_identifier`
+
+That meant the grammar still had raw package-like class-family fronts in a few important places:
+- `class_scope`
+- `base_class_type`
+- `interface_class_type`
+- `class_scoped_call_prefix`
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - rewired:
+    - `scoped_class_scope_identifier`
+    - `scoped_base_class_type_identifier`
+    - `scoped_interface_class_type_identifier`
+    - `scoped_class_scoped_call_prefix_identifier`
+  - each helper now routes through:
+    - `non_typedef_package_scope class_identifier`
+  - instead of:
+    - `package_scope class_identifier`
+
+### Why This Matters
+- This keeps the class-family policy coherent with the rest of the checked-in semantic-fact rollout:
+  - local typedef heads should not impersonate package scopes,
+  - real package-scoped class-family references should still pass,
+  - unknown external package-like prefixes should still remain available.
+- It also reduces the chance of reintroducing the same package-vs-local-type ambiguity through adjacent class-family surfaces after closing the main `data_type` leak.
+
 ## 2026-03-21 - Land the next live SV semantic-fact pilot on checker instantiation
 ### Context
 After the reduced global `T::U value;` declaration leak was closed, the next nearby broad package-like helper in the checked-in grammar was:

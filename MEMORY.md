@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: land-checker-instantiation-semantic-pilot)
+Last updated: 2026-03-21 (+0100, task: tighten-scoped-class-family-package-fronts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,17 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest class-family coherence tightening:
+  - the remaining raw scoped class-family helpers now route through:
+    - `non_typedef_package_scope class_identifier`
+  - tightened helpers:
+    - `scoped_class_scope_identifier`
+    - `scoped_base_class_type_identifier`
+    - `scoped_interface_class_type_identifier`
+    - `scoped_class_scoped_call_prefix_identifier`
+  - policy remains:
+    - local typedef heads should not impersonate package scopes,
+    - real/unknown package-like prefixes should still remain available
 - Latest live grammar expansion after the reduced global `T::U value;` closure:
   - `checker_declaration` now emits a dedicated:
     - `checker_name`

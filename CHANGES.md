@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-21 - Tighten remaining SV scoped class-family package fronts
+### ✅ Achievement Summary
+PGEN now routes the remaining scoped class-family package-like helpers through `non_typedef_package_scope` too. This closes the last obvious raw `package_scope class_identifier` surfaces in:
+- `class_scope`
+- `base_class_type`
+- `interface_class_type`
+- `class_scoped_call_prefix`
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed:
+    - `scoped_class_scope_identifier`
+    - `scoped_base_class_type_identifier`
+    - `scoped_interface_class_type_identifier`
+    - `scoped_class_scoped_call_prefix_identifier`
+  - each helper now uses:
+    - `non_typedef_package_scope class_identifier`
+    - instead of raw `package_scope class_identifier`
+
+### Why This Matters
+- The earlier `class_type` / `data_type` tightening closed the reduced `T::U value;` declaration leak, but these neighboring class-family scoped fronts were still broader than the policy we had already adopted elsewhere.
+- This keeps the rule consistent:
+  - local typedef heads do not impersonate package scopes,
+  - real package-scoped class-family references still pass,
+  - unknown external package-like prefixes still pass.
+
 ## 2026-03-21 - Land an SV checker-instantiation semantic-fact pilot
 ### ✅ Achievement Summary
 PGEN now uses semantic facts on the `checker_instantiation` seam too. Named checker declarations emit a dedicated `checker_name` fact family, and `ps_checker_identifier` no longer uses the old broad `( package_scope )? checker_identifier` helper.

@@ -392,7 +392,7 @@ known_unscoped_class_scope_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
 known_unscoped_class_scope_interface_class_identifier := class_identifier
 
-scoped_class_scope_identifier := package_scope class_identifier
+scoped_class_scope_identifier := non_typedef_package_scope class_identifier
 
 class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
@@ -401,7 +401,7 @@ class_scope := class_scope_type scope_resolution
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
 known_unscoped_base_class_type_identifier := class_identifier
 
-scoped_base_class_type_identifier := package_scope class_identifier
+scoped_base_class_type_identifier := non_typedef_package_scope class_identifier
 
 base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
@@ -1053,7 +1053,7 @@ interface_class_method := kw_pure_afe003f1 kw_virtual_af84d91f method_prototype 
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
 known_unscoped_interface_class_type_identifier := class_identifier
 
-scoped_interface_class_type_identifier := package_scope class_identifier
+scoped_interface_class_type_identifier := non_typedef_package_scope class_identifier
 
 interface_class_type := ( scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier ) ( parameter_value_assignment )?
 
@@ -3103,7 +3103,7 @@ known_unscoped_class_scoped_call_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
 known_unscoped_class_scoped_call_interface_class_identifier := class_identifier
 
-scoped_class_scoped_call_prefix_identifier := package_scope class_identifier
+scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier
 
 class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
 class_scoped_tf_call := class_scoped_call_prefix tf_identifier attribute_instance* ( lparen list_of_arguments rparen )?
