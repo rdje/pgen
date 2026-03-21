@@ -1,4 +1,58 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Pilot semantic facts on the SV parameter seam
+### Context
+The next useful declaration/use pair after the `let` pilot was:
+- `param_assignment`
+- `ps_parameter_identifier`
+
+That seam already had clear package-like structure, but it still used a broad identifier front:
+- `( package_scope | class_scope )? parameter_identifier`
+
+The intended policy was the same one already proven on other name families:
+- locally declared parameter names should work unscoped,
+- real/unknown external package-like parameter prefixes should still parse,
+- local typedef heads should not impersonate package-scoped parameter prefixes.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `param_assignment_sv_2017`
+  - `param_assignment_sv_2023`
+  - now use:
+    - `declared_parameter_identifier`
+  - that helper emits:
+    - `@emit_fact: { kind: parameter_name, name: $parameter_identifier, declaration_family: parameter }`
+  - added use-site helpers:
+    - `known_unscoped_parameter_identifier`
+    - `scoped_package_parameter_identifier`
+  - the unscoped helper now requires:
+    - `@predicate: { name: has_fact, args: [parameter_name, $parameter_identifier], phase: post }`
+  - the scoped helper now routes through:
+    - `non_typedef_package_scope`
+  - `ps_parameter_identifier` now uses the helper split instead of the earlier broad package-like form
+
+### Useful Sibling-Path Lesson
+- The first helper split was real, but it still did not close the reduced bad case:
+  - `typedef int T;`
+  - `localparam int Y = T::P;`
+- AST inspection showed that the bad case was not being accepted as a `ps_parameter_identifier` use at all.
+- It was escaping through the broader generic constant surface:
+  - optional `package_scope` plus `enum_identifier` inside `constant_primary`
+- The actual closure therefore also required tightening:
+  - `constant_primary_sv_2017`
+  - `constant_primary_sv_2023`
+  - from raw `package_scope`
+  - to `non_typedef_package_scope`
+
+### Why This Matters
+- This is another concrete proof that semantic-fact pilots often need two layers:
+  - the intended high-level helper split,
+  - plus closure of one neighboring older generic surface that still accepts the same token shape.
+- Reduced proof now behaves as intended:
+  - local declared parameter use passes,
+  - package-scoped and unknown external package-like parameter use passes,
+  - local typedef-prefixed `T::P` rejects,
+  - neighboring `let` / `property` / TF-call reduced probes stayed green.
+
 ## 2026-03-21 - Pilot semantic facts on the SV let-expression seam
 ### Context
 After the property/sequence pilot, the next useful declaration/use pair sitting directly in expression space was:

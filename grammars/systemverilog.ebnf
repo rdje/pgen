@@ -498,10 +498,10 @@ constant_param_expression := constant_mintypmax_expression | data_type | kw_doll
 constant_part_select_range := constant_range | constant_indexed_range
 
 @profiles: ["sv_2017"]
-constant_primary_sv_2017 := primary_literal | ps_parameter_identifier constant_select | specparam_identifier ( lbrack constant_range_expression rbrack )? | genvar_identifier | formal_port_identifier constant_select | ( package_scope | class_scope )? enum_identifier | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )? | constant_concatenation ( lbrack constant_range_expression rbrack )? | constant_function_call | constant_let_expression | lparen constant_mintypmax_expression rparen | constant_cast | constant_assignment_pattern_expression | type_reference | kw_null_2be88ca4
+constant_primary_sv_2017 := primary_literal | ps_parameter_identifier constant_select | specparam_identifier ( lbrack constant_range_expression rbrack )? | genvar_identifier | formal_port_identifier constant_select | ( non_typedef_package_scope | class_scope )? enum_identifier | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )? | constant_concatenation ( lbrack constant_range_expression rbrack )? | constant_function_call | constant_let_expression | lparen constant_mintypmax_expression rparen | constant_cast | constant_assignment_pattern_expression | type_reference | kw_null_2be88ca4
 
 @profiles: ["sv_2023"]
-constant_primary_sv_2023 := primary_literal | ps_parameter_identifier constant_select | specparam_identifier ( lbrack constant_range_expression rbrack )? | genvar_identifier | formal_port_identifier constant_select | ( package_scope | class_scope )? enum_identifier | empty_unpacked_array_concatenation | constant_concatenation ( lbrack constant_range_expression rbrack )? | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )? | constant_function_call ( lbrack constant_range_expression rbrack )? | constant_let_expression | lparen constant_mintypmax_expression rparen | constant_cast | constant_assignment_pattern_expression | type_reference | kw_null_2be88ca4
+constant_primary_sv_2023 := primary_literal | ps_parameter_identifier constant_select | specparam_identifier ( lbrack constant_range_expression rbrack )? | genvar_identifier | formal_port_identifier constant_select | ( non_typedef_package_scope | class_scope )? enum_identifier | empty_unpacked_array_concatenation | constant_concatenation ( lbrack constant_range_expression rbrack )? | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )? | constant_function_call ( lbrack constant_range_expression rbrack )? | constant_let_expression | lparen constant_mintypmax_expression rparen | constant_cast | constant_assignment_pattern_expression | type_reference | kw_null_2be88ca4
 
 constant_primary := constant_primary_sv_2017 | constant_primary_sv_2023
 
@@ -1516,10 +1516,10 @@ parallel_edge_sensitive_path_description := parallel_edge_sensitive_path_descrip
 parallel_path_description := lparen specify_input_terminal_descriptor ( polarity_operator )? sequence_implies specify_output_terminal_descriptor rparen
 
 @profiles: ["sv_2017"]
-param_assignment_sv_2017 := parameter_identifier unpacked_dimension* assign constant_param_expression | parameter_identifier unpacked_dimension*
+param_assignment_sv_2017 := declared_parameter_identifier unpacked_dimension* assign constant_param_expression | declared_parameter_identifier unpacked_dimension*
 
 @profiles: ["sv_2023"]
-param_assignment_sv_2023 := parameter_identifier variable_dimension* assign constant_param_expression | parameter_identifier variable_dimension*
+param_assignment_sv_2023 := declared_parameter_identifier variable_dimension* assign constant_param_expression | declared_parameter_identifier variable_dimension*
 
 param_assignment := param_assignment_sv_2017 | param_assignment_sv_2023
 
@@ -1536,6 +1536,10 @@ parameter_declaration_sv_2023 := kw_parameter_b75381f0 data_type_or_implicit lis
 parameter_declaration := parameter_declaration_sv_2017 | parameter_declaration_sv_2023
 
 parameter_identifier := non_keyword_identifier
+
+@emit_fact: { kind: parameter_name, name: $parameter_identifier, declaration_family: parameter }
+@predicate: { name: has_fact, args: [parameter_name, $parameter_identifier], phase: post }
+declared_parameter_identifier := parameter_identifier
 
 parameter_override := kw_defparam_83d3c70e list_of_defparam_assignments semi
 
@@ -1732,7 +1736,12 @@ ps_or_hierarchical_tf_identifier := class_scope tf_identifier
                                  | hierarchical_tf_identifier
                                  | tf_identifier
 
-ps_parameter_identifier := ( package_scope | class_scope )? parameter_identifier | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier
+@predicate: { name: has_fact, args: [parameter_name, $parameter_identifier], phase: post }
+known_unscoped_parameter_identifier := parameter_identifier
+
+scoped_package_parameter_identifier := non_typedef_package_scope parameter_identifier
+
+ps_parameter_identifier := class_scope parameter_identifier | scoped_package_parameter_identifier | known_unscoped_parameter_identifier | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier
 
 @profiles: ["sv_2017"]
 ps_type_identifier_sv_2017 := ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 | package_scope | class_scope )? type_identifier

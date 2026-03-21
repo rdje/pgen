@@ -106,16 +106,34 @@ Near-term rollout:
   - add structured payload variants instead of flattening most named directives to `Raw`,
   - add directive-specific lowering for future fact/scope/predicate directives,
   - preserve bootstrap permissiveness while making non-bootstrap typed lowering richer,
-- Progress (2026-03-19):
+  - Progress (2026-03-19):
   - landed the first typed widening slice:
     - `UnifiedSemanticValue` / `UnifiedSemanticProperty`
     - `UnifiedSemanticAST::Structured { canonical, value }`
     - canonical payload preservation via `payload_text()` across validator/codegen/stimuli/runtime consumers
   - this closes the “all non-transform named payloads must stay raw” bottleneck, but does not yet provide semantic fact tables or predicate execution,
-- stabilize the semantic fact model first,
+  - stabilize the semantic fact model first,
 - define a minimal predicate API that semantic annotations can query,
 - pilot the model on one narrow high-value frontier:
   - SystemVerilog declaration-vs-statement disambiguation for package/class-scoped type declarations inside blocks.
+- Progress (2026-03-21):
+  - widened the live checked-in SV semantic-fact family coverage again:
+    - `parameter_name`
+  - successful `parameter` / `localparam` assignments now emit:
+    - `parameter_name`
+    - `declaration_family: parameter`
+  - `ps_parameter_identifier` now uses:
+    - `known_unscoped_parameter_identifier`
+    - `scoped_package_parameter_identifier`
+  - local known parameter names now parse unscoped,
+  - package-scoped and unknown external package-like parameter prefixes still parse,
+  - local typedef-prefixed `T::P` now rejects
+  - this slice also confirmed the recurring sibling-path rule again:
+    - the parameter-specific helper split alone was not enough,
+    - the reduced bad case still escaped through the broader generic constant path:
+      - optional `package_scope` plus `enum_identifier` in `constant_primary`
+    - the real closure required tightening those generic scoped-enum arms to:
+      - `non_typedef_package_scope`
 - Progress (2026-03-19):
   - landed the first semantic-runtime scaffold:
     - new typed runtime directives `emit_fact`, `open_scope`, `close_scope`, `predicate`

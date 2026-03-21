@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-21 - Pilot SV parameter semantic facts
+### ✅ Achievement Summary
+PGEN now uses live semantic facts on the `parameter_identifier` seam too. Successful `parameter` / `localparam` assignments emit a dedicated `parameter_name` fact family, unscoped parameter references now require a known local parameter name, and package-like scoped parameter references now route through `non_typedef_package_scope`.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `param_assignment_sv_2017`
+  - `param_assignment_sv_2023`
+  - now use:
+    - `declared_parameter_identifier`
+  - that helper now emits:
+    - `parameter_name`
+    - `declaration_family: parameter`
+  - added semantic-fact-aware use-site helpers:
+    - `known_unscoped_parameter_identifier`
+    - `scoped_package_parameter_identifier`
+  - `ps_parameter_identifier` now uses those helpers instead of the older broad package-like form
+  - also tightened the remaining sibling generic constant surface:
+    - `constant_primary_sv_2017`
+    - `constant_primary_sv_2023`
+  - those enum-like scoped arms now use:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- The first parameter helper split alone was not enough to reject the reduced bad case:
+  - `typedef int T;`
+  - later `localparam int Y = T::P;`
+- That sample initially still escaped through the broader generic constant path:
+  - optional `package_scope` plus `enum_identifier`
+- The real closure therefore required both:
+  - parameter-specific semantic facts on `ps_parameter_identifier`
+  - and tightening the sibling generic `constant_primary` scoped-enum arm
+- Reduced proof now behaves as intended:
+  - local declared parameter use passes,
+  - package-scoped and unknown external package-like parameter use passes,
+  - local typedef-prefixed `T::P` rejects,
+  - neighboring `let` / `property` / TF-call reduced probes stayed green.
+
 ## 2026-03-21 - Pilot SV let-expression semantic facts
 ### ✅ Achievement Summary
 PGEN now uses semantic facts on the `let_expression` seam too. Successful `let` declarations emit a dedicated `let_name` fact family, unscoped `let_expression` now requires a known local `let` name, and package-like scoped `let` uses continue to route through `non_typedef_package_scope`.

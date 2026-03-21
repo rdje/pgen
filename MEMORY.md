@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: let-expression-semantic-fact-pilot)
+Last updated: 2026-03-21 (+0100, task: parameter-semantic-fact-pilot)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,25 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live expansion:
+  - successful `parameter` / `localparam` assignments now emit:
+    - `parameter_name`
+    - `declaration_family: parameter`
+  - `ps_parameter_identifier` now uses semantic-fact-aware helpers:
+    - `known_unscoped_parameter_identifier`
+    - `scoped_package_parameter_identifier`
+  - local known parameter names now work unscoped,
+  - package-scoped and unknown external package-like parameter prefixes still pass,
+  - local typedef-prefixed `T::P` now rejects
+- Important sibling-path lesson from this slice:
+  - the first parameter helper split alone was not enough
+  - the reduced bad case initially still passed because `T::P` was escaping through the broader generic constant path:
+    - optional `package_scope` plus `enum_identifier` inside `constant_primary`
+  - the real closure required tightening:
+    - `constant_primary_sv_2017`
+    - `constant_primary_sv_2023`
+  - those scoped enum-like fronts now route through:
+    - `non_typedef_package_scope`
 - Latest live expansion:
   - successful `let` declarations now emit:
     - `let_name`
