@@ -3468,3 +3468,17 @@ Why `rtl_frontend` exists:
       - consume `branch_semantic_annotations` in one live grammar pilot,
       - ideally the reduced SystemVerilog package-vs-type seam that still accepts `T::f()`
     - the Rust EBNF verifier fallback for inline rule-body annotations should be treated as temporary until that path is cost-stable enough to promote back into a required gate
+- 2026-03-21: Clarified the remaining EBNF frontend migration gap explicitly.
+  - current state:
+    - `generated/ebnf.rs` is already the Rust parser generated from `grammars/ebnf.ebnf`
+    - but `rust/src/ebnf_frontend.rs` is still a hand-written raw-AST adapter layer around that parser
+  - important architectural boundary:
+    - the outgoing `raw_ast` for `.ebnf` ingestion is still produced by hand-written Rust scanning/tokenization logic,
+    - while `EbnfParser` currently acts mainly as verifier/backstop rather than sole frontend authority
+  - roadmap consequence:
+    - the project is still in a hybrid EBNF state:
+      - Perl `ebnf_to_json.pl` remains active in trusted/canonical flows,
+      - Rust `ebnf_frontend.rs` + `generated/ebnf.rs` is the parallel Rust-native path
+    - the future milestone is still:
+      - retire the hand-written/perl frontend dependence,
+      - make `grammars/ebnf.ebnf` + generated Rust parser the full authoritative frontend for EBNF syntax evolution

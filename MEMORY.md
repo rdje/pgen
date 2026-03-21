@@ -5631,3 +5631,21 @@ Use this file to resume work without replaying full chat history.
       - emitted JSON contains `semantic_annotation_inline` plus the expected branch tokens
     - the generated EBNF verifier fallback is intentional for now:
       - scanner/raw-AST export remains authoritative on this shape until the verifier becomes cost-stable enough to re-enable as a hard check
+- 2026-03-21: Clarified the exact current EBNF frontend architecture.
+  - Important state snapshot:
+    - `generated/ebnf.rs` is the Rust parser generated from `grammars/ebnf.ebnf`
+    - `rust/src/ebnf_frontend.rs` is a separate hand-written Rust adapter layer
+  - What `ebnf_frontend.rs` does today:
+    - reads `.ebnf` source text
+    - scans top-level rules / annotations / includes / rule bodies
+    - tokenizes rule expressions into legacy-compatible `raw_ast` tokens
+    - emits the JSON envelope consumed by `transform_from_raw_ast`
+  - How it uses `generated/ebnf.rs`:
+    - imports `EbnfParser`
+    - runs `parse_full_grammar_file()` as a verifier/backstop on supported shapes
+    - but does not yet construct its outgoing `raw_ast` from the generated parser’s parse tree
+  - Practical consequence:
+    - current EBNF flow is still hybrid
+    - Perl `ebnf_to_json.pl` remains active in trusted/canonical flows
+    - Rust `ebnf_frontend.rs` + `generated/ebnf.rs` is the parallel Rust-native path
+    - full pure-Rust frontend replacement is still a future milestone, not current reality

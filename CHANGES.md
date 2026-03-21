@@ -22155,3 +22155,17 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - the Rust EBNF verifier fallback for inline rule-body annotations is intentionally conservative because that path is not yet cost-stable enough to be a required gate.
   - Live-status effect:
     - no live-status row changed
+- 2026-03-21: Captured the current hybrid EBNF frontend state explicitly.
+  - Updated:
+    - `DEVELOPMENT_NOTES.md`
+    - `MEMORY.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Clarification captured:
+    - `generated/ebnf.rs` is the Rust parser corresponding to `grammars/ebnf.ebnf`,
+    - `rust/src/ebnf_frontend.rs` is still a hand-written Rust raw-AST adapter around that parser, not a pure parse-tree-driven replacement for the Perl frontend,
+    - the project therefore still operates in a hybrid EBNF state:
+      - Perl `ebnf_to_json.pl` remains active in trusted/canonical flows,
+      - Rust `ebnf_frontend.rs` + `generated/ebnf.rs` is the parallel Rust-native path,
+      - full Rust takeover remains a future milestone rather than current reality.
+  - Live-status effect:
+    - no live-status row changed

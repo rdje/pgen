@@ -22244,3 +22244,35 @@ Important continuity note:
   - inline rule-body semantic annotations survive Rust EBNF raw-AST export,
   - branch-local semantic annotations survive normalization into `Annotations`,
   - and the generated-parser verification step is conservatively skipped on that shape until it becomes cost-stable enough to re-promote into a hard gate
+
+2026-03-21 explicit EBNF frontend-state clarification:
+- `generated/ebnf.rs` is the Rust parser corresponding to `grammars/ebnf.ebnf`
+  - it is the naming exception in the repo:
+    - most grammars use `generated/<grammar>_parser.rs`
+    - EBNF currently uses `generated/ebnf.rs`
+- `rust/src/ebnf_frontend.rs` is not that generated parser
+  - it is a hand-written Rust adapter/frontend layer
+  - its job today is:
+    - read `.ebnf` source text,
+    - scan top-level rules / annotations / includes / rule bodies,
+    - tokenize rule expressions into the legacy-compatible `raw_ast` token shape,
+    - emit the JSON envelope consumed by the Rust AST pipeline
+- it also interacts with `generated/ebnf.rs`:
+  - it imports `EbnfParser`,
+  - and calls `parse_full_grammar_file()` as a verification/sanity pass on inputs that the generated parser currently handles comfortably
+- but the current Rust EBNF frontend still does **not** derive its outgoing `raw_ast` from the generated parser’s parse tree
+  - the `raw_ast` is still produced by the hand-written Rust scanning/tokenization logic in `ebnf_frontend.rs`
+  - the generated parser is currently “verifier/backstop”, not yet the sole source of frontend structure
+
+Practical consequence:
+- the current EBNF flow is still hybrid, not yet fully Rust-native end to end
+- there are now two real paths:
+  - Perl frontend path:
+    - `ebnf_to_json.pl`
+    - still active in trusted/canonical gate flows
+  - Rust frontend path:
+    - `ebnf_frontend.rs` + `generated/ebnf.rs`
+    - available when building with `ebnf_dual_run`
+- the longer-term goal remains the same:
+  - future EBNF syntax evolution should ultimately flow through `grammars/ebnf.ebnf` and its Rust-generated parser,
+  - but the project has not yet reached the point where the hand-written/perl frontend layers can be retired outright
