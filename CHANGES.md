@@ -22167,5 +22167,16 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - Perl `ebnf_to_json.pl` remains active in trusted/canonical flows,
       - Rust `ebnf_frontend.rs` + `generated/ebnf.rs` is the parallel Rust-native path,
       - full Rust takeover remains a future milestone rather than current reality.
+    - all three artifacts currently have live roles:
+      - `ebnf_to_json.pl` as legacy/canonical frontend path,
+      - `ebnf_frontend.rs` as the current Rust-side `.ebnf -> raw_ast` bridge,
+      - `generated/ebnf.rs` as generated-parser verifier/parseability surface rather than primary frontend authority,
+    - “verifier/backstop” now documented concretely as:
+      - `ebnf_frontend.rs` calls `EbnfParser::parse_full_grammar_file()` to sanity-check inputs on supported shapes,
+      - but the emitted `raw_ast` still comes from hand-written Rust scanning/tokenization rather than the generated parser’s parse tree,
+    - known mismatch families are now recorded explicitly:
+      - multiline semantic annotation blocks,
+      - inline rule-body semantic annotations,
+      - in those cases the hand-written frontend may still accept/export `raw_ast` without `generated/ebnf.rs` being a strict gate.
   - Live-status effect:
     - no live-status row changed

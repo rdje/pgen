@@ -3482,3 +3482,16 @@ Why `rtl_frontend` exists:
     - the future milestone is still:
       - retire the hand-written/perl frontend dependence,
       - make `grammars/ebnf.ebnf` + generated Rust parser the full authoritative frontend for EBNF syntax evolution
+  - additional clarification:
+    - all three pieces currently remain live in different roles:
+      - `ebnf_to_json.pl`
+      - `ebnf_frontend.rs`
+      - `generated/ebnf.rs`
+    - the migration is therefore not just “Perl vs Rust”
+    - it is specifically:
+      - retire Perl canonicalization,
+      - retire hand-written Rust raw-AST scanning/tokenization as primary authority,
+      - promote the generated Rust parser to the sole frontend authority
+    - known blocker classes still proving that this migration is incomplete:
+      - multiline semantic annotation blocks
+      - inline rule-body semantic annotations

@@ -22266,7 +22266,21 @@ Important continuity note:
 
 Practical consequence:
 - the current EBNF flow is still hybrid, not yet fully Rust-native end to end
-- there are now two real paths:
+- there are now three live pieces in the flow:
+  - Perl frontend path:
+    - `ebnf_to_json.pl`
+    - still active in trusted/canonical gate flows
+  - Rust frontend bridge:
+    - `ebnf_frontend.rs`
+    - currently does the real `.ebnf -> raw_ast` conversion work on the Rust side
+  - generated Rust EBNF parser:
+    - `generated/ebnf.rs`
+    - currently used as verifier/backstop and parseability surface, not yet as sole frontend authority
+- put differently:
+  - yes, the project still uses all three,
+  - at different phases and for different purposes,
+  - and `ebnf_frontend.rs` is still best described as a migration bridge
+- there are now two real frontend families:
   - Perl frontend path:
     - `ebnf_to_json.pl`
     - still active in trusted/canonical gate flows
@@ -22276,3 +22290,42 @@ Practical consequence:
 - the longer-term goal remains the same:
   - future EBNF syntax evolution should ultimately flow through `grammars/ebnf.ebnf` and its Rust-generated parser,
   - but the project has not yet reached the point where the hand-written/perl frontend layers can be retired outright
+
+Verifier/backstop clarification:
+- `verifier` means:
+  - `ebnf_frontend.rs` runs `EbnfParser::parse_full_grammar_file()` as a correctness check on supported shapes
+  - if that parse succeeds, the hand-written Rust scanner/tokenizer has at least not wandered outside what the generated parser currently accepts there
+- `backstop` means:
+  - `generated/ebnf.rs` is intended to act as a secondary safety net behind the adapter,
+  - not the primary structure producer,
+  - but a guardrail that can catch drift on shapes where it is currently trusted as a gate
+- important limitation:
+  - it is only a partial backstop today, not full authority
+  - the Rust frontend still has explicit cases where the generated-parser check is skipped or non-fatal
+
+Known current mismatch families:
+- there are current cases where `ebnf_frontend.rs` may accept/export `raw_ast` without `generated/ebnf.rs` being a strict gate
+- the explicitly known categories are:
+  - multiline semantic annotation blocks
+    - parser failure is tolerated there in the Rust frontend path
+  - inline rule-body semantic annotations
+    - the generated-parser verification pass is currently skipped entirely on that shape
+- so, yes:
+  - the hand-written Rust frontend is still ahead of the generated Rust EBNF parser gate on some constructs
+
+Source-of-truth clarification:
+- `grammars/ebnf.ebnf` still captures the tracked/latest grammar intent
+- but it is not yet the sole operational source of truth for frontend behavior
+- in practice a syntax change is not fully “live” today unless:
+  - `grammars/ebnf.ebnf` is updated,
+  - and `rust/src/ebnf_frontend.rs` stays aligned with it
+
+Regeneration clarification:
+- `generated/ebnf.rs` is produced by:
+  - `generated/ebnf.json`
+  - then `ast_pipeline --generate-parser`
+- the practical question is where `generated/ebnf.json` comes from
+- current answer:
+  - usually/canonically: `ebnf_to_json.pl`
+  - possible in Rust-native paths: the Rust EBNF frontend path
+- so the tracked/canonical regeneration path is still usually Perl-first, even though the Rust path exists

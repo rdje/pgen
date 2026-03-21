@@ -5649,3 +5649,35 @@ Use this file to resume work without replaying full chat history.
     - Perl `ebnf_to_json.pl` remains active in trusted/canonical flows
     - Rust `ebnf_frontend.rs` + `generated/ebnf.rs` is the parallel Rust-native path
     - full pure-Rust frontend replacement is still a future milestone, not current reality
+- 2026-03-21: Preserved additional operational clarification for the hybrid EBNF flow.
+  - Current live-role split:
+    - `ebnf_to_json.pl`
+      - legacy/canonical frontend path
+    - `ebnf_frontend.rs`
+      - current Rust-side `.ebnf -> raw_ast` bridge
+      - the actual Rust code in operational control of `.ebnf` ingestion
+    - `generated/ebnf.rs`
+      - generated Rust parser for `grammars/ebnf.ebnf`
+      - currently used as verifier/backstop and parseability surface, not yet the primary frontend structure producer
+  - Verifier/backstop meaning:
+    - `verifier`
+      - `ebnf_frontend.rs` calls `EbnfParser::parse_full_grammar_file()` as a sanity/correctness check on supported shapes
+    - `backstop`
+      - `generated/ebnf.rs` is meant to serve as a secondary safety net behind the hand-written adapter
+      - but only on shapes where the Rust frontend still treats that check as authoritative
+  - Important limitation:
+    - there are explicit cases where `ebnf_frontend.rs` may accept/export `raw_ast` without `generated/ebnf.rs` being a strict gate
+    - the known categories are:
+      - multiline semantic annotation blocks
+      - inline rule-body semantic annotations
+  - Source-of-truth clarification:
+    - `grammars/ebnf.ebnf` captures the tracked/latest grammar intent
+    - but it is not yet the sole operational source of truth for frontend behavior
+    - today, syntax work is not truly complete unless both:
+      - `grammars/ebnf.ebnf`
+      - `rust/src/ebnf_frontend.rs`
+      stay aligned
+  - Regeneration clarification:
+    - `generated/ebnf.rs` is generated from `generated/ebnf.json` via `ast_pipeline --generate-parser`
+    - in practice the canonical `generated/ebnf.json` refresh path is still usually Perl-first (`ebnf_to_json.pl`)
+    - the Rust-native path can participate, but full Perl retirement has not happened yet
