@@ -1680,6 +1680,14 @@ impl AstBasedGenerator {
                                 for directive in parser
                                     .semantic_runtime_annotations
                                     .branch_predicates_for_rule(#rule_name)
+                                    .chain(
+                                        parser
+                                            .semantic_runtime_annotations
+                                            .branch_predicates_for_rule_branch(
+                                                #rule_name,
+                                                current_branch_index,
+                                            ),
+                                    )
                                 {
                                     match directive {
                                         crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec)
@@ -3763,13 +3771,32 @@ impl AstBasedGenerator {
                 directives_by_rule.insert(#rule_name.to_string(), vec![#(#directive_tokens),*]);
             }
         });
+        let branch_rule_entries = compiled.branch_iter().map(|(rule_name, branch_directives)| {
+            let branch_directive_tokens = branch_directives.iter().map(|directives| {
+                let directive_tokens = directives
+                    .iter()
+                    .map(Self::generate_semantic_runtime_directive_tokens);
+                quote! {
+                    vec![#(#directive_tokens),*]
+                }
+            });
+            quote! {
+                branch_directives_by_rule.insert(
+                    #rule_name.to_string(),
+                    vec![#(#branch_directive_tokens),*],
+                );
+            }
+        });
 
         Ok(quote! {
             {
                 let mut directives_by_rule = std::collections::HashMap::new();
+                let mut branch_directives_by_rule = std::collections::HashMap::new();
                 #(#rule_entries)*
-                crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::from_rule_directives(
-                    directives_by_rule
+                #(#branch_rule_entries)*
+                crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::from_parts(
+                    directives_by_rule,
+                    branch_directives_by_rule,
                 )
             }
         })
@@ -4946,32 +4973,35 @@ mod semantic_usage_tests {
 
     fn branch_predicate_generator() -> AstBasedGenerator {
         let mut annotations = Annotations::default();
-        annotations.semantic_annotations.insert(
+        annotations.branch_semantic_annotations.insert(
             "statement_or_decl".to_string(),
-            vec![structured_named_annotation(
-                "predicate",
-                "{ name: content_kind_is, args: [sequence], phase: branch, view: raw }",
-                UnifiedSemanticValue::Object(vec![
-                    UnifiedSemanticProperty {
-                        key: "name".to_string(),
-                        value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
-                    },
-                    UnifiedSemanticProperty {
-                        key: "args".to_string(),
-                        value: UnifiedSemanticValue::Array(vec![UnifiedSemanticValue::Identifier(
-                            "sequence".to_string(),
-                        )]),
-                    },
-                    UnifiedSemanticProperty {
-                        key: "phase".to_string(),
-                        value: UnifiedSemanticValue::Identifier("branch".to_string()),
-                    },
-                    UnifiedSemanticProperty {
-                        key: "view".to_string(),
-                        value: UnifiedSemanticValue::Identifier("raw".to_string()),
-                    },
-                ]),
-            )],
+            vec![
+                Vec::new(),
+                vec![structured_named_annotation(
+                    "predicate",
+                    "{ name: content_kind_is, args: [terminal], phase: branch, view: raw }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("terminal".to_string()),
+                            ]),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("branch".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                        },
+                    ]),
+                )],
+            ],
         );
 
         AstBasedGenerator {
@@ -5195,7 +5225,7 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("CompiledSemanticRuntimeAnnotations::from_rule_directives"),
+            rendered.contains("CompiledSemanticRuntimeAnnotations::from_parts"),
             "generated parser constructor should embed compiled runtime annotations, got: {}",
             rendered
         );
@@ -5383,8 +5413,13 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered.contains("branch_predicates_for_rule"),
-            "generated parser should consult the explicit branch-predicate rule view, got: {}",
+            rendered.contains("let mut branch_directives_by_rule"),
+            "generated parser constructor should preserve compiled branch-local directives, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("branch_predicates_for_rule_branch"),
+            "generated parser should consult the explicit branch-local branch-predicate view, got: {}",
             rendered
         );
     }

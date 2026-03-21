@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: use-attribute-facts-for-base-class-type)
+Last updated: 2026-03-21 (+0100, task: compile-branch-local-semantic-annotations)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -133,6 +133,19 @@ Use this file to resume work without replaying full chat history.
     - current runtime consumers now use canonical `payload_text()` for backward compatibility
   - remaining next step:
     - continue typed semantic lowering/runtime work before inventing a new annotation grammar surface.
+
+## Current Branch-Local Semantic Annotation State
+- `Annotations.branch_semantic_annotations` is no longer storage-only.
+- As of 2026-03-21:
+  - [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs) compiles branch-local runtime directives into `CompiledSemanticRuntimeAnnotations.branch_directives_by_rule`
+  - [annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs) validates branch-local semantic annotations and labels diagnostics as `rule_name (branch N)`
+  - [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs) emits branch-local semantic directives into generated parser constructors and evaluates branch-local predicates during candidate selection
+- Important boundary:
+  - branch-local predicates are now live
+  - branch-local semantic effects are not yet applied after branch success
+  - rule-level `phase = branch` predicates still remain supported and are evaluated alongside branch-local ones
+- Next likely semantic-steering task:
+  - use the new branch-local predicate seam on the remaining SystemVerilog branch-sensitive ambiguity surface, especially the still-open `T::f()` / class-scope vs type-scope frontier
 
 ## Current Semantic Annotation Runtime Frontier
 - First widening slice is now in-tree:

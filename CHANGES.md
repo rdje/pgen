@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-21 - Compile and execute branch-local semantic annotations
+### ✅ Achievement Summary
+Branch-local semantic annotations are no longer just preserved in the normalized AST. They now compile into the semantic runtime, validate through the Rust annotation validator, serialize into generated parsers, and participate in candidate-branch selection through explicit branch-local predicate lookup.
+
+### Scope of Changes
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - widened `CompiledSemanticRuntimeAnnotations` with:
+    - `branch_directives_by_rule`
+    - `from_parts(...)`
+    - `branch_directives_for_rule(...)`
+    - `branch_directives_for_rule_branch(...)`
+    - `branch_predicates_for_rule_branch(...)`
+    - `branch_iter(...)`
+  - `compile_semantic_runtime_annotations(...)` now compiles:
+    - rule-level `semantic_annotations`
+    - branch-level `branch_semantic_annotations`
+  - added focused proof that branch-local runtime directives stay aligned by rule and branch index
+- Updated [annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs):
+  - branch-local semantic annotations now receive the same directive validation and conflict checks as rule-level semantic annotations
+  - diagnostics identify branch-local context as `rule_name (branch N)`
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated parser constructors now embed compiled branch-local semantic directives
+  - generated branch selection now evaluates:
+    - rule-wide branch predicates
+    - plus branch-local predicates for the candidate branch only
+  - focused generator contract tests now exercise branch-local semantic annotation fixtures rather than only rule-level branch predicates
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::semantic_runtime::tests:: -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib generated_parser_branch_contract_ -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::annotation_validator::tests::semantic_validator_warns_on_unknown_branch_directive_in_warn_mode -- --exact --nocapture`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `git diff --check`
+
+### Important Boundary
+- This slice does not yet apply branch-local semantic effects after branch success; it compiles and executes branch-local predicates only.
+- Rule-level branch predicates remain supported and are still evaluated, then branch-local predicates are layered on top for the candidate branch.
+- The next natural live pilot is now the remaining SystemVerilog branch-sensitive ambiguity surface, especially the still-open `T::f()`/class-scope distinction.
+
 ## 2026-03-21 - Use semantic fact attributes for base classes
 ### ✅ Achievement Summary
 This lands the second live grammar use of attribute-aware semantic facts. The unscoped `extends` base-class seam in SystemVerilog now requires `declaration_family: class`, which means `class D extends Base;` accepts a real class base while `class D extends I;` rejects an `interface class I` in that same unscoped role.

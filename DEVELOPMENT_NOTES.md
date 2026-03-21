@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Branch-local semantic annotations now reach the generated parser runtime
+### Context
+After preserving inline rule-body semantic annotations as `Annotations.branch_semantic_annotations`, the remaining gap was important:
+- the normalized AST knew about branch-local semantic directives,
+- but the semantic-runtime compiler, validator, and generated parser still only consumed rule-level `Annotations.semantic_annotations`.
+
+That meant branch-local semantic annotations were structurally preserved but operationally inert.
+
+### Implementation
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - widened `CompiledSemanticRuntimeAnnotations` with a parallel `branch_directives_by_rule` map
+  - added:
+    - `from_parts(...)`
+    - `branch_directives_for_rule(...)`
+    - `branch_directives_for_rule_branch(...)`
+    - `branch_predicates_for_rule_branch(...)`
+    - `branch_iter(...)`
+  - `compile_semantic_runtime_annotations(...)` now compiles:
+    - rule-level runtime directives from `semantic_annotations`
+    - branch-local runtime directives from `branch_semantic_annotations`
+- Updated [annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs):
+  - branch-local semantic annotations now go through the normal semantic validator and conflict checker
+  - branch-local diagnostics are labeled as `rule_name (branch N)` so they do not disappear into rule-wide reports
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated parser constructors now embed both:
+    - rule-level semantic runtime directives
+    - branch-local semantic runtime directives
+  - generated branch selection now evaluates:
+    - any rule-level `phase = branch` predicates
+    - plus the explicit branch-local predicates for the candidate branch
+
+### Why This Matters
+- This is the first time branch-local semantic annotations are actually live beyond the normalized AST layer.
+- It turns the earlier inline-annotation preservation work into an executable parser-control seam rather than a storage-only improvement.
+- It also gives PGEN a cleaner architecture for future ambiguity work:
+  - rule-level semantic predicates remain available when a branch check should apply to every candidate,
+  - branch-local predicates now exist for cases where only one alternative needs semantic gating.
+
+### Remaining Gap
+- Branch-local predicates are now live, but branch-local semantic effects are not yet being applied after branch success.
+- That is acceptable for the immediate next pilot because the main need is branch-specific rejection, not branch-specific fact emission.
+- The next high-value live use is the still-open SystemVerilog class-scope / type-scope ambiguity surface, where one alternative should fail closed when its candidate-local semantic capture is absent or semantically wrong.
+
 ## 2026-03-21 - Second live attribute-aware pilot: `extends` now distinguishes class bases
 ### Context
 After the first live attribute-aware pilot tightened `interface_class_type` for `implements`, the natural mirror seam was `extends`.

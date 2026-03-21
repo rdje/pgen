@@ -188,6 +188,7 @@ impl SemanticRuntimeDirective {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CompiledSemanticRuntimeAnnotations {
     directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
+    branch_directives_by_rule: HashMap<String, Vec<Vec<SemanticRuntimeDirective>>>,
 }
 
 impl CompiledSemanticRuntimeAnnotations {
@@ -198,24 +199,62 @@ impl CompiledSemanticRuntimeAnnotations {
     pub fn from_rule_directives(
         directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
     ) -> Self {
-        Self { directives_by_rule }
+        Self {
+            directives_by_rule,
+            branch_directives_by_rule: HashMap::new(),
+        }
+    }
+
+    pub fn from_parts(
+        directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
+        branch_directives_by_rule: HashMap<String, Vec<Vec<SemanticRuntimeDirective>>>,
+    ) -> Self {
+        Self {
+            directives_by_rule,
+            branch_directives_by_rule,
+        }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.directives_by_rule.is_empty()
+        self.directives_by_rule.is_empty() && self.branch_directives_by_rule.is_empty()
     }
 
     pub fn len(&self) -> usize {
-        self.directives_by_rule.len()
+        let mut rule_names = self.directives_by_rule.keys().collect::<Vec<_>>();
+        for rule_name in self.branch_directives_by_rule.keys() {
+            if !rule_names.iter().any(|existing| *existing == rule_name) {
+                rule_names.push(rule_name);
+            }
+        }
+        rule_names.len()
     }
 
     pub fn has_rule(&self, rule_name: &str) -> bool {
         self.directives_by_rule.contains_key(rule_name)
+            || self.branch_directives_by_rule.contains_key(rule_name)
     }
 
     pub fn directives_for_rule(&self, rule_name: &str) -> &[SemanticRuntimeDirective] {
         self.directives_by_rule
             .get(rule_name)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub fn branch_directives_for_rule(&self, rule_name: &str) -> &[Vec<SemanticRuntimeDirective>] {
+        self.branch_directives_by_rule
+            .get(rule_name)
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
+    }
+
+    pub fn branch_directives_for_rule_branch(
+        &self,
+        rule_name: &str,
+        branch_index: usize,
+    ) -> &[SemanticRuntimeDirective] {
+        self.branch_directives_for_rule(rule_name)
+            .get(branch_index)
             .map(Vec::as_slice)
             .unwrap_or(&[])
     }
@@ -253,6 +292,21 @@ impl CompiledSemanticRuntimeAnnotations {
     ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
         self.directives_for_rule(rule_name)
             .iter()
+            .chain(
+                self.branch_directives_for_rule(rule_name)
+                    .iter()
+                    .flat_map(|directives| directives.iter()),
+            )
+            .filter(|directive| directive.is_branch_predicate())
+    }
+
+    pub fn branch_predicates_for_rule_branch<'a>(
+        &'a self,
+        rule_name: &'a str,
+        branch_index: usize,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.branch_directives_for_rule_branch(rule_name, branch_index)
+            .iter()
             .filter(|directive| directive.is_branch_predicate())
     }
 
@@ -273,6 +327,15 @@ impl CompiledSemanticRuntimeAnnotations {
         &self,
     ) -> impl Iterator<Item = (&str, &[SemanticRuntimeDirective])> + ExactSizeIterator + '_ {
         self.directives_by_rule
+            .iter()
+            .map(|(rule_name, directives)| (rule_name.as_str(), directives.as_slice()))
+    }
+
+    pub fn branch_iter(
+        &self,
+    ) -> impl Iterator<Item = (&str, &[Vec<SemanticRuntimeDirective>])> + ExactSizeIterator + '_
+    {
+        self.branch_directives_by_rule
             .iter()
             .map(|(rule_name, directives)| (rule_name.as_str(), directives.as_slice()))
     }
@@ -707,6 +770,7 @@ pub fn compile_semantic_runtime_annotations(
     annotations: &Annotations,
 ) -> Result<CompiledSemanticRuntimeAnnotations, String> {
     let mut directives_by_rule = HashMap::new();
+    let mut branch_directives_by_rule = HashMap::new();
     for (rule_name, semantic_annotations) in &annotations.semantic_annotations {
         let directives =
             compile_rule_semantic_runtime_directives(rule_name, semantic_annotations.iter())?;
@@ -714,7 +778,35 @@ pub fn compile_semantic_runtime_annotations(
             directives_by_rule.insert(rule_name.clone(), directives);
         }
     }
-    Ok(CompiledSemanticRuntimeAnnotations { directives_by_rule })
+    for (rule_name, branch_semantic_annotations) in &annotations.branch_semantic_annotations {
+        let mut compiled_branches = Vec::with_capacity(branch_semantic_annotations.len());
+        let mut has_runtime_directive = false;
+        for (branch_index, semantic_annotations) in branch_semantic_annotations.iter().enumerate() {
+            let directives = compile_rule_semantic_runtime_directives(
+                rule_name,
+                semantic_annotations.iter(),
+            )
+            .map_err(|err| {
+                format!(
+                    "Failed to compile branch semantic runtime directives for rule '{}' branch #{}: {}",
+                    rule_name,
+                    branch_index + 1,
+                    err
+                )
+            })?;
+            if !directives.is_empty() {
+                has_runtime_directive = true;
+            }
+            compiled_branches.push(directives);
+        }
+        if has_runtime_directive {
+            branch_directives_by_rule.insert(rule_name.clone(), compiled_branches);
+        }
+    }
+    Ok(CompiledSemanticRuntimeAnnotations::from_parts(
+        directives_by_rule,
+        branch_directives_by_rule,
+    ))
 }
 
 fn parse_open_scope(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective, String> {
@@ -1767,6 +1859,116 @@ mod tests {
             1
         );
         assert!(compiled.directives_for_rule("missing_rule").is_empty());
+        assert!(compiled.branch_directives_for_rule("missing_rule").is_empty());
+    }
+
+    #[test]
+    fn compile_annotations_groups_branch_runtime_directives_by_rule_and_branch() {
+        let mut annotations = Annotations::default();
+        annotations.branch_semantic_annotations.insert(
+            "statement_or_decl".to_string(),
+            vec![
+                vec![structured_named(
+                    "predicate",
+                    "{ name: content_kind_is, args: [sequence], phase: branch, view: raw }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("sequence".to_string()),
+                            ]),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("branch".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                        },
+                    ]),
+                )],
+                vec![structured_named(
+                    "category",
+                    "\"metadata\"",
+                    UnifiedSemanticValue::String("metadata".to_string()),
+                )],
+                vec![structured_named(
+                    "predicate",
+                    "{ name: content_kind_is, args: [terminal], phase: branch, view: raw }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("terminal".to_string()),
+                            ]),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("branch".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                        },
+                    ]),
+                )],
+            ],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+
+        assert_eq!(compiled.len(), 1);
+        assert!(compiled.has_rule("statement_or_decl"));
+        assert_eq!(
+            compiled.branch_directives_for_rule("statement_or_decl").len(),
+            3
+        );
+        assert_eq!(
+            compiled
+                .branch_directives_for_rule_branch("statement_or_decl", 0)
+                .len(),
+            1
+        );
+        assert_eq!(
+            compiled
+                .branch_directives_for_rule_branch("statement_or_decl", 1)
+                .len(),
+            0
+        );
+        assert_eq!(
+            compiled
+                .branch_directives_for_rule_branch("statement_or_decl", 2)
+                .len(),
+            1
+        );
+        assert_eq!(
+            compiled
+                .branch_predicates_for_rule_branch("statement_or_decl", 0)
+                .count(),
+            1
+        );
+        assert_eq!(
+            compiled
+                .branch_predicates_for_rule_branch("statement_or_decl", 1)
+                .count(),
+            0
+        );
+        assert_eq!(
+            compiled
+                .branch_predicates_for_rule_branch("statement_or_decl", 2)
+                .count(),
+            1
+        );
     }
 
     #[test]

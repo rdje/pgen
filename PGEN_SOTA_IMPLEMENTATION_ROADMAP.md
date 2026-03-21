@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-20
+Last updated: 2026-03-21
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -162,12 +162,23 @@ Near-term rollout:
   - landed current-parse-content argument resolution for `post` predicates:
     - generated parser rule execution now resolves `post` predicate args against the selected `raw` / `shaped` content view before predicate evaluation
     - `has_fact(..., $n)`-style `post` queries are now meaningful instead of static-only
+  - landed the first real `branch` predicate execution seam:
+    - generated parser candidate selection now executes `phase = branch` predicates against candidate-local content
+    - unresolved candidate-local captures now reject the candidate branch instead of escalating to a fatal parse error
+  - landed the first preserved branch-local semantic annotation execution path:
+    - `Annotations.branch_semantic_annotations` now compile into `CompiledSemanticRuntimeAnnotations.branch_directives_by_rule`
+    - the Rust annotation validator now validates branch-local semantic annotations too
+    - generated parser constructors now embed branch-local semantic directives
+    - generated branch selection now evaluates both:
+      - rule-level `phase = branch` predicates
+      - branch-local `phase = branch` predicates for the candidate branch only
   - current boundary remains explicit:
-    - only `post` predicates currently get current-parse-content arg resolution
     - `pre` predicate args remain static by construction
-    - `branch` predicates are still typed but not executed yet
-    - content-aware predicate steering is still limited to the rule-success seam
-    - no live grammar ambiguity pilot consumes the new semantic predicate phases yet
+    - `post` predicates still have the richer current-rule capture resolution path
+    - branch-local semantic effects are not yet applied after branch success
+    - no checked-in live grammar pilot is using branch-local semantic annotations yet
+  - next best pilot remains:
+    - use the new branch-local semantic seam on the still-open SystemVerilog branch-sensitive ambiguity frontier, especially the reduced `T::f()` / class-scope vs type-scope surface
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

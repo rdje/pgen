@@ -136,6 +136,26 @@ impl AnnotationValidator {
             );
         }
 
+        for (rule_name, branch_semantic_annotations) in &annotations.branch_semantic_annotations {
+            for (branch_idx, semantic_annotations) in branch_semantic_annotations.iter().enumerate()
+            {
+                let branch_rule_name = format!("{} (branch {})", rule_name, branch_idx + 1);
+                for (idx, semantic_annotation) in semantic_annotations.iter().enumerate() {
+                    self.validate_semantic_annotation(
+                        &branch_rule_name,
+                        idx + 1,
+                        semantic_annotation,
+                        &mut report,
+                    );
+                }
+                self.validate_semantic_directive_conflicts(
+                    &branch_rule_name,
+                    semantic_annotations,
+                    &mut report,
+                );
+            }
+        }
+
         self.promote_configured_semantic_warnings(&mut report);
         report
     }
@@ -2389,6 +2409,40 @@ mod tests {
                 .iter()
                 .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
                     && d.severity == AnnotationSeverity::Warning)
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_unknown_branch_directive_in_warn_mode() {
+        let mut annotations = Annotations::default();
+        annotations.branch_semantic_annotations.insert(
+            "rule".to_string(),
+            vec![
+                Vec::new(),
+                vec![SemanticAnnotation::Named {
+                    name: "custom_directive".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "\"value\"".to_string(),
+                    },
+                }],
+            ],
+        );
+
+        let report = AnnotationValidator::new(AnnotationValidatorConfig {
+            max_capture_index: None,
+            strict_semantic_transforms: false,
+            unknown_semantic_directive_policy: UnknownSemanticDirectivePolicy::Warn,
+            strict_semantic_warning_codes: HashSet::new(),
+        })
+        .validate_annotations(&annotations);
+
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_UNKNOWN_DIRECTIVE"
+                    && d.severity == AnnotationSeverity::Warning
+                    && d.rule_name == "rule (branch 2)")
         );
     }
 
