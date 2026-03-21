@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Close the remaining reduced global `T::U value;` leak through the generic `data_type` front
+### Context
+After the covergroup-type tightening, the reduced module-scope false acceptance still survived:
+- `typedef int T;`
+- later `T::U value;`
+
+The remaining root cause turned out to be simpler and broader:
+- `data_type` still had the old generic arm:
+  - `( class_scope | package_scope )? type_identifier packed_dimension*`
+- so `T::U` could still parse as an ordinary scoped type reference
+- even when `T` was already known locally as a typedef-family type head
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added:
+    - `known_unscoped_data_type_identifier`
+    - `scoped_data_type_identifier`
+  - the unscoped helper is fact-aware:
+    - `@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }`
+  - the scoped helper is now routed through:
+    - `class_scope`
+    - `non_typedef_package_scope`
+  - `data_type` now uses those helpers instead of the old broad generic scoped-type branch
+
+### Why This Matters
+- This is the actual final reduced module-scope `T::U value;` acceptance surface that remained after the covergroup fix.
+- It aligns top-level data declarations with the same semantic-fact policy already used for:
+  - block-local type starts
+  - class-family starts
+  - covergroup-family starts
+
+## 2026-03-21 - Tighten the reduced global `T::U value;` leak through covergroup typing
+### Context
+The remaining reduced module-scope false acceptance:
+- `typedef int T;`
+- later `T::U value;`
+
+turned out not to be a surviving `class_type` path after all.
+The generated predicate diagnostics and traces showed one accepting surface more precisely:
+- `data_type` was still accepting `T::U`
+- one surviving broad fallback was the covergroup-type path
+- local typedef heads could therefore still impersonate package-scoped covergroup type fronts
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - named `covergroup` declaration heads now use:
+    - `declared_covergroup_identifier`
+  - that helper now emits:
+    - `@emit_fact: { kind: type_name, name: $covergroup_identifier, declaration_family: covergroup }`
+  - added semantic-fact-aware covergroup type helpers:
+    - `known_unscoped_covergroup_type_identifier`
+    - `scoped_covergroup_type_identifier`
+  - the scoped helper now routes through:
+    - `non_typedef_package_scope`
+  - `ps_covergroup_identifier` now uses those helpers instead of the broad:
+    - `( package_scope )? covergroup_identifier`
+  - block-local covergroup-type fronts now reuse the same covergroup-specific helper family
+
+### Why This Matters
+- This closed one real reduced module-scope `T::U value;` acceptance surface without broadening the policy.
+- It also upgrades covergroup typing to the same semantic-fact model already used for:
+  - typedefs
+  - classes
+  - interface classes
+- The later remaining accepting surface turned out to be the broader generic scoped `data_type` arm, which is now handled separately above.
+
 ## 2026-03-21 - Improve semantic predicate diagnostics before the next global SV steering slice
 ### Context
 The next nearby SystemVerilog semantic-fact target is still the reduced global scoped-type leak:

@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-03-21 - Close the remaining reduced global SV `T::U value;` generic data-type leak
+### ✅ Achievement Summary
+PGEN now closes the remaining reduced module-scope `typedef int T; T::U value;` false acceptance at the actual broad surface that was still alive: the generic scoped `data_type` arm. Top-level type references now use the same semantic-fact-aware helpers already used at block fronts, so local typedef heads can no longer impersonate package-like or class-scoped type prefixes in ordinary data declarations.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added fact-aware generic data-type helpers:
+    - `known_unscoped_data_type_identifier`
+    - `scoped_data_type_identifier`
+  - `data_type` now uses those helpers instead of the old broad arm:
+    - `( class_scope | package_scope )? type_identifier packed_dimension*`
+  - the scoped helper routes through:
+    - `class_scope`
+    - `non_typedef_package_scope`
+  - the unscoped helper requires:
+    - `has_fact(type_name, ...)`
+
+### Why This Matters
+- The earlier covergroup tightening was useful, but it was not the last accepting surface.
+- The real remaining reduced global leak was the broad generic `data_type` fallback.
+- This fix aligns ordinary declaration typing with the semantic-fact policy already used for:
+  - block-local type starts
+  - class-family type starts
+  - covergroup-family type starts
+
+## 2026-03-21 - Tighten the reduced global SV `T::U value;` covergroup path ahead of the final generic type fix
+### ✅ Achievement Summary
+PGEN now tightens one real surviving acceptance surface in the reduced module-scope `typedef int T; T::U value;` investigation: covergroup typing. Named `covergroup` declarations now emit semantic type facts, and the broad covergroup identifier fallback in `data_type` has been replaced with semantic-fact-aware helpers.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - named `covergroup` declaration heads now use:
+    - `declared_covergroup_identifier`
+  - that helper now emits:
+    - `type_name`
+    - `declaration_family: covergroup`
+  - added fact-aware covergroup type helpers:
+    - `known_unscoped_covergroup_type_identifier`
+    - `scoped_covergroup_type_identifier`
+  - scoped covergroup typing now goes through:
+    - `non_typedef_package_scope`
+  - `ps_covergroup_identifier` no longer uses the broad:
+    - `( package_scope )? covergroup_identifier`
+  - block-local covergroup-type fronts now reuse the same covergroup-specific helper family
+
+### Why This Matters
+- The reduced module-scope `T::U value;` leak was no longer a broad package-scope mystery.
+- One real surviving path was a broad covergroup-type fallback in `data_type`.
+- This tightening stayed surgical:
+  - local typedef heads no longer masquerade as package-scoped covergroup types
+  - real package-scoped covergroup types remain available
+  - named covergroup declarations finally participate in the same `type_name` semantic-fact system as typedefs/classes/interface classes
+- It also made the remaining acceptance surface easier to isolate:
+  - the last leak turned out to be the broader generic scoped `data_type` arm, which is now handled separately above
+
 ## 2026-03-21 - Improve semantic predicate trace diagnostics
 ### ✅ Achievement Summary
 PGEN now emits more actionable generated-parser diagnostics when semantic steering rejects a rule or branch. Instead of only reporting that “a predicate” blocked parsing, the generated runtime now logs the specific semantic predicate label that caused the rejection.

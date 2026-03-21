@@ -200,6 +200,23 @@ Near-term rollout:
   - immediate follow-up clarity:
     - the remaining global `T::U value;` frontier now needs better generated semantic-predicate diagnostics before the next steering attempt
     - generated parsers now log which concrete `pre` / `post` / `branch` predicate blocked a rule or candidate
+  - next closure landed:
+    - one reduced module-scope `typedef int T; T::U value;` leak turned out to be the broad covergroup-type fallback in `data_type`
+    - named `covergroup` declarations now emit `type_name` facts with `declaration_family: covergroup`
+    - `ps_covergroup_identifier` is now semantic-fact-aware instead of broad `( package_scope )? covergroup_identifier`
+    - scoped covergroup typing now routes through `non_typedef_package_scope`
+    - block-local and module-scope covergroup type fronts now share the same fact-aware helper family
+  - actual reduced global closure now landed:
+    - after the covergroup tightening, the final surviving reduced module-scope `typedef int T; T::U value;` leak was the broad generic `data_type` arm:
+      - `( class_scope | package_scope )? type_identifier packed_dimension*`
+    - `data_type` now uses semantic-fact-aware generic helpers instead:
+      - `known_unscoped_data_type_identifier`
+      - `scoped_data_type_identifier`
+    - scoped generic type starts now route through:
+      - `class_scope`
+      - `non_typedef_package_scope`
+    - unscoped generic type starts now require:
+      - `has_fact(type_name, ...)`
   - next best pilot remains:
     - broaden the same branch-local and negative attribute-aware pattern to the next surviving SystemVerilog branch-sensitive ambiguity surfaces
 - Progress (2026-03-21):

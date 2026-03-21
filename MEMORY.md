@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: tighten-scoped-block-package-type-fronts)
+Last updated: 2026-03-21 (+0100, task: close-global-scoped-data-type-leak)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -37,6 +37,25 @@ Use this file to resume work without replaying full chat history.
   - the current live-status snapshot,
   - and whether that snapshot changed or stayed unchanged.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
+
+## Current Reduced SV Semantic-Steering Frontier
+- The earlier covergroup-type tightening was useful but not sufficient:
+  - named `covergroup` declarations now emit `type_name` facts with `declaration_family: covergroup`
+  - `ps_covergroup_identifier` is now semantic-fact-aware instead of broad `( package_scope )? covergroup_identifier`
+- The actual remaining reduced module-scope leak after that work was broader:
+  - `typedef int T;`
+  - later `T::U value;`
+  - still passed through the generic `data_type` arm:
+    - `( class_scope | package_scope )? type_identifier packed_dimension*`
+- Current intended closure:
+  - `data_type` should use fact-aware generic helpers:
+    - `known_unscoped_data_type_identifier`
+    - `scoped_data_type_identifier`
+  - scoped generic type starts must route through:
+    - `class_scope`
+    - `non_typedef_package_scope`
+  - unscoped generic type starts must require:
+    - `has_fact(type_name, ...)`
 
 ## Current SV UVM Frontier
 - Latest focused grammar fix:
@@ -178,6 +197,16 @@ Use this file to resume work without replaying full chat history.
   - `pre` predicate rejection logs identify the blocking predicate
   - `post` predicate rejection logs identify the blocking predicate
   - branch predicate rejection logs identify the blocking predicate instead of only saying “branch predicate”
+- The remaining reduced module-scope `T::U value;` leak is now closed through the covergroup-type path.
+  - root cause:
+    - broad covergroup typing fallback inside `data_type`
+  - fix:
+    - named `covergroup` declarations now emit `type_name` facts with `declaration_family: covergroup`
+    - `ps_covergroup_identifier` is now semantic-fact-aware instead of a broad package-scope fallback
+    - scoped covergroup typing now routes through `non_typedef_package_scope`
+  - practical effect:
+    - local typedef heads no longer impersonate package-scoped covergroup types
+    - block-local and module-scope covergroup type fronts now share one fact-aware helper family
 - Next likely semantic-steering task:
   - broaden the same negative attribute-aware pattern to the next surviving package-like fallback surfaces beyond block declarations and callable fronts
 

@@ -401,7 +401,9 @@ scoped_base_class_type_identifier := package_scope class_identifier
 
 base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
-class_type := ps_class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+scoped_class_type_identifier := non_typedef_package_scope class_identifier
+
+class_type := ( scoped_class_type_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
 class_variable_identifier := variable_identifier
 
@@ -566,16 +568,20 @@ coverage_spec := cover_point | cover_cross
 coverage_spec_or_option := attribute_instance* coverage_spec | attribute_instance* coverage_option semi
 
 @profiles: ["sv_2017"]
-covergroup_declaration_sv_2017 := kw_covergroup_80dfc68d covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
+covergroup_declaration_sv_2017 := kw_covergroup_80dfc68d declared_covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
 
 @profiles: ["sv_2023"]
-covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )? | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
+covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d declared_covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )? | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
 
 covergroup_declaration := covergroup_declaration_sv_2017 | covergroup_declaration_sv_2023
 
 covergroup_expression := expression
 
 covergroup_identifier := declaration_identifier
+
+@emit_fact: { kind: type_name, name: $covergroup_identifier, declaration_family: covergroup }
+@predicate: { name: has_fact, args: [type_name, $covergroup_identifier], phase: post }
+declared_covergroup_identifier := covergroup_identifier
 
 covergroup_range_list := covergroup_value_range ( comma covergroup_value_range )*
 
@@ -636,22 +642,31 @@ known_unscoped_block_type_identifier := type_identifier packed_dimension*
 
 scoped_block_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
 
+@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
+known_unscoped_data_type_identifier := type_identifier packed_dimension*
+
+scoped_data_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
+
 @predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, typedef], phase: post }
 known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
 scoped_block_class_type := non_typedef_package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
-@predicate: { name: has_fact, args: [type_name, $covergroup_identifier], phase: post }
-known_unscoped_block_covergroup_identifier := covergroup_identifier
+@predicate: { name: fact_attribute_equals, args: [type_name, $covergroup_identifier, declaration_family, covergroup], phase: post }
+known_unscoped_covergroup_type_identifier := covergroup_identifier
 
-scoped_block_covergroup_identifier := non_typedef_package_scope covergroup_identifier
+scoped_covergroup_type_identifier := non_typedef_package_scope covergroup_identifier
+
+known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_identifier
+
+scoped_block_covergroup_identifier := scoped_covergroup_type_identifier
 
 block_data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_block_type_identifier | known_unscoped_block_type_identifier | scoped_block_class_type | known_unscoped_block_class_type | kw_event_5006ed02 | scoped_block_covergroup_identifier | known_unscoped_block_covergroup_identifier | type_reference
 
 block_data_type_or_implicit := block_data_type | implicit_data_type
 
-data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | ( class_scope | package_scope )? type_identifier packed_dimension* | class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
+data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_data_type_identifier | known_unscoped_data_type_identifier | class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
 
 data_type_or_implicit := data_type | implicit_data_type
 
@@ -1666,7 +1681,7 @@ ps_checker_identifier := ( package_scope )? checker_identifier
 
 ps_class_identifier := ( package_scope )? class_identifier
 
-ps_covergroup_identifier := ( package_scope )? covergroup_identifier
+ps_covergroup_identifier := scoped_covergroup_type_identifier | known_unscoped_covergroup_type_identifier
 
 ps_identifier := ( package_scope )? identifier
 
