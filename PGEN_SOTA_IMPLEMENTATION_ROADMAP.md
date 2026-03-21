@@ -179,6 +179,20 @@ Near-term rollout:
     - no checked-in live grammar pilot is using branch-local semantic annotations yet
   - next best pilot remains:
     - use the new branch-local semantic seam on the still-open SystemVerilog branch-sensitive ambiguity frontier, especially the reduced `T::f()` / class-scope vs type-scope surface
+- Progress (2026-03-21):
+  - kept one shared inline semantic surface syntax:
+    - `@name: payload`
+    - for rule-level, branch-local, and mid-sequence use sites
+  - landed the first structural separation between:
+    - branch-local inline semantic annotations
+    - true mid-sequence inline semantic annotations
+  - current Rust frontend/raw-AST behavior now distinguishes by placement:
+    - branch-start inline annotation -> branch-local container
+    - non-leading inline annotation -> preserved mid-sequence container with location metadata
+  - important current boundary:
+    - mid-sequence annotations are preserved, not executed
+  - next recommended step:
+    - define and implement position-sensitive execution semantics for preserved mid-sequence annotations without changing the shared `@name: payload` syntax
 
 ## Parser Deliverable Proof Doctrine
 For a grammar family to count as a serious PGEN parser deliverable, the closure proof must cover the full parser/stimuli loop rather than parser generation alone.

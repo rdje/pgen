@@ -115,8 +115,11 @@ sequence_element := (
 )
     -> $1
 
-# Inline semantic annotations can steer a specific sequence/branch without
-# needing to sit at rule scope.
+# Inline semantic annotations keep the same surface syntax as rule-level
+# annotations. The frontend/runtime may distinguish them by placement:
+# - branch-start inline annotations can mean branch-local steering
+# - later inline annotations in a sequence can mean true mid-sequence actions
+# while preserving the same `@name: payload` form.
 inline_semantic_annotation := semantic_annotation
     -> $1
 

@@ -1566,12 +1566,18 @@ fn filter_annotations_by_profile(
     let mut branch_semantic_annotations = annotations.branch_semantic_annotations;
     branch_semantic_annotations.retain(|rule_name, _| retained_rules.contains(rule_name));
 
+    let mut branch_mid_sequence_semantic_annotations =
+        annotations.branch_mid_sequence_semantic_annotations;
+    branch_mid_sequence_semantic_annotations
+        .retain(|rule_name, _| retained_rules.contains(rule_name));
+
     let mut semantic_annotations = annotations.semantic_annotations;
     semantic_annotations.retain(|rule_name, _| retained_rules.contains(rule_name));
 
     Annotations {
         branch_return_annotations,
         branch_semantic_annotations,
+        branch_mid_sequence_semantic_annotations,
         semantic_annotations,
     }
 }

@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-21 - Separate branch-local and mid-sequence inline semantic annotations
+### ✅ Achievement Summary
+PGEN now keeps the same `@name: payload` surface syntax for rule-level, branch-local, and mid-sequence semantic annotations, while preserving the important distinction between branch-leading inline annotations and true mid-sequence inline annotations in the Rust EBNF frontend/raw-AST path.
+
+### Scope of Changes
+- Updated [ebnf.ebnf](/Users/richarddje/Documents/github/pgen/grammars/ebnf.ebnf):
+  - clarified that `inline_semantic_annotation := semantic_annotation` keeps one shared syntax
+  - documented the intended placement-based interpretation:
+    - branch-start inline annotation
+    - later mid-sequence inline annotation
+- Updated [ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs):
+  - branch-start inline annotations still tokenize as:
+    - `semantic_annotation_inline`
+  - non-leading inline annotations now tokenize as:
+    - `semantic_annotation_mid_sequence`
+  - Rust frontend verification skip logic now recognizes both inline token families
+- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - added `MidSequenceSemanticAnnotation { syntax_position, group_depth, annotation }`
+  - added `Annotations.branch_mid_sequence_semantic_annotations`
+  - raw-AST transformation now preserves mid-sequence annotations separately from branch-local annotations
+- Updated [main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - profile filtering now retains `branch_mid_sequence_semantic_annotations`
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::tests::transform_from_raw_ast_preserves_branch_semantic_annotations -- --exact --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::tests::transform_from_raw_ast_preserves_mid_sequence_semantic_annotations -- --exact --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --no-run`
+- real frontend proof:
+  - `ast_pipeline --emit-raw-ast-json /tmp/inline_mid_sequence.json` on a tiny `.ebnf`
+  - `/tmp/inline_mid_sequence.json` contains `semantic_annotation_mid_sequence`
+
+### Important Boundary
+- This slice preserves and distinguishes mid-sequence annotations; it does not execute them yet.
+- Branch-leading inline annotations still feed the existing branch-local semantic path.
+- Mid-sequence annotations are now stored with location metadata so future position-sensitive execution can be added without overloading the branch-local container.
+
 ## 2026-03-21 - Compile and execute branch-local semantic annotations
 ### ✅ Achievement Summary
 Branch-local semantic annotations are no longer just preserved in the normalized AST. They now compile into the semantic runtime, validate through the Rust annotation validator, serialize into generated parsers, and participate in candidate-branch selection through explicit branch-local predicate lookup.

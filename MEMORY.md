@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: compile-branch-local-semantic-annotations)
+Last updated: 2026-03-21 (+0100, task: preserve-mid-sequence-inline-semantic-annotations)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -146,6 +146,30 @@ Use this file to resume work without replaying full chat history.
   - rule-level `phase = branch` predicates still remain supported and are evaluated alongside branch-local ones
 - Next likely semantic-steering task:
   - use the new branch-local predicate seam on the remaining SystemVerilog branch-sensitive ambiguity surface, especially the still-open `T::f()` / class-scope vs type-scope frontier
+
+## Current Mid-Sequence Inline Semantic State
+- We are keeping one shared surface syntax:
+  - `@name: payload`
+  - for rule-level, branch-local, and mid-sequence semantic annotations
+- Current Rust-side distinction is now placement-based:
+  - top-level branch-start inline annotation:
+    - preserved as branch-local semantic annotation
+  - non-leading inline annotation:
+    - preserved as mid-sequence semantic annotation
+- As of 2026-03-21:
+  - [ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs) emits:
+    - `semantic_annotation_inline`
+    - `semantic_annotation_mid_sequence`
+  - [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs) preserves mid-sequence entries in:
+    - `Annotations.branch_mid_sequence_semantic_annotations`
+  - each preserved mid-sequence entry records:
+    - `syntax_position`
+    - `group_depth`
+    - `annotation`
+- Important boundary:
+  - mid-sequence annotations are preserved but not executed yet
+  - do not conflate them with branch-local semantic metadata
+  - future work should add position-sensitive execution on top of this preserved representation rather than flattening them back into `branch_semantic_annotations`
 
 ## Current Semantic Annotation Runtime Frontier
 - First widening slice is now in-tree:

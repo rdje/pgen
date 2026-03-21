@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Same syntax, but branch-local and mid-sequence inline semantics are now distinct
+### Context
+We explicitly decided to keep one shared semantic-annotation surface syntax:
+- rule-level
+- branch-local
+- mid-sequence
+
+That means the parser should not invent a second annotation syntax just to express position-sensitive semantics.
+
+The real requirement was instead:
+- keep `@name: payload` everywhere,
+- but stop conflating:
+  - “this branch has these semantic annotations”
+  - with
+  - “run this annotation exactly here inside the sequence”
+
+### Implementation
+- Updated [ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs):
+  - same surface syntax still parses in all positions
+  - placement now decides tokenization:
+    - top-level branch-start inline annotation:
+      - `semantic_annotation_inline`
+    - non-leading inline annotation:
+      - `semantic_annotation_mid_sequence`
+  - the classifier is intentionally conservative:
+    - only annotations at top-level branch start remain branch-local
+    - annotations later in the branch, or inside a group, become mid-sequence
+- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+  - added `MidSequenceSemanticAnnotation`
+    - `syntax_position`
+    - `group_depth`
+    - `annotation`
+  - added `Annotations.branch_mid_sequence_semantic_annotations`
+  - raw-AST transformation now preserves:
+    - branch-leading inline annotations in `branch_semantic_annotations`
+    - non-leading inline annotations in `branch_mid_sequence_semantic_annotations`
+- Updated [main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+  - profile filtering now keeps the new mid-sequence annotation map alive
+
+### Why This Matters
+- This keeps the user-facing annotation language simple:
+  - still one `@name: payload` form
+- while keeping the implementation honest:
+  - branch-local semantic metadata is not the same thing as a position-sensitive semantic action
+- The preserved `syntax_position` + `group_depth` metadata is the important enabling step:
+  - future execution can be added without pretending a mid-sequence action is just another branch-level property
+
+### Remaining Gap
+- Mid-sequence annotations are preserved, not executed.
+- So today:
+  - branch-local inline annotations are live in the semantic runtime
+  - mid-sequence inline annotations are a preserved positional contract for future work
+- That is intentional:
+  - first preserve the distinction,
+  - then add execution semantics on top of the correct structure.
+
 ## 2026-03-21 - Branch-local semantic annotations now reach the generated parser runtime
 ### Context
 After preserving inline rule-body semantic annotations as `Annotations.branch_semantic_annotations`, the remaining gap was important:

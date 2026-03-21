@@ -34,8 +34,8 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     let mut has_inline_semantic_annotations = false;
     for rule in &scanned_rules {
         let converted = convert_scanned_rule(rule)?;
-        has_inline_semantic_annotations |=
-            contains_token_type(&converted, "semantic_annotation_inline");
+        has_inline_semantic_annotations |= contains_token_type(&converted, "semantic_annotation_inline")
+            || contains_token_type(&converted, "semantic_annotation_mid_sequence");
         raw_ast.push(converted);
     }
 
@@ -449,6 +449,8 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
     let bytes = expression.as_bytes();
     let mut idx = 0usize;
     let mut optional_depth = 0usize;
+    let mut sequence_group_depth = 0usize;
+    let mut branch_has_syntax = false;
 
     while idx < bytes.len() {
         let ch = bytes[idx] as char;
@@ -468,15 +470,21 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
         match ch {
             '(' => {
                 tokens.push(json!(["group_open", "("]));
+                sequence_group_depth = sequence_group_depth.saturating_add(1);
+                branch_has_syntax = true;
                 idx += 1;
             }
             ')' => {
                 tokens.push(json!(["group_close", ")"]));
+                sequence_group_depth = sequence_group_depth.saturating_sub(1);
+                branch_has_syntax = true;
                 idx += 1;
             }
             '[' => {
                 optional_depth = optional_depth.saturating_add(1);
                 tokens.push(json!(["group_open", "("]));
+                sequence_group_depth = sequence_group_depth.saturating_add(1);
+                branch_has_syntax = true;
                 idx += 1;
             }
             ']' => {
@@ -484,16 +492,24 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                     optional_depth -= 1;
                     tokens.push(json!(["group_close", ")"]));
                     tokens.push(json!(["operator", "?"]));
+                    sequence_group_depth = sequence_group_depth.saturating_sub(1);
+                    branch_has_syntax = true;
                 }
                 idx += 1;
             }
             '|' | '*' | '+' | '?' | '!' | '&' => {
                 tokens.push(json!(["operator", ch.to_string()]));
+                if ch == '|' && sequence_group_depth == 0 {
+                    branch_has_syntax = false;
+                } else {
+                    branch_has_syntax = true;
+                }
                 idx += 1;
             }
             '{' => {
                 if let Some((quantifier, next_idx)) = parse_braced_quantifier(expression, idx) {
                     tokens.push(json!(["quantifier", quantifier]));
+                    branch_has_syntax = true;
                     idx = next_idx;
                 } else {
                     idx += 1;
@@ -503,7 +519,12 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                 if let Some(((name, payload), next_idx)) =
                     parse_inline_semantic_annotation(expression, idx)?
                 {
-                    tokens.push(json!(["semantic_annotation_inline", [name, payload]]));
+                    let token_type = if sequence_group_depth == 0 && !branch_has_syntax {
+                        "semantic_annotation_inline"
+                    } else {
+                        "semantic_annotation_mid_sequence"
+                    };
+                    tokens.push(json!([token_type, [name, payload]]));
                     idx = next_idx;
                 } else if let Some((probability, next_idx)) =
                     parse_probability_quantifier(expression, idx)
@@ -517,6 +538,7 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
             '"' | '\'' => {
                 if let Some((literal, next_idx)) = parse_quoted_literal(expression, idx) {
                     tokens.push(json!(["quoted_string", literal]));
+                    branch_has_syntax = true;
                     idx = next_idx;
                 } else {
                     return Err(anyhow!(
@@ -528,6 +550,7 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
             '/' => {
                 if let Some((pattern, next_idx)) = parse_regex_literal(expression, idx) {
                     tokens.push(json!(["regex", pattern]));
+                    branch_has_syntax = true;
                     idx = next_idx;
                 } else {
                     return Err(anyhow!(
@@ -539,9 +562,11 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
             'r' => {
                 if let Some((literal, next_idx)) = parse_raw_string_literal(expression, idx) {
                     tokens.push(json!(["quoted_string", literal]));
+                    branch_has_syntax = true;
                     idx = next_idx;
                 } else if let Some((identifier, next_idx)) = parse_identifier(expression, idx) {
                     tokens.push(json!(["rule_reference", identifier]));
+                    branch_has_syntax = true;
                     idx = next_idx;
                 } else {
                     idx += 1;
@@ -550,6 +575,7 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
             _ => {
                 if let Some((identifier, next_idx)) = parse_identifier(expression, idx) {
                     tokens.push(json!(["rule_reference", identifier]));
+                    branch_has_syntax = true;
                     idx = next_idx;
                 } else {
                     idx += 1;
@@ -1027,6 +1053,35 @@ entry = alpha
                 "[\"semantic_annotation_inline\",[\"predicate\",\"{ name: has_fact, args: [type_name, $alpha], phase: branch, view: raw }\"]]"
             ),
             "expected inline semantic annotation token in token stream, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"rule_reference\",\"alpha\"]"),
+            "expected alpha token in token stream, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"rule_reference\",\"beta\"]"),
+            "expected beta token in token stream, got: {}",
+            first_rule
+        );
+    }
+
+    #[test]
+    fn tokenizes_mid_sequence_semantic_annotations_inside_rule_body() {
+        let expression = r#"
+  alpha
+  @predicate: { name: has_fact, args: [type_name, $beta], phase: branch, view: raw }
+  beta
+"#;
+        let tokens = tokenize_rule_expression(expression)
+            .expect("mid-sequence semantic annotation tokenization should succeed");
+        let first_rule = serde_json::to_string(&tokens).expect("token json");
+        assert!(
+            first_rule.contains(
+                "[\"semantic_annotation_mid_sequence\",[\"predicate\",\"{ name: has_fact, args: [type_name, $beta], phase: branch, view: raw }\"]]"
+            ),
+            "expected mid-sequence semantic annotation token in token stream, got: {}",
             first_rule
         );
         assert!(
