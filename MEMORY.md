@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: close-global-scoped-data-type-leak)
+Last updated: 2026-03-21 (+0100, task: land-checker-instantiation-semantic-pilot)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,18 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live grammar expansion after the reduced global `T::U value;` closure:
+  - `checker_declaration` now emits a dedicated:
+    - `checker_name`
+  - `checker_instantiation` no longer uses broad:
+    - `( package_scope )? checker_identifier`
+  - it now uses:
+    - `known_unscoped_checker_identifier`
+    - `scoped_checker_identifier`
+  - policy:
+    - local known checker names instantiate unscoped,
+    - local typedef heads do not impersonate package-scoped checker prefixes,
+    - unknown external package-like checker prefixes remain allowed
 - The earlier covergroup-type tightening was useful but not sufficient:
   - named `covergroup` declarations now emit `type_name` facts with `declaration_family: covergroup`
   - `ps_covergroup_identifier` is now semantic-fact-aware instead of broad `( package_scope )? covergroup_identifier`

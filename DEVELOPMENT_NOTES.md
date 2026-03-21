@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Land the next live SV semantic-fact pilot on checker instantiation
+### Context
+After the reduced global `T::U value;` declaration leak was closed, the next nearby broad package-like helper in the checked-in grammar was:
+- `ps_checker_identifier := ( package_scope )? checker_identifier`
+
+That seam had the same structural weakness as the earlier callable/type fronts:
+- a local typedef head could still look package-like there,
+- but local checker declarations themselves should be allowed unscoped,
+- and unknown external package-like prefixes should remain available.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `checker_declaration` now uses:
+    - `declared_checker_identifier`
+  - that helper emits:
+    - `@emit_fact: { kind: checker_name, name: $checker_identifier, declaration_family: checker }`
+  - the same helper also proves the declaration succeeded with:
+    - `@predicate: { name: has_fact, args: [checker_name, $checker_identifier], phase: post }`
+  - `ps_checker_identifier` now uses:
+    - `known_unscoped_checker_identifier`
+    - `scoped_checker_identifier`
+  - the unscoped path now requires:
+    - `has_fact(checker_name, ...)`
+  - the scoped path now routes through:
+    - `non_typedef_package_scope`
+
+### Why This Matters
+- This is the first checked-in live use of a non-`type_name` semantic-fact family in the SV grammar.
+- It proves the semantic-fact runtime is genuinely generic across fact kinds, not only across declaration-family attributes on one fact kind.
+- It also broadens the same negative package-like steering pattern onto a real executable seam without pretending scoped semantic identity is fully solved:
+  - local typedef heads are rejected,
+  - local known checker names still work unscoped,
+  - unknown external package-like prefixes still parse.
+
 ## 2026-03-21 - Close the remaining reduced global `T::U value;` leak through the generic `data_type` front
 ### Context
 After the covergroup-type tightening, the reduced module-scope false acceptance still survived:

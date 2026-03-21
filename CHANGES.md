@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-21 - Land an SV checker-instantiation semantic-fact pilot
+### ✅ Achievement Summary
+PGEN now uses semantic facts on the `checker_instantiation` seam too. Named checker declarations emit a dedicated `checker_name` fact family, and `ps_checker_identifier` no longer uses the old broad `( package_scope )? checker_identifier` helper.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `checker_declaration` now uses:
+    - `declared_checker_identifier`
+  - that helper emits:
+    - `checker_name`
+    - `declaration_family: checker`
+  - added checker-specific instantiation helpers:
+    - `known_unscoped_checker_identifier`
+    - `scoped_checker_identifier`
+  - `ps_checker_identifier` now uses those helpers instead of the broad:
+    - `( package_scope )? checker_identifier`
+  - the scoped helper routes through:
+    - `non_typedef_package_scope`
+
+### Why This Matters
+- This proves the semantic-runtime fact model is not trapped in `type_name`-only usage.
+- It also broadens the same package-like negative steering pattern onto another real SystemVerilog branch-sensitive seam:
+  - local typedef heads should not impersonate package-scoped checker names
+  - real local checker declarations should still instantiate unscoped
+  - real/unknown external package-like prefixes should still remain available
+
 ## 2026-03-21 - Close the remaining reduced global SV `T::U value;` generic data-type leak
 ### ✅ Achievement Summary
 PGEN now closes the remaining reduced module-scope `typedef int T; T::U value;` false acceptance at the actual broad surface that was still alive: the generic scoped `data_type` arm. Top-level type references now use the same semantic-fact-aware helpers already used at block fronts, so local typedef heads can no longer impersonate package-like or class-scoped type prefixes in ordinary data declarations.

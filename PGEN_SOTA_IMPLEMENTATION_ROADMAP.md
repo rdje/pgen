@@ -219,6 +219,19 @@ Near-term rollout:
       - `has_fact(type_name, ...)`
   - next best pilot remains:
     - broaden the same branch-local and negative attribute-aware pattern to the next surviving SystemVerilog branch-sensitive ambiguity surfaces
+  - next live pilot now landed on a non-`type_name` fact family:
+    - `checker_declaration` now emits:
+      - `checker_name`
+      - `declaration_family: checker`
+    - `checker_instantiation` no longer uses broad:
+      - `( package_scope )? checker_identifier`
+    - it now uses checker-specific helpers:
+      - `known_unscoped_checker_identifier`
+      - `scoped_checker_identifier`
+    - policy is intentionally parallel to the earlier package-like callable/type pilots:
+      - preserve local known checker declarations unscoped,
+      - reject local typedef heads on the package-like scoped side,
+      - preserve unknown external package-like prefixes
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

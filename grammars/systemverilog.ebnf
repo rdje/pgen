@@ -296,7 +296,7 @@ cell_identifier := identifier
 
 charge_strength := lparen kw_small_89f6229a rparen | lparen kw_medium_20af4186 rparen | lparen kw_large_5296d5cc rparen
 
-checker_declaration := kw_checker_29e5b9a8 checker_identifier ( lparen ( checker_port_list )? rparen )? semi ( attribute_instance* checker_or_generate_item )* kw_endchecker_cd5c3b65 ( colon checker_identifier )?
+checker_declaration := kw_checker_29e5b9a8 declared_checker_identifier ( lparen ( checker_port_list )? rparen )? semi ( attribute_instance* checker_or_generate_item )* kw_endchecker_cd5c3b65 ( colon checker_identifier )?
 
 @profiles: ["sv_2017"]
 checker_generate_item_sv_2017 := loop_generate_construct | conditional_generate_construct | generate_region | elaboration_system_task
@@ -307,6 +307,10 @@ checker_generate_item_sv_2023 := loop_generate_construct | conditional_generate_
 checker_generate_item := checker_generate_item_sv_2017 | checker_generate_item_sv_2023
 
 checker_identifier := declaration_identifier
+
+@emit_fact: { kind: checker_name, name: $checker_identifier, declaration_family: checker }
+@predicate: { name: has_fact, args: [checker_name, $checker_identifier], phase: post }
+declared_checker_identifier := checker_identifier
 
 checker_instantiation := ps_checker_identifier name_of_instance lparen ( list_of_checker_port_connections )? rparen semi
 
@@ -1677,7 +1681,12 @@ property_qualifier := random_qualifier | class_item_qualifier
 
 property_spec := ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lparen expression_or_dist rparen )? property_expr
 
-ps_checker_identifier := ( package_scope )? checker_identifier
+@predicate: { name: has_fact, args: [checker_name, $checker_identifier], phase: post }
+known_unscoped_checker_identifier := checker_identifier
+
+scoped_checker_identifier := non_typedef_package_scope checker_identifier
+
+ps_checker_identifier := scoped_checker_identifier | known_unscoped_checker_identifier
 
 ps_class_identifier := ( package_scope )? class_identifier
 
