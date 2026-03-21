@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-21
+Last updated: 2026-03-22
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -307,6 +307,16 @@ Near-term rollout:
     - `#defs::D` and `#extpkg::D` pass while `#T::D` rejects
     - `foreach (defs::arr[i])` and `foreach (extpkg::arr[i])` pass while `foreach (T::arr[i])` rejects
   - this is intentionally recorded as policy-coherence widening, not as a new fact-family rollout
+  - the same policy-coherence widening now also covers the package-qualified nettype filter-function front:
+    - the optional `kw_with ... tf_identifier` branch inside:
+      - `net_type_declaration_sv_2017`
+      - `nettype_declaration_sv_2023`
+  - it now routes through:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+  - reduced proof confirms:
+    - `nettype logic nt with defs::f;` and `nettype logic nt with extpkg::f;` pass
+    - `nettype logic nt with T::f;` rejects
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

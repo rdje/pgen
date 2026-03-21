@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - Tighten the package-qualified nettype filter-function front
+### Context
+After the recent package-like coherence tightening, one nearby declaration-time callable surface was still using raw `package_scope`:
+- the optional `kw_with ... tf_identifier` branch inside:
+  - `net_type_declaration_sv_2017`
+  - `nettype_declaration_sv_2023`
+
+That meant a local typedef head could still impersonate a package-scoped nettype filter prefix in reduced forms like:
+- `typedef int T;`
+- later `nettype logic nt with T::f;`
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `net_type_declaration_sv_2017`
+  - `nettype_declaration_sv_2023`
+  - their optional `kw_with ... tf_identifier` package-like side now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another policy-coherence slice rather than a new declaration fact family.
+- The concrete rule is:
+  - local typedef heads should not impersonate package scopes on nettype filter-function fronts either.
+- Reduced proof stayed clean:
+  - `nettype logic nt with defs::f;` passes
+  - `nettype logic nt with extpkg::f;` passes
+  - `nettype logic nt with T::f;` rejects
+- This was a cleaner next step than broadening `variable_lvalue`, `class_new`, or `ps_type_identifier`, because the good/bad reduced matrix here was direct and stable before the edit.
+
 ## 2026-03-21 - Tighten the remaining generic package-qualified delay/foreach fronts
 ### Context
 After the recent semantic-fact pilots, a smaller but still real policy gap remained in two generic value surfaces:

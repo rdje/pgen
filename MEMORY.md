@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: package-value-front-tightening)
+Last updated: 2026-03-22 (+0100, task: nettype-filter-front-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,19 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live coherence tightening:
+  - the package-qualified nettype filter-function front now also reuses:
+    - `non_typedef_package_scope`
+  - tightened fronts:
+    - the optional `kw_with ... tf_identifier` branch inside:
+      - `net_type_declaration_sv_2017`
+      - `nettype_declaration_sv_2023`
+  - reduced proof confirms:
+    - local and unknown external package-like `nettype ... with pkg::f` forms still pass
+    - local typedef-prefixed `nettype ... with T::f` rejects
+  - this continues the same narrow policy-coherence expansion:
+    - no new fact family,
+    - just one more raw `package_scope` front brought into line with the existing package-vs-local-type steering rule
 - Latest live coherence tightening:
   - generic package-qualified value fronts now also reuse:
     - `non_typedef_package_scope`

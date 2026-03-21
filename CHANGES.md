@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-22 - Tighten SV package-scoped nettype filter fronts
+### ✅ Achievement Summary
+PGEN now extends the existing package-vs-local-type steering policy to the SystemVerilog `nettype ... with pkg::f` front too. The package-qualified filter-function branch inside `net_type_declaration` / `nettype_declaration` now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-scoped nettype filter prefixes.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed:
+    - `net_type_declaration_sv_2017`
+    - `nettype_declaration_sv_2023`
+  - their optional `kw_with ... tf_identifier` package-like side now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another narrow coherence slice rather than a new fact-family rollout.
+- The value is the same policy extension already proven on nearby package-qualified fronts:
+  - local typedef heads should not impersonate package scopes on nettype filter-function fronts either.
+- Reduced proof now confirms:
+  - `nettype logic nt with defs::f;` passes
+  - `nettype logic nt with extpkg::f;` passes
+  - `nettype logic nt with T::f;` rejects
+
 ## 2026-03-21 - Tighten SV package-scoped delay and foreach fronts
 ### ✅ Achievement Summary
 PGEN now extends the existing package-vs-local-type steering policy to two more generic SystemVerilog value fronts:
