@@ -1,4 +1,43 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - First live grammar use of attribute-aware semantic predicates
+### Context
+After landing generic attribute-aware fact predicates plus declaration-family metadata on checked-in SV `type_name` facts, the next step needed to be a real grammar seam where `kind + name` alone was genuinely insufficient.
+
+`interface_class_type` was the cleanest candidate:
+- `implements I` should accept an `interface class I`
+- but should reject an ordinary `class C`
+- and that distinction cannot be expressed with `has_fact(type_name, name)` alone because both declarations emit the same `type_name` fact family
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `known_unscoped_interface_class_type_identifier`
+    - gated by:
+      - `fact_attribute_equals(type_name, $class_identifier, declaration_family, interface_class)`
+  - added `scoped_interface_class_type_identifier`
+  - rewired `interface_class_type` so:
+    - unscoped names use the new attribute-aware gate
+    - package-scoped names remain available through a separate explicit scoped path
+
+### Why This Matters
+- This is the first checked-in grammar slice where the new attribute-aware fact layer actually changes parser behavior.
+- It proves the richer attribute metadata is not just stored for later:
+  - it can already steer a real, narrow HDL semantic distinction
+  - in a place where `kind + name` is genuinely too coarse
+- It also keeps the rollout disciplined:
+  - we did not broaden global `class_type`
+  - we did not try to solve qualified-name identity all at once
+  - we used the new predicate exactly where the extra precision was clearly needed
+
+### Focused Reduced Proof
+- under `--profile 2023`:
+  - `interface class I; class D implements I;` now passes
+  - `class C; class D implements C;` now fails
+  - `class D implements defs::I;` still passes through the scoped path
+
+### Remaining Gap
+- Scoped `pkg::I` forms are still intentionally ungated in the semantic sense.
+- The current fact model stores unqualified declaration names plus attributes, not full qualified identities, so broader package-qualified attribute steering should wait for a stronger scoped semantic model rather than being guessed locally.
+
 ## 2026-03-20 - Added the first minimal attribute-aware semantic-fact layer
 ### Context
 After explicitly recording why the first live semantic-fact rollout started with `kind + name`, the next practical step was not a full attribute-semantics jump. The right incremental move was:

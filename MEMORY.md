@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-20 (+0100, task: add-minimal-attribute-aware-semantic-facts)
+Last updated: 2026-03-21 (+0100, task: use-attribute-facts-for-interface-class-type)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -5525,6 +5525,22 @@ Use this file to resume work without replaying full chat history.
     - the new attributes are now available for the first future ambiguity that truly needs attribute-level matching
   - Refreshed reduced proof:
     - the existing declared/unknown/scoped nested-class SV semantic-fact pilot still behaves the same under a freshly regenerated parser after the new metadata was added
+- 2026-03-21: Landed the first real grammar use of attribute-aware semantic predicates.
+  - Active code slice:
+    - `grammars/systemverilog.ebnf`
+  - What changed:
+    - `interface_class_type` no longer accepts any unscoped `type_name`
+    - the new unscoped helper now requires:
+      - `fact_attribute_equals(type_name, $class_identifier, declaration_family, interface_class)`
+    - a separate `scoped_interface_class_type_identifier` keeps `pkg::I` forms available without pretending we already have fully qualified semantic identities
+  - Refreshed reduced proof:
+    - under `--profile 2023`:
+      - `interface class I; class D implements I;` passes
+      - `class C; class D implements C;` fails
+      - `class D implements defs::I;` still passes
+  - Important continuity note:
+    - this is the first checked-in parser behavior that truly needs attribute-aware facts rather than plain `kind + name`
+    - the seam is intentionally narrow because the current fact table still records unqualified names, not fully qualified scoped identities
 - 2026-03-20: Split the oversized `semantic_usage_tests` semantic-runtime contract surface into focused cached fixtures and smaller assertions.
   - Active code slice:
     - `rust/src/ast_pipeline/ast_based_generator.rs`

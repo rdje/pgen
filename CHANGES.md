@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-21 - Use attribute-aware facts for SV interface-class matching
+### ✅ Achievement Summary
+This lands the first real checked-in grammar use of the new attribute-aware semantic-fact predicates. Unscoped `interface_class_type` in SystemVerilog now requires an emitted `type_name` fact with `declaration_family: interface_class`, which means `implements I` accepts a real `interface class I` but rejects an ordinary `class C` in the same unscoped role.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added `known_unscoped_interface_class_type_identifier`
+    - gated by `fact_attribute_equals(type_name, $class_identifier, declaration_family, interface_class)`
+  - added `scoped_interface_class_type_identifier`
+  - rewired `interface_class_type` to use:
+    - the new unscoped attribute-aware gate
+    - the existing intentionally ungated package-scoped form
+
+### Focused Validation
+- `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+- `rust/target/debug/ast_pipeline /tmp/systemverilog_interface_attr_pilot.json --generate-parser --eliminate-left-recursion --output /tmp/systemverilog_interface_attr_pilot_parser.rs`
+- `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_interface_attr_pilot_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_interface_class_attr_good.sv --profile 2023`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_interface_class_attr_bad.sv --profile 2023`
+- `rust/target/debug/parseability_probe --parse systemverilog /tmp/sv_interface_class_attr_scoped.sv --profile 2023`
+
+### Important Boundary
+- This is a narrow unscoped `interface_class_type` pilot only.
+- Scoped `pkg::I` forms remain intentionally ungated in this slice because the current fact model still stores only the unqualified declaration name, not a package-qualified semantic identity.
+
 ## 2026-03-20 - Add minimal attribute-aware semantic fact predicates
 ### ✅ Achievement Summary
 Landed the first minimal attribute-aware semantic fact layer. The runtime now supports generic fact-attribute queries, and the checked-in SystemVerilog `type_name` facts now carry declaration-family metadata so future steering can distinguish `typedef`, `class`, and `interface_class` origins without changing current parse behavior.

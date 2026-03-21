@@ -1013,7 +1013,12 @@ interface_class_item := type_declaration | attribute_instance* interface_class_m
 
 interface_class_method := kw_pure_afe003f1 kw_virtual_af84d91f method_prototype semi
 
-interface_class_type := ps_class_identifier ( parameter_value_assignment )?
+@predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
+known_unscoped_interface_class_type_identifier := class_identifier
+
+scoped_interface_class_type_identifier := package_scope class_identifier
+
+interface_class_type := ( scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier ) ( parameter_value_assignment )?
 
 @profiles: ["sv_2017"]
 interface_declaration_sv_2017 := interface_ansi_header ( timeunits_declaration )? non_port_interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | interface_nonansi_header ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | attribute_instance* kw_interface_5ea2d81a interface_identifier lparen dot_star rparen semi ( timeunits_declaration )? interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )? | kw_extern_bf1ee311 interface_nonansi_header | kw_extern_bf1ee311 interface_ansi_header

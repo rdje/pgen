@@ -3367,3 +3367,23 @@ Why `rtl_frontend` exists:
     - attribute-aware semantic matching is now available as a small generic engine surface,
     - but it is still intentionally not the default steering style for checked-in grammar behavior,
     - the next pilot that uses it should be chosen only when `kind + name` is genuinely insufficient for a live ambiguity
+- 2026-03-21: Landed the first live grammar pilot that actually uses attribute-aware semantic facts.
+  - grammar slice:
+    - `grammars/systemverilog.ebnf`
+  - pilot seam:
+    - `interface_class_type`
+  - landed behavior:
+    - unscoped `interface_class_type` now requires:
+      - `fact_attribute_equals(type_name, $class_identifier, declaration_family, interface_class)`
+    - ordinary unscoped class names no longer satisfy that seam just because they are known `type_name` facts
+    - scoped `pkg::I` forms remain intentionally available through a separate ungated path
+  - focused reduced proof:
+    - under the `sv_2023` profile:
+      - `interface class I; class D implements I;` passes
+      - `class C; class D implements C;` fails
+      - `class D implements defs::I;` still passes
+  - roadmap consequence:
+    - attribute-aware predicates are now proven useful, not merely available
+    - the next attribute-aware pilots should target other seams where:
+      - `kind + name` is genuinely too coarse
+      - but a fully qualified scoped semantic identity model is not yet required
