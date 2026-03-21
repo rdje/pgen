@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-21 - Tighten SV package-scoped delay and foreach fronts
+### ✅ Achievement Summary
+PGEN now extends the existing package-vs-local-type steering policy to two more generic SystemVerilog value fronts:
+- `ps_identifier`
+- `ps_or_hierarchical_array_identifier`
+
+Those fronts now route through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-qualified delay values or package-qualified foreach-array heads.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed:
+    - `ps_identifier`
+    - `ps_or_hierarchical_array_identifier`
+  - each now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is intentionally not a brand-new semantic-fact family.
+- The value here is policy coherence:
+  - local typedef heads should not be treated as package scopes on generic package-qualified value fronts either.
+- Reduced proof now confirms:
+  - `#defs::D` passes
+  - `#extpkg::D` passes
+  - `#T::D` rejects
+  - `foreach (defs::arr[i])` passes
+  - `foreach (extpkg::arr[i])` passes
+  - `foreach (T::arr[i])` rejects
+
 ## 2026-03-21 - Pilot SV parameter semantic facts
 ### ✅ Achievement Summary
 PGEN now uses live semantic facts on the `parameter_identifier` seam too. Successful `parameter` / `localparam` assignments emit a dedicated `parameter_name` fact family, unscoped parameter references now require a known local parameter name, and package-like scoped parameter references now route through `non_typedef_package_scope`.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: parameter-semantic-fact-pilot)
+Last updated: 2026-03-21 (+0100, task: package-value-front-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,19 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live coherence tightening:
+  - generic package-qualified value fronts now also reuse:
+    - `non_typedef_package_scope`
+  - tightened fronts:
+    - `ps_identifier`
+    - `ps_or_hierarchical_array_identifier`
+  - reduced proof confirms:
+    - local and unknown external package-like delay values still pass
+    - local typedef-prefixed delay values reject
+    - local and unknown external package-like foreach-array heads still pass
+    - local typedef-prefixed foreach-array heads reject
+  - this was intentionally kept narrower than an initial broader lvalue/class-new idea:
+    - only the fronts with direct stable positive/negative reduced proof were kept
 - Latest live expansion:
   - successful `parameter` / `localparam` assignments now emit:
     - `parameter_name`

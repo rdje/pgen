@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Tighten the remaining generic package-qualified delay/foreach fronts
+### Context
+After the recent semantic-fact pilots, a smaller but still real policy gap remained in two generic value surfaces:
+- `ps_identifier`
+- `ps_or_hierarchical_array_identifier`
+
+Those rules were still using raw `package_scope`, which meant the grammar-level package-vs-local-type policy was stronger on dedicated semantic-fact fronts than on these generic package-qualified value forms.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `ps_identifier`
+  - `ps_or_hierarchical_array_identifier`
+  - both now use:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is a coherence slice rather than a new fact-family rollout.
+- The real policy extension is:
+  - local typedef heads should not impersonate package scopes even on generic delay-value and foreach-array fronts.
+- Reduced proof stayed clean:
+  - `#defs::D` passes
+  - `#extpkg::D` passes
+  - `#T::D` rejects
+  - `foreach (defs::arr[i])` passes
+  - `foreach (extpkg::arr[i])` passes
+  - `foreach (T::arr[i])` rejects
+- I intentionally did **not** keep a broader tentative lvalue/class-new package-front tightening in this slice because the reduced positive proof surface there was not as clean. This task keeps only the fronts that had direct, stable evidence.
+
 ## 2026-03-21 - Pilot semantic facts on the SV parameter seam
 ### Context
 The next useful declaration/use pair after the `let` pilot was:

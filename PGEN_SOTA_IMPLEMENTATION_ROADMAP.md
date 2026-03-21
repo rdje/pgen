@@ -297,6 +297,16 @@ Near-term rollout:
       - real/unknown external package-like scoped lets still pass,
       - local typedef-prefixed `T::L(...)` rejects,
       - neighboring callable/property samples stay green
+  - coherence tightening now landed on two remaining generic package-qualified value fronts too:
+    - `ps_identifier`
+    - `ps_or_hierarchical_array_identifier`
+  - both now route through:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+  - reduced proof confirms:
+    - `#defs::D` and `#extpkg::D` pass while `#T::D` rejects
+    - `foreach (defs::arr[i])` and `foreach (extpkg::arr[i])` pass while `foreach (T::arr[i])` rejects
+  - this is intentionally recorded as policy-coherence widening, not as a new fact-family rollout
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

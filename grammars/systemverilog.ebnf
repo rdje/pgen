@@ -1709,9 +1709,9 @@ ps_class_identifier := ( package_scope )? class_identifier
 
 ps_covergroup_identifier := scoped_covergroup_type_identifier | known_unscoped_covergroup_type_identifier
 
-ps_identifier := ( package_scope )? identifier
+ps_identifier := ( non_typedef_package_scope )? identifier
 
-ps_or_hierarchical_array_identifier := ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_array_identifier
+ps_or_hierarchical_array_identifier := ( implicit_class_handle dot | class_scope | non_typedef_package_scope )? hierarchical_array_identifier
 
 ps_or_hierarchical_net_identifier := ( package_scope )? net_identifier | hierarchical_net_identifier
 
