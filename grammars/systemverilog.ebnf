@@ -634,17 +634,18 @@ data_source_expression := expression
 @predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
 known_unscoped_block_type_identifier := type_identifier packed_dimension*
 
-scoped_block_type_identifier := ( class_scope | package_scope ) type_identifier packed_dimension*
+scoped_block_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
 
 @predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, typedef], phase: post }
 known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
-scoped_block_class_type := package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+scoped_block_class_type := non_typedef_package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
 @predicate: { name: has_fact, args: [type_name, $covergroup_identifier], phase: post }
 known_unscoped_block_covergroup_identifier := covergroup_identifier
 
-scoped_block_covergroup_identifier := package_scope covergroup_identifier
+scoped_block_covergroup_identifier := non_typedef_package_scope covergroup_identifier
 
 block_data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_block_type_identifier | known_unscoped_block_type_identifier | scoped_block_class_type | known_unscoped_block_class_type | kw_event_5006ed02 | scoped_block_covergroup_identifier | known_unscoped_block_covergroup_identifier | type_reference
 
@@ -1078,9 +1079,9 @@ let_actual_arg := expression
 let_declaration := kw_let_0262f9bb let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
 
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }
-non_type_package_scope := package_scope
+non_typedef_package_scope := package_scope
 
-let_expression := non_type_package_scope let_identifier ( lparen ( let_list_of_arguments )? rparen )? | let_identifier ( lparen ( let_list_of_arguments )? rparen )?
+let_expression := non_typedef_package_scope let_identifier ( lparen ( let_list_of_arguments )? rparen )? | let_identifier ( lparen ( let_list_of_arguments )? rparen )?
 
 let_formal_type := data_type_or_implicit | kw_untyped_d53be1e8
 

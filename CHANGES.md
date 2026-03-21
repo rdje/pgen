@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-21 - Tighten SV scoped block package-type fronts
+### ✅ Achievement Summary
+PGEN now extends the earlier SystemVerilog semantic-fact pilot from bare block-local type names to scoped package-like block type fronts too. Local `typedef` heads no longer slip through block declarations as if they were package scopes, while genuine package-qualified block types still parse.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - helper now consistently uses:
+    - `non_typedef_package_scope`
+  - `let_expression` now uses the renamed helper
+  - tightened scoped block declaration helpers so the package-qualified side uses `non_typedef_package_scope`:
+    - `scoped_block_type_identifier`
+    - `scoped_block_class_type`
+    - `scoped_block_covergroup_identifier`
+  - tightened `known_unscoped_block_class_type` too:
+    - it now keeps the existing `has_fact(type_name, ...)` gate
+    - and also rejects local `typedef`-family heads via `lacks_fact_attribute_equals(...)`
+
+### Focused Validation
+- regenerated temp parser via Rust frontend:
+  - `/tmp/systemverilog_scoped_block_package_guard_parser.rs`
+- reduced probe results with `PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_scoped_block_package_guard_parser.rs`:
+  - `/tmp/sv_semantic_fact_typedef_block.sv` passes
+  - `/tmp/sv_semantic_fact_unknown_block_type.sv` rejects
+  - `/tmp/sv_semantic_fact_scoped_block_type.sv` passes
+  - `/tmp/sv_semantic_fact_typedef_scoped_block_bad.sv` rejects
+  - `/tmp/sv_semantic_fact_declared_class_block.sv` passes
+  - `/tmp/sv_semantic_fact_scoped_class_block.sv` passes
+
+### Why This Matters
+- The original block-local semantic-fact pilot proved bare `T x;` declaration steering.
+- This follow-up closes the nearby scoped leak:
+  - a local typedef head should not be treated as package-like in `T::U value;`
+  - a local typedef head should not be treated as a known unscoped class-type chain either
+  - but explicit package-qualified and class-scoped block types must remain available
+
 ## 2026-03-21 - First live branch-local SV semantic-call pilot
 ### ✅ Achievement Summary
 PGEN now uses a real branch-local semantic annotation in checked-in SystemVerilog grammar to steer one live ambiguity surface. The package-qualified callable front in `ps_or_hierarchical_tf_identifier` now rejects local `typedef` heads without blocking real package-like heads or class-family callable forms, and the let-expression fallback now mirrors that same typedef-only gate through a small helper rule.
@@ -6,12 +41,12 @@ PGEN now uses a real branch-local semantic annotation in checked-in SystemVerilo
 ### Scope of Changes
 - Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
   - added:
-    - `non_type_package_scope`
+    - `non_typedef_package_scope`
       - gated by:
         - `@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }`
   - rewired:
     - `let_expression`
-      - package-qualified head now goes through `non_type_package_scope`
+      - package-qualified head now goes through `non_typedef_package_scope`
   - added the first checked-in branch-local semantic annotation pilot:
     - `ps_or_hierarchical_tf_identifier`
       - package-qualified branch now carries:

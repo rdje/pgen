@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Tighten scoped package-like block type fronts
+### Context
+The first SystemVerilog semantic-fact pilot already handled the bare block-local declaration front door:
+- `typedef int T;`
+- later bare `T x;`
+
+But one nearby scoped leak still remained easy to describe:
+- a local typedef head could still look package-like inside block declarations,
+- so a shape like `T::U value;` could ride the broad `package_scope` branch even though `T` was already known locally as a typedef-family type head.
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - helper now consistently uses:
+    - `non_typedef_package_scope`
+  - `let_expression` now uses the renamed helper
+  - the scoped block declaration helpers now use the same typedef-only negative fact gate on their package-like side:
+    - `scoped_block_type_identifier`
+    - `scoped_block_class_type`
+    - `scoped_block_covergroup_identifier`
+  - `known_unscoped_block_class_type` now also carries the same typedef-only negative guard
+
+### Why This Matters
+- This is a clean reuse of the same semantic fact policy:
+  - local typedef heads should not impersonate package scopes
+  - local typedef heads should not masquerade as unscoped class-type chains either
+  - unknown external-like package names should still remain available
+  - class-scoped forms should remain available through their dedicated class-family paths
+- It keeps the expansion surgical:
+  - no broad global `package_scope` hardening
+  - only the block-local declaration fronts that actually carry this ambiguity pressure
+
 ## 2026-03-21 - First live SV branch-local call-steering pilot
 ### Context
 After branch-local semantic annotations became executable in generated parsers, the highest-value live target was still the reduced SystemVerilog package-vs-type callable seam:
@@ -26,12 +57,12 @@ The key requirement turned out to be narrower than “reject all known type name
     - negative checks when the exact attribute match exists
 - Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
   - added helper rule:
-    - `non_type_package_scope := package_scope`
+    - `non_typedef_package_scope := package_scope`
     - guarded by:
       - `@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }`
   - rewired:
     - `let_expression`
-      - package-qualified form now uses `non_type_package_scope`
+      - package-qualified form now uses `non_typedef_package_scope`
   - added first checked-in live branch-local semantic annotation pilot:
     - on the package-qualified branch of `ps_or_hierarchical_tf_identifier`
     - using:

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: first-live-sv-branch-local-call-pilot)
+Last updated: 2026-03-21 (+0100, task: tighten-scoped-block-package-type-fronts)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -145,6 +145,20 @@ Use this file to resume work without replaying full chat history.
   - the guard is now precise:
     - reject only local `typedef`-family heads via `lacks_fact_attribute_equals(type_name, $package_identifier, declaration_family, typedef)`
     - keep class-family heads and unknown package-like heads available
+- The same typedef-only negative gate is now reused on scoped block declaration package fronts:
+  - helper renamed to:
+    - `non_typedef_package_scope`
+  - used by:
+    - `let_expression`
+    - `scoped_block_type_identifier`
+    - `scoped_block_class_type`
+    - `scoped_block_covergroup_identifier`
+  - `known_unscoped_block_class_type` also now carries the same negative typedef-family guard so `T::U value;` cannot slip through the unscoped class-type chain path
+- Reduced proof for the scoped block expansion:
+  - `/tmp/sv_semantic_fact_typedef_scoped_block_bad.sv` rejects
+  - `/tmp/sv_semantic_fact_scoped_block_type.sv` still passes
+  - `/tmp/sv_semantic_fact_declared_class_block.sv` still passes
+  - `/tmp/sv_semantic_fact_scoped_class_block.sv` still passes
 - Important boundary:
   - branch-local predicates are now live
   - branch-local semantic effects are not yet applied after branch success
@@ -158,7 +172,7 @@ Use this file to resume work without replaying full chat history.
   - `/tmp/sv_class_scope_new_attr_bad.sv` still rejects
   - `/tmp/sv_class_scoped_call_attr_good.sv` still passes
 - Next likely semantic-steering task:
-  - broaden this live branch-local pattern to the next surviving SystemVerilog ambiguity surfaces instead of relying on broad package-like fallback behavior
+  - broaden the same negative attribute-aware pattern to the next surviving package-like fallback surfaces beyond block declarations and callable fronts
 
 ## Current Mid-Sequence Inline Semantic State
 - We are keeping one shared surface syntax:

@@ -184,8 +184,13 @@ Near-term rollout:
         - preserve class-family heads
         - preserve real/unknown package-like heads
       - companion helper:
-        - `non_type_package_scope`
+        - `non_typedef_package_scope`
         - blocks the let-expression fallback only for local `typedef`-family heads
+      - scoped block declaration package fronts now also use that same typedef-only helper:
+        - `scoped_block_type_identifier`
+        - `scoped_block_class_type`
+        - `scoped_block_covergroup_identifier`
+      - `known_unscoped_block_class_type` also now carries the same negative typedef-family guard so scoped class-like chains do not accept local typedef heads
   - refreshed reduced proof:
     - `T::f()` now rejects
     - `defs::f()` still passes
