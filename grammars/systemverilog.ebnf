@@ -1095,16 +1095,25 @@ jump_statement := kw_return_63143b6f ( expression )? semi | kw_break_4f9cac8d se
 
 let_actual_arg := expression
 
-let_declaration := kw_let_0262f9bb let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
+let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
 
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }
 non_typedef_package_scope := package_scope
 
-let_expression := non_typedef_package_scope let_identifier ( lparen ( let_list_of_arguments )? rparen )? | let_identifier ( lparen ( let_list_of_arguments )? rparen )?
+let_expression := scoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )? | known_unscoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?
 
 let_formal_type := data_type_or_implicit | kw_untyped_d53be1e8
 
 let_identifier := identifier
+
+@emit_fact: { kind: let_name, name: $let_identifier, declaration_family: let }
+@predicate: { name: has_fact, args: [let_name, $let_identifier], phase: post }
+declared_let_identifier := let_identifier
+
+@predicate: { name: has_fact, args: [let_name, $let_identifier], phase: post }
+known_unscoped_let_identifier := let_identifier
+
+scoped_let_identifier := non_typedef_package_scope let_identifier
 
 let_list_of_arguments := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma dot identifier lparen ( let_actual_arg )? rparen )* | dot identifier lparen ( let_actual_arg )? rparen ( comma dot identifier lparen ( let_actual_arg )? rparen )*
 

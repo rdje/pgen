@@ -264,6 +264,21 @@ Near-term rollout:
       - local declared property/sequence names pass,
       - real/unknown external package-like prefixes still pass,
       - local typedef-prefixed `T::P` / `T::S` reject
+  - `let_expression` semantic-fact pilot now landed too:
+    - successful `let` declarations now emit:
+      - `let_name`
+      - `declaration_family: let`
+    - `let_expression` now uses:
+      - `known_unscoped_let_identifier`
+      - `scoped_let_identifier`
+    - unscoped `let` use now requires a known `let_name` fact
+    - scoped `let` use continues to route through:
+      - `non_typedef_package_scope`
+    - reduced proof confirms:
+      - local declared let names pass,
+      - real/unknown external package-like scoped lets still pass,
+      - local typedef-prefixed `T::L(...)` rejects,
+      - neighboring callable/property samples stay green
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

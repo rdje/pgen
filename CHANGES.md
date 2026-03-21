@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-21 - Pilot SV let-expression semantic facts
+### ✅ Achievement Summary
+PGEN now uses semantic facts on the `let_expression` seam too. Successful `let` declarations emit a dedicated `let_name` fact family, unscoped `let_expression` now requires a known local `let` name, and package-like scoped `let` uses continue to route through `non_typedef_package_scope`.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `let_declaration` now uses:
+    - `declared_let_identifier`
+  - that helper emits:
+    - `let_name`
+    - `declaration_family: let`
+  - added `let`-specific use-site helpers:
+    - `known_unscoped_let_identifier`
+    - `scoped_let_identifier`
+  - `let_expression` now uses those helpers instead of the older broad form:
+    - `non_typedef_package_scope let_identifier ... | let_identifier ...`
+
+### Why This Matters
+- This is the first checked-in semantic-fact pilot on the `let_expression` expression seam itself rather than only on declaration/type/checker/property/sequence fronts.
+- Policy is intentionally parallel to the earlier package-like pilots:
+  - local known `let` names should parse unscoped,
+  - package-scoped `let` uses should still pass,
+  - local typedef heads should not impersonate package-scoped `let` prefixes.
+
 ## 2026-03-21 - Land SV property/sequence semantic facts and close the sibling package-qualified expression leak
 ### ✅ Achievement Summary
 PGEN now uses live semantic facts on the `property_instance` and `sequence_instance` seams too. Named `property` and `sequence` declarations emit dedicated `property_name` and `sequence_name` facts, package-like scoped uses now route through `non_typedef_package_scope`, and the remaining sibling leak that initially let `typedef int T; assert property (T::P);` and `T::S` pass through generic package-qualified expressions is closed as well.

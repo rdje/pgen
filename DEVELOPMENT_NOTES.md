@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Pilot semantic facts on the SV let-expression seam
+### Context
+After the property/sequence pilot, the next useful declaration/use pair sitting directly in expression space was:
+- `let_declaration`
+- `let_expression`
+
+That seam already had one important scoped guard:
+- `non_typedef_package_scope let_identifier`
+
+But it still lacked a fact-aware unscoped path. That made it a good next slice because:
+- the expression seam is real and widely reused,
+- the scoped package-like policy was already in place,
+- the missing piece was simply “only treat bare `let_identifier(...)` as a `let_expression` when the name is actually known as a `let`.”
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `let_declaration` now uses:
+    - `declared_let_identifier`
+  - that helper emits:
+    - `@emit_fact: { kind: let_name, name: $let_identifier, declaration_family: let }`
+  - added use-site helpers:
+    - `known_unscoped_let_identifier`
+    - `scoped_let_identifier`
+  - the unscoped helper now requires:
+    - `@predicate: { name: has_fact, args: [let_name, $let_identifier], phase: post }`
+  - the scoped helper continues to route through:
+    - `non_typedef_package_scope`
+  - `let_expression` now uses those two helpers instead of the old broad direct form
+
+### Why This Matters
+- This broadens semantic facts into an expression-level front without needing any new runtime machinery.
+- It also keeps the package-vs-local-type policy coherent:
+  - local declared lets work unscoped,
+  - real/unknown package-like prefixes still pass scoped,
+  - local typedef heads do not impersonate package-scoped `let` names.
+- Reduced proof stayed honest:
+  - local `let` declaration/use passes,
+  - package-scoped `let` use passes,
+  - unknown external package-like scoped `let` use passes,
+  - local typedef-prefixed `T::L(...)` rejects,
+  - previously-green neighboring callable/property samples stayed green.
+
 ## 2026-03-21 - Land the SV property/sequence semantic-fact pilot and close the sibling generic expression leak
 ### Context
 The next natural semantic-fact expansion after checker/class-family tightening was:

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: property-sequence-semantic-fact-pilot)
+Last updated: 2026-03-21 (+0100, task: let-expression-semantic-fact-pilot)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,21 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live expansion:
+  - successful `let` declarations now emit:
+    - `let_name`
+    - `declaration_family: let`
+  - `let_expression` now uses semantic-fact-aware helpers:
+    - `known_unscoped_let_identifier`
+    - `scoped_let_identifier`
+  - policy now matches the other package-like pilots:
+    - local known `let` names parse unscoped,
+    - package-scoped and unknown external package-like lets still pass,
+    - local typedef-prefixed `T::L(...)` rejects
+  - neighboring callable/property reduced probes still stayed green after this change:
+    - `/tmp/sv_tf_call_local_package_good.sv`
+    - `/tmp/sv_tf_call_unknown_package_ok.sv`
+    - `/tmp/sv_property_declared_good.sv`
 - Latest live expansion:
   - named `property` declarations now emit:
     - `property_name`
