@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Land the SV property/sequence semantic-fact pilot and close the sibling generic expression leak
+### Context
+The next natural semantic-fact expansion after checker/class-family tightening was:
+- `property_declaration`
+- `sequence_declaration`
+- `property_instance`
+- `sequence_instance`
+
+At first glance that looked straightforward:
+- emit `property_name` from successful `property` declarations,
+- emit `sequence_name` from successful `sequence` declarations,
+- replace the broad scoped helpers:
+  - `( package_scope )? property_identifier`
+  - `( package_scope )? sequence_identifier`
+  with fact-aware scoped/unscoped helpers.
+
+But the reduced bad cases immediately exposed an important sibling-path reality:
+- `typedef int T; assert property (T::P);`
+- `typedef int T; assert property (T::S);`
+
+still parsed even after the new fact-aware property/sequence helpers were in place.
+
+AST inspection showed why:
+- those reduced bad cases were not being consumed as:
+  - `property_instance`
+  - `sequence_instance`
+- they were being accepted through the generic expression fallback inside `primary`:
+  - `( kw_class_qualifier | package_scope )? hierarchical_identifier`
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `property_declaration` now uses:
+    - `declared_property_identifier`
+  - `sequence_declaration` now uses:
+    - `declared_sequence_identifier`
+  - declaration helpers now emit:
+    - `@emit_fact: { kind: property_name, name: $property_identifier, declaration_family: property }`
+    - `@emit_fact: { kind: sequence_name, name: $sequence_identifier, declaration_family: sequence }`
+  - use-site helper split now exists for both families:
+    - `known_unscoped_property_identifier`
+    - `scoped_property_identifier`
+    - `known_unscoped_sequence_identifier`
+    - `scoped_sequence_identifier`
+  - scoped use-site helpers route through:
+    - `non_typedef_package_scope`
+  - then closed the sibling raw expression leak by tightening:
+    - `direct_index_method_call`
+    - `method_call_receiver_sv_2017`
+    - `method_call_receiver_sv_2023`
+    - `primary_sv_2017`
+    - `primary_sv_2023`
+  - those fronts now use:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This was a valuable confirmation of a broader steering rule:
+  - adding a fact-aware high-level seam is not enough if a neighboring generic expression arm still accepts the same token shape.
+- The actual win is therefore two-layered:
+  - property/sequence names are now first-class semantic facts,
+  - the generic package-qualified expression fallback no longer lets local typedef heads impersonate package scopes there.
+- Reduced proof now behaves as intended:
+  - local declared `property` / `sequence` names pass,
+  - real/unknown external package-like prefixes still pass,
+  - local typedef-prefixed `T::P` / `T::S` now reject.
+
 ## 2026-03-21 - Tighten the remaining scoped class-family package fronts
 ### Context
 After the reduced global `T::U value;` declaration leak was closed, a few neighboring class-family helpers were still structurally broader than the live semantic-steering policy:

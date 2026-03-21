@@ -243,6 +243,27 @@ Near-term rollout:
       - `base_class_type`
       - `interface_class_type`
       - `class_scoped_call_prefix`
+  - property/sequence semantic-fact pilot now landed too:
+    - named declarations now emit:
+      - `property_name`
+      - `sequence_name`
+      - declaration-family metadata
+    - `property_instance` / `sequence_instance` now use semantic-fact-aware scoped/unscoped helpers instead of broad package-like forms
+    - reduced bad cases taught an important sibling-path lesson:
+      - `typedef int T; assert property (T::P);`
+      - `typedef int T; assert property (T::S);`
+      - initially still passed because they were being accepted through generic expression parsing as:
+        - `package_scope + hierarchical_identifier`
+    - closure therefore required tightening the neighboring generic package-qualified expression fronts too:
+      - `direct_index_method_call`
+      - `method_call_receiver_sv_2017`
+      - `method_call_receiver_sv_2023`
+      - `primary_sv_2017`
+      - `primary_sv_2023`
+    - reduced proof now confirms:
+      - local declared property/sequence names pass,
+      - real/unknown external package-like prefixes still pass,
+      - local typedef-prefixed `T::P` / `T::S` reject
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

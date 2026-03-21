@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-21 - Land SV property/sequence semantic facts and close the sibling package-qualified expression leak
+### ✅ Achievement Summary
+PGEN now uses live semantic facts on the `property_instance` and `sequence_instance` seams too. Named `property` and `sequence` declarations emit dedicated `property_name` and `sequence_name` facts, package-like scoped uses now route through `non_typedef_package_scope`, and the remaining sibling leak that initially let `typedef int T; assert property (T::P);` and `T::S` pass through generic package-qualified expressions is closed as well.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `property_declaration` now uses:
+    - `declared_property_identifier`
+  - `sequence_declaration` now uses:
+    - `declared_sequence_identifier`
+  - those helpers now emit:
+    - `property_name`
+    - `sequence_name`
+    - `declaration_family: property`
+    - `declaration_family: sequence`
+  - added semantic-fact-aware use-site helpers:
+    - `known_unscoped_property_identifier`
+    - `scoped_property_identifier`
+    - `known_unscoped_sequence_identifier`
+    - `scoped_sequence_identifier`
+  - `ps_or_hierarchical_property_identifier` and `ps_or_hierarchical_sequence_identifier` now use those helpers instead of broad:
+    - `( package_scope )? ...`
+  - also tightened the remaining sibling raw package-qualified expression fronts:
+    - `direct_index_method_call`
+    - `method_call_receiver_sv_2017`
+    - `method_call_receiver_sv_2023`
+    - `primary_sv_2017`
+    - `primary_sv_2023`
+  - those surfaces now route through:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- The first property/sequence fact pilot was real, but the initial reduced bad cases still passed because `T::P` / `T::S` were not being consumed as `property_instance` / `sequence_instance` at all.
+- They were escaping through the generic expression fallback:
+  - `package_scope + hierarchical_identifier`
+- Closing that sibling path matters for future semantic-steering work because it proves a recurring pattern:
+  - a new fact-aware helper is not enough if an older neighboring generic package-qualified expression arm still accepts the same token shape.
+
 ## 2026-03-21 - Tighten remaining SV scoped class-family package fronts
 ### ✅ Achievement Summary
 PGEN now routes the remaining scoped class-family package-like helpers through `non_typedef_package_scope` too. This closes the last obvious raw `package_scope class_identifier` surfaces in:

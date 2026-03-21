@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: tighten-scoped-class-family-package-fronts)
+Last updated: 2026-03-21 (+0100, task: property-sequence-semantic-fact-pilot)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,33 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live expansion:
+  - named `property` declarations now emit:
+    - `property_name`
+    - `declaration_family: property`
+  - named `sequence` declarations now emit:
+    - `sequence_name`
+    - `declaration_family: sequence`
+  - `property_instance` / `sequence_instance` now use semantic-fact-aware helpers:
+    - `known_unscoped_property_identifier`
+    - `scoped_property_identifier`
+    - `known_unscoped_sequence_identifier`
+    - `scoped_sequence_identifier`
+  - local known property/sequence names now work unscoped,
+  - real/unknown external package-like prefixes still pass,
+  - local typedef-prefixed `T::P` / `T::S` now reject
+- Important sibling-path lesson from this slice:
+  - the first property/sequence helper split alone was not enough
+  - reduced bad cases initially still passed because `T::P` / `T::S` were escaping through generic expression parsing as:
+    - `package_scope + hierarchical_identifier`
+  - the real closure required tightening the neighboring generic package-qualified expression fronts too:
+    - `direct_index_method_call`
+    - `method_call_receiver_sv_2017`
+    - `method_call_receiver_sv_2023`
+    - `primary_sv_2017`
+    - `primary_sv_2023`
+  - those surfaces now route through:
+    - `non_typedef_package_scope`
 - Latest class-family coherence tightening:
   - the remaining raw scoped class-family helpers now route through:
     - `non_typedef_package_scope class_identifier`
