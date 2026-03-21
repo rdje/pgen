@@ -22329,3 +22329,17 @@ Regeneration clarification:
   - usually/canonically: `ebnf_to_json.pl`
   - possible in Rust-native paths: the Rust EBNF frontend path
 - so the tracked/canonical regeneration path is still usually Perl-first, even though the Rust path exists
+
+Architectural north star:
+- this hybrid state is transitional, not the intended destination
+- the long-run aim of PGEN remains:
+  - parsers should not be hand-written,
+  - parser behavior should come from tracked EBNF grammars,
+  - and the toolchain should become end-to-end Rust
+- for the EBNF frontend specifically, the desired final state is:
+  - `grammars/ebnf.ebnf` as authoritative syntax source,
+  - generated Rust parser as authoritative frontend,
+  - no permanent need for:
+    - `ebnf_to_json.pl`
+    - `.spec`-driven parser generation
+    - or hand-written Rust parsing logic in `ebnf_frontend.rs`

@@ -3495,3 +3495,14 @@ Why `rtl_frontend` exists:
     - known blocker classes still proving that this migration is incomplete:
       - multiline semantic annotation blocks
       - inline rule-body semantic annotations
+  - explicit north-star reminder:
+    - the long-run aim of PGEN is that parsers are never hand-written
+    - parser behavior should ultimately come from tracked EBNF grammars and generated Rust only
+    - for EBNF itself, that means the destination architecture is:
+      - `grammars/ebnf.ebnf` as the authoritative syntax source,
+      - generated Rust parser as the authoritative frontend,
+      - no permanent dependence on:
+        - `.spec`-driven Perl parser generation,
+        - `ebnf_to_json.pl`,
+        - or hand-written Rust frontend parsing logic
+    - current hybrid infrastructure should therefore be treated as migration scaffolding, not acceptable final architecture

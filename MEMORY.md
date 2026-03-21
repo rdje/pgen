@@ -5681,3 +5681,11 @@ Use this file to resume work without replaying full chat history.
     - `generated/ebnf.rs` is generated from `generated/ebnf.json` via `ast_pipeline --generate-parser`
     - in practice the canonical `generated/ebnf.json` refresh path is still usually Perl-first (`ebnf_to_json.pl`)
     - the Rust-native path can participate, but full Perl retirement has not happened yet
+  - Architectural north star:
+    - this hybrid state is explicitly transitional
+    - the long-run PGEN goal is:
+      - no hand-written parsers,
+      - parser behavior defined by tracked EBNF,
+      - end-to-end 100% Rust flow
+    - for EBNF itself, that means:
+      - `grammars/ebnf.ebnf` + generated Rust parser should ultimately become the sole authoritative frontend path
