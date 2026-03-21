@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - Improve semantic predicate diagnostics before the next global SV steering slice
+### Context
+The next nearby SystemVerilog semantic-fact target is still the reduced global scoped-type leak:
+- `typedef int T;`
+- later `T::U value;`
+
+The latest grammar experiments were useful, but they did not end in a clean semantics-preserving commit:
+- `non_typedef_package_scope` really does backtrack at the bad `T::` site
+- the remaining acceptance path therefore needs better direct observability before another semantic-steering edit
+
+### Implementation
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated parsers now synthesize a readable semantic predicate label helper
+  - `pre` predicate failures log the exact blocking predicate
+  - `post` predicate failures log the exact blocking predicate
+  - branch predicate rejection logs now retain the blocking predicate label instead of only reporting a generic branch rejection
+
+### Why This Matters
+- This turns the current global SV frontier into a diagnosable engine question instead of a trace-interpretation exercise.
+- It is especially useful for the remaining `T::U value;` investigation, where the next question is no longer “did a predicate exist?” but “which predicate actually blocked or failed to block the surviving path?”
+
 ## 2026-03-21 - Tighten scoped package-like block type fronts
 ### Context
 The first SystemVerilog semantic-fact pilot already handled the bare block-local declaration front door:

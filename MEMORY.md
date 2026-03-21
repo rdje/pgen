@@ -171,6 +171,13 @@ Use this file to resume work without replaying full chat history.
   - `/tmp/sv_class_scope_new_attr_good.sv` still passes
   - `/tmp/sv_class_scope_new_attr_bad.sv` still rejects
   - `/tmp/sv_class_scoped_call_attr_good.sv` still passes
+- The next global `T::U value;` frontier is still open, but the latest attempt isolated the right immediate need:
+  - `non_typedef_package_scope` really does backtrack at the bad `T::` site
+  - the remaining problem now needs better generated-parser observability before another grammar-only steering attempt
+- Generated parser diagnostics are now better for semantic steering:
+  - `pre` predicate rejection logs identify the blocking predicate
+  - `post` predicate rejection logs identify the blocking predicate
+  - branch predicate rejection logs identify the blocking predicate instead of only saying “branch predicate”
 - Next likely semantic-steering task:
   - broaden the same negative attribute-aware pattern to the next surviving package-like fallback surfaces beyond block declarations and callable fronts
 

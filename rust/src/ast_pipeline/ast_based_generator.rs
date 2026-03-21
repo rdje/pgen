@@ -627,6 +627,13 @@ impl AstBasedGenerator {
                     .transaction_for_rule(&self.semantic_runtime_annotations, rule_name)
             }
 
+            fn semantic_predicate_debug_label(
+                &self,
+                spec: &crate::ast_pipeline::SemanticPredicateSpec,
+            ) -> String {
+                format!("{} {:?}", spec.name, spec.args)
+            }
+
             pub fn with_semantic_runtime_rule_transaction<F>(
                 &mut self,
                 rule_name: &str,
@@ -648,6 +655,21 @@ impl AstBasedGenerator {
                         {
                             Some(true) => {}
                             Some(false) => {
+                                if self.logger.is_enabled() {
+                                    if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec) =
+                                        directive
+                                    {
+                                        self.logger.log_info(
+                                            file!(),
+                                            line!(),
+                                            &format!(
+                                                "🚫 Rule '{}' rejected by pre predicate '{}'",
+                                                rule_name,
+                                                self.semantic_predicate_debug_label(spec),
+                                            ),
+                                        );
+                                    }
+                                }
                                 predicate_blocked = true;
                                 break;
                             }
@@ -677,6 +699,7 @@ impl AstBasedGenerator {
                             )?;
                         }
                         let mut post_predicate_blocked = false;
+                        let mut blocked_post_predicate: Option<String> = None;
                         for directive in self
                             .semantic_runtime_annotations
                             .post_predicates_for_rule(rule_name)
@@ -702,6 +725,9 @@ impl AstBasedGenerator {
                                     {
                                         Some(true) => {}
                                         Some(false) => {
+                                            blocked_post_predicate = Some(
+                                                self.semantic_predicate_debug_label(&resolved_spec),
+                                            );
                                             post_predicate_blocked = true;
                                             break;
                                         }
@@ -715,6 +741,19 @@ impl AstBasedGenerator {
                             }
                         }
                         if post_predicate_blocked {
+                            if self.logger.is_enabled() {
+                                self.logger.log_info(
+                                    file!(),
+                                    line!(),
+                                    &format!(
+                                        "🚫 Rule '{}' rejected by post predicate '{}'",
+                                        rule_name,
+                                        blocked_post_predicate
+                                            .as_deref()
+                                            .unwrap_or("<unknown>"),
+                                    ),
+                                );
+                            }
                             Err(ParseError::Backtrack {
                                 position: node.span.start,
                             })
@@ -1677,6 +1716,7 @@ impl AstBasedGenerator {
                                     #transform
                                 };
                                 let mut branch_predicate_blocked = false;
+                                let mut blocked_branch_predicate: Option<String> = None;
                                 for directive in parser
                                     .semantic_runtime_annotations
                                     .branch_predicates_for_rule(#rule_name)
@@ -1701,6 +1741,9 @@ impl AstBasedGenerator {
                                                     &transformed,
                                                 )?
                                             else {
+                                                blocked_branch_predicate = Some(
+                                                    parser.semantic_predicate_debug_label(spec),
+                                                );
                                                 branch_predicate_blocked = true;
                                                 break;
                                             };
@@ -1714,6 +1757,11 @@ impl AstBasedGenerator {
                                             {
                                                 Some(true) => {}
                                                 Some(false) => {
+                                                    blocked_branch_predicate = Some(
+                                                        parser.semantic_predicate_debug_label(
+                                                            &resolved_spec,
+                                                        ),
+                                                    );
                                                     branch_predicate_blocked = true;
                                                     break;
                                                 }
@@ -1787,10 +1835,13 @@ impl AstBasedGenerator {
                                     best_content = Some(transformed);
                                 } else if branch_predicate_blocked && parser.logger.is_enabled() {
                                     parser.logger.log_info(#filename, 0, &format!(
-                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
+                                        "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
                                         #branch_num,
                                         #branch_count,
                                         #rule_name,
+                                        blocked_branch_predicate
+                                            .as_deref()
+                                            .unwrap_or("<unknown>"),
                                         candidate_end
                                     ));
                                 }
@@ -5279,6 +5330,16 @@ mod semantic_usage_tests {
             "generated parser should use the explicit pre-predicate rule view, got: {}",
             rendered
         );
+        assert!(
+            rendered.contains("semantic_predicate_debug_label"),
+            "generated parser should expose a helper for readable semantic predicate diagnostics, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("rejected by pre predicate"),
+            "generated parser should log which pre predicate blocked a rule, got: {}",
+            rendered
+        );
     }
 
     #[test]
@@ -5328,6 +5389,11 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("evaluate_content_aware_predicate"),
             "generated parser should evaluate resolved content-aware predicates after parse success, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("rejected by post predicate"),
+            "generated parser should log which post predicate blocked a rule, got: {}",
             rendered
         );
     }
@@ -5436,6 +5502,16 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("branch_predicate_blocked"),
             "generated parser should treat unresolved branch captures as branch rejection rather than fatal parse error, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("blocked_branch_predicate"),
+            "generated parser should retain the specific branch predicate that blocked a candidate, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("rejected by branch predicate '"),
+            "generated parser should log which branch predicate rejected a candidate, got: {}",
             rendered
         );
     }

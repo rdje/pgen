@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-21 - Improve semantic predicate trace diagnostics
+### ✅ Achievement Summary
+PGEN now emits more actionable generated-parser diagnostics when semantic steering rejects a rule or branch. Instead of only reporting that “a predicate” blocked parsing, the generated runtime now logs the specific semantic predicate label that caused the rejection.
+
+### Scope of Changes
+- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+  - generated parsers now expose a semantic predicate debug-label helper
+  - rule-entry `pre` predicate rejection logs now identify the blocking predicate
+  - rule-exit `post` predicate rejection logs now identify the blocking predicate
+  - branch-selection rejection logs now retain and print the exact blocking predicate when a candidate is rejected
+
+### Focused Validation
+- exact runtime contract proof:
+  - `ast_pipeline::ast_based_generator::semantic_usage_tests::generated_parser_runtime_contract_emits_pre_predicate_guard_flow`
+- branch contract suite:
+  - `cargo test --manifest-path rust/Cargo.toml --lib generated_parser_branch_contract_ -- --nocapture`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+
+### Why This Matters
+- The current global SystemVerilog `T::U value;` frontier is now isolated enough that the next useful step is observability, not another speculative grammar-only commit.
+- These logs make future semantic-steering failures directly attributable to a named predicate instead of forcing us to infer the cause from raw trace shape.
+
 ## 2026-03-21 - Tighten SV scoped block package-type fronts
 ### ✅ Achievement Summary
 PGEN now extends the earlier SystemVerilog semantic-fact pilot from bare block-local type names to scoped package-like block type fronts too. Local `typedef` heads no longer slip through block declarations as if they were package scopes, while genuine package-qualified block types still parse.

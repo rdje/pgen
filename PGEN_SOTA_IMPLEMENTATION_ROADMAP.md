@@ -197,6 +197,9 @@ Near-term rollout:
     - `extpkg::f()` still passes
     - `C::f()` still passes
     - `C::new()` still passes
+  - immediate follow-up clarity:
+    - the remaining global `T::U value;` frontier now needs better generated semantic-predicate diagnostics before the next steering attempt
+    - generated parsers now log which concrete `pre` / `post` / `branch` predicate blocked a rule or candidate
   - next best pilot remains:
     - broaden the same branch-local and negative attribute-aware pattern to the next surviving SystemVerilog branch-sensitive ambiguity surfaces
 - Progress (2026-03-21):
