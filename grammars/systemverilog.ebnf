@@ -1077,7 +1077,10 @@ let_actual_arg := expression
 
 let_declaration := kw_let_0262f9bb let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
 
-let_expression := ( package_scope )? let_identifier ( lparen ( let_list_of_arguments )? rparen )?
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }
+non_type_package_scope := package_scope
+
+let_expression := non_type_package_scope let_identifier ( lparen ( let_list_of_arguments )? rparen )? | let_identifier ( lparen ( let_list_of_arguments )? rparen )?
 
 let_formal_type := data_type_or_implicit | kw_untyped_d53be1e8
 
@@ -1675,7 +1678,11 @@ ps_or_hierarchical_property_identifier := ( package_scope )? property_identifier
 ps_or_hierarchical_sequence_identifier := ( package_scope )? sequence_identifier | hierarchical_sequence_identifier
 
 @branch_policy: priority_first
-ps_or_hierarchical_tf_identifier := class_scope tf_identifier | package_scope tf_identifier | hierarchical_tf_identifier | tf_identifier
+ps_or_hierarchical_tf_identifier := class_scope tf_identifier
+                                 | @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: branch }
+                                   package_scope tf_identifier
+                                 | hierarchical_tf_identifier
+                                 | tf_identifier
 
 ps_parameter_identifier := ( package_scope | class_scope )? parameter_identifier | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier
 

@@ -581,6 +581,21 @@ impl SemanticRuntimeState {
                         })
                 }))
             }
+            "lacks_fact_attribute_equals" => {
+                let expected_kind = scalar_text(predicate.args.first()?)?;
+                let expected_name =
+                    SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
+                let expected_key = scalar_text(predicate.args.get(2)?)?;
+                let expected_value = predicate.args.get(3)?;
+                Some(!self.facts.iter().any(|fact| {
+                    fact.kind.eq_ignore_ascii_case(expected_kind)
+                        && fact.name == expected_name
+                        && fact.attributes.iter().any(|property| {
+                            property.key.eq_ignore_ascii_case(expected_key)
+                                && semantic_values_match(&property.value, expected_value)
+                        })
+                }))
+            }
             "scope_depth_at_least" => {
                 let minimum_depth = scalar_text(predicate.args.first()?)?
                     .parse::<usize>()
@@ -1297,6 +1312,20 @@ mod tests {
         );
         assert_eq!(
             state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "lacks_fact_attribute_equals".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("my_type".to_string()),
+                    UnifiedSemanticValue::Identifier("declaration_family".to_string()),
+                    UnifiedSemanticValue::String("class".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
                 name: "scope_depth_at_least".to_string(),
                 args: vec![UnifiedSemanticValue::Number("1".to_string())],
                 phase: SemanticPredicatePhase::Pre,
@@ -1424,6 +1453,20 @@ mod tests {
                 args: vec![
                     UnifiedSemanticValue::Identifier("typedef".to_string()),
                     UnifiedSemanticValue::Identifier("my_type".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            Some(false)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "lacks_fact_attribute_equals".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
+                    UnifiedSemanticValue::Identifier("my_type".to_string()),
+                    UnifiedSemanticValue::Identifier("declaration_family".to_string()),
+                    UnifiedSemanticValue::Identifier("typedef".to_string()),
                 ],
                 phase: SemanticPredicatePhase::Pre,
                 view: SemanticPredicateContentView::Raw,

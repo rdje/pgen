@@ -176,9 +176,24 @@ Near-term rollout:
     - `pre` predicate args remain static by construction
     - `post` predicates still have the richer current-rule capture resolution path
     - branch-local semantic effects are not yet applied after branch success
-    - no checked-in live grammar pilot is using branch-local semantic annotations yet
+  - first live checked-in grammar pilot is now landed:
+    - `systemverilog.ebnf`
+      - package-qualified branch of `ps_or_hierarchical_tf_identifier` now carries a branch-local predicate
+      - the guard is precise:
+        - reject local `typedef` heads
+        - preserve class-family heads
+        - preserve real/unknown package-like heads
+      - companion helper:
+        - `non_type_package_scope`
+        - blocks the let-expression fallback only for local `typedef`-family heads
+  - refreshed reduced proof:
+    - `T::f()` now rejects
+    - `defs::f()` still passes
+    - `extpkg::f()` still passes
+    - `C::f()` still passes
+    - `C::new()` still passes
   - next best pilot remains:
-    - use the new branch-local semantic seam on the still-open SystemVerilog branch-sensitive ambiguity frontier, especially the reduced `T::f()` / class-scope vs type-scope surface
+    - broaden the same branch-local and negative attribute-aware pattern to the next surviving SystemVerilog branch-sensitive ambiguity surfaces
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

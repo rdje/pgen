@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-21 - First live SV branch-local call-steering pilot
+### Context
+After branch-local semantic annotations became executable in generated parsers, the highest-value live target was still the reduced SystemVerilog package-vs-type callable seam:
+- local typedef head:
+  - `T::f()`
+- local package head:
+  - `defs::f()`
+- unknown external-like package head:
+  - `extpkg::f()`
+- class-family heads:
+  - `C::f()`
+  - `C::new()`
+
+The key requirement turned out to be narrower than “reject all known type names”:
+- local typedef heads should be rejected on package-like callable fronts
+- class-family heads must remain allowed because real class-scoped callable forms still need to parse
+
+### Implementation
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added:
+    - `lacks_fact_attribute_equals(kind, name, key, value)`
+  - this is the negative attribute-aware counterpart to `fact_attribute_equals(...)`
+  - focused tests now cover:
+    - successful absence checks when the attribute value differs
+    - negative checks when the exact attribute match exists
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added helper rule:
+    - `non_type_package_scope := package_scope`
+    - guarded by:
+      - `@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }`
+  - rewired:
+    - `let_expression`
+      - package-qualified form now uses `non_type_package_scope`
+  - added first checked-in live branch-local semantic annotation pilot:
+    - on the package-qualified branch of `ps_or_hierarchical_tf_identifier`
+    - using:
+      - `@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: branch }`
+
+### Why This Matters
+- This finally turns the earlier “branch-local seam exists” milestone into a real grammar result.
+- The practical effect is the precise one we wanted:
+  - `T::f()` rejects when `T` is only a local typedef-style type head
+  - `defs::f()` still passes
+  - `extpkg::f()` still passes
+  - `C::f()` still passes
+  - `C::new()` still passes
+- The important design lesson is:
+  - the callable/package fallback should not reject every `type_name`
+  - it should reject the specific local type families that are semantically wrong for that fallback
+
 ## 2026-03-21 - Same syntax, but branch-local and mid-sequence inline semantics are now distinct
 ### Context
 We explicitly decided to keep one shared semantic-annotation surface syntax:

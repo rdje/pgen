@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-21 (+0100, task: preserve-mid-sequence-inline-semantic-annotations)
+Last updated: 2026-03-21 (+0100, task: first-live-sv-branch-local-call-pilot)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -140,12 +140,25 @@ Use this file to resume work without replaying full chat history.
   - [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs) compiles branch-local runtime directives into `CompiledSemanticRuntimeAnnotations.branch_directives_by_rule`
   - [annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs) validates branch-local semantic annotations and labels diagnostics as `rule_name (branch N)`
   - [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs) emits branch-local semantic directives into generated parser constructors and evaluates branch-local predicates during candidate selection
+- First live checked-in grammar use is now landed:
+  - [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf) uses a branch-local `phase = branch` predicate on the package-qualified branch of `ps_or_hierarchical_tf_identifier`
+  - the guard is now precise:
+    - reject only local `typedef`-family heads via `lacks_fact_attribute_equals(type_name, $package_identifier, declaration_family, typedef)`
+    - keep class-family heads and unknown package-like heads available
 - Important boundary:
   - branch-local predicates are now live
   - branch-local semantic effects are not yet applied after branch success
   - rule-level `phase = branch` predicates still remain supported and are evaluated alongside branch-local ones
+- Reduced proof status for the original `T::f()` frontier:
+  - `/tmp/sv_class_scope_typedef_bad.sv` now rejects
+  - `/tmp/sv_tf_call_local_package_good.sv` still passes
+  - `/tmp/sv_tf_call_unknown_package_ok.sv` still passes
+  - `/tmp/sv_class_scope_good.sv` still passes
+  - `/tmp/sv_class_scope_new_attr_good.sv` still passes
+  - `/tmp/sv_class_scope_new_attr_bad.sv` still rejects
+  - `/tmp/sv_class_scoped_call_attr_good.sv` still passes
 - Next likely semantic-steering task:
-  - use the new branch-local predicate seam on the remaining SystemVerilog branch-sensitive ambiguity surface, especially the still-open `T::f()` / class-scope vs type-scope frontier
+  - broaden this live branch-local pattern to the next surviving SystemVerilog ambiguity surfaces instead of relying on broad package-like fallback behavior
 
 ## Current Mid-Sequence Inline Semantic State
 - We are keeping one shared surface syntax:
@@ -209,6 +222,9 @@ Use this file to resume work without replaying full chat history.
     - `SemanticRuntimeTransaction::apply_compiled_rule(...)`
   - parser-shaped transaction entrypoint via:
     - `SemanticRuntimeState::transaction_for_rule(...)`
+- Predicate surface now also includes the first negative attribute-aware query:
+  - `lacks_fact_attribute_equals(kind, name, key, value)`
+  - this is now used by the first live SV branch-local callable pilot to reject local typedef-style heads without blocking class-family heads
 - Generated parser skeleton now owns:
   - compiled semantic runtime annotations
   - live semantic runtime state

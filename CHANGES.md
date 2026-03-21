@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-03-21 - First live branch-local SV semantic-call pilot
+### ✅ Achievement Summary
+PGEN now uses a real branch-local semantic annotation in checked-in SystemVerilog grammar to steer one live ambiguity surface. The package-qualified callable front in `ps_or_hierarchical_tf_identifier` now rejects local `typedef` heads without blocking real package-like heads or class-family callable forms, and the let-expression fallback now mirrors that same typedef-only gate through a small helper rule.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - added:
+    - `non_type_package_scope`
+      - gated by:
+        - `@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }`
+  - rewired:
+    - `let_expression`
+      - package-qualified head now goes through `non_type_package_scope`
+  - added the first checked-in branch-local semantic annotation pilot:
+    - `ps_or_hierarchical_tf_identifier`
+      - package-qualified branch now carries:
+        - `@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: branch }`
+- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+  - added built-in predicate:
+    - `lacks_fact_attribute_equals(kind, name, key, value)`
+  - focused semantic-runtime tests now cover both positive and negative attribute-aware absence checks
+
+### Focused Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::semantic_runtime::tests::built_in_predicates_query_current_scope_and_facts -- --exact --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::semantic_runtime::tests::built_in_predicates_respect_scope_changes_and_unknowns -- --exact --nocapture`
+- `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+- regenerated temp parser via Rust frontend:
+  - `/tmp/systemverilog_branch_local_tf_scope_parser.rs`
+- reduced probe results with `PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_branch_local_tf_scope_parser.rs`:
+  - `/tmp/sv_class_scope_typedef_bad.sv` rejects
+  - `/tmp/sv_tf_call_local_package_good.sv` passes
+  - `/tmp/sv_tf_call_unknown_package_ok.sv` passes
+  - `/tmp/sv_class_scope_good.sv` passes
+  - `/tmp/sv_class_scope_new_attr_good.sv` passes
+  - `/tmp/sv_class_scope_new_attr_bad.sv` rejects
+  - `/tmp/sv_class_scoped_call_attr_good.sv` passes
+
+### Why This Matters
+- This is the first checked-in live grammar pilot that uses the preserved branch-local semantic-annotation seam to steer a real SystemVerilog ambiguity.
+- The key outcome is precise:
+  - local typedef-style `T::f()` heads now fail closed
+  - local package-like `defs::f()` and unknown external-like `extpkg::f()` still pass
+  - known class-family callable forms such as `C::f()` and `C::new()` still pass
+
 ## 2026-03-21 - Separate branch-local and mid-sequence inline semantic annotations
 ### ✅ Achievement Summary
 PGEN now keeps the same `@name: payload` surface syntax for rule-level, branch-local, and mid-sequence semantic annotations, while preserving the important distinction between branch-leading inline annotations and true mid-sequence inline annotations in the Rust EBNF frontend/raw-AST path.
