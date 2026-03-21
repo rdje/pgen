@@ -3,8 +3,12 @@ package AST::Transform;
 use strict;
 use warnings;
 use Data::Dumper;
-use lib 'fx/perl';
-use lib 'perl';
+use File::Basename qw(dirname);
+BEGIN {
+    my $module_dir = dirname(__FILE__);
+    my $perl_root = dirname($module_dir);
+    unshift @INC, $perl_root;
+}
 use LinkedSpec;
 use AST::LeftRecursion;
 # BOOTSTRAP FIX: Use require instead of use to avoid compile-time loading
@@ -14,8 +18,6 @@ use AST::UniversalReturnAnnotation;
 use AST::UniversalComposer;
 use AST::PerlReturnCodeGenerator;
 use AST::BacktrackingParserIntegration qw(is_grouped_quantifier extract_grouped_elements detect_grouped_quantifier_in_element parse_quantifier_bounds);
-use lib '.';  # Add current directory to include path
-
 # Global variables for configuration
 our $quiet_mode = 0;
 our $verbosity = 'normal';
@@ -3473,7 +3475,7 @@ sub process_ast_includes_from_content {
     
     # Parse the EBNF content to get raw AST
     my $spec_file;
-    for my $path ("fx/specs/ebnf.spec", "../fx/specs/ebnf.spec", "../../fx/specs/ebnf.spec") {
+    for my $path ("specs/ebnf.spec", "../specs/ebnf.spec", "../../specs/ebnf.spec") {
         if (-f $path) {
             $spec_file = $path;
             last;
@@ -3509,7 +3511,7 @@ sub load_ebnf_spec_from_content {
     
     # Parse the EBNF content to get raw AST first
     my $spec_file;
-    for my $path ("fx/specs/ebnf.spec", "../fx/specs/ebnf.spec", "../../fx/specs/ebnf.spec") {
+    for my $path ("specs/ebnf.spec", "../specs/ebnf.spec", "../../specs/ebnf.spec") {
         if (-f $path) {
             $spec_file = $path;
             last;

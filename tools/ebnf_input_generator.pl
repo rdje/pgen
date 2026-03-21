@@ -2,11 +2,12 @@
 use strict;
 use warnings;
 use Data::Dumper;
+use FindBin qw($RealBin);
 
 # EBNF-based input generator with probability support
 # Usage: perl ebnf_input_generator.pl <grammar.ebnf> [options]
 
-use lib 'fx/perl';
+use lib "$RealBin/../perl";
 use LinkedSpec;
 
 my $ebnf_file = $ARGV[0] || die "Usage: $0 <grammar.ebnf> [--count N] [--max-depth N]\n";
@@ -32,7 +33,7 @@ srand($opts{seed});
 print "# Generated with seed: $opts{seed}\n";
 
 # Parse the EBNF grammar
-open my $fh, "<", "fx/specs/ebnf.spec" or die "Cannot open ebnf.spec: $!";
+open my $fh, "<", "$RealBin/../specs/ebnf.spec" or die "Cannot open ebnf.spec: $!";
 my $spec_content = do { local $/; <$fh> };
 close $fh;
 

@@ -68,7 +68,7 @@ Structural Decision Controls (percentages 0-100):
 
 Examples:
     perl generate_test_input_grammar_aware.pl specs/valid/basic.spec
-    perl generate_test_input_grammar_aware.pl -pt 40 -pc 50 -pr 10 fx/specs/Lispish.spec
+    perl generate_test_input_grammar_aware.pl -pt 40 -pc 50 -pr 10 specs/Lispish.spec
     perl generate_test_input_grammar_aware.pl -v -d 5 -pt 30 -pc 60 -pr 10 any_other.spec
 
 EOF

@@ -4,9 +4,10 @@ use strict;
 use warnings;
 use Getopt::Long;
 use Data::Dumper;
+use FindBin qw($RealBin);
 
-# Add the fx/perl directory to the path
-use lib 'fx/perl';
+# Add the canonical perl module directory to the path
+use lib "$RealBin/../../perl";
 
 use LinkedSpec;
 
@@ -324,4 +325,4 @@ if ($DUMP_VERBOSITY > 0) {
 }
 
 # Run the main function
-main(); 
+main();

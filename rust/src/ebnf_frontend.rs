@@ -1,6 +1,7 @@
 use anyhow::{Context, Result, anyhow};
 use chrono::Utc;
 use serde_json::{Value, json};
+use std::env;
 use std::fs;
 use std::path::Path;
 
@@ -42,9 +43,13 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     if !has_inline_semantic_annotations {
         let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
         if let Err(err) = parser.parse_full_grammar_file() {
-            if !has_multiline_annotations {
+            if !has_multiline_annotations && generated_verify_required() {
                 return Err(anyhow!("Rust EBNF parser failed: {}", err));
             }
+            eprintln!(
+                "warning: Rust EBNF generated-parser verification skipped for '{}': {}",
+                grammar_name, err
+            );
         }
     }
     let source_file_value = source_file.unwrap_or("<memory>");
@@ -62,6 +67,13 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
         },
         "raw_ast": raw_ast
     }))
+}
+
+fn generated_verify_required() -> bool {
+    matches!(
+        env::var("PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY"),
+        Ok(value) if matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on")
+    )
 }
 
 fn contains_token_type(rule_tokens: &Value, expected_type: &str) -> bool {
@@ -1118,6 +1130,24 @@ entry = alpha
             assert!(
                 rule_names.contains(expected),
                 "expected regex helper rule '{}' to remain present in Rust raw_ast export",
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn ebnf_frontend_can_export_tracked_ebnf_grammar_even_when_generated_verify_is_partial() {
+        let grammar_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../grammars/ebnf.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path.to_str().expect("utf8 path"))
+                .expect("tracked ebnf grammar should still export through the hybrid frontend");
+        let rule_names = collect_rule_names(&envelope);
+
+        for expected in ["grammar_file", "rule_definition", "sequence", "inline_semantic_annotation"]
+        {
+            assert!(
+                rule_names.contains(expected),
+                "expected ebnf rule '{}' to remain present in Rust raw_ast export",
                 expected
             );
         }

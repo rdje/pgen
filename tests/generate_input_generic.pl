@@ -46,9 +46,9 @@ Options:
     -h, --help          Show this help
 
 Examples:
-    perl generate_input_generic.pl ../fx/specs/Lispish.spec
-    perl generate_input_generic.pl -v -n 5 -d 6 ../fx/specs/ifelse.spec
-    perl generate_input_generic.pl ../fx/specs/regdef.spec
+    perl generate_input_generic.pl specs/Lispish.spec
+    perl generate_input_generic.pl -v -n 5 -d 6 specs/ifelse.spec
+    perl generate_input_generic.pl specs/regdef.spec
 
 EOF
 }

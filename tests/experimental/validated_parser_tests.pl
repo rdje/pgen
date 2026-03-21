@@ -234,9 +234,9 @@ foreach my $result (@detailed_results) {
 sub test_ebnf_parsing {
     my ($grammar_file) = @_;
     
-    my $test_result = `perl -I fx/perl -e "
+    my $test_result = `perl -I perl -e "
         use LinkedSpec;
-        open my \\\$spec_fh, '<', 'fx/specs/ebnf.spec';
+        open my \\\$spec_fh, '<', 'specs/ebnf.spec';
         my \\\$spec_content = do { local \\\$/; <\\\$spec_fh> };
         close \\\$spec_fh;
         my \\\$parser = LinkedSpec::Get(\\\\\\\$spec_content);
@@ -253,4 +253,3 @@ sub test_ebnf_parsing {
 }
 
 print "\n=== VALIDATION COMPLETE ===\n";
-

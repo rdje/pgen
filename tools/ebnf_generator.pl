@@ -2,9 +2,10 @@
 use strict;
 use warnings;
 use Data::Dumper;
+use FindBin qw($RealBin);
 
-# Add the fx/perl directory to @INC
-use lib 'fx/perl';
+# Add the tracked Perl parser core directory to @INC
+use lib "$RealBin/../perl";
 use LinkedSpec;
 
 # Configuration for generation
@@ -15,7 +16,7 @@ my $MAX_RULES_PER_FILE = 10;
 # Load ebnf.spec and create the EBNF parser
 print STDERR "Loading ebnf.spec...\n";
 my $ebnf_spec_content = do {
-    open my $fh, '<', 'fx/specs/ebnf.spec' or die "Cannot read ebnf.spec: $!";
+    open my $fh, '<', "$RealBin/../specs/ebnf.spec" or die "Cannot read ebnf.spec: $!";
     local $/;
     <$fh>;
 };

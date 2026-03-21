@@ -72,7 +72,7 @@ probabilities will be automatically normalized to create a proper distribution.
 
 Examples:
     perl generate_test_input_generic.pl specs/valid/basic.spec
-    perl generate_test_input_generic.pl fx/specs/Lispish.spec
+    perl generate_test_input_generic.pl specs/Lispish.spec
     perl generate_test_input_generic.pl -v -d 4 any_other.spec
     
     # Generate with more numbers and fewer strings
