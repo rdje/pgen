@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
-TOOLS_DIR="$ROOT_DIR/tools"
 
 STATE_DIR="${PGEN_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR:-$RUST_DIR/target/sv_external_corpus_triage_gate}"
 WORK_DIR="$STATE_DIR/work"
@@ -24,7 +23,6 @@ STRICT_WARNING_CODES="${PGEN_SV_EXTERNAL_CORPUS_TRIAGE_STRICT_WARNING_CODES:-non
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 GRAMMAR_FILE="$ROOT_DIR/grammars/systemverilog.ebnf"
 GRAMMAR_JSON="$WORK_DIR/systemverilog_external_corpus_triage_grammar.json"
 PARSER_OUT="$WORK_DIR/systemverilog_external_corpus_triage_parser.rs"
@@ -148,7 +146,6 @@ fi
 require_tool jq
 require_tool perl
 require_file "$MANIFEST_FILE"
-require_file "$EBNF_TO_JSON"
 require_file "$GRAMMAR_FILE"
 
 mkdir -p "$STATE_DIR" "$WORK_DIR" "$LOG_DIR"
@@ -159,22 +156,24 @@ manifest_version="$(jq -er '.version | numbers' "$MANIFEST_FILE")"
 corpus_count="$(jq -er '[.cases[]?.corpus // "uncategorized"] | unique | length' "$MANIFEST_FILE")"
 
 run_logged_rust "build_ast_pipeline_for_sv_external_corpus_triage" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
-run_logged "frontend_ebnf_to_json" \
-    perl "$EBNF_TO_JSON" --pretty --quiet "$GRAMMAR_FILE" -o "$GRAMMAR_JSON"
+run_logged "frontend_rust_raw_ast_export" \
+    "$AST_PIPELINE_BIN" "$GRAMMAR_FILE" \
+    --emit-raw-ast-json "$GRAMMAR_JSON"
 require_nonempty_file "$GRAMMAR_JSON"
 
 run_logged "generate_systemverilog_parser" \
-    "$AST_PIPELINE_BIN" "$GRAMMAR_JSON" \
+    "$AST_PIPELINE_BIN" "$GRAMMAR_FILE" \
     --generate-parser \
+    --emit-raw-ast-json "$GRAMMAR_JSON" \
     --eliminate-left-recursion \
     --output "$PARSER_OUT"
 require_nonempty_file "$PARSER_OUT"
 
 run_logged_rust "build_sv_external_corpus_triage_binaries" \
     env PGEN_SYSTEMVERILOG_PARSER_PATH="$PARSER_OUT" \
-    cargo build --features generated_parsers --bin ast_pipeline --bin parseability_probe
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe
 
 require_file "$AST_PIPELINE_BIN"
 require_file "$PARSE_PROBE_BIN"
@@ -466,6 +465,9 @@ jq -n \
     --argjson version 1 \
     --arg generated_at_utc "$generated_at_utc" \
     --arg manifest_file "$MANIFEST_FILE" \
+    --arg grammar_file "$GRAMMAR_FILE" \
+    --arg grammar_raw_ast_json "$GRAMMAR_JSON" \
+    --arg generated_parser_file "$PARSER_OUT" \
     --argjson manifest_version "$manifest_version" \
     --arg report_summary_txt "$SUMMARY_TXT" \
     --argjson corpus_count "$corpus_count" \
@@ -501,6 +503,9 @@ jq -n \
         version: $version,
         generated_at_utc: $generated_at_utc,
         manifest_file: $manifest_file,
+        grammar_file: $grammar_file,
+        grammar_raw_ast_json: $grammar_raw_ast_json,
+        generated_parser_file: $generated_parser_file,
         manifest_version: $manifest_version,
         totals: {
             corpus_count: $corpus_count,
@@ -547,6 +552,9 @@ cp "$REPORT_JSON" "$SUMMARY_JSON"
     echo "state_dir: $STATE_DIR"
     echo "generated_at_utc: $generated_at_utc"
     echo "manifest_file: $MANIFEST_FILE"
+    echo "grammar_file: $GRAMMAR_FILE"
+    echo "grammar_raw_ast_json: $GRAMMAR_JSON"
+    echo "generated_parser_file: $PARSER_OUT"
     echo "manifest_version: $manifest_version"
     echo "corpus_count: $corpus_count"
     echo "cases_declared: $cases_declared"

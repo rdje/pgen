@@ -23109,3 +23109,13 @@ Architectural north star:
 - The aggregate proof stack had one more path-assumption bug: `sv_combined_telemetry_contract_gate` assumed every stage summary lived under the current `sota_exit_gate` work tree, which stops being true once `sota_exit_gate` legitimately reuses existing quality/aggregate/reachability/family-status state dirs. That path resolution is now sourced from `sota_exit_gate`’s own exported summary instead, and the combined gate now tolerates absent informational failure-context / roundtrip stage summaries by falling back to the top-level SOTA summary fields those failed stages left behind.
 - That reuse doctrine is now complete across the lightweight SV proof stack too: `sota_exit_gate` can directly reuse checked-in `sv_failure_context_contract_gate` and `sv_roundtrip_contract_gate` states, which means the lightweight combined-telemetry SOTA path can now run fully green from existing artifacts instead of preserving two stale informational failures.
 - The same aggregate-path doctrine now applies to VHDL family proofs. `vhdl_combined_telemetry_contract_gate` now treats `sota_exit_gate/summary.txt` as the authoritative index of VHDL family summary paths instead of assuming nested `work/vhdl_parser_family_*` locations, and `sota_exit_gate` now accepts direct reuse of `vhdl_parser_family_contract_gate`, `vhdl_parser_family_status_gate`, and `vhdl_parser_family_status_contract_gate` state dirs. One subtle continuity point mattered here: the correct reusable strict-promotion input is the canonical `rust/target/vhdl_strict_promotion_gate`, while the family-proof sidecars may still live under a prior combined-telemetry run’s nested work tree.
+- The real-world SystemVerilog corpus triage lane had the same outdated frontend assumption we already removed from `sv_stimuli_quality_gate`: it still rebuilt the live grammar through Perl `ebnf_to_json.pl` before generating the temporary parser. `sv_external_corpus_triage_gate` now follows the Rust frontend path instead:
+  - build `ast_pipeline` with `generated_parsers ebnf_dual_run`
+  - export `grammars/systemverilog.ebnf` to a raw-AST JSON artifact
+  - generate the temporary parser directly from the `.ebnf` grammar while preserving that raw-AST artifact
+  - rebuild the adapter/probe against the generated parser and run the external-corpus triage cases
+  The gate sidecar now also records:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  so the frontend artifact chain is explicit during corpus triage, not buried in the work dir.
