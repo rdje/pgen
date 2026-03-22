@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - Simulation-facing frontend contract doctrine after NexSim review
+### Context
+I reviewed the current NexSim docs from `../nexsim/README.md`, including the direct fast-ramp authoritative set and especially:
+- `../nexsim/docs/interfaces/PGEN_NEXSIM_FRONTEND_DELIVERABLES.md`
+- `../nexsim/docs/interfaces/PGEN_NEXSIM_ELAB_CONTRACT.md`
+
+The useful outcome for PGEN is not NexSim-specific parser work. It is a clearer generic contract for what downstream elaborators/simulators need from a trustworthy parser/preprocess frontend.
+
+### Durable Takeaways
+- For simulation/elaboration consumers, parse success must mean:
+  - full-file consumption,
+  - not prefix acceptance with silent tail garbage.
+- For SystemVerilog-family consumers, preprocessing should be reproducible as a deterministic artifact set:
+  - preprocessed text,
+  - source-map JSON,
+  - event-log JSON,
+  - diagnostics JSON,
+  - effective preprocessing-policy metadata.
+- A canonical AST dump is not just an internal debug convenience:
+  - it is the right triage artifact for CI, corpus reduction, and cross-tool debugging.
+- Parser output should be able to cross the frontend/elaboration boundary as a versioned structured bundle:
+  - stable schema/version,
+  - provenance-carrying source units,
+  - stable source-unit identifiers,
+  - typed structural declarations plus diagnostics,
+  - explicit compatibility/change-control rules when the payload evolves.
+
+### Delivery/Subset Implications
+- The first parser-backed downstream slice should stay deliberately narrow and honest:
+  - explicit supported subset,
+  - deterministic success/failure behavior,
+  - clean rejection outside the subset,
+  - no pretending that broad language support exists before the frontend/elaboration contract is stable.
+- This also reinforces current semantic-steering priorities inside PGEN:
+  - the first honest parser-backed downstream bundle depends on closing the real ambiguity surfaces rather than only producing parse trees.
+
+### Why This Matters
+- The earlier RTLSyn review sharpened synthesis-facing deliverable shape.
+- This NexSim review adds the complementary simulation-facing layer:
+  - full-file success semantics,
+  - replayable preprocess artifacts,
+  - canonical AST dump expectations,
+  - and versioned parser-to-elaboration handoff contracts.
+- All of that should influence PGEN roadmap shaping in a client-agnostic way rather than by embedding NexSim-specific code paths.
+
 ## 2026-03-22 - External consumer deliverable doctrine after RTLSyn review
 ### Context
 I reviewed the current RTLSyn docs from `../rtlsyn/README.md`, including the direct README-linked markdown set and especially:

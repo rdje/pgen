@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-22 - Capture simulation-facing frontend contract doctrine
+### ✅ Achievement Summary
+PGEN now records a clearer simulation-facing downstream deliverable contract after reviewing the NexSim project docs, especially:
+- `../nexsim/docs/interfaces/PGEN_NEXSIM_FRONTEND_DELIVERABLES.md`
+- `../nexsim/docs/interfaces/PGEN_NEXSIM_ELAB_CONTRACT.md`
+
+### Scope of Changes
+- Updated continuity/roadmap docs to capture reusable downstream expectations for parser families consumed by elaborators/simulators:
+  - parse success must mean full-file consumption, not prefix acceptance,
+  - SystemVerilog-facing preprocess outputs should be replayable as a deterministic artifact set:
+    - preprocessed text,
+    - source-map JSON,
+    - event-log JSON,
+    - diagnostics JSON,
+    - effective preprocessing-policy metadata,
+  - canonical AST dump should exist as a triage/debug artifact,
+  - parser-to-elaboration handoff should be a versioned, provenance-carrying bundle rather than an ad hoc dump,
+  - handoff payloads should carry stable source-unit identifiers plus compatibility/versioning discipline,
+  - the first downstream parser-backed slice should stay small, explicit, and honest about supported subsets.
+
+### Why This Matters
+- This does not retarget PGEN to one simulator project.
+- It does sharpen what a serious downstream-ready parser/preprocess deliverable should look like for any consumer that wants to:
+  - replay preprocessing deterministically,
+  - archive AST/bundle artifacts in CI,
+  - hand parser results into elaboration without bespoke glue,
+  - and rely on explicit subset boundaries rather than optimistic partial support claims.
+
 ## 2026-03-22 - Capture external consumer deliverable doctrine
 ### ✅ Achievement Summary
 PGEN now records a clearer client-agnostic downstream deliverable contract after reviewing the RTLSyn project docs, especially `../rtlsyn/docs/PGEN_DELIVERABLE_REQUIREMENTS.md`.

@@ -399,17 +399,41 @@ Required downstream-friendly shape:
 - generated artifacts should remain compatible with vendoring into a downstream Rust workspace,
 - if support code is required, keep it small and self-contained enough to vendor rather than assuming a mandatory large PGEN runtime dependency,
 - deterministic output is mandatory,
+- parse success must mean full input/file consumption, not prefix acceptance with ignored tail input,
 - parse/eval diagnostics should carry, where meaningful:
   - byte position,
   - line/column,
   - human-readable failure message,
   - parser rule/production context,
+- for file-oriented languages with preprocessing, the preferred downstream replay surface should include a deterministic artifact set:
+  - preprocessed text,
+  - source-map JSON,
+  - event-log JSON,
+  - diagnostics JSON,
+  - effective preprocessing-policy metadata,
+- canonical AST dump should exist as a first-class triage/debug artifact for downstream CI and reduction workflows,
+- when a downstream elaborator/simulator consumes parser output, the preferred handoff shape is a versioned structured bundle rather than ad hoc JSON fragments:
+  - schema version,
+  - frontend name/version,
+  - provenance-carrying source units,
+  - stable source-unit identifiers,
+  - typed structural declarations and diagnostics,
+  - explicit compatibility/change-control discipline when the payload evolves,
 - bounded subset support must be explicit:
   - supported constructs stated positively,
   - unsupported constructs rejected cleanly rather than silently misparsed,
 - regeneration should carry provenance:
   - version identifier and/or digest,
   - behavioral diff summary when accepted/rejected behavior changes.
+
+First downstream vertical-slice rule:
+- the first parser-backed consumer slice should stay deliberately small and honest,
+- success means:
+  - deterministic parse/preprocess behavior,
+  - explicit supported subset,
+  - stable exported artifacts,
+  - clean rejection outside the subset,
+- do not overclaim broad language support before the frontend contract, preprocess replay story, and parser-to-elaboration handoff are stable.
 
 Externally validated near-term delivery order:
 - `rtl_const_expr`

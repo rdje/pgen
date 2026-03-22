@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: external-consumer-deliverable-awareness)
+Last updated: 2026-03-22 (+0100, task: external-consumer-simulation-awareness)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -44,6 +44,16 @@ Use this file to resume work without replaying full chat history.
   - deterministic,
   - strongly diagnosable,
   - and explicit about bounded subset support/rejection.
+- After reviewing NexSim's direct README-linked docs, the reusable simulation-facing takeaway is now explicit too:
+  - parse success must mean full-file consumption,
+  - SystemVerilog preprocessing should produce a deterministic replayable artifact set:
+    - preprocessed text,
+    - source-map JSON,
+    - event-log JSON,
+    - diagnostics JSON,
+    - effective preprocessing-policy metadata,
+  - canonical AST dump should exist as a first-class triage artifact,
+  - parser-to-elaboration handoff should be a versioned, provenance-carrying structured bundle with stable source-unit identifiers and compatibility discipline.
 - Preferred downstream integration surface remains:
   - generated Rust source first,
   - path crate second,
@@ -58,6 +68,10 @@ Use this file to resume work without replaying full chat history.
   - Liberty
   - SDC
   - VHDL later
+- For simulation/elaboration-facing consumers, the first honest downstream vertical slice should stay deliberately narrow:
+  - explicit supported subset,
+  - deterministic rejection outside the subset,
+  - and no silent drift in AST/bundle schema or preprocess artifact formats.
 - This is guidance for roadmap shaping, not a reason to fork PGEN into one client-specific product path.
 
 ## Current Reduced SV Semantic-Steering Frontier
