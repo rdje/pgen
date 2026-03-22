@@ -23252,3 +23252,21 @@ Architectural north star:
     - `json`: `pass`
     - `regex`: `pass`
   - so aggregate/report-mode EBNF readiness now exercises the Rust frontend path by default instead of only on opt-in runs
+- `ebnf_stimuli_quality_gate` had the same policy lag: it already supported `PGEN_EBNF_FRONTEND_IMPL=perl|rust`, but the live default still pointed at Perl even after the Rust path had proven green for tracked grammars.
+- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh` to Rust-by-default:
+  - `FRONTEND_IMPL` now defaults to `rust`
+  - explicit fallback remains available through:
+    - `PGEN_EBNF_FRONTEND_IMPL=perl`
+  - important unchanged nuance:
+    - when `require_ebnf_parseability=1`, the gate still intentionally prepares the temporary `ebnf` bootstrap parser through the existing Perl seam before rebuilding `ast_pipeline` with `ebnf_dual_run`
+    - so this slice changes the default tracked-grammar frontend path, not the `ebnf` self-bootstrap doctrine
+  - the lightweight default-path proof used:
+    - `PGEN_EBNF_STIMULI_QUALITY_COUNT=1`
+    - `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25`
+  - observed default summary on that proof:
+    - `frontend_impl: rust`
+    - `ebnf`: `pass`
+    - `json`: `pass`
+    - `regex`: `pass`
+    - `builtin_return_annotation`: `pass`
+    - `builtin_semantic_annotation`: `pass`

@@ -3805,3 +3805,8 @@ Why `rtl_frontend` exists:
 - The corresponding proof discipline is lightweight-and-green there too: for shell/frontend-default changes on `ebnf_frontend_readiness_gate`, prefer:
   - `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2`
   which still exercises all tracked rows (`ebnf`, `json`, `regex`) under the default frontend path and now proves the default is genuinely Rust-backed.
+- The same migration pressure now reaches the default `ebnf_stimuli_quality_gate` operator surface too. That gate already supported `PGEN_EBNF_FRONTEND_IMPL=perl|rust`, but the live default should now be treated as Rust-first for tracked grammar frontend conversion, with Perl retained only as an explicit fallback/testing mode.
+- The corresponding proof discipline is lightweight-and-green there too: for shell/frontend-default changes on `ebnf_stimuli_quality_gate`, prefer:
+  - `PGEN_EBNF_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25`
+  Important nuance: the `ebnf` self-parseability bootstrap still intentionally uses the Perl bootstrap seam; this slice only changes the default tracked-grammar frontend path, not that bootstrap doctrine.

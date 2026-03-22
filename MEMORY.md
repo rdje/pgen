@@ -6112,3 +6112,13 @@ Use this file to resume work without replaying full chat history.
 - For shell/front-end-path changes to `ebnf_frontend_readiness_gate`, the meaningful default-path proof shape is currently:
   - `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2`
   That proof stayed green for all tracked rows (`ebnf`, `json`, `regex`) after promoting the default to Rust.
+- `ebnf_stimuli_quality_gate` is now Rust-by-default too. The explicit override still exists:
+  - `PGEN_EBNF_FRONTEND_IMPL=perl|rust`
+  but the default live quality-loop path should now be treated as:
+  - `PGEN_EBNF_FRONTEND_IMPL=rust`
+  unless a slice is specifically testing legacy Perl fallback behavior.
+- Important nuance: that default flip does not remove the existing `ebnf` self-bootstrap seam. When the gate needs `require_ebnf_parseability=1`, it still intentionally uses the Perl bootstrap path to prepare the temporary `ebnf` parser before rebuilding `ast_pipeline` with `ebnf_dual_run`.
+- For shell/front-end-default changes to `ebnf_stimuli_quality_gate`, the meaningful lightweight proof shape is currently:
+  - `PGEN_EBNF_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25`
+  That default-path proof stayed green for all tracked rows after promoting the default to Rust.
