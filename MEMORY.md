@@ -6012,3 +6012,12 @@ Use this file to resume work without replaying full chat history.
   - `ast_pipeline grammars/systemverilog.ebnf --generate-parser --emit-raw-ast-json ... --output ...`
   - rebuild `parseability_probe` against the generated temporary parser
   The gate sidecar now exports `grammar_file`, `grammar_raw_ast_json`, and `generated_parser_file`; use those instead of guessing artifact paths from the work dir.
+- `vhdl_external_corpus_triage_gate` now follows the same rule. Do not reintroduce `ebnf_to_json.pl` there either. The authoritative VHDL external-corpus flow is now:
+  - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `ast_pipeline grammars/vhdl.ebnf --emit-raw-ast-json ...`
+  - `ast_pipeline grammars/vhdl.ebnf --generate-parser --emit-raw-ast-json ... --output ...`
+  - rebuild `parseability_probe` against the generated temporary parser
+  The VHDL external-corpus sidecar now exports the same frontend artifact trio:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`

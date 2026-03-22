@@ -23119,3 +23119,13 @@ Architectural north star:
   - `grammar_raw_ast_json`
   - `generated_parser_file`
   so the frontend artifact chain is explicit during corpus triage, not buried in the work dir.
+- The same stale frontend seam existed in `vhdl_external_corpus_triage_gate`, and it is now removed too. That gate now:
+  - builds `ast_pipeline` with `generated_parsers ebnf_dual_run`
+  - exports `grammars/vhdl.ebnf` to a raw-AST JSON artifact
+  - generates the temporary parser directly from the `.ebnf` grammar while preserving that raw-AST artifact
+  - rebuilds the adapter/probe against that generated parser before running the tracked external VHDL samples
+  Its sidecar now also exports:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  so external-corpus triage for both main HDL families now exposes the frontend artifact chain explicitly.
