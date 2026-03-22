@@ -6031,3 +6031,8 @@ Use this file to resume work without replaying full chat history.
   - `grammar_raw_ast_json`
   - `generated_parser_file`
   so downstream proof work should read those exported artifact paths instead of inferring them from `work/`.
+- For shell-only/front-end-path changes to `vhdl_stimuli_quality_gate`, use the lightweight green proof shape first:
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=1`
+  - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES=1`
+  - `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200`
+  The contract-default replay-shadow budget (`5000`) can make validation look hung even when the frontend swap is correct; don’t confuse that search-budget cost with a frontend regression.

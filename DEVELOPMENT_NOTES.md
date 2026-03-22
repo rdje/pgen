@@ -23138,3 +23138,10 @@ Architectural north star:
   - `grammar_raw_ast_json`
   - `generated_parser_file`
   in addition to `grammar_file`, so the frontend artifact chain is visible in the gate header/summary and not only in `work/`.
+- Practical validation note for this slice:
+  - a full default VHDL quality run still spends a lot of time in `closed_loop_replay_parseability_shadow` when `target_max_attempts` stays at the contract default `5000`
+  - the meaningful script-level proof for the frontend migration used the already-established lightweight override:
+    - `PGEN_VHDL_STIMULI_QUALITY_COUNT=1`
+    - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES=1`
+    - `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200`
+  - that run stayed fully green, which is the right gate shape for a shell/frontend-path correction without conflating the slice with broader VHDL search-budget behavior
