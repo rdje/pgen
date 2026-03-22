@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - Tighten the generic package-qualified typed-cast front
+### Context
+After tightening the generic package-qualified net-lvalue front, one nearby generic typed front was still using raw `package_scope`:
+- `ps_type_identifier`
+
+That matters because `ps_type_identifier` feeds:
+- `simple_type`
+- `casting_type`
+- typed assignment-pattern expressions
+
+The reduced cast forms gave a clean proof surface:
+- `defs::U'(1)`
+- `extpkg::U'(1)`
+- `T::U'(1)`
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `ps_type_identifier_sv_2017`
+  - `ps_type_identifier_sv_2023`
+  - each now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another policy-coherence slice rather than a new declaration fact family.
+- The concrete rule is:
+  - local typedef heads should not impersonate package scopes on generic typed-cast/type-expression fronts either.
+- Reduced proof stayed clean:
+  - `defs::U'(1)` passes
+  - `extpkg::U'(1)` passes
+  - `T::U'(1)` rejects
+
 ## 2026-03-22 - HDL intent-recovery doctrine after synthesis-lane brainstorming
 ### Context
 We revisited the long-range `HDL -> .fsm` goal and clarified the architectural question behind it:

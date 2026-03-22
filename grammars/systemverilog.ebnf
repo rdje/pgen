@@ -1744,10 +1744,10 @@ scoped_package_parameter_identifier := non_typedef_package_scope parameter_ident
 ps_parameter_identifier := class_scope parameter_identifier | scoped_package_parameter_identifier | known_unscoped_parameter_identifier | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier
 
 @profiles: ["sv_2017"]
-ps_type_identifier_sv_2017 := ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 | package_scope | class_scope )? type_identifier
+ps_type_identifier_sv_2017 := ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 | non_typedef_package_scope | class_scope )? type_identifier
 
 @profiles: ["sv_2023"]
-ps_type_identifier_sv_2023 := ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe | package_scope | class_scope )? type_identifier
+ps_type_identifier_sv_2023 := ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe | non_typedef_package_scope | class_scope )? type_identifier
 
 ps_type_identifier := ps_type_identifier_sv_2017 | ps_type_identifier_sv_2023
 

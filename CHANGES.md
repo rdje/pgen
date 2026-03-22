@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-22 - Tighten SV package-scoped typed-cast fronts
+### ✅ Achievement Summary
+PGEN now extends the same package-vs-local-type steering policy to the generic typed-cast and assignment-pattern type front too. `ps_type_identifier` now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-qualified type prefixes in contexts like `pkg::U'(expr)`.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed:
+    - `ps_type_identifier_sv_2017`
+    - `ps_type_identifier_sv_2023`
+  - each now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another narrow policy-coherence slice rather than a new fact-family rollout.
+- It closes a generic typed front used by:
+  - casts
+  - typed assignment-pattern expressions
+  - other `simple_type`-based surfaces
+- Reduced proof now confirms:
+  - `defs::U'(1)` passes
+  - `extpkg::U'(1)` passes
+  - `T::U'(1)` rejects when `T` is only a local typedef head
+
 ## 2026-03-22 - Capture HDL intent-recovery doctrine
 ### ✅ Achievement Summary
 PGEN now records a clearer long-range doctrine for `HDL -> .fsm` style intent recovery/import. For source RTL, intent extraction should be source-aware first, while synthesis/AIG/FRAIG/rewrite flows are optional secondary lanes for proof, cleanup, or gate-level fallback rather than the primary recovery path.

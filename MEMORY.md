@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: hdl-intent-recovery-doctrine)
+Last updated: 2026-03-22 (+0100, task: sv-package-typed-cast-coherence)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -93,6 +93,19 @@ Use this file to resume work without replaying full chat history.
 - Mapping to real cells is especially outside the core need for `.fsm` intent import.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live coherence tightening:
+  - the generic package-qualified typed-cast/type-expression front now also reuses:
+    - `non_typedef_package_scope`
+  - tightened fronts:
+    - `ps_type_identifier_sv_2017`
+    - `ps_type_identifier_sv_2023`
+  - reduced proof confirms:
+    - local and unknown external package-like typed casts still pass
+    - local typedef-prefixed typed casts reject
+  - this is recorded as policy-coherence widening for generic typed fronts:
+    - casts,
+    - typed assignment-pattern expressions,
+    - other `simple_type`-based surfaces
 - Latest live coherence tightening:
   - the generic package-qualified net-lvalue front now also reuses:
     - `non_typedef_package_scope`

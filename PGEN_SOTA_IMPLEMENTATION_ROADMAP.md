@@ -340,6 +340,19 @@ Near-term rollout:
   - reduced proof confirms:
     - `assign defs::x = y;` and `assign extpkg::x = y;` pass
     - `assign T::x = y;` rejects
+  - the same policy-coherence widening now also covers the generic typed-cast/type-expression front:
+    - `ps_type_identifier_sv_2017`
+    - `ps_type_identifier_sv_2023`
+  - each now routes through:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+  - reduced proof confirms:
+    - `defs::U'(1)` and `extpkg::U'(1)` pass
+    - `T::U'(1)` rejects
+  - this closes one more generic typed surface shared by:
+    - `simple_type`
+    - `casting_type`
+    - typed assignment-pattern expressions
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`
