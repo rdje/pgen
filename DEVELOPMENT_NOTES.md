@@ -23201,3 +23201,21 @@ Architectural north star:
   - observed parser-backed readiness summary on that proof:
     - `systemverilog`: `frontend_raw_ast_export=pass`, `json_to_parser=pass`, `json_to_stimuli=pass`, `parseability=pass`
     - `vhdl`: `frontend_raw_ast_export=pass`, `json_to_parser=pass`, `json_to_stimuli=pass`, `parseability=pass`
+- `annotation_nonbootstrap_e2e_gate` still legitimately consumes the checked-in generated JSON inputs for `return_annotation` and `semantic_annotation`, but its `regex` row had the same outdated Perl-fronted bootstrap and now uses the Rust frontend path instead:
+  - build `ast_pipeline` with `generated_parsers ebnf_dual_run`
+  - export `grammars/regex.ebnf` to a raw-AST JSON artifact
+  - generate the temporary regex parser directly from that raw-AST artifact
+  - keep the return/semantic rows on their checked-in generated JSON inputs
+  The gate summary now exposes:
+  - `grammar_input_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  - `frontend_raw_ast_export`
+  so the mixed-input nature of the non-bootstrap gate is now explicit instead of implicit.
+- Practical validation note for this slice:
+  - a lightweight proof stayed green with:
+    - `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=1`
+  - observed summary on that proof:
+    - `return_annotation`: parser-backed stimuli/parseability `pass`, `grammar_input_file=generated/return_annotation.json`
+    - `semantic_annotation`: parser-backed stimuli/parseability `pass`, `grammar_input_file=generated/semantic_annotation.json`
+    - `regex`: `frontend_raw_ast_export=pass`, `grammar_input_file=grammars/regex.ebnf`, `grammar_raw_ast_json=.../regex.json`

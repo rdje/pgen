@@ -6079,3 +6079,16 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS=10`
   - `PGEN_HDL_FRONTEND_STRICT=0`
   That report-mode run stayed green for both tracked rows (`systemverilog`, `vhdl`) after the Rust frontend swap.
+- `annotation_nonbootstrap_e2e_gate` now belongs in that same bucket for its live `regex` grammar input. Do not reintroduce `ebnf_to_json.pl` there. The authoritative regex frontend flow is now:
+  - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `ast_pipeline grammars/regex.ebnf --emit-raw-ast-json ...`
+  - `ast_pipeline RAW.json --generate-parser --output ...`
+  while the `return_annotation` / `semantic_annotation` rows still intentionally consume their checked-in generated JSON inputs.
+  The gate summary now exposes:
+  - `grammar_input_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  - `frontend_raw_ast_export`
+- For shell/front-end-path changes to `annotation_nonbootstrap_e2e_gate`, the meaningful lightweight proof shape is currently:
+  - `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=1`
+  That proof stayed green for all three rows after the regex Rust-frontend swap.

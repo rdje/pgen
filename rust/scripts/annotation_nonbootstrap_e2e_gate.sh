@@ -5,7 +5,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
 GRAMMARS_DIR="$ROOT_DIR/grammars"
 GENERATED_DIR="$ROOT_DIR/generated"
-TOOLS_DIR="$ROOT_DIR/tools"
 
 STATE_DIR="${PGEN_ANNOTATION_NONBOOTSTRAP_STATE_DIR:-$RUST_DIR/target/annotation_nonbootstrap_e2e_gate}"
 LOG_DIR="$STATE_DIR/logs"
@@ -26,17 +25,12 @@ fi
 mkdir -p "$LOG_DIR" "$WORK_DIR"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 
 RETURN_JSON="$GENERATED_DIR/return_annotation.json"
 SEMANTIC_JSON="$GENERATED_DIR/semantic_annotation.json"
 REGEX_EBNF="$GRAMMARS_DIR/regex.ebnf"
 REGEX_JSON="$WORK_DIR/regex.json"
 
-if [[ ! -f "$EBNF_TO_JSON" ]]; then
-    echo "error: missing EBNF frontend at '$EBNF_TO_JSON'" >&2
-    exit 1
-fi
 if [[ ! -f "$RETURN_JSON" ]]; then
     echo "error: missing return annotation JSON at '$RETURN_JSON'" >&2
     exit 1
@@ -94,7 +88,7 @@ parseability_acceptance_rate_percent() {
     local attempts accepted
     attempts="$(parseability_summary_field_u64 "$path" "attempts")"
     accepted="$(parseability_summary_field_u64 "$path" "accepted")"
-    perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$accepted" "$attempts"
+    awk -v accepted="$accepted" -v attempts="$attempts" 'BEGIN { if (attempts == 0) { printf "0.00" } else { printf "%.2f", (accepted * 100.0) / attempts } }'
 }
 
 run_logged() {
@@ -129,20 +123,19 @@ run_logged_rust() {
 }
 
 require_tool jq
-require_tool perl
 
 run_logged_rust "build_generated_ast_pipeline" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is still missing at '$AST_PIPELINE_BIN' after build" >&2
     exit 1
 fi
 
-echo "grammar,parseability_required,sample_count,seed,parser_output,stimuli_output,coverage_output,gap_report_json,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,parseability_report_json,status" >"$SUMMARY_CSV"
+echo "grammar,parseability_required,sample_count,seed,parser_output,stimuli_output,coverage_output,gap_report_json,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,parseability_report_json,status,grammar_input_file,grammar_raw_ast_json,generated_parser_file,frontend_raw_ast_export" >"$SUMMARY_CSV"
 
-run_logged "frontend_regex_ebnf_to_json" \
-    "$EBNF_TO_JSON" --pretty "$REGEX_EBNF" -o "$REGEX_JSON"
+run_logged "frontend_regex_rust_raw_ast_export" \
+    "$AST_PIPELINE_BIN" "$REGEX_EBNF" --emit-raw-ast-json "$REGEX_JSON"
 require_nonempty_file "$REGEX_JSON"
 assert_json "$REGEX_JSON" '.grammar_name == "regex"' "regex frontend grammar_name mismatch"
 
@@ -181,7 +174,7 @@ return_parser_rejections_total="$(parseability_summary_field_u64 "$WORK_DIR/retu
 return_generation_errors_total="$(parseability_summary_field_u64 "$WORK_DIR/return_parseability_report.json" "generation_errors")"
 return_empty_generations_total="$(parseability_summary_field_u64 "$WORK_DIR/return_parseability_report.json" "empty_generations")"
 return_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$WORK_DIR/return_parseability_report.json")"
-echo "return_annotation,1,${SAMPLE_COUNT},${RETURN_SEED},$WORK_DIR/return_annotation_nonbootstrap.rs,$WORK_DIR/return_samples.txt,$WORK_DIR/return_coverage.json,$WORK_DIR/return_gap_report.json,${return_attempts_total},${return_accepted_total},${return_rejected_total},${return_parser_rejections_total},${return_generation_errors_total},${return_empty_generations_total},${return_acceptance_rate_percent},$WORK_DIR/return_parseability_report.json,pass" >>"$SUMMARY_CSV"
+echo "return_annotation,1,${SAMPLE_COUNT},${RETURN_SEED},$WORK_DIR/return_annotation_nonbootstrap.rs,$WORK_DIR/return_samples.txt,$WORK_DIR/return_coverage.json,$WORK_DIR/return_gap_report.json,${return_attempts_total},${return_accepted_total},${return_rejected_total},${return_parser_rejections_total},${return_generation_errors_total},${return_empty_generations_total},${return_acceptance_rate_percent},$WORK_DIR/return_parseability_report.json,pass,$RETURN_JSON,n/a,$WORK_DIR/return_annotation_nonbootstrap.rs,n/a" >>"$SUMMARY_CSV"
 
 run_logged "nonbootstrap_semantic_stimuli_parseability" \
     "$AST_PIPELINE_BIN" "$SEMANTIC_JSON" \
@@ -208,7 +201,7 @@ semantic_parser_rejections_total="$(parseability_summary_field_u64 "$WORK_DIR/se
 semantic_generation_errors_total="$(parseability_summary_field_u64 "$WORK_DIR/semantic_parseability_report.json" "generation_errors")"
 semantic_empty_generations_total="$(parseability_summary_field_u64 "$WORK_DIR/semantic_parseability_report.json" "empty_generations")"
 semantic_acceptance_rate_percent="$(parseability_acceptance_rate_percent "$WORK_DIR/semantic_parseability_report.json")"
-echo "semantic_annotation,1,${SAMPLE_COUNT},${SEMANTIC_SEED},$WORK_DIR/semantic_annotation_nonbootstrap.rs,$WORK_DIR/semantic_samples.txt,$WORK_DIR/semantic_coverage.json,$WORK_DIR/semantic_gap_report.json,${semantic_attempts_total},${semantic_accepted_total},${semantic_rejected_total},${semantic_parser_rejections_total},${semantic_generation_errors_total},${semantic_empty_generations_total},${semantic_acceptance_rate_percent},$WORK_DIR/semantic_parseability_report.json,pass" >>"$SUMMARY_CSV"
+echo "semantic_annotation,1,${SAMPLE_COUNT},${SEMANTIC_SEED},$WORK_DIR/semantic_annotation_nonbootstrap.rs,$WORK_DIR/semantic_samples.txt,$WORK_DIR/semantic_coverage.json,$WORK_DIR/semantic_gap_report.json,${semantic_attempts_total},${semantic_accepted_total},${semantic_rejected_total},${semantic_parser_rejections_total},${semantic_generation_errors_total},${semantic_empty_generations_total},${semantic_acceptance_rate_percent},$WORK_DIR/semantic_parseability_report.json,pass,$SEMANTIC_JSON,n/a,$WORK_DIR/semantic_annotation_nonbootstrap.rs,n/a" >>"$SUMMARY_CSV"
 
 run_logged "nonbootstrap_regex_stimuli" \
     "$AST_PIPELINE_BIN" "$REGEX_JSON" \
@@ -223,7 +216,7 @@ require_nonempty_file "$WORK_DIR/regex_coverage.json"
 require_nonempty_file "$WORK_DIR/regex_gap_report.json"
 assert_json "$WORK_DIR/regex_coverage.json" '.grammar_name == "regex"' "regex coverage grammar_name mismatch"
 assert_json "$WORK_DIR/regex_gap_report.json" '.grammar_name == "regex"' "regex gap grammar_name mismatch"
-echo "regex,0,${SAMPLE_COUNT},${REGEX_SEED},$WORK_DIR/regex_nonbootstrap.rs,$WORK_DIR/regex_samples.txt,$WORK_DIR/regex_coverage.json,$WORK_DIR/regex_gap_report.json,0,0,0,0,0,0,0.00,n/a,pass" >>"$SUMMARY_CSV"
+echo "regex,0,${SAMPLE_COUNT},${REGEX_SEED},$WORK_DIR/regex_nonbootstrap.rs,$WORK_DIR/regex_samples.txt,$WORK_DIR/regex_coverage.json,$WORK_DIR/regex_gap_report.json,0,0,0,0,0,0,0.00,n/a,pass,$REGEX_EBNF,$REGEX_JSON,$WORK_DIR/regex_nonbootstrap.rs,pass" >>"$SUMMARY_CSV"
 
 {
     echo "PGEN Annotation Non-Bootstrap E2E Gate Summary"

@@ -3793,3 +3793,7 @@ Why `rtl_frontend` exists:
   - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS=10`
   - `PGEN_HDL_FRONTEND_STRICT=0`
   That proof is now green on both tracked HDL rows after the Rust frontend swap.
+- The same normalization now applies to the live `regex` input inside `annotation_nonbootstrap_e2e_gate`. That gate still intentionally mixes checked-in generated JSON inputs (`return_annotation`, `semantic_annotation`) with one live `.ebnf` input (`regex`), but the live `regex` row should now be treated as a Rust-frontend consumer of `grammars/regex.ebnf`, with raw-AST export and generated-parser artifacts preserved directly in `summary.csv` / `summary.txt`.
+- The corresponding proof discipline is lightweight-and-green there too: for shell/frontend-path corrections on `annotation_nonbootstrap_e2e_gate`, prefer:
+  - `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=1`
+  which still exercises all three rows and now proves the mixed-input non-bootstrap gate stays green after the regex Rust-frontend swap.
