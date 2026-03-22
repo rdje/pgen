@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-22 - Tighten SV package-scoped variable lvalue fronts
+### ✅ Achievement Summary
+PGEN now extends the package-vs-local-type steering policy to the generic `variable_lvalue` front too. That package-qualified side now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-qualified procedural assignment targets.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed:
+    - `variable_lvalue`
+  - its package-qualified side now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another narrow coherence slice rather than a new fact-family rollout.
+- It is intentionally smaller than tightening:
+  - `nonrange_variable_lvalue`
+  - `blocking_assignment ... class_new`
+- Reduced proof now confirms:
+  - `assign defs::x = y; deassign defs::x;` passes
+  - `assign extpkg::x = y; deassign extpkg::x;` passes
+  - `assign T::x = y; deassign T::x;` rejects
+
 ## 2026-03-22 - Tighten SV package-scoped nettype alias fronts
 ### ✅ Achievement Summary
 PGEN now extends the same package-vs-local-type steering policy to the alias-style `nettype pkg::base_t derived_t;` front. The package-qualified base-nettype branch inside `net_type_declaration` / `nettype_declaration` now also routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-scoped nettype base prefixes.

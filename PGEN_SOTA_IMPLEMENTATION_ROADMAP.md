@@ -324,6 +324,14 @@ Near-term rollout:
   - reduced proof confirms:
     - `nettype defs::base_t derived_t;` and `nettype extpkg::base_t derived_t;` pass
     - `nettype T::base_t derived_t;` rejects
+  - the same policy-coherence widening now also covers the generic procedural `variable_lvalue` front:
+    - `variable_lvalue`
+  - it now routes through:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+  - reduced proof confirms:
+    - `assign defs::x = y; deassign defs::x;` and `assign extpkg::x = y; deassign extpkg::x;` pass
+    - `assign T::x = y; deassign T::x;` rejects
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

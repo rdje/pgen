@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - Tighten the generic package-qualified variable-lvalue front
+### Context
+After the nettype coherence follow-ups, one nearby procedural assignment surface still used raw `package_scope`:
+- `variable_lvalue`
+
+The reduced procedural-continuous forms gave a clean variable-only proof surface:
+- `assign defs::x = y; deassign defs::x;`
+- `assign extpkg::x = y; deassign extpkg::x;`
+- `assign T::x = y; deassign T::x;`
+
+That made this a better next slice than broadening:
+- `nonrange_variable_lvalue`
+- `blocking_assignment ... class_new`
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `variable_lvalue`
+  - now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another policy-coherence slice rather than a new declaration fact family.
+- The concrete rule is:
+  - local typedef heads should not impersonate package scopes on generic procedural variable-assignment targets either.
+- Reduced proof stayed clean:
+  - `assign defs::x = y; deassign defs::x;` passes
+  - `assign extpkg::x = y; deassign extpkg::x;` passes
+  - `assign T::x = y; deassign T::x;` rejects
+
 ## 2026-03-22 - Tighten the package-qualified nettype alias front
 ### Context
 The last nettype slice tightened only the optional filter-function branch:

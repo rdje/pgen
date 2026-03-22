@@ -2293,7 +2293,7 @@ variable_identifier := declaration_identifier
 
 variable_identifier_list := variable_identifier ( comma variable_identifier )*
 
-variable_lvalue := ( implicit_class_handle dot | package_scope )? hierarchical_variable_identifier select | lbrace variable_lvalue ( comma variable_lvalue )* rbrace | ( assignment_pattern_expression_type )? assignment_pattern_variable_lvalue | streaming_concatenation
+variable_lvalue := ( implicit_class_handle dot | non_typedef_package_scope )? hierarchical_variable_identifier select | lbrace variable_lvalue ( comma variable_lvalue )* rbrace | ( assignment_pattern_expression_type )? assignment_pattern_variable_lvalue | streaming_concatenation
 
 variable_port_header := ( port_direction )? variable_port_type
 

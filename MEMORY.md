@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: nettype-alias-front-tightening)
+Last updated: 2026-03-22 (+0100, task: variable-lvalue-front-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,18 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live coherence tightening:
+  - the generic package-qualified `variable_lvalue` front now also reuses:
+    - `non_typedef_package_scope`
+  - tightened front:
+    - `variable_lvalue`
+  - reduced proof confirms:
+    - local and unknown external package-like procedural assignment targets still pass
+    - local typedef-prefixed procedural assignment targets reject
+  - this remains intentionally narrower than the adjacent:
+    - `nonrange_variable_lvalue`
+    - `blocking_assignment ... class_new`
+  - because this variable-only procedural proof surface was clean and direct first
 - Latest live coherence tightening:
   - the package-qualified nettype alias front now also reuses:
     - `non_typedef_package_scope`
