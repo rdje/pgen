@@ -1502,8 +1502,12 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                     PGEN_SV_FAMILY_STATUS_STATE_DIR="$SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_syntax_closure_gate" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_preprocessor_syntax_closure_gate" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR="$SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR="$SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR="$SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$RUST_DIR/target/sv_semantic_scope_contract_gate" \
                     make -C rust SHELL=/bin/bash sv_parser_family_status_gate
         else
             run_check "sv_parser_family_status_gate" "informational" "report-only combined SV-family status proof over produced artifacts" \
@@ -1511,8 +1515,12 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                     PGEN_SV_FAMILY_STATUS_STATE_DIR="$SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_syntax_closure_gate" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="$RUST_DIR/target/sv_preprocessor_syntax_closure_gate" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR="$SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR="$SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR="$SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR" \
                     PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
+                    PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$RUST_DIR/target/sv_semantic_scope_contract_gate" \
                     make -C rust SHELL=/bin/bash sv_parser_family_status_gate
         fi
         SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_family_status_contract_gate"
@@ -1645,13 +1653,17 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_COVERED_REACHABLE_RULES_METRIC="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.focused_replay_covered_reachable_rules' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_COVERED_REACHABLE_BRANCHES_METRIC="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.focused_replay_covered_reachable_branches' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_REPLAY_GAP_TARGET_PRIMARY_RULE_METRIC="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.replay_gap_target_primary_rule' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CASE_COUNT_METRIC="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.semantic_scope_case_count' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_FAILED_COUNT_METRIC="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.semantic_scope_failed_count' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_GATE_GREEN="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.syntax_closure_gate_green' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_CONTRACT_GREEN="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.parser_aggregate_contract_green' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_GENERATION_PARSER_REJECTIONS_ZERO="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.generation_parser_rejections_zero' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_REPLAY_SHADOW_PARSER_REJECTIONS_ZERO="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.replay_shadow_parser_rejections_zero' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_TARGET_DEBT_ZERO="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.focused_replay_target_debt_zero' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_GREEN="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.semantic_scope_contract_green' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.syntax_closure_summary_json' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_json' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR="$(summary_value_from_txt "systemverilog_preprocessor_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_TRACKER_STATUS="$(summary_value_from_txt "systemverilog_preprocessor_tracker_status" "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
             SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .tracker_alignment_ok' "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
@@ -2755,13 +2767,17 @@ fi
         echo "sv_family_status_systemverilog_focused_replay_covered_reachable_rules: $SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_COVERED_REACHABLE_RULES_METRIC"
         echo "sv_family_status_systemverilog_focused_replay_covered_reachable_branches: $SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_COVERED_REACHABLE_BRANCHES_METRIC"
         echo "sv_family_status_systemverilog_replay_gap_target_primary_rule: $SV_FAMILY_STATUS_SYSTEMVERILOG_REPLAY_GAP_TARGET_PRIMARY_RULE_METRIC"
+        echo "sv_family_status_systemverilog_semantic_scope_case_count: $SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CASE_COUNT_METRIC"
+        echo "sv_family_status_systemverilog_semantic_scope_failed_count: $SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_FAILED_COUNT_METRIC"
         echo "sv_family_status_systemverilog_syntax_closure_gate_green: $SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_GATE_GREEN"
         echo "sv_family_status_systemverilog_parser_aggregate_contract_green: $SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_CONTRACT_GREEN"
         echo "sv_family_status_systemverilog_generation_parser_rejections_zero: $SV_FAMILY_STATUS_SYSTEMVERILOG_GENERATION_PARSER_REJECTIONS_ZERO"
         echo "sv_family_status_systemverilog_replay_shadow_parser_rejections_zero: $SV_FAMILY_STATUS_SYSTEMVERILOG_REPLAY_SHADOW_PARSER_REJECTIONS_ZERO"
         echo "sv_family_status_systemverilog_focused_replay_target_debt_zero: $SV_FAMILY_STATUS_SYSTEMVERILOG_FOCUSED_REPLAY_TARGET_DEBT_ZERO"
+        echo "sv_family_status_systemverilog_semantic_scope_contract_green: $SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_GREEN"
         echo "sv_family_status_systemverilog_syntax_closure_summary_json: $SV_FAMILY_STATUS_SYSTEMVERILOG_SYNTAX_CLOSURE_SUMMARY_JSON"
         echo "sv_family_status_systemverilog_parser_aggregate_summary_txt: $SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT"
+        echo "sv_family_status_systemverilog_semantic_scope_contract_summary_json: $SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON"
         echo "sv_family_status_systemverilog_preprocessor: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR"
         echo "sv_family_status_systemverilog_preprocessor_tracker_status: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_TRACKER_STATUS"
         echo "sv_family_status_systemverilog_preprocessor_tracker_alignment_ok: $SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK"

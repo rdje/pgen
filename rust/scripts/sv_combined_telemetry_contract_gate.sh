@@ -396,8 +396,12 @@ sv_family_status_systemverilog_focused_replay_target_count="$(jq -r '.families[]
 sv_family_status_systemverilog_focused_replay_covered_reachable_rules="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.focused_replay_covered_reachable_rules' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_focused_replay_covered_reachable_branches="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.focused_replay_covered_reachable_branches' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_replay_gap_target_primary_rule="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.replay_gap_target_primary_rule' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_semantic_scope_case_count="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.semantic_scope_case_count' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_semantic_scope_failed_count="$(jq -r '.families[] | select(.family=="systemverilog") | .metrics.semantic_scope_failed_count' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_syntax_closure_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.syntax_closure_summary_json' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_parser_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_semantic_scope_contract_green="$(jq -r '.families[] | select(.family=="systemverilog") | .criteria.semantic_scope_contract_green' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_semantic_scope_contract_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_json' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_status")"
 sv_family_status_systemverilog_preprocessor_tracker_status="$(extract_summary_value "$sv_parser_family_status_summary_txt" "systemverilog_preprocessor_tracker_status")"
 sv_family_status_systemverilog_preprocessor_tracker_alignment_ok="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .tracker_alignment_ok' "$sv_parser_family_status_summary_json")"
@@ -1089,6 +1093,18 @@ assert_equal \
     "$sv_family_status_systemverilog_replay_gap_target_primary_rule" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_replay_gap_target_primary_rule")"
 assert_equal \
+    "SV family-status main parser semantic-scope case count" \
+    "$sv_family_status_systemverilog_semantic_scope_case_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_semantic_scope_case_count")"
+assert_equal \
+    "SV family-status main parser semantic-scope failed count" \
+    "$sv_family_status_systemverilog_semantic_scope_failed_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_semantic_scope_failed_count")"
+assert_equal \
+    "SV family-status main parser semantic-scope contract criterion" \
+    "$sv_family_status_systemverilog_semantic_scope_contract_green" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_semantic_scope_contract_green")"
+assert_equal \
     "SV family-status main parser syntax-closure summary path" \
     "$sv_family_status_systemverilog_syntax_closure_summary_json" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_syntax_closure_summary_json")"
@@ -1096,6 +1112,10 @@ assert_equal \
     "SV family-status main parser aggregate-summary path" \
     "$sv_family_status_systemverilog_parser_aggregate_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_parser_aggregate_summary_txt")"
+assert_equal \
+    "SV family-status main parser semantic-scope summary path" \
+    "$sv_family_status_systemverilog_semantic_scope_contract_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_semantic_scope_contract_summary_json")"
 assert_equal \
     "SV family-status preprocessor label" \
     "$sv_family_status_systemverilog_preprocessor" \
@@ -1460,8 +1480,12 @@ assert_equal \
     echo "sv_family_status_systemverilog_focused_replay_covered_reachable_rules: $sv_family_status_systemverilog_focused_replay_covered_reachable_rules"
     echo "sv_family_status_systemverilog_focused_replay_covered_reachable_branches: $sv_family_status_systemverilog_focused_replay_covered_reachable_branches"
     echo "sv_family_status_systemverilog_replay_gap_target_primary_rule: $sv_family_status_systemverilog_replay_gap_target_primary_rule"
+    echo "sv_family_status_systemverilog_semantic_scope_case_count: $sv_family_status_systemverilog_semantic_scope_case_count"
+    echo "sv_family_status_systemverilog_semantic_scope_failed_count: $sv_family_status_systemverilog_semantic_scope_failed_count"
+    echo "sv_family_status_systemverilog_semantic_scope_contract_green: $sv_family_status_systemverilog_semantic_scope_contract_green"
     echo "sv_family_status_systemverilog_syntax_closure_summary_json: $sv_family_status_systemverilog_syntax_closure_summary_json"
     echo "sv_family_status_systemverilog_parser_aggregate_summary_txt: $sv_family_status_systemverilog_parser_aggregate_summary_txt"
+    echo "sv_family_status_systemverilog_semantic_scope_contract_summary_json: $sv_family_status_systemverilog_semantic_scope_contract_summary_json"
     echo "sv_family_status_systemverilog_preprocessor: $sv_family_status_systemverilog_preprocessor"
     echo "sv_family_status_systemverilog_preprocessor_tracker_status: $sv_family_status_systemverilog_preprocessor_tracker_status"
     echo "sv_family_status_systemverilog_preprocessor_tracker_alignment_ok: $sv_family_status_systemverilog_preprocessor_tracker_alignment_ok"
