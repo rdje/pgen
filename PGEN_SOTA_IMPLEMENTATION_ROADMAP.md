@@ -3797,3 +3797,7 @@ Why `rtl_frontend` exists:
 - The corresponding proof discipline is lightweight-and-green there too: for shell/frontend-path corrections on `annotation_nonbootstrap_e2e_gate`, prefer:
   - `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=1`
   which still exercises all three rows and now proves the mixed-input non-bootstrap gate stays green after the regex Rust-frontend swap.
+- The same normalization now applies to `stimuli_module_parity_gate`. Its tracked annotation grammar rows (`return_annotation`, `semantic_annotation`) should now be treated as Rust-frontend consumers of their `.ebnf` files, with raw-AST export preserved as first-class parity artifacts alongside the existing sample/coverage/gap/parseability parity surfaces.
+- The corresponding proof discipline is lightweight-and-green there too: for shell/frontend-path corrections on `stimuli_module_parity_gate`, prefer:
+  - `PGEN_STIMULI_MODULE_PARITY_COUNT=1`
+  which still exercises both tracked contract rows end to end and now proves the parity lane stays green after the Rust frontend swap.

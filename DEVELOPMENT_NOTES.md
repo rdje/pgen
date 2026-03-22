@@ -23219,3 +23219,23 @@ Architectural north star:
     - `return_annotation`: parser-backed stimuli/parseability `pass`, `grammar_input_file=generated/return_annotation.json`
     - `semantic_annotation`: parser-backed stimuli/parseability `pass`, `grammar_input_file=generated/semantic_annotation.json`
     - `regex`: `frontend_raw_ast_export=pass`, `grammar_input_file=grammars/regex.ebnf`, `grammar_raw_ast_json=.../regex.json`
+- `stimuli_module_parity_gate` had the same outdated Perl-fronted bootstrap for its tracked annotation grammars and now uses the Rust frontend path instead:
+  - build `ast_pipeline` with `generated_parsers ebnf_dual_run`
+  - export each tracked `.ebnf` (`return_annotation.ebnf`, `semantic_annotation.ebnf`) to a raw-AST JSON artifact
+  - keep the parity contract itself unchanged:
+    - in-memory generation vs generated `*_stimuli.rs`
+    - samples parity
+    - coverage parity
+    - gap parity
+    - parseability-report parity when required
+  The gate summary now exposes:
+  - `grammar_input_file`
+  - `grammar_raw_ast_json`
+  - `frontend_raw_ast_export`
+  so the parity proof now says which frontend path produced the grammar JSON it exercised.
+- Practical validation note for this slice:
+  - a lightweight proof stayed green with:
+    - `PGEN_STIMULI_MODULE_PARITY_COUNT=1`
+  - observed summary on that proof:
+    - `return_annotation`: `frontend_raw_ast_export=pass`, parity `pass`, parseability attempts `1`, accepted `1`
+    - `semantic_annotation`: `frontend_raw_ast_export=pass`, parity `pass`, parseability attempts `2`, accepted `1`, rejected `1`

@@ -6092,3 +6092,15 @@ Use this file to resume work without replaying full chat history.
 - For shell/front-end-path changes to `annotation_nonbootstrap_e2e_gate`, the meaningful lightweight proof shape is currently:
   - `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=1`
   That proof stayed green for all three rows after the regex Rust-frontend swap.
+- `stimuli_module_parity_gate` now belongs in that same Rust-frontended live-proof bucket. Do not reintroduce `ebnf_to_json.pl` there. The authoritative frontend flow is now:
+  - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `ast_pipeline grammars/return_annotation.ebnf --emit-raw-ast-json ...`
+  - `ast_pipeline grammars/semantic_annotation.ebnf --emit-raw-ast-json ...`
+  - run the existing in-memory vs generated stimuli-module parity contract from those Rust-frontended grammar JSON artifacts
+  The gate summary now exposes:
+  - `grammar_input_file`
+  - `grammar_raw_ast_json`
+  - `frontend_raw_ast_export`
+- For shell/front-end-path changes to `stimuli_module_parity_gate`, the meaningful lightweight proof shape is currently:
+  - `PGEN_STIMULI_MODULE_PARITY_COUNT=1`
+  That proof stayed green for both tracked rows after the Rust frontend swap.

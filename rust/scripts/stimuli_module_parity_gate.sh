@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
-TOOLS_DIR="$ROOT_DIR/tools"
 
 STATE_DIR="${PGEN_STIMULI_MODULE_PARITY_STATE_DIR:-$RUST_DIR/target/stimuli_module_parity_gate}"
 LOG_DIR="$STATE_DIR/logs"
@@ -18,7 +17,6 @@ MAX_REPEAT="${PGEN_STIMULI_MODULE_PARITY_MAX_REPEAT:-4}"
 CONTRACT_FILE="${PGEN_STIMULI_MODULE_PARITY_CONTRACT:-$RUST_DIR/test_data/grammar_quality/stimuli_module_parity_contract.json}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 
 if ! [[ "$SAMPLE_COUNT" =~ ^[0-9]+$ ]] || [[ "$SAMPLE_COUNT" -lt 1 ]]; then
     echo "error: PGEN_STIMULI_MODULE_PARITY_COUNT must be an integer >= 1" >&2
@@ -115,7 +113,7 @@ parseability_acceptance_rate_percent() {
     local attempts accepted
     attempts="$(parseability_summary_field_u64 "$path" "attempts")"
     accepted="$(parseability_summary_field_u64 "$path" "accepted")"
-    perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$accepted" "$attempts"
+    awk -v accepted="$accepted" -v attempts="$attempts" 'BEGIN { if (attempts == 0) { printf "0.00" } else { printf "%.2f", (accepted * 100.0) / attempts } }'
 }
 
 canonicalize_json() {
@@ -325,14 +323,12 @@ parity_for_grammar() {
     local entry_rule_used
     entry_rule_used="$(jq -er '.entry_rule | strings' "$inmem_gap")"
     echo "    ${label} parity summary: parseability_required=${parseability_required} entry_rule=${entry_rule_used} samples=$SAMPLE_COUNT seed=$seed attempts=${parseability_attempts_total} accepted=${parseability_accepted_total}"
-    echo "${label},${grammar_name},${parseability_required},${entry_rule_used},${SAMPLE_COUNT},${seed},${parseability_attempts_total},${parseability_accepted_total},${parseability_rejected_total},${parseability_parser_rejections_total},${parseability_generation_errors_total},${parseability_empty_generations_total},${parseability_acceptance_rate_total},${inmem_parseability_report_path},${module_parseability_report_path},pass" >>"$SUMMARY_CSV"
+    echo "${label},${grammar_name},${parseability_required},${entry_rule_used},${SAMPLE_COUNT},${seed},${parseability_attempts_total},${parseability_accepted_total},${parseability_rejected_total},${parseability_parser_rejections_total},${parseability_generation_errors_total},${parseability_empty_generations_total},${parseability_acceptance_rate_total},${inmem_parseability_report_path},${module_parseability_report_path},pass,${ebnf_path},${grammar_json},pass" >>"$SUMMARY_CSV"
 }
 
 require_tool jq
-require_tool perl
 require_tool rustc
 require_tool base64
-require_file "$EBNF_TO_JSON"
 require_file "$CONTRACT_FILE"
 
 grammar_count="$(jq -er '.grammars | length | numbers' "$CONTRACT_FILE")"
@@ -352,10 +348,10 @@ echo "gap_threshold: $GAP_THRESHOLD"
 echo "max_depth: $MAX_DEPTH"
 echo "max_repeat: $MAX_REPEAT"
 
-echo "grammar,grammar_name,parseability_required,entry_rule,sample_count,seed,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,inmemory_parseability_report_json,module_parseability_report_json,status" >"$SUMMARY_CSV"
+echo "grammar,grammar_name,parseability_required,entry_rule,sample_count,seed,parseability_attempts_total,parseability_accepted_total,parseability_rejected_total,parseability_parser_rejections_total,parseability_generation_errors_total,parseability_empty_generations_total,parseability_acceptance_rate_percent,inmemory_parseability_report_json,module_parseability_report_json,status,grammar_input_file,grammar_raw_ast_json,frontend_raw_ast_export" >"$SUMMARY_CSV"
 
 run_logged_rust "build_generated_ast_pipeline" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 build_samples_to_literals_helper
 
@@ -379,8 +375,8 @@ for encoded in "${grammar_rows[@]}"; do
     grammar_json="$WORK_DIR/${label}.json"
 
     require_file "$ebnf_path"
-    run_logged "${label}_frontend_ebnf_to_json" \
-        "$EBNF_TO_JSON" --pretty --quiet "$ebnf_path" -o "$grammar_json"
+    run_logged "${label}_frontend_rust_raw_ast_export" \
+        "$AST_PIPELINE_BIN" "$ebnf_path" --emit-raw-ast-json "$grammar_json"
     require_nonempty_file "$grammar_json"
     assert_json "$grammar_json" ".grammar_name == \"$grammar_name\"" "frontend grammar_name mismatch for contract entry '$label'"
     assert_json "$grammar_json" ".raw_ast | type == \"array\"" "frontend output raw_ast must be an array for contract entry '$label'"
