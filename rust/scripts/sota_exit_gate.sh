@@ -363,6 +363,8 @@ EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_P
 EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR:-}"
 EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
 EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR:-}"
+EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR:-}"
+EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR:-}"
 EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR:-}"
 EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR:-}"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="<unset>"
@@ -1462,8 +1464,11 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
 
     if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
         SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_failure_context_contract_gate"
-        SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="${SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR}/summary.txt"
-        if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+        if [[ -n "$EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR" ]]; then
+            SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR"
+            run_check "sv_failure_context_contract_gate" "informational" "reused existing combined SV-family failure-context proof over produced artifacts" \
+                bash -lc "test -s \"$SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR/summary.txt\""
+        elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
             run_check "sv_failure_context_contract_gate" "required" "strict combined SV-family failure-context proof over produced artifacts" \
                 env \
                     PGEN_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR="$SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR" \
@@ -1478,6 +1483,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                     PGEN_SV_FAILURE_CONTEXT_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
                     make -C rust SHELL=/bin/bash sv_failure_context_contract_gate
         fi
+        SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="${SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR}/summary.txt"
         if [[ ! -f "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT" ]]; then
             SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<missing>"
         else
@@ -1487,8 +1493,11 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         fi
 
         SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_roundtrip_contract_gate"
-        SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="${SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR}/summary.txt"
-        if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+        if [[ -n "$EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR" ]]; then
+            SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR"
+            run_check "sv_roundtrip_contract_gate" "informational" "reused existing combined SV-family parser/stimuli roundtrip proof over produced artifacts" \
+                bash -lc "test -s \"$SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR/summary.txt\""
+        elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
             run_check "sv_roundtrip_contract_gate" "required" "strict combined SV-family parser/stimuli roundtrip proof over produced artifacts" \
                 env \
                     PGEN_SV_ROUNDTRIP_CONTRACT_STATE_DIR="$SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR" \
@@ -1503,6 +1512,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                     PGEN_SV_ROUNDTRIP_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
                     make -C rust SHELL=/bin/bash sv_roundtrip_contract_gate
         fi
+        SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="${SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR}/summary.txt"
         if [[ ! -f "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT" ]]; then
             SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="<missing>"
         else
