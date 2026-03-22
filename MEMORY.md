@@ -6021,3 +6021,13 @@ Use this file to resume work without replaying full chat history.
   - `grammar_file`
   - `grammar_raw_ast_json`
   - `generated_parser_file`
+- `vhdl_stimuli_quality_gate` now belongs in that same bucket. Do not reintroduce `ebnf_to_json.pl` there either. The authoritative VHDL quality-gate frontend flow is now:
+  - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `ast_pipeline grammars/vhdl.ebnf --emit-raw-ast-json ...`
+  - `ast_pipeline grammars/vhdl.ebnf --generate-parser --emit-raw-ast-json ... --output ...`
+  - rebuild `ast_pipeline` / `parseability_probe` against the generated temporary parser
+  The quality summary now exposes:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  so downstream proof work should read those exported artifact paths instead of inferring them from `work/`.

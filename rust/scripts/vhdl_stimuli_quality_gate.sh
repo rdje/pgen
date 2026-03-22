@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
-TOOLS_DIR="$ROOT_DIR/tools"
 
 STATE_DIR="${PGEN_VHDL_STIMULI_QUALITY_STATE_DIR:-$RUST_DIR/target/vhdl_stimuli_quality_gate}"
 LOG_DIR="$STATE_DIR/logs"
@@ -23,7 +22,6 @@ REALISTIC_CORPUS_MAX_CASES="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 
 require_tool() {
     local tool="$1"
@@ -146,7 +144,6 @@ mkdir -p "$LOG_DIR" "$WORK_DIR"
 require_tool jq
 require_tool perl
 require_file "$CONTRACT_FILE"
-require_file "$EBNF_TO_JSON"
 
 contract_version="$(jq -er '.version | numbers' "$CONTRACT_FILE")"
 grammar_name="$(jq -er '.grammar_name | strings' "$CONTRACT_FILE")"
@@ -229,6 +226,8 @@ echo "contract_file: $CONTRACT_FILE"
 echo "contract_version: $contract_version"
 echo "grammar_name: $grammar_name"
 echo "grammar_file: $grammar_file"
+echo "grammar_raw_ast_json: $grammar_json"
+echo "generated_parser_file: $parser_out"
 echo "entry_rule: $entry_rule"
 echo "sample_count: $sample_count"
 echo "seed_base: $seed_base"
@@ -252,27 +251,29 @@ echo "parseability_generation_max_attempts_per_sample: $parseability_max_attempt
 echo "sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,parseability_attempts,parseability_accepted,parseability_rejected,parseability_parser_rejections,parseability_generation_errors,parseability_empty_generations,parseability_acceptance_rate_percent,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
 run_logged_rust "build_ast_pipeline_for_vhdl_generation" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
     exit 1
 fi
 
-run_logged "frontend_ebnf_to_json" \
-    perl "$EBNF_TO_JSON" --pretty --quiet "$grammar_file" -o "$grammar_json"
+run_logged "frontend_rust_raw_ast_export" \
+    "$AST_PIPELINE_BIN" "$grammar_file" \
+    --emit-raw-ast-json "$grammar_json"
 require_nonempty_file "$grammar_json"
 
 run_logged "generate_vhdl_parser" \
-    "$AST_PIPELINE_BIN" "$grammar_json" \
+    "$AST_PIPELINE_BIN" "$grammar_file" \
     --generate-parser \
+    --emit-raw-ast-json "$grammar_json" \
     --eliminate-left-recursion \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
 
 run_logged_rust "build_ast_pipeline_and_parseability_probe_with_vhdl_adapter" \
     env PGEN_VHDL_PARSER_PATH="$parser_out" \
-    cargo build --features generated_parsers --bin ast_pipeline --bin parseability_probe
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe
 if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
     echo "error: parseability_probe binary is missing at '$PARSE_PROBE_BIN' after adapter build" >&2
     exit 1

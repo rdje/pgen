@@ -23129,3 +23129,12 @@ Architectural north star:
   - `grammar_raw_ast_json`
   - `generated_parser_file`
   so external-corpus triage for both main HDL families now exposes the frontend artifact chain explicitly.
+- `vhdl_stimuli_quality_gate` had the same old Perl-fronted bootstrap and now uses the same Rust frontend path:
+  - build `ast_pipeline` with `generated_parsers ebnf_dual_run`
+  - export `grammars/vhdl.ebnf` to a raw-AST JSON artifact
+  - generate the temporary parser directly from the `.ebnf` grammar while preserving that raw-AST artifact
+  - rebuild `ast_pipeline` / `parseability_probe` against the generated parser before running the closed-loop and realistic-corpus quality steps
+  The quality summary now exposes:
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  in addition to `grammar_file`, so the frontend artifact chain is visible in the gate header/summary and not only in `work/`.
