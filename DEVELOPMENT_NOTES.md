@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - HDL intent-recovery doctrine after synthesis-lane brainstorming
+### Context
+We revisited the long-range `HDL -> .fsm` goal and clarified the architectural question behind it:
+- if `.fsm` extraction is about intent recovery/import,
+- should PGEN recover that intent directly from source-aware RTL structures,
+- or should it first synthesize down through logic representations such as:
+  - AIG,
+  - FRAIG,
+  - rewrite,
+  - mapping,
+  and then recover the intent from there?
+
+### Durable Takeaways
+- For source RTL, synthesis-first is not objectively required for intent recovery.
+- In fact, full synthesis-first is usually the wrong primary default for `.fsm` import because synthesis preserves function better than it preserves intent.
+- What tends to get blurred or destroyed when going too early into logic normalization:
+  - explicit state names and enum meaning,
+  - process boundaries,
+  - reset style and priority structure,
+  - separation of next-state logic from output logic,
+  - user-chosen encodings,
+  - hierarchy and other source-level semantic clues.
+
+### Recommended Architecture
+- Primary lane:
+  - parse + elaborate RTL,
+  - build source-aware semantic/control/dataflow IR,
+  - detect FSM/intent candidates there,
+  - export `.fsm` from that source-aware layer.
+- Secondary lane:
+  - use logic normalization/proof only after extraction,
+  - or as a fallback for gate-level-only inputs where source intent is already lost.
+- Useful secondary representations can include:
+  - AIG,
+  - FRAIG,
+  - rewrite/simplification,
+  - equivalence/proof machinery.
+- Mapping to real cells is especially implementation-oriented and is not part of the primary intent-recovery need.
+
+### Why This Matters
+- This keeps future `.fsm` work aligned with the actual goal:
+  - recover/import intent from HDL,
+  - not just derive a reduced functional implementation graph.
+- The right long-range split is therefore:
+  - source-aware intent extraction first,
+  - optional proof/canonicalization lane second.
+
 ## 2026-03-22 - Tighten the generic package-qualified net-lvalue front
 ### Context
 After tightening the procedural `variable_lvalue` path, one nearby continuous-assignment sibling was still using raw `package_scope`:

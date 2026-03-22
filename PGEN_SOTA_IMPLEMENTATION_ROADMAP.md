@@ -453,6 +453,44 @@ Externally validated near-term delivery order:
 Interpretation:
 - this ordering is not RTLSyn-specific roadmap capture; it is the current best validated demand signal for downstream synthesis-facing consumers in general,
 - it should inform prioritization once current parser-family closure work permits, without derailing the existing closure bar for `systemverilog`, `vhdl`, and `regex`.
+
+## HDL Intent-Recovery Doctrine
+If PGEN eventually supports `HDL -> .fsm` style import/recovery, the primary goal should remain intent recovery, not implementation-oriented synthesis.
+
+Primary rule:
+- for source RTL, do not treat full synthesis-first as the default path to intent recovery.
+
+Recommended architecture:
+- parse + elaborate source RTL,
+- build a source-aware semantic/control/dataflow IR,
+- detect FSM/control-intent candidates there,
+- export `.fsm` from that layer,
+- optionally use logic normalization/proof afterward to validate or simplify the extracted result.
+
+Secondary proof/canonicalization lane:
+- logic-oriented representations such as:
+  - AIG,
+  - FRAIG,
+  - rewrite/simplification,
+  - equivalence machinery,
+  are useful as:
+  - proof/validation,
+  - cleanup,
+  - or fallback when only gate-level structure is available,
+  but they should not be the primary source-RTL intent-recovery path.
+
+Important consequence:
+- synthesis preserves function better than it preserves intent,
+- so a synthesis-first path tends to blur or erase exactly the source-level information future `.fsm` import will want:
+  - explicit state names,
+  - process boundaries,
+  - reset structure,
+  - next-state vs output partitioning,
+  - user encodings,
+  - hierarchy and other semantic clues.
+
+Mapping note:
+- mapping to real cells is especially implementation-oriented and is outside the core need for source-RTL intent recovery/import.
 - the harness should be shared across EBNF-backed families, with per-family adapters only for:
   - input preparation,
   - preprocessing,

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: sv-package-net-lvalue-coherence)
+Last updated: 2026-03-22 (+0100, task: hdl-intent-recovery-doctrine)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -73,6 +73,24 @@ Use this file to resume work without replaying full chat history.
   - deterministic rejection outside the subset,
   - and no silent drift in AST/bundle schema or preprocess artifact formats.
 - This is guidance for roadmap shaping, not a reason to fork PGEN into one client-specific product path.
+
+## HDL Intent-Recovery Snapshot
+- Long-range `HDL -> .fsm` work is still understood as intent recovery/import, not as implementation-oriented synthesis.
+- For source RTL, the preferred architecture is now explicit:
+  - source-aware parse/elaborate/control/dataflow extraction first,
+  - `.fsm` recovery from that source-aware layer,
+  - optional logic-normalization/proof lane second.
+- Full synthesis-first flows such as:
+  - AIG,
+  - FRAIG,
+  - rewrite,
+  - mapping,
+  are useful as:
+  - validation,
+  - simplification,
+  - or gate-level-only fallback,
+  but not as the primary source-RTL intent-recovery path.
+- Mapping to real cells is especially outside the core need for `.fsm` intent import.
 
 ## Current Reduced SV Semantic-Steering Frontier
 - Latest live coherence tightening:

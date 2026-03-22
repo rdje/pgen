@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-22 - Capture HDL intent-recovery doctrine
+### ✅ Achievement Summary
+PGEN now records a clearer long-range doctrine for `HDL -> .fsm` style intent recovery/import. For source RTL, intent extraction should be source-aware first, while synthesis/AIG/FRAIG/rewrite flows are optional secondary lanes for proof, cleanup, or gate-level fallback rather than the primary recovery path.
+
+### Scope of Changes
+- Updated continuity/roadmap docs to capture reusable guidance for future HDL intent recovery work:
+  - `HDL -> .fsm` is about intent recovery/import, not implementation-oriented optimization,
+  - source-aware semantic/control/dataflow extraction should be the primary lane,
+  - synthesis-first is not required for source RTL intent recovery,
+  - logic-oriented flows such as:
+    - AIG,
+    - FRAIG,
+    - rewrite,
+    - mapping,
+    are better treated as optional validation/simplification/fallback lanes,
+  - mapping to real cells is outside the core need for source-level intent import.
+
+### Why This Matters
+- It keeps future FSM/import work aligned with the actual objective:
+  - recover user intent from RTL,
+  - not just normalize functional behavior after that intent has been erased.
+- It also makes the architectural split explicit:
+  - source-aware extraction first,
+  - proof/canonicalization lane second.
+
 ## 2026-03-22 - Tighten SV package-scoped net lvalue fronts
 ### ✅ Achievement Summary
 PGEN now extends the same package-vs-local-type steering policy to the generic package-qualified net-identifier front too. `ps_or_hierarchical_net_identifier` now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-qualified continuous-assignment targets.
