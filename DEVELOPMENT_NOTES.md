@@ -23103,3 +23103,4 @@ Architectural north star:
     - `.spec`-driven parser generation
     - or hand-written Rust parsing logic in `ebnf_frontend.rs`
 - The repeated SystemVerilog semantic-scope proof work had crossed the threshold where `/tmp` samples were no longer enough. We now carry a dedicated checked-in parser-backed reduced contract suite plus `make -C rust SHELL=/opt/homebrew/bin/bash sv_semantic_scope_contract_gate`, specifically to preserve the recent `typedef`-vs-`package_scope` closures as repo-owned evidence rather than rediscovering them case by case.
+- The broader SystemVerilog parser-quality lane had fallen behind the live grammar surface. `sv_stimuli_quality_gate` was still rebuilding through `ebnf_to_json.pl`, which now fails on the current `systemverilog.ebnf` semantic-annotation shape. The immediate fix is to drive `ast_pipeline` directly from `.ebnf` with the Rust frontend (`ebnf_dual_run`) while still exporting raw-AST JSON for traceability.

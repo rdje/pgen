@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
-TOOLS_DIR="$ROOT_DIR/tools"
 
 STATE_DIR="${PGEN_SV_STIMULI_QUALITY_STATE_DIR:-$RUST_DIR/target/sv_stimuli_quality_gate}"
 LOG_DIR="$STATE_DIR/logs"
@@ -44,7 +43,6 @@ REALISTIC_CORPUS_MAX_CASES="${PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 
 declared_identifier_suite_status="skip"
 declared_identifier_suite_total=0
@@ -1288,7 +1286,6 @@ mkdir -p "$LOG_DIR" "$WORK_DIR"
 require_tool jq
 require_tool perl
 require_file "$CONTRACT_FILE"
-require_file "$EBNF_TO_JSON"
 
 contract_version="$(jq -er '.version | numbers' "$CONTRACT_FILE")"
 grammar_name="$(jq -er '.grammar_name | strings' "$CONTRACT_FILE")"
@@ -1582,6 +1579,7 @@ fi
 
 grammar_file="$ROOT_DIR/$ebnf_path_rel"
 grammar_json="$WORK_DIR/${grammar_name}.json"
+grammar_input="$grammar_file"
 parser_out="$WORK_DIR/${grammar_name}_parser.rs"
 
 require_file "$grammar_file"
@@ -1717,26 +1715,28 @@ run_logged "context_legality_contract_suite" \
 echo "profile,sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,parseability_attempts,parseability_accepted,parseability_rejected,parseability_parser_rejections,parseability_generation_errors,parseability_empty_generations,parseability_acceptance_rate_percent,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
 run_logged_rust "build_ast_pipeline_for_sv_generation" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
     exit 1
 fi
-run_logged "frontend_ebnf_to_json" \
-    perl "$EBNF_TO_JSON" --pretty --quiet "$grammar_file" -o "$grammar_json"
+run_logged "frontend_rust_raw_ast_export" \
+    "$AST_PIPELINE_BIN" "$grammar_input" \
+    --emit-raw-ast-json "$grammar_json"
 require_nonempty_file "$grammar_json"
 
 run_logged "generate_sv_parser" \
-    "$AST_PIPELINE_BIN" "$grammar_json" \
+    "$AST_PIPELINE_BIN" "$grammar_input" \
     --generate-parser \
+    --emit-raw-ast-json "$grammar_json" \
     --eliminate-left-recursion \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
 
 run_logged_rust "build_ast_pipeline_with_systemverilog_adapter" \
     env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after adapter build" >&2
     exit 1
@@ -2006,7 +2006,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         closed_loop_replay_seed=$((profile_seed_base + 700000))
 
         run_logged "profile_${profile_key}_closed_loop_initial" \
-            "$AST_PIPELINE_BIN" "$grammar_json" \
+            "$AST_PIPELINE_BIN" "$grammar_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
@@ -2030,7 +2030,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         profile_closed_loop_initial_status="pass"
 
         run_logged "profile_${profile_key}_closed_loop_initial_replay" \
-            "$AST_PIPELINE_BIN" "$grammar_json" \
+            "$AST_PIPELINE_BIN" "$grammar_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
@@ -2056,7 +2056,7 @@ for profile_idx in "${!run_profiles[@]}"; do
         closed_loop_initial_replay_determinism_pass_count=$((closed_loop_initial_replay_determinism_pass_count + 1))
 
         run_logged "profile_${profile_key}_closed_loop_replay" \
-            "$AST_PIPELINE_BIN" "$grammar_json" \
+            "$AST_PIPELINE_BIN" "$grammar_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             --enforce-word-boundary-spacing \
@@ -2135,7 +2135,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             closed_loop_replay_parseability_shadow_report="$WORK_DIR/profile_${profile_key}_replay_parseability_shadow_report.json"
 
             run_logged "profile_${profile_key}_closed_loop_replay_parseability_shadow" \
-                "$AST_PIPELINE_BIN" "$grammar_json" \
+                "$AST_PIPELINE_BIN" "$grammar_input" \
                 --generate-stimuli \
                 --grammar-profile "$lrm_profile" \
                 --enforce-word-boundary-spacing \
@@ -2261,7 +2261,7 @@ for profile_idx in "${!run_profiles[@]}"; do
             parseability_report_args=(--parseability-report-json "$parseability_report_json")
         fi
         run_logged "sample_${profile_key}_${idx}_generate_stimulus" \
-            "$AST_PIPELINE_BIN" "$grammar_json" \
+            "$AST_PIPELINE_BIN" "$grammar_input" \
             --generate-stimuli \
             --grammar-profile "$lrm_profile" \
             "${parseability_generation_args[@]}" \
