@@ -23145,3 +23145,21 @@ Architectural north star:
     - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES=1`
     - `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200`
   - that run stayed fully green, which is the right gate shape for a shell/frontend-path correction without conflating the slice with broader VHDL search-budget behavior
+- `sv_preprocessor_quality_gate` had the same outdated Perl-fronted bootstrap and now uses the Rust frontend path:
+  - build `ast_pipeline` with `generated_parsers ebnf_dual_run`
+  - export `grammars/systemverilog_preprocessor.ebnf` to a raw-AST JSON artifact
+  - generate the temporary parser directly from the `.ebnf` grammar while preserving that raw-AST artifact
+  - rebuild `ast_pipeline` against the generated preprocessor parser before running the stage0→stage4 quality flow
+  Its quality summary now exposes:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  so the preprocessor quality surface is now explicitly Rust-frontended too.
+- Practical validation note for this slice:
+  - the first ultra-skinny proof (`COUNT=1`) was too small for the existing preprocessor coverage contracts and missed `pp_conditional`
+  - the meaningful lightweight green proof shape was:
+    - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=4`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1`
+    - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=200`
+    - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
+  - that run stayed fully green, which is the right gate shape for a frontend-path correction without conflating the slice with trusted-reference differential setup

@@ -6036,3 +6036,18 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES=1`
   - `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200`
   The contract-default replay-shadow budget (`5000`) can make validation look hung even when the frontend swap is correct; don’t confuse that search-budget cost with a frontend regression.
+- `sv_preprocessor_quality_gate` now belongs in the same Rust-frontended live-proof bucket. Do not reintroduce `ebnf_to_json.pl` there. The authoritative frontend flow is now:
+  - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `ast_pipeline grammars/systemverilog_preprocessor.ebnf --emit-raw-ast-json ...`
+  - `ast_pipeline grammars/systemverilog_preprocessor.ebnf --generate-parser --emit-raw-ast-json ... --output ...`
+  - rebuild `ast_pipeline` against the generated preprocessor parser
+  The quality summary now exposes:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+- For shell/front-end-path changes to `sv_preprocessor_quality_gate`, use the lightweight green proof shape first:
+  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=4`
+  - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1`
+  - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=200`
+  - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
+  `COUNT=1` is too small for the existing preprocessor coverage contract and can fail on `pp_conditional` even when the frontend swap is correct.

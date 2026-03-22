@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
-TOOLS_DIR="$ROOT_DIR/tools"
 GRAMMARS_DIR="$ROOT_DIR/grammars"
 
 STATE_DIR="${PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR:-$RUST_DIR/target/sv_preprocessor_quality_gate}"
@@ -26,7 +25,6 @@ DIFF_REFERENCE_RUNNER="${PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER:-}"
 GRAMMAR_NAME="systemverilog_preprocessor"
 GRAMMAR_FILE="$GRAMMARS_DIR/${GRAMMAR_NAME}.ebnf"
 GRAMMAR_JSON="$WORK_DIR/${GRAMMAR_NAME}.json"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSER_OUT="$WORK_DIR/${GRAMMAR_NAME}_parser.rs"
 
@@ -231,30 +229,33 @@ echo "fuzz_seed_start: $FUZZ_SEED_START"
 echo "parseability_mode: $PARSEABILITY_MODE"
 echo "diff_mode: $DIFF_MODE"
 echo "diff_max_samples: $DIFF_MAX_SAMPLES"
-
-run_logged "frontend_ebnf_to_json" \
-    perl "$EBNF_TO_JSON" --pretty --quiet "$GRAMMAR_FILE" -o "$GRAMMAR_JSON"
-
-require_nonempty_file "$GRAMMAR_JSON"
+echo "grammar_raw_ast_json: $GRAMMAR_JSON"
+echo "generated_parser_file: $PARSER_OUT"
 
 run_logged_rust "build_ast_pipeline_for_preprocessor_generation" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
     exit 1
 fi
 
+run_logged "frontend_rust_raw_ast_export" \
+    "$AST_PIPELINE_BIN" "$GRAMMAR_FILE" \
+    --emit-raw-ast-json "$GRAMMAR_JSON"
+require_nonempty_file "$GRAMMAR_JSON"
+
 run_logged "generate_sv_preprocessor_parser" \
-    "$AST_PIPELINE_BIN" "$GRAMMAR_JSON" \
+    "$AST_PIPELINE_BIN" "$GRAMMAR_FILE" \
     --generate-parser \
+    --emit-raw-ast-json "$GRAMMAR_JSON" \
     --eliminate-left-recursion \
     --output "$PARSER_OUT"
 require_nonempty_file "$PARSER_OUT"
 
 run_logged_rust "build_ast_pipeline_with_sv_preprocessor_adapter" \
     env PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH="$PARSER_OUT" \
-    cargo build --features generated_parsers --bin ast_pipeline
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after adapter build" >&2
@@ -1049,6 +1050,8 @@ cat >"$SUMMARY_CSV" <<EOF
 metric,value
 grammar_name,$GRAMMAR_NAME
 grammar_file,$GRAMMAR_FILE
+grammar_raw_ast_json,$GRAMMAR_JSON
+generated_parser_file,$PARSER_OUT
 parseability_mode_requested,$PARSEABILITY_MODE
 parseability_mode_effective,$parseability_effective
 parseability_attempts_total,$parseability_attempts_total
