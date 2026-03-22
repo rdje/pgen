@@ -22758,3 +22758,4 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - in those cases the hand-written frontend may still accept/export `raw_ast` without `generated/ebnf.rs` being a strict gate.
   - Live-status effect:
     - no live-status row changed
+- Added a lightweight parser-backed SystemVerilog semantic-scope contract gate so the recent `typedef`-vs-`package_scope` closure work no longer lives only in ad hoc `/tmp` probes and commit messages. The new checked-in suite currently locks reduced pass/fail cases for package/task-function calls, scoped type casts, properties, sequences, lets, parameters, and checkers against the live generated parser path.

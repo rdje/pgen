@@ -3768,3 +3768,4 @@ Why `rtl_frontend` exists:
         - `ebnf_to_json.pl`,
         - or hand-written Rust frontend parsing logic
     - current hybrid infrastructure should therefore be treated as migration scaffolding, not acceptable final architecture
+- Parser-family exhaustive proof normalization for SystemVerilog now includes a lightweight reduced semantic-scope lane. The immediate goal is to keep broad aggregate gates where they belong, while moving recent `typedef`-vs-`package_scope` parser closures into checked-in parser-backed contract suites instead of one-off `/tmp` evidence.

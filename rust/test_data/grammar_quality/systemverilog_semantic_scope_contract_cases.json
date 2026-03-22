@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "description": "Lightweight parser-backed semantic-scope contract suite for typedef-vs-package-scope and declared-scope SystemVerilog fronts.",
+  "grammar_name": "systemverilog",
+  "default_profile": "2023",
+  "cases": [
+    {
+      "name": "package_tf_call_declared_pass",
+      "expect_pass": true,
+      "input": "package defs;\n  function int f();\n    return 1;\n  endfunction\nendpackage\n\npackage p;\n  function int g();\n    return defs::f();\n  endfunction\nendpackage"
+    },
+    {
+      "name": "package_tf_call_unknown_pass",
+      "expect_pass": true,
+      "input": "package p;\n  function int g();\n    return extpkg::f();\n  endfunction\nendpackage"
+    },
+    {
+      "name": "typedef_scoped_tf_call_fail",
+      "expect_pass": false,
+      "input": "package p;\n  typedef int T;\n\n  function int g();\n    return T::f();\n  endfunction\nendpackage"
+    },
+    {
+      "name": "class_scoped_call_pass",
+      "expect_pass": true,
+      "input": "package p;\n  class C;\n    static function int f();\n      return 1;\n    endfunction\n  endclass\n\n  function int g();\n    return C::f();\n  endfunction\nendpackage"
+    },
+    {
+      "name": "type_cast_package_pass",
+      "expect_pass": true,
+      "input": "package defs;\n  typedef int U;\nendpackage\n\nmodule m;\n  int x;\n  initial begin\n    x = defs::U'(1);\n  end\nendmodule"
+    },
+    {
+      "name": "type_cast_unknown_package_pass",
+      "expect_pass": true,
+      "input": "module m;\n  int x;\n  initial begin\n    x = extpkg::U'(1);\n  end\nendmodule"
+    },
+    {
+      "name": "type_cast_typedef_fail",
+      "expect_pass": false,
+      "input": "module m;\n  typedef int T;\n  int x;\n  initial begin\n    x = T::U'(1);\n  end\nendmodule"
+    },
+    {
+      "name": "property_declared_pass",
+      "expect_pass": true,
+      "input": "module m;\n  property P;\n    1;\n  endproperty\n  assert property (P);\nendmodule"
+    },
+    {
+      "name": "property_scoped_and_unknown_pass",
+      "expect_pass": true,
+      "input": "package defs;\n  property P;\n    1;\n  endproperty\nendpackage\n\nmodule m;\n  assert property (defs::P);\n  assert property (extpkg::P);\nendmodule"
+    },
+    {
+      "name": "property_typedef_fail",
+      "expect_pass": false,
+      "input": "module m;\n  typedef int T;\n  assert property (T::P);\nendmodule"
+    },
+    {
+      "name": "sequence_declared_pass",
+      "expect_pass": true,
+      "input": "module m;\n  sequence S;\n    1;\n  endsequence\n  assert property (S);\nendmodule"
+    },
+    {
+      "name": "sequence_scoped_and_unknown_pass",
+      "expect_pass": true,
+      "input": "package defs;\n  sequence S;\n    1;\n  endsequence\nendpackage\n\nmodule m;\n  assert property (defs::S);\n  assert property (extpkg::S);\nendmodule"
+    },
+    {
+      "name": "sequence_typedef_fail",
+      "expect_pass": false,
+      "input": "module m;\n  typedef int T;\n  assert property (T::S);\nendmodule"
+    },
+    {
+      "name": "let_declared_pass",
+      "expect_pass": true,
+      "input": "module m;\n  let L(x) = x;\n  logic y;\n  assign y = L(1'b1);\nendmodule"
+    },
+    {
+      "name": "let_scoped_and_unknown_pass",
+      "expect_pass": true,
+      "input": "package defs;\n  let L(x) = x;\nendpackage\n\nmodule m;\n  logic y;\n  assign y = defs::L(1'b1);\n  assign y = extpkg::L(1'b1);\nendmodule"
+    },
+    {
+      "name": "let_typedef_fail",
+      "expect_pass": false,
+      "input": "module m;\n  typedef int T;\n  logic y;\n  assign y = T::L(1'b1);\nendmodule"
+    },
+    {
+      "name": "parameter_declared_pass",
+      "expect_pass": true,
+      "input": "module m;\n  localparam int P = 1;\n  localparam int Y = P;\nendmodule"
+    },
+    {
+      "name": "parameter_typedef_fail",
+      "expect_pass": false,
+      "input": "module m;\n  typedef int T;\n  localparam int Y = T::P;\nendmodule"
+    },
+    {
+      "name": "checker_declared_pass",
+      "expect_pass": true,
+      "input": "module m;\n  checker U();\n  endchecker\n  U inst();\nendmodule"
+    },
+    {
+      "name": "checker_typedef_fail",
+      "expect_pass": false,
+      "input": "module m;\n  typedef int T;\n  T::U inst();\nendmodule"
+    }
+  ]
+}

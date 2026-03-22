@@ -5995,3 +5995,4 @@ Use this file to resume work without replaying full chat history.
       - end-to-end 100% Rust flow
     - for EBNF itself, that means:
       - `grammars/ebnf.ebnf` + generated Rust parser should ultimately become the sole authoritative frontend path
+- There is now a repo-owned lightweight parser-backed SystemVerilog semantic-scope proof lane: [systemverilog_semantic_scope_contract_cases.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_semantic_scope_contract_cases.json) plus `rust/scripts/sv_semantic_scope_contract_gate.sh` / `make -C rust SHELL=/opt/homebrew/bin/bash sv_semantic_scope_contract_gate`. Use it before adding more ad hoc `/tmp` reduced proofs for `typedef`-vs-`package_scope` parser behavior.

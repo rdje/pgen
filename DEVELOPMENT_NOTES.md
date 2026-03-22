@@ -23102,3 +23102,4 @@ Architectural north star:
     - `ebnf_to_json.pl`
     - `.spec`-driven parser generation
     - or hand-written Rust parsing logic in `ebnf_frontend.rs`
+- The repeated SystemVerilog semantic-scope proof work had crossed the threshold where `/tmp` samples were no longer enough. We now carry a dedicated checked-in parser-backed reduced contract suite plus `make -C rust SHELL=/opt/homebrew/bin/bash sv_semantic_scope_contract_gate`, specifically to preserve the recent `typedef`-vs-`package_scope` closures as repo-owned evidence rather than rediscovering them case by case.

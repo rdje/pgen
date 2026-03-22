@@ -258,6 +258,7 @@ help:
 	@echo "  sv_failure_context_contract_gate - Enforce lightweight source-level failure-context proof across both SV parser families"
 	@echo "  sv_roundtrip_contract_gate - Enforce lightweight parser/stimuli roundtrip proof across both SV parser families"
 	@echo "  sv_combined_telemetry_contract_gate - Enforce aggregate SV-family telemetry consistency against combined proof sidecars"
+	@echo "  sv_semantic_scope_contract_gate - Enforce lightweight parser-backed SV semantic-scope reduced proof cases"
 	@echo "  sv_declared_shadow_promotion_gate - Run strict declared-shadow promotion trials and emit runtime-enforcement readiness report"
 	@echo "  sv_parse_full_ratio_promotion_gate - Run strict parse-full ratio promotion trials and emit threshold-ratchet readiness report"
 	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
@@ -656,6 +657,12 @@ sv_combined_telemetry_contract_gate:
 	@echo "🧪 Running SystemVerilog combined telemetry contract gate..."
 	cd $(RUST_DIR) && ./scripts/sv_combined_telemetry_contract_gate.sh
 	@echo "✅ SystemVerilog combined telemetry contract gate passed."
+
+.PHONY: sv_semantic_scope_contract_gate
+sv_semantic_scope_contract_gate:
+	@echo "🧪 Running SystemVerilog semantic-scope contract gate..."
+	cd $(RUST_DIR) && ./scripts/sv_semantic_scope_contract_gate.sh
+	@echo "✅ SystemVerilog semantic-scope contract gate passed."
 
 .PHONY: sv_declared_shadow_promotion_gate
 sv_declared_shadow_promotion_gate:
