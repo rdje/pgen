@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
-TOOLS_DIR="$ROOT_DIR/tools"
 GRAMMARS_DIR="$ROOT_DIR/grammars"
 
 STATE_DIR="${PGEN_HDL_FRONTEND_STATE_DIR:-$RUST_DIR/target/hdl_frontend_gate}"
@@ -74,7 +73,7 @@ build_frontend_binaries() {
     (
         cd "$RUST_DIR"
         env "$@" cargo build \
-            --features generated_parsers \
+            --features "generated_parsers ebnf_dual_run" \
             --bin ast_pipeline \
             --bin parseability_probe \
             >/dev/null
@@ -108,7 +107,7 @@ if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
     exit 1
 fi
 
-echo "grammar,grammar_file,ebnf_to_json,json_to_parser,json_to_stimuli,parser_registry_support,parseability,parseability_attempts,parseability_accepted,parseability_rejected,parseability_acceptance_rate_percent,parseability_report_json,overall,notes" >"$SUMMARY_CSV"
+echo "grammar,grammar_file,grammar_raw_ast_json,generated_parser_file,frontend_raw_ast_export,json_to_parser,json_to_stimuli,parser_registry_support,parseability,parseability_attempts,parseability_accepted,parseability_rejected,parseability_acceptance_rate_percent,parseability_report_json,overall,notes" >"$SUMMARY_CSV"
 {
     echo "PGEN HDL Frontend Readiness Summary"
     echo "state_dir: $STATE_DIR"
@@ -129,7 +128,9 @@ for grammar in "${GRAMMARS[@]}"; do
     stimuli_out="$WORK_DIR/${grammar}_stimuli.txt"
 
     grammar_file_status="missing"
-    ebnf_to_json_status="skip"
+    grammar_json_path="n/a"
+    generated_parser_path="n/a"
+    frontend_raw_ast_export_status="skip"
     json_to_parser_status="skip"
     json_to_stimuli_status="skip"
     parser_registry_support_status="skip"
@@ -142,7 +143,7 @@ for grammar in "${GRAMMARS[@]}"; do
     overall="not_ready"
     notes="grammar file missing (expected ${grammar}.ebnf)"
 
-    ebnf_log="$LOG_DIR/${grammar}.ebnf_to_json.log"
+    frontend_log="$LOG_DIR/${grammar}.frontend_rust_raw_ast_export.log"
     parser_log="$LOG_DIR/${grammar}.json_to_parser.log"
     stimuli_log="$LOG_DIR/${grammar}.json_to_stimuli.log"
     probe_build_log="$LOG_DIR/${grammar}.parseability_binaries_build.log"
@@ -151,10 +152,14 @@ for grammar in "${GRAMMARS[@]}"; do
 
     if [[ -f "$grammar_file" ]]; then
         grammar_file_status="present"
+        grammar_json_path="$json_out"
+        generated_parser_path="$parser_out"
         notes="ok"
-        if perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$json_out" >"$ebnf_log" 2>&1; then
-            ebnf_to_json_status="pass"
-            if "$AST_PIPELINE_BIN" "$json_out" --generate-parser --eliminate-left-recursion -o "$parser_out" >"$parser_log" 2>&1; then
+        if "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$json_out" >"$frontend_log" 2>&1; then
+            require_nonempty_file "$json_out"
+            frontend_raw_ast_export_status="pass"
+            if "$AST_PIPELINE_BIN" "$grammar_file" --generate-parser --emit-raw-ast-json "$json_out" --eliminate-left-recursion -o "$parser_out" >"$parser_log" 2>&1; then
+                require_nonempty_file "$parser_out"
                 json_to_parser_status="pass"
                 build_env_line="$(parseability_build_env_for_grammar "$grammar" "$parser_out")"
                 echo "==> Rebuilding ast_pipeline and parseability_probe for ${grammar} parseability"
@@ -212,16 +217,16 @@ for grammar in "${GRAMMARS[@]}"; do
                 notes="json_to_parser failed (see logs/${grammar}.json_to_parser.log)"
             fi
         else
-            ebnf_to_json_status="fail"
+            frontend_raw_ast_export_status="fail"
             overall="fail"
             failures=$((failures + 1))
-            notes="ebnf_to_json failed (see logs/${grammar}.ebnf_to_json.log)"
+            notes="frontend raw-AST export failed (see logs/${grammar}.frontend_rust_raw_ast_export.log)"
         fi
     else
         failures=$((failures + 1))
     fi
 
-    echo "${grammar},${grammar_file_status},${ebnf_to_json_status},${json_to_parser_status},${json_to_stimuli_status},${parser_registry_support_status},${parseability_status},${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_acceptance_rate},${parseability_report_path},${overall},${notes}" >>"$SUMMARY_CSV"
+    echo "${grammar},${grammar_file_status},${grammar_json_path},${generated_parser_path},${frontend_raw_ast_export_status},${json_to_parser_status},${json_to_stimuli_status},${parser_registry_support_status},${parseability_status},${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_acceptance_rate},${parseability_report_path},${overall},${notes}" >>"$SUMMARY_CSV"
 done
 
 {

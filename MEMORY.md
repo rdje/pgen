@@ -6065,3 +6065,17 @@ Use this file to resume work without replaying full chat history.
   - `unreachable_branches=111`
   - `target_debt_count=3041`
   so if the gate fails earlier than that, suspect the frontend path or summary plumbing first.
+- `hdl_frontend_readiness_gate` now belongs in that same Rust-frontended live-proof bucket too. Do not reintroduce `ebnf_to_json.pl` there. The authoritative frontend flow is now:
+  - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+  - `ast_pipeline grammars/<grammar>.ebnf --emit-raw-ast-json ...`
+  - `ast_pipeline grammars/<grammar>.ebnf --generate-parser --emit-raw-ast-json ... --output ...`
+  - rebuild parser-backed validation binaries against that generated parser before running readiness parseability-backed stimuli
+  The readiness summary now exposes:
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  - `frontend_raw_ast_export`
+- For shell/front-end-path changes to `hdl_frontend_readiness_gate`, the meaningful lightweight proof shape is currently:
+  - `PGEN_HDL_FRONTEND_STIMULI_COUNT=1`
+  - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS=10`
+  - `PGEN_HDL_FRONTEND_STRICT=0`
+  That report-mode run stayed green for both tracked rows (`systemverilog`, `vhdl`) after the Rust frontend swap.

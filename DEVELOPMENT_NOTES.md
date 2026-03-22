@@ -23183,3 +23183,21 @@ Architectural north star:
     - `unreachable_branches=111`
     - `target_debt_count=3041`
   - treat that as the current parser-family normalization frontier, not as a regression in the Rust-frontend migration
+- `hdl_frontend_readiness_gate` had the same outdated Perl-fronted bootstrap and now uses the Rust frontend path for both tracked HDL grammars:
+  - build `ast_pipeline` / `parseability_probe` with `generated_parsers ebnf_dual_run`
+  - export each tracked `.ebnf` (`systemverilog.ebnf`, `vhdl.ebnf`) to a raw-AST JSON artifact
+  - generate each temporary parser directly from the `.ebnf` grammar while preserving that raw-AST artifact
+  - rebuild parser-backed validation binaries against that generated parser before running the shared parseability-backed stimuli proof
+  The readiness summary now exposes:
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  - `frontend_raw_ast_export`
+  in addition to the existing parser/stimuli/parseability fields, so HDL readiness now says what frontend path it really exercised.
+- Practical validation note for this slice:
+  - a lightweight report-mode proof stayed green for both tracked HDL rows with:
+    - `PGEN_HDL_FRONTEND_STIMULI_COUNT=1`
+    - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS=10`
+    - `PGEN_HDL_FRONTEND_STRICT=0`
+  - observed parser-backed readiness summary on that proof:
+    - `systemverilog`: `frontend_raw_ast_export=pass`, `json_to_parser=pass`, `json_to_stimuli=pass`, `parseability=pass`
+    - `vhdl`: `frontend_raw_ast_export=pass`, `json_to_parser=pass`, `json_to_stimuli=pass`, `parseability=pass`

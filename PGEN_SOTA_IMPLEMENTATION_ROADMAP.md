@@ -3787,3 +3787,9 @@ Why `rtl_frontend` exists:
   - `unreachable_branches=111`
   - `target_debt_count=3041`
   so the immediate next gap remains parser-family exhaustive proof normalization, not further frontend-path bootstrapping for this lane.
+- The same normalization now applies to `hdl_frontend_readiness_gate`. The live HDL readiness lane should be treated as a Rust-frontend consumer of the tracked HDL grammars (`grammars/systemverilog.ebnf`, `grammars/vhdl.ebnf`), with raw-AST export and direct `.ebnf -> parser` generation preserved as first-class readiness artifacts alongside the existing parser/stimuli/parseability telemetry.
+- The corresponding proof discipline there is lightweight-but-green rather than report-only plumbing: for shell/frontend-path corrections on the HDL readiness lane, prefer a bounded report-mode run that still exercises both tracked grammars end to end:
+  - `PGEN_HDL_FRONTEND_STIMULI_COUNT=1`
+  - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS=10`
+  - `PGEN_HDL_FRONTEND_STRICT=0`
+  That proof is now green on both tracked HDL rows after the Rust frontend swap.
