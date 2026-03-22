@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: nettype-filter-front-tightening)
+Last updated: 2026-03-22 (+0100, task: nettype-alias-front-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -39,6 +39,19 @@ Use this file to resume work without replaying full chat history.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live coherence tightening:
+  - the package-qualified nettype alias front now also reuses:
+    - `non_typedef_package_scope`
+  - tightened fronts:
+    - the alias-style optional base-nettype branch inside:
+      - `net_type_declaration_sv_2017`
+      - `nettype_declaration_sv_2023`
+  - reduced proof confirms:
+    - local and unknown external package-like `nettype pkg::base_t derived_t` forms still pass
+    - local typedef-prefixed `nettype T::base_t derived_t` rejects
+  - this continues the same narrow policy-coherence expansion:
+    - no new fact family,
+    - just one more raw `package_scope` front brought into line with the existing package-vs-local-type steering rule
 - Latest live coherence tightening:
   - the package-qualified nettype filter-function front now also reuses:
     - `non_typedef_package_scope`

@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - Tighten the package-qualified nettype alias front
+### Context
+The last nettype slice tightened only the optional filter-function branch:
+- `nettype logic nt with pkg::f;`
+
+But the sibling alias-style arm was still using raw `package_scope`:
+- `nettype pkg::base_t derived_t;`
+
+That meant a local typedef head could still impersonate a package-scoped base-nettype prefix in reduced forms like:
+- `typedef int T;`
+- later `nettype T::base_t derived_t;`
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `net_type_declaration_sv_2017`
+  - `nettype_declaration_sv_2023`
+  - their alias-style optional base-nettype side now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another policy-coherence slice rather than a new declaration fact family.
+- It closes the sibling nettype surface next to the already-fixed filter-function arm.
+- Reduced proof stayed clean:
+  - `nettype defs::base_t derived_t;` passes
+  - `nettype extpkg::base_t derived_t;` passes
+  - `nettype T::base_t derived_t;` rejects
+
 ## 2026-03-22 - Tighten the package-qualified nettype filter-function front
 ### Context
 After the recent package-like coherence tightening, one nearby declaration-time callable surface was still using raw `package_scope`:

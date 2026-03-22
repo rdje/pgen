@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-22 - Tighten SV package-scoped nettype alias fronts
+### ✅ Achievement Summary
+PGEN now extends the same package-vs-local-type steering policy to the alias-style `nettype pkg::base_t derived_t;` front. The package-qualified base-nettype branch inside `net_type_declaration` / `nettype_declaration` now also routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-scoped nettype base prefixes.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed:
+    - `net_type_declaration_sv_2017`
+    - `nettype_declaration_sv_2023`
+  - their alias-style optional base-nettype side now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another narrow coherence slice rather than a new fact-family rollout.
+- It closes the sibling nettype shape next to the already-fixed `nettype ... with pkg::f` filter branch.
+- Reduced proof now confirms:
+  - `nettype defs::base_t derived_t;` passes
+  - `nettype extpkg::base_t derived_t;` passes
+  - `nettype T::base_t derived_t;` rejects
+
 ## 2026-03-22 - Tighten SV package-scoped nettype filter fronts
 ### ✅ Achievement Summary
 PGEN now extends the existing package-vs-local-type steering policy to the SystemVerilog `nettype ... with pkg::f` front too. The package-qualified filter-function branch inside `net_type_declaration` / `nettype_declaration` now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-scoped nettype filter prefixes.

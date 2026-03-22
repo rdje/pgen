@@ -317,6 +317,13 @@ Near-term rollout:
   - reduced proof confirms:
     - `nettype logic nt with defs::f;` and `nettype logic nt with extpkg::f;` pass
     - `nettype logic nt with T::f;` rejects
+  - the sibling alias-style nettype front now also routes through the same package-vs-local-type guard:
+    - the optional base-nettype branch inside:
+      - `net_type_declaration_sv_2017`
+      - `nettype_declaration_sv_2023`
+  - reduced proof confirms:
+    - `nettype defs::base_t derived_t;` and `nettype extpkg::base_t derived_t;` pass
+    - `nettype T::base_t derived_t;` rejects
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

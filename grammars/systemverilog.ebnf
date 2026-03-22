@@ -1383,7 +1383,7 @@ net_port_type := net_port_type_sv_2017 | net_port_type_sv_2023
 net_type := kw_supply_076df715 | kw_supply_076df715 | kw_tri_54bf01f1 | kw_triand_51bca013 | kw_trior_56b8b9f0 | kw_trireg_f7901823 | kw_tri_54bf01f1 | kw_tri_54bf01f1 | kw_uwire_9143a634 | kw_wire_6e1c6849 | kw_wand_4be59aff | kw_wor_ff9e40da
 
 @profiles: ["sv_2017"]
-net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type net_type_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi | kw_nettype_27d30cf3 ( package_scope | class_scope )? net_type_identifier net_type_identifier semi
+net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type net_type_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier net_type_identifier semi
 
 net_type_declaration := net_type_declaration_sv_2017
 
@@ -1393,7 +1393,7 @@ net_type_identifier_sv_2017 := declaration_identifier
 net_type_identifier := net_type_identifier_sv_2017
 
 @profiles: ["sv_2023"]
-nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi | kw_nettype_27d30cf3 ( package_scope | class_scope )? nettype_identifier nettype_identifier semi
+nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? nettype_identifier nettype_identifier semi
 
 nettype_declaration := nettype_declaration_sv_2023
 
