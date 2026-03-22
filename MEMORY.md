@@ -6104,3 +6104,11 @@ Use this file to resume work without replaying full chat history.
 - For shell/front-end-path changes to `stimuli_module_parity_gate`, the meaningful lightweight proof shape is currently:
   - `PGEN_STIMULI_MODULE_PARITY_COUNT=1`
   That proof stayed green for both tracked rows after the Rust frontend swap.
+- `ebnf_frontend_readiness_gate` is now Rust-by-default. The explicit override still exists:
+  - `PGEN_EBNF_FRONTEND_IMPL=perl|rust`
+  but the default live/report-mode path should now be treated as:
+  - `PGEN_EBNF_FRONTEND_IMPL=rust`
+  unless a slice is specifically testing legacy Perl fallback behavior.
+- For shell/front-end-path changes to `ebnf_frontend_readiness_gate`, the meaningful default-path proof shape is currently:
+  - `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2`
+  That proof stayed green for all tracked rows (`ebnf`, `json`, `regex`) after promoting the default to Rust.

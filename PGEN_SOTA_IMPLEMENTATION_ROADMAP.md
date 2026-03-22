@@ -3801,3 +3801,7 @@ Why `rtl_frontend` exists:
 - The corresponding proof discipline is lightweight-and-green there too: for shell/frontend-path corrections on `stimuli_module_parity_gate`, prefer:
   - `PGEN_STIMULI_MODULE_PARITY_COUNT=1`
   which still exercises both tracked contract rows end to end and now proves the parity lane stays green after the Rust frontend swap.
+- The same migration pressure now reaches the default EBNF readiness operator surface itself. `ebnf_frontend_readiness_gate` already supported `PGEN_EBNF_FRONTEND_IMPL=perl|rust`, but the live default should now be treated as Rust-first, with Perl retained only as an explicit fallback/testing mode.
+- The corresponding proof discipline is lightweight-and-green there too: for shell/frontend-default changes on `ebnf_frontend_readiness_gate`, prefer:
+  - `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2`
+  which still exercises all tracked rows (`ebnf`, `json`, `regex`) under the default frontend path and now proves the default is genuinely Rust-backed.

@@ -23239,3 +23239,16 @@ Architectural north star:
   - observed summary on that proof:
     - `return_annotation`: `frontend_raw_ast_export=pass`, parity `pass`, parseability attempts `1`, accepted `1`
     - `semantic_annotation`: `frontend_raw_ast_export=pass`, parity `pass`, parseability attempts `2`, accepted `1`, rejected `1`
+- `ebnf_frontend_readiness_gate` had already supported `PGEN_EBNF_FRONTEND_IMPL=perl|rust`, but the live report/aggregate path was still defaulting to Perl even after the Rust path had proven green on the tracked roster. That left the default operator surface behind the intended migration direction.
+- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` to Rust-by-default:
+  - `FRONTEND_IMPL` now defaults to `rust`
+  - explicit fallback remains available through:
+    - `PGEN_EBNF_FRONTEND_IMPL=perl`
+  - the lightweight default-path proof used:
+    - `PGEN_EBNF_FRONTEND_STIMULI_COUNT=2`
+  - observed default summary on that proof:
+    - `frontend_impl: rust`
+    - `ebnf`: `pass` with parseability attempts `5`, accepted `2`, rejected `3`
+    - `json`: `pass`
+    - `regex`: `pass`
+  - so aggregate/report-mode EBNF readiness now exercises the Rust frontend path by default instead of only on opt-in runs

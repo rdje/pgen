@@ -15,7 +15,7 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 STRICT="${PGEN_EBNF_FRONTEND_STRICT:-0}"
 STIMULI_COUNT="${PGEN_EBNF_FRONTEND_STIMULI_COUNT:-8}"
 STIMULI_SEED="${PGEN_EBNF_FRONTEND_STIMULI_SEED:-1337}"
-FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-perl}"
+FRONTEND_IMPL="${PGEN_EBNF_FRONTEND_IMPL:-rust}"
 
 GRAMMARS=("ebnf" "json" "regex")
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
@@ -64,7 +64,7 @@ parseability_acceptance_rate_percent() {
     local attempts accepted
     attempts="$(parseability_summary_field_u64 "$path" "attempts")"
     accepted="$(parseability_summary_field_u64 "$path" "accepted")"
-    perl -e 'my ($accepted, $attempts) = @ARGV; if ($attempts == 0) { printf "0.00" } else { printf "%.2f", ($accepted * 100.0) / $attempts }' "$accepted" "$attempts"
+    awk -v accepted="$accepted" -v attempts="$attempts" 'BEGIN { if (attempts == 0) { printf "0.00" } else { printf "%.2f", (accepted * 100.0) / attempts } }'
 }
 
 build_frontend_binaries() {
