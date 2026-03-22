@@ -1713,7 +1713,7 @@ ps_identifier := ( non_typedef_package_scope )? identifier
 
 ps_or_hierarchical_array_identifier := ( implicit_class_handle dot | class_scope | non_typedef_package_scope )? hierarchical_array_identifier
 
-ps_or_hierarchical_net_identifier := ( package_scope )? net_identifier | hierarchical_net_identifier
+ps_or_hierarchical_net_identifier := ( non_typedef_package_scope )? net_identifier | hierarchical_net_identifier
 
 @predicate: { name: has_fact, args: [property_name, $property_identifier], phase: post }
 known_unscoped_property_identifier := property_identifier

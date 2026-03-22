@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: external-consumer-simulation-awareness)
+Last updated: 2026-03-22 (+0100, task: sv-package-net-lvalue-coherence)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -75,6 +75,18 @@ Use this file to resume work without replaying full chat history.
 - This is guidance for roadmap shaping, not a reason to fork PGEN into one client-specific product path.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest live coherence tightening:
+  - the generic package-qualified net-lvalue front now also reuses:
+    - `non_typedef_package_scope`
+  - tightened front:
+    - `ps_or_hierarchical_net_identifier`
+  - reduced proof confirms:
+    - local and unknown external package-like continuous-assignment net targets still pass
+    - local typedef-prefixed continuous-assignment net targets reject
+  - this remains intentionally narrower than the adjacent:
+    - `nonrange_variable_lvalue`
+    - `blocking_assignment ... class_new`
+  - because this net-only continuous-assignment proof surface was clean and direct first
 - Latest live coherence tightening:
   - the generic package-qualified `variable_lvalue` front now also reuses:
     - `non_typedef_package_scope`

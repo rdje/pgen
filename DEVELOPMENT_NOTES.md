@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - Tighten the generic package-qualified net-lvalue front
+### Context
+After tightening the procedural `variable_lvalue` path, one nearby continuous-assignment sibling was still using raw `package_scope`:
+- `ps_or_hierarchical_net_identifier`
+
+The reduced continuous-assignment forms gave a clean proof surface:
+- `assign defs::x = y;`
+- `assign extpkg::x = y;`
+- `assign T::x = y;`
+
+That made this a better next slice than broadening into noisier fronts like:
+- `nonrange_variable_lvalue`
+- `blocking_assignment ... class_new`
+
+### Implementation
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - `ps_or_hierarchical_net_identifier`
+  - now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another policy-coherence slice rather than a new declaration fact family.
+- The concrete rule is:
+  - local typedef heads should not impersonate package scopes on generic package-qualified net-assignment targets either.
+- Reduced proof stayed clean:
+  - `assign defs::x = y;` passes
+  - `assign extpkg::x = y;` passes
+  - `assign T::x = y;` rejects
+
 ## 2026-03-22 - Simulation-facing frontend contract doctrine after NexSim review
 ### Context
 I reviewed the current NexSim docs from `../nexsim/README.md`, including the direct fast-ramp authoritative set and especially:

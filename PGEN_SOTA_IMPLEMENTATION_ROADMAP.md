@@ -332,6 +332,14 @@ Near-term rollout:
   - reduced proof confirms:
     - `assign defs::x = y; deassign defs::x;` and `assign extpkg::x = y; deassign extpkg::x;` pass
     - `assign T::x = y; deassign T::x;` rejects
+  - the same policy-coherence widening now also covers the generic package-qualified net-lvalue front:
+    - `ps_or_hierarchical_net_identifier`
+  - it now routes through:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+  - reduced proof confirms:
+    - `assign defs::x = y;` and `assign extpkg::x = y;` pass
+    - `assign T::x = y;` rejects
 - Progress (2026-03-21):
   - kept one shared inline semantic surface syntax:
     - `@name: payload`

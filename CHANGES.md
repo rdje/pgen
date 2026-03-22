@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-22 - Tighten SV package-scoped net lvalue fronts
+### ✅ Achievement Summary
+PGEN now extends the same package-vs-local-type steering policy to the generic package-qualified net-identifier front too. `ps_or_hierarchical_net_identifier` now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-qualified continuous-assignment targets.
+
+### Scope of Changes
+- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+  - changed:
+    - `ps_or_hierarchical_net_identifier`
+  - it now uses:
+    - `non_typedef_package_scope`
+    - instead of raw `package_scope`
+
+### Why This Matters
+- This is another narrow policy-coherence slice rather than a new fact-family rollout.
+- It closes the sibling net-lvalue front next to the already-tightened procedural variable-lvalue path.
+- Reduced proof now confirms:
+  - `assign defs::x = y;` passes
+  - `assign extpkg::x = y;` passes
+  - `assign T::x = y;` rejects
+
 ## 2026-03-22 - Capture simulation-facing frontend contract doctrine
 ### ✅ Achievement Summary
 PGEN now records a clearer simulation-facing downstream deliverable contract after reviewing the NexSim project docs, especially:
