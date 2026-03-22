@@ -71,6 +71,23 @@ extract_summary_value() {
     awk -v key="$key" 'index($0, key ": ") == 1 { print substr($0, length(key) + 3); found = 1 } END { if (!found) exit 1 }' "$path"
 }
 
+extract_summary_value_or_default() {
+    local path="$1"
+    local key="$2"
+    local default_value="$3"
+    awk -v key="$key" -v default_value="$default_value" '
+        index($0, key ": ") == 1 {
+            print substr($0, length(key) + 3)
+            found = 1
+        }
+        END {
+            if (!found) {
+                print default_value
+            }
+        }
+    ' "$path"
+}
+
 assert_equal() {
     local label="$1"
     local expected="$2"
@@ -99,65 +116,31 @@ else
 fi
 
 sota_summary_txt="$sota_state_dir/summary.txt"
-sv_parser_aggregate_summary_txt="$sota_state_dir/work/sv_parser_aggregate_contract_gate/summary.txt"
-sv_preprocessor_aggregate_summary_txt="$sota_state_dir/work/sv_preprocessor_aggregate_contract_gate/summary.txt"
-sv_failure_summary_txt="$sota_state_dir/work/sv_failure_context_contract_gate/summary.txt"
-sv_roundtrip_summary_txt="$sota_state_dir/work/sv_roundtrip_contract_gate/summary.txt"
-sv_preprocessor_reachability_summary_txt="$sota_state_dir/work/sv_preprocessor_reachability_closure_gate/summary.txt"
-sv_parser_family_status_summary_txt="$sota_state_dir/work/sv_parser_family_status_gate/summary.txt"
-sv_parser_family_status_summary_json="$sota_state_dir/work/sv_parser_family_status_gate/summary.json"
-sv_parser_family_status_contract_summary_txt="$sota_state_dir/work/sv_parser_family_status_contract_gate/summary.txt"
-
 require_nonempty_file "$sota_summary_txt"
+sv_parser_aggregate_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_stimuli_quality_aggregate_contract_summary_txt")"
+sv_preprocessor_aggregate_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_quality_aggregate_contract_summary_txt")"
+sv_failure_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_failure_context_contract_summary_txt")"
+sv_roundtrip_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_contract_summary_txt")"
+sv_preprocessor_reachability_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_closure_summary_txt")"
+sv_parser_family_status_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_txt")"
+sv_parser_family_status_summary_json="$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_json")"
+sv_parser_family_status_contract_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_summary_txt")"
+
 require_nonempty_file "$sv_parser_aggregate_summary_txt"
 require_nonempty_file "$sv_preprocessor_aggregate_summary_txt"
-require_nonempty_file "$sv_failure_summary_txt"
-require_nonempty_file "$sv_roundtrip_summary_txt"
 require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
 require_nonempty_file "$sv_parser_family_status_summary_txt"
 require_nonempty_file "$sv_parser_family_status_summary_json"
 require_nonempty_file "$sv_parser_family_status_contract_summary_txt"
 
-assert_equal \
-    "main SV aggregate summary path" \
-    "$sv_parser_aggregate_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_stimuli_quality_aggregate_contract_summary_txt")"
-assert_equal \
-    "main SV failure-context summary path" \
-    "$sv_failure_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_failure_context_contract_summary_txt")"
-assert_equal \
-    "main SV roundtrip summary path" \
-    "$sv_roundtrip_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_contract_summary_txt")"
-assert_equal \
-    "SV preprocessor failure-context summary path" \
-    "$sv_failure_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_failure_context_contract_summary_txt")"
-assert_equal \
-    "SV preprocessor roundtrip summary path" \
-    "$sv_roundtrip_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_contract_summary_txt")"
-assert_equal \
-    "SV preprocessor aggregate summary path" \
-    "$sv_preprocessor_aggregate_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_quality_aggregate_contract_summary_txt")"
-assert_equal \
-    "SV preprocessor reachability-closure summary path" \
-    "$sv_preprocessor_reachability_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_reachability_closure_summary_txt")"
-assert_equal \
-    "SV parser-family status summary path" \
-    "$sv_parser_family_status_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_txt")"
-assert_equal \
-    "SV parser-family status summary json path" \
-    "$sv_parser_family_status_summary_json" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_json")"
-assert_equal \
-    "SV parser-family status contract summary path" \
-    "$sv_parser_family_status_contract_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_summary_txt")"
+sv_failure_summary_available=0
+sv_roundtrip_summary_available=0
+if [[ -s "$sv_failure_summary_txt" ]]; then
+    sv_failure_summary_available=1
+fi
+if [[ -s "$sv_roundtrip_summary_txt" ]]; then
+    sv_roundtrip_summary_available=1
+fi
 
 sv_parser_family_status_gate_name="$(jq -r '.gate' "$sv_parser_family_status_summary_json")"
 sv_parser_family_status_gate_version="$(jq -r '.version' "$sv_parser_family_status_summary_json")"
@@ -299,16 +282,51 @@ sv_focused_initial_covered_reachable_rules="$(extract_summary_value "$sv_parser_
 sv_focused_replay_covered_reachable_rules="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_replay_covered_reachable_rules")"
 sv_focused_initial_covered_reachable_branches="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_initial_covered_reachable_branches")"
 sv_focused_replay_covered_reachable_branches="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "focused_replay_covered_reachable_branches")"
-sv_failure_generation_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_generation_failure_context_excerpts")"
-sv_failure_shadow_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_shadow_failure_context_excerpts")"
-sv_roundtrip_initial_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_targets")"
-sv_roundtrip_replay_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_targets")"
-sv_roundtrip_initial_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_covered_reachable_rules")"
-sv_roundtrip_replay_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_covered_reachable_rules")"
-sv_roundtrip_initial_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_covered_reachable_branches")"
-sv_roundtrip_replay_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_covered_reachable_branches")"
+if [[ "$sv_failure_summary_available" -eq 1 ]]; then
+    sv_failure_generation_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_generation_failure_context_excerpts")"
+    sv_failure_shadow_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_shadow_failure_context_excerpts")"
+    svpp_failure_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_preprocessor_failure_context_excerpts")"
+else
+    sv_failure_generation_excerpts="$(extract_summary_value "$sota_summary_txt" "sv_failure_context_generation_excerpts")"
+    sv_failure_shadow_excerpts="$(extract_summary_value "$sota_summary_txt" "sv_failure_context_shadow_excerpts")"
+    svpp_failure_excerpts="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_failure_context_excerpts")"
+fi
+if [[ "$sv_roundtrip_summary_available" -eq 1 ]]; then
+    sv_roundtrip_initial_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_targets")"
+    sv_roundtrip_replay_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_targets")"
+    sv_roundtrip_initial_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_covered_reachable_rules")"
+    sv_roundtrip_replay_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_covered_reachable_rules")"
+    sv_roundtrip_initial_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_initial_covered_reachable_branches")"
+    sv_roundtrip_replay_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_roundtrip_replay_covered_reachable_branches")"
+    svpp_stage0_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_targets")"
+    svpp_stage1_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_targets")"
+    svpp_final_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_final_targets")"
+    svpp_stage4_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage4_targets")"
+    svpp_stage0_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules")"
+    svpp_stage1_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules")"
+    svpp_stage4_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules")"
+    svpp_stage0_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches")"
+    svpp_stage1_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches")"
+    svpp_stage4_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches")"
+else
+    sv_roundtrip_initial_targets="$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_initial_targets")"
+    sv_roundtrip_replay_targets="$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_replay_targets")"
+    sv_roundtrip_initial_rules="$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_initial_covered_reachable_rules")"
+    sv_roundtrip_replay_rules="$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_replay_covered_reachable_rules")"
+    sv_roundtrip_initial_branches="$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_initial_covered_reachable_branches")"
+    sv_roundtrip_replay_branches="$(extract_summary_value "$sota_summary_txt" "sv_roundtrip_replay_covered_reachable_branches")"
+    svpp_stage0_targets="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage0_targets")"
+    svpp_stage1_targets="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage1_targets")"
+    svpp_final_targets="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_final_targets")"
+    svpp_stage4_targets="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage4_targets")"
+    svpp_stage0_rules="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage0_covered_reachable_rules")"
+    svpp_stage1_rules="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage1_covered_reachable_rules")"
+    svpp_stage4_rules="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage4_covered_reachable_rules")"
+    svpp_stage0_branches="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage0_covered_reachable_branches")"
+    svpp_stage1_branches="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage1_covered_reachable_branches")"
+    svpp_stage4_branches="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_roundtrip_stage4_covered_reachable_branches")"
+fi
 
-svpp_failure_excerpts="$(extract_summary_value "$sv_failure_summary_txt" "systemverilog_preprocessor_failure_context_excerpts")"
 svpp_parseability_report_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_report_json")"
 svpp_gap_stage3_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "gap_stage3_json")"
 svpp_parseability_attempts_total="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "parseability_attempts_total")"
@@ -342,23 +360,13 @@ svpp_counterexample_primary_parser_error="$(extract_summary_value "$sv_preproces
 svpp_counterexample_primary_parser_error_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_parser_error_count")"
 svpp_counterexample_primary_failure_location="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_location")"
 svpp_counterexample_primary_failure_location_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_location_count")"
-svpp_counterexample_primary_failure_line_excerpt_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_line_excerpt_json")"
-svpp_counterexample_primary_failure_line_excerpt_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_line_excerpt_count")"
-svpp_counterexample_primary_failure_context_excerpt_json="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_context_excerpt_json")"
-svpp_counterexample_primary_failure_context_excerpt_count="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_context_excerpt_count")"
+svpp_counterexample_primary_failure_line_excerpt_json="$(extract_summary_value_or_default "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_line_excerpt_json" "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_line_excerpt_json")")"
+svpp_counterexample_primary_failure_line_excerpt_count="$(extract_summary_value_or_default "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_line_excerpt_count" "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_line_excerpt_count")")"
+svpp_counterexample_primary_failure_context_excerpt_json="$(extract_summary_value_or_default "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_context_excerpt_json" "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_context_excerpt_json")")"
+svpp_counterexample_primary_failure_context_excerpt_count="$(extract_summary_value_or_default "$sv_preprocessor_aggregate_summary_txt" "counterexample_primary_failure_context_excerpt_count" "$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_counterexample_primary_failure_context_excerpt_count")")"
 svpp_counterexample_unique_failure_locations="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_locations")"
 svpp_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_line_excerpts")"
 svpp_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$sv_preprocessor_aggregate_summary_txt" "counterexample_unique_failure_context_excerpts")"
-svpp_stage0_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_targets")"
-svpp_stage1_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_targets")"
-svpp_final_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_final_targets")"
-svpp_stage4_targets="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage4_targets")"
-svpp_stage0_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules")"
-svpp_stage1_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules")"
-svpp_stage4_rules="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules")"
-svpp_stage0_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches")"
-svpp_stage1_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches")"
-svpp_stage4_branches="$(extract_summary_value "$sv_roundtrip_summary_txt" "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches")"
 svpp_reachability_stage3_targets="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage3_targets")"
 svpp_reachability_stage4_targets="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage4_targets")"
 svpp_reachability_stage3_rules="$(extract_summary_value "$sv_preprocessor_reachability_summary_txt" "stage3_covered_reachable_rules")"

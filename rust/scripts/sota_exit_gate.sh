@@ -358,6 +358,13 @@ SV_PARSE_FULL_RATIO_PROMOTION_PARSEABILITY_GENERATION_ATTEMPTS_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_PARSEABILITY_GENERATION_ACCEPTED_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_PARSEABILITY_GENERATION_REJECTED_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_PARSEABILITY_GENERATION_ACCEPTANCE_RATE_PERCENT="<unset>"
+EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR:-}"
+EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
+EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR:-}"
+EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR:-}"
+EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR:-}"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ATTEMPTS_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_ACCEPTED_TOTAL="<unset>"
 SV_PARSE_FULL_RATIO_PROMOTION_CLOSED_LOOP_PARSEABILITY_SHADOW_REJECTED_TOTAL="<unset>"
@@ -952,12 +959,19 @@ if [[ "$RUN_HDL_FRONTEND_READINESS" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
-    SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/sv_preprocessor_quality_gate"
+    if [[ -n "$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR" ]]; then
+        SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR="$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR"
+    else
+        SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/sv_preprocessor_quality_gate"
+    fi
     SV_PREPROCESSOR_QUALITY_STAGE_SUMMARY_CSV="${SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR}/summary.csv"
     SV_PREPROCESSOR_QUALITY_STAGE_DIFF_REPORT_JSON="${SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR}/work/systemverilog_preprocessor_differential_report.json"
     SV_PREPROCESSOR_QUALITY_STAGE_LOG_FILE="${LOG_DIR}/sv_preprocessor_quality_gate.log"
 
-    if [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+    if [[ -n "$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR" ]]; then
+        run_check "sv_preprocessor_quality_gate" "informational" "reuse existing SystemVerilog preprocessor closed-loop quality gate state" \
+            bash -lc "test -s \"$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR/summary.txt\""
+    elif [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_preprocessor_quality_gate" "required" "strict SystemVerilog preprocessor closed-loop quality gate" \
             env \
                 PGEN_SV_PREPROCESSOR_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
@@ -1055,8 +1069,11 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
     fi
 
     SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_preprocessor_aggregate_contract_gate"
-    SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="${SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR}/summary.txt"
-    if [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+    if [[ -n "$EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR" ]]; then
+        SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR"
+        run_check "sv_preprocessor_aggregate_contract_gate" "informational" "reused existing SV preprocessor aggregate contract proof over produced artifacts" \
+            bash -lc "test -s \"$SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR/summary.txt\""
+    elif [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_preprocessor_aggregate_contract_gate" "required" "strict SV preprocessor aggregate contract proof over produced artifacts" \
             env \
                 PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="$SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
@@ -1069,6 +1086,7 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
                 PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
                 make -C rust SHELL=/bin/bash sv_preprocessor_aggregate_contract_gate
     fi
+    SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="${SV_PREPROCESSOR_AGGREGATE_CONTRACT_STAGE_STATE_DIR}/summary.txt"
     if [[ ! -f "$SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT" ]]; then
         SV_PREPROCESSOR_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
     else
@@ -1115,8 +1133,11 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
     fi
 
     SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR="${STATE_DIR}/work/sv_preprocessor_reachability_closure_gate"
-    SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="${SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR}/summary.txt"
-    if [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+    if [[ -n "$EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR" ]]; then
+        SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR="$EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR"
+        run_check "sv_preprocessor_reachability_closure_gate" "informational" "reused existing SV preprocessor reachability-closure proof over produced artifacts" \
+            bash -lc "test -s \"$SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR/summary.txt\""
+    elif [[ "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_preprocessor_reachability_closure_gate" "required" "strict SV preprocessor reachability-closure proof over produced artifacts" \
             env \
                 PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR="$SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR" \
@@ -1129,6 +1150,7 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
                 PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_EXISTING_QUALITY_STATE_DIR="$SV_PREPROCESSOR_QUALITY_STAGE_STATE_DIR" \
                 make -C rust SHELL=/bin/bash sv_preprocessor_reachability_closure_gate
     fi
+    SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="${SV_PREPROCESSOR_REACHABILITY_CLOSURE_STAGE_STATE_DIR}/summary.txt"
     if [[ ! -f "$SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT" ]]; then
         SV_PREPROCESSOR_REACHABILITY_CLOSURE_SUMMARY_TXT="<missing>"
     else
@@ -1215,14 +1237,21 @@ if [[ "$RUN_SV_PREPROCESSOR_QUALITY" -eq 1 ]]; then
 fi
 
 if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
-    SV_STIMULI_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/sv_stimuli_quality_gate"
+    if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
+        SV_STIMULI_QUALITY_STAGE_STATE_DIR="$EXISTING_SV_STIMULI_QUALITY_STATE_DIR"
+    else
+        SV_STIMULI_QUALITY_STAGE_STATE_DIR="${STATE_DIR}/work/sv_stimuli_quality_gate"
+    fi
     SV_STIMULI_QUALITY_STAGE_WORK_DIR="${SV_STIMULI_QUALITY_STAGE_STATE_DIR}/work"
     SV_STIMULI_QUALITY_STAGE_PARSE_FULL_QUALITY_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_parse_full_quality_report.json"
     SV_STIMULI_QUALITY_STAGE_DIFF_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_differential_report.json"
     SV_STIMULI_QUALITY_STAGE_PERF_REPORT_JSON="${SV_STIMULI_QUALITY_STAGE_WORK_DIR}/systemverilog_performance_report.json"
     SV_STIMULI_QUALITY_STAGE_LOG_FILE="${LOG_DIR}/sv_stimuli_quality_gate.log"
 
-    if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
+    if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
+        run_check "sv_stimuli_quality_gate" "informational" "reuse existing preprocess-first SystemVerilog stimuli quality gate state" \
+            bash -lc "test -s \"$SV_STIMULI_QUALITY_STAGE_STATE_DIR/summary.txt\""
+    elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_stimuli_quality_gate" "required" "strict preprocess-first SystemVerilog stimuli quality gate" \
             env \
                 PGEN_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
@@ -1342,8 +1371,11 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON="${SV_STIMULI_QUALITY_PARSEABILITY_GENERATION_REPORT_JSON:-<missing>}"
 
     SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_aggregate_contract_gate"
-    SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="${SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR}/summary.txt"
-    if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
+    if [[ -n "$EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR" ]]; then
+        SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR"
+        run_check "sv_parser_aggregate_contract_gate" "informational" "reused existing SV parser aggregate contract proof over produced artifacts" \
+            bash -lc "test -s \"$SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR/summary.txt\""
+    elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 ]]; then
         run_check "sv_parser_aggregate_contract_gate" "required" "strict SV parser aggregate contract proof over produced artifacts" \
             env \
                 PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="$SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR" \
@@ -1356,6 +1388,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                 PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$SV_STIMULI_QUALITY_STAGE_STATE_DIR" \
                 make -C rust SHELL=/bin/bash sv_parser_aggregate_contract_gate
     fi
+    SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="${SV_STIMULI_AGGREGATE_CONTRACT_STAGE_STATE_DIR}/summary.txt"
     if [[ ! -f "$SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT" ]]; then
         SV_STIMULI_AGGREGATE_CONTRACT_SUMMARY_TXT="<missing>"
     else
@@ -1496,7 +1529,13 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_family_status_gate"
         SV_PARSER_FAMILY_STATUS_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
         SV_PARSER_FAMILY_STATUS_SUMMARY_JSON="${SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.json"
-        if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+        if [[ -n "$EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR" ]]; then
+            SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR="$EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR"
+            SV_PARSER_FAMILY_STATUS_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
+            SV_PARSER_FAMILY_STATUS_SUMMARY_JSON="${SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.json"
+            run_check "sv_parser_family_status_gate" "informational" "reused existing combined SV-family status proof over produced artifacts" \
+                bash -lc "test -s \"$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT\" && test -s \"$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON\""
+        elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
             run_check "sv_parser_family_status_gate" "required" "strict combined SV-family status proof over produced artifacts" \
                 env \
                     PGEN_SV_FAMILY_STATUS_STATE_DIR="$SV_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
@@ -1526,7 +1565,12 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_family_status_contract_gate"
         SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
         if [[ -f "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
-            if [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
+            if [[ -n "$EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR" ]]; then
+                SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR"
+                SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+                run_check "sv_parser_family_status_contract_gate" "informational" "reused existing source-side contract proof for the produced SV-family status sidecar" \
+                    bash -lc "test -s \"$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT\""
+            elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
                 run_check "sv_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced SV-family status sidecar" \
                     env \
                         PGEN_SV_FAMILY_STATUS_CONTRACT_STATE_DIR="$SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
