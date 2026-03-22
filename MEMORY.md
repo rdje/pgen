@@ -6051,3 +6051,17 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=200`
   - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
   `COUNT=1` is too small for the existing preprocessor coverage contract and can fail on `pp_conditional` even when the frontend swap is correct.
+- `sv_syntax_closure_gate` now belongs in that same Rust-frontended live-proof bucket. Do not reintroduce `ebnf_to_json.pl` there. The authoritative frontend flow is now:
+  - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+  - `ast_pipeline grammars/systemverilog.ebnf --emit-raw-ast-json ...`
+  - `ast_pipeline grammars/systemverilog.ebnf --generate-parser --emit-raw-ast-json ... --output ...`
+  - run the syntax-probe stimuli/gap closure step from that Rust-frontended grammar artifact chain
+  The syntax-closure header and summaries now expose:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+- For shell/front-end-path changes to `sv_syntax_closure_gate`, the meaningful proof is currently “Rust frontend path reaches the existing closure-contract finish line,” not “the whole gate is green.” The current known contract debt after the frontend swap is still:
+  - `unreachable_rules=100`
+  - `unreachable_branches=111`
+  - `target_debt_count=3041`
+  so if the gate fails earlier than that, suspect the frontend path or summary plumbing first.

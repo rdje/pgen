@@ -3781,3 +3781,9 @@ Why `rtl_frontend` exists:
 - The corresponding proof discipline is now explicit too: for shell/frontend-path corrections on the VHDL quality lane, prefer a lightweight green quality run with reduced sample/corpus counts and bounded `target_max_attempts` so the proof stays about frontend-path correctness rather than replay-shadow search cost.
 - The same normalization now applies to `sv_preprocessor_quality_gate`. The live SystemVerilog preprocessor-quality lane should be treated as a Rust-frontend consumer of `grammars/systemverilog_preprocessor.ebnf`, with raw-AST export and direct `.ebnf -> parser` generation preserved as first-class artifacts in the quality summary itself.
 - The corresponding proof discipline is now explicit there too: for shell/frontend-path corrections on the preprocessor-quality lane, prefer a lightweight green run with reduced sample/fuzz counts, bounded `target_max_attempts`, and differential mode disabled, so the proof stays about frontend-path correctness rather than trusted-reference setup or overly thin coverage budgets.
+- The same normalization now applies to `sv_syntax_closure_gate`. The live SystemVerilog syntax-closure lane should be treated as a Rust-frontend consumer of `grammars/systemverilog.ebnf`, with raw-AST export and direct `.ebnf -> parser` generation preserved as first-class artifacts in the gate header and summaries.
+- The corresponding proof discipline is slightly different there: the frontend-migration proof is currently “the Rust-frontended gate reaches the existing closure-contract result” rather than “the whole gate is green.” Today that still means landing at the known SystemVerilog closure debt:
+  - `unreachable_rules=100`
+  - `unreachable_branches=111`
+  - `target_debt_count=3041`
+  so the immediate next gap remains parser-family exhaustive proof normalization, not further frontend-path bootstrapping for this lane.

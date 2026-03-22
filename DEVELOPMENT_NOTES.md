@@ -23163,3 +23163,23 @@ Architectural north star:
     - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=200`
     - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
   - that run stayed fully green, which is the right gate shape for a frontend-path correction without conflating the slice with trusted-reference differential setup
+- `sv_syntax_closure_gate` had the same outdated Perl-fronted bootstrap and now uses the Rust frontend path:
+  - build `ast_pipeline` with `generated_parsers ebnf_dual_run`
+  - export `grammars/systemverilog.ebnf` to a raw-AST JSON artifact
+  - generate the temporary parser directly from the `.ebnf` grammar while preserving that raw-AST artifact
+  - run the existing syntax-probe stimuli/gap closure check against that Rust-frontended grammar artifact chain
+  Its header and summaries now expose:
+  - `grammar_file`
+  - `grammar_raw_ast_json`
+  - `generated_parser_file`
+  so the syntax-closure proof lane is now frontend-honest in the same way as the other live SystemVerilog gates.
+- Practical validation note for this slice:
+  - the frontend migration itself is green:
+    - Rust raw-AST export succeeded
+    - parser generation succeeded
+    - syntax-probe stimuli/gap generation succeeded
+  - the full gate still exits red on existing SystemVerilog closure debt rather than on the frontend swap:
+    - `unreachable_rules=100`
+    - `unreachable_branches=111`
+    - `target_debt_count=3041`
+  - treat that as the current parser-family normalization frontier, not as a regression in the Rust-frontend migration

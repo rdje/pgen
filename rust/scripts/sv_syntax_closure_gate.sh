@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
-TOOLS_DIR="$ROOT_DIR/tools"
 
 STATE_DIR="${PGEN_SV_SYNTAX_CLOSURE_STATE_DIR:-$RUST_DIR/target/sv_syntax_closure_gate}"
 LOG_DIR="$STATE_DIR/logs"
@@ -13,7 +12,6 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 
 CONTRACT_FILE="${PGEN_SV_SYNTAX_CLOSURE_CONTRACT:-$RUST_DIR/test_data/grammar_quality/systemverilog_syntax_closure_contract.json}"
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
-EBNF_TO_JSON="$TOOLS_DIR/ebnf_to_json.pl"
 
 require_tool() {
     local tool="$1"
@@ -73,9 +71,7 @@ run_logged_rust() {
 mkdir -p "$LOG_DIR" "$WORK_DIR"
 
 require_tool jq
-require_tool perl
 require_file "$CONTRACT_FILE"
-require_file "$EBNF_TO_JSON"
 
 contract_version="$(jq -er '.version | numbers' "$CONTRACT_FILE")"
 grammar_name="$(jq -er '.grammar_name | strings' "$CONTRACT_FILE")"
@@ -143,23 +139,26 @@ echo "contract_version: $contract_version"
 echo "grammar_name: $grammar_name"
 echo "entry_rule: $entry_rule"
 echo "grammar_file: $grammar_file"
+echo "grammar_raw_ast_json: $grammar_json"
+echo "generated_parser_file: $parser_out"
 echo "stimuli_seed: $stimuli_seed"
 echo "stimuli_count: $stimuli_count"
 echo "gap_report_threshold: $gap_report_threshold"
 
-run_logged_rust "build_ast_pipeline" cargo build --bin ast_pipeline
+run_logged_rust "build_ast_pipeline" cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary missing at '$AST_PIPELINE_BIN'" >&2
     exit 1
 fi
 
-run_logged "frontend_ebnf_to_json" \
-    perl "$EBNF_TO_JSON" --pretty --quiet "$grammar_file" -o "$grammar_json"
+run_logged "frontend_rust_raw_ast_export" \
+    "$AST_PIPELINE_BIN" "$grammar_file" --emit-raw-ast-json "$grammar_json"
 require_nonempty_file "$grammar_json"
 
 run_logged "generate_parser" \
-    "$AST_PIPELINE_BIN" "$grammar_json" \
+    "$AST_PIPELINE_BIN" "$grammar_file" \
     --generate-parser \
+    --emit-raw-ast-json "$grammar_json" \
     --eliminate-left-recursion \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
@@ -236,6 +235,8 @@ fi
 jq -n \
   --arg grammar_name "$grammar_name" \
   --arg grammar_file "$grammar_file" \
+  --arg grammar_json "$grammar_json" \
+  --arg parser_out "$parser_out" \
   --arg entry_rule "$entry_rule" \
   --argjson contract_version "$contract_version" \
   --argjson defined_rule_count "$defined_rule_count" \
@@ -255,6 +256,8 @@ jq -n \
   {
     grammar_name: $grammar_name,
     grammar_file: $grammar_file,
+    grammar_raw_ast_json: $grammar_json,
+    generated_parser_file: $parser_out,
     entry_rule: $entry_rule,
     contract_version: $contract_version,
     metrics: {
@@ -281,6 +284,8 @@ jq -n \
     echo "contract_file: $CONTRACT_FILE"
     echo "grammar_name: $grammar_name"
     echo "grammar_file: $grammar_file"
+    echo "grammar_raw_ast_json: $grammar_json"
+    echo "generated_parser_file: $parser_out"
     echo "entry_rule: $entry_rule"
     echo
     echo "Metrics:"
