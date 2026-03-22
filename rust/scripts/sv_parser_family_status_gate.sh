@@ -16,11 +16,16 @@ SV_PREPROCESSOR_SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_syntax_cl
 SV_PARSER_AGGREGATE_GATE="$RUST_DIR/scripts/sv_parser_aggregate_contract_gate.sh"
 SV_PREPROCESSOR_AGGREGATE_GATE="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate.sh"
 SV_PREPROCESSOR_REACHABILITY_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"
+SV_SEMANTIC_SCOPE_CONTRACT_GATE="$RUST_DIR/scripts/sv_semantic_scope_contract_gate.sh"
 
 EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR:-}"
+EXISTING_SV_PARSER_AGGREGATE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR:-}"
 EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}"
+EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -100,6 +105,7 @@ require_file "$SV_PREPROCESSOR_SYNTAX_CLOSURE_GATE"
 require_file "$SV_PARSER_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_REACHABILITY_GATE"
+require_file "$SV_SEMANTIC_SCOPE_CONTRACT_GATE"
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -109,6 +115,7 @@ sv_preprocessor_syntax_closure_state_dir="$WORK_DIR/sv_preprocessor_syntax_closu
 sv_parser_gate_state_dir="$WORK_DIR/sv_parser_aggregate_contract_gate"
 sv_preprocessor_aggregate_state_dir="$WORK_DIR/sv_preprocessor_aggregate_contract_gate"
 sv_preprocessor_reachability_state_dir="$WORK_DIR/sv_preprocessor_reachability_closure_gate"
+sv_semantic_scope_contract_state_dir="$WORK_DIR/sv_semantic_scope_contract_gate"
 
 if [[ -n "$EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR" ]]; then
     sv_syntax_closure_state_dir="$EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR"
@@ -128,7 +135,9 @@ else
             "$SV_PREPROCESSOR_SYNTAX_CLOSURE_GATE"
 fi
 
-if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
+if [[ -n "$EXISTING_SV_PARSER_AGGREGATE_STATE_DIR" ]]; then
+    sv_parser_gate_state_dir="$EXISTING_SV_PARSER_AGGREGATE_STATE_DIR"
+elif [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
     run_logged "sv_parser_aggregate_contract_gate" \
         env \
             PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="$sv_parser_gate_state_dir" \
@@ -142,7 +151,9 @@ else
 fi
 
 preprocessor_quality_state_dir="$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR"
-if [[ -n "$preprocessor_quality_state_dir" ]]; then
+if [[ -n "$EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR" ]]; then
+    sv_preprocessor_aggregate_state_dir="$EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR"
+elif [[ -n "$preprocessor_quality_state_dir" ]]; then
     run_logged "sv_preprocessor_aggregate_contract_gate" \
         env \
             PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="$sv_preprocessor_aggregate_state_dir" \
@@ -156,19 +167,34 @@ else
     preprocessor_quality_state_dir="$sv_preprocessor_aggregate_state_dir/work/quality_state"
 fi
 
-run_logged "sv_preprocessor_reachability_closure_gate" \
-    env \
-        PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR="$sv_preprocessor_reachability_state_dir" \
-        PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_EXISTING_QUALITY_STATE_DIR="$preprocessor_quality_state_dir" \
-        "$SV_PREPROCESSOR_REACHABILITY_GATE"
+if [[ -n "$EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR" ]]; then
+    sv_preprocessor_reachability_state_dir="$EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR"
+else
+    run_logged "sv_preprocessor_reachability_closure_gate" \
+        env \
+            PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR="$sv_preprocessor_reachability_state_dir" \
+            PGEN_SV_PREPROCESSOR_REACHABILITY_CLOSURE_EXISTING_QUALITY_STATE_DIR="$preprocessor_quality_state_dir" \
+            "$SV_PREPROCESSOR_REACHABILITY_GATE"
+fi
+
+if [[ -n "$EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR" ]]; then
+    sv_semantic_scope_contract_state_dir="$EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR"
+else
+    run_logged "sv_semantic_scope_contract_gate" \
+        env \
+            PGEN_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$sv_semantic_scope_contract_state_dir" \
+            "$SV_SEMANTIC_SCOPE_CONTRACT_GATE"
+fi
 
 sv_parser_summary_txt="$sv_parser_gate_state_dir/summary.txt"
 sv_preprocessor_aggregate_summary_txt="$sv_preprocessor_aggregate_state_dir/summary.txt"
 sv_preprocessor_reachability_summary_txt="$sv_preprocessor_reachability_state_dir/summary.txt"
+sv_semantic_scope_contract_summary_json="$sv_semantic_scope_contract_state_dir/summary.json"
 
 require_nonempty_file "$sv_parser_summary_txt"
 require_nonempty_file "$sv_preprocessor_aggregate_summary_txt"
 require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
+require_nonempty_file "$sv_semantic_scope_contract_summary_json"
 
 sv_syntax_summary_json="$sv_syntax_closure_state_dir/summary.json"
 require_nonempty_file "$sv_syntax_summary_json"
@@ -180,6 +206,8 @@ sv_syntax_unresolved_rule_reference_count="$(jq -er '.metrics.unresolved_rule_re
 sv_syntax_unreachable_rules="$(jq -er '.metrics.unreachable_rules | numbers' "$sv_syntax_summary_json")"
 sv_syntax_unreachable_branches="$(jq -er '.metrics.unreachable_branches | numbers' "$sv_syntax_summary_json")"
 sv_syntax_target_debt_count="$(jq -er '.metrics.target_debt_count | numbers' "$sv_syntax_summary_json")"
+sv_semantic_scope_case_count="$(jq -er '.case_count | numbers' "$sv_semantic_scope_contract_summary_json")"
+sv_semantic_scope_failed_count="$(jq -er '.failed_count | numbers' "$sv_semantic_scope_contract_summary_json")"
 
 svpp_syntax_summary_json="$sv_preprocessor_syntax_closure_state_dir/summary.json"
 require_nonempty_file "$svpp_syntax_summary_json"
@@ -218,6 +246,7 @@ sv_aggregate_contract_green=true
 sv_generation_parser_rejections_zero=false
 sv_shadow_parser_rejections_zero=false
 sv_focused_replay_target_debt_zero=false
+sv_semantic_scope_contract_green=false
 
 if [[ "$sv_syntax_status" == "pass" && "$sv_syntax_failure_count" == "0" ]]; then
     sv_syntax_closure_gate_green=true
@@ -231,8 +260,11 @@ fi
 if [[ "$sv_focused_replay_target_count" == "0" ]]; then
     sv_focused_replay_target_debt_zero=true
 fi
+if [[ "$sv_semantic_scope_failed_count" == "0" ]]; then
+    sv_semantic_scope_contract_green=true
+fi
 
-sv_closure_criteria_total_count=5
+sv_closure_criteria_total_count=6
 sv_closure_criteria_satisfied_count=0
 if [[ "$sv_syntax_closure_gate_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
@@ -249,6 +281,9 @@ fi
 if [[ "$sv_focused_replay_target_debt_zero" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
+if [[ "$sv_semantic_scope_contract_green" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
 
 declare -a sv_unmet=()
 if [[ "$sv_syntax_closure_gate_green" != true ]]; then
@@ -263,8 +298,11 @@ fi
 if [[ "$sv_focused_replay_target_debt_zero" != true ]]; then
     sv_unmet+=("focused_replay_target_count=${sv_focused_replay_target_count} > 0")
 fi
+if [[ "$sv_semantic_scope_contract_green" != true ]]; then
+    sv_unmet+=("semantic_scope_failed_count=${sv_semantic_scope_failed_count} > 0")
+fi
 
-if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true ]]; then
+if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true ]]; then
     sv_status="Done"
 else
     sv_status="Mostly Done"
@@ -421,6 +459,9 @@ jq -n \
     --arg sv_syntax_unreachable_rules "$sv_syntax_unreachable_rules" \
     --arg sv_syntax_unreachable_branches "$sv_syntax_unreachable_branches" \
     --arg sv_syntax_target_debt_count "$sv_syntax_target_debt_count" \
+    --arg sv_semantic_scope_contract_summary_json "$sv_semantic_scope_contract_summary_json" \
+    --arg sv_semantic_scope_case_count "$sv_semantic_scope_case_count" \
+    --arg sv_semantic_scope_failed_count "$sv_semantic_scope_failed_count" \
     --arg sv_parser_summary_txt "$sv_parser_summary_txt" \
     --arg sv_generation_parser_rejections_total "$sv_generation_parser_rejections_total" \
     --arg sv_shadow_parser_rejections_total "$sv_shadow_parser_rejections_total" \
@@ -435,6 +476,7 @@ jq -n \
     --argjson sv_generation_parser_rejections_zero "$sv_generation_parser_rejections_zero" \
     --argjson sv_shadow_parser_rejections_zero "$sv_shadow_parser_rejections_zero" \
     --argjson sv_focused_replay_target_debt_zero "$sv_focused_replay_target_debt_zero" \
+    --argjson sv_semantic_scope_contract_green "$sv_semantic_scope_contract_green" \
     --argjson sv_unmet "$sv_unmet_json" \
     --arg svpp_status "$svpp_status" \
     --arg svpp_tracker_status "$live_tracker_svpp_status" \
@@ -478,7 +520,7 @@ jq -n \
     '
     {
       gate: "sv_parser_family_status_gate",
-      version: 1,
+      version: 2,
       generated_at_utc: $generated_at_utc,
       live_tracker_file: $live_tracker_file,
       status_rule_done: "Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.",
@@ -490,7 +532,8 @@ jq -n \
           tracker_alignment_ok: $sv_tracker_alignment_ok,
           proof_surfaces: {
             syntax_closure_summary_json: $sv_syntax_summary_json,
-            parser_aggregate_summary_txt: $sv_parser_summary_txt
+            parser_aggregate_summary_txt: $sv_parser_summary_txt,
+            semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json
           },
           closure_criteria_total_count: ($sv_closure_criteria_total_count | tonumber),
           closure_criteria_satisfied_count: ($sv_closure_criteria_satisfied_count | tonumber),
@@ -500,7 +543,8 @@ jq -n \
             parser_aggregate_contract_green: $sv_aggregate_contract_green,
             generation_parser_rejections_zero: $sv_generation_parser_rejections_zero,
             replay_shadow_parser_rejections_zero: $sv_shadow_parser_rejections_zero,
-            focused_replay_target_debt_zero: $sv_focused_replay_target_debt_zero
+            focused_replay_target_debt_zero: $sv_focused_replay_target_debt_zero,
+            semantic_scope_contract_green: $sv_semantic_scope_contract_green
           },
           metrics: {
             syntax_closure_status: $sv_syntax_status,
@@ -510,6 +554,8 @@ jq -n \
             syntax_unreachable_rules: ($sv_syntax_unreachable_rules | tonumber),
             syntax_unreachable_branches: ($sv_syntax_unreachable_branches | tonumber),
             syntax_target_debt_count: ($sv_syntax_target_debt_count | tonumber),
+            semantic_scope_case_count: ($sv_semantic_scope_case_count | tonumber),
+            semantic_scope_failed_count: ($sv_semantic_scope_failed_count | tonumber),
             generation_parser_rejections_total: ($sv_generation_parser_rejections_total | tonumber),
             replay_shadow_parser_rejections_total: ($sv_shadow_parser_rejections_total | tonumber),
             focused_replay_target_count: ($sv_focused_replay_target_count | tonumber),
@@ -547,6 +593,13 @@ jq -n \
                 observed: $sv_focused_replay_target_count,
                 expected: "0",
                 detail: ("focused_replay_target_count=" + $sv_focused_replay_target_count + " > 0")
+              }] end)
+            + (if $sv_semantic_scope_contract_green then [] else [{
+                criterion: "semantic_scope_contract_green",
+                evidence_key: "semantic_scope_failed_count",
+                observed: $sv_semantic_scope_failed_count,
+                expected: "0",
+                detail: ("semantic_scope_failed_count=" + $sv_semantic_scope_failed_count + " > 0")
               }] end)
           )
         },
@@ -688,6 +741,9 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_syntax_unreachable_rules: $sv_syntax_unreachable_rules"
     echo "systemverilog_syntax_unreachable_branches: $sv_syntax_unreachable_branches"
     echo "systemverilog_syntax_target_debt_count: $sv_syntax_target_debt_count"
+    echo "systemverilog_semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json"
+    echo "systemverilog_semantic_scope_case_count: $sv_semantic_scope_case_count"
+    echo "systemverilog_semantic_scope_failed_count: $sv_semantic_scope_failed_count"
     echo "systemverilog_generation_parser_rejections_total: $sv_generation_parser_rejections_total"
     echo "systemverilog_replay_shadow_parser_rejections_total: $sv_shadow_parser_rejections_total"
     echo "systemverilog_focused_replay_target_count: $sv_focused_replay_target_count"

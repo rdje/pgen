@@ -14,8 +14,12 @@ EXISTING_FAMILY_STATUS_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STAT
 
 EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR:-}"
+EXISTING_SV_PARSER_AGGREGATE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR:-}"
 EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}"
+EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -95,9 +99,29 @@ if [[ -z "$EXISTING_FAMILY_STATUS_STATE_DIR" ]]; then
             PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$EXISTING_SV_STIMULI_QUALITY_STATE_DIR"
         )
     fi
+    if [[ -n "$EXISTING_SV_PARSER_AGGREGATE_STATE_DIR" ]]; then
+        family_status_env+=(
+            PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR="$EXISTING_SV_PARSER_AGGREGATE_STATE_DIR"
+        )
+    fi
     if [[ -n "$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR" ]]; then
         family_status_env+=(
             PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="$EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR"
+        )
+    fi
+    if [[ -n "$EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR" ]]; then
+        family_status_env+=(
+            PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR="$EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR"
+        )
+    fi
+    if [[ -n "$EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR" ]]; then
+        family_status_env+=(
+            PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR="$EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR"
+        )
+    fi
+    if [[ -n "$EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR" ]]; then
+        family_status_env+=(
+            PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR"
         )
     fi
     family_status_env+=("$SV_PARSER_FAMILY_STATUS_GATE")
@@ -110,9 +134,9 @@ family_status_summary_txt="$family_status_state_dir/summary.txt"
 require_nonempty_file "$family_status_summary_json"
 require_nonempty_file "$family_status_summary_txt"
 
-main_expected_criteria='["syntax_closure_gate_green","parser_aggregate_contract_green","generation_parser_rejections_zero","replay_shadow_parser_rejections_zero","focused_replay_target_debt_zero"]'
-main_expected_metrics='["syntax_closure_status","syntax_closure_failure_count","syntax_defined_rule_count","syntax_unresolved_rule_reference_count","syntax_unreachable_rules","syntax_unreachable_branches","syntax_target_debt_count","generation_parser_rejections_total","replay_shadow_parser_rejections_total","focused_replay_target_count","focused_replay_covered_reachable_rules","focused_replay_covered_reachable_branches","replay_gap_target_primary_rule"]'
-main_expected_proof_surfaces='["syntax_closure_summary_json","parser_aggregate_summary_txt"]'
+main_expected_criteria='["syntax_closure_gate_green","parser_aggregate_contract_green","generation_parser_rejections_zero","replay_shadow_parser_rejections_zero","focused_replay_target_debt_zero","semantic_scope_contract_green"]'
+main_expected_metrics='["syntax_closure_status","syntax_closure_failure_count","syntax_defined_rule_count","syntax_unresolved_rule_reference_count","syntax_unreachable_rules","syntax_unreachable_branches","syntax_target_debt_count","semantic_scope_case_count","semantic_scope_failed_count","generation_parser_rejections_total","replay_shadow_parser_rejections_total","focused_replay_target_count","focused_replay_covered_reachable_rules","focused_replay_covered_reachable_branches","replay_gap_target_primary_rule"]'
+main_expected_proof_surfaces='["syntax_closure_summary_json","parser_aggregate_summary_txt","semantic_scope_contract_summary_json"]'
 svpp_expected_criteria='["syntax_closure_gate_green","aggregate_contract_green","reachability_closure_green","parser_rejections_zero","parseability_rejections_zero","reachability_stage3_targets_zero","reachability_stage4_targets_zero","reachability_stage3_rules_full","reachability_stage4_rules_full","reachability_stage3_branches_full","reachability_stage4_branches_full"]'
 svpp_expected_metrics='["syntax_closure_status","syntax_closure_failure_count","syntax_defined_rule_count","syntax_unresolved_rule_reference_count","syntax_unreachable_rules","syntax_unreachable_branches","syntax_target_debt_count","parseability_parser_rejections_total","parseability_rejected_total","final_targets","covered_reachable_rules","covered_reachable_branches","counterexample_primary_stage","reachability_stage3_targets","reachability_stage4_targets","reachability_stage3_rules","reachability_stage4_rules","reachability_stage3_branches","reachability_stage4_branches"]'
 svpp_expected_proof_surfaces='["syntax_closure_summary_json","aggregate_summary_txt","reachability_summary_txt"]'
