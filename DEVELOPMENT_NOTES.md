@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-22 - External consumer deliverable doctrine after RTLSyn review
+### Context
+I reviewed the current RTLSyn docs from `../rtlsyn/README.md`, including the direct README-linked markdown set and especially:
+- `../rtlsyn/docs/PGEN_DELIVERABLE_REQUIREMENTS.md`
+
+The useful outcome for PGEN is not RTLSyn-specific implementation detail. It is a clearer downstream consumer contract for what a PGEN deliverable must provide when another Rust project wants to integrate generated parsers/evaluators into its own product path.
+
+### Durable Takeaways
+- PGEN should continue to optimize for generated Rust deliverables, not for making downstream tools depend on PGEN as a runtime library.
+- Preferred integration surface remains:
+  - generated Rust source file first,
+  - Rust crate/path dependency second,
+  - standalone IPC/JSON binary only as a fallback.
+- If generated code needs helper types, those helpers should be small and vendorable/self-contained rather than creating a hard product-path dependency on a large shared PGEN runtime.
+- Downstream-ready parser families need more than parse acceptance:
+  - deterministic output,
+  - source-faithful structures/spans where relevant,
+  - byte/line/column/message/context diagnostics,
+  - explicit rejection of unsupported constructs for bounded subsets,
+  - regeneration provenance plus behavioral-diff reporting.
+
+### Delivery-Order Reinforcement
+- RTLSyn's stated preferred order also matches the most generally useful downstream sequence for PGEN:
+  - `rtl_const_expr`
+  - `rtl_frontend`
+  - Liberty
+  - SDC
+  - VHDL later
+- That ordering should be treated as externally validated demand shaping, not as client lock-in:
+  - constant-expression closure unlocks elaboration and width reasoning,
+  - RTL frontend closure unlocks real design-boundary integration,
+  - Liberty and SDC are the next synthesis-facing parser families after that.
+
+### Why This Matters
+- PGEN's parser-family closure doctrine already insists on machine-checkable proof.
+- This RTLSyn review adds a complementary downstream-integration doctrine:
+  - generated artifacts must also be easy to vendor,
+  - deterministic and diagnosable enough for acceptance testing,
+  - and explicit about supported subsets and unsupported-construct rejection.
+- This should influence roadmap shaping, but it should do so in a project-agnostic way rather than by baking RTLSyn-specific code paths into PGEN.
+
 ## 2026-03-22 - Tighten the generic package-qualified variable-lvalue front
 ### Context
 After the nettype coherence follow-ups, one nearby procedural assignment surface still used raw `package_scope`:

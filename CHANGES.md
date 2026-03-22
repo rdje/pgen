@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-03-22 - Capture external consumer deliverable doctrine
+### ✅ Achievement Summary
+PGEN now records a clearer client-agnostic downstream deliverable contract after reviewing the RTLSyn project docs, especially `../rtlsyn/docs/PGEN_DELIVERABLE_REQUIREMENTS.md`.
+
+### Scope of Changes
+- Updated continuity/roadmap docs to capture reusable downstream expectations for PGEN parser families:
+  - generated Rust source or equally direct Rust integration surface
+  - self-contained/vendorable support code rather than mandatory runtime-library coupling
+  - deterministic output
+  - strong parse diagnostics (byte/line/column/message/context)
+  - bounded subset closure with explicit rejection of unsupported constructs
+  - regeneration provenance (version/digest) plus behavioral diff summary
+  - externally validated delivery order:
+    - `rtl_const_expr`
+    - `rtl_frontend`
+    - Liberty
+    - SDC
+    - VHDL later
+
+### Why This Matters
+- This does not retarget PGEN to one client.
+- It does sharpen what a serious downstream-ready PGEN deliverable should look like for any Rust workspace consumer:
+  - no forced runtime dependency on PGEN as a product-path library,
+  - deterministic generated artifacts,
+  - diagnostics and provenance strong enough for integration and acceptance testing,
+  - bounded subset support stated explicitly instead of implied vaguely.
+
 ## 2026-03-22 - Tighten SV package-scoped variable lvalue fronts
 ### ✅ Achievement Summary
 PGEN now extends the package-vs-local-type steering policy to the generic `variable_lvalue` front too. That package-qualified side now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-qualified procedural assignment targets.

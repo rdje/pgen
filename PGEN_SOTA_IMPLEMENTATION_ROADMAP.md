@@ -383,6 +383,44 @@ Full-file roundtrip doctrine:
   - full-file reparse,
   - canonical text equality check,
   - canonical AST equality check,
+
+## External Consumer Deliverable Doctrine
+PGEN should satisfy downstream Rust projects through strong deliverable contracts, not through consumer-specific special cases.
+
+General doctrine:
+- treat external consumer requirements as pressure to improve generic deliverable shape, not as permission to hardcode one project's needs into PGEN,
+- the right answer is reusable parser/evaluator artifacts with clear interfaces and strong closure proof, not client-specific forks in the generator/runtime.
+
+Required downstream-friendly shape:
+- preferred integration surface:
+  - generated Rust source file first,
+  - Rust crate/path dependency second,
+  - standalone tool/IPC boundary only as a fallback,
+- generated artifacts should remain compatible with vendoring into a downstream Rust workspace,
+- if support code is required, keep it small and self-contained enough to vendor rather than assuming a mandatory large PGEN runtime dependency,
+- deterministic output is mandatory,
+- parse/eval diagnostics should carry, where meaningful:
+  - byte position,
+  - line/column,
+  - human-readable failure message,
+  - parser rule/production context,
+- bounded subset support must be explicit:
+  - supported constructs stated positively,
+  - unsupported constructs rejected cleanly rather than silently misparsed,
+- regeneration should carry provenance:
+  - version identifier and/or digest,
+  - behavioral diff summary when accepted/rejected behavior changes.
+
+Externally validated near-term delivery order:
+- `rtl_const_expr`
+- `rtl_frontend`
+- Liberty
+- SDC
+- VHDL later
+
+Interpretation:
+- this ordering is not RTLSyn-specific roadmap capture; it is the current best validated demand signal for downstream synthesis-facing consumers in general,
+- it should inform prioritization once current parser-family closure work permits, without derailing the existing closure bar for `systemverilog`, `vhdl`, and `regex`.
 - the harness should be shared across EBNF-backed families, with per-family adapters only for:
   - input preparation,
   - preprocessing,

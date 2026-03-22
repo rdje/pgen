@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: variable-lvalue-front-tightening)
+Last updated: 2026-03-22 (+0100, task: external-consumer-deliverable-awareness)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -37,6 +37,28 @@ Use this file to resume work without replaying full chat history.
   - the current live-status snapshot,
   - and whether that snapshot changed or stayed unchanged.
 - This reporting contract exists for crash recovery and seamless resume continuity; do not skip it.
+
+## External Consumer Deliverable Snapshot
+- After reviewing RTLSyn's direct README-linked docs, the reusable PGEN-side takeaway is now explicit:
+  - downstream Rust projects want generated parser/evaluator artifacts that are easy to vendor,
+  - deterministic,
+  - strongly diagnosable,
+  - and explicit about bounded subset support/rejection.
+- Preferred downstream integration surface remains:
+  - generated Rust source first,
+  - path crate second,
+  - standalone IPC tool last.
+- If helper/runtime support is needed, keep it small and vendorable rather than assuming a large mandatory runtime dependency on PGEN itself.
+- Regeneration/provenance expectations are now explicit too:
+  - version/digest on generated artifacts,
+  - behavioral diff summary when regeneration changes accepted/rejected behavior.
+- Externally validated delivery order for synthesis-facing consumers currently aligns with:
+  - `rtl_const_expr`
+  - `rtl_frontend`
+  - Liberty
+  - SDC
+  - VHDL later
+- This is guidance for roadmap shaping, not a reason to fork PGEN into one client-specific product path.
 
 ## Current Reduced SV Semantic-Steering Frontier
 - Latest live coherence tightening:
@@ -5337,7 +5359,14 @@ Use this file to resume work without replaying full chat history.
 5. Paused operational follow-up:
    - investigate the still-failing private GitHub Actions workflow runs from a clean committed snapshot when CI debugging is resumed.
 6. Deferred until after parser-family finalization:
-   - resume the roadmap's deferred engineering concerns once `systemverilog`, `vhdl`, and `regex` have reached their intended closure/finalization bar.
+  - resume the roadmap's deferred engineering concerns once `systemverilog`, `vhdl`, and `regex` have reached their intended closure/finalization bar.
+7. Ongoing cross-project doctrine:
+   - keep future downstream-parser deliverables client-agnostic but compatible with the now-explicit external consumer contract:
+     - vendorable generated Rust,
+     - strong diagnostics,
+     - deterministic output,
+     - bounded subset closure with explicit unsupported rejection,
+     - regeneration provenance/diff reporting.
 
 ## Known Gaps / Risks
 - Pipeline is still hybrid (`ebnf_to_json.pl` remains active in core/gate flows).
