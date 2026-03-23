@@ -6268,3 +6268,18 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate`
     - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_contract_gate`
   - then rerun `vhdl_combined_telemetry_contract_gate.sh` against that SOTA state
+- `sota_exit_gate.sh` now has its own machine-readable top-level sidecar:
+  - `/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate/summary.json`
+  - it carries gate/policy metadata, parsed `summary.csv` check rows, and the forwarded family proof-path / blocker fields
+- Reuse-backed proof shape for the SOTA JSON sidecar slice:
+  - `set -a; source /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env; set +a`
+  - rerun `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` with:
+    - `PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate`
+    - `PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_aggregate_contract_gate`
+    - `PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_reachability_closure_gate`
+    - `PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate`
+    - `PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_parser_aggregate_contract_gate`
+    - `PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_failure_context_contract_gate`
+    - `PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_roundtrip_contract_gate`
+    - `PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_gate`
+    - `PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_contract_gate`

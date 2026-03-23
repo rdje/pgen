@@ -8,7 +8,18 @@ STATE_DIR="${PGEN_SOTA_EXIT_STATE_DIR:-$RUST_DIR/target/sota_exit_gate}"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_CSV="$STATE_DIR/summary.csv"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 POLICY_FILE="${PGEN_SOTA_POLICY_FILE:-$RUST_DIR/config/sota_exit_policy.env}"
+GATE_NAME="sota_exit_gate"
+GATE_VERSION=1
+
+require_tool() {
+    local tool="$1"
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "error: required tool '$tool' is not available in PATH" >&2
+        exit 1
+    fi
+}
 
 if [[ ! -f "$POLICY_FILE" ]]; then
     echo "error: SOTA policy file not found at '$POLICY_FILE'" >&2
@@ -737,6 +748,28 @@ summary_value_from_txt() {
     fi
     sed -nE "s/^${key}: (.*)$/\\1/p" "$txt_file" | tail -n 1 || true
 }
+
+csv_to_json_rows() {
+    local csv_file="$1"
+    jq -Rn '
+        [inputs | split(",")] as $rows
+        | ($rows[0] // []) as $header
+        | [ $rows[1:][] as $row
+            | reduce range(0; ($header | length)) as $i ({};
+                . + {
+                    ($header[$i]):
+                        (($row[$i] // "")
+                            | if ($header[$i] == "notes" and startswith("\"") and endswith("\""))
+                              then .[1:-1]
+                              else .
+                              end)
+                }
+              )
+          ]
+    ' "$csv_file"
+}
+
+require_tool jq
 
 summary_value_from_txt_literal() {
     local key="$1"
@@ -2752,13 +2785,25 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION="$(summary_value_from_txt "regex_primary_unmet_detail_criterion" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON="$(summary_value_from_txt "regex_unmet_closure_criteria_json" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON="$(summary_value_from_txt "regex_unmet_closure_criteria_details_json" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
-    fi
 fi
+fi
+
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+informational_failures=$((all_failures - required_failures))
 
 {
     echo "PGEN SOTA Exit Gate Summary"
+    echo "gate: $GATE_NAME"
+    echo "version: $GATE_VERSION"
+    echo "generated_at_utc: $generated_at_utc"
     echo "state_dir: $STATE_DIR"
+    echo "summary_csv: $SUMMARY_CSV"
+    echo "summary_json: $SUMMARY_JSON"
+    echo "policy_file: $POLICY_FILE"
+    echo "policy_version: $POLICY_VERSION"
+    echo "allow_informational_failures: $ALLOW_INFORMATIONAL_FAILURES"
     echo "required_failures: $required_failures"
+    echo "informational_failures: $informational_failures"
     echo "all_failures: $all_failures"
     echo
     if command -v column >/dev/null 2>&1; then
@@ -3372,6 +3417,174 @@ fi
     fi
 } >"$SUMMARY_TXT"
 
+checks_json="$(csv_to_json_rows "$SUMMARY_CSV")"
+
+jq -n \
+    --arg gate "$GATE_NAME" \
+    --argjson version "$GATE_VERSION" \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg state_dir "$STATE_DIR" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_csv "$SUMMARY_CSV" \
+    --arg summary_json "$SUMMARY_JSON" \
+    --arg policy_file "$POLICY_FILE" \
+    --argjson policy_version "$POLICY_VERSION" \
+    --arg required_checks "$REQUIRED_CHECKS" \
+    --argjson allow_informational_failures "$ALLOW_INFORMATIONAL_FAILURES" \
+    --argjson required_failures "$required_failures" \
+    --argjson informational_failures "$informational_failures" \
+    --argjson all_failures "$all_failures" \
+    --argjson checks "$checks_json" \
+    --arg ebnf_dual_run_summary_json "$EBNF_DUAL_RUN_SUMMARY_JSON" \
+    --arg sv_parser_family_status_summary_json "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON" \
+    --arg sv_parser_family_status_contract_summary_json "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON" \
+    --arg vhdl_parser_family_contract_summary_json "${VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg vhdl_parser_family_status_summary_json "${VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON:-<not-run>}" \
+    --arg vhdl_parser_family_status_contract_summary_json "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg regex_parser_family_contract_summary_json "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON" \
+    --arg regex_parser_family_status_summary_json "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON" \
+    --arg regex_parser_family_status_contract_summary_json "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON" \
+    --arg sv_systemverilog_status "$SV_FAMILY_STATUS_SYSTEMVERILOG" \
+    --arg sv_systemverilog_tracker_status "$SV_FAMILY_STATUS_SYSTEMVERILOG_TRACKER_STATUS" \
+    --arg sv_systemverilog_tracker_alignment_ok "$SV_FAMILY_STATUS_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK" \
+    --arg sv_systemverilog_primary_unmet "$SV_FAMILY_STATUS_SYSTEMVERILOG_PRIMARY_UNMET_CLOSURE_CRITERION" \
+    --arg sv_systemverilog_unmet_json "$SV_FAMILY_STATUS_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_JSON" \
+    --arg sv_systemverilog_unmet_details_json "$SV_FAMILY_STATUS_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_DETAILS_JSON" \
+    --arg sv_systemverilog_preprocessor_status "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR" \
+    --arg sv_systemverilog_preprocessor_tracker_status "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_TRACKER_STATUS" \
+    --arg sv_systemverilog_preprocessor_tracker_alignment_ok "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK" \
+    --arg sv_systemverilog_preprocessor_primary_unmet "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_PRIMARY_UNMET_CLOSURE_CRITERION" \
+    --arg sv_systemverilog_preprocessor_unmet_json "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_JSON" \
+    --arg sv_systemverilog_preprocessor_unmet_details_json "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_DETAILS_JSON" \
+    --arg vhdl_status "${VHDL_FAMILY_STATUS_VHDL:-<not-run>}" \
+    --arg vhdl_tracker_status "${VHDL_FAMILY_STATUS_VHDL_TRACKER_STATUS:-<not-run>}" \
+    --arg vhdl_tracker_alignment_ok "${VHDL_FAMILY_STATUS_VHDL_TRACKER_ALIGNMENT_OK:-<not-run>}" \
+    --arg vhdl_primary_unmet "${VHDL_FAMILY_STATUS_VHDL_PRIMARY_UNMET_CLOSURE_CRITERION:-<not-run>}" \
+    --arg vhdl_unmet_json "${VHDL_FAMILY_STATUS_VHDL_UNMET_CLOSURE_CRITERIA_JSON:-<not-run>}" \
+    --arg vhdl_unmet_details_json "${VHDL_FAMILY_STATUS_VHDL_UNMET_CLOSURE_CRITERIA_DETAILS_JSON:-<not-run>}" \
+    --arg regex_status "${REGEX_FAMILY_STATUS_REGEX:-<not-run>}" \
+    --arg regex_tracker_status "${REGEX_FAMILY_STATUS_REGEX_TRACKER_STATUS:-<not-run>}" \
+    --arg regex_tracker_alignment_ok "${REGEX_FAMILY_STATUS_REGEX_TRACKER_ALIGNMENT_OK:-<not-run>}" \
+    --arg regex_primary_unmet "${REGEX_FAMILY_STATUS_REGEX_PRIMARY_UNMET_CLOSURE_CRITERION:-<not-run>}" \
+    --arg regex_unmet_json "${REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_JSON:-<not-run>}" \
+    --arg regex_unmet_details_json "${REGEX_FAMILY_STATUS_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON:-<not-run>}" \
+    --arg sv_contract_systemverilog_tracker_alignment_ok "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK" \
+    --arg sv_contract_systemverilog_primary_unmet_detail "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PRIMARY_UNMET_DETAIL_CRITERION" \
+    --arg sv_contract_systemverilog_unmet_json "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_JSON" \
+    --arg sv_contract_systemverilog_unmet_details_json "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_UNMET_CLOSURE_CRITERIA_DETAILS_JSON" \
+    --arg sv_contract_systemverilog_preprocessor_tracker_alignment_ok "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK" \
+    --arg sv_contract_systemverilog_preprocessor_primary_unmet_detail "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_PRIMARY_UNMET_DETAIL_CRITERION" \
+    --arg sv_contract_systemverilog_preprocessor_unmet_json "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_JSON" \
+    --arg sv_contract_systemverilog_preprocessor_unmet_details_json "$SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_CLOSURE_CRITERIA_DETAILS_JSON" \
+    --arg vhdl_contract_tracker_alignment_ok "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK:-<not-run>}" \
+    --arg vhdl_contract_primary_unmet_detail "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_PRIMARY_UNMET_DETAIL_CRITERION:-<not-run>}" \
+    --arg vhdl_contract_unmet_json "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_JSON:-<not-run>}" \
+    --arg vhdl_contract_unmet_details_json "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_DETAILS_JSON:-<not-run>}" \
+    --arg regex_contract_tracker_alignment_ok "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK:-<not-run>}" \
+    --arg regex_contract_primary_unmet_detail "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION:-<not-run>}" \
+    --arg regex_contract_unmet_json "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON:-<not-run>}" \
+    --arg regex_contract_unmet_details_json "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON:-<not-run>}" \
+    '
+    def maybe_text($v):
+        if ($v | length) == 0 or (($v | startswith("<")) and ($v | endswith(">"))) then null else $v end;
+    def maybe_path($v): maybe_text($v);
+    def maybe_bool($v):
+        if $v == "true" then true
+        elif $v == "false" then false
+        else null
+        end;
+    def maybe_json($v):
+        if ($v | length) == 0 or (($v | startswith("<")) and ($v | endswith(">"))) then null
+        else ($v | fromjson?)
+        end;
+    def family_status_entry($summary_json; $contract_json; $status; $tracker_status; $tracker_alignment_ok; $primary_unmet; $unmet_json; $unmet_details_json):
+        if maybe_path($summary_json) == null then null else {
+            status: maybe_text($status),
+            tracker_status: maybe_text($tracker_status),
+            tracker_alignment_ok: maybe_bool($tracker_alignment_ok),
+            primary_unmet_closure_criterion: maybe_text($primary_unmet),
+            unmet_closure_criteria: maybe_json($unmet_json),
+            unmet_closure_criteria_details: maybe_json($unmet_details_json),
+            proof_surfaces: {
+                family_status_summary_json: maybe_path($summary_json),
+                family_status_contract_summary_json: maybe_path($contract_json)
+            }
+        } end;
+    def family_status_contract_entry($summary_json; $tracker_alignment_ok; $primary_unmet_detail; $unmet_json; $unmet_details_json):
+        if maybe_path($summary_json) == null then null else {
+            tracker_alignment_ok: maybe_bool($tracker_alignment_ok),
+            primary_unmet_detail_criterion: maybe_text($primary_unmet_detail),
+            unmet_closure_criteria: maybe_json($unmet_json),
+            unmet_closure_criteria_details: maybe_json($unmet_details_json),
+            proof_surfaces: {
+                family_status_contract_summary_json: maybe_path($summary_json)
+            }
+        } end;
+    ($required_checks | split(" ") | map(select(length > 0))) as $required_check_list
+    | ($checks
+        | map(
+            .required_label = .required
+            | .required = (.required == "required")
+            | .passed = (.status == "pass")
+          )
+      ) as $checks_enriched
+    | {
+        gate: $gate,
+        version: $version,
+        generated_at_utc: $generated_at_utc,
+        state_dir: $state_dir,
+        status: (
+            if $required_failures != 0 then "failed_required_checks"
+            elif $informational_failures != 0 and $allow_informational_failures == 0 then "failed_informational_policy"
+            elif $all_failures != 0 then "passed_with_informational_failures"
+            else "passed"
+            end
+        ),
+        policy: {
+            file: $policy_file,
+            version: $policy_version,
+            required_checks: $required_check_list,
+            allow_informational_failures: ($allow_informational_failures == 1)
+        },
+        counts: {
+            required_failures: $required_failures,
+            informational_failures: $informational_failures,
+            all_failures: $all_failures,
+            total_checks: ($checks_enriched | length),
+            required_checks: ($checks_enriched | map(select(.required)) | length),
+            passed_checks: ($checks_enriched | map(select(.passed)) | length),
+            failed_checks: ($checks_enriched | map(select(.passed | not)) | length)
+        },
+        proof_surfaces: {
+            summary_txt: $summary_txt,
+            summary_csv: $summary_csv,
+            summary_json: $summary_json,
+            ebnf_dual_run_summary_json: maybe_path($ebnf_dual_run_summary_json),
+            sv_parser_family_status_summary_json: maybe_path($sv_parser_family_status_summary_json),
+            sv_parser_family_status_contract_summary_json: maybe_path($sv_parser_family_status_contract_summary_json),
+            vhdl_parser_family_contract_summary_json: maybe_path($vhdl_parser_family_contract_summary_json),
+            vhdl_parser_family_status_summary_json: maybe_path($vhdl_parser_family_status_summary_json),
+            vhdl_parser_family_status_contract_summary_json: maybe_path($vhdl_parser_family_status_contract_summary_json),
+            regex_parser_family_contract_summary_json: maybe_path($regex_parser_family_contract_summary_json),
+            regex_parser_family_status_summary_json: maybe_path($regex_parser_family_status_summary_json),
+            regex_parser_family_status_contract_summary_json: maybe_path($regex_parser_family_status_contract_summary_json)
+        },
+        family_status: {
+            systemverilog: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_status; $sv_systemverilog_tracker_status; $sv_systemverilog_tracker_alignment_ok; $sv_systemverilog_primary_unmet; $sv_systemverilog_unmet_json; $sv_systemverilog_unmet_details_json),
+            systemverilog_preprocessor: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_preprocessor_status; $sv_systemverilog_preprocessor_tracker_status; $sv_systemverilog_preprocessor_tracker_alignment_ok; $sv_systemverilog_preprocessor_primary_unmet; $sv_systemverilog_preprocessor_unmet_json; $sv_systemverilog_preprocessor_unmet_details_json),
+            vhdl: family_status_entry($vhdl_parser_family_status_summary_json; $vhdl_parser_family_status_contract_summary_json; $vhdl_status; $vhdl_tracker_status; $vhdl_tracker_alignment_ok; $vhdl_primary_unmet; $vhdl_unmet_json; $vhdl_unmet_details_json),
+            regex: family_status_entry($regex_parser_family_status_summary_json; $regex_parser_family_status_contract_summary_json; $regex_status; $regex_tracker_status; $regex_tracker_alignment_ok; $regex_primary_unmet; $regex_unmet_json; $regex_unmet_details_json)
+        },
+        family_status_contract: {
+            systemverilog: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_tracker_alignment_ok; $sv_contract_systemverilog_primary_unmet_detail; $sv_contract_systemverilog_unmet_json; $sv_contract_systemverilog_unmet_details_json),
+            systemverilog_preprocessor: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_preprocessor_tracker_alignment_ok; $sv_contract_systemverilog_preprocessor_primary_unmet_detail; $sv_contract_systemverilog_preprocessor_unmet_json; $sv_contract_systemverilog_preprocessor_unmet_details_json),
+            vhdl: family_status_contract_entry($vhdl_parser_family_status_contract_summary_json; $vhdl_contract_tracker_alignment_ok; $vhdl_contract_primary_unmet_detail; $vhdl_contract_unmet_json; $vhdl_contract_unmet_details_json),
+            regex: family_status_contract_entry($regex_parser_family_status_contract_summary_json; $regex_contract_tracker_alignment_ok; $regex_contract_primary_unmet_detail; $regex_contract_unmet_json; $regex_contract_unmet_details_json)
+        },
+        checks: $checks_enriched
+    }
+' >"$SUMMARY_JSON"
+
 cat "$SUMMARY_TXT"
 
 if [[ "$required_failures" -ne 0 ]]; then
@@ -3379,7 +3592,6 @@ if [[ "$required_failures" -ne 0 ]]; then
     exit 1
 fi
 
-informational_failures=$((all_failures - required_failures))
 if [[ "$informational_failures" -ne 0 && "$ALLOW_INFORMATIONAL_FAILURES" -eq 0 ]]; then
     echo "❌ SOTA exit gate failed: ${informational_failures} informational check(s) failed while policy disallows informational failures." >&2
     exit 1

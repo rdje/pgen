@@ -23587,3 +23587,8 @@ Architectural north star:
     - `vhdl_family_strict_promotion_report_json`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now parity-checks those fields against the family-contract JSON sidecar and re-emits them in its own summary
 - That gives the aggregate layer a direct answer to “which evidence did the VHDL family proof actually use?” rather than forcing operators to infer it from nested workdir conventions.
+- The next aggregate-proof normalization seam is the top-level SOTA sidecar itself. `sota_exit_gate.sh` already forwards family proof paths and writes a machine-readable `summary.csv`, so it should also emit a focused `summary.json` that preserves:
+  - gate/policy metadata,
+  - per-check outcomes from `summary.csv`,
+  - and the forwarded family proof / primary-blocker fields
+  in one machine-readable top-level artifact rather than leaving aggregate consumers to parse only `summary.txt`.
