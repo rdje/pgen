@@ -162,7 +162,7 @@ require_nonempty_file "$stimuli_summary_csv"
 
 frontend_strict_mode="$(extract_summary_value "$frontend_summary_txt" "strict_mode")"
 frontend_impl="$(extract_summary_value "$frontend_summary_txt" "frontend_impl")"
-frontend_regex_ebnf_to_json="$(extract_csv_value "$frontend_summary_csv" "regex" "ebnf_to_json")"
+frontend_regex_frontend_to_json="$(extract_csv_value "$frontend_summary_csv" "regex" "frontend_to_json")"
 frontend_regex_json_to_parser="$(extract_csv_value "$frontend_summary_csv" "regex" "json_to_parser")"
 frontend_regex_json_to_stimuli="$(extract_csv_value "$frontend_summary_csv" "regex" "json_to_stimuli")"
 frontend_regex_overall="$(extract_csv_value "$frontend_summary_csv" "regex" "overall")"
@@ -192,7 +192,7 @@ stimuli_regex_stage0_successes="$(extract_csv_value "$stimuli_summary_csv" "rege
 stimuli_regex_stage3_successes="$(extract_csv_value "$stimuli_summary_csv" "regex" "stage3_successes")"
 stimuli_regex_status="$(extract_csv_value "$stimuli_summary_csv" "regex" "status")"
 
-assert_equal "frontend regex ebnf_to_json" "pass" "$frontend_regex_ebnf_to_json"
+assert_equal "frontend regex frontend_to_json" "pass" "$frontend_regex_frontend_to_json"
 assert_equal "frontend regex json_to_parser" "pass" "$frontend_regex_json_to_parser"
 assert_equal "frontend regex json_to_stimuli" "pass" "$frontend_regex_json_to_stimuli"
 assert_equal "frontend regex overall" "pass" "$frontend_regex_overall"
@@ -241,7 +241,7 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "frontend_summary_txt: $frontend_summary_txt"
     echo "frontend_summary_csv: $frontend_summary_csv"
     echo "frontend_impl: $frontend_impl"
-    echo "frontend_regex_ebnf_to_json: $frontend_regex_ebnf_to_json"
+    echo "frontend_regex_frontend_to_json: $frontend_regex_frontend_to_json"
     echo "frontend_regex_json_to_parser: $frontend_regex_json_to_parser"
     echo "frontend_regex_json_to_stimuli: $frontend_regex_json_to_stimuli"
     echo "frontend_regex_overall: $frontend_regex_overall"
@@ -284,7 +284,7 @@ jq -n \
     --arg frontend_summary_txt "$frontend_summary_txt" \
     --arg frontend_summary_csv "$frontend_summary_csv" \
     --arg frontend_impl "$frontend_impl" \
-    --arg frontend_regex_ebnf_to_json "$frontend_regex_ebnf_to_json" \
+    --arg frontend_regex_frontend_to_json "$frontend_regex_frontend_to_json" \
     --arg frontend_regex_json_to_parser "$frontend_regex_json_to_parser" \
     --arg frontend_regex_json_to_stimuli "$frontend_regex_json_to_stimuli" \
     --arg frontend_regex_overall "$frontend_regex_overall" \
@@ -335,7 +335,7 @@ jq -n \
       },
       metrics: {
         frontend_impl: $frontend_impl,
-        frontend_regex_ebnf_to_json: $frontend_regex_ebnf_to_json,
+        frontend_regex_frontend_to_json: $frontend_regex_frontend_to_json,
         frontend_regex_json_to_parser: $frontend_regex_json_to_parser,
         frontend_regex_json_to_stimuli: $frontend_regex_json_to_stimuli,
         frontend_regex_overall: $frontend_regex_overall,

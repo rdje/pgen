@@ -6122,3 +6122,7 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_EBNF_STIMULI_QUALITY_COUNT=1`
   - `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25`
   That default-path proof stayed green for all tracked rows after promoting the default to Rust.
+- The readiness/regex-family contract wording has now been normalized too:
+  - `ebnf_frontend_readiness_gate` exports `frontend_to_json` instead of `ebnf_to_json`
+  - `regex_parser_family_contract_gate` consumes/reports `frontend_regex_frontend_to_json`
+  - keep `perl_ebnf_to_json` only on the dual-run differential surface where Perl-vs-Rust comparison is intentional

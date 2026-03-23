@@ -3810,3 +3810,4 @@ Why `rtl_frontend` exists:
   - `PGEN_EBNF_STIMULI_QUALITY_COUNT=1`
   - `PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25`
   Important nuance: the `ebnf` self-parseability bootstrap still intentionally uses the Perl bootstrap seam; this slice only changes the default tracked-grammar frontend path, not that bootstrap doctrine.
+- The same normalization now applies to readiness-contract naming. Once `ebnf_frontend_readiness_gate` is Rust-by-default, its tracked conversion field should be frontend-neutral rather than Perl-shaped. The live readiness/regex-family contract surface now uses `frontend_to_json`, while the explicit `perl_ebnf_to_json` label remains reserved for the dual-run differential gate where Perl-vs-Rust comparison is intentional.

@@ -23270,3 +23270,8 @@ Architectural north star:
     - `regex`: `pass`
     - `builtin_return_annotation`: `pass`
     - `builtin_semantic_annotation`: `pass`
+- The next operator-surface cleanup there was naming honesty rather than another frontend-behavior change. After the Rust-default flip, `ebnf_frontend_readiness_gate` was still labeling the tracked conversion column `ebnf_to_json`, which made the readiness CSV look Perl-authoritative even when `frontend_impl: rust`.
+- Tightened that readiness/regex-family contract surface:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` now exports `frontend_to_json`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh` now reads/reports `frontend_regex_frontend_to_json`
+  - the intentionally comparative dual-run field stays `perl_ebnf_to_json`, because that gate is still measuring Perl-vs-Rust behavior rather than generic frontend success

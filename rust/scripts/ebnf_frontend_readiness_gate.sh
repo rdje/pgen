@@ -108,7 +108,7 @@ if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
     exit 1
 fi
 
-echo "grammar,ebnf_to_json,json_to_parser,json_to_stimuli,parser_registry_support,parseability,parseability_attempts,parseability_accepted,parseability_rejected,parseability_acceptance_rate_percent,parseability_report_json,overall,notes" >"$SUMMARY_CSV"
+echo "grammar,frontend_to_json,json_to_parser,json_to_stimuli,parser_registry_support,parseability,parseability_attempts,parseability_accepted,parseability_rejected,parseability_acceptance_rate_percent,parseability_report_json,overall,notes" >"$SUMMARY_CSV"
 {
     echo "PGEN EBNF Frontend Readiness Summary"
     echo "state_dir: $STATE_DIR"
@@ -137,7 +137,7 @@ for grammar in "${GRAMMARS[@]}"; do
     parser_out="$WORK_DIR/${grammar}_parser.rs"
     stimuli_out="$WORK_DIR/${grammar}_stimuli.txt"
 
-    ebnf_to_json_status="skip"
+    frontend_to_json_status="skip"
     json_to_parser_status="skip"
     json_to_stimuli_status="skip"
     parser_registry_support_status="skip"
@@ -149,15 +149,15 @@ for grammar in "${GRAMMARS[@]}"; do
     parseability_report_path="n/a"
     notes="ok"
 
-    ebnf_log="$LOG_DIR/${grammar}.ebnf_to_json.log"
+    frontend_log="$LOG_DIR/${grammar}.frontend_to_json.log"
     parser_log="$LOG_DIR/${grammar}.json_to_parser.log"
     stimuli_log="$LOG_DIR/${grammar}.json_to_stimuli.log"
     probe_build_log="$LOG_DIR/${grammar}.parseability_probe_build.log"
     probe_support_log="$LOG_DIR/${grammar}.parseability_support.log"
     parseability_report_json="$WORK_DIR/${grammar}_parseability_report.json"
 
-    if run_frontend_to_json "$grammar_file" "$json_out" >"$ebnf_log" 2>&1; then
-        ebnf_to_json_status="pass"
+    if run_frontend_to_json "$grammar_file" "$json_out" >"$frontend_log" 2>&1; then
+        frontend_to_json_status="pass"
         if "$AST_PIPELINE_BIN" "$json_out" --generate-parser --eliminate-left-recursion -o "$parser_out" >"$parser_log" 2>&1; then
             json_to_parser_status="pass"
             build_env_line="$(parseability_build_env_for_grammar "$grammar" "$parser_out")"
@@ -221,17 +221,17 @@ for grammar in "${GRAMMARS[@]}"; do
             notes="json_to_parser failed (see logs/${grammar}.json_to_parser.log)"
         fi
     else
-        ebnf_to_json_status="fail"
+        frontend_to_json_status="fail"
         failures=$((failures + 1))
-        notes="ebnf_to_json failed (see logs/${grammar}.ebnf_to_json.log)"
+        notes="frontend_to_json failed (see logs/${grammar}.frontend_to_json.log)"
     fi
 
     overall="pass"
-    if [[ "$ebnf_to_json_status" == "fail" || "$json_to_parser_status" == "fail" || "$json_to_stimuli_status" == "fail" || "$parser_registry_support_status" == "fail" || "$parseability_status" == "fail" ]]; then
+    if [[ "$frontend_to_json_status" == "fail" || "$json_to_parser_status" == "fail" || "$json_to_stimuli_status" == "fail" || "$parser_registry_support_status" == "fail" || "$parseability_status" == "fail" ]]; then
         overall="fail"
     fi
 
-    echo "${grammar},${ebnf_to_json_status},${json_to_parser_status},${json_to_stimuli_status},${parser_registry_support_status},${parseability_status},${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_acceptance_rate},${parseability_report_path},${overall},${notes}" >>"$SUMMARY_CSV"
+    echo "${grammar},${frontend_to_json_status},${json_to_parser_status},${json_to_stimuli_status},${parser_registry_support_status},${parseability_status},${parseability_attempts},${parseability_accepted},${parseability_rejected},${parseability_acceptance_rate},${parseability_report_path},${overall},${notes}" >>"$SUMMARY_CSV"
 done
 
 {
