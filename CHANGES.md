@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-03-23 - Surface SV family proof provenance
+### ✅ Achievement Summary
+PGEN now exposes fuller SystemVerilog family-proof provenance through the family-status and aggregate telemetry layers. The SV family-status sidecar no longer stops at a few summary paths; it now records the exact state dirs and available summary sidecars for:
+- main-parser syntax closure,
+- main-parser aggregate proof,
+- semantic-scope contract,
+- preprocessor syntax closure,
+- preprocessor aggregate proof,
+- preprocessor reachability proof.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh)
+  - [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh)
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+- `sv_parser_family_status_gate` now emits the added proof-surface paths in both:
+  - `summary.json`
+  - `summary.txt`
+- `sv_parser_family_status_contract_gate` now checks parity for those added proof-surface paths between:
+  - `summary.txt`
+  - `summary.json`
+- `sota_exit_gate` now forwards those SV proof-surface paths into its own summary.
+- `sv_combined_telemetry_contract_gate` now parity-checks and re-emits them from the reused SOTA summary.
+
+### Why This Matters
+- This keeps the SV proof surface aligned with the same provenance doctrine already being enforced for VHDL and regex aggregate sign-off.
+- Aggregate telemetry now says exactly which upstream proof artifacts it relied on, not just which derived metrics happened to pass.
+- That makes crash recovery, handoff, and future contract debugging much cleaner when a family-status metric changes but the real question is:
+  - which exact sidecar did it come from?
+
 ## 2026-03-22 - Tighten SV package-scoped typed-cast fronts
 ### ✅ Achievement Summary
 PGEN now extends the same package-vs-local-type steering policy to the generic typed-cast and assignment-pattern type front too. `ps_type_identifier` now routes through `non_typedef_package_scope`, so local typedef heads no longer masquerade as package-qualified type prefixes in contexts like `pkg::U'(expr)`.

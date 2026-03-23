@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-22
+Last updated: 2026-03-23
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -32,6 +32,11 @@ Execution preference for this roadmap:
 
 Interpretation rule:
 - if a claimed parser quality does not have a machine-checkable artifact, gate, contract, or invariant behind it, treat that quality as not yet closed.
+- aggregate-family sign-off should surface not only closure metrics but also the exact upstream proof artifacts those metrics came from:
+  - state dir,
+  - summary sidecar path,
+  - and JSON sidecar path when one exists.
+- once a family-status sidecar exposes richer proof provenance, the corresponding aggregate layer should parity-check and re-emit that provenance in the same slice rather than leaving it as an undocumented side effect.
 
 Engine generalization rule:
 - shared parser-generator and stimuli-generator fixes must be EBNF-agnostic and justified as engine-wide behavior, not as special handling for one grammar,

@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-23 - Surface richer SV family-status proof provenance
+### Context
+The recent VHDL and regex aggregate-proof work made one asymmetry stand out: SystemVerilog family status already had a good `summary.json`, but it still exposed only a partial provenance surface to downstream aggregate layers.
+
+That meant `sota_exit_gate` and `sv_combined_telemetry_contract_gate` could report the family-status outcome, yet still underspecify which exact upstream proof artifacts were used for:
+- syntax closure,
+- parser aggregate proof,
+- semantic-scope proof,
+- preprocessor aggregate proof,
+- preprocessor reachability proof.
+
+### Implementation
+- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - added proof-surface paths for the main parser:
+    - syntax-closure state dir / `summary.txt` / `summary.json`
+    - parser-aggregate state dir / `summary.txt`
+    - semantic-scope state dir / `summary.txt` / `summary.json`
+  - added proof-surface paths for the preprocessor:
+    - syntax-closure state dir / `summary.txt` / `summary.json`
+    - aggregate state dir / `summary.txt`
+    - reachability state dir / `summary.txt`
+  - emitted those paths in both:
+    - `summary.json`
+    - `summary.txt`
+- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - expanded the expected `proof_surfaces` schema for both SV families,
+  - added parity checks so the new proof-surface paths must match between:
+    - `summary.txt`
+    - `summary.json`
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - forwarded those richer SV proof-surface paths into the SOTA summary.
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - read the new proof-surface paths from the SV family-status sidecar,
+  - checked them against the SOTA summary,
+  - re-emitted them in combined telemetry output.
+
+### Why This Matters
+- The family-status layer now carries enough provenance to answer:
+  - which exact artifact proved this claim?
+- The aggregate layer now proves that the provenance it reports is the same provenance the family-status sidecar actually declared.
+- This is still a shell/docs-only normalization slice; it does not change any SystemVerilog parser behavior or closure counts.
+
 ## 2026-03-22 - Tighten the generic package-qualified typed-cast front
 ### Context
 After tightening the generic package-qualified net-lvalue front, one nearby generic typed front was still using raw `package_scope`:

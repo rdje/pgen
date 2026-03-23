@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-22 (+0100, task: remove-misplaced-fsmgen-doctrine)
+Last updated: 2026-03-23 (+0100, task: surface-sv-family-proof-provenance)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -75,6 +75,19 @@ Use this file to resume work without replaying full chat history.
 - This is guidance for roadmap shaping, not a reason to fork PGEN into one client-specific product path.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest proof-normalization continuity slice:
+  - SV family-status provenance now mirrors the same aggregate-proof doctrine already threaded through VHDL and regex.
+  - Current SV family-status / aggregate summaries now expose exact upstream proof artifact paths for:
+    - main-parser syntax closure,
+    - main-parser aggregate proof,
+    - semantic-scope proof,
+    - preprocessor syntax closure,
+    - preprocessor aggregate proof,
+    - preprocessor reachability proof.
+  - `sv_parser_family_status_contract_gate` now enforces parity for those proof-surface paths between:
+    - `summary.txt`
+    - `summary.json`
+  - `sota_exit_gate` and `sv_combined_telemetry_contract_gate` now carry and parity-check those same paths end to end.
 - Latest live coherence tightening:
   - the generic package-qualified typed-cast/type-expression front now also reuses:
     - `non_typedef_package_scope`
