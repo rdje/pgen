@@ -176,10 +176,14 @@ sv_parser_family_status_contract_systemverilog_tracker_alignment_ok="$(extract_s
 sv_parser_family_status_contract_systemverilog_false_criteria_count="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_false_criteria_count")"
 sv_parser_family_status_contract_systemverilog_unmet_details_count="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_unmet_details_count")"
 sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_primary_unmet_detail_criterion")"
+sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_unmet_closure_criteria_json")"
+sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_unmet_closure_criteria_details_json")"
 sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_tracker_alignment_ok")"
 sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_false_criteria_count")"
 sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_unmet_details_count")"
 sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_primary_unmet_detail_criterion")"
+sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_json")"
+sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_details_json")"
 sv_family_status_contract_gate="$(jq -r '.gate' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_gate_version="$(jq -r '.version' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_generated_at_utc="$(jq -r '.generated_at_utc' "$sv_parser_family_status_contract_summary_json")"
@@ -232,6 +236,14 @@ assert_equal \
     "$sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion" \
     "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion")"
 assert_equal \
+    "SV parser-family status contract main unmet criteria json" \
+    "$sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json")"
+assert_equal \
+    "SV parser-family status contract main unmet criteria details json" \
+    "$sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json")"
+assert_equal \
     "SV parser-family status contract preprocessor tracker alignment" \
     "$sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok" \
     "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok")"
@@ -247,6 +259,14 @@ assert_equal \
     "SV parser-family status contract preprocessor primary unmet detail criterion" \
     "$sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion" \
     "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion")"
+assert_equal \
+    "SV parser-family status contract preprocessor unmet criteria json" \
+    "$sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json")"
+assert_equal \
+    "SV parser-family status contract preprocessor unmet criteria details json" \
+    "$sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json")"
 
 sv_replay_gap_target_triage_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_json")"
 sv_replay_gap_target_triage_txt="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "replay_gap_target_triage_txt")"
@@ -1407,10 +1427,14 @@ assert_equal \
     echo "sv_parser_family_status_contract_systemverilog_false_criteria_count: $sv_parser_family_status_contract_systemverilog_false_criteria_count"
     echo "sv_parser_family_status_contract_systemverilog_unmet_details_count: $sv_parser_family_status_contract_systemverilog_unmet_details_count"
     echo "sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion: $sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion"
+    echo "sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json: $sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json"
+    echo "sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json: $sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json"
     echo "sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok: $sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok"
     echo "sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count: $sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count"
     echo "sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count: $sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count"
     echo "sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion: $sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion"
+    echo "sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json: $sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json"
+    echo "sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json: $sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json"
     echo "sv_replay_gap_target_triage_json: $sv_replay_gap_target_triage_json"
     echo "sv_replay_gap_target_triage_txt: $sv_replay_gap_target_triage_txt"
     echo "sv_replay_gap_target_unique_rules: $sv_replay_gap_target_unique_rules"

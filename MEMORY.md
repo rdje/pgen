@@ -1,11 +1,18 @@
 # MEMORY.md
 
-Last updated: 2026-03-23 (+0100, task: surface-sv-family-status-contract-json-proof)
+Last updated: 2026-03-23 (+0100, task: surface-sv-family-status-contract-blocker-json)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
 
 Use this file to resume work without replaying full chat history.
+
+## Current Session Note
+- SV family-status contract blocker payloads are now being normalized end to end:
+  - `sv_parser_family_status_gate` must echo unmet-criteria arrays in `summary.txt`, not only in `summary.json`,
+  - `sv_parser_family_status_contract_gate` carries both unmet-criteria JSON arrays and unmet-detail JSON arrays,
+  - `sota_exit_gate` and `sv_combined_telemetry_contract_gate` should surface the same four fields instead of only counts plus one primary criterion.
+- If this area regresses again, compare against the already-normalized regex and VHDL family-status contract aggregate paths before inventing a new shape.
 
 ## Resume Checklist (Read In Order)
 1. `git status -sb`

@@ -448,8 +448,8 @@ fi
 sv_tracker_alignment_ok=true
 svpp_tracker_alignment_ok=true
 
-sv_unmet_json="$(jq -n '$ARGS.positional' --args "${sv_unmet[@]}")"
-svpp_unmet_json="$(jq -n '$ARGS.positional' --args "${svpp_unmet[@]}")"
+sv_unmet_json="$(jq -cn '$ARGS.positional' --args "${sv_unmet[@]}")"
+svpp_unmet_json="$(jq -cn '$ARGS.positional' --args "${svpp_unmet[@]}")"
 
 jq -n \
     --arg generated_at_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
@@ -783,6 +783,7 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_closure_criteria_satisfied_count: $sv_closure_criteria_satisfied_count"
     echo "systemverilog_closure_criteria_unsatisfied_count: ${#sv_unmet[@]}"
     echo "systemverilog_unmet_closure_criteria_count: ${#sv_unmet[@]}"
+    echo "systemverilog_unmet_closure_criteria_json: $sv_unmet_json"
     echo "systemverilog_unmet_closure_criteria_details_json: $sv_unmet_details_json"
     for idx in "${!sv_unmet[@]}"; do
         echo "systemverilog_unmet_closure_criterion[$idx]: ${sv_unmet[$idx]}"
@@ -818,6 +819,7 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_preprocessor_closure_criteria_satisfied_count: $svpp_closure_criteria_satisfied_count"
     echo "systemverilog_preprocessor_closure_criteria_unsatisfied_count: ${#svpp_unmet[@]}"
     echo "systemverilog_preprocessor_unmet_closure_criteria_count: ${#svpp_unmet[@]}"
+    echo "systemverilog_preprocessor_unmet_closure_criteria_json: $svpp_unmet_json"
     echo "systemverilog_preprocessor_unmet_closure_criteria_details_json: $svpp_unmet_details_json"
     for idx in "${!svpp_unmet[@]}"; do
         echo "systemverilog_preprocessor_unmet_closure_criterion[$idx]: ${svpp_unmet[$idx]}"

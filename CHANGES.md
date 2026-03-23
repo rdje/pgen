@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-23 - Surface SV family-status contract blocker JSON
+### ✅ Achievement Summary
+PGEN now carries the full SystemVerilog family-status contract blocker payloads through the aggregate layers instead of collapsing them back to counts and one primary criterion.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh)
+  - [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh)
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+- `sv_parser_family_status_gate` now echoes the unmet-criteria arrays in `summary.txt`, matching the JSON sidecar it already had.
+- `sv_parser_family_status_contract_gate` now explicitly publishes, parity-checks, and sidecars:
+  - `systemverilog_unmet_closure_criteria_json`
+  - `systemverilog_unmet_closure_criteria_details_json`
+  - `systemverilog_preprocessor_unmet_closure_criteria_json`
+  - `systemverilog_preprocessor_unmet_closure_criteria_details_json`
+- `sota_exit_gate` and `sv_combined_telemetry_contract_gate` now surface and parity-check those same structured blocker payloads end to end.
+
+### Why This Matters
+- Before this slice, SV aggregate telemetry still lost fidelity at the contract boundary:
+  - the status gate JSON already had the blocker arrays but the TXT sidecar did not,
+  - the contract gate had the structured blocker arrays,
+  - but SOTA and combined telemetry only exposed counts and primary criteria.
+- Aggregate sign-off now keeps the same structured blocker evidence visible all the way up the proof stack.
+
 ## 2026-03-23 - Surface SV family-status contract JSON proof
 ### ✅ Achievement Summary
 PGEN now gives the SystemVerilog family-status contract gate its own `summary.json` sidecar, then threads that new contract-proof artifact through the SV aggregate layers.

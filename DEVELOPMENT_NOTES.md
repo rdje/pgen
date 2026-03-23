@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-23 - Carry SV contract blocker JSON through aggregate telemetry
+### Context
+After adding an SV family-status contract JSON sidecar, one smaller but important asymmetry still remained:
+- the SV contract gate already knew the full structured blocker payloads,
+- but `sota_exit_gate` and `sv_combined_telemetry_contract_gate` were still reducing that contract surface to:
+  - tracker-alignment booleans,
+  - false-criteria counts,
+  - unmet-detail counts,
+  - one primary unmet criterion.
+
+That meant the aggregate layer still threw away the contract gate's exact unmet-criteria arrays even though:
+- regex aggregate telemetry already preserved them,
+- VHDL aggregate telemetry already preserved them.
+
+### Implementation
+- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - its `summary.txt` now echoes:
+    - `systemverilog_unmet_closure_criteria_json`
+    - `systemverilog_preprocessor_unmet_closure_criteria_json`
+  - so the status TXT sidecar now matches the JSON sidecar it was already emitting.
+- Kept the in-flight update to [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - emit and parity-check both:
+    - unmet-criteria JSON arrays,
+    - unmet-criteria detail JSON arrays,
+  - for:
+    - `systemverilog`
+    - `systemverilog_preprocessor`
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - default, missing, extracted, and reported SV contract fields now include those four structured blocker payloads.
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - reads those four fields from the SV contract summary,
+  - parity-checks them against `sota_exit_gate`,
+  - re-emits them in the combined telemetry summary.
+
+### Why This Matters
+- The SV proof stack now keeps blocker structure intact all the way through:
+  - status gate
+  - status-contract gate
+  - SOTA aggregate
+  - combined telemetry aggregate
+- That makes downstream triage less lossy and aligns SV with the already-normalized VHDL and regex aggregate behavior.
+
 ## 2026-03-23 - Give SV family-status contract its own JSON sidecar
 ### Context
 After surfacing richer SV family-proof provenance, one remaining asymmetry was still visible:

@@ -222,6 +222,7 @@ main_unsatisfied_count="$(jq -r '.families[] | select(.family=="systemverilog") 
 main_false_criteria_count="$(jq -r '[.families[] | select(.family=="systemverilog") | .criteria | to_entries[] | select(.value == false)] | length' "$family_status_summary_json")"
 main_details_count="$(jq -r '.families[] | select(.family=="systemverilog") | (.unmet_closure_criteria_details | length)' "$family_status_summary_json")"
 main_primary_detail_criterion="$(jq -r '.families[] | select(.family=="systemverilog") | (.unmet_closure_criteria_details[0].criterion // "<none>")' "$family_status_summary_json")"
+main_unmet_json="$(jq -cer '.families[] | select(.family=="systemverilog") | .unmet_closure_criteria' "$family_status_summary_json")"
 main_details_json="$(jq -cer '.families[] | select(.family=="systemverilog") | .unmet_closure_criteria_details' "$family_status_summary_json")"
 
 svpp_tracker_alignment_ok="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .tracker_alignment_ok' "$family_status_summary_json")"
@@ -229,9 +230,12 @@ svpp_unsatisfied_count="$(jq -r '.families[] | select(.family=="systemverilog_pr
 svpp_false_criteria_count="$(jq -r '[.families[] | select(.family=="systemverilog_preprocessor") | .criteria | to_entries[] | select(.value == false)] | length' "$family_status_summary_json")"
 svpp_details_count="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | (.unmet_closure_criteria_details | length)' "$family_status_summary_json")"
 svpp_primary_detail_criterion="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | (.unmet_closure_criteria_details[0].criterion // "<none>")' "$family_status_summary_json")"
+svpp_unmet_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria' "$family_status_summary_json")"
 svpp_details_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria_details' "$family_status_summary_json")"
 
+summary_main_unmet_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_unmet_closure_criteria_json")"
 summary_main_details_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_unmet_closure_criteria_details_json")"
+summary_svpp_unmet_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_json")"
 summary_svpp_details_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_details_json")"
 summary_main_tracker_alignment="$(extract_summary_value "$family_status_summary_txt" "systemverilog_tracker_alignment_ok")"
 summary_svpp_tracker_alignment="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_tracker_alignment_ok")"
@@ -266,8 +270,16 @@ svpp_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilo
 svpp_reachability_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_state_dir' "$family_status_summary_json")"
 svpp_reachability_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_summary_txt' "$family_status_summary_json")"
 
+if [[ "$summary_main_unmet_json" != "$main_unmet_json" ]]; then
+    echo "error: main family unmet-criteria json mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
 if [[ "$summary_main_details_json" != "$main_details_json" ]]; then
     echo "error: main family structured blocker json mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_svpp_unmet_json" != "$svpp_unmet_json" ]]; then
+    echo "error: preprocessor family unmet-criteria json mismatch between summary.txt and summary.json" >&2
     exit 1
 fi
 if [[ "$summary_svpp_details_json" != "$svpp_details_json" ]]; then
@@ -305,10 +317,14 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "systemverilog_false_criteria_count: $main_false_criteria_count"
     echo "systemverilog_unmet_details_count: $main_details_count"
     echo "systemverilog_primary_unmet_detail_criterion: $main_primary_detail_criterion"
+    echo "systemverilog_unmet_closure_criteria_json: $main_unmet_json"
+    echo "systemverilog_unmet_closure_criteria_details_json: $main_details_json"
     echo "systemverilog_preprocessor_tracker_alignment_ok: $svpp_tracker_alignment_ok"
     echo "systemverilog_preprocessor_false_criteria_count: $svpp_false_criteria_count"
     echo "systemverilog_preprocessor_unmet_details_count: $svpp_details_count"
     echo "systemverilog_preprocessor_primary_unmet_detail_criterion: $svpp_primary_detail_criterion"
+    echo "systemverilog_preprocessor_unmet_closure_criteria_json: $svpp_unmet_json"
+    echo "systemverilog_preprocessor_unmet_closure_criteria_details_json: $svpp_details_json"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
@@ -324,11 +340,13 @@ jq -n \
     --argjson systemverilog_false_criteria_count "$main_false_criteria_count" \
     --argjson systemverilog_unmet_details_count "$main_details_count" \
     --arg systemverilog_primary_unmet_detail_criterion "$main_primary_detail_criterion" \
+    --argjson systemverilog_unmet_closure_criteria "$main_unmet_json" \
     --argjson systemverilog_unmet_closure_criteria_details "$main_details_json" \
     --argjson systemverilog_preprocessor_tracker_alignment_ok "$svpp_tracker_alignment_ok" \
     --argjson systemverilog_preprocessor_false_criteria_count "$svpp_false_criteria_count" \
     --argjson systemverilog_preprocessor_unmet_details_count "$svpp_details_count" \
     --arg systemverilog_preprocessor_primary_unmet_detail_criterion "$svpp_primary_detail_criterion" \
+    --argjson systemverilog_preprocessor_unmet_closure_criteria "$svpp_unmet_json" \
     --argjson systemverilog_preprocessor_unmet_closure_criteria_details "$svpp_details_json" \
     '{
       gate: $gate,
@@ -346,6 +364,7 @@ jq -n \
           false_criteria_count: $systemverilog_false_criteria_count,
           unmet_details_count: $systemverilog_unmet_details_count,
           primary_unmet_detail_criterion: $systemverilog_primary_unmet_detail_criterion,
+          unmet_closure_criteria: $systemverilog_unmet_closure_criteria,
           unmet_closure_criteria_details: $systemverilog_unmet_closure_criteria_details
         },
         {
@@ -354,6 +373,7 @@ jq -n \
           false_criteria_count: $systemverilog_preprocessor_false_criteria_count,
           unmet_details_count: $systemverilog_preprocessor_unmet_details_count,
           primary_unmet_detail_criterion: $systemverilog_preprocessor_primary_unmet_detail_criterion,
+          unmet_closure_criteria: $systemverilog_preprocessor_unmet_closure_criteria,
           unmet_closure_criteria_details: $systemverilog_preprocessor_unmet_closure_criteria_details
         }
       ]
