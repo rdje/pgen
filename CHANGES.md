@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-23 - Surface SV family-status contract JSON proof
+### ✅ Achievement Summary
+PGEN now gives the SystemVerilog family-status contract gate its own `summary.json` sidecar, then threads that new contract-proof artifact through the SV aggregate layers.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh)
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+- `sv_parser_family_status_contract_gate` now emits:
+  - `summary.txt`
+  - `summary.json`
+- The SV aggregate layers now surface and parity-check:
+  - the contract summary JSON path,
+  - contract gate metadata,
+  - and the referenced family-status summary paths declared by that contract JSON.
+
+### Why This Matters
+- Before this slice, SV family-status contract was still a TXT-only exception even though:
+  - VHDL family-status contract already emitted JSON,
+  - regex family-status contract already emitted JSON.
+- Aggregate telemetry now treats SV contract proof the same way it treats the other family-contract layers:
+  - explicit artifact path,
+  - explicit metadata,
+  - machine-checked parity against `sota_exit_gate`.
+
 ## 2026-03-23 - Surface SV family proof provenance
 ### ✅ Achievement Summary
 PGEN now exposes fuller SystemVerilog family-proof provenance through the family-status and aggregate telemetry layers. The SV family-status sidecar no longer stops at a few summary paths; it now records the exact state dirs and available summary sidecars for:

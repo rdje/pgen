@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-23 (+0100, task: surface-sv-family-proof-provenance)
+Last updated: 2026-03-23 (+0100, task: surface-sv-family-status-contract-json-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -75,6 +75,17 @@ Use this file to resume work without replaying full chat history.
 - This is guidance for roadmap shaping, not a reason to fork PGEN into one client-specific product path.
 
 ## Current Reduced SV Semantic-Steering Frontier
+- Latest proof-normalization continuity slice:
+  - `sv_parser_family_status_contract_gate` now emits `summary.json` in addition to `summary.txt`.
+  - `sota_exit_gate` now carries:
+    - `sv_parser_family_status_contract_summary_json`
+    - `sv_family_status_contract_gate`
+    - `sv_family_status_contract_gate_version`
+    - `sv_family_status_contract_generated_at_utc`
+    - `sv_family_status_contract_family_status_state_dir`
+    - `sv_family_status_contract_family_status_summary_json`
+    - `sv_family_status_contract_family_status_summary_txt`
+  - `sv_combined_telemetry_contract_gate` now parity-checks and re-emits those same SV contract-proof fields.
 - Latest proof-normalization continuity slice:
   - SV family-status provenance now mirrors the same aggregate-proof doctrine already threaded through VHDL and regex.
   - Current SV family-status / aggregate summaries now expose exact upstream proof artifact paths for:

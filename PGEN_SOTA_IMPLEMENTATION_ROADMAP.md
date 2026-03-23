@@ -37,6 +37,10 @@ Interpretation rule:
   - summary sidecar path,
   - and JSON sidecar path when one exists.
 - once a family-status sidecar exposes richer proof provenance, the corresponding aggregate layer should parity-check and re-emit that provenance in the same slice rather than leaving it as an undocumented side effect.
+- once a family-status contract gate exists, prefer it to expose both:
+  - `summary.txt`
+  - `summary.json`
+  so aggregate sign-off can consume declared metadata and referenced sidecar paths directly instead of reconstructing them from TXT-only output.
 
 Engine generalization rule:
 - shared parser-generator and stimuli-generator fixes must be EBNF-agnostic and justified as engine-wide behavior, not as special handling for one grammar,

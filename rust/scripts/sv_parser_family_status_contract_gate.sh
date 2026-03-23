@@ -8,6 +8,7 @@ STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_STATE_DIR:-$RUST_DIR/target/sv_parse
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 SV_PARSER_FAMILY_STATUS_GATE="$RUST_DIR/scripts/sv_parser_family_status_gate.sh"
 EXISTING_FAMILY_STATUS_STATE_DIR="${PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR:-}"
@@ -290,9 +291,12 @@ if [[ "$summary_svpp_syntax_closure_state_dir" != "$svpp_syntax_closure_state_di
     exit 1
 fi
 
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 {
     echo "SV Parser Family Status Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
     echo "family_status_state_dir: $family_status_state_dir"
     echo "family_status_summary_json: $family_status_summary_json"
     echo "family_status_summary_txt: $family_status_summary_txt"
@@ -306,6 +310,54 @@ fi
     echo "systemverilog_preprocessor_unmet_details_count: $svpp_details_count"
     echo "systemverilog_preprocessor_primary_unmet_detail_criterion: $svpp_primary_detail_criterion"
 } | tee "$SUMMARY_TXT"
+
+jq -n \
+    --arg gate "sv_parser_family_status_contract_gate" \
+    --argjson version 1 \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg state_dir "$STATE_DIR" \
+    --arg family_status_state_dir "$family_status_state_dir" \
+    --arg family_status_summary_json "$family_status_summary_json" \
+    --arg family_status_summary_txt "$family_status_summary_txt" \
+    --argjson family_count 2 \
+    --argjson systemverilog_tracker_alignment_ok "$main_tracker_alignment_ok" \
+    --argjson systemverilog_false_criteria_count "$main_false_criteria_count" \
+    --argjson systemverilog_unmet_details_count "$main_details_count" \
+    --arg systemverilog_primary_unmet_detail_criterion "$main_primary_detail_criterion" \
+    --argjson systemverilog_unmet_closure_criteria_details "$main_details_json" \
+    --argjson systemverilog_preprocessor_tracker_alignment_ok "$svpp_tracker_alignment_ok" \
+    --argjson systemverilog_preprocessor_false_criteria_count "$svpp_false_criteria_count" \
+    --argjson systemverilog_preprocessor_unmet_details_count "$svpp_details_count" \
+    --arg systemverilog_preprocessor_primary_unmet_detail_criterion "$svpp_primary_detail_criterion" \
+    --argjson systemverilog_preprocessor_unmet_closure_criteria_details "$svpp_details_json" \
+    '{
+      gate: $gate,
+      version: $version,
+      generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      family_status_state_dir: $family_status_state_dir,
+      family_status_summary_json: $family_status_summary_json,
+      family_status_summary_txt: $family_status_summary_txt,
+      family_count: $family_count,
+      families: [
+        {
+          family: "systemverilog",
+          tracker_alignment_ok: $systemverilog_tracker_alignment_ok,
+          false_criteria_count: $systemverilog_false_criteria_count,
+          unmet_details_count: $systemverilog_unmet_details_count,
+          primary_unmet_detail_criterion: $systemverilog_primary_unmet_detail_criterion,
+          unmet_closure_criteria_details: $systemverilog_unmet_closure_criteria_details
+        },
+        {
+          family: "systemverilog_preprocessor",
+          tracker_alignment_ok: $systemverilog_preprocessor_tracker_alignment_ok,
+          false_criteria_count: $systemverilog_preprocessor_false_criteria_count,
+          unmet_details_count: $systemverilog_preprocessor_unmet_details_count,
+          primary_unmet_detail_criterion: $systemverilog_preprocessor_primary_unmet_detail_criterion,
+          unmet_closure_criteria_details: $systemverilog_preprocessor_unmet_closure_criteria_details
+        }
+      ]
+    }' >"$SUMMARY_JSON"
 
 echo "✅ SV parser-family status contract gate passed."
 echo "Logs: $LOG_DIR"

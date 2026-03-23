@@ -1580,12 +1580,14 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         fi
         SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_parser_family_status_contract_gate"
         SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+        SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="${SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.json"
         if [[ -f "$SV_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
             if [[ -n "$EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR" ]]; then
                 SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR"
                 SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+                SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="${SV_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.json"
                 run_check "sv_parser_family_status_contract_gate" "informational" "reused existing source-side contract proof for the produced SV-family status sidecar" \
-                    bash -lc "test -s \"$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT\""
+                    bash -lc "test -s \"$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT\" && test -s \"$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON\""
             elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
                 run_check "sv_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced SV-family status sidecar" \
                     env \
@@ -1602,6 +1604,13 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         fi
         if [[ ! -f "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then
             SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="<missing>"
+            SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_GATE="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_GATE_VERSION="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_GENERATED_AT_UTC="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT="<missing>"
@@ -1612,6 +1621,12 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_DETAILS_COUNT="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_PRIMARY_UNMET_DETAIL_CRITERION="<missing>"
         else
+            SV_FAMILY_STATUS_CONTRACT_GATE="$(jq -r '.gate' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_GATE_VERSION="$(jq -r '.version' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_GENERATED_AT_UTC="$(jq -r '.generated_at_utc' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR="$(jq -r '.family_status_state_dir' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON="$(jq -r '.family_status_summary_json' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT="$(jq -r '.family_status_summary_txt' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
             SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="$(summary_value_from_txt "family_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "systemverilog_tracker_alignment_ok" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_false_criteria_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
@@ -2878,11 +2893,18 @@ fi
         echo "sv_parser_family_status_summary_txt: $SV_PARSER_FAMILY_STATUS_SUMMARY_TXT"
         echo "sv_parser_family_status_summary_json: $SV_PARSER_FAMILY_STATUS_SUMMARY_JSON"
         echo "sv_parser_family_status_contract_summary_txt: $SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT"
+        echo "sv_parser_family_status_contract_summary_json: $SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON"
         echo "sv_parser_family_status_gate: $SV_PARSER_FAMILY_STATUS_GATE_NAME"
         echo "sv_parser_family_status_gate_version: $SV_PARSER_FAMILY_STATUS_GATE_VERSION"
         echo "sv_parser_family_status_generated_at_utc: $SV_PARSER_FAMILY_STATUS_GENERATED_AT_UTC"
         echo "sv_parser_family_status_live_tracker_file: $SV_PARSER_FAMILY_STATUS_LIVE_TRACKER_FILE"
         echo "sv_parser_family_status_status_rule_done: $SV_PARSER_FAMILY_STATUS_STATUS_RULE_DONE"
+        echo "sv_family_status_contract_gate: $SV_FAMILY_STATUS_CONTRACT_GATE"
+        echo "sv_family_status_contract_gate_version: $SV_FAMILY_STATUS_CONTRACT_GATE_VERSION"
+        echo "sv_family_status_contract_generated_at_utc: $SV_FAMILY_STATUS_CONTRACT_GENERATED_AT_UTC"
+        echo "sv_family_status_contract_family_status_state_dir: $SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR"
+        echo "sv_family_status_contract_family_status_summary_json: $SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON"
+        echo "sv_family_status_contract_family_status_summary_txt: $SV_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT"
         echo "sv_parser_family_status_contract_family_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT"
         echo "sv_parser_family_status_contract_systemverilog_tracker_alignment_ok: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK"
         echo "sv_parser_family_status_contract_systemverilog_false_criteria_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT"

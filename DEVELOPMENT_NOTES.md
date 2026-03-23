@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-23 - Give SV family-status contract its own JSON sidecar
+### Context
+After surfacing richer SV family-proof provenance, one remaining asymmetry was still visible:
+- `sv_parser_family_status_gate` already emitted both:
+  - `summary.txt`
+  - `summary.json`
+- but `sv_parser_family_status_contract_gate` still emitted only:
+  - `summary.txt`
+
+That made SystemVerilog the odd one out relative to the already-normalized:
+- VHDL family-status contract
+- regex family-status contract
+
+### Implementation
+- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - added `SUMMARY_JSON`,
+  - kept the existing TXT contract summary,
+  - emitted a new JSON sidecar with:
+    - gate metadata,
+    - family-status summary paths,
+    - per-family tracker-alignment and unmet-detail counts.
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - SV family-status contract reuse now requires both:
+    - `summary.txt`
+    - `summary.json`
+  - aggregate telemetry now surfaces:
+    - the SV contract summary JSON path,
+    - contract gate metadata,
+    - and the family-status summary paths referenced by that contract JSON.
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - reads the new SV contract JSON path from `sota_exit_gate`,
+  - checks the contract metadata and referenced family-status paths for parity,
+  - re-emits them in combined telemetry output.
+
+### Why This Matters
+- The SV proof stack is now more regular:
+  - status gate has JSON,
+  - status-contract gate has JSON,
+  - aggregate telemetry carries both.
+- This is still proof-surface normalization only; it does not change:
+  - SV parser behavior,
+  - SV preprocessor behavior,
+  - closure counts,
+  - or live family status.
+
 ## 2026-03-23 - Surface richer SV family-status proof provenance
 ### Context
 The recent VHDL and regex aggregate-proof work made one asymmetry stand out: SystemVerilog family status already had a good `summary.json`, but it still exposed only a partial provenance surface to downstream aggregate layers.

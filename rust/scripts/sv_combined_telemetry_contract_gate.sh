@@ -125,6 +125,7 @@ sv_preprocessor_reachability_summary_txt="$(extract_summary_value "$sota_summary
 sv_parser_family_status_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_txt")"
 sv_parser_family_status_summary_json="$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_summary_json")"
 sv_parser_family_status_contract_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_summary_txt")"
+sv_parser_family_status_contract_summary_json="$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_summary_json")"
 
 require_nonempty_file "$sv_parser_aggregate_summary_txt"
 require_nonempty_file "$sv_preprocessor_aggregate_summary_txt"
@@ -132,6 +133,7 @@ require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
 require_nonempty_file "$sv_parser_family_status_summary_txt"
 require_nonempty_file "$sv_parser_family_status_summary_json"
 require_nonempty_file "$sv_parser_family_status_contract_summary_txt"
+require_nonempty_file "$sv_parser_family_status_contract_summary_json"
 
 sv_failure_summary_available=0
 sv_roundtrip_summary_available=0
@@ -178,11 +180,41 @@ sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok
 sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_false_criteria_count")"
 sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_unmet_details_count")"
 sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion="$(extract_summary_value "$sv_parser_family_status_contract_summary_txt" "systemverilog_preprocessor_primary_unmet_detail_criterion")"
+sv_family_status_contract_gate="$(jq -r '.gate' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_gate_version="$(jq -r '.version' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_generated_at_utc="$(jq -r '.generated_at_utc' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_family_status_state_dir="$(jq -r '.family_status_state_dir' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_family_status_summary_json="$(jq -r '.family_status_summary_json' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_family_status_summary_txt="$(jq -r '.family_status_summary_txt' "$sv_parser_family_status_contract_summary_json")"
 
 assert_equal \
     "SV parser-family status contract family count" \
     "$sv_parser_family_status_contract_family_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_parser_family_status_contract_family_count")"
+assert_equal \
+    "SV family-status contract gate name" \
+    "$sv_family_status_contract_gate" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_gate")"
+assert_equal \
+    "SV family-status contract gate version" \
+    "$sv_family_status_contract_gate_version" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_gate_version")"
+assert_equal \
+    "SV family-status contract generated_at_utc" \
+    "$sv_family_status_contract_generated_at_utc" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_generated_at_utc")"
+assert_equal \
+    "SV family-status contract family-status state dir" \
+    "$sv_family_status_contract_family_status_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_family_status_state_dir")"
+assert_equal \
+    "SV family-status contract family-status summary json" \
+    "$sv_family_status_contract_family_status_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_family_status_summary_json")"
+assert_equal \
+    "SV family-status contract family-status summary txt" \
+    "$sv_family_status_contract_family_status_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_family_status_summary_txt")"
 assert_equal \
     "SV parser-family status contract main tracker alignment" \
     "$sv_parser_family_status_contract_systemverilog_tracker_alignment_ok" \
@@ -1358,11 +1390,18 @@ assert_equal \
     echo "sv_parser_family_status_summary_txt: $sv_parser_family_status_summary_txt"
     echo "sv_parser_family_status_summary_json: $sv_parser_family_status_summary_json"
     echo "sv_parser_family_status_contract_summary_txt: $sv_parser_family_status_contract_summary_txt"
+    echo "sv_parser_family_status_contract_summary_json: $sv_parser_family_status_contract_summary_json"
     echo "sv_parser_family_status_gate: $sv_parser_family_status_gate_name"
     echo "sv_parser_family_status_gate_version: $sv_parser_family_status_gate_version"
     echo "sv_parser_family_status_generated_at_utc: $sv_parser_family_status_generated_at_utc"
     echo "sv_parser_family_status_live_tracker_file: $sv_parser_family_status_live_tracker_file"
     echo "sv_parser_family_status_status_rule_done: $sv_parser_family_status_status_rule_done"
+    echo "sv_family_status_contract_gate: $sv_family_status_contract_gate"
+    echo "sv_family_status_contract_gate_version: $sv_family_status_contract_gate_version"
+    echo "sv_family_status_contract_generated_at_utc: $sv_family_status_contract_generated_at_utc"
+    echo "sv_family_status_contract_family_status_state_dir: $sv_family_status_contract_family_status_state_dir"
+    echo "sv_family_status_contract_family_status_summary_json: $sv_family_status_contract_family_status_summary_json"
+    echo "sv_family_status_contract_family_status_summary_txt: $sv_family_status_contract_family_status_summary_txt"
     echo "sv_parser_family_status_contract_family_count: $sv_parser_family_status_contract_family_count"
     echo "sv_parser_family_status_contract_systemverilog_tracker_alignment_ok: $sv_parser_family_status_contract_systemverilog_tracker_alignment_ok"
     echo "sv_parser_family_status_contract_systemverilog_false_criteria_count: $sv_parser_family_status_contract_systemverilog_false_criteria_count"
