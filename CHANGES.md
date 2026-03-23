@@ -22788,3 +22788,8 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - The only remaining workflow-level Perl runtime checks are now labeled as intentional dependencies rather than stale baggage:
   - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still verifies Perl because that workflow directly measures Perl-vs-Rust frontend behavior.
   - `.github/workflows/sota-exit-gate.yml` still verifies Perl because the active SOTA policy keeps the EBNF dual-run differential surface enabled.
+- `rust/scripts/ci_workflow_local_gate.sh` now locks that policy too. The local workflow parity surface now asserts that:
+  - `ebnf-frontend-dual-run-diff.yml` contains `Verify Perl runtime for Perl-vs-Rust dual-run`
+  - `sota-exit-gate.yml` contains `Verify Perl runtime for SOTA dual-run surfaces`
+  - the other tracked workflows in that gate must not contain any `Verify Perl runtime` step
+  so future stale Perl smoke checks cannot quietly creep back into the tracked CI surface.

@@ -603,6 +603,7 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
 - The remaining workflow-level Perl runtime checks are intentional and should stay visible as such until the dual-run / SOTA policy changes:
   - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still verifies Perl because it measures Perl-vs-Rust frontend behavior directly.
   - `.github/workflows/sota-exit-gate.yml` still verifies Perl because the live SOTA aggregate policy keeps the EBNF dual-run differential surface enabled.
+- That policy is now contract-checked locally too: `rust/scripts/ci_workflow_local_gate.sh` should fail if any other tracked workflow reintroduces a `Verify Perl runtime` step, or if the two intentional workflows lose their explicit reason-bearing labels.
 - [x] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)

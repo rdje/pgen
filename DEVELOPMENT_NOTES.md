@@ -23317,3 +23317,6 @@ Architectural north star:
   - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still needs Perl because the job explicitly runs the Perl-vs-Rust differential surface.
   - `.github/workflows/sota-exit-gate.yml` still needs Perl because the active SOTA policy keeps `ebnf_frontend_dual_run_diff` / `ebnf_frontend_dual_run_gate` in play.
   - keep those checks, but label them accordingly so the CI surface itself explains why Perl is still present.
+- Tighten the local CI parity surface to enforce that policy, not just describe it:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` should assert that only the two intentional workflows carry a `Verify Perl runtime` step,
+  - and that those two steps keep their explicit reason-bearing labels.

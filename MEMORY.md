@@ -6159,3 +6159,6 @@ Use this file to resume work without replaying full chat history.
   - `ebnf-frontend-dual-run-diff`, because it intentionally compares Perl vs Rust.
   - `sota-exit-gate`, because the current SOTA policy still runs that dual-run surface.
   Treat those as explicit dependency markers, not stale cleanup candidates.
+- `ci_workflow_local_gate.sh` now enforces that workflow policy directly:
+  - the two intentional workflows must keep their reason-labeled Perl runtime steps,
+  - the other tracked workflows in that local gate must not contain `Verify Perl runtime`.

@@ -49,12 +49,27 @@ assert_tracked() {
     fail "required tracked file missing from git index: $repo_rel"
 }
 
+assert_workflow_contains() {
+  local workflow_file="$1"
+  local expected="$2"
+  grep -F "$expected" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1 || \
+    fail "workflow content drift detected in $workflow_file: expected '$expected'"
+}
+
+assert_workflow_not_contains() {
+  local workflow_file="$1"
+  local forbidden="$2"
+  if grep -F "$forbidden" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1; then
+    fail "unexpected workflow content in $workflow_file: found '$forbidden'"
+  fi
+}
+
 copy_tracked_worktree() {
   local repo_rel
   note "exporting tracked working tree into $EXPORT_DIR"
   while IFS= read -r -d '' repo_rel; do
     mkdir -p "$EXPORT_DIR/$(dirname "$repo_rel")"
-    cp -p "$ROOT_DIR/$repo_rel" "$EXPORT_DIR/$repo_rel"
+    cp -a "$ROOT_DIR/$repo_rel" "$EXPORT_DIR/$repo_rel"
   done < <(cd "$ROOT_DIR" && git ls-files -z)
 }
 
@@ -92,6 +107,23 @@ audit_workflow_surface() {
   assert_tracked "rust/scripts/fixed_point_bootstrap_gate.sh"
   assert_tracked "rust/scripts/performance_gate.sh"
   assert_tracked "rust/scripts/sota_exit_gate.sh"
+
+  assert_workflow_contains \
+    ".github/workflows/ebnf-frontend-dual-run-diff.yml" \
+    "Verify Perl runtime for Perl-vs-Rust dual-run"
+  assert_workflow_contains \
+    ".github/workflows/sota-exit-gate.yml" \
+    "Verify Perl runtime for SOTA dual-run surfaces"
+
+  for workflow_file in \
+    .github/workflows/annotation-contract-gate.yml \
+    .github/workflows/annotation-nonbootstrap-e2e-gate.yml \
+    .github/workflows/branch-protection-contract-gate.yml \
+    .github/workflows/differential-regression-gate.yml \
+    .github/workflows/fixed-point-gate.yml \
+    .github/workflows/performance-gate.yml; do
+    assert_workflow_not_contains "$workflow_file" "Verify Perl runtime"
+  done
 }
 
 assert_workflow_command() {
