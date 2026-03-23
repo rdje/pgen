@@ -6139,3 +6139,10 @@ Use this file to resume work without replaying full chat history.
   - `raw_ast_missing_on_perl_count=9`
   - `raw_ast_missing_on_rust_count=0`
   and `regex_parser_family_contract_gate` is green again on top of the refreshed dual-run sidecar.
+- Regex aggregate reuse now follows the same rule as SV/VHDL:
+  - `sota_exit_gate` can reuse existing regex family contract/status/status-contract states via:
+    - `PGEN_SOTA_EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR`
+    - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_STATE_DIR`
+    - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR`
+  - `regex_combined_telemetry_contract_gate` should trust the regex sidecar paths exported by `sota_exit_gate/summary.txt`, not assume they live under the current `work/regex_parser_family_*` tree
+  This matters because reuse-backed aggregate proofs otherwise look spuriously missing even when the regex family sidecars are already present and authoritative.

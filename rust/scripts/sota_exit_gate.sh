@@ -121,6 +121,9 @@ EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_STRICT_PROMO
 EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR:-}"
 EXISTING_VHDL_FAMILY_STATUS_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_STATE_DIR:-}"
 EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR:-}"
+EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR:-}"
+EXISTING_REGEX_FAMILY_STATUS_STATE_DIR="${PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_STATE_DIR:-}"
+EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR:-}"
 VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS_SOURCE="policy"
 if [[ -n "${PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}" ]]; then
     VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS_SOURCE="runtime_override"
@@ -2475,22 +2478,28 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
     REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/regex_parser_family_contract_gate"
     REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="${REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.txt"
     REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON="${REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.json"
-    if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
-        run_check "regex_parser_family_contract_gate" "required" "strict combined regex-family proof over produced artifacts" \
-            env \
-                PGEN_REGEX_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR="$EBNF_STIMULI_QUALITY_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash regex_parser_family_contract_gate
+    if [[ -n "$EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR" ]]; then
+        REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR="$EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR"
+        REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="${REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+        REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON="${REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.json"
     else
-        run_check "regex_parser_family_contract_gate" "informational" "report-only combined regex-family proof over produced artifacts" \
-            env \
-                PGEN_REGEX_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR="$EBNF_STIMULI_QUALITY_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash regex_parser_family_contract_gate
+        if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
+            run_check "regex_parser_family_contract_gate" "required" "strict combined regex-family proof over produced artifacts" \
+                env \
+                    PGEN_REGEX_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR="$EBNF_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash regex_parser_family_contract_gate
+        else
+            run_check "regex_parser_family_contract_gate" "informational" "report-only combined regex-family proof over produced artifacts" \
+                env \
+                    PGEN_REGEX_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR="$EBNF_FRONTEND_READINESS_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR="$EBNF_DUAL_RUN_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR="$EBNF_STIMULI_QUALITY_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash regex_parser_family_contract_gate
+        fi
     fi
 
     if [[ ! -f "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT" ]]; then
@@ -2530,18 +2539,24 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
     REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR="${STATE_DIR}/work/regex_parser_family_status_gate"
     REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT="${REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
     REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON="${REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.json"
-    if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
-        run_check "regex_parser_family_status_gate" "required" "strict regex family-status proof over produced artifacts" \
-            env \
-                PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash regex_parser_family_status_gate
+    if [[ -n "$EXISTING_REGEX_FAMILY_STATUS_STATE_DIR" ]]; then
+        REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR="$EXISTING_REGEX_FAMILY_STATUS_STATE_DIR"
+        REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT="${REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.txt"
+        REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON="${REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR}/summary.json"
     else
-        run_check "regex_parser_family_status_gate" "informational" "report-only regex family-status proof over produced artifacts" \
-            env \
-                PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash regex_parser_family_status_gate
+        if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
+            run_check "regex_parser_family_status_gate" "required" "strict regex family-status proof over produced artifacts" \
+                env \
+                    PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash regex_parser_family_status_gate
+        else
+            run_check "regex_parser_family_status_gate" "informational" "report-only regex family-status proof over produced artifacts" \
+                env \
+                    PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash regex_parser_family_status_gate
+        fi
     fi
 
     if [[ ! -f "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT" ]]; then
@@ -2601,18 +2616,24 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
     REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/regex_parser_family_status_contract_gate"
     REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
     REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="${REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.json"
-    if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
-        run_check "regex_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced regex family-status sidecar" \
-            env \
-                PGEN_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate
+    if [[ -n "$EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR" ]]; then
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR="$EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT="${REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+        REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON="${REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR}/summary.json"
     else
-        run_check "regex_parser_family_status_contract_gate" "informational" "report-only source-side contract proof for the produced regex family-status sidecar" \
-            env \
-                PGEN_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
-                PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
-                make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate
+        if [[ "$REQUIRE_EBNF_STRICT" -eq 1 && "$REQUIRE_EBNF_DUAL_RUN_STRICT" -eq 1 ]]; then
+            run_check "regex_parser_family_status_contract_gate" "required" "strict source-side contract proof for the produced regex family-status sidecar" \
+                env \
+                    PGEN_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate
+        else
+            run_check "regex_parser_family_status_contract_gate" "informational" "report-only source-side contract proof for the produced regex family-status sidecar" \
+                env \
+                    PGEN_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
+                    make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate
+        fi
     fi
 
     if [[ ! -f "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT" ]]; then

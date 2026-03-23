@@ -23285,3 +23285,11 @@ Architectural north star:
   - `raw_ast_missing_on_perl_count=9`
   - `raw_ast_missing_on_rust_count=0`
   The downstream `regex_parser_family_contract_gate` is green again on top of that refreshed sidecar.
+- The next regex proof-normalization seam was aggregate reuse, not parser behavior. `sota_exit_gate` still rebuilt regex family sidecars unconditionally under nested `work/...`, and `regex_combined_telemetry_contract_gate` still hardcoded those nested paths instead of trusting the authoritative paths exported by `sota_exit_gate/summary.txt`. That made reuse-backed regex aggregate proofs weaker than the already-fixed SV/VHDL ones.
+- Tightened that aggregate seam:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` now accepts:
+    - `PGEN_SOTA_EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR`
+    - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_STATE_DIR`
+    - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh` now resolves the regex family sidecar paths from `sota_exit_gate/summary.txt` before validating them
+  so reuse-backed regex aggregate proofs no longer depend on those sidecars being rebuilt inside the current nested SOTA work tree.

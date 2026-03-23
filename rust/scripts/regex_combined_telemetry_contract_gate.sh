@@ -91,45 +91,20 @@ else
 fi
 
 sota_summary_txt="$sota_state_dir/summary.txt"
-regex_family_summary_txt="$sota_state_dir/work/regex_parser_family_contract_gate/summary.txt"
-regex_family_summary_json="$sota_state_dir/work/regex_parser_family_contract_gate/summary.json"
-regex_family_status_summary_txt="$sota_state_dir/work/regex_parser_family_status_gate/summary.txt"
-regex_family_status_summary_json="$sota_state_dir/work/regex_parser_family_status_gate/summary.json"
-regex_family_status_contract_summary_txt="$sota_state_dir/work/regex_parser_family_status_contract_gate/summary.txt"
-regex_family_status_contract_summary_json="$sota_state_dir/work/regex_parser_family_status_contract_gate/summary.json"
-
 require_nonempty_file "$sota_summary_txt"
+regex_family_summary_txt="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_contract_summary_txt")"
+regex_family_summary_json="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_contract_summary_json")"
+regex_family_status_summary_txt="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_summary_txt")"
+regex_family_status_summary_json="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_summary_json")"
+regex_family_status_contract_summary_txt="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_contract_summary_txt")"
+regex_family_status_contract_summary_json="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_contract_summary_json")"
+
 require_nonempty_file "$regex_family_summary_txt"
 require_nonempty_file "$regex_family_summary_json"
 require_nonempty_file "$regex_family_status_summary_txt"
 require_nonempty_file "$regex_family_status_summary_json"
 require_nonempty_file "$regex_family_status_contract_summary_txt"
 require_nonempty_file "$regex_family_status_contract_summary_json"
-
-assert_equal \
-    "Regex family contract summary txt path" \
-    "$regex_family_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_parser_family_contract_summary_txt")"
-assert_equal \
-    "Regex family contract summary json path" \
-    "$regex_family_summary_json" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_parser_family_contract_summary_json")"
-assert_equal \
-    "Regex family status summary txt path" \
-    "$regex_family_status_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_summary_txt")"
-assert_equal \
-    "Regex family status summary json path" \
-    "$regex_family_status_summary_json" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_summary_json")"
-assert_equal \
-    "Regex family status contract summary txt path" \
-    "$regex_family_status_contract_summary_txt" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_contract_summary_txt")"
-assert_equal \
-    "Regex family status contract summary json path" \
-    "$regex_family_status_contract_summary_json" \
-    "$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_contract_summary_json")"
 
 regex_family_frontend_overall="$(extract_summary_value "$regex_family_summary_txt" "frontend_regex_overall")"
 regex_family_dual_run_overall="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_overall")"
