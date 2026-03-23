@@ -604,6 +604,10 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
   - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still verifies Perl because it measures Perl-vs-Rust frontend behavior directly.
   - `.github/workflows/sota-exit-gate.yml` still verifies Perl because the live SOTA aggregate policy keeps the EBNF dual-run differential surface enabled.
 - That policy is now contract-checked locally too: `rust/scripts/ci_workflow_local_gate.sh` should fail if any other tracked workflow reintroduces a `Verify Perl runtime` step, or if the two intentional workflows lose their explicit reason-bearing labels.
+- The same local contract surface should now fail if migrated live `.ebnf -> JSON` paths reintroduce `ebnf_to_json.pl`. Keep that tool referenced only where the roadmap still intentionally allows it:
+  - Perl-vs-Rust dual-run differential,
+  - explicit Perl fallback surfaces,
+  - and the current `ebnf` bootstrap parseability seam.
 - [x] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)

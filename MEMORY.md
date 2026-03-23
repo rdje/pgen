@@ -6162,3 +6162,10 @@ Use this file to resume work without replaying full chat history.
 - `ci_workflow_local_gate.sh` now enforces that workflow policy directly:
   - the two intentional workflows must keep their reason-labeled Perl runtime steps,
   - the other tracked workflows in that local gate must not contain `Verify Perl runtime`.
+- `ci_workflow_local_gate.sh` now enforces the `ebnf_to_json.pl` policy too:
+  - no `ebnf_to_json.pl` in migrated live `.ebnf -> JSON` paths,
+  - allowed only in:
+    - `ebnf_frontend_dual_run_diff_gate.sh`
+    - `ebnf_frontend_readiness_gate.sh`
+    - `ebnf_stimuli_quality_gate.sh`
+  and only for differential comparison, explicit Perl fallback, or the current `ebnf` bootstrap parseability seam.

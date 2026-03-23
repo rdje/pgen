@@ -23320,3 +23320,13 @@ Architectural north star:
 - Tighten the local CI parity surface to enforce that policy, not just describe it:
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` should assert that only the two intentional workflows carry a `Verify Perl runtime` step,
   - and that those two steps keep their explicit reason-bearing labels.
+- Tighten that same local CI surface around `ebnf_to_json.pl` too:
+  - migrated live `.ebnf -> JSON` paths should fail the local audit if they reintroduce `ebnf_to_json.pl`,
+  - the allowed references are now explicit and narrow:
+    - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+    - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
+    - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - and those allowed references correspond only to:
+    - Perl-vs-Rust differential comparison,
+    - explicit Perl fallback mode,
+    - or the current `ebnf` bootstrap parseability seam.

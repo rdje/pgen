@@ -64,6 +64,21 @@ assert_workflow_not_contains() {
   fi
 }
 
+assert_file_contains() {
+  local repo_file="$1"
+  local expected="$2"
+  grep -F "$expected" "$ROOT_DIR/$repo_file" >/dev/null 2>&1 || \
+    fail "file content drift detected in $repo_file: expected '$expected'"
+}
+
+assert_file_not_contains() {
+  local repo_file="$1"
+  local forbidden="$2"
+  if grep -F "$forbidden" "$ROOT_DIR/$repo_file" >/dev/null 2>&1; then
+    fail "unexpected file content in $repo_file: found '$forbidden'"
+  fi
+}
+
 copy_tracked_worktree() {
   local repo_rel
   note "exporting tracked working tree into $EXPORT_DIR"
@@ -126,6 +141,52 @@ audit_workflow_surface() {
   done
 }
 
+audit_ebnf_frontend_conversion_surface() {
+  local repo_file
+  note "auditing ebnf_to_json conversion surface"
+
+  for repo_file in \
+    rust/Makefile \
+    rust/scripts/annotation_nonbootstrap_e2e_gate.sh \
+    rust/scripts/fixed_point_bootstrap_gate.sh \
+    rust/scripts/hdl_frontend_readiness_gate.sh \
+    rust/scripts/stimuli_module_parity_gate.sh \
+    rust/scripts/sv_external_corpus_triage_gate.sh \
+    rust/scripts/sv_preprocessor_quality_gate.sh \
+    rust/scripts/sv_stimuli_quality_gate.sh \
+    rust/scripts/sv_syntax_closure_gate.sh \
+    rust/scripts/vhdl_external_corpus_triage_gate.sh \
+    rust/scripts/vhdl_stimuli_quality_gate.sh; do
+    assert_tracked "$repo_file"
+    assert_file_not_contains "$repo_file" "ebnf_to_json.pl"
+  done
+
+  assert_tracked "rust/scripts/ebnf_frontend_dual_run_diff_gate.sh"
+  assert_tracked "rust/scripts/ebnf_frontend_readiness_gate.sh"
+  assert_tracked "rust/scripts/ebnf_stimuli_quality_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/ebnf_frontend_dual_run_diff_gate.sh" \
+    'perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$GRAMMARS_DIR/ebnf.ebnf" -o "$BOOTSTRAP_EBNF_JSON"'
+  assert_file_contains \
+    "rust/scripts/ebnf_frontend_dual_run_diff_gate.sh" \
+    'if perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$perl_json"'
+
+  assert_file_contains \
+    "rust/scripts/ebnf_frontend_readiness_gate.sh" \
+    'if [[ "$FRONTEND_IMPL" == "perl" ]]; then'
+  assert_file_contains \
+    "rust/scripts/ebnf_frontend_readiness_gate.sh" \
+    'perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$grammar_file" -o "$json_out"'
+
+  assert_file_contains \
+    "rust/scripts/ebnf_stimuli_quality_gate.sh" \
+    'if [[ "$FRONTEND_IMPL" == "perl" || "$require_ebnf_parseability" -eq 1 ]]; then'
+  assert_file_contains \
+    "rust/scripts/ebnf_stimuli_quality_gate.sh" \
+    '"$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"'
+}
+
 assert_workflow_command() {
   local workflow_file="$1"
   local expected="$2"
@@ -174,6 +235,7 @@ main() {
   copy_tracked_worktree
   audit_static_include_paths
   audit_workflow_surface
+  audit_ebnf_frontend_conversion_surface
 
   run_workflow \
     "annotation-contract-gate" \

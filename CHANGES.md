@@ -22793,3 +22793,9 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - `sota-exit-gate.yml` contains `Verify Perl runtime for SOTA dual-run surfaces`
   - the other tracked workflows in that gate must not contain any `Verify Perl runtime` step
   so future stale Perl smoke checks cannot quietly creep back into the tracked CI surface.
+- That same local CI surface now locks the `ebnf_to_json.pl` policy too:
+  - migrated live `.ebnf -> JSON` paths such as `rust/Makefile`, `sv_stimuli_quality_gate.sh`, `sv_preprocessor_quality_gate.sh`, `sv_syntax_closure_gate.sh`, `sv_external_corpus_triage_gate.sh`, `vhdl_stimuli_quality_gate.sh`, `vhdl_external_corpus_triage_gate.sh`, `hdl_frontend_readiness_gate.sh`, `annotation_nonbootstrap_e2e_gate.sh`, `stimuli_module_parity_gate.sh`, and `fixed_point_bootstrap_gate.sh` must not reference `ebnf_to_json.pl`,
+  - while the three intentional seams must still do so:
+    - `ebnf_frontend_dual_run_diff_gate.sh` for Perl-vs-Rust comparison,
+    - `ebnf_frontend_readiness_gate.sh` for explicit `FRONTEND_IMPL=perl` fallback,
+    - `ebnf_stimuli_quality_gate.sh` for explicit `FRONTEND_IMPL=perl` fallback and the current `ebnf` bootstrap parseability seam.
