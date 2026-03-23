@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-23 - Give SV combined telemetry a machine-readable sidecar
+### Context
+After normalizing the SV family-status and SV family-status-contract layers, one last asymmetry was still visible in the same proof stack:
+- `sv_parser_family_status_gate` emitted `summary.txt` and `summary.json`,
+- `sv_parser_family_status_contract_gate` emitted `summary.txt` and `summary.json`,
+- but [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
+
+That meant the top SV aggregate sign-off still required TXT scraping even though the underlying proof surfaces were already machine-readable.
+
+### Implementation
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - added `SUMMARY_JSON`,
+  - now requires `jq` explicitly,
+  - records `generated_at_utc` and `summary_json` in `summary.txt`,
+  - emits a focused `summary.json` sidecar.
+- The new JSON sidecar is intentionally curated rather than a full mirror of every TXT field. It carries the highest-signal aggregate contract surface:
+  - SOTA provenance,
+  - proof-surface paths,
+  - optional side-proof availability,
+  - structured `family_status`,
+  - structured `family_status_contract`.
+
+### Why This Matters
+- The top SV combined-telemetry proof is now machine-readable.
+- Future aggregate consumers can follow the exact upstream proof surfaces and blockers without reparsing the TXT summary.
+
 ## 2026-03-23 - Normalize SV primary unmet field naming
 ### Context
 The SV family-status sidecar still had one smaller asymmetry after the blocker-JSON work:

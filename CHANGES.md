@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-23 - Surface SV combined telemetry JSON proof
+### ✅ Achievement Summary
+PGEN now gives the SystemVerilog combined-telemetry aggregate its own `summary.json` sidecar, so the top SV proof summary is machine-readable instead of TXT-only.
+
+### Scope of Changes
+- Updated:
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+- The gate now emits:
+  - `summary.txt`
+  - `summary.json`
+- The new JSON sidecar carries:
+  - aggregate provenance (`sota_exit_gate` inputs and summary path),
+  - top-level proof-surface paths,
+  - optional side-proof availability,
+  - structured `family_status` data for:
+    - `systemverilog`
+    - `systemverilog_preprocessor`
+  - structured `family_status_contract` data for both SV families.
+
+### Why This Matters
+- Before this slice, the SV aggregate layer still ended in a human-readable-only surface even though the family-status layers beneath it already exposed machine-readable JSON sidecars.
+- The top SV proof summary can now be consumed programmatically without scraping `summary.txt`.
+
 ## 2026-03-23 - Normalize SV family-status primary unmet fields
 ### ✅ Achievement Summary
 PGEN now gives the SystemVerilog family-status sidecar explicit primary-unmet fields, matching the shape already used by the VHDL and regex family-status gates.

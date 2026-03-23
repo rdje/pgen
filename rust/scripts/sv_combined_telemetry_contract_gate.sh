@@ -8,11 +8,20 @@ STATE_DIR="${PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR:-$RUST_DIR/target/sv_
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 SOTA_EXIT_GATE_SCRIPT="$RUST_DIR/scripts/sota_exit_gate.sh"
 SV_CONTRACT_FILE="${PGEN_SV_COMBINED_TELEMETRY_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json}"
 SOTA_POLICY_ENV_FILE="${PGEN_SV_COMBINED_TELEMETRY_SOTA_POLICY_ENV_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env}"
 EXISTING_SOTA_EXIT_STATE_DIR="${PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR:-}"
+
+require_tool() {
+    local tool="$1"
+    if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "error: required tool '$tool' is not available in PATH" >&2
+        exit 1
+    fi
+}
 
 require_file() {
     local path="$1"
@@ -101,6 +110,7 @@ assert_equal() {
 require_file "$SOTA_EXIT_GATE_SCRIPT"
 require_file "$SV_CONTRACT_FILE"
 require_file "$SOTA_POLICY_ENV_FILE"
+require_tool jq
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -1394,9 +1404,13 @@ assert_equal \
     "$sv_family_status_systemverilog_preprocessor_reachability_summary_txt" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_summary_txt")"
 
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 {
     echo "SV Combined Telemetry Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "sv_contract_file: $SV_CONTRACT_FILE"
     echo "sota_policy_env_file: $SOTA_POLICY_ENV_FILE"
     echo "existing_sota_exit_state_dir: ${EXISTING_SOTA_EXIT_STATE_DIR:-<unset>}"
@@ -1657,6 +1671,240 @@ assert_equal \
 } >"$SUMMARY_TXT"
 
 require_nonempty_file "$SUMMARY_TXT"
+
+jq -n \
+    --arg gate "sv_combined_telemetry_contract_gate" \
+    --argjson version 1 \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg state_dir "$STATE_DIR" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
+    --arg sv_contract_file "$SV_CONTRACT_FILE" \
+    --arg sota_policy_env_file "$SOTA_POLICY_ENV_FILE" \
+    --arg existing_sota_exit_state_dir "${EXISTING_SOTA_EXIT_STATE_DIR:-}" \
+    --arg sota_exit_state_dir "$sota_state_dir" \
+    --arg sota_exit_summary_txt "$sota_summary_txt" \
+    --arg sv_stimuli_quality_aggregate_contract_summary_txt "$sv_parser_aggregate_summary_txt" \
+    --arg sv_preprocessor_quality_aggregate_contract_summary_txt "$sv_preprocessor_aggregate_summary_txt" \
+    --arg sv_failure_context_contract_summary_txt "$sv_failure_summary_txt" \
+    --arg sv_roundtrip_contract_summary_txt "$sv_roundtrip_summary_txt" \
+    --arg sv_preprocessor_reachability_closure_summary_txt "$sv_preprocessor_reachability_summary_txt" \
+    --arg sv_parser_family_status_summary_txt "$sv_parser_family_status_summary_txt" \
+    --arg sv_parser_family_status_summary_json "$sv_parser_family_status_summary_json" \
+    --arg sv_parser_family_status_contract_summary_txt "$sv_parser_family_status_contract_summary_txt" \
+    --arg sv_parser_family_status_contract_summary_json "$sv_parser_family_status_contract_summary_json" \
+    --argjson sv_failure_context_summary_available "$sv_failure_summary_available" \
+    --argjson sv_roundtrip_summary_available "$sv_roundtrip_summary_available" \
+    --arg sv_parser_family_status_gate "$sv_parser_family_status_gate_name" \
+    --argjson sv_parser_family_status_gate_version "$sv_parser_family_status_gate_version" \
+    --arg sv_parser_family_status_generated_at_utc "$sv_parser_family_status_generated_at_utc" \
+    --arg sv_parser_family_status_live_tracker_file "$sv_parser_family_status_live_tracker_file" \
+    --arg sv_parser_family_status_status_rule_done "$sv_parser_family_status_status_rule_done" \
+    --arg sv_family_status_systemverilog "$sv_family_status_systemverilog" \
+    --arg sv_family_status_systemverilog_tracker_status "$sv_family_status_systemverilog_tracker_status" \
+    --argjson sv_family_status_systemverilog_tracker_alignment_ok "$sv_family_status_systemverilog_tracker_alignment_ok" \
+    --argjson sv_family_status_systemverilog_unmet_closure_criteria_count "$sv_family_status_systemverilog_unmet_closure_criteria_count" \
+    --arg sv_family_status_systemverilog_primary_unmet_closure_criterion "$sv_family_status_systemverilog_primary_unmet_closure_criterion" \
+    --argjson sv_family_status_systemverilog_unmet_closure_criteria_json "$sv_family_status_systemverilog_unmet_closure_criteria_json" \
+    --argjson sv_family_status_systemverilog_unmet_closure_criteria_details_json "$sv_family_status_systemverilog_unmet_closure_criteria_details_json" \
+    --argjson sv_family_status_systemverilog_closure_criteria_total_count "$sv_family_status_systemverilog_closure_criteria_total_count" \
+    --argjson sv_family_status_systemverilog_closure_criteria_satisfied_count "$sv_family_status_systemverilog_closure_criteria_satisfied_count" \
+    --argjson sv_family_status_systemverilog_closure_criteria_unsatisfied_count "$sv_family_status_systemverilog_closure_criteria_unsatisfied_count" \
+    --argjson sv_family_status_systemverilog_syntax_target_debt_count "$sv_family_status_systemverilog_syntax_target_debt_count" \
+    --argjson sv_family_status_systemverilog_generation_parser_rejections_total "$sv_family_status_systemverilog_generation_parser_rejections_total" \
+    --argjson sv_family_status_systemverilog_replay_shadow_parser_rejections_total "$sv_family_status_systemverilog_replay_shadow_parser_rejections_total" \
+    --argjson sv_family_status_systemverilog_focused_replay_target_count "$sv_family_status_systemverilog_focused_replay_target_count" \
+    --argjson sv_family_status_systemverilog_focused_replay_covered_reachable_rules "$sv_family_status_systemverilog_focused_replay_covered_reachable_rules" \
+    --argjson sv_family_status_systemverilog_focused_replay_covered_reachable_branches "$sv_family_status_systemverilog_focused_replay_covered_reachable_branches" \
+    --argjson sv_family_status_systemverilog_semantic_scope_case_count "$sv_family_status_systemverilog_semantic_scope_case_count" \
+    --argjson sv_family_status_systemverilog_semantic_scope_failed_count "$sv_family_status_systemverilog_semantic_scope_failed_count" \
+    --arg sv_family_status_systemverilog_syntax_closure_state_dir "$sv_family_status_systemverilog_syntax_closure_state_dir" \
+    --arg sv_family_status_systemverilog_syntax_closure_summary_txt "$sv_family_status_systemverilog_syntax_closure_summary_txt" \
+    --arg sv_family_status_systemverilog_syntax_closure_summary_json "$sv_family_status_systemverilog_syntax_closure_summary_json" \
+    --arg sv_family_status_systemverilog_parser_aggregate_state_dir "$sv_family_status_systemverilog_parser_aggregate_state_dir" \
+    --arg sv_family_status_systemverilog_parser_aggregate_summary_txt "$sv_family_status_systemverilog_parser_aggregate_summary_txt" \
+    --arg sv_family_status_systemverilog_semantic_scope_contract_state_dir "$sv_family_status_systemverilog_semantic_scope_contract_state_dir" \
+    --arg sv_family_status_systemverilog_semantic_scope_contract_summary_txt "$sv_family_status_systemverilog_semantic_scope_contract_summary_txt" \
+    --arg sv_family_status_systemverilog_semantic_scope_contract_summary_json "$sv_family_status_systemverilog_semantic_scope_contract_summary_json" \
+    --arg sv_family_status_systemverilog_preprocessor "$sv_family_status_systemverilog_preprocessor" \
+    --arg sv_family_status_systemverilog_preprocessor_tracker_status "$sv_family_status_systemverilog_preprocessor_tracker_status" \
+    --argjson sv_family_status_systemverilog_preprocessor_tracker_alignment_ok "$sv_family_status_systemverilog_preprocessor_tracker_alignment_ok" \
+    --argjson sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count" \
+    --arg sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion "$sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion" \
+    --argjson sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json" \
+    --argjson sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_details_json "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_details_json" \
+    --argjson sv_family_status_systemverilog_preprocessor_closure_criteria_total_count "$sv_family_status_systemverilog_preprocessor_closure_criteria_total_count" \
+    --argjson sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count "$sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count" \
+    --argjson sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count "$sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count" \
+    --argjson sv_family_status_systemverilog_preprocessor_syntax_target_debt_count "$sv_family_status_systemverilog_preprocessor_syntax_target_debt_count" \
+    --argjson sv_family_status_systemverilog_preprocessor_parseability_parser_rejections_total "$sv_family_status_systemverilog_preprocessor_parseability_parser_rejections_total" \
+    --argjson sv_family_status_systemverilog_preprocessor_parseability_rejected_total "$sv_family_status_systemverilog_preprocessor_parseability_rejected_total" \
+    --argjson sv_family_status_systemverilog_preprocessor_final_targets "$sv_family_status_systemverilog_preprocessor_final_targets" \
+    --arg sv_family_status_systemverilog_preprocessor_covered_reachable_rules "$sv_family_status_systemverilog_preprocessor_covered_reachable_rules" \
+    --arg sv_family_status_systemverilog_preprocessor_covered_reachable_branches "$sv_family_status_systemverilog_preprocessor_covered_reachable_branches" \
+    --argjson sv_family_status_systemverilog_preprocessor_reachability_stage3_targets "$sv_family_status_systemverilog_preprocessor_reachability_stage3_targets" \
+    --argjson sv_family_status_systemverilog_preprocessor_reachability_stage4_targets "$sv_family_status_systemverilog_preprocessor_reachability_stage4_targets" \
+    --arg sv_family_status_systemverilog_preprocessor_syntax_closure_state_dir "$sv_family_status_systemverilog_preprocessor_syntax_closure_state_dir" \
+    --arg sv_family_status_systemverilog_preprocessor_syntax_closure_summary_txt "$sv_family_status_systemverilog_preprocessor_syntax_closure_summary_txt" \
+    --arg sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json "$sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json" \
+    --arg sv_family_status_systemverilog_preprocessor_aggregate_state_dir "$sv_family_status_systemverilog_preprocessor_aggregate_state_dir" \
+    --arg sv_family_status_systemverilog_preprocessor_aggregate_summary_txt "$sv_family_status_systemverilog_preprocessor_aggregate_summary_txt" \
+    --arg sv_family_status_systemverilog_preprocessor_reachability_state_dir "$sv_family_status_systemverilog_preprocessor_reachability_state_dir" \
+    --arg sv_family_status_systemverilog_preprocessor_reachability_summary_txt "$sv_family_status_systemverilog_preprocessor_reachability_summary_txt" \
+    --arg sv_family_status_contract_gate "$sv_family_status_contract_gate" \
+    --argjson sv_family_status_contract_gate_version "$sv_family_status_contract_gate_version" \
+    --arg sv_family_status_contract_generated_at_utc "$sv_family_status_contract_generated_at_utc" \
+    --arg sv_family_status_contract_family_status_state_dir "$sv_family_status_contract_family_status_state_dir" \
+    --arg sv_family_status_contract_family_status_summary_json "$sv_family_status_contract_family_status_summary_json" \
+    --arg sv_family_status_contract_family_status_summary_txt "$sv_family_status_contract_family_status_summary_txt" \
+    --argjson sv_parser_family_status_contract_family_count "$sv_parser_family_status_contract_family_count" \
+    --argjson sv_parser_family_status_contract_systemverilog_tracker_alignment_ok "$sv_parser_family_status_contract_systemverilog_tracker_alignment_ok" \
+    --argjson sv_parser_family_status_contract_systemverilog_false_criteria_count "$sv_parser_family_status_contract_systemverilog_false_criteria_count" \
+    --argjson sv_parser_family_status_contract_systemverilog_unmet_details_count "$sv_parser_family_status_contract_systemverilog_unmet_details_count" \
+    --arg sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion "$sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion" \
+    --argjson sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json "$sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json" \
+    --argjson sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json "$sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json" \
+    --argjson sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok "$sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok" \
+    --argjson sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count "$sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count" \
+    --argjson sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count "$sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count" \
+    --arg sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion "$sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion" \
+    --argjson sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json "$sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json" \
+    --argjson sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json "$sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json" \
+    '{
+      gate: $gate,
+      version: $version,
+      generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
+      sota: {
+        contract_file: $sv_contract_file,
+        policy_env_file: $sota_policy_env_file,
+        existing_state_dir: $existing_sota_exit_state_dir,
+        state_dir: $sota_exit_state_dir,
+        summary_txt: $sota_exit_summary_txt
+      },
+      proof_surfaces: {
+        sv_stimuli_quality_aggregate_contract_summary_txt: $sv_stimuli_quality_aggregate_contract_summary_txt,
+        sv_preprocessor_quality_aggregate_contract_summary_txt: $sv_preprocessor_quality_aggregate_contract_summary_txt,
+        sv_failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,
+        sv_roundtrip_contract_summary_txt: $sv_roundtrip_contract_summary_txt,
+        sv_preprocessor_reachability_closure_summary_txt: $sv_preprocessor_reachability_closure_summary_txt,
+        sv_parser_family_status_summary_txt: $sv_parser_family_status_summary_txt,
+        sv_parser_family_status_summary_json: $sv_parser_family_status_summary_json,
+        sv_parser_family_status_contract_summary_txt: $sv_parser_family_status_contract_summary_txt,
+        sv_parser_family_status_contract_summary_json: $sv_parser_family_status_contract_summary_json
+      },
+      optional_surfaces: {
+        sv_failure_context_summary_available: $sv_failure_context_summary_available,
+        sv_roundtrip_summary_available: $sv_roundtrip_summary_available
+      },
+      family_status: {
+        gate: $sv_parser_family_status_gate,
+        version: $sv_parser_family_status_gate_version,
+        generated_at_utc: $sv_parser_family_status_generated_at_utc,
+        live_tracker_file: $sv_parser_family_status_live_tracker_file,
+        status_rule_done: $sv_parser_family_status_status_rule_done,
+        families: [
+          {
+            family: "systemverilog",
+            computed_status: $sv_family_status_systemverilog,
+            live_tracker_status: $sv_family_status_systemverilog_tracker_status,
+            tracker_alignment_ok: $sv_family_status_systemverilog_tracker_alignment_ok,
+            primary_unmet_closure_criterion: $sv_family_status_systemverilog_primary_unmet_closure_criterion,
+            unmet_closure_criteria_count: $sv_family_status_systemverilog_unmet_closure_criteria_count,
+            unmet_closure_criteria: $sv_family_status_systemverilog_unmet_closure_criteria_json,
+            unmet_closure_criteria_details: $sv_family_status_systemverilog_unmet_closure_criteria_details_json,
+            closure_criteria_total_count: $sv_family_status_systemverilog_closure_criteria_total_count,
+            closure_criteria_satisfied_count: $sv_family_status_systemverilog_closure_criteria_satisfied_count,
+            closure_criteria_unsatisfied_count: $sv_family_status_systemverilog_closure_criteria_unsatisfied_count,
+            metrics: {
+              syntax_target_debt_count: $sv_family_status_systemverilog_syntax_target_debt_count,
+              generation_parser_rejections_total: $sv_family_status_systemverilog_generation_parser_rejections_total,
+              replay_shadow_parser_rejections_total: $sv_family_status_systemverilog_replay_shadow_parser_rejections_total,
+              focused_replay_target_count: $sv_family_status_systemverilog_focused_replay_target_count,
+              focused_replay_covered_reachable_rules: $sv_family_status_systemverilog_focused_replay_covered_reachable_rules,
+              focused_replay_covered_reachable_branches: $sv_family_status_systemverilog_focused_replay_covered_reachable_branches,
+              semantic_scope_case_count: $sv_family_status_systemverilog_semantic_scope_case_count,
+              semantic_scope_failed_count: $sv_family_status_systemverilog_semantic_scope_failed_count
+            },
+            proof_surfaces: {
+              syntax_closure_state_dir: $sv_family_status_systemverilog_syntax_closure_state_dir,
+              syntax_closure_summary_txt: $sv_family_status_systemverilog_syntax_closure_summary_txt,
+              syntax_closure_summary_json: $sv_family_status_systemverilog_syntax_closure_summary_json,
+              parser_aggregate_state_dir: $sv_family_status_systemverilog_parser_aggregate_state_dir,
+              parser_aggregate_summary_txt: $sv_family_status_systemverilog_parser_aggregate_summary_txt,
+              semantic_scope_contract_state_dir: $sv_family_status_systemverilog_semantic_scope_contract_state_dir,
+              semantic_scope_contract_summary_txt: $sv_family_status_systemverilog_semantic_scope_contract_summary_txt,
+              semantic_scope_contract_summary_json: $sv_family_status_systemverilog_semantic_scope_contract_summary_json
+            }
+          },
+          {
+            family: "systemverilog_preprocessor",
+            computed_status: $sv_family_status_systemverilog_preprocessor,
+            live_tracker_status: $sv_family_status_systemverilog_preprocessor_tracker_status,
+            tracker_alignment_ok: $sv_family_status_systemverilog_preprocessor_tracker_alignment_ok,
+            primary_unmet_closure_criterion: $sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion,
+            unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count,
+            unmet_closure_criteria: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json,
+            unmet_closure_criteria_details: $sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_details_json,
+            closure_criteria_total_count: $sv_family_status_systemverilog_preprocessor_closure_criteria_total_count,
+            closure_criteria_satisfied_count: $sv_family_status_systemverilog_preprocessor_closure_criteria_satisfied_count,
+            closure_criteria_unsatisfied_count: $sv_family_status_systemverilog_preprocessor_closure_criteria_unsatisfied_count,
+            metrics: {
+              syntax_target_debt_count: $sv_family_status_systemverilog_preprocessor_syntax_target_debt_count,
+              parseability_parser_rejections_total: $sv_family_status_systemverilog_preprocessor_parseability_parser_rejections_total,
+              parseability_rejected_total: $sv_family_status_systemverilog_preprocessor_parseability_rejected_total,
+              final_targets: $sv_family_status_systemverilog_preprocessor_final_targets,
+              covered_reachable_rules: $sv_family_status_systemverilog_preprocessor_covered_reachable_rules,
+              covered_reachable_branches: $sv_family_status_systemverilog_preprocessor_covered_reachable_branches,
+              reachability_stage3_targets: $sv_family_status_systemverilog_preprocessor_reachability_stage3_targets,
+              reachability_stage4_targets: $sv_family_status_systemverilog_preprocessor_reachability_stage4_targets
+            },
+            proof_surfaces: {
+              syntax_closure_state_dir: $sv_family_status_systemverilog_preprocessor_syntax_closure_state_dir,
+              syntax_closure_summary_txt: $sv_family_status_systemverilog_preprocessor_syntax_closure_summary_txt,
+              syntax_closure_summary_json: $sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json,
+              aggregate_state_dir: $sv_family_status_systemverilog_preprocessor_aggregate_state_dir,
+              aggregate_summary_txt: $sv_family_status_systemverilog_preprocessor_aggregate_summary_txt,
+              reachability_state_dir: $sv_family_status_systemverilog_preprocessor_reachability_state_dir,
+              reachability_summary_txt: $sv_family_status_systemverilog_preprocessor_reachability_summary_txt
+            }
+          }
+        ]
+      },
+      family_status_contract: {
+        gate: $sv_family_status_contract_gate,
+        version: $sv_family_status_contract_gate_version,
+        generated_at_utc: $sv_family_status_contract_generated_at_utc,
+        family_status_state_dir: $sv_family_status_contract_family_status_state_dir,
+        family_status_summary_json: $sv_family_status_contract_family_status_summary_json,
+        family_status_summary_txt: $sv_family_status_contract_family_status_summary_txt,
+        family_count: $sv_parser_family_status_contract_family_count,
+        families: [
+          {
+            family: "systemverilog",
+            tracker_alignment_ok: $sv_parser_family_status_contract_systemverilog_tracker_alignment_ok,
+            false_criteria_count: $sv_parser_family_status_contract_systemverilog_false_criteria_count,
+            unmet_details_count: $sv_parser_family_status_contract_systemverilog_unmet_details_count,
+            primary_unmet_detail_criterion: $sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion,
+            unmet_closure_criteria: $sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json,
+            unmet_closure_criteria_details: $sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json
+          },
+          {
+            family: "systemverilog_preprocessor",
+            tracker_alignment_ok: $sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok,
+            false_criteria_count: $sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count,
+            unmet_details_count: $sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count,
+            primary_unmet_detail_criterion: $sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion,
+            unmet_closure_criteria: $sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json,
+            unmet_closure_criteria_details: $sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json
+          }
+        ]
+      }
+    }' >"$SUMMARY_JSON"
+
+require_nonempty_file "$SUMMARY_JSON"
 cat "$SUMMARY_TXT"
 echo "Logs: $LOG_DIR"
 echo "Artifacts: $WORK_DIR"
