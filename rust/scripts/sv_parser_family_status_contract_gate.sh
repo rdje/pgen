@@ -222,6 +222,7 @@ main_unsatisfied_count="$(jq -r '.families[] | select(.family=="systemverilog") 
 main_false_criteria_count="$(jq -r '[.families[] | select(.family=="systemverilog") | .criteria | to_entries[] | select(.value == false)] | length' "$family_status_summary_json")"
 main_details_count="$(jq -r '.families[] | select(.family=="systemverilog") | (.unmet_closure_criteria_details | length)' "$family_status_summary_json")"
 main_primary_detail_criterion="$(jq -r '.families[] | select(.family=="systemverilog") | (.unmet_closure_criteria_details[0].criterion // "<none>")' "$family_status_summary_json")"
+main_primary_unmet_from_json="$(jq -r '.families[] | select(.family=="systemverilog") | .primary_unmet_closure_criterion' "$family_status_summary_json")"
 main_unmet_json="$(jq -cer '.families[] | select(.family=="systemverilog") | .unmet_closure_criteria' "$family_status_summary_json")"
 main_details_json="$(jq -cer '.families[] | select(.family=="systemverilog") | .unmet_closure_criteria_details' "$family_status_summary_json")"
 
@@ -230,11 +231,14 @@ svpp_unsatisfied_count="$(jq -r '.families[] | select(.family=="systemverilog_pr
 svpp_false_criteria_count="$(jq -r '[.families[] | select(.family=="systemverilog_preprocessor") | .criteria | to_entries[] | select(.value == false)] | length' "$family_status_summary_json")"
 svpp_details_count="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | (.unmet_closure_criteria_details | length)' "$family_status_summary_json")"
 svpp_primary_detail_criterion="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | (.unmet_closure_criteria_details[0].criterion // "<none>")' "$family_status_summary_json")"
+svpp_primary_unmet_from_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .primary_unmet_closure_criterion' "$family_status_summary_json")"
 svpp_unmet_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria' "$family_status_summary_json")"
 svpp_details_json="$(jq -cer '.families[] | select(.family=="systemverilog_preprocessor") | .unmet_closure_criteria_details' "$family_status_summary_json")"
 
+summary_main_primary_unmet="$(extract_summary_value "$family_status_summary_txt" "systemverilog_primary_unmet_closure_criterion")"
 summary_main_unmet_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_unmet_closure_criteria_json")"
 summary_main_details_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_unmet_closure_criteria_details_json")"
+summary_svpp_primary_unmet="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_primary_unmet_closure_criterion")"
 summary_svpp_unmet_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_json")"
 summary_svpp_details_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_unmet_closure_criteria_details_json")"
 summary_main_tracker_alignment="$(extract_summary_value "$family_status_summary_txt" "systemverilog_tracker_alignment_ok")"
@@ -274,12 +278,20 @@ if [[ "$summary_main_unmet_json" != "$main_unmet_json" ]]; then
     echo "error: main family unmet-criteria json mismatch between summary.txt and summary.json" >&2
     exit 1
 fi
+if [[ "$summary_main_primary_unmet" != "$main_primary_unmet_from_json" ]]; then
+    echo "error: main family primary unmet criterion mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
 if [[ "$summary_main_details_json" != "$main_details_json" ]]; then
     echo "error: main family structured blocker json mismatch between summary.txt and summary.json" >&2
     exit 1
 fi
 if [[ "$summary_svpp_unmet_json" != "$svpp_unmet_json" ]]; then
     echo "error: preprocessor family unmet-criteria json mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_svpp_primary_unmet" != "$svpp_primary_unmet_from_json" ]]; then
+    echo "error: preprocessor family primary unmet criterion mismatch between summary.txt and summary.json" >&2
     exit 1
 fi
 if [[ "$summary_svpp_details_json" != "$svpp_details_json" ]]; then

@@ -42,6 +42,7 @@ Interpretation rule:
   - `summary.json`
   so aggregate sign-off can consume declared metadata and referenced sidecar paths directly instead of reconstructing them from TXT-only output.
 - once a family-status contract gate already exposes structured unmet-criteria JSON or unmet-detail JSON payloads, aggregate sign-off should preserve and parity-check those structured blocker surfaces too rather than collapsing them back to only counts or one primary criterion.
+- when multiple family-status gates expose the same semantic concept, prefer one explicit named field over implicit recovery from indexed list entries so aggregate readers do not depend on ad hoc list encoding.
 
 Engine generalization rule:
 - shared parser-generator and stimuli-generator fixes must be EBNF-agnostic and justified as engine-wide behavior, not as special handling for one grammar,

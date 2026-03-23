@@ -448,6 +448,14 @@ fi
 sv_tracker_alignment_ok=true
 svpp_tracker_alignment_ok=true
 
+sv_primary_unmet_closure_criterion="<none>"
+if [[ "${#sv_unmet[@]}" -gt 0 ]]; then
+    sv_primary_unmet_closure_criterion="${sv_unmet[0]}"
+fi
+svpp_primary_unmet_closure_criterion="<none>"
+if [[ "${#svpp_unmet[@]}" -gt 0 ]]; then
+    svpp_primary_unmet_closure_criterion="${svpp_unmet[0]}"
+fi
 sv_unmet_json="$(jq -cn '$ARGS.positional' --args "${sv_unmet[@]}")"
 svpp_unmet_json="$(jq -cn '$ARGS.positional' --args "${svpp_unmet[@]}")"
 
@@ -482,6 +490,7 @@ jq -n \
     --arg sv_replay_gap_target_primary_rule "$sv_replay_gap_target_primary_rule" \
     --arg sv_closure_criteria_total_count "$sv_closure_criteria_total_count" \
     --arg sv_closure_criteria_satisfied_count "$sv_closure_criteria_satisfied_count" \
+    --arg sv_primary_unmet_closure_criterion "$sv_primary_unmet_closure_criterion" \
     --argjson sv_syntax_closure_gate_green "$sv_syntax_closure_gate_green" \
     --argjson sv_aggregate_contract_green "$sv_aggregate_contract_green" \
     --argjson sv_generation_parser_rejections_zero "$sv_generation_parser_rejections_zero" \
@@ -520,6 +529,7 @@ jq -n \
     --arg svpp_reach_stage4_branches "$svpp_reach_stage4_branches" \
     --arg svpp_closure_criteria_total_count "$svpp_closure_criteria_total_count" \
     --arg svpp_closure_criteria_satisfied_count "$svpp_closure_criteria_satisfied_count" \
+    --arg svpp_primary_unmet_closure_criterion "$svpp_primary_unmet_closure_criterion" \
     --argjson svpp_syntax_closure_gate_green "$svpp_syntax_closure_gate_green" \
     --argjson svpp_aggregate_contract_green "$svpp_aggregate_contract_green" \
     --argjson svpp_reachability_closure_green "$svpp_reachability_closure_green" \
@@ -535,7 +545,7 @@ jq -n \
     '
     {
       gate: "sv_parser_family_status_gate",
-      version: 2,
+      version: 3,
       generated_at_utc: $generated_at_utc,
       live_tracker_file: $live_tracker_file,
       status_rule_done: "Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.",
@@ -558,6 +568,7 @@ jq -n \
           closure_criteria_total_count: ($sv_closure_criteria_total_count | tonumber),
           closure_criteria_satisfied_count: ($sv_closure_criteria_satisfied_count | tonumber),
           closure_criteria_unsatisfied_count: ($sv_unmet | length),
+          primary_unmet_closure_criterion: $sv_primary_unmet_closure_criterion,
           criteria: {
             syntax_closure_gate_green: $sv_syntax_closure_gate_green,
             parser_aggregate_contract_green: $sv_aggregate_contract_green,
@@ -640,6 +651,7 @@ jq -n \
           closure_criteria_total_count: ($svpp_closure_criteria_total_count | tonumber),
           closure_criteria_satisfied_count: ($svpp_closure_criteria_satisfied_count | tonumber),
           closure_criteria_unsatisfied_count: ($svpp_unmet | length),
+          primary_unmet_closure_criterion: $svpp_primary_unmet_closure_criterion,
           criteria: {
             syntax_closure_gate_green: $svpp_syntax_closure_gate_green,
             aggregate_contract_green: $svpp_aggregate_contract_green,
@@ -783,6 +795,7 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_closure_criteria_satisfied_count: $sv_closure_criteria_satisfied_count"
     echo "systemverilog_closure_criteria_unsatisfied_count: ${#sv_unmet[@]}"
     echo "systemverilog_unmet_closure_criteria_count: ${#sv_unmet[@]}"
+    echo "systemverilog_primary_unmet_closure_criterion: $sv_primary_unmet_closure_criterion"
     echo "systemverilog_unmet_closure_criteria_json: $sv_unmet_json"
     echo "systemverilog_unmet_closure_criteria_details_json: $sv_unmet_details_json"
     for idx in "${!sv_unmet[@]}"; do
@@ -819,6 +832,7 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_preprocessor_closure_criteria_satisfied_count: $svpp_closure_criteria_satisfied_count"
     echo "systemverilog_preprocessor_closure_criteria_unsatisfied_count: ${#svpp_unmet[@]}"
     echo "systemverilog_preprocessor_unmet_closure_criteria_count: ${#svpp_unmet[@]}"
+    echo "systemverilog_preprocessor_primary_unmet_closure_criterion: $svpp_primary_unmet_closure_criterion"
     echo "systemverilog_preprocessor_unmet_closure_criteria_json: $svpp_unmet_json"
     echo "systemverilog_preprocessor_unmet_closure_criteria_details_json: $svpp_unmet_details_json"
     for idx in "${!svpp_unmet[@]}"; do

@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-23 - Normalize SV primary unmet field naming
+### Context
+The SV family-status sidecar still had one smaller asymmetry after the blocker-JSON work:
+- regex family-status published `regex_primary_unmet_closure_criterion`,
+- VHDL family-status published `vhdl_primary_unmet_closure_criterion`,
+- SV aggregate readers still had to recover the same concept from:
+  - `systemverilog_unmet_closure_criterion[0]`
+  - `systemverilog_preprocessor_unmet_closure_criterion[0]`
+
+That worked, but it was less explicit and more brittle than the already-normalized regex/VHDL shape.
+
+### Implementation
+- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - emits explicit named primary-unmet fields for both SV families in TXT and JSON.
+- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - parity-checks those new named fields between the status TXT and JSON sidecars.
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) and [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now consume the named fields directly,
+  - no longer depend on `[...]` list-index extraction for the primary unmet criterion.
+
+### Why This Matters
+- The SV family-status interface now matches the naming discipline already used by regex and VHDL.
+- Aggregate readers no longer depend on one specific list encoding just to recover the primary unmet field.
+
 ## 2026-03-23 - Carry SV contract blocker JSON through aggregate telemetry
 ### Context
 After adding an SV family-status contract JSON sidecar, one smaller but important asymmetry still remained:

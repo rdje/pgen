@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-23 - Normalize SV family-status primary unmet fields
+### ✅ Achievement Summary
+PGEN now gives the SystemVerilog family-status sidecar explicit primary-unmet fields, matching the shape already used by the VHDL and regex family-status gates.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh)
+  - [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh)
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+- `sv_parser_family_status_gate` now emits:
+  - `systemverilog_primary_unmet_closure_criterion`
+  - `systemverilog_preprocessor_primary_unmet_closure_criterion`
+  in both `summary.txt` and `summary.json`.
+- `sv_parser_family_status_contract_gate` now parity-checks those explicit fields between the status TXT and JSON sidecars.
+- `sota_exit_gate` and `sv_combined_telemetry_contract_gate` now read the explicit keys instead of depending on `unmet_closure_criterion[0]`.
+
+### Why This Matters
+- Before this slice, SV aggregate readers still depended on list indexing for the primary unmet criterion, even though:
+  - regex used a named field,
+  - VHDL used a named field.
+- The SV proof surface is now more regular and less fragile under future formatting or list-shape changes.
+
 ## 2026-03-23 - Surface SV family-status contract blocker JSON
 ### ✅ Achievement Summary
 PGEN now carries the full SystemVerilog family-status contract blocker payloads through the aggregate layers instead of collapsing them back to counts and one primary criterion.
