@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-23 - Surface VHDL combined telemetry JSON proof
+### ✅ Achievement Summary
+PGEN now gives the VHDL combined-telemetry aggregate its own `summary.json` sidecar, so the top VHDL proof summary is machine-readable instead of TXT-only.
+
+### Scope of Changes
+- Updated:
+  - [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+- The gate now emits:
+  - `summary.txt`
+  - `summary.json`
+- The new JSON sidecar carries:
+  - SOTA provenance,
+  - top-level proof-surface paths,
+  - structured VHDL family-contract data,
+  - structured VHDL family-status data,
+  - structured VHDL family-status-contract data.
+
+### Why This Matters
+- Before this slice, the VHDL aggregate layer still ended in a human-readable-only surface even though the family-contract, family-status, and family-status-contract layers beneath it already exposed machine-readable JSON sidecars.
+- The top VHDL proof summary can now be consumed programmatically without scraping `summary.txt`.
+
 ## 2026-03-23 - Surface regex combined telemetry JSON proof
 ### ✅ Achievement Summary
 PGEN now gives the regex combined-telemetry aggregate its own `summary.json` sidecar, so the top regex proof summary is machine-readable instead of TXT-only.

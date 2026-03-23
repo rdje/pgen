@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-23 - Give VHDL combined telemetry a machine-readable sidecar
+### Context
+After landing the same aggregate JSON proof for SystemVerilog and regex, the VHDL proof stack still had the same final asymmetry:
+- `vhdl_parser_family_contract_gate` emitted `summary.txt` and `summary.json`,
+- `vhdl_parser_family_status_gate` emitted `summary.txt` and `summary.json`,
+- `vhdl_parser_family_status_contract_gate` emitted `summary.txt` and `summary.json`,
+- but [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
+
+That left the top VHDL aggregate sign-off as the last non-machine-readable layer in that proof stack.
+
+### Implementation
+- Updated [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - added `SUMMARY_JSON`,
+  - records `generated_at_utc` and the `summary_json` path in `summary.txt`,
+  - emits a focused `summary.json` sidecar.
+- The new JSON surface is curated rather than mirroring every TXT line. It keeps the highest-signal VHDL aggregate contract:
+  - SOTA provenance,
+  - aggregate proof-surface paths,
+  - family-contract metrics/provenance,
+  - family-status blockers/criteria/provenance,
+  - family-status-contract blockers/provenance.
+
+### Why This Matters
+- The top VHDL combined-telemetry proof is now machine-readable.
+- Downstream tooling can follow the exact VHDL proof surfaces and blocker payloads without reparsing text summaries.
+
 ## 2026-03-23 - Give regex combined telemetry a machine-readable sidecar
 ### Context
 After landing the same aggregate JSON proof for SystemVerilog, the regex proof stack still had the same final asymmetry:

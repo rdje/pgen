@@ -8,6 +8,7 @@ STATE_DIR="${PGEN_VHDL_COMBINED_TELEMETRY_CONTRACT_STATE_DIR:-$RUST_DIR/target/v
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 SOTA_EXIT_GATE_SCRIPT="$RUST_DIR/scripts/sota_exit_gate.sh"
 SOTA_POLICY_ENV_FILE="${PGEN_VHDL_COMBINED_TELEMETRY_SOTA_POLICY_ENV_FILE:-$RUST_DIR/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env}"
@@ -437,9 +438,13 @@ assert_equal \
     "$vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json")"
 
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 {
     echo "VHDL Combined Telemetry Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "sota_state_dir: $sota_state_dir"
     echo "sota_policy_env_file: $SOTA_POLICY_ENV_FILE"
     echo "vhdl_parser_family_contract_summary_txt: $vhdl_family_summary_txt"
@@ -514,5 +519,193 @@ assert_equal \
     echo "vhdl_family_status_contract_vhdl_unmet_closure_criteria_json: $vhdl_family_status_contract_vhdl_unmet_closure_criteria_json"
     echo "vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json: $vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json"
 } | tee "$SUMMARY_TXT"
+
+jq -n \
+    --arg gate "vhdl_combined_telemetry_contract_gate" \
+    --argjson version 1 \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg state_dir "$STATE_DIR" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
+    --arg sota_state_dir "$sota_state_dir" \
+    --arg sota_summary_txt "$sota_summary_txt" \
+    --arg sota_policy_env_file "$SOTA_POLICY_ENV_FILE" \
+    --arg vhdl_parser_family_contract_summary_txt "$vhdl_family_summary_txt" \
+    --arg vhdl_parser_family_contract_summary_json "$vhdl_family_summary_json" \
+    --arg vhdl_parser_family_status_summary_txt "$vhdl_family_status_summary_txt" \
+    --arg vhdl_parser_family_status_summary_json "$vhdl_family_status_summary_json" \
+    --arg vhdl_parser_family_status_contract_summary_txt "$vhdl_family_status_contract_summary_txt" \
+    --arg vhdl_parser_family_status_contract_summary_json "$vhdl_family_status_contract_summary_json" \
+    --arg vhdl_family_quality_state_dir "$vhdl_family_quality_state_dir" \
+    --arg vhdl_family_quality_summary_txt "$vhdl_family_quality_summary_txt" \
+    --arg vhdl_family_quality_realistic_report_json "$vhdl_family_quality_realistic_report_json" \
+    --arg vhdl_family_quality_parseability_report_json "$vhdl_family_quality_parseability_report_json" \
+    --arg vhdl_family_strict_promotion_state_dir "$vhdl_family_strict_promotion_state_dir" \
+    --arg vhdl_family_strict_promotion_summary_txt "$vhdl_family_strict_promotion_summary_txt" \
+    --arg vhdl_family_strict_promotion_report_json "$vhdl_family_strict_promotion_report_json" \
+    --arg vhdl_quality_closed_loop_initial_status "$vhdl_quality_closed_loop_initial_status" \
+    --arg vhdl_quality_closed_loop_replay_status "$vhdl_quality_closed_loop_replay_status" \
+    --argjson vhdl_quality_closed_loop_initial_targets "$vhdl_quality_closed_loop_initial_targets" \
+    --argjson vhdl_quality_closed_loop_replay_targets "$vhdl_quality_closed_loop_replay_targets" \
+    --argjson vhdl_quality_parseability_generation_attempts_total "$vhdl_quality_parseability_generation_attempts_total" \
+    --argjson vhdl_quality_parseability_generation_rejected_total "$vhdl_quality_parseability_generation_rejected_total" \
+    --argjson vhdl_quality_realistic_cases_executed "$vhdl_quality_realistic_cases_executed" \
+    --argjson vhdl_quality_realistic_expected_pass_total "$vhdl_quality_realistic_expected_pass_total" \
+    --argjson vhdl_quality_realistic_expected_fail_total "$vhdl_quality_realistic_expected_fail_total" \
+    --argjson vhdl_quality_realistic_observed_parse_pass_total "$vhdl_quality_realistic_observed_parse_pass_total" \
+    --argjson vhdl_quality_realistic_observed_parse_fail_total "$vhdl_quality_realistic_observed_parse_fail_total" \
+    --arg vhdl_strict_promotion_recommendation "$vhdl_strict_promotion_recommendation" \
+    --argjson vhdl_strict_promotion_eligible "$vhdl_strict_promotion_eligible" \
+    --arg vhdl_strict_promotion_primary_blocker "$vhdl_strict_promotion_primary_blocker" \
+    --argjson vhdl_strict_promotion_trial_passed "$vhdl_strict_promotion_trial_passed" \
+    --argjson vhdl_strict_promotion_observed_ratio_min "$vhdl_strict_promotion_observed_ratio_min" \
+    --argjson vhdl_strict_promotion_observed_ratio_max "$vhdl_strict_promotion_observed_ratio_max" \
+    --argjson vhdl_strict_promotion_observed_ratio_avg "$vhdl_strict_promotion_observed_ratio_avg" \
+    --arg vhdl_parser_family_status_gate "$vhdl_parser_family_status_gate" \
+    --argjson vhdl_parser_family_status_gate_version "$vhdl_parser_family_status_gate_version" \
+    --arg vhdl_parser_family_status_generated_at_utc "$vhdl_parser_family_status_generated_at_utc" \
+    --arg vhdl_parser_family_status_live_tracker_file "$vhdl_parser_family_status_live_tracker_file" \
+    --arg vhdl_parser_family_status_status_rule_done "$vhdl_parser_family_status_status_rule_done" \
+    --arg vhdl_family_status_vhdl "$vhdl_family_status_vhdl" \
+    --arg vhdl_family_status_vhdl_tracker_status "$vhdl_family_status_vhdl_tracker_status" \
+    --argjson vhdl_family_status_vhdl_tracker_alignment_ok "$vhdl_family_status_vhdl_tracker_alignment_ok" \
+    --argjson vhdl_family_status_vhdl_unmet_closure_criteria_count "$vhdl_family_status_vhdl_unmet_closure_criteria_count" \
+    --arg vhdl_family_status_vhdl_primary_unmet_closure_criterion "$vhdl_family_status_vhdl_primary_unmet_closure_criterion" \
+    --argjson vhdl_family_status_vhdl_unmet_closure_criteria_json "$vhdl_family_status_vhdl_unmet_closure_criteria_json" \
+    --argjson vhdl_family_status_vhdl_unmet_closure_criteria_details_json "$vhdl_family_status_vhdl_unmet_closure_criteria_details_json" \
+    --argjson vhdl_family_status_vhdl_closure_criteria_satisfied_count "$vhdl_family_status_vhdl_closure_criteria_satisfied_count" \
+    --argjson vhdl_family_status_vhdl_closure_criteria_total_count "$vhdl_family_status_vhdl_closure_criteria_total_count" \
+    --argjson vhdl_family_status_vhdl_closure_criteria_unsatisfied_count "$vhdl_family_status_vhdl_closure_criteria_unsatisfied_count" \
+    --arg vhdl_family_status_vhdl_family_contract_summary_txt "$vhdl_family_status_vhdl_family_contract_summary_txt" \
+    --arg vhdl_family_status_vhdl_family_contract_summary_json "$vhdl_family_status_vhdl_family_contract_summary_json" \
+    --argjson vhdl_family_status_vhdl_family_contract_green "$vhdl_family_status_vhdl_family_contract_green" \
+    --argjson vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass "$vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass" \
+    --argjson vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass "$vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass" \
+    --argjson vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero "$vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero" \
+    --argjson vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero "$vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero" \
+    --argjson vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero "$vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero" \
+    --argjson vhdl_family_status_vhdl_strict_promotion_recommendation_green "$vhdl_family_status_vhdl_strict_promotion_recommendation_green" \
+    --argjson vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode "$vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode" \
+    --argjson vhdl_family_status_vhdl_strict_promotion_primary_blocker_none "$vhdl_family_status_vhdl_strict_promotion_primary_blocker_none" \
+    --argjson vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green "$vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green" \
+    --arg vhdl_family_status_contract_gate "$vhdl_family_status_contract_gate" \
+    --argjson vhdl_family_status_contract_gate_version "$vhdl_family_status_contract_gate_version" \
+    --arg vhdl_family_status_contract_generated_at_utc "$vhdl_family_status_contract_generated_at_utc" \
+    --arg vhdl_family_status_contract_family_status_state_dir "$vhdl_family_status_contract_family_status_state_dir" \
+    --arg vhdl_family_status_contract_family_status_summary_json "$vhdl_family_status_contract_family_status_summary_json" \
+    --arg vhdl_family_status_contract_family_status_summary_txt "$vhdl_family_status_contract_family_status_summary_txt" \
+    --argjson vhdl_family_status_contract_family_count "$vhdl_family_status_contract_family_count" \
+    --argjson vhdl_family_status_contract_vhdl_tracker_alignment_ok "$vhdl_family_status_contract_vhdl_tracker_alignment_ok" \
+    --argjson vhdl_family_status_contract_vhdl_false_criteria_count "$vhdl_family_status_contract_vhdl_false_criteria_count" \
+    --argjson vhdl_family_status_contract_vhdl_unmet_details_count "$vhdl_family_status_contract_vhdl_unmet_details_count" \
+    --arg vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion "$vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion" \
+    --argjson vhdl_family_status_contract_vhdl_unmet_closure_criteria_json "$vhdl_family_status_contract_vhdl_unmet_closure_criteria_json" \
+    --argjson vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json "$vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json" \
+    '{
+      gate: $gate,
+      version: $version,
+      generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
+      sota: {
+        state_dir: $sota_state_dir,
+        summary_txt: $sota_summary_txt,
+        policy_env_file: $sota_policy_env_file
+      },
+      proof_surfaces: {
+        vhdl_parser_family_contract_summary_txt: $vhdl_parser_family_contract_summary_txt,
+        vhdl_parser_family_contract_summary_json: $vhdl_parser_family_contract_summary_json,
+        vhdl_parser_family_status_summary_txt: $vhdl_parser_family_status_summary_txt,
+        vhdl_parser_family_status_summary_json: $vhdl_parser_family_status_summary_json,
+        vhdl_parser_family_status_contract_summary_txt: $vhdl_parser_family_status_contract_summary_txt,
+        vhdl_parser_family_status_contract_summary_json: $vhdl_parser_family_status_contract_summary_json
+      },
+      family_contract: {
+        quality_closed_loop_initial_status: $vhdl_quality_closed_loop_initial_status,
+        quality_closed_loop_replay_status: $vhdl_quality_closed_loop_replay_status,
+        quality_closed_loop_initial_targets: $vhdl_quality_closed_loop_initial_targets,
+        quality_closed_loop_replay_targets: $vhdl_quality_closed_loop_replay_targets,
+        quality_parseability_generation_attempts_total: $vhdl_quality_parseability_generation_attempts_total,
+        quality_parseability_generation_rejected_total: $vhdl_quality_parseability_generation_rejected_total,
+        quality_realistic_cases_executed: $vhdl_quality_realistic_cases_executed,
+        quality_realistic_expected_pass_total: $vhdl_quality_realistic_expected_pass_total,
+        quality_realistic_expected_fail_total: $vhdl_quality_realistic_expected_fail_total,
+        quality_realistic_observed_parse_pass_total: $vhdl_quality_realistic_observed_parse_pass_total,
+        quality_realistic_observed_parse_fail_total: $vhdl_quality_realistic_observed_parse_fail_total,
+        strict_promotion_recommendation: $vhdl_strict_promotion_recommendation,
+        strict_promotion_eligible_for_required_strict_mode: $vhdl_strict_promotion_eligible,
+        strict_promotion_primary_blocker: $vhdl_strict_promotion_primary_blocker,
+        strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed,
+        strict_promotion_observed_ratio_min: $vhdl_strict_promotion_observed_ratio_min,
+        strict_promotion_observed_ratio_max: $vhdl_strict_promotion_observed_ratio_max,
+        strict_promotion_observed_ratio_avg: $vhdl_strict_promotion_observed_ratio_avg,
+        proof_surfaces: {
+          quality_state_dir: $vhdl_family_quality_state_dir,
+          quality_summary_txt: $vhdl_family_quality_summary_txt,
+          quality_realistic_report_json: $vhdl_family_quality_realistic_report_json,
+          quality_parseability_report_json: $vhdl_family_quality_parseability_report_json,
+          strict_promotion_state_dir: $vhdl_family_strict_promotion_state_dir,
+          strict_promotion_summary_txt: $vhdl_family_strict_promotion_summary_txt,
+          strict_promotion_report_json: $vhdl_family_strict_promotion_report_json
+        }
+      },
+      family_status: {
+        gate: $vhdl_parser_family_status_gate,
+        version: $vhdl_parser_family_status_gate_version,
+        generated_at_utc: $vhdl_parser_family_status_generated_at_utc,
+        live_tracker_file: $vhdl_parser_family_status_live_tracker_file,
+        status_rule_done: $vhdl_parser_family_status_status_rule_done,
+        family: {
+          name: "vhdl",
+          computed_status: $vhdl_family_status_vhdl,
+          live_tracker_status: $vhdl_family_status_vhdl_tracker_status,
+          tracker_alignment_ok: $vhdl_family_status_vhdl_tracker_alignment_ok,
+          unmet_closure_criteria_count: $vhdl_family_status_vhdl_unmet_closure_criteria_count,
+          primary_unmet_closure_criterion: $vhdl_family_status_vhdl_primary_unmet_closure_criterion,
+          unmet_closure_criteria: $vhdl_family_status_vhdl_unmet_closure_criteria_json,
+          unmet_closure_criteria_details: $vhdl_family_status_vhdl_unmet_closure_criteria_details_json,
+          closure_criteria_satisfied_count: $vhdl_family_status_vhdl_closure_criteria_satisfied_count,
+          closure_criteria_total_count: $vhdl_family_status_vhdl_closure_criteria_total_count,
+          closure_criteria_unsatisfied_count: $vhdl_family_status_vhdl_closure_criteria_unsatisfied_count,
+          proof_surfaces: {
+            family_contract_summary_txt: $vhdl_family_status_vhdl_family_contract_summary_txt,
+            family_contract_summary_json: $vhdl_family_status_vhdl_family_contract_summary_json
+          },
+          criteria: {
+            family_contract_green: $vhdl_family_status_vhdl_family_contract_green,
+            quality_closed_loop_initial_status_pass: $vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass,
+            quality_closed_loop_replay_status_pass: $vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass,
+            quality_parseability_generation_parser_rejections_zero: $vhdl_family_status_vhdl_quality_parseability_generation_parser_rejections_zero,
+            quality_closed_loop_parseability_shadow_parser_rejections_zero: $vhdl_family_status_vhdl_quality_closed_loop_parseability_shadow_parser_rejections_zero,
+            quality_closed_loop_replay_target_debt_zero: $vhdl_family_status_vhdl_quality_closed_loop_replay_target_debt_zero,
+            strict_promotion_recommendation_green: $vhdl_family_status_vhdl_strict_promotion_recommendation_green,
+            strict_promotion_eligible_for_required_strict_mode: $vhdl_family_status_vhdl_strict_promotion_eligible_for_required_strict_mode,
+            strict_promotion_primary_blocker_none: $vhdl_family_status_vhdl_strict_promotion_primary_blocker_none,
+            formal_exhaustive_closure_surface_green: $vhdl_family_status_vhdl_formal_exhaustive_closure_surface_green
+          }
+        }
+      },
+      family_status_contract: {
+        gate: $vhdl_family_status_contract_gate,
+        version: $vhdl_family_status_contract_gate_version,
+        generated_at_utc: $vhdl_family_status_contract_generated_at_utc,
+        family_status_state_dir: $vhdl_family_status_contract_family_status_state_dir,
+        family_status_summary_json: $vhdl_family_status_contract_family_status_summary_json,
+        family_status_summary_txt: $vhdl_family_status_contract_family_status_summary_txt,
+        family_count: $vhdl_family_status_contract_family_count,
+        family: {
+          name: "vhdl",
+          tracker_alignment_ok: $vhdl_family_status_contract_vhdl_tracker_alignment_ok,
+          false_criteria_count: $vhdl_family_status_contract_vhdl_false_criteria_count,
+          unmet_details_count: $vhdl_family_status_contract_vhdl_unmet_details_count,
+          primary_unmet_detail_criterion: $vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion,
+          unmet_closure_criteria: $vhdl_family_status_contract_vhdl_unmet_closure_criteria_json,
+          unmet_closure_criteria_details: $vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json
+        }
+      }
+    }' >"$SUMMARY_JSON"
+
+require_nonempty_file "$SUMMARY_JSON"
 
 echo "✅ VHDL combined telemetry contract gate passed."

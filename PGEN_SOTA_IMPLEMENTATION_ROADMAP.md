@@ -49,6 +49,8 @@ Interpretation rule:
   so downstream automation can consume aggregate provenance and blockers directly instead of reparsing text summaries.
 - regex aggregate sign-off should now follow the same machine-readable rule as SV and VHDL-facing family layers:
   - the combined regex telemetry gate should not stop at TXT-only output once its upstream proof surfaces already expose JSON sidecars.
+- VHDL aggregate sign-off should follow the same machine-readable rule too:
+  - the combined VHDL telemetry gate should not stop at TXT-only output once its upstream proof surfaces already expose JSON sidecars.
 
 Engine generalization rule:
 - shared parser-generator and stimuli-generator fixes must be EBNF-agnostic and justified as engine-wide behavior, not as special handling for one grammar,
