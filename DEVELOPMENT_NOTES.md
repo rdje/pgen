@@ -23310,3 +23310,4 @@ Architectural north star:
   - Makefile Step 1: Rust frontend `.ebnf -> JSON`
   - annotation bootstrap path: bootstrap binary `JSON -> parser.rs`
   - normal regex path: generated-parsers binary `JSON -> parser.rs`
+- The `fixed-point-gate` workflow had one stale dependency left after the gate migration: it still ran a Perl `JSON::PP` smoke check even though the fixed-point path no longer depends on Perl. That CI-only seam is gone now, so the workflow dependency story matches the gate's actual runtime requirements.
