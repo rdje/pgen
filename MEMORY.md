@@ -6150,3 +6150,4 @@ Use this file to resume work without replaying full chat history.
   - family contract stimuli debt is now `366 -> 157`
   - status blocker is now `stimuli_regex_final_targets=157 > 0`
   - aggregate-visible regex sidecars should cite those canonical values, not the older `167 -> 93` lightweight figures
+- `fixed_point_bootstrap_gate.sh` now uses the Rust frontend for the annotation `.ebnf -> JSON` phase and reserves bootstrap mode for the actual fixed-point contract (`JSON -> parser.rs`). Treat that split as intentional: the gate is proving bootstrap parser-generation determinism, not preserving Perl on the input side.

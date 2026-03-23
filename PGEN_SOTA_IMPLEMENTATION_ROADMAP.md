@@ -595,6 +595,7 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
 - [x] Add fixed-point bootstrap gate script for return/semantic parser artifacts.
 - [x] Add `make fixed_point_gate` target for local and CI usage.
 - [x] Wire `fixed_point_gate` into CI as required pre-merge gate.
+- The live fixed-point gate is now Rust-frontended on the input side too: `semantic_annotation.ebnf` / `return_annotation.ebnf` are converted to JSON through the Rust frontend, while bootstrap mode remains the source of truth for the downstream `JSON -> parser.rs` determinism proof.
 - [x] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)

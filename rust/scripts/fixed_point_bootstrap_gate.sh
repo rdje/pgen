@@ -59,12 +59,21 @@ if ! [[ "$CYCLES" =~ ^[0-9]+$ ]] || [[ "$CYCLES" -lt 2 ]]; then
 fi
 
 BOOTSTRAP_BIN="$RUST_DIR/target/debug/ast_pipeline_bootstrap"
+FRONTEND_BIN="$RUST_DIR/target/debug/ast_pipeline"
 SEMANTIC_GRAMMAR="$GRAMMARS_DIR/semantic_annotation.ebnf"
 RETURN_GRAMMAR="$GRAMMARS_DIR/return_annotation.ebnf"
 
 mkdir -p "$STATE_DIR"
 rm -rf "$SNAPSHOT_DIR"
 mkdir -p "$SNAPSHOT_DIR"
+
+echo "==> Building Rust EBNF frontend pipeline binary"
+(cd "$RUST_DIR" && cargo build --features ebnf_dual_run --bin ast_pipeline >/dev/null)
+
+if [[ ! -x "$FRONTEND_BIN" ]]; then
+    echo "error: frontend binary not found at '$FRONTEND_BIN'" >&2
+    exit 1
+fi
 
 echo "==> Building bootstrap pipeline binary"
 (cd "$RUST_DIR" && cargo build --bin ast_pipeline_bootstrap --no-default-features --features bootstrap >/dev/null)
@@ -82,9 +91,9 @@ generate_cycle() {
     rm -rf "$WORK_DIR"
     mkdir -p "$generated_dir"
 
-    echo "==> [cycle ${cycle}/${CYCLES}] EBNF -> JSON"
-    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$SEMANTIC_GRAMMAR" -o "$generated_dir/semantic_annotation.json"
-    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$RETURN_GRAMMAR" -o "$generated_dir/return_annotation.json"
+    echo "==> [cycle ${cycle}/${CYCLES}] EBNF -> JSON (Rust frontend)"
+    "$FRONTEND_BIN" "$SEMANTIC_GRAMMAR" --emit-raw-ast-json "$generated_dir/semantic_annotation.json" >/dev/null 2>&1
+    "$FRONTEND_BIN" "$RETURN_GRAMMAR" --emit-raw-ast-json "$generated_dir/return_annotation.json" >/dev/null 2>&1
 
     echo "==> [cycle ${cycle}/${CYCLES}] JSON -> parser.rs (bootstrap mode)"
     "$BOOTSTRAP_BIN" --generate-parser --bootstrap-mode --eliminate-left-recursion \

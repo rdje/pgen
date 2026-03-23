@@ -23298,3 +23298,7 @@ Architectural north star:
   - family status: `regex=In Progress`, closure counts `5/7/2`, blockers `["stimuli_regex_final_targets=157 > 0","formal_exhaustive_closure_surface=missing"]`
   - family status contract: `family_count=1`, `regex_false_criteria_count=2`, `regex_unmet_details_count=2`
 - Keep `LIVE_ACHIEVEMENT_STATUS.md` and the roadmap aligned to those current canonical regex sidecars rather than the older `167 -> 93` lightweight aggregate figures.
+- The fixed-point bootstrap gate was still carrying an unnecessary legacy frontend seam even though its real purpose is bootstrap parser-generation determinism, not Perl frontend retention. That gate now splits the responsibilities cleanly:
+  - Rust frontend `ast_pipeline --features ebnf_dual_run` handles `semantic_annotation.ebnf` / `return_annotation.ebnf` -> JSON
+  - `ast_pipeline_bootstrap --bootstrap-mode` still handles JSON -> parser.rs
+- This keeps the fixed-point proof centered on bootstrap code generation while removing the incidental Perl dependency from the annotation EBNF input phase.
