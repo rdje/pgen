@@ -3873,3 +3873,5 @@ Why `rtl_frontend` exists:
   - and the matching `generated_at_utc` / `summary_json` fields in their JSON writer paths.
 - That keeps the machine-readable proof surface real: once a top-level proof lane ships `summary.json`, local CI should fail if that sidecar stops being emitted or stops reporting its own metadata coherently.
 - The local CI assertion helpers themselves need to support that policy surface too: they should use `grep -F --` so shell fragments that begin with `--arg` remain matchable as literals.
+- The next coherence step below the top aggregate lanes is family-status contract self-description. The shipped SV/regex/VHDL family-status contract gates should surface their own `summary_json` in `summary.txt` and carry both `summary_txt` and `summary_json` at the top level of their JSON sidecars, not just the upstream family-status artifact paths they validate.
+- That keeps the proof stack structurally regular from family-status contract up through combined telemetry and `sota_exit_gate`, which makes later local-CI policy guards and aggregate consumers simpler.

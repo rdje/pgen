@@ -211,6 +211,7 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "VHDL Parser Family Status Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
     echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "family_status_state_dir: $family_status_state_dir"
     echo "family_status_summary_json: $family_status_summary_json"
     echo "family_status_summary_txt: $family_status_summary_txt"
@@ -228,6 +229,8 @@ jq -n \
     --argjson version 1 \
     --arg generated_at_utc "$generated_at_utc" \
     --arg state_dir "$STATE_DIR" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
     --arg family_status_state_dir "$family_status_state_dir" \
     --arg family_status_summary_json "$family_status_summary_json" \
     --arg family_status_summary_txt "$family_status_summary_txt" \
@@ -243,6 +246,8 @@ jq -n \
       version: $version,
       generated_at_utc: $generated_at_utc,
       state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
       family_status_state_dir: $family_status_state_dir,
       family_status_summary_json: $family_status_summary_json,
       family_status_summary_txt: $family_status_summary_txt,

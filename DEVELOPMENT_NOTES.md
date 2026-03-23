@@ -23612,3 +23612,8 @@ Architectural north star:
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
   keep their `SUMMARY_JSON="$STATE_DIR/summary.json"` contract, echo both `generated_at_utc` and `summary_json` into `summary.txt`, and pass both fields through the JSON writer path too, so the machine-readable proof sidecar cannot silently regress back to a write-only or missing artifact.
 - One small implementation detail matters for these local CI audits: the generic `grep -F` wrappers need `--` so patterns like `--arg generated_at_utc "$generated_at_utc"` are treated as literals rather than mistaken for grep options.
+- The same self-description rule now needs to hold one layer lower too. The shipped family-status contract gates:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh`
+  already emitted `summary.json`, but they were still only naming the upstream family-status artifacts they validate. They now need to surface their own `summary_json` in `summary.txt` and carry both `summary_txt` and `summary_json` at the top level of their JSON sidecars too, so the family-level proof surfaces stay structurally aligned with the higher aggregate layers.

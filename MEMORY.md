@@ -6325,3 +6325,14 @@ Use this file to resume work without replaying full chat history.
   - and both fields threaded through the JSON writer path
   so the machine-readable proof surface cannot silently regress back toward TXT-only reporting.
 - The helper detail for that audit is easy to forget: `ci_workflow_local_gate.sh` now uses `grep -F --` in its generic file/workflow assertions so leading-dash literals such as `--arg generated_at_utc "$generated_at_utc"` can be matched safely.
+- The shipped family-status contract gates now self-identify more like the higher-level proof gates do:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh`
+  each now:
+  - echo `summary_json: $SUMMARY_JSON` in `summary.txt`
+  - record `summary_txt` and `summary_json` at the top level of their JSON sidecar
+- Reuse-backed validation for that slice is the straightforward sibling trio:
+  - `PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh`
+  - `PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/regex_parser_family_status_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh`
+  - `PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh`

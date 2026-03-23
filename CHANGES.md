@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-24 - Surface family-status contract self-paths
+### ✅ Achievement Summary
+PGEN now makes the shipped family-status contract gates expose their own `summary.json` self-paths consistently, instead of only pointing at the upstream family-status artifacts they validate.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh)
+  - [regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh)
+  - [vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh)
+- Each gate now:
+  - echoes `summary_json` in `summary.txt`
+  - records both `summary_txt` and `summary_json` in its JSON sidecar
+
+### Why This Matters
+- Before this slice, those family-status contract gates already emitted `summary.json`, but their top-level sidecars did not identify themselves the way the higher-level SOTA and combined-telemetry proof gates now do.
+- The family-contract proof stack is now more self-describing and easier to consume uniformly.
+
 ## 2026-03-24 - Lock proof summary JSON emission policy
 ### ✅ Achievement Summary
 PGEN now enforces, in the local CI workflow parity gate itself, that the top-level proof emitters keep writing their machine-readable `summary.json` sidecars and exposing them consistently in both TXT and JSON outputs.
