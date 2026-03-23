@@ -23338,3 +23338,16 @@ Architectural north star:
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` and `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now surface and parity-check the new JSON path too
 - One small implementation bug showed up while doing that: `quality_parse_full_passes` in the family-contract summary is a literal string like `8/8`, not JSON numeric content, so the JSON writer in `vhdl_parser_family_contract_gate.sh` must pass it with `--arg`, not `--argjson`.
 - Important evidence rule discovered during validation: the top-level `/Users/richarddje/Documents/github/pgen/rust/target/vhdl_stimuli_quality_gate` can currently hold a lightweight one-case run (`realistic_corpus_cases_executed: 1`) and therefore is not always a valid family-contract evidence source. For VHDL family/aggregate proof slices, prefer a canonical full-quality state with `realistic_corpus_cases_executed: 14` or regenerate one explicitly before treating it as family-proof input.
+- The next normalization step after that JSON path was provenance visibility. Once the VHDL family contract could legally point at a full-quality state that differs from the current top-level `vhdl_stimuli_quality_gate`, aggregate summaries needed to surface that fact explicitly instead of only showing derived family metrics.
+- Tightened that aggregate provenance seam:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` now extracts the VHDL family contract’s proof-surface inputs directly from `vhdl_parser_family_contract_gate/summary.json`
+  - it now exports:
+    - `vhdl_family_quality_state_dir`
+    - `vhdl_family_quality_summary_txt`
+    - `vhdl_family_quality_realistic_report_json`
+    - `vhdl_family_quality_parseability_report_json`
+    - `vhdl_family_strict_promotion_state_dir`
+    - `vhdl_family_strict_promotion_summary_txt`
+    - `vhdl_family_strict_promotion_report_json`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now parity-checks those fields against the family-contract JSON sidecar and re-emits them in its own summary
+- That gives the aggregate layer a direct answer to “which evidence did the VHDL family proof actually use?” rather than forcing operators to infer it from nested workdir conventions.

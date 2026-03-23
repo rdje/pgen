@@ -6193,3 +6193,20 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate`
     - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_contract_gate`
 - Small but easy-to-forget detail: `quality_parse_full_passes` inside the VHDL family-contract JSON sidecar is a string field (`8/8` style), not numeric JSON.
+- VHDL aggregate summaries now expose the actual family-proof evidence inputs too:
+  - `vhdl_family_quality_state_dir`
+  - `vhdl_family_quality_summary_txt`
+  - `vhdl_family_quality_realistic_report_json`
+  - `vhdl_family_quality_parseability_report_json`
+  - `vhdl_family_strict_promotion_state_dir`
+  - `vhdl_family_strict_promotion_summary_txt`
+  - `vhdl_family_strict_promotion_report_json`
+- Those fields come from `vhdl_parser_family_contract_gate/summary.json`, not from ad-hoc path construction in the aggregate scripts.
+- Reuse-backed proof shape for this provenance slice:
+  - rerun `sota_exit_gate.sh` with:
+    - `PGEN_SOTA_EXISTING_VHDL_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_combined_telemetry_contract_gate/work/sota_exit_gate/work/vhdl_stimuli_quality_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_strict_promotion_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_contract_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_contract_gate`
+  - then rerun `vhdl_combined_telemetry_contract_gate.sh` against that SOTA state

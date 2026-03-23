@@ -135,6 +135,13 @@ vhdl_quality_closed_loop_initial_status="$(extract_summary_value "$vhdl_family_s
 vhdl_quality_closed_loop_replay_status="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_replay_status")"
 vhdl_quality_closed_loop_initial_targets="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_initial_targets")"
 vhdl_quality_closed_loop_replay_targets="$(extract_summary_value "$vhdl_family_summary_txt" "quality_closed_loop_replay_targets")"
+vhdl_family_quality_state_dir="$(jq -r '.proof_surfaces.quality_state_dir' "$vhdl_family_summary_json")"
+vhdl_family_quality_summary_txt="$(jq -r '.proof_surfaces.quality_summary_txt' "$vhdl_family_summary_json")"
+vhdl_family_quality_realistic_report_json="$(jq -r '.proof_surfaces.quality_realistic_report_json' "$vhdl_family_summary_json")"
+vhdl_family_quality_parseability_report_json="$(jq -r '.proof_surfaces.quality_parseability_report_json' "$vhdl_family_summary_json")"
+vhdl_family_strict_promotion_state_dir="$(jq -r '.proof_surfaces.strict_promotion_state_dir' "$vhdl_family_summary_json")"
+vhdl_family_strict_promotion_summary_txt="$(jq -r '.proof_surfaces.strict_promotion_summary_txt' "$vhdl_family_summary_json")"
+vhdl_family_strict_promotion_report_json="$(jq -r '.proof_surfaces.strict_promotion_report_json' "$vhdl_family_summary_json")"
 vhdl_quality_parseability_generation_attempts_total="$(extract_summary_value "$vhdl_family_summary_txt" "quality_parseability_generation_attempts_total")"
 vhdl_quality_parseability_generation_rejected_total="$(extract_summary_value "$vhdl_family_summary_txt" "quality_parseability_generation_rejected_total")"
 vhdl_quality_realistic_cases_executed="$(extract_summary_value "$vhdl_family_summary_txt" "quality_realistic_cases_executed")"
@@ -261,6 +268,34 @@ assert_equal \
     "VHDL family contract summary json path" \
     "$vhdl_family_summary_json" \
     "$(extract_summary_value "$sota_summary_txt" "vhdl_parser_family_contract_summary_json")"
+assert_equal \
+    "VHDL family quality state dir" \
+    "$vhdl_family_quality_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_quality_state_dir")"
+assert_equal \
+    "VHDL family quality summary txt" \
+    "$vhdl_family_quality_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_quality_summary_txt")"
+assert_equal \
+    "VHDL family quality realistic report json" \
+    "$vhdl_family_quality_realistic_report_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_quality_realistic_report_json")"
+assert_equal \
+    "VHDL family quality parseability report json" \
+    "$vhdl_family_quality_parseability_report_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_quality_parseability_report_json")"
+assert_equal \
+    "VHDL family strict-promotion state dir" \
+    "$vhdl_family_strict_promotion_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_strict_promotion_state_dir")"
+assert_equal \
+    "VHDL family strict-promotion summary txt" \
+    "$vhdl_family_strict_promotion_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_strict_promotion_summary_txt")"
+assert_equal \
+    "VHDL family strict-promotion report json" \
+    "$vhdl_family_strict_promotion_report_json" \
+    "$(extract_summary_value "$sota_summary_txt" "vhdl_family_strict_promotion_report_json")"
 assert_equal \
     "VHDL family computed status" \
     "$vhdl_family_status_vhdl" \
@@ -409,6 +444,13 @@ assert_equal \
     echo "sota_policy_env_file: $SOTA_POLICY_ENV_FILE"
     echo "vhdl_parser_family_contract_summary_txt: $vhdl_family_summary_txt"
     echo "vhdl_parser_family_contract_summary_json: $vhdl_family_summary_json"
+    echo "vhdl_family_quality_state_dir: $vhdl_family_quality_state_dir"
+    echo "vhdl_family_quality_summary_txt: $vhdl_family_quality_summary_txt"
+    echo "vhdl_family_quality_realistic_report_json: $vhdl_family_quality_realistic_report_json"
+    echo "vhdl_family_quality_parseability_report_json: $vhdl_family_quality_parseability_report_json"
+    echo "vhdl_family_strict_promotion_state_dir: $vhdl_family_strict_promotion_state_dir"
+    echo "vhdl_family_strict_promotion_summary_txt: $vhdl_family_strict_promotion_summary_txt"
+    echo "vhdl_family_strict_promotion_report_json: $vhdl_family_strict_promotion_report_json"
     echo "vhdl_parser_family_status_summary_txt: $vhdl_family_status_summary_txt"
     echo "vhdl_parser_family_status_summary_json: $vhdl_family_status_summary_json"
     echo "vhdl_parser_family_status_gate: $vhdl_parser_family_status_gate"
