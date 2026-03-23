@@ -22785,3 +22785,6 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - `.github/workflows/fixed-point-gate.yml` no longer verifies Perl runtime up front. After the fixed-point gate itself moved to the Rust frontend for the annotation `.ebnf -> JSON` phase, that workflow step had become stale CI baggage rather than a real dependency check.
 - `.github/workflows/branch-protection-contract-gate.yml` no longer verifies Perl runtime up front. The branch-protection contract gate itself only inspects tracked JSON/workflow policy and does not depend on Perl, so that CI step was stale dependency noise.
 - `.github/workflows/annotation-nonbootstrap-e2e-gate.yml` no longer verifies Perl runtime up front. The gate now runs entirely on generated annotation JSON plus the Rust frontend for the live regex row, so that CI step had become stale dependency noise.
+- The only remaining workflow-level Perl runtime checks are now labeled as intentional dependencies rather than stale baggage:
+  - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still verifies Perl because that workflow directly measures Perl-vs-Rust frontend behavior.
+  - `.github/workflows/sota-exit-gate.yml` still verifies Perl because the active SOTA policy keeps the EBNF dual-run differential surface enabled.

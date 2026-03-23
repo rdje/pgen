@@ -34,7 +34,7 @@ jobs:
             jq --version
           fi
 
-      - name: Verify Perl runtime
+      - name: Verify Perl runtime for Perl-vs-Rust dual-run
         run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
 
       - name: Run EBNF frontend dual-run differential (report mode)

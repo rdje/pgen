@@ -600,6 +600,9 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
 - The fixed-point CI workflow is now aligned too: `.github/workflows/fixed-point-gate.yml` no longer carries a stale Perl runtime smoke check, so its declared runtime dependencies match the actual Rust-frontended gate.
 - The same cleanup now applies to `.github/workflows/branch-protection-contract-gate.yml`: its Perl runtime smoke step is gone because `branch_protection_contract_gate` only validates tracked branch-protection JSON plus workflow metadata and does not require Perl.
 - The same cleanup now applies to `.github/workflows/annotation-nonbootstrap-e2e-gate.yml`: its Perl runtime smoke step is gone because `annotation_nonbootstrap_e2e_gate` now runs on generated annotation JSON plus the Rust frontend for the live `regex` row and does not require Perl.
+- The remaining workflow-level Perl runtime checks are intentional and should stay visible as such until the dual-run / SOTA policy changes:
+  - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still verifies Perl because it measures Perl-vs-Rust frontend behavior directly.
+  - `.github/workflows/sota-exit-gate.yml` still verifies Perl because the live SOTA aggregate policy keeps the EBNF dual-run differential surface enabled.
 - [x] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)

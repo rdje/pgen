@@ -23313,3 +23313,7 @@ Architectural north star:
 - The `fixed-point-gate` workflow had one stale dependency left after the gate migration: it still ran a Perl `JSON::PP` smoke check even though the fixed-point path no longer depends on Perl. That CI-only seam is gone now, so the workflow dependency story matches the gate's actual runtime requirements.
 - The branch-protection contract workflow had a stale Perl runtime smoke step even though [branch_protection_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh) only validates tracked JSON/workflow policy. That workflow is now aligned with the gate’s actual runtime requirements.
 - The non-bootstrap annotation E2E workflow had the same stale CI dependency pattern as the recent fixed-point and branch-protection slices: it still smoke-checked Perl even though the gate now uses generated annotation JSON plus the Rust frontend for the regex row. That workflow is now aligned with the gate's actual runtime dependencies.
+- The remaining workflow-level Perl runtime checks are intentional, not stale:
+  - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still needs Perl because the job explicitly runs the Perl-vs-Rust differential surface.
+  - `.github/workflows/sota-exit-gate.yml` still needs Perl because the active SOTA policy keeps `ebnf_frontend_dual_run_diff` / `ebnf_frontend_dual_run_gate` in play.
+  - keep those checks, but label them accordingly so the CI surface itself explains why Perl is still present.

@@ -6155,3 +6155,7 @@ Use this file to resume work without replaying full chat history.
 - `fixed-point-gate` CI no longer carries a Perl-runtime smoke step. The gate itself is already Rust-frontended on the annotation input side, so that workflow check was stale and removed.
 - `branch-protection-contract-gate` CI no longer carries a Perl-runtime smoke step. The gate itself only validates tracked policy/workflow state and does not depend on Perl.
 - `annotation-nonbootstrap-e2e-gate` CI no longer carries a Perl-runtime smoke step. The gate itself now runs on generated annotation JSON plus the Rust frontend for `regex`.
+- Only two workflow-level Perl runtime checks should remain for now:
+  - `ebnf-frontend-dual-run-diff`, because it intentionally compares Perl vs Rust.
+  - `sota-exit-gate`, because the current SOTA policy still runs that dual-run surface.
+  Treat those as explicit dependency markers, not stale cleanup candidates.
