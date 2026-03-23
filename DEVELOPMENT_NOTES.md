@@ -23275,3 +23275,13 @@ Architectural north star:
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` now exports `frontend_to_json`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh` now reads/reports `frontend_regex_frontend_to_json`
   - the intentionally comparative dual-run field stays `perl_ebnf_to_json`, because that gate is still measuring Perl-vs-Rust behavior rather than generic frontend success
+- The next regex-family blocker turned out to be a real generated-parser bug, not stale telemetry. `ebnf_frontend_dual_run_gate` was red because the Rust EBNF parser stopped partway through [regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf) in the quantifier section, but the real cutoff was not the `#` text itself; it was the multiline continuation after an inline `# ...` comment. The generated EBNF parser helpers in `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs` had drifted behind the newer tracked generated parsers: `consume_layout_for_terminal`, `consume_layout_for_regex`, and `looks_like_rule_definition_boundary` no longer skipped `#` line comments.
+- Fixed that generator seam and mirrored it into tracked `/Users/richarddje/Documents/github/pgen/generated/ebnf.rs`. Fresh direct proof via `rust/target/debug/ebnf_dual_run_diff --input grammars/regex.ebnf` now shows both `parse.ok=true` and `parse_full.ok=true`, and a full rerun of `bash rust/scripts/ebnf_frontend_dual_run_diff_gate.sh` is green again with the expected regex row:
+  - `rust_parse_full=pass`
+  - `overall=pass`
+  - `raw_ast_status=perl_under_reports`
+  - `perl_rule_count=78`
+  - `rust_rule_count=87`
+  - `raw_ast_missing_on_perl_count=9`
+  - `raw_ast_missing_on_rust_count=0`
+  The downstream `regex_parser_family_contract_gate` is green again on top of that refreshed sidecar.

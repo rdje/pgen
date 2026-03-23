@@ -3417,6 +3417,17 @@ impl AstBasedGenerator {
                     let bytes = self.input.as_bytes();
                     let len = bytes.len();
 
+                    if bytes[self.position] == b'#' {
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
                     if self.position + 1 < len
                         && bytes[self.position] == b'/'
                         && bytes[self.position + 1] == b'/'
@@ -3471,6 +3482,17 @@ impl AstBasedGenerator {
                     let bytes = self.input.as_bytes();
                     let len = bytes.len();
 
+                    if bytes[self.position] == b'#' {
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
                     if self.position + 1 < len
                         && bytes[self.position] == b'/'
                         && bytes[self.position + 1] == b'/'
@@ -3522,6 +3544,12 @@ impl AstBasedGenerator {
                         b'\n' | b'\r' => {
                             saw_newline = true;
                             i += 1;
+                            continue;
+                        }
+                        b'#' => {
+                            while i < len && bytes[i] != b'\n' && bytes[i] != b'\r' {
+                                i += 1;
+                            }
                             continue;
                         }
                         b'/' if i + 1 < len && bytes[i + 1] == b'/' => {

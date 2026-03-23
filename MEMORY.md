@@ -6126,3 +6126,16 @@ Use this file to resume work without replaying full chat history.
   - `ebnf_frontend_readiness_gate` exports `frontend_to_json` instead of `ebnf_to_json`
   - `regex_parser_family_contract_gate` consumes/reports `frontend_regex_frontend_to_json`
   - keep `perl_ebnf_to_json` only on the dual-run differential surface where Perl-vs-Rust comparison is intentional
+- The next live regex-family blocker after that rename was real generated-parser drift, not a stale contract wrapper. `ebnf_frontend_dual_run_gate` had gone red because the tracked/generated EBNF parser stopped before multiline `|` continuation lines when an inline `# ...` comment appeared earlier on the rule line. The missing behavior was `#` comment skipping inside:
+  - `consume_layout_for_terminal`
+  - `consume_layout_for_regex`
+  - `looks_like_rule_definition_boundary`
+  Fix those in `rust/src/ast_pipeline/ast_based_generator.rs` and keep tracked `generated/ebnf.rs` in sync. Fresh regex dual-run proof after that fix is:
+  - `rust_parse_full=pass`
+  - `overall=pass`
+  - `raw_ast_status=perl_under_reports`
+  - `perl_rule_count=78`
+  - `rust_rule_count=87`
+  - `raw_ast_missing_on_perl_count=9`
+  - `raw_ast_missing_on_rust_count=0`
+  and `regex_parser_family_contract_gate` is green again on top of the refreshed dual-run sidecar.
