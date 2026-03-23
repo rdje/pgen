@@ -6296,3 +6296,10 @@ Use this file to resume work without replaying full chat history.
   - and lightweight validation is:
     - `PGEN_REGEX_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/regex_combined_telemetry_contract_gate_json_sota`
     - run `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh`
+- The next sibling is VHDL aggregate consumption of top-level SOTA JSON:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now requires:
+    - `/tmp/pgen_vhdl_sota_json_validation/summary.json`
+  - and reuse-backed validation is:
+    - `PGEN_VHDL_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_combined_telemetry_contract_gate_sota_json`
+    - `PGEN_VHDL_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/tmp/pgen_vhdl_sota_json_validation`
+    - run `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
