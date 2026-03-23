@@ -187,6 +187,53 @@ audit_ebnf_frontend_conversion_surface() {
     '"$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"'
 }
 
+audit_sota_json_consumption_surface() {
+  note "auditing aggregate SOTA summary.json consumption surface"
+
+  assert_tracked "rust/scripts/sv_combined_telemetry_contract_gate.sh"
+  assert_tracked "rust/scripts/regex_combined_telemetry_contract_gate.sh"
+  assert_tracked "rust/scripts/vhdl_combined_telemetry_contract_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'sota_summary_json="$sota_state_dir/summary.json"'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.counts.required_failures'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status.systemverilog.primary_unmet_closure_criterion'
+
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'sota_summary_json="$sota_state_dir/summary.json"'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.counts.required_failures'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status.regex.primary_unmet_closure_criterion'
+
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    'sota_summary_json="$sota_state_dir/summary.json"'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.summary_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    '.counts.required_failures'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    '.family_status.vhdl.primary_unmet_closure_criterion'
+}
+
 assert_workflow_command() {
   local workflow_file="$1"
   local expected="$2"
@@ -236,6 +283,7 @@ main() {
   audit_static_include_paths
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
+  audit_sota_json_consumption_surface
 
   run_workflow \
     "annotation-contract-gate" \

@@ -6303,3 +6303,13 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_VHDL_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_combined_telemetry_contract_gate_sota_json`
     - `PGEN_VHDL_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/tmp/pgen_vhdl_sota_json_validation`
     - run `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
+- The local CI parity gate now locks that aggregate doctrine too. `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` asserts that:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
+  each keep:
+  - `sota_summary_json="$sota_state_dir/summary.json"`
+  - `.proof_surfaces.summary_json`
+  - `.counts.required_failures`
+  - and the family-specific `primary_unmet_closure_criterion` extraction from top-level SOTA JSON
+  so the shipped aggregate lanes cannot silently drift back to TXT-only SOTA consumption.

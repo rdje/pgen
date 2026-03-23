@@ -23599,3 +23599,9 @@ Architectural north star:
   so `sota_exit_gate` JSON becomes a real contract surface rather than a write-only artifact.
 - That same rule applies to the sibling family aggregates too. Regex combined telemetry should not stop at consuming the regex family sidecars themselves; it should also consume the top-level SOTA JSON sidecar, parity-check the regex proof-surface paths and blocker payloads there against the family sidecars, and re-emit the SOTA JSON provenance in its own aggregate output.
 - VHDL combined telemetry needs the same normalization. Once the VHDL family contract, family status, and family-status contract all have JSON sidecars, the aggregate gate should require top-level SOTA JSON too, parity-check the VHDL blocker payloads there against the VHDL family sidecars it already consumes, and re-emit the SOTA JSON provenance in its own outputs.
+- Once those three aggregate lanes are SOTA-JSON consumers, the regression guard belongs in local CI policy too. `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` should assert that the shipped combined telemetry gates:
+  - bind `sota_summary_json="$sota_state_dir/summary.json"`,
+  - extract `.proof_surfaces.summary_json`,
+  - extract `.counts.required_failures`,
+  - and keep their family-specific `primary_unmet_closure_criterion` reads from the top-level SOTA JSON sidecar
+  so aggregate sign-off cannot silently drift back to TXT-only SOTA consumption.

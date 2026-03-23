@@ -3861,3 +3861,9 @@ Why `rtl_frontend` exists:
   - and validate that its structured primary blocker payloads still match the SV family status / family status contract sidecars already in use.
 - The same aggregate-proof rule now extends to the regex lane too. `regex_combined_telemetry_contract_gate.sh` should require the top-level SOTA JSON sidecar, parity-check the regex family proof-path metadata there against the TXT interface it already consumes, and confirm that the structured regex blocker payloads in SOTA JSON still match the regex family status / family status contract sidecars already in use.
 - The remaining sibling aggregate is VHDL. `vhdl_combined_telemetry_contract_gate.sh` should require the top-level SOTA JSON sidecar, parity-check the VHDL proof-path metadata there against the TXT interface it already consumes, and confirm that the structured VHDL blocker payloads in SOTA JSON still match the VHDL family status / family status contract sidecars already in use.
+- Once those aggregate lanes are SOTA-JSON consumers, the regression guard belongs in local CI policy too. `rust/scripts/ci_workflow_local_gate.sh` should assert that the shipped combined telemetry gates still:
+  - bind `sota_summary_json="$sota_state_dir/summary.json"`,
+  - read `.proof_surfaces.summary_json`,
+  - read `.counts.required_failures`,
+  - and read the family-specific `primary_unmet_closure_criterion` from the top-level SOTA JSON sidecar.
+- That keeps the roadmap pressure where it belongs: not “emit more JSON”, but “keep aggregate sign-off consuming the machine-readable SOTA contract once it exists.”

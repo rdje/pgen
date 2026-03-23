@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-24 - Lock aggregate SOTA JSON consumption policy
+### ✅ Achievement Summary
+PGEN now enforces, in the local CI workflow parity gate itself, that the shipped combined-telemetry aggregates keep consuming the top-level `sota_exit_gate/summary.json` contract surface.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI parity surface now asserts that:
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+  keep all of the following live:
+  - `sota_summary_json="$sota_state_dir/summary.json"`
+  - `.proof_surfaces.summary_json`
+  - `.counts.required_failures`
+  - the family-specific `primary_unmet_closure_criterion` extraction from SOTA JSON
+
+### Why This Matters
+- The three aggregate gates had already been migrated to consume the top-level SOTA JSON sidecar, but that rule still lived only in the scripts and continuity notes.
+- The local CI parity surface now fails if one of those aggregate lanes silently drifts back to TXT-only SOTA consumption.
+
 ## 2026-03-23 - Surface VHDL combined telemetry JSON proof
 ### ✅ Achievement Summary
 PGEN now gives the VHDL combined-telemetry aggregate its own `summary.json` sidecar, so the top VHDL proof summary is machine-readable instead of TXT-only.
