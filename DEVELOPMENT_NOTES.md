@@ -23293,3 +23293,8 @@ Architectural north star:
     - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh` now resolves the regex family sidecar paths from `sota_exit_gate/summary.txt` before validating them
   so reuse-backed regex aggregate proofs no longer depend on those sidecars being rebuilt inside the current nested SOTA work tree.
+- The regex-family steering docs had drifted behind the repaired dual-run/canonical sidecar state. After refreshing `regex_parser_family_contract_gate`, `regex_parser_family_status_gate`, `regex_parser_family_status_contract_gate`, and the reuse-backed aggregate parity surface, the authoritative regex figures are now:
+  - family contract: `frontend_overall=pass`, `dual_run_overall=pass`, `raw_ast_status=perl_under_reports`, `perl_rule_count=78`, `rust_rule_count=87`, `raw_ast_missing_on_perl_count=9`, `raw_ast_missing_on_rust_count=0`, and stimuli debt `366 -> 157`
+  - family status: `regex=In Progress`, closure counts `5/7/2`, blockers `["stimuli_regex_final_targets=157 > 0","formal_exhaustive_closure_surface=missing"]`
+  - family status contract: `family_count=1`, `regex_false_criteria_count=2`, `regex_unmet_details_count=2`
+- Keep `LIVE_ACHIEVEMENT_STATUS.md` and the roadmap aligned to those current canonical regex sidecars rather than the older `167 -> 93` lightweight aggregate figures.

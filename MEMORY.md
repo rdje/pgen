@@ -944,9 +944,9 @@ Use this file to resume work without replaying full chat history.
     - `regex_family_dual_run_rust_rule_count=87`
     - `regex_family_dual_run_raw_ast_missing_on_perl_count=9`
     - `regex_family_dual_run_raw_ast_missing_on_rust_count=0`
-    - `regex_family_stimuli_initial_targets=167`
-    - `regex_family_stimuli_resolved_targets=74`
-    - `regex_family_stimuli_final_targets=93`
+    - `regex_family_stimuli_initial_targets=366`
+    - `regex_family_stimuli_resolved_targets=209`
+    - `regex_family_stimuli_final_targets=157`
     - `regex_family_status_regex=In Progress`
     - `regex_family_status_regex_closure_criteria_satisfied_count=5`
     - `regex_family_status_regex_closure_criteria_total_count=7`
@@ -6146,3 +6146,7 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR`
   - `regex_combined_telemetry_contract_gate` should trust the regex sidecar paths exported by `sota_exit_gate/summary.txt`, not assume they live under the current `work/regex_parser_family_*` tree
   This matters because reuse-backed aggregate proofs otherwise look spuriously missing even when the regex family sidecars are already present and authoritative.
+- The canonical regex-family proof numbers were refreshed on 2026-03-23 after the EBNF hash-comment dual-run fix and regex aggregate-sidecar reuse work:
+  - family contract stimuli debt is now `366 -> 157`
+  - status blocker is now `stimuli_regex_final_targets=157 > 0`
+  - aggregate-visible regex sidecars should cite those canonical values, not the older `167 -> 93` lightweight figures
