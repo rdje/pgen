@@ -38,6 +38,8 @@ RETURN_ANNOTATION_EXE = $(GENERATED_DIR)/return_annotation_parser
 # Rust build artifacts
 RUST_AST_PIPELINE = $(RUST_DIR)/target/debug/ast_pipeline
 RUST_AST_PIPELINE_BOOTSTRAP = $(RUST_DIR)/target/debug/ast_pipeline_bootstrap
+RUST_EBNF_FRONTEND_TARGET_DIR = $(RUST_DIR)/target/ebnf_frontend_build
+RUST_EBNF_FRONTEND_BIN = $(RUST_EBNF_FRONTEND_TARGET_DIR)/debug/ast_pipeline
 DIFFERENTIAL_REPORT_DIR = $(RUST_DIR)/target/differential_harness
 DIFFERENTIAL_BASELINE_DIR = $(RUST_DIR)/test_data/differential_baseline
 GENERATED_LOG_DIR = $(RUST_DIR)/target/generated_logs
@@ -52,6 +54,7 @@ PERFORMANCE_GATE_REPORT_DIR = $(RUST_DIR)/target/performance_gate
 # Source dependencies for AST pipeline - if any of these change, parsers need regeneration
 AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
                       $(RUST_DIR)/src/lib.rs \
+                      $(RUST_DIR)/src/ebnf_frontend.rs \
                       $(RUST_DIR)/src/ast_pipeline/mod.rs \
                       $(RUST_DIR)/src/ast_pipeline/ast_based_generator.rs \
                       $(RUST_DIR)/src/ast_pipeline/ast_code_generator.rs \
@@ -65,24 +68,24 @@ AST_PIPELINE_SOURCES = $(RUST_DIR)/src/main.rs \
                       $(RUST_DIR)/Cargo.toml
 
 # Tools
-EBNF_TO_JSON = $(TOOLS_DIR)/ebnf_to_json.pl
 RUST_GENERATOR = $(RUST_AST_PIPELINE) --generate-parser --debug --trace --eliminate-left-recursion
 RUST_GENERATOR_BOOTSTRAP = $(RUST_AST_PIPELINE_BOOTSTRAP) --generate-parser --bootstrap-mode --debug --eliminate-left-recursion
+RUST_FRONTEND_TO_JSON = $(RUST_EBNF_FRONTEND_BIN)
 
 # Default target
 .PHONY: all
 all: $(REGEX_PARSER)
 
 # Step 1: Generate JSON from EBNF files
-$(SEMANTIC_ANNOTATION_JSON): $(SEMANTIC_ANNOTATION_EBNF)
-	@echo "Generating semantic annotation JSON from EBNF..."
+$(SEMANTIC_ANNOTATION_JSON): $(SEMANTIC_ANNOTATION_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating semantic annotation JSON from EBNF (Rust frontend)..."
 	@mkdir -p $(GENERATED_DIR)
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(SEMANTIC_ANNOTATION_EBNF) -o $(SEMANTIC_ANNOTATION_JSON)
+	$(RUST_FRONTEND_TO_JSON) $(SEMANTIC_ANNOTATION_EBNF) --emit-raw-ast-json $(SEMANTIC_ANNOTATION_JSON)
 
-$(RETURN_ANNOTATION_JSON): $(RETURN_ANNOTATION_EBNF)
-	@echo "Generating return annotation JSON from EBNF..."
+$(RETURN_ANNOTATION_JSON): $(RETURN_ANNOTATION_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating return annotation JSON from EBNF (Rust frontend)..."
 	@mkdir -p $(GENERATED_DIR)
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(RETURN_ANNOTATION_EBNF) -o $(RETURN_ANNOTATION_JSON)
+	$(RUST_FRONTEND_TO_JSON) $(RETURN_ANNOTATION_EBNF) --emit-raw-ast-json $(RETURN_ANNOTATION_JSON)
 
 # Bootstrap placeholder targets: Create minimal files only if they don't exist
 # These are file-based targets that follow Make's dependency model
@@ -135,6 +138,10 @@ $(RUST_AST_PIPELINE): $(AST_PIPELINE_SOURCES) $(SEMANTIC_ANNOTATION_PARSER) $(RE
 	@echo "Building Rust AST pipeline binary with generated parsers enabled..."
 	cd $(RUST_DIR) && cargo build --features generated_parsers --bin ast_pipeline
 
+$(RUST_EBNF_FRONTEND_BIN): $(AST_PIPELINE_SOURCES) $(GENERATED_DIR)/ebnf.rs $(RUST_DIR)/build.rs
+	@echo "Building dedicated Rust EBNF frontend binary..."
+	cd $(RUST_DIR) && cargo build --target-dir target/ebnf_frontend_build --features ebnf_dual_run --bin ast_pipeline
+
 # Step 2: Generate Rust parsers from JSON files using bootstrap mode
 # These parsers are generated using bootstrap mode to avoid circular dependency
 $(SEMANTIC_ANNOTATION_PARSER): $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
@@ -159,10 +166,10 @@ $(RETURN_ANNOTATION_EXE): $(RETURN_ANNOTATION_PARSER)
 	rustc --edition 2021 -g -o $(RETURN_ANNOTATION_EXE) $(RETURN_ANNOTATION_PARSER)
 
 # Generate regex JSON from EBNF (depends only on Rust pipeline - parsers are optional)
-$(REGEX_JSON): $(REGEX_EBNF)
-	@echo "Generating regex JSON with debug output..."
+$(REGEX_JSON): $(REGEX_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating regex JSON with debug output (Rust frontend)..."
 	@mkdir -p $(GENERATED_DIR)
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON)
+	$(RUST_FRONTEND_TO_JSON) $(REGEX_EBNF) --emit-raw-ast-json $(REGEX_JSON)
 
 # Generate final regex parser from JSON
 $(REGEX_PARSER): $(REGEX_JSON) $(RUST_AST_PIPELINE)
@@ -312,7 +319,7 @@ help:
 	@echo "  semantic-parser-with-log            - Alias for semantic-annotation-parser-with-log"
 	@echo ""
 	@echo "🔧 Build order:"
-	@echo "  1. Generate JSON files from EBNF grammars"
+	@echo "  1. Generate JSON files from EBNF grammars (Rust frontend)"
 	@echo "  2. Build Rust AST pipeline (cargo build)"
 	@echo "  3. Generate Rust parsers from JSON files"
 	@echo "  4. Generate regex.json from regex.ebnf (with debug output)"
@@ -353,17 +360,19 @@ status:
 
 .PHONY: force-debug-json
 force-debug-json:
-	@echo "Force generating regex JSON with debug output (ignoring dependencies)..."
+	@echo "Force generating regex JSON with debug output via Rust frontend (ignoring dependencies)..."
 	@mkdir -p $(GENERATED_DIR)
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON)
+	$(MAKE) $(RUST_EBNF_FRONTEND_BIN)
+	$(RUST_FRONTEND_TO_JSON) $(REGEX_EBNF) --emit-raw-ast-json $(REGEX_JSON)
 
 .PHONY: regex-parser-with-log
 regex-parser-with-log:
 	@echo "Generating regex parser with full debug logging..."
 	@mkdir -p $(GENERATED_DIR) $(GENERATED_LOG_DIR)
 	@rm -f $(REGEX_JSON) $(REGEX_PARSER)
-	@echo "Step 1: Generate regex JSON..." | tee $(GENERATED_LOG_DIR)/regex_parser.log
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(REGEX_EBNF) -o $(REGEX_JSON) 2>&1 | tee $(GENERATED_LOG_DIR)/regex_parser.log
+	@echo "Step 1: Generate regex JSON via Rust frontend..." | tee $(GENERATED_LOG_DIR)/regex_parser.log
+	$(MAKE) $(RUST_EBNF_FRONTEND_BIN) 2>&1 | tee -a $(GENERATED_LOG_DIR)/regex_parser.log
+	$(RUST_FRONTEND_TO_JSON) $(REGEX_EBNF) --emit-raw-ast-json $(REGEX_JSON) 2>&1 | tee -a $(GENERATED_LOG_DIR)/regex_parser.log
 	@echo "\nStep 2: Generate regex parser from JSON..." | tee -a $(GENERATED_LOG_DIR)/regex_parser.log
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER) 2>&1 | tee -a $(GENERATED_LOG_DIR)/regex_parser.log
 	@echo "\nRegex parser generation complete! Check $(GENERATED_LOG_DIR)/regex_parser.log for details"
@@ -373,8 +382,9 @@ return-annotation-parser-with-log:
 	@echo "Generating return annotation parser with full debug logging..."
 	@mkdir -p $(GENERATED_DIR) $(GENERATED_LOG_DIR)
 	@rm -f $(RETURN_ANNOTATION_JSON) $(RETURN_ANNOTATION_PARSER)
-	@echo "Step 1: Generate return annotation JSON..." | tee $(GENERATED_LOG_DIR)/return_annotation_parser.log
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(RETURN_ANNOTATION_EBNF) -o $(RETURN_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_LOG_DIR)/return_annotation_parser.log
+	@echo "Step 1: Generate return annotation JSON via Rust frontend..." | tee $(GENERATED_LOG_DIR)/return_annotation_parser.log
+	$(MAKE) $(RUST_EBNF_FRONTEND_BIN) 2>&1 | tee -a $(GENERATED_LOG_DIR)/return_annotation_parser.log
+	$(RUST_FRONTEND_TO_JSON) $(RETURN_ANNOTATION_EBNF) --emit-raw-ast-json $(RETURN_ANNOTATION_JSON) 2>&1 | tee -a $(GENERATED_LOG_DIR)/return_annotation_parser.log
 	@echo "\nStep 2: Generate return annotation parser from JSON..." | tee -a $(GENERATED_LOG_DIR)/return_annotation_parser.log
 	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_LOG_DIR)/return_annotation_parser.log
 	@echo "\nReturn annotation parser generation complete! Check $(GENERATED_LOG_DIR)/return_annotation_parser.log for details"
@@ -384,8 +394,9 @@ semantic-annotation-parser-with-log:
 	@echo "Generating semantic annotation parser with full debug logging..."
 	@mkdir -p $(GENERATED_DIR) $(GENERATED_LOG_DIR)
 	@rm -f $(SEMANTIC_ANNOTATION_JSON) $(SEMANTIC_ANNOTATION_PARSER)
-	@echo "Step 1: Generate semantic annotation JSON..." | tee $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
-	$(EBNF_TO_JSON) --verbosity debug --pretty $(SEMANTIC_ANNOTATION_EBNF) -o $(SEMANTIC_ANNOTATION_JSON) 2>&1 | tee $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
+	@echo "Step 1: Generate semantic annotation JSON via Rust frontend..." | tee $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
+	$(MAKE) $(RUST_EBNF_FRONTEND_BIN) 2>&1 | tee -a $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
+	$(RUST_FRONTEND_TO_JSON) $(SEMANTIC_ANNOTATION_EBNF) --emit-raw-ast-json $(SEMANTIC_ANNOTATION_JSON) 2>&1 | tee -a $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
 	@echo "\nStep 2: Generate semantic annotation parser from JSON..." | tee -a $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
 	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER) 2>&1 | tee -a $(GENERATED_LOG_DIR)/semantic_annotation_parser.log
 	@echo "\nSemantic annotation parser generation complete! Check $(GENERATED_LOG_DIR)/semantic_annotation_parser.log for details"
@@ -407,7 +418,7 @@ debug-semantic-annotations: $(SEMANTIC_ANNOTATION_EXE) $(RETURN_ANNOTATION_EXE)
 .PHONY: return_annotation_parser
 return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "🚀 Starting complete flow for return annotation parser..."
-	@echo "📄 Step 1: EBNF -> JSON (already done: $(RETURN_ANNOTATION_JSON))"
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(RETURN_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR_BOOTSTRAP) $(RETURN_ANNOTATION_JSON) -o $(RETURN_ANNOTATION_PARSER)
@@ -418,7 +429,7 @@ return_annotation_parser: $(RETURN_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRA
 .PHONY: semantic_annotation_parser
 semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOTSTRAP)
 	@echo "🚀 Starting complete flow for semantic annotation parser..."
-	@echo "📄 Step 1: EBNF -> JSON (already done: $(SEMANTIC_ANNOTATION_JSON))"
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(SEMANTIC_ANNOTATION_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (bootstrap mode)"
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR_BOOTSTRAP) $(SEMANTIC_ANNOTATION_JSON) -o $(SEMANTIC_ANNOTATION_PARSER)
@@ -429,7 +440,7 @@ semantic_annotation_parser: $(SEMANTIC_ANNOTATION_JSON) $(RUST_AST_PIPELINE_BOOT
 .PHONY: regex_parser
 regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "🚀 Starting complete flow for regex parser..."
-	@echo "📄 Step 1: EBNF -> JSON (already done: $(REGEX_JSON))"
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(REGEX_JSON))"
 	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)

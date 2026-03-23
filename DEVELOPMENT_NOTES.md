@@ -23302,3 +23302,11 @@ Architectural north star:
   - Rust frontend `ast_pipeline --features ebnf_dual_run` handles `semantic_annotation.ebnf` / `return_annotation.ebnf` -> JSON
   - `ast_pipeline_bootstrap --bootstrap-mode` still handles JSON -> parser.rs
 - This keeps the fixed-point proof centered on bootstrap code generation while removing the incidental Perl dependency from the annotation EBNF input phase.
+- The remaining active Perl seam in the main build path was [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile): annotation and regex JSON generation still called `ebnf_to_json.pl` even though the active gates had already moved to the Rust frontend. That has now been normalized too.
+- The important implementation detail is the separate frontend target dir:
+  - `rust/target/ebnf_frontend_build/debug/ast_pipeline`
+  - This avoids feature-set aliasing against the normal/generated-parsers `rust/target/debug/ast_pipeline` binary while still letting Make use the Rust frontend for `.ebnf -> JSON`.
+- The split is now:
+  - Makefile Step 1: Rust frontend `.ebnf -> JSON`
+  - annotation bootstrap path: bootstrap binary `JSON -> parser.rs`
+  - normal regex path: generated-parsers binary `JSON -> parser.rs`

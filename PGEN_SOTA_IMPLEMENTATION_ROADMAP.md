@@ -596,6 +596,7 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
 - [x] Add `make fixed_point_gate` target for local and CI usage.
 - [x] Wire `fixed_point_gate` into CI as required pre-merge gate.
 - The live fixed-point gate is now Rust-frontended on the input side too: `semantic_annotation.ebnf` / `return_annotation.ebnf` are converted to JSON through the Rust frontend, while bootstrap mode remains the source of truth for the downstream `JSON -> parser.rs` determinism proof.
+- The main Makefile generation path is now aligned with that doctrine as well: Step 1 for `semantic_annotation`, `return_annotation`, and `regex` now uses a dedicated Rust-frontend `ast_pipeline` build in `rust/target/ebnf_frontend_build`, so active build flows no longer depend on Perl `ebnf_to_json.pl` for those grammars while still keeping bootstrap and generated-parser binaries in their own feature-safe locations.
 - [x] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)
