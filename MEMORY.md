@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-23 (+0100, task: surface-sv-combined-telemetry-json-proof)
+Last updated: 2026-03-23 (+0100, task: surface-regex-combined-telemetry-json-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next aggregate-proof normalization seam after SV was the regex combined-telemetry layer:
+  - regex family-contract, family-status, and family-status-contract already emitted `summary.json`,
+  - but `regex_combined_telemetry_contract_gate` was still TXT-only.
+- That aggregate gate now needs to stay on the same machine-readable path:
+  - emit a focused `summary.json`,
+  - keep `summary.txt`,
+  - and preserve exact regex proof provenance plus structured blocker payloads.
 - The next aggregate-proof normalization seam was the top SV combined-telemetry layer:
   - family-status and family-status-contract already emitted `summary.json`,
   - but `sv_combined_telemetry_contract_gate` was still TXT-only.
