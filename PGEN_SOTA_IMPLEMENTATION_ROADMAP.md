@@ -598,6 +598,7 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
 - The live fixed-point gate is now Rust-frontended on the input side too: `semantic_annotation.ebnf` / `return_annotation.ebnf` are converted to JSON through the Rust frontend, while bootstrap mode remains the source of truth for the downstream `JSON -> parser.rs` determinism proof.
 - The main Makefile generation path is now aligned with that doctrine as well: Step 1 for `semantic_annotation`, `return_annotation`, and `regex` now uses a dedicated Rust-frontend `ast_pipeline` build in `rust/target/ebnf_frontend_build`, so active build flows no longer depend on Perl `ebnf_to_json.pl` for those grammars while still keeping bootstrap and generated-parser binaries in their own feature-safe locations.
 - The fixed-point CI workflow is now aligned too: `.github/workflows/fixed-point-gate.yml` no longer carries a stale Perl runtime smoke check, so its declared runtime dependencies match the actual Rust-frontended gate.
+- The same cleanup now applies to `.github/workflows/branch-protection-contract-gate.yml`: its Perl runtime smoke step is gone because `branch_protection_contract_gate` only validates tracked branch-protection JSON plus workflow metadata and does not require Perl.
 - [x] Increase gate strictness from 2-cycle to 3-cycle minimum in CI.
 
 ### Phase B (Next)
