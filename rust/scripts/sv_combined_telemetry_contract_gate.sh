@@ -126,7 +126,75 @@ else
 fi
 
 sota_summary_txt="$sota_state_dir/summary.txt"
+sota_summary_json="$sota_state_dir/summary.json"
 require_nonempty_file "$sota_summary_txt"
+require_nonempty_file "$sota_summary_json"
+
+sota_exit_gate_name="$(jq -r '.gate' "$sota_summary_json")"
+sota_exit_gate_version="$(jq -r '.version' "$sota_summary_json")"
+sota_exit_generated_at_utc="$(jq -r '.generated_at_utc' "$sota_summary_json")"
+sota_exit_status="$(jq -r '.status' "$sota_summary_json")"
+sota_exit_summary_txt_from_json="$(jq -r '.proof_surfaces.summary_txt' "$sota_summary_json")"
+sota_exit_summary_csv_from_json="$(jq -r '.proof_surfaces.summary_csv' "$sota_summary_json")"
+sota_exit_summary_json_from_json="$(jq -r '.proof_surfaces.summary_json' "$sota_summary_json")"
+sota_exit_required_failures="$(jq -r '.counts.required_failures' "$sota_summary_json")"
+sota_exit_informational_failures="$(jq -r '.counts.informational_failures' "$sota_summary_json")"
+sota_exit_all_failures="$(jq -r '.counts.all_failures' "$sota_summary_json")"
+sota_exit_sv_parser_family_status_summary_json_from_json="$(jq -r '.proof_surfaces.sv_parser_family_status_summary_json' "$sota_summary_json")"
+sota_exit_sv_parser_family_status_contract_summary_json_from_json="$(jq -r '.proof_surfaces.sv_parser_family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_primary_unmet="$(jq -r '.family_status.systemverilog.primary_unmet_closure_criterion' "$sota_summary_json")"
+sota_exit_sv_systemverilog_unmet_json="$(jq -cer '.family_status.systemverilog.unmet_closure_criteria' "$sota_summary_json")"
+sota_exit_sv_systemverilog_unmet_details_json="$(jq -cer '.family_status.systemverilog.unmet_closure_criteria_details' "$sota_summary_json")"
+sota_exit_sv_systemverilog_primary_unmet_detail="$(jq -r '.family_status_contract.systemverilog.primary_unmet_detail_criterion' "$sota_summary_json")"
+sota_exit_sv_systemverilog_unmet_detail_json="$(jq -cer '.family_status_contract.systemverilog.unmet_closure_criteria' "$sota_summary_json")"
+sota_exit_sv_systemverilog_unmet_detail_details_json="$(jq -cer '.family_status_contract.systemverilog.unmet_closure_criteria_details' "$sota_summary_json")"
+sota_exit_svpp_primary_unmet="$(jq -r '.family_status.systemverilog_preprocessor.primary_unmet_closure_criterion' "$sota_summary_json")"
+sota_exit_svpp_unmet_json="$(jq -cer '.family_status.systemverilog_preprocessor.unmet_closure_criteria' "$sota_summary_json")"
+sota_exit_svpp_unmet_details_json="$(jq -cer '.family_status.systemverilog_preprocessor.unmet_closure_criteria_details' "$sota_summary_json")"
+sota_exit_svpp_primary_unmet_detail="$(jq -r '.family_status_contract.systemverilog_preprocessor.primary_unmet_detail_criterion' "$sota_summary_json")"
+sota_exit_svpp_unmet_detail_json="$(jq -cer '.family_status_contract.systemverilog_preprocessor.unmet_closure_criteria' "$sota_summary_json")"
+sota_exit_svpp_unmet_detail_details_json="$(jq -cer '.family_status_contract.systemverilog_preprocessor.unmet_closure_criteria_details' "$sota_summary_json")"
+
+assert_equal \
+    "SOTA exit gate name" \
+    "$(extract_summary_value "$sota_summary_txt" "gate")" \
+    "$sota_exit_gate_name"
+assert_equal \
+    "SOTA exit gate version" \
+    "$(extract_summary_value "$sota_summary_txt" "version")" \
+    "$sota_exit_gate_version"
+assert_equal \
+    "SOTA exit generated_at_utc" \
+    "$(extract_summary_value "$sota_summary_txt" "generated_at_utc")" \
+    "$sota_exit_generated_at_utc"
+assert_equal \
+    "SOTA exit summary txt path from JSON" \
+    "$sota_summary_txt" \
+    "$sota_exit_summary_txt_from_json"
+assert_equal \
+    "SOTA exit summary csv path from JSON" \
+    "$(extract_summary_value "$sota_summary_txt" "summary_csv")" \
+    "$sota_exit_summary_csv_from_json"
+assert_equal \
+    "SOTA exit summary json self-path" \
+    "$sota_summary_json" \
+    "$sota_exit_summary_json_from_json"
+assert_equal \
+    "SOTA exit status" \
+    "passed" \
+    "$sota_exit_status"
+assert_equal \
+    "SOTA exit required failures" \
+    "0" \
+    "$sota_exit_required_failures"
+assert_equal \
+    "SOTA exit informational failures" \
+    "$(extract_summary_value "$sota_summary_txt" "informational_failures")" \
+    "$sota_exit_informational_failures"
+assert_equal \
+    "SOTA exit all failures" \
+    "$(extract_summary_value "$sota_summary_txt" "all_failures")" \
+    "$sota_exit_all_failures"
 sv_parser_aggregate_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_stimuli_quality_aggregate_contract_summary_txt")"
 sv_preprocessor_aggregate_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_preprocessor_quality_aggregate_contract_summary_txt")"
 sv_failure_summary_txt="$(extract_summary_value "$sota_summary_txt" "sv_failure_context_contract_summary_txt")"
@@ -144,6 +212,15 @@ require_nonempty_file "$sv_parser_family_status_summary_txt"
 require_nonempty_file "$sv_parser_family_status_summary_json"
 require_nonempty_file "$sv_parser_family_status_contract_summary_txt"
 require_nonempty_file "$sv_parser_family_status_contract_summary_json"
+
+assert_equal \
+    "SOTA exit SV parser-family status summary json path" \
+    "$sv_parser_family_status_summary_json" \
+    "$sota_exit_sv_parser_family_status_summary_json_from_json"
+assert_equal \
+    "SOTA exit SV parser-family status contract summary json path" \
+    "$sv_parser_family_status_contract_summary_json" \
+    "$sota_exit_sv_parser_family_status_contract_summary_json_from_json"
 
 sv_failure_summary_available=0
 sv_roundtrip_summary_available=0
@@ -525,6 +602,55 @@ sv_family_status_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.famil
 sv_family_status_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_txt' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_reachability_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_state_dir' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_reachability_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_summary_txt' "$sv_parser_family_status_summary_json")"
+
+assert_equal \
+    "SOTA exit main family primary unmet closure criterion" \
+    "$sv_family_status_systemverilog_primary_unmet_closure_criterion" \
+    "$sota_exit_sv_systemverilog_primary_unmet"
+assert_equal \
+    "SOTA exit main family unmet criteria json" \
+    "$sv_family_status_systemverilog_unmet_closure_criteria_json" \
+    "$sota_exit_sv_systemverilog_unmet_json"
+assert_equal \
+    "SOTA exit main family unmet criteria details json" \
+    "$sv_family_status_systemverilog_unmet_closure_criteria_details_json" \
+    "$sota_exit_sv_systemverilog_unmet_details_json"
+assert_equal \
+    "SOTA exit main family primary unmet detail criterion" \
+    "$sv_parser_family_status_contract_systemverilog_primary_unmet_detail_criterion" \
+    "$sota_exit_sv_systemverilog_primary_unmet_detail"
+assert_equal \
+    "SOTA exit main family unmet detail criteria json" \
+    "$sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_json" \
+    "$sota_exit_sv_systemverilog_unmet_detail_json"
+assert_equal \
+    "SOTA exit main family unmet detail criteria details json" \
+    "$sv_parser_family_status_contract_systemverilog_unmet_closure_criteria_details_json" \
+    "$sota_exit_sv_systemverilog_unmet_detail_details_json"
+assert_equal \
+    "SOTA exit preprocessor family primary unmet closure criterion" \
+    "$sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion" \
+    "$sota_exit_svpp_primary_unmet"
+assert_equal \
+    "SOTA exit preprocessor family unmet criteria json" \
+    "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json" \
+    "$sota_exit_svpp_unmet_json"
+assert_equal \
+    "SOTA exit preprocessor family unmet criteria details json" \
+    "$sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_details_json" \
+    "$sota_exit_svpp_unmet_details_json"
+assert_equal \
+    "SOTA exit preprocessor family primary unmet detail criterion" \
+    "$sv_parser_family_status_contract_systemverilog_preprocessor_primary_unmet_detail_criterion" \
+    "$sota_exit_svpp_primary_unmet_detail"
+assert_equal \
+    "SOTA exit preprocessor family unmet detail criteria json" \
+    "$sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_json" \
+    "$sota_exit_svpp_unmet_detail_json"
+assert_equal \
+    "SOTA exit preprocessor family unmet detail criteria details json" \
+    "$sv_parser_family_status_contract_systemverilog_preprocessor_unmet_closure_criteria_details_json" \
+    "$sota_exit_svpp_unmet_detail_details_json"
 
 assert_equal \
     "main SV replay-gap triage json path" \
@@ -1416,6 +1542,14 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "existing_sota_exit_state_dir: ${EXISTING_SOTA_EXIT_STATE_DIR:-<unset>}"
     echo "sota_exit_state_dir: $sota_state_dir"
     echo "sota_exit_summary_txt: $sota_summary_txt"
+    echo "sota_exit_summary_json: $sota_summary_json"
+    echo "sota_exit_gate: $sota_exit_gate_name"
+    echo "sota_exit_gate_version: $sota_exit_gate_version"
+    echo "sota_exit_generated_at_utc: $sota_exit_generated_at_utc"
+    echo "sota_exit_status: $sota_exit_status"
+    echo "sota_exit_required_failures: $sota_exit_required_failures"
+    echo "sota_exit_informational_failures: $sota_exit_informational_failures"
+    echo "sota_exit_all_failures: $sota_exit_all_failures"
     echo "sv_stimuli_quality_aggregate_contract_summary_txt: $sv_parser_aggregate_summary_txt"
     echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $sv_preprocessor_aggregate_summary_txt"
     echo "sv_failure_context_contract_summary_txt: $sv_failure_summary_txt"
@@ -1684,6 +1818,14 @@ jq -n \
     --arg existing_sota_exit_state_dir "${EXISTING_SOTA_EXIT_STATE_DIR:-}" \
     --arg sota_exit_state_dir "$sota_state_dir" \
     --arg sota_exit_summary_txt "$sota_summary_txt" \
+    --arg sota_exit_summary_json "$sota_summary_json" \
+    --arg sota_exit_gate "$sota_exit_gate_name" \
+    --argjson sota_exit_gate_version "$sota_exit_gate_version" \
+    --arg sota_exit_generated_at_utc "$sota_exit_generated_at_utc" \
+    --arg sota_exit_status "$sota_exit_status" \
+    --argjson sota_exit_required_failures "$sota_exit_required_failures" \
+    --argjson sota_exit_informational_failures "$sota_exit_informational_failures" \
+    --argjson sota_exit_all_failures "$sota_exit_all_failures" \
     --arg sv_stimuli_quality_aggregate_contract_summary_txt "$sv_parser_aggregate_summary_txt" \
     --arg sv_preprocessor_quality_aggregate_contract_summary_txt "$sv_preprocessor_aggregate_summary_txt" \
     --arg sv_failure_context_contract_summary_txt "$sv_failure_summary_txt" \
@@ -1782,9 +1924,21 @@ jq -n \
         policy_env_file: $sota_policy_env_file,
         existing_state_dir: $existing_sota_exit_state_dir,
         state_dir: $sota_exit_state_dir,
-        summary_txt: $sota_exit_summary_txt
+        summary_txt: $sota_exit_summary_txt,
+        summary_json: $sota_exit_summary_json,
+        gate: $sota_exit_gate,
+        gate_version: $sota_exit_gate_version,
+        generated_at_utc: $sota_exit_generated_at_utc,
+        status: $sota_exit_status,
+        counts: {
+          required_failures: $sota_exit_required_failures,
+          informational_failures: $sota_exit_informational_failures,
+          all_failures: $sota_exit_all_failures
+        }
       },
       proof_surfaces: {
+        sota_exit_summary_txt: $sota_exit_summary_txt,
+        sota_exit_summary_json: $sota_exit_summary_json,
         sv_stimuli_quality_aggregate_contract_summary_txt: $sv_stimuli_quality_aggregate_contract_summary_txt,
         sv_preprocessor_quality_aggregate_contract_summary_txt: $sv_preprocessor_quality_aggregate_contract_summary_txt,
         sv_failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,

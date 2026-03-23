@@ -6283,3 +6283,10 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_roundtrip_contract_gate`
     - `PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_gate`
     - `PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_contract_gate`
+- The immediate follow-up slice uses that produced SOTA JSON directly in the SV aggregate contract:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh` now requires:
+    - `/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_summary_json/summary.json`
+  - and reuse-backed validation is:
+    - `PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_summary_json`
+    - `PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate_sota_json`
+    - run `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh`

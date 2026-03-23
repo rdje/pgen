@@ -23592,3 +23592,8 @@ Architectural north star:
   - per-check outcomes from `summary.csv`,
   - and the forwarded family proof / primary-blocker fields
   in one machine-readable top-level artifact rather than leaving aggregate consumers to parse only `summary.txt`.
+- The follow-through after that is to make the combined telemetry consumers actually use the new SOTA JSON sidecar. At least the SystemVerilog aggregate lane should:
+  - require `sota_exit_gate/summary.json`,
+  - parity-check its gate/count/proof-surface fields against the existing TXT surface,
+  - and compare the primary unmet/blocker JSON payloads there against the already-consumed SV family status/contract sidecars,
+  so `sota_exit_gate` JSON becomes a real contract surface rather than a write-only artifact.
