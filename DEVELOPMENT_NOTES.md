@@ -2013,9 +2013,14 @@ After landing the regex family contract, regex family-status, and regex family-s
     - `regex_parser_family_status_gate`
     - `regex_parser_family_status_contract_gate`
   - now emits aggregate-visible regex family metrics, regex family-status fields, blocker arrays, criteria booleans, and regex status-contract counts
+  - aggregate regex telemetry now also carries the exact regex family proof surfaces it consumed:
+    - frontend state/summary paths
+    - dual-run state/summary paths
+    - stimuli state/summary paths
 - Added [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
   - runs bounded aggregate sign-off for the regex-family slice
   - proves exact parity between aggregate telemetry and the produced regex contract/status/status-contract sidecars
+  - now also proves parity for the regex proof provenance fields, so reuse-backed aggregate evidence stays explicit
 - Added [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
   - checked-in lightweight aggregate policy for the regex proof slice
 - Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):

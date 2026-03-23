@@ -1728,9 +1728,14 @@ Aggregate sign-off now surfaces the `regex` family contract, regex family-status
     - `regex_parser_family_status_contract_summary_txt`
     - `regex_parser_family_status_contract_summary_json`
     - aggregate-visible regex family metrics, regex family-status counts/blocker arrays/criteria booleans, and regex status-contract counts
+  - aggregate regex telemetry now also exposes the exact regex family-contract proof surfaces it depended on:
+    - frontend state/summary paths
+    - dual-run state/summary paths
+    - stimuli state/summary paths
 - Added [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
   - reruns bounded aggregate sign-off for the regex-family slice
   - proves exact parity between aggregate-visible regex telemetry and the produced regex contract/status/status-contract sidecars
+  - now proves parity for regex proof provenance too, not just regex proof metrics
 - Added [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
   - checked-in bounded aggregate policy for the regex combined telemetry proof
 - Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):

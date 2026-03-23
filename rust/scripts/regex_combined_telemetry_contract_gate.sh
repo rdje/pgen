@@ -113,6 +113,16 @@ regex_family_dual_run_perl_rule_count="$(extract_summary_value "$regex_family_su
 regex_family_dual_run_rust_rule_count="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_rust_rule_count")"
 regex_family_dual_run_raw_ast_missing_on_perl_count="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_raw_ast_missing_on_perl_count")"
 regex_family_dual_run_raw_ast_missing_on_rust_count="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_raw_ast_missing_on_rust_count")"
+regex_family_frontend_state_dir="$(jq -r '.proof_surfaces.frontend_state_dir' "$regex_family_summary_json")"
+regex_family_frontend_summary_txt="$(jq -r '.proof_surfaces.frontend_summary_txt' "$regex_family_summary_json")"
+regex_family_frontend_summary_csv="$(jq -r '.proof_surfaces.frontend_summary_csv' "$regex_family_summary_json")"
+regex_family_dual_run_state_dir="$(jq -r '.proof_surfaces.dual_run_state_dir' "$regex_family_summary_json")"
+regex_family_dual_run_summary_txt="$(jq -r '.proof_surfaces.dual_run_summary_txt' "$regex_family_summary_json")"
+regex_family_dual_run_summary_csv="$(jq -r '.proof_surfaces.dual_run_summary_csv' "$regex_family_summary_json")"
+regex_family_dual_run_summary_json="$(jq -r '.proof_surfaces.dual_run_summary_json' "$regex_family_summary_json")"
+regex_family_stimuli_state_dir="$(jq -r '.proof_surfaces.stimuli_state_dir' "$regex_family_summary_json")"
+regex_family_stimuli_summary_txt="$(jq -r '.proof_surfaces.stimuli_summary_txt' "$regex_family_summary_json")"
+regex_family_stimuli_summary_csv="$(jq -r '.proof_surfaces.stimuli_summary_csv' "$regex_family_summary_json")"
 regex_family_stimuli_status="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_status")"
 regex_family_stimuli_initial_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_initial_targets")"
 regex_family_stimuli_resolved_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_resolved_targets")"
@@ -188,6 +198,46 @@ assert_equal \
     "Regex family dual-run raw_ast missing_on_rust count" \
     "$regex_family_dual_run_raw_ast_missing_on_rust_count" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_raw_ast_missing_on_rust_count")"
+assert_equal \
+    "Regex family frontend state dir" \
+    "$regex_family_frontend_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_frontend_state_dir")"
+assert_equal \
+    "Regex family frontend summary txt" \
+    "$regex_family_frontend_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_frontend_summary_txt")"
+assert_equal \
+    "Regex family frontend summary csv" \
+    "$regex_family_frontend_summary_csv" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_frontend_summary_csv")"
+assert_equal \
+    "Regex family dual-run state dir" \
+    "$regex_family_dual_run_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_state_dir")"
+assert_equal \
+    "Regex family dual-run summary txt" \
+    "$regex_family_dual_run_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_summary_txt")"
+assert_equal \
+    "Regex family dual-run summary csv" \
+    "$regex_family_dual_run_summary_csv" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_summary_csv")"
+assert_equal \
+    "Regex family dual-run summary json" \
+    "$regex_family_dual_run_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_dual_run_summary_json")"
+assert_equal \
+    "Regex family stimuli state dir" \
+    "$regex_family_stimuli_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_state_dir")"
+assert_equal \
+    "Regex family stimuli summary txt" \
+    "$regex_family_stimuli_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_summary_txt")"
+assert_equal \
+    "Regex family stimuli summary csv" \
+    "$regex_family_stimuli_summary_csv" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_summary_csv")"
 assert_equal \
     "Regex family stimuli status" \
     "$regex_family_stimuli_status" \
@@ -383,6 +433,16 @@ assert_equal \
     echo "regex_parser_family_status_status_rule_done: $regex_parser_family_status_status_rule_done"
     echo "regex_parser_family_status_contract_summary_txt: $regex_family_status_contract_summary_txt"
     echo "regex_parser_family_status_contract_summary_json: $regex_family_status_contract_summary_json"
+    echo "regex_family_frontend_state_dir: $regex_family_frontend_state_dir"
+    echo "regex_family_frontend_summary_txt: $regex_family_frontend_summary_txt"
+    echo "regex_family_frontend_summary_csv: $regex_family_frontend_summary_csv"
+    echo "regex_family_dual_run_state_dir: $regex_family_dual_run_state_dir"
+    echo "regex_family_dual_run_summary_txt: $regex_family_dual_run_summary_txt"
+    echo "regex_family_dual_run_summary_csv: $regex_family_dual_run_summary_csv"
+    echo "regex_family_dual_run_summary_json: $regex_family_dual_run_summary_json"
+    echo "regex_family_stimuli_state_dir: $regex_family_stimuli_state_dir"
+    echo "regex_family_stimuli_summary_txt: $regex_family_stimuli_summary_txt"
+    echo "regex_family_stimuli_summary_csv: $regex_family_stimuli_summary_csv"
     echo "regex_family_status_contract_gate: $regex_family_status_contract_gate"
     echo "regex_family_status_contract_gate_version: $regex_family_status_contract_gate_version"
     echo "regex_family_status_contract_generated_at_utc: $regex_family_status_contract_generated_at_utc"

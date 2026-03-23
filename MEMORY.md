@@ -6146,6 +6146,11 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR`
   - `regex_combined_telemetry_contract_gate` should trust the regex sidecar paths exported by `sota_exit_gate/summary.txt`, not assume they live under the current `work/regex_parser_family_*` tree
   This matters because reuse-backed aggregate proofs otherwise look spuriously missing even when the regex family sidecars are already present and authoritative.
+- The next regex aggregate-proof refinement after reuse is provenance visibility. Aggregate sign-off should not stop at regex family metrics alone; it should also surface the exact regex family-contract proof inputs it relied on:
+  - frontend state/summary paths
+  - dual-run state/summary paths
+  - stimuli state/summary paths
+  `regex_combined_telemetry_contract_gate` should parity-check those provenance fields too, so reuse-backed aggregate evidence is explicit rather than inferred.
 - The canonical regex-family proof numbers were refreshed on 2026-03-23 after the EBNF hash-comment dual-run fix and regex aggregate-sidecar reuse work:
   - family contract stimuli debt is now `366 -> 157`
   - status blocker is now `stimuli_regex_final_targets=157 > 0`
