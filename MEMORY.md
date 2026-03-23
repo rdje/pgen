@@ -6154,3 +6154,4 @@ Use this file to resume work without replaying full chat history.
 - The active Makefile build path is now Rust-frontended too. `semantic_annotation.json`, `return_annotation.json`, and `regex.json` are generated through a dedicated frontend build at `rust/target/ebnf_frontend_build/debug/ast_pipeline`, specifically to avoid clobbering the normal/generated-parsers `target/debug/ast_pipeline` binary.
 - `fixed-point-gate` CI no longer carries a Perl-runtime smoke step. The gate itself is already Rust-frontended on the annotation input side, so that workflow check was stale and removed.
 - `branch-protection-contract-gate` CI no longer carries a Perl-runtime smoke step. The gate itself only validates tracked policy/workflow state and does not depend on Perl.
+- `annotation-nonbootstrap-e2e-gate` CI no longer carries a Perl-runtime smoke step. The gate itself now runs on generated annotation JSON plus the Rust frontend for `regex`.

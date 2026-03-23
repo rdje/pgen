@@ -34,9 +34,6 @@ jobs:
             jq --version
           fi
 
-      - name: Verify Perl runtime
-        run: perl -MJSON::PP -e 'print "Perl JSON::PP ok\n";'
-
       - name: Run non-bootstrap annotation end-to-end gate
         env:
           PGEN_STRICT_ANNOTATION_VALIDATION: "1"
