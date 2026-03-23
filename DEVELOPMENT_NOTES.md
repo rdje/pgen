@@ -23597,3 +23597,4 @@ Architectural north star:
   - parity-check its gate/count/proof-surface fields against the existing TXT surface,
   - and compare the primary unmet/blocker JSON payloads there against the already-consumed SV family status/contract sidecars,
   so `sota_exit_gate` JSON becomes a real contract surface rather than a write-only artifact.
+- That same rule applies to the sibling family aggregates too. Regex combined telemetry should not stop at consuming the regex family sidecars themselves; it should also consume the top-level SOTA JSON sidecar, parity-check the regex proof-surface paths and blocker payloads there against the family sidecars, and re-emit the SOTA JSON provenance in its own aggregate output.

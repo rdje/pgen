@@ -92,7 +92,71 @@ else
 fi
 
 sota_summary_txt="$sota_state_dir/summary.txt"
+sota_summary_json="$sota_state_dir/summary.json"
 require_nonempty_file "$sota_summary_txt"
+require_nonempty_file "$sota_summary_json"
+
+sota_exit_gate_name="$(jq -r '.gate' "$sota_summary_json")"
+sota_exit_gate_version="$(jq -r '.version' "$sota_summary_json")"
+sota_exit_generated_at_utc="$(jq -r '.generated_at_utc' "$sota_summary_json")"
+sota_exit_status="$(jq -r '.status' "$sota_summary_json")"
+sota_exit_summary_txt_from_json="$(jq -r '.proof_surfaces.summary_txt' "$sota_summary_json")"
+sota_exit_summary_csv_from_json="$(jq -r '.proof_surfaces.summary_csv' "$sota_summary_json")"
+sota_exit_summary_json_from_json="$(jq -r '.proof_surfaces.summary_json' "$sota_summary_json")"
+sota_exit_required_failures="$(jq -r '.counts.required_failures' "$sota_summary_json")"
+sota_exit_informational_failures="$(jq -r '.counts.informational_failures' "$sota_summary_json")"
+sota_exit_all_failures="$(jq -r '.counts.all_failures' "$sota_summary_json")"
+sota_exit_regex_family_summary_json_from_json="$(jq -r '.proof_surfaces.regex_parser_family_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_family_status_summary_json_from_json="$(jq -r '.proof_surfaces.regex_parser_family_status_summary_json' "$sota_summary_json")"
+sota_exit_regex_family_status_contract_summary_json_from_json="$(jq -r '.proof_surfaces.regex_parser_family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_primary_unmet="$(jq -r '.family_status.regex.primary_unmet_closure_criterion' "$sota_summary_json")"
+sota_exit_regex_unmet_json="$(jq -cer '.family_status.regex.unmet_closure_criteria' "$sota_summary_json")"
+sota_exit_regex_unmet_details_json="$(jq -cer '.family_status.regex.unmet_closure_criteria_details' "$sota_summary_json")"
+sota_exit_regex_primary_unmet_detail="$(jq -r '.family_status_contract.regex.primary_unmet_detail_criterion' "$sota_summary_json")"
+sota_exit_regex_unmet_detail_json="$(jq -cer '.family_status_contract.regex.unmet_closure_criteria' "$sota_summary_json")"
+sota_exit_regex_unmet_detail_details_json="$(jq -cer '.family_status_contract.regex.unmet_closure_criteria_details' "$sota_summary_json")"
+
+assert_equal \
+    "SOTA exit gate name" \
+    "$(extract_summary_value "$sota_summary_txt" "gate")" \
+    "$sota_exit_gate_name"
+assert_equal \
+    "SOTA exit gate version" \
+    "$(extract_summary_value "$sota_summary_txt" "version")" \
+    "$sota_exit_gate_version"
+assert_equal \
+    "SOTA exit generated_at_utc" \
+    "$(extract_summary_value "$sota_summary_txt" "generated_at_utc")" \
+    "$sota_exit_generated_at_utc"
+assert_equal \
+    "SOTA exit summary txt path from JSON" \
+    "$sota_summary_txt" \
+    "$sota_exit_summary_txt_from_json"
+assert_equal \
+    "SOTA exit summary csv path from JSON" \
+    "$(extract_summary_value "$sota_summary_txt" "summary_csv")" \
+    "$sota_exit_summary_csv_from_json"
+assert_equal \
+    "SOTA exit summary json self-path" \
+    "$sota_summary_json" \
+    "$sota_exit_summary_json_from_json"
+assert_equal \
+    "SOTA exit status" \
+    "passed" \
+    "$sota_exit_status"
+assert_equal \
+    "SOTA exit required failures" \
+    "0" \
+    "$sota_exit_required_failures"
+assert_equal \
+    "SOTA exit informational failures" \
+    "$(extract_summary_value "$sota_summary_txt" "informational_failures")" \
+    "$sota_exit_informational_failures"
+assert_equal \
+    "SOTA exit all failures" \
+    "$(extract_summary_value "$sota_summary_txt" "all_failures")" \
+    "$sota_exit_all_failures"
+
 regex_family_summary_txt="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_contract_summary_txt")"
 regex_family_summary_json="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_contract_summary_json")"
 regex_family_status_summary_txt="$(extract_summary_value "$sota_summary_txt" "regex_parser_family_status_summary_txt")"
@@ -106,6 +170,19 @@ require_nonempty_file "$regex_family_status_summary_txt"
 require_nonempty_file "$regex_family_status_summary_json"
 require_nonempty_file "$regex_family_status_contract_summary_txt"
 require_nonempty_file "$regex_family_status_contract_summary_json"
+
+assert_equal \
+    "SOTA exit regex family contract summary json path" \
+    "$regex_family_summary_json" \
+    "$sota_exit_regex_family_summary_json_from_json"
+assert_equal \
+    "SOTA exit regex family status summary json path" \
+    "$regex_family_status_summary_json" \
+    "$sota_exit_regex_family_status_summary_json_from_json"
+assert_equal \
+    "SOTA exit regex family status contract summary json path" \
+    "$regex_family_status_contract_summary_json" \
+    "$sota_exit_regex_family_status_contract_summary_json_from_json"
 
 regex_family_frontend_overall="$(extract_summary_value "$regex_family_summary_txt" "frontend_regex_overall")"
 regex_family_dual_run_overall="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_overall")"
@@ -418,6 +495,31 @@ assert_equal \
     "$regex_family_status_contract_regex_unmet_closure_criteria_details_json" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_status_contract_regex_unmet_closure_criteria_details_json")"
 
+assert_equal \
+    "SOTA exit regex primary unmet closure criterion" \
+    "$regex_family_status_regex_primary_unmet_closure_criterion" \
+    "$sota_exit_regex_primary_unmet"
+assert_equal \
+    "SOTA exit regex unmet closure criteria json" \
+    "$regex_family_status_regex_unmet_closure_criteria_json" \
+    "$sota_exit_regex_unmet_json"
+assert_equal \
+    "SOTA exit regex unmet closure criteria details json" \
+    "$regex_family_status_regex_unmet_closure_criteria_details_json" \
+    "$sota_exit_regex_unmet_details_json"
+assert_equal \
+    "SOTA exit regex primary unmet detail criterion" \
+    "$regex_family_status_contract_regex_primary_unmet_detail_criterion" \
+    "$sota_exit_regex_primary_unmet_detail"
+assert_equal \
+    "SOTA exit regex unmet detail closure criteria json" \
+    "$regex_family_status_contract_regex_unmet_closure_criteria_json" \
+    "$sota_exit_regex_unmet_detail_json"
+assert_equal \
+    "SOTA exit regex unmet detail closure criteria details json" \
+    "$regex_family_status_contract_regex_unmet_closure_criteria_details_json" \
+    "$sota_exit_regex_unmet_detail_details_json"
+
 generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
 {
@@ -427,6 +529,15 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "summary_json: $SUMMARY_JSON"
     echo "sota_state_dir: $sota_state_dir"
     echo "sota_policy_env_file: $SOTA_POLICY_ENV_FILE"
+    echo "sota_exit_summary_txt: $sota_summary_txt"
+    echo "sota_exit_summary_json: $sota_summary_json"
+    echo "sota_exit_gate: $sota_exit_gate_name"
+    echo "sota_exit_gate_version: $sota_exit_gate_version"
+    echo "sota_exit_generated_at_utc: $sota_exit_generated_at_utc"
+    echo "sota_exit_status: $sota_exit_status"
+    echo "sota_exit_required_failures: $sota_exit_required_failures"
+    echo "sota_exit_informational_failures: $sota_exit_informational_failures"
+    echo "sota_exit_all_failures: $sota_exit_all_failures"
     echo "regex_parser_family_contract_summary_txt: $regex_family_summary_txt"
     echo "regex_parser_family_contract_summary_json: $regex_family_summary_json"
     echo "regex_parser_family_status_summary_txt: $regex_family_status_summary_txt"
@@ -505,7 +616,15 @@ jq -n \
     --arg summary_json "$SUMMARY_JSON" \
     --arg sota_state_dir "$sota_state_dir" \
     --arg sota_summary_txt "$sota_summary_txt" \
+    --arg sota_summary_json "$sota_summary_json" \
     --arg sota_policy_env_file "$SOTA_POLICY_ENV_FILE" \
+    --arg sota_exit_gate "$sota_exit_gate_name" \
+    --argjson sota_exit_gate_version "$sota_exit_gate_version" \
+    --arg sota_exit_generated_at_utc "$sota_exit_generated_at_utc" \
+    --arg sota_exit_status "$sota_exit_status" \
+    --argjson sota_exit_required_failures "$sota_exit_required_failures" \
+    --argjson sota_exit_informational_failures "$sota_exit_informational_failures" \
+    --argjson sota_exit_all_failures "$sota_exit_all_failures" \
     --arg regex_parser_family_contract_summary_txt "$regex_family_summary_txt" \
     --arg regex_parser_family_contract_summary_json "$regex_family_summary_json" \
     --arg regex_parser_family_status_summary_txt "$regex_family_status_summary_txt" \
@@ -583,9 +702,21 @@ jq -n \
       sota: {
         state_dir: $sota_state_dir,
         summary_txt: $sota_summary_txt,
+        summary_json: $sota_summary_json,
+        gate: $sota_exit_gate,
+        gate_version: $sota_exit_gate_version,
+        generated_at_utc: $sota_exit_generated_at_utc,
+        status: $sota_exit_status,
+        counts: {
+          required_failures: $sota_exit_required_failures,
+          informational_failures: $sota_exit_informational_failures,
+          all_failures: $sota_exit_all_failures
+        },
         policy_env_file: $sota_policy_env_file
       },
       proof_surfaces: {
+        sota_exit_summary_txt: $sota_summary_txt,
+        sota_exit_summary_json: $sota_summary_json,
         regex_parser_family_contract_summary_txt: $regex_parser_family_contract_summary_txt,
         regex_parser_family_contract_summary_json: $regex_parser_family_contract_summary_json,
         regex_parser_family_status_summary_txt: $regex_parser_family_status_summary_txt,

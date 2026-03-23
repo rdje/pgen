@@ -6290,3 +6290,9 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_summary_json`
     - `PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate_sota_json`
     - run `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- The sibling regex aggregate now needs the same SOTA-JSON consumption pattern:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh` now requires:
+    - `/Users/richarddje/Documents/github/pgen/rust/target/regex_combined_telemetry_contract_gate_json_sota/work/sota_exit_gate/summary.json`
+  - and lightweight validation is:
+    - `PGEN_REGEX_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/regex_combined_telemetry_contract_gate_json_sota`
+    - run `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh`

@@ -3859,3 +3859,4 @@ Why `rtl_frontend` exists:
   - `sv_combined_telemetry_contract_gate.sh` should require the SOTA JSON sidecar,
   - parity-check its gate/count/proof-surface metadata against the existing TXT interface,
   - and validate that its structured primary blocker payloads still match the SV family status / family status contract sidecars already in use.
+- The same aggregate-proof rule now extends to the regex lane too. `regex_combined_telemetry_contract_gate.sh` should require the top-level SOTA JSON sidecar, parity-check the regex family proof-path metadata there against the TXT interface it already consumes, and confirm that the structured regex blocker payloads in SOTA JSON still match the regex family status / family status contract sidecars already in use.
