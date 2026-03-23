@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-24 - Lock proof summary JSON emission policy
+### ✅ Achievement Summary
+PGEN now enforces, in the local CI workflow parity gate itself, that the top-level proof emitters keep writing their machine-readable `summary.json` sidecars and exposing them consistently in both TXT and JSON outputs.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI parity surface now asserts that:
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+  all keep:
+  - `SUMMARY_JSON="$STATE_DIR/summary.json"`
+  - `generated_at_utc` in `summary.txt`
+  - `summary_json` in `summary.txt`
+  - `generated_at_utc` and `summary_json` in the JSON writer path
+- The local CI grep helpers now use `grep -F -- ...` so these audits can safely match shell fragments that begin with `--arg`.
+
+### Why This Matters
+- The top-level SOTA and aggregate proof lanes had already grown first-class `summary.json` sidecars, but that emission rule still lived only inside the scripts.
+- The local CI parity surface now fails if those proof emitters silently drift back toward TXT-only reporting or stop carrying their own JSON self-path metadata.
+
 ## 2026-03-24 - Lock aggregate SOTA JSON consumption policy
 ### ✅ Achievement Summary
 PGEN now enforces, in the local CI workflow parity gate itself, that the shipped combined-telemetry aggregates keep consuming the top-level `sota_exit_gate/summary.json` contract surface.

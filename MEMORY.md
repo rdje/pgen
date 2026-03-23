@@ -6313,3 +6313,15 @@ Use this file to resume work without replaying full chat history.
   - `.counts.required_failures`
   - and the family-specific `primary_unmet_closure_criterion` extraction from top-level SOTA JSON
   so the shipped aggregate lanes cannot silently drift back to TXT-only SOTA consumption.
+- The local CI parity gate now also locks proof-sidecar emission for the top-level proof emitters. It asserts that:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
+  each keep:
+  - `SUMMARY_JSON="$STATE_DIR/summary.json"`
+  - `generated_at_utc` echoed into `summary.txt`
+  - `summary_json` echoed into `summary.txt`
+  - and both fields threaded through the JSON writer path
+  so the machine-readable proof surface cannot silently regress back toward TXT-only reporting.
+- The helper detail for that audit is easy to forget: `ci_workflow_local_gate.sh` now uses `grep -F --` in its generic file/workflow assertions so leading-dash literals such as `--arg generated_at_utc "$generated_at_utc"` can be matched safely.

@@ -3867,3 +3867,9 @@ Why `rtl_frontend` exists:
   - read `.counts.required_failures`,
   - and read the family-specific `primary_unmet_closure_criterion` from the top-level SOTA JSON sidecar.
 - That keeps the roadmap pressure where it belongs: not “emit more JSON”, but “keep aggregate sign-off consuming the machine-readable SOTA contract once it exists.”
+- The sibling roadmap rule is to protect emission as well as consumption. `rust/scripts/ci_workflow_local_gate.sh` should also assert that `sota_exit_gate.sh` plus the shipped SV/regex/VHDL combined telemetry gates keep:
+  - `SUMMARY_JSON="$STATE_DIR/summary.json"`,
+  - `generated_at_utc` and `summary_json` in `summary.txt`,
+  - and the matching `generated_at_utc` / `summary_json` fields in their JSON writer paths.
+- That keeps the machine-readable proof surface real: once a top-level proof lane ships `summary.json`, local CI should fail if that sidecar stops being emitted or stops reporting its own metadata coherently.
+- The local CI assertion helpers themselves need to support that policy surface too: they should use `grep -F --` so shell fragments that begin with `--arg` remain matchable as literals.

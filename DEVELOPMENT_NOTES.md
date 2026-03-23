@@ -23605,3 +23605,10 @@ Architectural north star:
   - extract `.counts.required_failures`,
   - and keep their family-specific `primary_unmet_closure_criterion` reads from the top-level SOTA JSON sidecar
   so aggregate sign-off cannot silently drift back to TXT-only SOTA consumption.
+- The sibling regression guard is emission, not just consumption. `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` should also assert that:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
+  keep their `SUMMARY_JSON="$STATE_DIR/summary.json"` contract, echo both `generated_at_utc` and `summary_json` into `summary.txt`, and pass both fields through the JSON writer path too, so the machine-readable proof sidecar cannot silently regress back to a write-only or missing artifact.
+- One small implementation detail matters for these local CI audits: the generic `grep -F` wrappers need `--` so patterns like `--arg generated_at_utc "$generated_at_utc"` are treated as literals rather than mistaken for grep options.

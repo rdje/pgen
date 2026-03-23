@@ -52,14 +52,14 @@ assert_tracked() {
 assert_workflow_contains() {
   local workflow_file="$1"
   local expected="$2"
-  grep -F "$expected" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1 || \
+  grep -F -- "$expected" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1 || \
     fail "workflow content drift detected in $workflow_file: expected '$expected'"
 }
 
 assert_workflow_not_contains() {
   local workflow_file="$1"
   local forbidden="$2"
-  if grep -F "$forbidden" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1; then
+  if grep -F -- "$forbidden" "$ROOT_DIR/$workflow_file" >/dev/null 2>&1; then
     fail "unexpected workflow content in $workflow_file: found '$forbidden'"
   fi
 }
@@ -67,14 +67,14 @@ assert_workflow_not_contains() {
 assert_file_contains() {
   local repo_file="$1"
   local expected="$2"
-  grep -F "$expected" "$ROOT_DIR/$repo_file" >/dev/null 2>&1 || \
+  grep -F -- "$expected" "$ROOT_DIR/$repo_file" >/dev/null 2>&1 || \
     fail "file content drift detected in $repo_file: expected '$expected'"
 }
 
 assert_file_not_contains() {
   local repo_file="$1"
   local forbidden="$2"
-  if grep -F "$forbidden" "$ROOT_DIR/$repo_file" >/dev/null 2>&1; then
+  if grep -F -- "$forbidden" "$ROOT_DIR/$repo_file" >/dev/null 2>&1; then
     fail "unexpected file content in $repo_file: found '$forbidden'"
   fi
 }
@@ -234,6 +234,28 @@ audit_sota_json_consumption_surface() {
     '.family_status.vhdl.primary_unmet_closure_criterion'
 }
 
+audit_summary_json_emission_surface() {
+  note "auditing top-level proof summary.json emission surface"
+
+  assert_tracked "rust/scripts/sota_exit_gate.sh"
+  assert_tracked "rust/scripts/sv_combined_telemetry_contract_gate.sh"
+  assert_tracked "rust/scripts/regex_combined_telemetry_contract_gate.sh"
+  assert_tracked "rust/scripts/vhdl_combined_telemetry_contract_gate.sh"
+
+  for repo_file in \
+    rust/scripts/sota_exit_gate.sh \
+    rust/scripts/sv_combined_telemetry_contract_gate.sh \
+    rust/scripts/regex_combined_telemetry_contract_gate.sh \
+    rust/scripts/vhdl_combined_telemetry_contract_gate.sh; do
+    assert_file_contains "$repo_file" 'SUMMARY_JSON="$STATE_DIR/summary.json"'
+    assert_file_contains "$repo_file" 'echo "generated_at_utc: $generated_at_utc"'
+    assert_file_contains "$repo_file" 'echo "summary_json: $SUMMARY_JSON"'
+    assert_file_contains "$repo_file" '--arg generated_at_utc "$generated_at_utc"'
+    assert_file_contains "$repo_file" '--arg summary_json "$SUMMARY_JSON"'
+    assert_file_contains "$repo_file" 'summary_json: $summary_json'
+  done
+}
+
 assert_workflow_command() {
   local workflow_file="$1"
   local expected="$2"
@@ -284,6 +306,7 @@ main() {
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_sota_json_consumption_surface
+  audit_summary_json_emission_surface
 
   run_workflow \
     "annotation-contract-gate" \
