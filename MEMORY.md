@@ -6169,3 +6169,27 @@ Use this file to resume work without replaying full chat history.
     - `ebnf_frontend_readiness_gate.sh`
     - `ebnf_stimuli_quality_gate.sh`
   and only for differential comparison, explicit Perl fallback, or the current `ebnf` bootstrap parseability seam.
+- VHDL family-proof surfaces now carry a JSON sidecar all the way through:
+  - `vhdl_parser_family_contract_gate -> summary.json`
+  - `vhdl_parser_family_status_gate -> proof_surfaces.family_contract_summary_json`
+  - `vhdl_parser_family_status_contract_gate` requires that JSON path
+  - `sota_exit_gate` exports `vhdl_parser_family_contract_summary_json`
+  - `vhdl_combined_telemetry_contract_gate` parity-checks both the family-contract JSON path and the status-side echoed JSON path
+- For VHDL family-contract validation, do not assume `/Users/richarddje/Documents/github/pgen/rust/target/vhdl_stimuli_quality_gate` is authoritative. It may be a lightweight one-case artifact. The known-good full-quality reusable state used for the JSON-proof-surface validation is:
+  - `/Users/richarddje/Documents/github/pgen/rust/target/vhdl_combined_telemetry_contract_gate/work/sota_exit_gate/work/vhdl_stimuli_quality_gate`
+  which currently has `realistic_corpus_cases_executed: 14`
+- The reusable validation chain for this VHDL proof slice is:
+  - family contract:
+    - `PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_combined_telemetry_contract_gate/work/sota_exit_gate/work/vhdl_stimuli_quality_gate`
+    - `PGEN_VHDL_FAMILY_CONTRACT_EXISTING_STRICT_PROMOTION_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_strict_promotion_gate`
+  - family status:
+    - `PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_contract_gate`
+  - family status contract:
+    - `PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate`
+  - aggregate parity:
+    - `PGEN_SOTA_EXISTING_VHDL_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_combined_telemetry_contract_gate/work/sota_exit_gate/work/vhdl_stimuli_quality_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_STRICT_PROMOTION_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_strict_promotion_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_contract_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate`
+    - `PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_contract_gate`
+- Small but easy-to-forget detail: `quality_parse_full_passes` inside the VHDL family-contract JSON sidecar is a string field (`8/8` style), not numeric JSON.

@@ -110,8 +110,10 @@ if [[ -z "$EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR" ]]; then
 fi
 
 vhdl_family_contract_summary_txt="$vhdl_family_contract_state_dir/summary.txt"
+vhdl_family_contract_summary_json="$vhdl_family_contract_state_dir/summary.json"
 
 require_nonempty_file "$vhdl_family_contract_summary_txt"
+require_nonempty_file "$vhdl_family_contract_summary_json"
 
 vhdl_quality_closed_loop_initial_status="$(summary_value_from_txt "quality_closed_loop_initial_status" "$vhdl_family_contract_summary_txt")"
 vhdl_quality_closed_loop_replay_status="$(summary_value_from_txt "quality_closed_loop_replay_status" "$vhdl_family_contract_summary_txt")"
@@ -306,11 +308,12 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "vhdl_strict_promotion_primary_blocker: $vhdl_strict_promotion_primary_blocker"
     echo "vhdl_strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed"
     echo "vhdl_family_contract_summary_txt: $vhdl_family_contract_summary_txt"
+    echo "vhdl_family_contract_summary_json: $vhdl_family_contract_summary_json"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
     --arg gate "vhdl_parser_family_status_gate" \
-    --argjson version 2 \
+    --argjson version 3 \
     --arg generated_at_utc "$generated_at_utc" \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg status_rule_done "$DONE_RULE" \
@@ -350,6 +353,7 @@ jq -n \
     --arg vhdl_strict_promotion_primary_blocker "$vhdl_strict_promotion_primary_blocker" \
     --argjson vhdl_strict_promotion_trial_passed "$vhdl_strict_promotion_trial_passed" \
     --arg vhdl_family_contract_summary_txt "$vhdl_family_contract_summary_txt" \
+    --arg vhdl_family_contract_summary_json "$vhdl_family_contract_summary_json" \
     '{
       gate: $gate,
       version: $version,
@@ -399,7 +403,8 @@ jq -n \
             strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed
           },
           proof_surfaces: {
-            family_contract_summary_txt: $vhdl_family_contract_summary_txt
+            family_contract_summary_txt: $vhdl_family_contract_summary_txt,
+            family_contract_summary_json: $vhdl_family_contract_summary_json
           }
         }
       ]

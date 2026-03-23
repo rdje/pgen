@@ -23330,3 +23330,11 @@ Architectural north star:
     - Perl-vs-Rust differential comparison,
     - explicit Perl fallback mode,
     - or the current `ebnf` bootstrap parseability seam.
+- The next VHDL proof-normalization seam was schema parity, not parser behavior. `regex_parser_family_contract_gate` already carried a machine-readable `summary.json`, but the VHDL family-contract/status/aggregate chain was still effectively TXT-only at the family-contract layer. That asymmetry made VHDL aggregate proofs weaker than regex/SV: `sota_exit_gate` and `vhdl_combined_telemetry_contract_gate` could only surface the TXT proof path, so there was no end-to-end contract that the family-contract JSON sidecar existed and matched the rest of the stack.
+- Tightened that VHDL proof surface:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh` now writes `summary.json` alongside `summary.txt`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh` now requires and exports both `family_contract_summary_txt` and `family_contract_summary_json` in its summary sidecars
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh` now treats both proof-surface keys as required schema
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` and `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now surface and parity-check the new JSON path too
+- One small implementation bug showed up while doing that: `quality_parse_full_passes` in the family-contract summary is a literal string like `8/8`, not JSON numeric content, so the JSON writer in `vhdl_parser_family_contract_gate.sh` must pass it with `--arg`, not `--argjson`.
+- Important evidence rule discovered during validation: the top-level `/Users/richarddje/Documents/github/pgen/rust/target/vhdl_stimuli_quality_gate` can currently hold a lightweight one-case run (`realistic_corpus_cases_executed: 1`) and therefore is not always a valid family-contract evidence source. For VHDL family/aggregate proof slices, prefer a canonical full-quality state with `realistic_corpus_cases_executed: 14` or regenerate one explicitly before treating it as family-proof input.

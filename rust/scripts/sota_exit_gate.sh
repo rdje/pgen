@@ -2297,9 +2297,11 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
                 make -C rust SHELL=/bin/bash vhdl_parser_family_contract_gate
     fi
     VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="${VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.txt"
+    VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_JSON="${VHDL_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR}/summary.json"
 
-    if [[ ! -f "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT" ]]; then
+    if [[ ! -f "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT" || ! -f "$VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_JSON" ]]; then
         VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
+        VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
         VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_STATUS="<missing>"
         VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_STATUS="<missing>"
         VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_TARGETS="<missing>"
@@ -2379,6 +2381,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT="<missing>"
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN="<missing>"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_INITIAL_STATUS_PASS="<missing>"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_REPLAY_STATUS_PASS="<missing>"
@@ -2406,6 +2409,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_total_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_unsatisfied_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_summary_txt' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_summary_json' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN="$(summary_value_from_txt "vhdl_family_contract_green" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_INITIAL_STATUS_PASS="$(summary_value_from_txt "vhdl_quality_closed_loop_initial_status_pass" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_REPLAY_STATUS_PASS="$(summary_value_from_txt "vhdl_quality_closed_loop_replay_status_pass" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
@@ -3122,6 +3126,7 @@ fi
         echo
         echo "VHDL Family Contract Telemetry"
         echo "vhdl_parser_family_contract_summary_txt: $VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_TXT"
+        echo "vhdl_parser_family_contract_summary_json: $VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_JSON"
         echo "vhdl_family_quality_closed_loop_initial_status: $VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_STATUS"
         echo "vhdl_family_quality_closed_loop_replay_status: $VHDL_FAMILY_QUALITY_CLOSED_LOOP_REPLAY_STATUS"
         echo "vhdl_family_quality_closed_loop_initial_targets: $VHDL_FAMILY_QUALITY_CLOSED_LOOP_INITIAL_TARGETS"
@@ -3158,6 +3163,7 @@ fi
         echo "vhdl_family_status_vhdl_closure_criteria_total_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT"
         echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT"
         echo "vhdl_family_status_vhdl_family_contract_summary_txt: $VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT"
+        echo "vhdl_family_status_vhdl_family_contract_summary_json: $VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON"
         echo "vhdl_family_status_vhdl_family_contract_green: $VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN"
         echo "vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass: $VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_INITIAL_STATUS_PASS"
         echo "vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass: $VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_REPLAY_STATUS_PASS"

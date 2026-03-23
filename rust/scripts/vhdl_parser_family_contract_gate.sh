@@ -8,6 +8,7 @@ STATE_DIR="${PGEN_VHDL_FAMILY_CONTRACT_STATE_DIR:-$RUST_DIR/target/vhdl_parser_f
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 VHDL_QUALITY_GATE="$RUST_DIR/scripts/vhdl_stimuli_quality_gate.sh"
 VHDL_STRICT_PROMOTION_GATE="$RUST_DIR/scripts/vhdl_strict_promotion_gate.sh"
@@ -280,6 +281,108 @@ assert_equal "strict promotion observed_ratio_avg json parity" "$strict_promotio
     echo "strict_promotion_parseability_generation_attempts_total: $strict_promotion_parseability_generation_attempts_total_json"
     echo "strict_promotion_closed_loop_shadow_attempts_total: $strict_promotion_closed_loop_shadow_attempts_total_json"
 } | tee "$SUMMARY_TXT"
+
+jq -n \
+    --arg gate "vhdl_parser_family_contract_gate" \
+    --argjson version 1 \
+    --arg state_dir "$STATE_DIR" \
+    --arg generated_at_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    --arg quality_state_dir "$quality_state_dir" \
+    --arg quality_summary_txt "$quality_summary_txt" \
+    --arg quality_realistic_report_json "$quality_realistic_report_json" \
+    --arg quality_parseability_report_json "$quality_parseability_report_json" \
+    --arg quality_contract_file "$quality_contract_file" \
+    --arg quality_closed_loop_initial_status "$quality_closed_loop_initial_status" \
+    --arg quality_closed_loop_replay_status "$quality_closed_loop_replay_status" \
+    --argjson quality_closed_loop_initial_targets "$quality_closed_loop_initial_targets" \
+    --argjson quality_closed_loop_replay_targets "$quality_closed_loop_replay_targets" \
+    --argjson quality_closed_loop_parseability_shadow_requested_total "$quality_closed_loop_parseability_shadow_requested_total" \
+    --argjson quality_closed_loop_parseability_shadow_attempts_total "$quality_closed_loop_parseability_shadow_attempts_total" \
+    --argjson quality_closed_loop_parseability_shadow_accepted_total "$quality_closed_loop_parseability_shadow_accepted_total" \
+    --argjson quality_closed_loop_parseability_shadow_rejected_total "$quality_closed_loop_parseability_shadow_rejected_total" \
+    --argjson quality_closed_loop_parseability_shadow_parser_rejections_total "$quality_closed_loop_parseability_shadow_parser_rejections_total" \
+    --argjson quality_closed_loop_parseability_shadow_generation_errors_total "$quality_closed_loop_parseability_shadow_generation_errors_total" \
+    --argjson quality_closed_loop_parseability_shadow_empty_generations_total "$quality_closed_loop_parseability_shadow_empty_generations_total" \
+    --arg quality_closed_loop_parseability_shadow_acceptance_rate_percent "$quality_closed_loop_parseability_shadow_acceptance_rate_percent" \
+    --argjson quality_parseability_generation_requested_total "$quality_parseability_generation_requested_total" \
+    --argjson quality_parseability_generation_attempts_total "$quality_parseability_generation_attempts_total" \
+    --argjson quality_parseability_generation_accepted_total "$quality_parseability_generation_accepted_total" \
+    --argjson quality_parseability_generation_rejected_total "$quality_parseability_generation_rejected_total" \
+    --argjson quality_parseability_generation_parser_rejections_total "$quality_parseability_generation_parser_rejections_total" \
+    --argjson quality_parseability_generation_errors_total "$quality_parseability_generation_errors_total" \
+    --argjson quality_parseability_generation_empty_generations_total "$quality_parseability_generation_empty_generations_total" \
+    --arg quality_parseability_generation_acceptance_rate_percent "$quality_parseability_generation_acceptance_rate_percent" \
+    --arg quality_parse_full_passes "$quality_parse_full_passes" \
+    --argjson quality_realistic_cases_executed "$quality_realistic_cases_executed" \
+    --argjson quality_realistic_expected_pass_total "$quality_realistic_expected_pass_total" \
+    --argjson quality_realistic_expected_fail_total "$quality_realistic_expected_fail_total" \
+    --argjson quality_realistic_observed_parse_pass_total "$quality_realistic_observed_parse_pass_total" \
+    --argjson quality_realistic_observed_parse_fail_total "$quality_realistic_observed_parse_fail_total" \
+    --arg strict_promotion_state_dir "$strict_promotion_state_dir" \
+    --arg strict_promotion_summary_txt "$strict_promotion_summary_txt" \
+    --arg strict_promotion_report_json "$strict_promotion_report_json" \
+    --arg strict_promotion_recommendation "$strict_promotion_recommendation" \
+    --argjson strict_promotion_eligible_for_required_strict_mode "$strict_promotion_eligible" \
+    --arg strict_promotion_primary_blocker "$strict_promotion_primary_blocker" \
+    --argjson strict_promotion_trial_passed "$strict_promotion_trial_passed" \
+    --arg strict_promotion_observed_ratio_min "$strict_promotion_observed_ratio_min" \
+    --arg strict_promotion_observed_ratio_max "$strict_promotion_observed_ratio_max" \
+    --arg strict_promotion_observed_ratio_avg "$strict_promotion_observed_ratio_avg" \
+    --argjson strict_promotion_parseability_generation_attempts_total "$strict_promotion_parseability_generation_attempts_total_json" \
+    --argjson strict_promotion_closed_loop_shadow_attempts_total "$strict_promotion_closed_loop_shadow_attempts_total_json" \
+    '{
+      gate: $gate,
+      version: $version,
+      generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      proof_surfaces: {
+        quality_state_dir: $quality_state_dir,
+        quality_summary_txt: $quality_summary_txt,
+        quality_realistic_report_json: $quality_realistic_report_json,
+        quality_parseability_report_json: $quality_parseability_report_json,
+        strict_promotion_state_dir: $strict_promotion_state_dir,
+        strict_promotion_summary_txt: $strict_promotion_summary_txt,
+        strict_promotion_report_json: $strict_promotion_report_json
+      },
+      metrics: {
+        quality_contract_file: $quality_contract_file,
+        quality_closed_loop_initial_status: $quality_closed_loop_initial_status,
+        quality_closed_loop_replay_status: $quality_closed_loop_replay_status,
+        quality_closed_loop_initial_targets: $quality_closed_loop_initial_targets,
+        quality_closed_loop_replay_targets: $quality_closed_loop_replay_targets,
+        quality_closed_loop_parseability_shadow_requested_total: $quality_closed_loop_parseability_shadow_requested_total,
+        quality_closed_loop_parseability_shadow_attempts_total: $quality_closed_loop_parseability_shadow_attempts_total,
+        quality_closed_loop_parseability_shadow_accepted_total: $quality_closed_loop_parseability_shadow_accepted_total,
+        quality_closed_loop_parseability_shadow_rejected_total: $quality_closed_loop_parseability_shadow_rejected_total,
+        quality_closed_loop_parseability_shadow_parser_rejections_total: $quality_closed_loop_parseability_shadow_parser_rejections_total,
+        quality_closed_loop_parseability_shadow_generation_errors_total: $quality_closed_loop_parseability_shadow_generation_errors_total,
+        quality_closed_loop_parseability_shadow_empty_generations_total: $quality_closed_loop_parseability_shadow_empty_generations_total,
+        quality_closed_loop_parseability_shadow_acceptance_rate_percent: $quality_closed_loop_parseability_shadow_acceptance_rate_percent,
+        quality_parseability_generation_requested_total: $quality_parseability_generation_requested_total,
+        quality_parseability_generation_attempts_total: $quality_parseability_generation_attempts_total,
+        quality_parseability_generation_accepted_total: $quality_parseability_generation_accepted_total,
+        quality_parseability_generation_rejected_total: $quality_parseability_generation_rejected_total,
+        quality_parseability_generation_parser_rejections_total: $quality_parseability_generation_parser_rejections_total,
+        quality_parseability_generation_errors_total: $quality_parseability_generation_errors_total,
+        quality_parseability_generation_empty_generations_total: $quality_parseability_generation_empty_generations_total,
+        quality_parseability_generation_acceptance_rate_percent: $quality_parseability_generation_acceptance_rate_percent,
+        quality_parse_full_passes: $quality_parse_full_passes,
+        quality_realistic_cases_executed: $quality_realistic_cases_executed,
+        quality_realistic_expected_pass_total: $quality_realistic_expected_pass_total,
+        quality_realistic_expected_fail_total: $quality_realistic_expected_fail_total,
+        quality_realistic_observed_parse_pass_total: $quality_realistic_observed_parse_pass_total,
+        quality_realistic_observed_parse_fail_total: $quality_realistic_observed_parse_fail_total,
+        strict_promotion_recommendation: $strict_promotion_recommendation,
+        strict_promotion_eligible_for_required_strict_mode: $strict_promotion_eligible_for_required_strict_mode,
+        strict_promotion_primary_blocker: $strict_promotion_primary_blocker,
+        strict_promotion_trial_passed: $strict_promotion_trial_passed,
+        strict_promotion_observed_ratio_min: $strict_promotion_observed_ratio_min,
+        strict_promotion_observed_ratio_max: $strict_promotion_observed_ratio_max,
+        strict_promotion_observed_ratio_avg: $strict_promotion_observed_ratio_avg,
+        strict_promotion_parseability_generation_attempts_total: $strict_promotion_parseability_generation_attempts_total,
+        strict_promotion_closed_loop_shadow_attempts_total: $strict_promotion_closed_loop_shadow_attempts_total
+      }
+    }' >"$SUMMARY_JSON"
 
 echo "✅ VHDL parser-family contract gate passed."
 echo "Logs: $LOG_DIR"
