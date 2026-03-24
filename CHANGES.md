@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-24 - Consume nested VHDL family provenance in combined telemetry
+### ✅ Achievement Summary
+PGEN now makes `vhdl_combined_telemetry_contract_gate` consume the nested VHDL proof provenance already carried by `sota_exit_gate/summary.json`.
+
+### Scope of Changes
+- Updated:
+  - [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+- The combined VHDL aggregate now:
+  - reads family-contract plus quality / strict-promotion proof paths from `family_status.vhdl.proof_surfaces`,
+  - reads family-status plus family-contract proof paths from `family_status_contract.vhdl.proof_surfaces`,
+  - parity-checks those nested paths against the canonical VHDL family sidecars.
+
+### Why This Matters
+- The structured VHDL family payloads in SOTA are now actually consumed by the shipped aggregate reader.
+- VHDL aggregate proof no longer depends on treating the older top-level SOTA summary pointers as the practical source of truth.
+
 ## 2026-03-24 - Consume nested regex family provenance in combined telemetry
 ### ✅ Achievement Summary
 PGEN now makes `regex_combined_telemetry_contract_gate` consume the nested regex proof provenance already carried by `sota_exit_gate/summary.json`.

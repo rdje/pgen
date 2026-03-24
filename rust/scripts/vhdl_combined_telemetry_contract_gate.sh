@@ -109,6 +109,25 @@ sota_exit_all_failures="$(jq -r '.counts.all_failures' "$sota_summary_json")"
 sota_exit_vhdl_family_summary_json_from_json="$(jq -r '.proof_surfaces.vhdl_parser_family_contract_summary_json' "$sota_summary_json")"
 sota_exit_vhdl_family_status_summary_json_from_json="$(jq -r '.proof_surfaces.vhdl_parser_family_status_summary_json' "$sota_summary_json")"
 sota_exit_vhdl_family_status_contract_summary_json_from_json="$(jq -r '.proof_surfaces.vhdl_parser_family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_vhdl_status_family_status_summary_json="$(jq -r '.family_status.vhdl.proof_surfaces.family_status_summary_json' "$sota_summary_json")"
+sota_exit_vhdl_status_family_status_contract_summary_json="$(jq -r '.family_status.vhdl.proof_surfaces.family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_vhdl_status_family_contract_state_dir="$(jq -r '.family_status.vhdl.proof_surfaces.family_contract_state_dir' "$sota_summary_json")"
+sota_exit_vhdl_status_family_contract_summary_txt="$(jq -r '.family_status.vhdl.proof_surfaces.family_contract_summary_txt' "$sota_summary_json")"
+sota_exit_vhdl_status_family_contract_summary_json="$(jq -r '.family_status.vhdl.proof_surfaces.family_contract_summary_json' "$sota_summary_json")"
+sota_exit_vhdl_status_quality_state_dir="$(jq -r '.family_status.vhdl.proof_surfaces.quality_state_dir' "$sota_summary_json")"
+sota_exit_vhdl_status_quality_summary_txt="$(jq -r '.family_status.vhdl.proof_surfaces.quality_summary_txt' "$sota_summary_json")"
+sota_exit_vhdl_status_quality_realistic_report_json="$(jq -r '.family_status.vhdl.proof_surfaces.quality_realistic_report_json' "$sota_summary_json")"
+sota_exit_vhdl_status_quality_parseability_report_json="$(jq -r '.family_status.vhdl.proof_surfaces.quality_parseability_report_json' "$sota_summary_json")"
+sota_exit_vhdl_status_strict_promotion_state_dir="$(jq -r '.family_status.vhdl.proof_surfaces.strict_promotion_state_dir' "$sota_summary_json")"
+sota_exit_vhdl_status_strict_promotion_summary_txt="$(jq -r '.family_status.vhdl.proof_surfaces.strict_promotion_summary_txt' "$sota_summary_json")"
+sota_exit_vhdl_status_strict_promotion_report_json="$(jq -r '.family_status.vhdl.proof_surfaces.strict_promotion_report_json' "$sota_summary_json")"
+sota_exit_vhdl_contract_family_status_contract_summary_json="$(jq -r '.family_status_contract.vhdl.proof_surfaces.family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_vhdl_contract_family_status_state_dir="$(jq -r '.family_status_contract.vhdl.proof_surfaces.family_status_state_dir' "$sota_summary_json")"
+sota_exit_vhdl_contract_family_status_summary_txt="$(jq -r '.family_status_contract.vhdl.proof_surfaces.family_status_summary_txt' "$sota_summary_json")"
+sota_exit_vhdl_contract_family_status_summary_json="$(jq -r '.family_status_contract.vhdl.proof_surfaces.family_status_summary_json' "$sota_summary_json")"
+sota_exit_vhdl_contract_family_contract_state_dir="$(jq -r '.family_status_contract.vhdl.proof_surfaces.family_contract_state_dir' "$sota_summary_json")"
+sota_exit_vhdl_contract_family_contract_summary_txt="$(jq -r '.family_status_contract.vhdl.proof_surfaces.family_contract_summary_txt' "$sota_summary_json")"
+sota_exit_vhdl_contract_family_contract_summary_json="$(jq -r '.family_status_contract.vhdl.proof_surfaces.family_contract_summary_json' "$sota_summary_json")"
 sota_exit_vhdl_primary_unmet="$(jq -r '.family_status.vhdl.primary_unmet_closure_criterion' "$sota_summary_json")"
 sota_exit_vhdl_unmet_json="$(jq -cer '.family_status.vhdl.unmet_closure_criteria' "$sota_summary_json")"
 sota_exit_vhdl_unmet_details_json="$(jq -cer '.family_status.vhdl.unmet_closure_criteria_details' "$sota_summary_json")"
@@ -183,6 +202,18 @@ assert_equal \
     "SOTA exit VHDL family status contract summary json path" \
     "$vhdl_family_status_contract_summary_json" \
     "$sota_exit_vhdl_family_status_contract_summary_json_from_json"
+assert_equal \
+    "SOTA exit nested VHDL family-status summary json path" \
+    "$vhdl_family_status_summary_json" \
+    "$sota_exit_vhdl_status_family_status_summary_json"
+assert_equal \
+    "SOTA exit nested VHDL family-status contract summary json path" \
+    "$vhdl_family_status_contract_summary_json" \
+    "$sota_exit_vhdl_status_family_status_contract_summary_json"
+assert_equal \
+    "SOTA exit nested VHDL family-status-contract self summary json path" \
+    "$vhdl_family_status_contract_summary_json" \
+    "$sota_exit_vhdl_contract_family_status_contract_summary_json"
 vhdl_parser_family_status_gate="$(jq -r '.gate' "$vhdl_family_status_summary_json")"
 vhdl_parser_family_status_gate_version="$(jq -r '.version' "$vhdl_family_status_summary_json")"
 vhdl_parser_family_status_generated_at_utc="$(jq -r '.generated_at_utc' "$vhdl_family_status_summary_json")"
@@ -240,6 +271,46 @@ vhdl_strict_promotion_trial_passed="$(extract_summary_value "$vhdl_family_summar
 vhdl_strict_promotion_observed_ratio_min="$(extract_summary_value "$vhdl_family_summary_txt" "strict_promotion_observed_ratio_min")"
 vhdl_strict_promotion_observed_ratio_max="$(extract_summary_value "$vhdl_family_summary_txt" "strict_promotion_observed_ratio_max")"
 vhdl_strict_promotion_observed_ratio_avg="$(extract_summary_value "$vhdl_family_summary_txt" "strict_promotion_observed_ratio_avg")"
+assert_equal \
+    "SOTA exit nested VHDL family contract state dir" \
+    "$vhdl_family_contract_state_dir" \
+    "$sota_exit_vhdl_status_family_contract_state_dir"
+assert_equal \
+    "SOTA exit nested VHDL family contract summary txt" \
+    "$vhdl_family_contract_summary_txt_from_json" \
+    "$sota_exit_vhdl_status_family_contract_summary_txt"
+assert_equal \
+    "SOTA exit nested VHDL family contract summary json" \
+    "$vhdl_family_contract_summary_json_from_json" \
+    "$sota_exit_vhdl_status_family_contract_summary_json"
+assert_equal \
+    "SOTA exit nested VHDL quality state dir" \
+    "$vhdl_family_quality_state_dir" \
+    "$sota_exit_vhdl_status_quality_state_dir"
+assert_equal \
+    "SOTA exit nested VHDL quality summary txt" \
+    "$vhdl_family_quality_summary_txt" \
+    "$sota_exit_vhdl_status_quality_summary_txt"
+assert_equal \
+    "SOTA exit nested VHDL quality realistic report json" \
+    "$vhdl_family_quality_realistic_report_json" \
+    "$sota_exit_vhdl_status_quality_realistic_report_json"
+assert_equal \
+    "SOTA exit nested VHDL quality parseability report json" \
+    "$vhdl_family_quality_parseability_report_json" \
+    "$sota_exit_vhdl_status_quality_parseability_report_json"
+assert_equal \
+    "SOTA exit nested VHDL strict-promotion state dir" \
+    "$vhdl_family_strict_promotion_state_dir" \
+    "$sota_exit_vhdl_status_strict_promotion_state_dir"
+assert_equal \
+    "SOTA exit nested VHDL strict-promotion summary txt" \
+    "$vhdl_family_strict_promotion_summary_txt" \
+    "$sota_exit_vhdl_status_strict_promotion_summary_txt"
+assert_equal \
+    "SOTA exit nested VHDL strict-promotion report json" \
+    "$vhdl_family_strict_promotion_report_json" \
+    "$sota_exit_vhdl_status_strict_promotion_report_json"
 vhdl_family_status_vhdl="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_status")"
 vhdl_family_status_vhdl_tracker_status="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_tracker_status")"
 vhdl_family_status_vhdl_tracker_alignment_ok="$(extract_summary_value "$vhdl_family_status_summary_txt" "vhdl_tracker_alignment_ok")"
@@ -285,6 +356,30 @@ vhdl_family_status_contract_vhdl_family_contract_generated_at_utc="$(jq -r '.fam
 vhdl_family_status_contract_vhdl_family_contract_state_dir="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.state_dir' "$vhdl_family_status_contract_summary_json")"
 vhdl_family_status_contract_vhdl_family_contract_summary_txt="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.summary_txt' "$vhdl_family_status_contract_summary_json")"
 vhdl_family_status_contract_vhdl_family_contract_summary_json="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.summary_json' "$vhdl_family_status_contract_summary_json")"
+assert_equal \
+    "SOTA exit nested VHDL contract family-status state dir" \
+    "$vhdl_family_status_contract_family_status_state_dir" \
+    "$sota_exit_vhdl_contract_family_status_state_dir"
+assert_equal \
+    "SOTA exit nested VHDL contract family-status summary txt" \
+    "$vhdl_family_status_contract_family_status_summary_txt" \
+    "$sota_exit_vhdl_contract_family_status_summary_txt"
+assert_equal \
+    "SOTA exit nested VHDL contract family-status summary json" \
+    "$vhdl_family_status_contract_family_status_summary_json" \
+    "$sota_exit_vhdl_contract_family_status_summary_json"
+assert_equal \
+    "SOTA exit nested VHDL contract family contract state dir" \
+    "$vhdl_family_status_contract_vhdl_family_contract_state_dir" \
+    "$sota_exit_vhdl_contract_family_contract_state_dir"
+assert_equal \
+    "SOTA exit nested VHDL contract family contract summary txt" \
+    "$vhdl_family_status_contract_vhdl_family_contract_summary_txt" \
+    "$sota_exit_vhdl_contract_family_contract_summary_txt"
+assert_equal \
+    "SOTA exit nested VHDL contract family contract summary json" \
+    "$vhdl_family_status_contract_vhdl_family_contract_summary_json" \
+    "$sota_exit_vhdl_contract_family_contract_summary_json"
 
 assert_equal \
     "VHDL family quality closed-loop initial status" \

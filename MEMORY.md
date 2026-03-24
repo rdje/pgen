@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next VHDL aggregate-proof coherence seam after SOTA started embedding VHDL provenance in its structured family payloads was the shipped VHDL aggregate reader:
+  - `vhdl_combined_telemetry_contract_gate` already consumed SOTA JSON,
+  - but it was still treating the older top-level SOTA summary pointers as the practical source of VHDL provenance.
+- That seam is now being closed by making the VHDL combined telemetry gate:
+  - read family-contract plus quality/strict-promotion proof paths from nested `family_status.vhdl.proof_surfaces`,
+  - read family-status plus family-contract proof paths from nested `family_status_contract.vhdl.proof_surfaces`,
+  - and parity-check those nested paths against the canonical VHDL family sidecars.
 - The next regex aggregate-proof coherence seam after SOTA started embedding regex provenance in its structured family payloads was the shipped regex aggregate reader:
   - `regex_combined_telemetry_contract_gate` already consumed SOTA JSON,
   - but it was still treating the older top-level SOTA summary pointers as the practical source of regex provenance.
