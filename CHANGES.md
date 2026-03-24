@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-25 - Surface SV auxiliary top-level SOTA proof mirrors
+### ✅ Achievement Summary
+PGEN now exposes the shipped SV failure-context and roundtrip side proofs at the top level of SOTA JSON with the same fuller identity shape already carried in nested family payloads.
+
+### Scope of Changes
+- Updated:
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- SOTA top-level proof surfaces now preserve:
+  - auxiliary `state_dir`
+  - auxiliary `summary.txt`
+  - auxiliary `summary.json`
+  for both:
+  - failure-context contract
+  - roundtrip contract
+
+### Why This Matters
+- The top-level SOTA JSON now exposes the exact upstream proof artifacts for those auxiliary sidecars, not just the JSON leaf.
+- That keeps the compatibility mirrors closer to the same provenance standard as the nested family payloads.
+
 ## 2026-03-24 - Preserve SV auxiliary provenance in combined telemetry family JSON
 ### ✅ Achievement Summary
 PGEN now preserves the SV failure-context and roundtrip side-proof paths inside the nested SV family payloads of combined telemetry JSON, instead of only keeping them at top level.

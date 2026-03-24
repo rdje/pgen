@@ -387,7 +387,19 @@ audit_sv_auxiliary_contract_surface() {
 
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
+    'sv_failure_context_contract_state_dir: maybe_path($sv_failure_context_contract_state_dir)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'sv_failure_context_contract_summary_txt: maybe_path($sv_failure_context_contract_summary_txt)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
     'sv_failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'sv_roundtrip_contract_state_dir: maybe_path($sv_roundtrip_contract_state_dir)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'sv_roundtrip_contract_summary_txt: maybe_path($sv_roundtrip_contract_summary_txt)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
     'sv_roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)'

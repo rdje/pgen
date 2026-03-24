@@ -2001,10 +2001,12 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     echo "sv_focused_replay_covered_reachable_rules: $SV_FOCUSED_REPLAY_COVERED_REACHABLE_RULES"
     echo "sv_focused_initial_covered_reachable_branches: $SV_FOCUSED_INITIAL_COVERED_REACHABLE_BRANCHES"
     echo "sv_focused_replay_covered_reachable_branches: $SV_FOCUSED_REPLAY_COVERED_REACHABLE_BRANCHES"
+    echo "sv_failure_context_contract_state_dir: $SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR"
     echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
     echo "sv_failure_context_contract_summary_json: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON"
     echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
     echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"
+    echo "sv_roundtrip_contract_state_dir: $SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR"
     echo "sv_roundtrip_contract_summary_txt: $SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
     echo "sv_roundtrip_contract_summary_json: $SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON"
     echo "sv_roundtrip_initial_targets: $SV_ROUNDTRIP_INITIAL_TARGETS"
@@ -3031,10 +3033,12 @@ informational_failures=$((all_failures - required_failures))
         echo "sv_focused_replay_covered_reachable_rules: $SV_FOCUSED_REPLAY_COVERED_REACHABLE_RULES"
         echo "sv_focused_initial_covered_reachable_branches: $SV_FOCUSED_INITIAL_COVERED_REACHABLE_BRANCHES"
         echo "sv_focused_replay_covered_reachable_branches: $SV_FOCUSED_REPLAY_COVERED_REACHABLE_BRANCHES"
+        echo "sv_failure_context_contract_state_dir: $SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR"
         echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
         echo "sv_failure_context_contract_summary_json: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON"
         echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
         echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"
+        echo "sv_roundtrip_contract_state_dir: $SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR"
         echo "sv_roundtrip_contract_summary_txt: $SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
         echo "sv_roundtrip_contract_summary_json: $SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON"
         echo "sv_roundtrip_initial_targets: $SV_ROUNDTRIP_INITIAL_TARGETS"
@@ -3726,7 +3730,11 @@ jq -n \
             summary_csv: $summary_csv,
             summary_json: $summary_json,
             ebnf_dual_run_summary_json: maybe_path($ebnf_dual_run_summary_json),
+            sv_failure_context_contract_state_dir: maybe_path($sv_failure_context_contract_state_dir),
+            sv_failure_context_contract_summary_txt: maybe_path($sv_failure_context_contract_summary_txt),
             sv_failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json),
+            sv_roundtrip_contract_state_dir: maybe_path($sv_roundtrip_contract_state_dir),
+            sv_roundtrip_contract_summary_txt: maybe_path($sv_roundtrip_contract_summary_txt),
             sv_roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json),
             sv_parser_family_status_summary_json: maybe_path($sv_parser_family_status_summary_json),
             sv_parser_family_status_contract_summary_json: maybe_path($sv_parser_family_status_contract_summary_json),

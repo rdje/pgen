@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Surface SV auxiliary top-level SOTA proof mirrors
+### Context
+After the SV auxiliary side proofs were preserved in nested SOTA family payloads and then in nested combined telemetry payloads, the top-level SOTA compatibility mirrors still only exposed their `summary.json` paths.
+
+### Implementation
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - echoed `sv_failure_context_contract_state_dir` and `sv_roundtrip_contract_state_dir` in `summary.txt`,
+  - added top-level SOTA `proof_surfaces` entries for:
+    - failure-context `state_dir` / `summary.txt`
+    - roundtrip `state_dir` / `summary.txt`
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - locked those new top-level SOTA auxiliary proof-surface mirrors.
+
+### Why This Matters
+- The top-level SOTA JSON now exposes the exact upstream proof artifacts for those two auxiliary sidecars.
+- That gives downstream parity checks a fuller compatibility surface instead of a JSON-path-only mirror.
+
 ## 2026-03-24 - Preserve SV auxiliary provenance in combined telemetry family JSON
 ### Context
 After the reader-side switch to nested SOTA SV family payloads landed, `sv_combined_telemetry_contract_gate` still only preserved the auxiliary failure-context and roundtrip sidecar paths at top level.
