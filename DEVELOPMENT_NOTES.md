@@ -24001,3 +24001,19 @@ Architectural north star:
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh`
   already emitted `summary.json`, but they still only named the upstream frontend/dual-run/stimuli or quality/strict-promotion proof surfaces. They now need to carry their own `summary_txt` and `summary_json` at the top level of their JSON sidecars too, and the VHDL TXT header should also surface `generated_at_utc` / `summary_json` so the family-contract layer follows the same self-description rule as the layers above it.
+- The next low-level provenance gap after that was the practical SV family-contract producer layer. Regex and VHDL already had local-CI guards on their family-contract proof-surface fields, but SV still depended on higher layers to notice drift in:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- Tightened that producer seam in `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh`:
+  - the family-sidecar identity audit now also covers both SV aggregate-contract gates, so their `SUMMARY_JSON`, `summary_json`, and top-level `state_dir` / `summary_txt` / `summary_json` shape stay locked
+  - a new SV aggregate-contract proof-surface audit now locks the main-SV producer fields:
+    - `generation_report_json`
+    - `shadow_report_json`
+    - `generation_counterexample_triage_json`
+    - `replay_gap_target_triage_json`
+    - `source_gap_json`
+  - and the preprocessor producer fields:
+    - `quality_state_dir`
+    - `parseability_report_json`
+    - `counterexample_triage_json`
+    - `gap_stage3_json`

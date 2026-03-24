@@ -380,6 +380,8 @@ audit_family_summary_identity_surface() {
   note "auditing family-sidecar summary identity surface"
 
   for repo_file in \
+    rust/scripts/sv_parser_aggregate_contract_gate.sh \
+    rust/scripts/sv_preprocessor_aggregate_contract_gate.sh \
     rust/scripts/regex_parser_family_contract_gate.sh \
     rust/scripts/vhdl_parser_family_contract_gate.sh \
     rust/scripts/sv_parser_family_status_gate.sh \
@@ -420,6 +422,42 @@ audit_family_contract_proof_surface() {
   assert_file_contains \
     "rust/scripts/vhdl_parser_family_contract_gate.sh" \
     'strict_promotion_report_json: $strict_promotion_report_json'
+}
+
+audit_sv_aggregate_contract_proof_surface() {
+  note "auditing SV aggregate-contract proof-surface emission surface"
+
+  assert_tracked "rust/scripts/sv_parser_aggregate_contract_gate.sh"
+  assert_tracked "rust/scripts/sv_preprocessor_aggregate_contract_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/sv_parser_aggregate_contract_gate.sh" \
+    'generation_report_json: $generation_report_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_aggregate_contract_gate.sh" \
+    'shadow_report_json: $shadow_report_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_aggregate_contract_gate.sh" \
+    'generation_counterexample_triage_json: $generation_counterexample_triage_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_aggregate_contract_gate.sh" \
+    'replay_gap_target_triage_json: $replay_gap_target_triage_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_aggregate_contract_gate.sh" \
+    'source_gap_json: $source_gap_json'
+
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_aggregate_contract_gate.sh" \
+    'quality_state_dir: $quality_state_dir'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_aggregate_contract_gate.sh" \
+    'parseability_report_json: $parseability_report_json'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_aggregate_contract_gate.sh" \
+    'counterexample_triage_json: $counterexample_triage_json'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_aggregate_contract_gate.sh" \
+    'gap_stage3_json: $gap_stage3_json'
 }
 
 audit_summary_json_emission_surface() {
@@ -499,6 +537,7 @@ main() {
   audit_family_layer_provenance_surface
   audit_family_summary_identity_surface
   audit_family_contract_proof_surface
+  audit_sv_aggregate_contract_proof_surface
   audit_summary_json_emission_surface
 
   run_workflow \

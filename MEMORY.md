@@ -6492,3 +6492,23 @@ Use this file to resume work without replaying full chat history.
 - Reuse-backed validation for that slice is:
   - `env PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/ebnf_frontend_gate PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/ebnf_frontend_dual_run_gate PGEN_REGEX_FAMILY_CONTRACT_EXISTING_STIMULI_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/ebnf_stimuli_quality_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh`
   - `env PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_combined_telemetry_contract_gate/work/sota_exit_gate/work/vhdl_stimuli_quality_gate PGEN_VHDL_FAMILY_CONTRACT_EXISTING_STRICT_PROMOTION_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_strict_promotion_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh`
+- The current low-level sibling of that regex/VHDL family-contract guard is the practical SV family-contract producer layer:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` now needs to keep both SV aggregate-contract gates under the same local-CI doctrine:
+  - include them in the family-sidecar identity audit
+  - and lock their producer proof-surface fields directly
+- The representative SV aggregate-contract proof-surface literals to remember are:
+  - main SV:
+    - `generation_report_json: $generation_report_json`
+    - `shadow_report_json: $shadow_report_json`
+    - `generation_counterexample_triage_json: $generation_counterexample_triage_json`
+    - `replay_gap_target_triage_json: $replay_gap_target_triage_json`
+    - `source_gap_json: $source_gap_json`
+  - preprocessor:
+    - `quality_state_dir: $quality_state_dir`
+    - `parseability_report_json: $parseability_report_json`
+    - `counterexample_triage_json: $counterexample_triage_json`
+    - `gap_stage3_json: $gap_stage3_json`
+- Filtered validation for this local-CI slice remains:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh`
