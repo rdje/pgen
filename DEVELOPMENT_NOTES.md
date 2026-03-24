@@ -24025,3 +24025,11 @@ Architectural north star:
     - `systemverilog_semantic_scope_contract_summary_json`
   - `summary.json` now preserves the same three fields under the `systemverilog` family's `proof_surfaces`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` now locks both the family-status and family-status-contract `semantic_scope_contract_summary_json` fields as part of the shipped SV family-layer provenance surface
+- The next proof-chain follow-through after that is the aggregate layer. Once `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh` preserves the semantic-scope proof it validates, the higher shipped SV readers should not regress back to aggregate-only contract provenance.
+- Tightened that aggregate seam:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` now re-emits the main-SV contract-side semantic-scope paths in both `summary.txt` and `summary.json`
+  - the SOTA JSON now carries those fields both:
+    - as top-level proof-surface mirrors
+    - and inside `family_status_contract.systemverilog.proof_surfaces`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh` now consumes those contract-side semantic-scope paths from SOTA, parity-checks them against the local status-contract sidecar, and re-emits them in its own `family_status_contract.systemverilog.proof_surfaces`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` now locks this exact seam on both the SOTA producer side and the SV combined-telemetry consumer/output side

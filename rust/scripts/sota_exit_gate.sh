@@ -1671,6 +1671,9 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR="<missing>"
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT="<missing>"
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_TXT="<missing>"
+            SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FALSE_CRITERIA_COUNT="<missing>"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_DETAILS_COUNT="<missing>"
@@ -1697,6 +1700,9 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_state_dir' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
             SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_json' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_state_dir' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_txt' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+            SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_json' "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "systemverilog_preprocessor_tracker_alignment_ok" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "systemverilog_preprocessor_false_criteria_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
             SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_UNMET_DETAILS_COUNT="$(summary_value_from_txt "systemverilog_preprocessor_unmet_details_count" "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
@@ -1891,6 +1897,18 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
             "sv systemverilog parser aggregate summary json" \
             "$SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON" \
             "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON"
+        require_matching_summary_value \
+            "sv systemverilog semantic-scope state dir" \
+            "$SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_STATE_DIR" \
+            "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_STATE_DIR"
+        require_matching_summary_value \
+            "sv systemverilog semantic-scope summary txt" \
+            "$SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_TXT" \
+            "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_TXT"
+        require_matching_summary_value \
+            "sv systemverilog semantic-scope summary json" \
+            "$SV_FAMILY_STATUS_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON" \
+            "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON"
         require_matching_summary_value \
             "sv systemverilog_preprocessor aggregate state dir" \
             "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_STATE_DIR" \
@@ -3035,6 +3053,9 @@ informational_failures=$((all_failures - required_failures))
         echo "sv_family_status_contract_systemverilog_parser_aggregate_state_dir: $SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR"
         echo "sv_family_status_contract_systemverilog_parser_aggregate_summary_txt: $SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT"
         echo "sv_family_status_contract_systemverilog_parser_aggregate_summary_json: $SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON"
+        echo "sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir: $SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_STATE_DIR"
+        echo "sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt: $SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_TXT"
+        echo "sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json: $SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON"
         echo "sv_parser_family_status_contract_family_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT"
         echo "sv_parser_family_status_contract_systemverilog_tracker_alignment_ok: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_TRACKER_ALIGNMENT_OK"
         echo "sv_parser_family_status_contract_systemverilog_false_criteria_count: $SV_PARSER_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_FALSE_CRITERIA_COUNT"
@@ -3524,6 +3545,9 @@ jq -n \
     --arg sv_family_status_contract_systemverilog_parser_aggregate_state_dir "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR:-<not-run>}" \
     --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_txt "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT:-<not-run>}" \
     --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_json "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_STATE_DIR:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_TXT:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_SEMANTIC_SCOPE_CONTRACT_SUMMARY_JSON:-<not-run>}" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_STATE_DIR:-<not-run>}" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT:-<not-run>}" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_JSON:-<not-run>}" \
@@ -3699,6 +3723,9 @@ jq -n \
             sv_family_status_contract_systemverilog_parser_aggregate_state_dir: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_state_dir),
             sv_family_status_contract_systemverilog_parser_aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_txt),
             sv_family_status_contract_systemverilog_parser_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_json),
+            sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir),
+            sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt),
+            sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json),
             sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir),
             sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt),
             sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json),
@@ -3752,7 +3779,10 @@ jq -n \
             systemverilog: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_tracker_alignment_ok; $sv_contract_systemverilog_primary_unmet_detail; $sv_contract_systemverilog_unmet_json; $sv_contract_systemverilog_unmet_details_json; ({
                 parser_aggregate_state_dir: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_state_dir),
                 parser_aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_txt),
-                parser_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_json)
+                parser_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_json),
+                semantic_scope_contract_state_dir: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir),
+                semantic_scope_contract_summary_txt: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt),
+                semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json)
             } | tojson)),
             systemverilog_preprocessor: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_preprocessor_tracker_alignment_ok; $sv_contract_systemverilog_preprocessor_primary_unmet_detail; $sv_contract_systemverilog_preprocessor_unmet_json; $sv_contract_systemverilog_preprocessor_unmet_details_json; ({
                 aggregate_state_dir: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir),

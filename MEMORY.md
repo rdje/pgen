@@ -6531,3 +6531,21 @@ Use this file to resume work without replaying full chat history.
     - `semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json`
   - in `sv_parser_family_status_contract_gate.sh`:
     - `semantic_scope_contract_summary_json: $systemverilog_semantic_scope_contract_summary_json`
+- The next aggregate follow-through after that is the SV status-contract branch in the shipped readers:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- The representative new SOTA literals are:
+  - top-level summary/proof-surface fields:
+    - `sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir`
+    - `sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt`
+    - `sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json`
+  - nested family payload fields:
+    - `semantic_scope_contract_state_dir: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir)`
+    - `semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json)`
+- The representative new combined-telemetry literals are:
+  - SOTA JSON extraction:
+    - `.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_summary_json`
+  - local status-contract sidecar extraction:
+    - `.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_json`
+  - preserved output field:
+    - `semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json`

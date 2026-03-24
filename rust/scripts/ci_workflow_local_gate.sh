@@ -212,6 +212,9 @@ audit_sota_json_consumption_surface() {
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_summary_json'
 
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
@@ -269,6 +272,9 @@ audit_sota_nested_family_emission_surface() {
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
     'parser_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json)'
 
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
@@ -310,6 +316,9 @@ audit_combined_telemetry_nested_provenance_surface() {
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'parser_aggregate_summary_json: $sv_family_status_contract_systemverilog_parser_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json'
 
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \

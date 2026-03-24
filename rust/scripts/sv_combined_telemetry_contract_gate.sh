@@ -151,6 +151,9 @@ sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json_top_level="$(jq -
 sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_semantic_scope_contract_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json' "$sota_summary_json")"
@@ -163,6 +166,9 @@ sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family
 sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_semantic_scope_contract_state_dir="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_txt="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_json="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_summary_json' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_json' "$sota_summary_json")"
@@ -281,6 +287,18 @@ assert_equal \
     "SOTA exit main contract parser aggregate summary json mirror" \
     "$sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json" \
     "$sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json_top_level"
+assert_equal \
+    "SOTA exit main contract semantic-scope state dir mirror" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_state_dir_top_level"
+assert_equal \
+    "SOTA exit main contract semantic-scope summary txt mirror" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_txt_top_level"
+assert_equal \
+    "SOTA exit main contract semantic-scope summary json mirror" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_json_top_level"
 assert_equal \
     "SOTA exit preprocessor contract aggregate state dir mirror" \
     "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir" \
@@ -679,6 +697,9 @@ sv_family_status_systemverilog_preprocessor_reachability_summary_txt="$(jq -r '.
 sv_family_status_contract_systemverilog_parser_aggregate_state_dir="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_state_dir' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_parser_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_parser_aggregate_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_json' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_state_dir' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_txt' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_json' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_state_dir' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_txt' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_json' "$sv_parser_family_status_contract_summary_json")"
@@ -1646,6 +1667,30 @@ assert_equal \
     "$sv_family_status_contract_systemverilog_parser_aggregate_summary_json" \
     "$sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json"
 assert_equal \
+    "SV family-status contract semantic-scope state dir" \
+    "$sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir")"
+assert_equal \
+    "SV family-status contract semantic-scope summary txt" \
+    "$sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt")"
+assert_equal \
+    "SV family-status contract semantic-scope summary json" \
+    "$sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json")"
+assert_equal \
+    "SOTA JSON main contract semantic-scope state dir" \
+    "$sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_state_dir"
+assert_equal \
+    "SOTA JSON main contract semantic-scope summary txt" \
+    "$sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_txt"
+assert_equal \
+    "SOTA JSON main contract semantic-scope summary json" \
+    "$sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_json"
+assert_equal \
     "SOTA JSON preprocessor contract aggregate state dir" \
     "$sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir" \
     "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir"
@@ -1701,6 +1746,9 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "sv_family_status_contract_systemverilog_parser_aggregate_state_dir: $sv_family_status_contract_systemverilog_parser_aggregate_state_dir"
     echo "sv_family_status_contract_systemverilog_parser_aggregate_summary_txt: $sv_family_status_contract_systemverilog_parser_aggregate_summary_txt"
     echo "sv_family_status_contract_systemverilog_parser_aggregate_summary_json: $sv_family_status_contract_systemverilog_parser_aggregate_summary_json"
+    echo "sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir: $sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir"
+    echo "sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt"
+    echo "sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json"
     echo "sv_parser_family_status_contract_family_count: $sv_parser_family_status_contract_family_count"
     echo "sv_parser_family_status_contract_systemverilog_tracker_alignment_ok: $sv_parser_family_status_contract_systemverilog_tracker_alignment_ok"
     echo "sv_parser_family_status_contract_systemverilog_false_criteria_count: $sv_parser_family_status_contract_systemverilog_false_criteria_count"
@@ -2040,6 +2088,9 @@ jq -n \
     --arg sv_family_status_contract_systemverilog_parser_aggregate_state_dir "$sv_family_status_contract_systemverilog_parser_aggregate_state_dir" \
     --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_txt "$sv_family_status_contract_systemverilog_parser_aggregate_summary_txt" \
     --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_json "$sv_family_status_contract_systemverilog_parser_aggregate_summary_json" \
+    --arg sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir "$sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir" \
+    --arg sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt "$sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt" \
+    --arg sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json "$sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir "$sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt "$sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json "$sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json" \
@@ -2193,7 +2244,10 @@ jq -n \
             proof_surfaces: {
               parser_aggregate_state_dir: $sv_family_status_contract_systemverilog_parser_aggregate_state_dir,
               parser_aggregate_summary_txt: $sv_family_status_contract_systemverilog_parser_aggregate_summary_txt,
-              parser_aggregate_summary_json: $sv_family_status_contract_systemverilog_parser_aggregate_summary_json
+              parser_aggregate_summary_json: $sv_family_status_contract_systemverilog_parser_aggregate_summary_json,
+              semantic_scope_contract_state_dir: $sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir,
+              semantic_scope_contract_summary_txt: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt,
+              semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json
             }
           },
           {
