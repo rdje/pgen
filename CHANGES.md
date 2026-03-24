@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-24 - Lock combined telemetry nested provenance policy
+### ✅ Achievement Summary
+PGEN now makes the local CI workflow gate enforce that shipped combined-telemetry gates keep re-emitting nested family provenance in their own JSON outputs.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI contract now asserts representative nested provenance output fields for:
+  - SV parser aggregate / contract aggregate proof paths
+  - regex dual-run / family-contract proof paths
+  - VHDL quality / family-contract proof paths
+
+### Why This Matters
+- This locks the aggregate-output side of the nested provenance chain, not just SOTA emission and aggregate input consumption.
+- Combined-telemetry JSON sidecars cannot silently drop those proof-surface paths without local CI noticing.
+
 ## 2026-03-24 - Lock nested family SOTA emission policy
 ### ✅ Achievement Summary
 PGEN now makes the local CI workflow gate enforce that `sota_exit_gate.sh` keeps emitting nested family proof surfaces in its `summary.json`.

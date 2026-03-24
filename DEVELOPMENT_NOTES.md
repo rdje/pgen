@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Lock combined telemetry nested provenance emission in local CI
+### Context
+After SOTA emission and aggregate consumption of nested family proof surfaces were both locked, the combined-telemetry gates still only had that nested provenance preserved by convention in their own JSON outputs.
+
+### Implementation
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a dedicated audit for representative nested provenance fields emitted by:
+    - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+    - [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+    - [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+
+### Why This Matters
+- The nested provenance chain is now guarded on all three layers:
+  - SOTA emits it,
+  - aggregate readers consume it,
+  - combined-telemetry outputs preserve it.
+
 ## 2026-03-24 - Lock nested family SOTA emission in local CI
 ### Context
 After `sota_exit_gate/summary.json` started carrying nested family proof surfaces for SV, regex, and VHDL, the local CI workflow gate still only guarded the downstream aggregate readers.

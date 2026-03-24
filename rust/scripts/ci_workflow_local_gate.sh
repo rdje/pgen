@@ -297,6 +297,35 @@ audit_sota_nested_family_emission_surface() {
     'family_contract_summary_json: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_json)'
 }
 
+audit_combined_telemetry_nested_provenance_surface() {
+  note "auditing combined telemetry nested provenance emission surface"
+
+  assert_tracked "rust/scripts/sv_combined_telemetry_contract_gate.sh"
+  assert_tracked "rust/scripts/regex_combined_telemetry_contract_gate.sh"
+  assert_tracked "rust/scripts/vhdl_combined_telemetry_contract_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'parser_aggregate_summary_json: $sv_family_status_systemverilog_parser_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'parser_aggregate_summary_json: $sv_family_status_contract_systemverilog_parser_aggregate_summary_json'
+
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'dual_run_summary_json: $regex_family_dual_run_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'summary_json: $regex_family_status_contract_regex_family_contract_summary_json'
+
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    'quality_parseability_report_json: $vhdl_family_quality_parseability_report_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    'summary_json: $vhdl_family_status_contract_vhdl_family_contract_summary_json'
+}
+
 audit_summary_json_emission_surface() {
   note "auditing top-level proof summary.json emission surface"
 
@@ -370,6 +399,7 @@ main() {
   audit_ebnf_frontend_conversion_surface
   audit_sota_json_consumption_surface
   audit_sota_nested_family_emission_surface
+  audit_combined_telemetry_nested_provenance_surface
   audit_summary_json_emission_surface
 
   run_workflow \
