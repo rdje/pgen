@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make regex combined telemetry consume nested SOTA family provenance
+### Context
+After the last regex SOTA slice:
+- `sota_exit_gate/summary.json` already embedded regex family proof paths directly inside
+  - `family_status.regex.proof_surfaces`
+  - `family_status_contract.regex.proof_surfaces`
+
+But [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) was still treating the older top-level SOTA summary pointers as the practical source of regex provenance.
+
+### Implementation
+- Updated [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+  - extracted nested regex proof surfaces from SOTA JSON,
+  - validated the nested family-status paths for family-contract / frontend / dual-run / stimuli provenance,
+  - validated the nested family-status-contract paths for family-status / family-contract provenance.
+
+### Why This Matters
+- The shipped regex aggregate reader now uses the structured family payloads that SOTA emits, instead of leaving them as dead metadata.
+- This closes the regex sibling of the already-landed SV nested-family aggregate consumption pattern.
+
 ## 2026-03-24 - Make SOTA family JSON carry regex provenance directly
 ### Context
 After the recent regex family-proof work:

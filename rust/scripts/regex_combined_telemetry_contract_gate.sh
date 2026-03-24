@@ -109,6 +109,28 @@ sota_exit_all_failures="$(jq -r '.counts.all_failures' "$sota_summary_json")"
 sota_exit_regex_family_summary_json_from_json="$(jq -r '.proof_surfaces.regex_parser_family_contract_summary_json' "$sota_summary_json")"
 sota_exit_regex_family_status_summary_json_from_json="$(jq -r '.proof_surfaces.regex_parser_family_status_summary_json' "$sota_summary_json")"
 sota_exit_regex_family_status_contract_summary_json_from_json="$(jq -r '.proof_surfaces.regex_parser_family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_status_family_status_summary_json="$(jq -r '.family_status.regex.proof_surfaces.family_status_summary_json' "$sota_summary_json")"
+sota_exit_regex_status_family_status_contract_summary_json="$(jq -r '.family_status.regex.proof_surfaces.family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_status_family_contract_state_dir="$(jq -r '.family_status.regex.proof_surfaces.family_contract_state_dir' "$sota_summary_json")"
+sota_exit_regex_status_family_contract_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.family_contract_summary_txt' "$sota_summary_json")"
+sota_exit_regex_status_family_contract_summary_json="$(jq -r '.family_status.regex.proof_surfaces.family_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_status_frontend_state_dir="$(jq -r '.family_status.regex.proof_surfaces.frontend_state_dir' "$sota_summary_json")"
+sota_exit_regex_status_frontend_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.frontend_summary_txt' "$sota_summary_json")"
+sota_exit_regex_status_frontend_summary_csv="$(jq -r '.family_status.regex.proof_surfaces.frontend_summary_csv' "$sota_summary_json")"
+sota_exit_regex_status_dual_run_state_dir="$(jq -r '.family_status.regex.proof_surfaces.dual_run_state_dir' "$sota_summary_json")"
+sota_exit_regex_status_dual_run_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.dual_run_summary_txt' "$sota_summary_json")"
+sota_exit_regex_status_dual_run_summary_csv="$(jq -r '.family_status.regex.proof_surfaces.dual_run_summary_csv' "$sota_summary_json")"
+sota_exit_regex_status_dual_run_summary_json="$(jq -r '.family_status.regex.proof_surfaces.dual_run_summary_json' "$sota_summary_json")"
+sota_exit_regex_status_stimuli_state_dir="$(jq -r '.family_status.regex.proof_surfaces.stimuli_state_dir' "$sota_summary_json")"
+sota_exit_regex_status_stimuli_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.stimuli_summary_txt' "$sota_summary_json")"
+sota_exit_regex_status_stimuli_summary_csv="$(jq -r '.family_status.regex.proof_surfaces.stimuli_summary_csv' "$sota_summary_json")"
+sota_exit_regex_contract_family_status_contract_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_contract_family_status_state_dir="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_state_dir' "$sota_summary_json")"
+sota_exit_regex_contract_family_status_summary_txt="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_summary_txt' "$sota_summary_json")"
+sota_exit_regex_contract_family_status_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_summary_json' "$sota_summary_json")"
+sota_exit_regex_contract_family_contract_state_dir="$(jq -r '.family_status_contract.regex.proof_surfaces.family_contract_state_dir' "$sota_summary_json")"
+sota_exit_regex_contract_family_contract_summary_txt="$(jq -r '.family_status_contract.regex.proof_surfaces.family_contract_summary_txt' "$sota_summary_json")"
+sota_exit_regex_contract_family_contract_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.family_contract_summary_json' "$sota_summary_json")"
 sota_exit_regex_primary_unmet="$(jq -r '.family_status.regex.primary_unmet_closure_criterion' "$sota_summary_json")"
 sota_exit_regex_unmet_json="$(jq -cer '.family_status.regex.unmet_closure_criteria' "$sota_summary_json")"
 sota_exit_regex_unmet_details_json="$(jq -cer '.family_status.regex.unmet_closure_criteria_details' "$sota_summary_json")"
@@ -183,6 +205,18 @@ assert_equal \
     "SOTA exit regex family status contract summary json path" \
     "$regex_family_status_contract_summary_json" \
     "$sota_exit_regex_family_status_contract_summary_json_from_json"
+assert_equal \
+    "SOTA exit nested regex family-status summary json path" \
+    "$regex_family_status_summary_json" \
+    "$sota_exit_regex_status_family_status_summary_json"
+assert_equal \
+    "SOTA exit nested regex family-status contract summary json path" \
+    "$regex_family_status_contract_summary_json" \
+    "$sota_exit_regex_status_family_status_contract_summary_json"
+assert_equal \
+    "SOTA exit nested regex family-status-contract self summary json path" \
+    "$regex_family_status_contract_summary_json" \
+    "$sota_exit_regex_contract_family_status_contract_summary_json"
 
 regex_family_frontend_overall="$(extract_summary_value "$regex_family_summary_txt" "frontend_regex_overall")"
 regex_family_dual_run_overall="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_overall")"
@@ -214,6 +248,59 @@ regex_family_stimuli_final_targets="$(extract_summary_value "$regex_family_summa
 regex_family_stimuli_target_attempts="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_target_attempts")"
 regex_family_stimuli_stage0_successes="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_stage0_successes")"
 regex_family_stimuli_stage3_successes="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_stage3_successes")"
+
+assert_equal \
+    "SOTA exit nested regex family contract state dir" \
+    "$regex_family_contract_state_dir" \
+    "$sota_exit_regex_status_family_contract_state_dir"
+assert_equal \
+    "SOTA exit nested regex family contract summary txt" \
+    "$regex_family_contract_summary_txt_from_json" \
+    "$sota_exit_regex_status_family_contract_summary_txt"
+assert_equal \
+    "SOTA exit nested regex family contract summary json" \
+    "$regex_family_contract_summary_json_from_json" \
+    "$sota_exit_regex_status_family_contract_summary_json"
+assert_equal \
+    "SOTA exit nested regex frontend state dir" \
+    "$regex_family_frontend_state_dir" \
+    "$sota_exit_regex_status_frontend_state_dir"
+assert_equal \
+    "SOTA exit nested regex frontend summary txt" \
+    "$regex_family_frontend_summary_txt" \
+    "$sota_exit_regex_status_frontend_summary_txt"
+assert_equal \
+    "SOTA exit nested regex frontend summary csv" \
+    "$regex_family_frontend_summary_csv" \
+    "$sota_exit_regex_status_frontend_summary_csv"
+assert_equal \
+    "SOTA exit nested regex dual-run state dir" \
+    "$regex_family_dual_run_state_dir" \
+    "$sota_exit_regex_status_dual_run_state_dir"
+assert_equal \
+    "SOTA exit nested regex dual-run summary txt" \
+    "$regex_family_dual_run_summary_txt" \
+    "$sota_exit_regex_status_dual_run_summary_txt"
+assert_equal \
+    "SOTA exit nested regex dual-run summary csv" \
+    "$regex_family_dual_run_summary_csv" \
+    "$sota_exit_regex_status_dual_run_summary_csv"
+assert_equal \
+    "SOTA exit nested regex dual-run summary json" \
+    "$regex_family_dual_run_summary_json" \
+    "$sota_exit_regex_status_dual_run_summary_json"
+assert_equal \
+    "SOTA exit nested regex stimuli state dir" \
+    "$regex_family_stimuli_state_dir" \
+    "$sota_exit_regex_status_stimuli_state_dir"
+assert_equal \
+    "SOTA exit nested regex stimuli summary txt" \
+    "$regex_family_stimuli_summary_txt" \
+    "$sota_exit_regex_status_stimuli_summary_txt"
+assert_equal \
+    "SOTA exit nested regex stimuli summary csv" \
+    "$regex_family_stimuli_summary_csv" \
+    "$sota_exit_regex_status_stimuli_summary_csv"
 
 regex_parser_family_status_gate="$(jq -r '.gate' "$regex_family_status_summary_json")"
 regex_parser_family_status_gate_version="$(jq -r '.version' "$regex_family_status_summary_json")"
@@ -263,6 +350,31 @@ regex_family_status_contract_regex_family_contract_generated_at_utc="$(jq -r '.f
 regex_family_status_contract_regex_family_contract_state_dir="$(jq -r '.families[] | select(.family=="regex") | .family_contract.state_dir' "$regex_family_status_contract_summary_json")"
 regex_family_status_contract_regex_family_contract_summary_txt="$(jq -r '.families[] | select(.family=="regex") | .family_contract.summary_txt' "$regex_family_status_contract_summary_json")"
 regex_family_status_contract_regex_family_contract_summary_json="$(jq -r '.families[] | select(.family=="regex") | .family_contract.summary_json' "$regex_family_status_contract_summary_json")"
+
+assert_equal \
+    "SOTA exit nested regex contract family-status state dir" \
+    "$regex_family_status_contract_family_status_state_dir" \
+    "$sota_exit_regex_contract_family_status_state_dir"
+assert_equal \
+    "SOTA exit nested regex contract family-status summary txt" \
+    "$regex_family_status_contract_family_status_summary_txt" \
+    "$sota_exit_regex_contract_family_status_summary_txt"
+assert_equal \
+    "SOTA exit nested regex contract family-status summary json" \
+    "$regex_family_status_contract_family_status_summary_json" \
+    "$sota_exit_regex_contract_family_status_summary_json"
+assert_equal \
+    "SOTA exit nested regex contract family contract state dir" \
+    "$regex_family_status_contract_regex_family_contract_state_dir" \
+    "$sota_exit_regex_contract_family_contract_state_dir"
+assert_equal \
+    "SOTA exit nested regex contract family contract summary txt" \
+    "$regex_family_status_contract_regex_family_contract_summary_txt" \
+    "$sota_exit_regex_contract_family_contract_summary_txt"
+assert_equal \
+    "SOTA exit nested regex contract family contract summary json" \
+    "$regex_family_status_contract_regex_family_contract_summary_json" \
+    "$sota_exit_regex_contract_family_contract_summary_json"
 
 assert_equal \
     "Regex family frontend overall" \

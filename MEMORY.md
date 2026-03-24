@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next regex aggregate-proof coherence seam after SOTA started embedding regex provenance in its structured family payloads was the shipped regex aggregate reader:
+  - `regex_combined_telemetry_contract_gate` already consumed SOTA JSON,
+  - but it was still treating the older top-level SOTA summary pointers as the practical source of regex provenance.
+- That seam is now being closed by making the regex combined telemetry gate:
+  - read family-contract plus frontend/dual-run/stimuli proof paths from nested `family_status.regex.proof_surfaces`,
+  - read family-status plus family-contract proof paths from nested `family_status_contract.regex.proof_surfaces`,
+  - and parity-check those nested paths against the canonical regex family sidecars.
 - The next aggregate-proof coherence seam after VHDL nested-family provenance landed was the regex sibling in `sota_exit_gate`:
   - top-level SOTA already carried the regex family contract / frontend / dual-run / stimuli evidence,
   - but the structured `family_status.regex` and `family_status_contract.regex` payloads still exposed only generic summary pointers.
