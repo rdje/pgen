@@ -137,7 +137,11 @@ sota_exit_status="$(jq -r '.status' "$sota_summary_json")"
 sota_exit_summary_txt_from_json="$(jq -r '.proof_surfaces.summary_txt' "$sota_summary_json")"
 sota_exit_summary_csv_from_json="$(jq -r '.proof_surfaces.summary_csv' "$sota_summary_json")"
 sota_exit_summary_json_from_json="$(jq -r '.proof_surfaces.summary_json' "$sota_summary_json")"
+sota_exit_sv_failure_context_state_dir_top_level="$(jq -r '.proof_surfaces.sv_failure_context_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_failure_context_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_failure_context_contract_summary_txt' "$sota_summary_json")"
 sota_exit_sv_failure_context_summary_json_top_level="$(jq -r '.proof_surfaces.sv_failure_context_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_roundtrip_state_dir_top_level="$(jq -r '.proof_surfaces.sv_roundtrip_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_roundtrip_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_roundtrip_contract_summary_txt' "$sota_summary_json")"
 sota_exit_sv_roundtrip_summary_json_top_level="$(jq -r '.proof_surfaces.sv_roundtrip_contract_summary_json' "$sota_summary_json")"
 sota_exit_required_failures="$(jq -r '.counts.required_failures' "$sota_summary_json")"
 sota_exit_informational_failures="$(jq -r '.counts.informational_failures' "$sota_summary_json")"
@@ -399,6 +403,30 @@ assert_equal \
     "SV roundtrip summary json self path" \
     "$sv_roundtrip_summary_json" \
     "$sv_roundtrip_summary_json_from_json"
+assert_equal \
+    "SOTA exit top-level failure-context state dir mirror" \
+    "$sv_failure_state_dir" \
+    "$sota_exit_sv_failure_context_state_dir_top_level"
+assert_equal \
+    "SOTA exit top-level failure-context summary txt mirror" \
+    "$sv_failure_summary_txt" \
+    "$sota_exit_sv_failure_context_summary_txt_top_level"
+assert_equal \
+    "SOTA exit top-level failure-context summary json mirror" \
+    "$sv_failure_summary_json" \
+    "$sota_exit_sv_failure_context_summary_json_top_level"
+assert_equal \
+    "SOTA exit top-level roundtrip state dir mirror" \
+    "$sv_roundtrip_state_dir" \
+    "$sota_exit_sv_roundtrip_state_dir_top_level"
+assert_equal \
+    "SOTA exit top-level roundtrip summary txt mirror" \
+    "$sv_roundtrip_summary_txt" \
+    "$sota_exit_sv_roundtrip_summary_txt_top_level"
+assert_equal \
+    "SOTA exit top-level roundtrip summary json mirror" \
+    "$sv_roundtrip_summary_json" \
+    "$sota_exit_sv_roundtrip_summary_json_top_level"
 assert_equal \
     "SOTA exit main family failure-context state dir" \
     "$sv_failure_state_dir" \

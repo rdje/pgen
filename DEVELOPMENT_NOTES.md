@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Consume SV auxiliary top-level SOTA proof mirrors
+### Context
+After `sota_exit_gate` started exposing fuller top-level SV auxiliary compatibility mirrors, `sv_combined_telemetry_contract_gate` still only used those top-level JSON mirrors for the auxiliary `summary.json` leaf paths.
+
+### Implementation
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - read the top-level SOTA failure-context and roundtrip `state_dir` / `summary.txt` mirrors,
+  - parity-checked those new mirrors against the reused auxiliary sidecars alongside the existing `summary.json` checks.
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - locked those top-level SOTA auxiliary reads so the combined telemetry reader cannot silently drift back to JSON-leaf-only parity.
+
+### Why This Matters
+- The top-level SOTA auxiliary compatibility surface is now actually consumed as a full identity mirror.
+- That keeps the shipped reader aligned with the fuller producer contract added in the prior slice.
+
 ## 2026-03-25 - Surface SV auxiliary top-level SOTA proof mirrors
 ### Context
 After the SV auxiliary side proofs were preserved in nested SOTA family payloads and then in nested combined telemetry payloads, the top-level SOTA compatibility mirrors still only exposed their `summary.json` paths.

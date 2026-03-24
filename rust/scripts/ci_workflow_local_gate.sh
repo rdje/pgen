@@ -208,7 +208,19 @@ audit_sota_json_consumption_surface() {
     '.family_status.systemverilog.primary_unmet_closure_criterion'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.sv_failure_context_contract_state_dir'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.sv_failure_context_contract_summary_txt'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     '.proof_surfaces.sv_failure_context_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.sv_roundtrip_contract_state_dir'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.sv_roundtrip_contract_summary_txt'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     '.proof_surfaces.sv_roundtrip_contract_summary_json'

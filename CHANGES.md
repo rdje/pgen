@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-25 - Consume SV auxiliary top-level SOTA proof mirrors
+### ✅ Achievement Summary
+PGEN now makes the SV combined telemetry reader consume the fuller top-level SOTA auxiliary compatibility mirrors instead of only checking the JSON leaf paths.
+
+### Scope of Changes
+- Updated:
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- SV combined telemetry now parity-checks the top-level SOTA mirrors for:
+  - failure-context contract `state_dir` / `summary.txt` / `summary.json`
+  - roundtrip contract `state_dir` / `summary.txt` / `summary.json`
+
+### Why This Matters
+- The newer top-level SOTA auxiliary mirrors are now exercised by a real shipped downstream reader instead of remaining producer-only metadata.
+- Local CI now guards those exact reader expectations against regression.
+
 ## 2026-03-25 - Surface SV auxiliary top-level SOTA proof mirrors
 ### ✅ Achievement Summary
 PGEN now exposes the shipped SV failure-context and roundtrip side proofs at the top level of SOTA JSON with the same fuller identity shape already carried in nested family payloads.
