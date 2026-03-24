@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make combined telemetry consume family-contract provenance
+### Context
+After teaching regex and VHDL family-status-contract to re-emit validated family-contract provenance, the top shipped aggregate layer for those families still had the same smaller asymmetry:
+- `regex_combined_telemetry_contract_gate` and `vhdl_combined_telemetry_contract_gate` already consumed family-status and family-status-contract blockers,
+- but they still ignored the family-contract gate metadata those layers now exposed.
+
+That left the new provenance available below the aggregate layer, but not preserved in the aggregate sign-off itself.
+
+### Implementation
+- Updated [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) and [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - read family-contract gate identity/provenance from family-status and family-status-contract JSON,
+  - parity-check those fields against the canonical family-contract summary,
+  - re-emit the validated family-contract provenance in aggregate TXT/JSON outputs.
+
+### Why This Matters
+- The shipped regex/VHDL aggregate summaries now preserve which family-contract proof they were built from.
+- Downstream tooling can keep following the proof chain without reopening lower-level sidecars manually.
+
 ## 2026-03-24 - Make family-status-contract consume family-contract provenance
 ### Context
 After teaching regex and VHDL family-status to consume family-contract JSON self-description, one smaller asymmetry remained one layer higher:

@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next proof-normalization seam after family-status-contract started preserving family-contract provenance was the shipped aggregate layer:
+  - regex and VHDL combined telemetry already consumed family-status and family-status-contract summaries,
+  - but they still dropped the family-contract gate metadata those lower layers now exposed.
+- That seam is now being closed by making those combined-telemetry gates:
+  - parity-check family-contract identity/provenance against the canonical family-contract summary,
+  - preserve that provenance in aggregate TXT,
+  - and carry it through their aggregate JSON sidecars.
 - The next proof-normalization seam after family-status started consuming family-contract JSON was the layer above it:
   - regex and VHDL family-status-contract already validate blocker structure from family-status,
   - but they were still ignoring the newly surfaced family-contract provenance fields.

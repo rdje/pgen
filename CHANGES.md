@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-24 - Consume family-contract provenance in combined telemetry
+### ✅ Achievement Summary
+PGEN now makes the shipped regex and VHDL combined-telemetry gates validate and re-emit the family-contract provenance already carried by their family-status and family-status-contract layers.
+
+### Scope of Changes
+- Updated:
+  - [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+- Each gate now:
+  - compares family-contract gate metadata from family-status and family-status-contract against the canonical family-contract summary,
+  - records those fields in `summary.txt`,
+  - re-emits them in the combined-telemetry JSON sidecar.
+
+### Why This Matters
+- The family-contract provenance chain now survives one layer higher into the shipped regex/VHDL aggregate sign-off.
+- Aggregate JSON consumers no longer need to reopen lower family-status artifacts just to recover which family-contract proof they were built from.
+
 ## 2026-03-24 - Consume family-contract provenance in family-status contracts
 ### ✅ Achievement Summary
 PGEN now makes the shipped regex and VHDL family-status-contract gates validate and re-emit the family-contract provenance already surfaced by their upstream family-status gates.
