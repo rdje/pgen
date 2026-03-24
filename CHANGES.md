@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-24 - Lock family-layer provenance policy
+### ✅ Achievement Summary
+PGEN now makes the local CI workflow gate enforce that family-status and family-status-contract gates keep preserving the provenance they consume.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI contract now asserts representative provenance output fields for:
+  - SV family-status / family-status-contract aggregate JSON paths
+  - regex family-status / family-status-contract family-contract provenance
+  - VHDL family-status / family-status-contract family-contract provenance
+
+### Why This Matters
+- This closes the remaining obvious family-layer gap in the proof chain.
+- Family-level sidecars can no longer silently drop aggregate or family-contract provenance while higher layers still look green.
+
 ## 2026-03-24 - Lock combined telemetry nested provenance policy
 ### ✅ Achievement Summary
 PGEN now makes the local CI workflow gate enforce that shipped combined-telemetry gates keep re-emitting nested family provenance in their own JSON outputs.

@@ -326,6 +326,56 @@ audit_combined_telemetry_nested_provenance_surface() {
     'summary_json: $vhdl_family_status_contract_vhdl_family_contract_summary_json'
 }
 
+audit_family_layer_provenance_surface() {
+  note "auditing family-layer provenance emission surface"
+
+  assert_tracked "rust/scripts/sv_parser_family_status_gate.sh"
+  assert_tracked "rust/scripts/sv_parser_family_status_contract_gate.sh"
+  assert_tracked "rust/scripts/regex_parser_family_status_gate.sh"
+  assert_tracked "rust/scripts/regex_parser_family_status_contract_gate.sh"
+  assert_tracked "rust/scripts/vhdl_parser_family_status_gate.sh"
+  assert_tracked "rust/scripts/vhdl_parser_family_status_contract_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
+    'parser_aggregate_summary_json: $sv_parser_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
+    'aggregate_summary_json: $svpp_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_contract_gate.sh" \
+    'parser_aggregate_summary_json: $systemverilog_parser_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_contract_gate.sh" \
+    'aggregate_summary_json: $systemverilog_preprocessor_aggregate_summary_json'
+
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_status_gate.sh" \
+    'family_contract_state_dir: $regex_family_contract_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_status_gate.sh" \
+    'family_contract_summary_json: $regex_family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_status_contract_gate.sh" \
+    'state_dir: $regex_family_contract_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_status_contract_gate.sh" \
+    'summary_json: $regex_family_contract_summary_json'
+
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_gate.sh" \
+    'family_contract_state_dir: $vhdl_family_contract_state_dir'
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_gate.sh" \
+    'family_contract_summary_json: $vhdl_family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_contract_gate.sh" \
+    'state_dir: $vhdl_family_contract_state_dir'
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_contract_gate.sh" \
+    'summary_json: $vhdl_family_contract_summary_json'
+}
+
 audit_summary_json_emission_surface() {
   note "auditing top-level proof summary.json emission surface"
 
@@ -400,6 +450,7 @@ main() {
   audit_sota_json_consumption_surface
   audit_sota_nested_family_emission_surface
   audit_combined_telemetry_nested_provenance_surface
+  audit_family_layer_provenance_surface
   audit_summary_json_emission_surface
 
   run_workflow \

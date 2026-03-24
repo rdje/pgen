@@ -1,4 +1,17 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Lock family-layer provenance emission in local CI
+### Context
+After local CI started guarding nested provenance at the SOTA and combined-telemetry layers, the family-status and family-status-contract gates still only preserved their consumed provenance by convention.
+
+### Implementation
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a dedicated family-layer provenance audit,
+  - asserted representative output fields for SV aggregate JSON provenance and regex/VHDL family-contract provenance.
+
+### Why This Matters
+- The proof chain is now guarded one layer lower too.
+- If a family-status or family-status-contract sidecar stops preserving the provenance it validated, local CI now catches that regression directly.
+
 ## 2026-03-24 - Lock combined telemetry nested provenance emission in local CI
 ### Context
 After SOTA emission and aggregate consumption of nested family proof surfaces were both locked, the combined-telemetry gates still only had that nested provenance preserved by convention in their own JSON outputs.

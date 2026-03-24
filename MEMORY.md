@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next proof-plumbing coherence seam after local CI started locking combined-telemetry nested provenance was the family layer:
+  - SOTA emission, aggregate consumption, and combined-telemetry output were all now guarded,
+  - but the family-status and family-status-contract sidecars still only preserved their consumed provenance by convention.
+- That seam is now being closed by making `ci_workflow_local_gate.sh` assert representative family-layer provenance output fields for:
+  - SV aggregate JSON provenance,
+  - regex family-contract provenance,
+  - VHDL family-contract provenance.
 - The next proof-plumbing coherence seam after local CI started locking nested-family SOTA emission was the aggregate output layer:
   - the local CI workflow gate already asserted that SOTA emitted nested family proof paths,
   - and that aggregate readers consumed them,
