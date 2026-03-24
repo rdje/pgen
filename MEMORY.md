@@ -6336,3 +6336,15 @@ Use this file to resume work without replaying full chat history.
   - `PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh`
   - `PGEN_REGEX_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/regex_parser_family_status_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh`
   - `PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh`
+- The sibling family-status gates now self-identify the same way:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh`
+  each now:
+  - record `summary_json` in `summary.txt`
+  - record `state_dir`, `summary_txt`, and `summary_json` at the top level of `summary.json`
+  - and the SV sibling now also records `generated_at_utc` in `summary.txt`
+- Reuse-backed validation for that slice is:
+  - `env PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_parser_aggregate_contract_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_aggregate_contract_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_reachability_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_semantic_scope_contract_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh`
+  - `env PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/regex_parser_family_contract_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh`
+  - `env PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_contract_gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh`

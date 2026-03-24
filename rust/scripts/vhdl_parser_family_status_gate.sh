@@ -267,6 +267,7 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "VHDL Parser Family Status Gate Summary"
     echo "state_dir: $STATE_DIR"
     echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "live_tracker_file: $LIVE_TRACKER_FILE"
     echo "status_rule_done: $DONE_RULE"
     echo "vhdl_status: $vhdl_status"
@@ -315,6 +316,9 @@ jq -n \
     --arg gate "vhdl_parser_family_status_gate" \
     --argjson version 3 \
     --arg generated_at_utc "$generated_at_utc" \
+    --arg state_dir "$STATE_DIR" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg status_rule_done "$DONE_RULE" \
     --arg vhdl_status "$vhdl_status" \
@@ -358,6 +362,9 @@ jq -n \
       gate: $gate,
       version: $version,
       generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
       live_tracker_file: $live_tracker_file,
       status_rule_done: $status_rule_done,
       families: [

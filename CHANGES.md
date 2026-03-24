@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-24 - Surface family-status self-paths
+### ✅ Achievement Summary
+PGEN now makes the shipped family-status gates expose their own `summary.txt` / `summary.json` identities consistently, instead of only reporting the upstream proof surfaces they summarize.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh)
+  - [regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh)
+  - [vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh)
+- Each gate now:
+  - records `summary_json` in `summary.txt`
+  - records `state_dir`, `summary_txt`, and `summary_json` at the top level of its JSON sidecar
+- The SV family-status TXT surface now also records `generated_at_utc`, matching the regex/VHDL siblings.
+
+### Why This Matters
+- Before this slice, those family-status gates already emitted `summary.json`, but their top-level sidecars were not as self-describing as the sibling family-status contract, combined-telemetry, and SOTA gates.
+- The family-status layer now fits the same machine-readable proof pattern as the layers above and below it.
+
 ## 2026-03-24 - Surface family-status contract self-paths
 ### ✅ Achievement Summary
 PGEN now makes the shipped family-status contract gates expose their own `summary.json` self-paths consistently, instead of only pointing at the upstream family-status artifacts they validate.

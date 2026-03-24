@@ -458,9 +458,10 @@ if [[ "${#svpp_unmet[@]}" -gt 0 ]]; then
 fi
 sv_unmet_json="$(jq -cn '$ARGS.positional' --args "${sv_unmet[@]}")"
 svpp_unmet_json="$(jq -cn '$ARGS.positional' --args "${svpp_unmet[@]}")"
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
 jq -n \
-    --arg generated_at_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    --arg generated_at_utc "$generated_at_utc" \
     --arg live_tracker_file "$LIVE_TRACKER_FILE" \
     --arg sv_status "$sv_status" \
     --arg sv_tracker_status "$live_tracker_sv_status" \
@@ -542,11 +543,17 @@ jq -n \
     --argjson svpp_stage3_branches_full "$svpp_stage3_branches_full" \
     --argjson svpp_stage4_branches_full "$svpp_stage4_branches_full" \
     --argjson svpp_unmet "$svpp_unmet_json" \
+    --arg state_dir "$STATE_DIR" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
     '
     {
       gate: "sv_parser_family_status_gate",
       version: 3,
       generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
       live_tracker_file: $live_tracker_file,
       status_rule_done: "Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.",
       families: [
@@ -765,6 +772,7 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
 {
     echo "SV Parser Family Status Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
     echo "live_tracker_file: $LIVE_TRACKER_FILE"
     echo "summary_json: $SUMMARY_JSON"
     echo "systemverilog_status: $sv_status"
