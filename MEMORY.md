@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next proof-normalization seam after family-status started consuming family-contract JSON was the layer above it:
+  - regex and VHDL family-status-contract already validate blocker structure from family-status,
+  - but they were still ignoring the newly surfaced family-contract provenance fields.
+- That seam is now being closed by making those family-status-contract gates:
+  - require family-contract gate metadata and `family_contract_state_dir` from family-status JSON,
+  - parity-check those fields against family-status TXT,
+  - and re-emit the validated family-contract provenance in their own summaries.
 - The next proof-normalization seam after family-contract self-path emission was directly above it:
   - regex and VHDL family-status already required family-contract `summary.json`,
   - but they still consumed the real contract from TXT only.

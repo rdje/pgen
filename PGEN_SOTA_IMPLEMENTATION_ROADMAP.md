@@ -37,6 +37,7 @@ Interpretation rule:
   - summary sidecar path,
   - and JSON sidecar path when one exists.
 - once a family-contract gate exposes its own `summary_txt` / `summary_json` identity, the next family-status layer should consume and parity-check that declared provenance instead of treating the JSON sidecar as presence-only.
+- once a family-status layer starts surfacing consumed family-contract provenance, the sibling family-status-contract layer should preserve and parity-check that provenance too instead of dropping back to blocker-only structure.
 - once a family-status sidecar exposes richer proof provenance, the corresponding aggregate layer should parity-check and re-emit that provenance in the same slice rather than leaving it as an undocumented side effect.
 - once a family-status contract gate exists, prefer it to expose both:
   - `summary.txt`

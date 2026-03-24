@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make family-status-contract consume family-contract provenance
+### Context
+After teaching regex and VHDL family-status to consume family-contract JSON self-description, one smaller asymmetry remained one layer higher:
+- `regex_parser_family_status_contract_gate` and `vhdl_parser_family_status_contract_gate` validated structured blocker payloads from family-status,
+- but they still ignored the family-contract provenance that family-status had just started carrying.
+
+That left the newly surfaced family-contract metadata unverified at the contract layer.
+
+### Implementation
+- Updated [regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh) and [vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+  - require family-status JSON to expose family-contract gate metadata and `family_contract_state_dir`,
+  - parity-check those fields against family-status TXT,
+  - re-emit the validated family-contract provenance in the contract-gate summaries.
+
+### Why This Matters
+- The regex/VHDL proof chain now stays machine-readable through the family-status-contract layer too.
+- Higher aggregate layers can now choose to consume family-contract provenance from contract summaries without reparsing lower artifacts directly.
+
 ## 2026-03-24 - Make family-status consume family-contract JSON self-description
 ### Context
 After teaching the shipped regex and VHDL family-contract gates to expose their own `summary_txt` / `summary_json` identities, one smaller asymmetry remained directly above them:

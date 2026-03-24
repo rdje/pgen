@@ -112,8 +112,8 @@ require_nonempty_file "$family_status_summary_json"
 require_nonempty_file "$family_status_summary_txt"
 
 expected_criteria='["family_contract_green","frontend_overall_pass","dual_run_overall_pass","dual_run_raw_ast_missing_on_rust_zero","stimuli_status_pass","stimuli_final_target_debt_zero","formal_exhaustive_closure_surface_green"]'
-expected_metrics='["frontend_overall","dual_run_overall","dual_run_raw_ast_status","dual_run_raw_ast_missing_on_perl_count","dual_run_raw_ast_missing_on_rust_count","dual_run_rust_rule_count","stimuli_initial_targets","stimuli_resolved_targets","stimuli_final_targets","stimuli_target_attempts","stimuli_stage0_successes","stimuli_stage3_successes","stimuli_status"]'
-expected_proof_surfaces='["family_contract_summary_txt","family_contract_summary_json"]'
+expected_metrics='["frontend_overall","dual_run_overall","dual_run_raw_ast_status","dual_run_raw_ast_missing_on_perl_count","dual_run_raw_ast_missing_on_rust_count","dual_run_rust_rule_count","stimuli_initial_targets","stimuli_resolved_targets","stimuli_final_targets","stimuli_target_attempts","stimuli_stage0_successes","stimuli_stage3_successes","stimuli_status","family_contract_gate","family_contract_gate_version","family_contract_generated_at_utc"]'
+expected_proof_surfaces='["family_contract_state_dir","family_contract_summary_txt","family_contract_summary_json"]'
 
 jq -e \
     --argjson expected_criteria "$expected_criteria" \
@@ -187,11 +187,23 @@ regex_primary_unmet_detail_criterion="$(jq -r '.families[0].unmet_closure_criter
 regex_details_json="$(jq -cer '.families[0].unmet_closure_criteria_details' "$family_status_summary_json")"
 regex_unmet_json="$(jq -cer '.families[0].unmet_closure_criteria' "$family_status_summary_json")"
 regex_primary_unmet_from_json="$(jq -r '.families[0].primary_unmet_closure_criterion' "$family_status_summary_json")"
+regex_family_contract_gate="$(jq -r '.families[0].metrics.family_contract_gate' "$family_status_summary_json")"
+regex_family_contract_gate_version="$(jq -r '.families[0].metrics.family_contract_gate_version' "$family_status_summary_json")"
+regex_family_contract_generated_at_utc="$(jq -r '.families[0].metrics.family_contract_generated_at_utc' "$family_status_summary_json")"
+regex_family_contract_state_dir="$(jq -r '.families[0].proof_surfaces.family_contract_state_dir' "$family_status_summary_json")"
+regex_family_contract_summary_txt="$(jq -r '.families[0].proof_surfaces.family_contract_summary_txt' "$family_status_summary_json")"
+regex_family_contract_summary_json="$(jq -r '.families[0].proof_surfaces.family_contract_summary_json' "$family_status_summary_json")"
 
 summary_regex_details_json="$(extract_summary_value "$family_status_summary_txt" "regex_unmet_closure_criteria_details_json")"
 summary_regex_unmet_json="$(extract_summary_value "$family_status_summary_txt" "regex_unmet_closure_criteria_json")"
 summary_regex_tracker_alignment="$(extract_summary_value "$family_status_summary_txt" "regex_tracker_alignment_ok")"
 summary_regex_primary_unmet="$(extract_summary_value "$family_status_summary_txt" "regex_primary_unmet_closure_criterion")"
+summary_regex_family_contract_gate="$(extract_summary_value "$family_status_summary_txt" "regex_family_contract_gate")"
+summary_regex_family_contract_gate_version="$(extract_summary_value "$family_status_summary_txt" "regex_family_contract_gate_version")"
+summary_regex_family_contract_generated_at_utc="$(extract_summary_value "$family_status_summary_txt" "regex_family_contract_generated_at_utc")"
+summary_regex_family_contract_state_dir="$(extract_summary_value "$family_status_summary_txt" "regex_family_contract_state_dir")"
+summary_regex_family_contract_summary_txt="$(extract_summary_value "$family_status_summary_txt" "regex_family_contract_summary_txt")"
+summary_regex_family_contract_summary_json="$(extract_summary_value "$family_status_summary_txt" "regex_family_contract_summary_json")"
 
 if [[ "$summary_regex_details_json" != "$regex_details_json" ]]; then
     echo "error: regex structured blocker json mismatch between summary.txt and summary.json" >&2
@@ -207,6 +219,30 @@ if [[ "$summary_regex_tracker_alignment" != "$regex_tracker_alignment_ok" ]]; th
 fi
 if [[ "$summary_regex_primary_unmet" != "$regex_primary_unmet_from_json" ]]; then
     echo "error: regex primary unmet criterion mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_gate" != "$regex_family_contract_gate" ]]; then
+    echo "error: regex family-contract gate mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_gate_version" != "$regex_family_contract_gate_version" ]]; then
+    echo "error: regex family-contract gate version mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_generated_at_utc" != "$regex_family_contract_generated_at_utc" ]]; then
+    echo "error: regex family-contract generated_at_utc mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_state_dir" != "$regex_family_contract_state_dir" ]]; then
+    echo "error: regex family-contract state_dir mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_summary_txt" != "$regex_family_contract_summary_txt" ]]; then
+    echo "error: regex family-contract summary_txt mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_summary_json" != "$regex_family_contract_summary_json" ]]; then
+    echo "error: regex family-contract summary_json mismatch between summary.txt and summary.json" >&2
     exit 1
 fi
 
@@ -227,6 +263,12 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_primary_unmet_detail_criterion: $regex_primary_unmet_detail_criterion"
     echo "regex_unmet_closure_criteria_json: $regex_unmet_json"
     echo "regex_unmet_closure_criteria_details_json: $regex_details_json"
+    echo "regex_family_contract_gate: $regex_family_contract_gate"
+    echo "regex_family_contract_gate_version: $regex_family_contract_gate_version"
+    echo "regex_family_contract_generated_at_utc: $regex_family_contract_generated_at_utc"
+    echo "regex_family_contract_state_dir: $regex_family_contract_state_dir"
+    echo "regex_family_contract_summary_txt: $regex_family_contract_summary_txt"
+    echo "regex_family_contract_summary_json: $regex_family_contract_summary_json"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
@@ -246,6 +288,12 @@ jq -n \
     --arg regex_primary_unmet_detail_criterion "$regex_primary_unmet_detail_criterion" \
     --argjson regex_unmet_closure_criteria "$regex_unmet_json" \
     --argjson regex_unmet_closure_criteria_details "$regex_details_json" \
+    --arg regex_family_contract_gate "$regex_family_contract_gate" \
+    --argjson regex_family_contract_gate_version "$regex_family_contract_gate_version" \
+    --arg regex_family_contract_generated_at_utc "$regex_family_contract_generated_at_utc" \
+    --arg regex_family_contract_state_dir "$regex_family_contract_state_dir" \
+    --arg regex_family_contract_summary_txt "$regex_family_contract_summary_txt" \
+    --arg regex_family_contract_summary_json "$regex_family_contract_summary_json" \
     '{
       gate: $gate,
       version: $version,
@@ -265,7 +313,15 @@ jq -n \
           unmet_details_count: $regex_unmet_details_count,
           primary_unmet_detail_criterion: $regex_primary_unmet_detail_criterion,
           unmet_closure_criteria: $regex_unmet_closure_criteria,
-          unmet_closure_criteria_details: $regex_unmet_closure_criteria_details
+          unmet_closure_criteria_details: $regex_unmet_closure_criteria_details,
+          family_contract: {
+            gate: $regex_family_contract_gate,
+            version: $regex_family_contract_gate_version,
+            generated_at_utc: $regex_family_contract_generated_at_utc,
+            state_dir: $regex_family_contract_state_dir,
+            summary_txt: $regex_family_contract_summary_txt,
+            summary_json: $regex_family_contract_summary_json
+          }
         }
       ]
     }' >"$SUMMARY_JSON"
