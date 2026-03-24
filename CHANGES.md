@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-24 - Lock family-sidecar summary identity policy
+### ✅ Achievement Summary
+PGEN now makes the local CI workflow gate enforce the self-description shape of the shipped family sidecars.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI contract now asserts that shipped family-contract, family-status, and family-status-contract gates keep:
+  - `SUMMARY_JSON="$STATE_DIR/summary.json"`
+  - `summary_json` in `summary.txt`
+  - top-level `state_dir` / `summary_txt` / `summary_json` fields in their JSON sidecars
+
+### Why This Matters
+- The family-layer sidecars now have the same locked self-description discipline as the higher proof layers.
+- That keeps provenance readers from losing the basic identity contract of those sidecars even if their richer payloads stay present.
+
 ## 2026-03-24 - Lock family-layer provenance policy
 ### ✅ Achievement Summary
 PGEN now makes the local CI workflow gate enforce that family-status and family-status-contract gates keep preserving the provenance they consume.

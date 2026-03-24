@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next proof-plumbing coherence seam after local CI started locking family-layer provenance was the family sidecars' own identity contract:
+  - provenance-bearing fields were now guarded at the family layer,
+  - but the shipped family sidecars still only kept their `summary_json` / `summary_txt` / `state_dir` self-description shape by convention.
+- That seam is now being closed by making `ci_workflow_local_gate.sh` assert the shared self-description pattern for shipped:
+  - family-contract gates,
+  - family-status gates,
+  - family-status-contract gates.
 - The next proof-plumbing coherence seam after local CI started locking combined-telemetry nested provenance was the family layer:
   - SOTA emission, aggregate consumption, and combined-telemetry output were all now guarded,
   - but the family-status and family-status-contract sidecars still only preserved their consumed provenance by convention.

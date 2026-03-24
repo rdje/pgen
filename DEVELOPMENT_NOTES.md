@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Lock family-sidecar summary identity in local CI
+### Context
+After local CI started guarding provenance-bearing fields at the family layer, the shipped family sidecars still only kept their own self-description shape by convention.
+
+### Implementation
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a dedicated audit over shipped family-contract, family-status, and family-status-contract gates,
+  - asserted the shared self-description pattern:
+    - `SUMMARY_JSON="$STATE_DIR/summary.json"`
+    - `summary_json` echoed in `summary.txt`
+    - top-level `state_dir` / `summary_txt` / `summary_json` fields in JSON output
+
+### Why This Matters
+- This gives the family sidecars the same locked identity contract already used by SOTA and combined-telemetry gates.
+- It reduces the chance of silent drift in low-level sidecar metadata that higher proof layers implicitly rely on.
+
 ## 2026-03-24 - Lock family-layer provenance emission in local CI
 ### Context
 After local CI started guarding nested provenance at the SOTA and combined-telemetry layers, the family-status and family-status-contract gates still only preserved their consumed provenance by convention.

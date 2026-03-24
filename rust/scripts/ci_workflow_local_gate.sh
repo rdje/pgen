@@ -376,6 +376,28 @@ audit_family_layer_provenance_surface() {
     'summary_json: $vhdl_family_contract_summary_json'
 }
 
+audit_family_summary_identity_surface() {
+  note "auditing family-sidecar summary identity surface"
+
+  for repo_file in \
+    rust/scripts/regex_parser_family_contract_gate.sh \
+    rust/scripts/vhdl_parser_family_contract_gate.sh \
+    rust/scripts/sv_parser_family_status_gate.sh \
+    rust/scripts/regex_parser_family_status_gate.sh \
+    rust/scripts/vhdl_parser_family_status_gate.sh \
+    rust/scripts/sv_parser_family_status_contract_gate.sh \
+    rust/scripts/regex_parser_family_status_contract_gate.sh \
+    rust/scripts/vhdl_parser_family_status_contract_gate.sh; do
+    assert_tracked "$repo_file"
+    assert_file_contains "$repo_file" 'SUMMARY_JSON="$STATE_DIR/summary.json"'
+    assert_file_contains "$repo_file" 'echo "summary_json: $SUMMARY_JSON"'
+    assert_file_contains "$repo_file" '--arg summary_json "$SUMMARY_JSON"'
+    assert_file_contains "$repo_file" 'state_dir: $state_dir'
+    assert_file_contains "$repo_file" 'summary_txt: $summary_txt'
+    assert_file_contains "$repo_file" 'summary_json: $summary_json'
+  done
+}
+
 audit_summary_json_emission_surface() {
   note "auditing top-level proof summary.json emission surface"
 
@@ -451,6 +473,7 @@ main() {
   audit_sota_nested_family_emission_surface
   audit_combined_telemetry_nested_provenance_surface
   audit_family_layer_provenance_surface
+  audit_family_summary_identity_surface
   audit_summary_json_emission_surface
 
   run_workflow \
