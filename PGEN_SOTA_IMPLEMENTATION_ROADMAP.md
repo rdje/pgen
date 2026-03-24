@@ -43,6 +43,7 @@ Interpretation rule:
 - once those aggregate-contract JSON sidecars exist, the next SV family-status layer should carry and parity-check their `summary_json` paths rather than preserving only aggregate TXT paths.
 - once the SV family-status contract layer validates those aggregate JSON proof paths, it should preserve them in its own sidecars rather than reverting to blocker-only output.
 - once both SV family-status layers preserve aggregate-contract JSON provenance, `sota_exit_gate` should parity-check and re-emit those parser/preprocessor aggregate JSON paths too rather than collapsing back to TXT-only aggregate references at the top gate.
+- once `sota_exit_gate` exposes those SV aggregate JSON proof paths, `sv_combined_telemetry_contract_gate` should consume and re-emit them too rather than leaving the new provenance stranded at SOTA.
 - once a family-status sidecar exposes richer proof provenance, the corresponding aggregate layer should parity-check and re-emit that provenance in the same slice rather than leaving it as an undocumented side effect.
 - once a family-status contract gate exists, prefer it to expose both:
   - `summary.txt`

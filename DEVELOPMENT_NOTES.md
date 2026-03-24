@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make SV combined telemetry consume aggregate JSON provenance from SOTA
+### Context
+After the previous slice, `sota_exit_gate` already surfaced the SV parser/preprocessor aggregate:
+- `state_dir`
+- `summary.txt`
+- `summary.json`
+
+for both:
+- `sv_parser_family_status_gate`
+- `sv_parser_family_status_contract_gate`
+
+But `sv_combined_telemetry_contract_gate` still only consumed the older TXT-oriented subset, so the newly surfaced aggregate JSON provenance stopped at SOTA instead of reaching the shipped SV aggregate sign-off.
+
+### Implementation
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - read the new aggregate proof-surface paths from SOTA `summary.json`,
+  - parity-check them against the canonical SV family-status and family-status-contract JSON sidecars,
+  - record the aggregate `summary.json` paths in combined-telemetry `summary.txt`,
+  - re-emit those proof surfaces in combined-telemetry `summary.json`.
+
+### Why This Matters
+- The shipped SV aggregate telemetry surface now preserves parser/preprocessor aggregate JSON provenance end to end.
+- Downstream readers no longer need to reopen SOTA or lower SV family artifacts just to recover the aggregate JSON proof paths.
+
 ## 2026-03-24 - Make SOTA preserve SV aggregate JSON provenance
 ### Context
 After the previous two SV slices, both:
