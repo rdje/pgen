@@ -1,4 +1,17 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Lock nested family SOTA emission in local CI
+### Context
+After `sota_exit_gate/summary.json` started carrying nested family proof surfaces for SV, regex, and VHDL, the local CI workflow gate still only guarded the downstream aggregate readers.
+
+### Implementation
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a dedicated audit for nested family emission in `sota_exit_gate.sh`,
+  - asserted representative nested proof-surface fields for SV, regex, and VHDL on both the family-status and family-status-contract sides.
+
+### Why This Matters
+- This locks the producer side of the nested-family SOTA contract, not just the consumers.
+- If `sota_exit_gate.sh` drops one of those nested proof paths, local CI now catches it before downstream aggregate logic drifts or breaks.
+
 ## 2026-03-24 - Lock nested family SOTA consumption in local CI
 ### Context
 After the SV, regex, and VHDL aggregate readers started consuming nested family proof surfaces from `sota_exit_gate/summary.json`, that rule still lived only in the aggregate scripts themselves.

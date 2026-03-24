@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next proof-plumbing coherence seam after local CI started locking nested-family aggregate consumption was the producer side:
+  - the local CI workflow gate already asserted that shipped aggregate readers consumed nested SOTA family proof surfaces,
+  - but it did not yet assert that `sota_exit_gate.sh` itself kept emitting those nested family proof paths.
+- That seam is now being closed by making `ci_workflow_local_gate.sh` assert nested-family SOTA emission for:
+  - SV aggregate provenance,
+  - regex dual-run / family-contract provenance,
+  - VHDL quality / family-contract provenance.
 - The next proof-plumbing coherence seam after SV/regex/VHDL aggregate readers started consuming nested SOTA family provenance was the regression guard:
   - the local CI workflow gate already checked that aggregate readers consumed top-level `sota_exit_gate/summary.json`,
   - but it did not yet lock the newer nested `family_status.*.proof_surfaces` / `family_status_contract.*.proof_surfaces` reads.

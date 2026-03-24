@@ -252,6 +252,51 @@ audit_sota_json_consumption_surface() {
     '.family_status_contract.vhdl.proof_surfaces.family_contract_summary_json'
 }
 
+audit_sota_nested_family_emission_surface() {
+  note "auditing nested family SOTA summary.json emission surface"
+
+  assert_tracked "rust/scripts/sota_exit_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'systemverilog: family_status_entry('
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'parser_aggregate_summary_json: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'systemverilog: family_status_contract_entry('
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'parser_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_json)'
+
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'regex: family_status_entry('
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'dual_run_summary_json: maybe_path($regex_family_dual_run_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'regex: family_status_contract_entry('
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'family_contract_summary_json: maybe_path($regex_family_status_contract_regex_family_contract_summary_json)'
+
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'vhdl: family_status_entry('
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'quality_parseability_report_json: maybe_path($vhdl_family_quality_parseability_report_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'vhdl: family_status_contract_entry('
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'family_contract_summary_json: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_json)'
+}
+
 audit_summary_json_emission_surface() {
   note "auditing top-level proof summary.json emission surface"
 
@@ -324,6 +369,7 @@ main() {
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_sota_json_consumption_surface
+  audit_sota_nested_family_emission_surface
   audit_summary_json_emission_surface
 
   run_workflow \

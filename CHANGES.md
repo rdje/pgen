@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-24 - Lock nested family SOTA emission policy
+### ✅ Achievement Summary
+PGEN now makes the local CI workflow gate enforce that `sota_exit_gate.sh` keeps emitting nested family proof surfaces in its `summary.json`.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI contract now asserts nested SOTA family emission for:
+  - SV parser/preprocessor aggregate provenance
+  - regex dual-run / family-contract provenance
+  - VHDL quality / family-contract provenance
+
+### Why This Matters
+- The producer side of the nested-family SOTA JSON contract is now regression-guarded.
+- Aggregate readers can rely on those nested proof surfaces continuing to exist, instead of only detecting regressions after downstream consumers break.
+
 ## 2026-03-24 - Lock nested family SOTA consumption policy
 ### ✅ Achievement Summary
 PGEN now makes the local CI workflow gate enforce that shipped aggregate readers keep consuming nested family proof surfaces from `sota_exit_gate/summary.json`.
