@@ -55,6 +55,18 @@ summary_value_from_txt() {
     printf '%s\n' "${line#${key}: }"
 }
 
+top_level_summary_value_from_txt() {
+    local key="$1"
+    local path="$2"
+    local line
+    line="$(awk -v key="$key" 'index($0, key ": ") == 1 { print; exit }' "$path")"
+    if [[ -z "$line" ]]; then
+        echo "error: missing top-level key '${key}' in summary '$path'" >&2
+        exit 1
+    fi
+    printf '%s\n' "${line#${key}: }"
+}
+
 markdown_table_status_for_row() {
     local row_match="$1"
     local path="$2"
@@ -114,6 +126,54 @@ vhdl_family_contract_summary_json="$vhdl_family_contract_state_dir/summary.json"
 
 require_nonempty_file "$vhdl_family_contract_summary_txt"
 require_nonempty_file "$vhdl_family_contract_summary_json"
+
+vhdl_family_contract_gate_name="$(jq -r '.gate' "$vhdl_family_contract_summary_json")"
+vhdl_family_contract_gate_version="$(jq -r '.version' "$vhdl_family_contract_summary_json")"
+vhdl_family_contract_generated_at_utc="$(jq -r '.generated_at_utc' "$vhdl_family_contract_summary_json")"
+vhdl_family_contract_state_dir_from_json="$(jq -r '.state_dir' "$vhdl_family_contract_summary_json")"
+vhdl_family_contract_summary_txt_from_json="$(jq -r '.summary_txt' "$vhdl_family_contract_summary_json")"
+vhdl_family_contract_summary_json_from_json="$(jq -r '.summary_json' "$vhdl_family_contract_summary_json")"
+
+summary_vhdl_family_contract_state_dir="$(top_level_summary_value_from_txt "state_dir" "$vhdl_family_contract_summary_txt")"
+summary_vhdl_family_contract_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$vhdl_family_contract_summary_txt")"
+summary_vhdl_family_contract_summary_json="$(top_level_summary_value_from_txt "summary_json" "$vhdl_family_contract_summary_txt")"
+
+if [[ "$vhdl_family_contract_gate_name" != "vhdl_parser_family_contract_gate" ]]; then
+    echo "error: unexpected VHDL family-contract gate identity '$vhdl_family_contract_gate_name'" >&2
+    exit 1
+fi
+if [[ ! "$vhdl_family_contract_gate_version" =~ ^[0-9]+$ ]]; then
+    echo "error: VHDL family-contract gate version is not numeric: '$vhdl_family_contract_gate_version'" >&2
+    exit 1
+fi
+if [[ -z "$vhdl_family_contract_generated_at_utc" ]]; then
+    echo "error: VHDL family-contract generated_at_utc is empty" >&2
+    exit 1
+fi
+if [[ "$summary_vhdl_family_contract_state_dir" != "$vhdl_family_contract_state_dir" ]]; then
+    echo "error: VHDL family-contract state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$vhdl_family_contract_state_dir_from_json" != "$vhdl_family_contract_state_dir" ]]; then
+    echo "error: VHDL family-contract state_dir mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$vhdl_family_contract_summary_txt_from_json" != "$vhdl_family_contract_summary_txt" ]]; then
+    echo "error: VHDL family-contract summary_txt mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_vhdl_family_contract_summary_json" != "$vhdl_family_contract_summary_json" ]]; then
+    echo "error: VHDL family-contract summary_json mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$vhdl_family_contract_summary_json_from_json" != "$vhdl_family_contract_summary_json" ]]; then
+    echo "error: VHDL family-contract summary_json mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_vhdl_family_contract_generated_at_utc" != "$vhdl_family_contract_generated_at_utc" ]]; then
+    echo "error: VHDL family-contract generated_at_utc mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
 
 vhdl_quality_closed_loop_initial_status="$(summary_value_from_txt "quality_closed_loop_initial_status" "$vhdl_family_contract_summary_txt")"
 vhdl_quality_closed_loop_replay_status="$(summary_value_from_txt "quality_closed_loop_replay_status" "$vhdl_family_contract_summary_txt")"
@@ -308,6 +368,10 @@ vhdl_unmet_details_json="$(printf '%s\n' "${vhdl_unmet_details[@]:-}" | jq -R . 
     echo "vhdl_strict_promotion_eligible: $vhdl_strict_promotion_eligible"
     echo "vhdl_strict_promotion_primary_blocker: $vhdl_strict_promotion_primary_blocker"
     echo "vhdl_strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed"
+    echo "vhdl_family_contract_gate: $vhdl_family_contract_gate_name"
+    echo "vhdl_family_contract_gate_version: $vhdl_family_contract_gate_version"
+    echo "vhdl_family_contract_generated_at_utc: $vhdl_family_contract_generated_at_utc"
+    echo "vhdl_family_contract_state_dir: $vhdl_family_contract_state_dir_from_json"
     echo "vhdl_family_contract_summary_txt: $vhdl_family_contract_summary_txt"
     echo "vhdl_family_contract_summary_json: $vhdl_family_contract_summary_json"
 } | tee "$SUMMARY_TXT"
@@ -356,6 +420,10 @@ jq -n \
     --argjson vhdl_strict_promotion_eligible "$vhdl_strict_promotion_eligible" \
     --arg vhdl_strict_promotion_primary_blocker "$vhdl_strict_promotion_primary_blocker" \
     --argjson vhdl_strict_promotion_trial_passed "$vhdl_strict_promotion_trial_passed" \
+    --arg vhdl_family_contract_gate "$vhdl_family_contract_gate_name" \
+    --argjson vhdl_family_contract_gate_version "$vhdl_family_contract_gate_version" \
+    --arg vhdl_family_contract_generated_at_utc "$vhdl_family_contract_generated_at_utc" \
+    --arg vhdl_family_contract_state_dir "$vhdl_family_contract_state_dir_from_json" \
     --arg vhdl_family_contract_summary_txt "$vhdl_family_contract_summary_txt" \
     --arg vhdl_family_contract_summary_json "$vhdl_family_contract_summary_json" \
     '{
@@ -407,9 +475,13 @@ jq -n \
             strict_promotion_recommendation: $vhdl_strict_promotion_recommendation,
             strict_promotion_eligible: $vhdl_strict_promotion_eligible,
             strict_promotion_primary_blocker: $vhdl_strict_promotion_primary_blocker,
-            strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed
+            strict_promotion_trial_passed: $vhdl_strict_promotion_trial_passed,
+            family_contract_gate: $vhdl_family_contract_gate,
+            family_contract_gate_version: $vhdl_family_contract_gate_version,
+            family_contract_generated_at_utc: $vhdl_family_contract_generated_at_utc
           },
           proof_surfaces: {
+            family_contract_state_dir: $vhdl_family_contract_state_dir,
             family_contract_summary_txt: $vhdl_family_contract_summary_txt,
             family_contract_summary_json: $vhdl_family_contract_summary_json
           }

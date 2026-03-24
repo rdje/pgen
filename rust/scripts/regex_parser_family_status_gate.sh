@@ -56,6 +56,18 @@ summary_value_from_txt() {
     printf '%s\n' "${line#${key}: }"
 }
 
+top_level_summary_value_from_txt() {
+    local key="$1"
+    local path="$2"
+    local line
+    line="$(awk -v key="$key" 'index($0, key ": ") == 1 { print; exit }' "$path")"
+    if [[ -z "$line" ]]; then
+        echo "error: missing top-level key '${key}' in summary '$path'" >&2
+        exit 1
+    fi
+    printf '%s\n' "${line#${key}: }"
+}
+
 markdown_table_status_for_row() {
     local row_match="$1"
     local path="$2"
@@ -120,6 +132,54 @@ regex_family_contract_summary_json="$regex_family_contract_state_dir/summary.jso
 
 require_nonempty_file "$regex_family_contract_summary_txt"
 require_nonempty_file "$regex_family_contract_summary_json"
+
+regex_family_contract_gate_name="$(jq -r '.gate' "$regex_family_contract_summary_json")"
+regex_family_contract_gate_version="$(jq -r '.version' "$regex_family_contract_summary_json")"
+regex_family_contract_generated_at_utc="$(jq -r '.generated_at_utc' "$regex_family_contract_summary_json")"
+regex_family_contract_state_dir_from_json="$(jq -r '.state_dir' "$regex_family_contract_summary_json")"
+regex_family_contract_summary_txt_from_json="$(jq -r '.summary_txt' "$regex_family_contract_summary_json")"
+regex_family_contract_summary_json_from_json="$(jq -r '.summary_json' "$regex_family_contract_summary_json")"
+
+summary_regex_family_contract_state_dir="$(top_level_summary_value_from_txt "state_dir" "$regex_family_contract_summary_txt")"
+summary_regex_family_contract_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$regex_family_contract_summary_txt")"
+summary_regex_family_contract_summary_json="$(top_level_summary_value_from_txt "summary_json" "$regex_family_contract_summary_txt")"
+
+if [[ "$regex_family_contract_gate_name" != "regex_parser_family_contract_gate" ]]; then
+    echo "error: unexpected regex family-contract gate identity '$regex_family_contract_gate_name'" >&2
+    exit 1
+fi
+if [[ ! "$regex_family_contract_gate_version" =~ ^[0-9]+$ ]]; then
+    echo "error: regex family-contract gate version is not numeric: '$regex_family_contract_gate_version'" >&2
+    exit 1
+fi
+if [[ -z "$regex_family_contract_generated_at_utc" ]]; then
+    echo "error: regex family-contract generated_at_utc is empty" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_state_dir" != "$regex_family_contract_state_dir" ]]; then
+    echo "error: regex family-contract state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$regex_family_contract_state_dir_from_json" != "$regex_family_contract_state_dir" ]]; then
+    echo "error: regex family-contract state_dir mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$regex_family_contract_summary_txt_from_json" != "$regex_family_contract_summary_txt" ]]; then
+    echo "error: regex family-contract summary_txt mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_summary_json" != "$regex_family_contract_summary_json" ]]; then
+    echo "error: regex family-contract summary_json mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$regex_family_contract_summary_json_from_json" != "$regex_family_contract_summary_json" ]]; then
+    echo "error: regex family-contract summary_json mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_family_contract_generated_at_utc" != "$regex_family_contract_generated_at_utc" ]]; then
+    echo "error: regex family-contract generated_at_utc mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
 
 regex_frontend_overall="$(summary_value_from_txt "frontend_regex_overall" "$regex_family_contract_summary_txt")"
 regex_dual_run_overall="$(summary_value_from_txt "dual_run_regex_overall" "$regex_family_contract_summary_txt")"
@@ -277,6 +337,10 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_stimuli_stage0_successes: $regex_stimuli_stage0_successes"
     echo "regex_stimuli_stage3_successes: $regex_stimuli_stage3_successes"
     echo "regex_stimuli_status: $regex_stimuli_status"
+    echo "regex_family_contract_gate: $regex_family_contract_gate_name"
+    echo "regex_family_contract_gate_version: $regex_family_contract_gate_version"
+    echo "regex_family_contract_generated_at_utc: $regex_family_contract_generated_at_utc"
+    echo "regex_family_contract_state_dir: $regex_family_contract_state_dir_from_json"
     echo "regex_family_contract_summary_txt: $regex_family_contract_summary_txt"
     echo "regex_family_contract_summary_json: $regex_family_contract_summary_json"
 } | tee "$SUMMARY_TXT"
@@ -320,6 +384,10 @@ jq -n \
     --argjson regex_stimuli_stage0_successes "$regex_stimuli_stage0_successes" \
     --argjson regex_stimuli_stage3_successes "$regex_stimuli_stage3_successes" \
     --arg regex_stimuli_status "$regex_stimuli_status" \
+    --arg regex_family_contract_gate "$regex_family_contract_gate_name" \
+    --argjson regex_family_contract_gate_version "$regex_family_contract_gate_version" \
+    --arg regex_family_contract_generated_at_utc "$regex_family_contract_generated_at_utc" \
+    --arg regex_family_contract_state_dir "$regex_family_contract_state_dir_from_json" \
     --arg regex_family_contract_summary_txt "$regex_family_contract_summary_txt" \
     --arg regex_family_contract_summary_json "$regex_family_contract_summary_json" \
     '{
@@ -353,7 +421,7 @@ jq -n \
             stimuli_final_target_debt_zero: $regex_stimuli_final_target_debt_zero,
             formal_exhaustive_closure_surface_green: $regex_formal_exhaustive_closure_surface_green
           },
-          metrics: {
+            metrics: {
             frontend_overall: $regex_frontend_overall,
             dual_run_overall: $regex_dual_run_overall,
             dual_run_raw_ast_status: $regex_dual_run_raw_ast_status,
@@ -366,9 +434,13 @@ jq -n \
             stimuli_target_attempts: $regex_stimuli_target_attempts,
             stimuli_stage0_successes: $regex_stimuli_stage0_successes,
             stimuli_stage3_successes: $regex_stimuli_stage3_successes,
-            stimuli_status: $regex_stimuli_status
+            stimuli_status: $regex_stimuli_status,
+            family_contract_gate: $regex_family_contract_gate,
+            family_contract_gate_version: $regex_family_contract_gate_version,
+            family_contract_generated_at_utc: $regex_family_contract_generated_at_utc
           },
           proof_surfaces: {
+            family_contract_state_dir: $regex_family_contract_state_dir,
             family_contract_summary_txt: $regex_family_contract_summary_txt,
             family_contract_summary_json: $regex_family_contract_summary_json
           }

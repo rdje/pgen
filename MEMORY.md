@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next proof-normalization seam after family-contract self-path emission was directly above it:
+  - regex and VHDL family-status already required family-contract `summary.json`,
+  - but they still consumed the real contract from TXT only.
+- That seam is now being closed by making those family-status gates:
+  - validate family-contract JSON identity/self-path metadata,
+  - parity-check TXT vs JSON provenance,
+  - and re-emit the consumed family-contract provenance in their own summaries.
 - The next aggregate-proof normalization seam after SV and regex was the VHDL combined-telemetry layer:
   - VHDL family-contract, family-status, and family-status-contract already emitted `summary.json`,
   - but `vhdl_combined_telemetry_contract_gate` was still TXT-only.

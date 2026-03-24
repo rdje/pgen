@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make family-status consume family-contract JSON self-description
+### Context
+After teaching the shipped regex and VHDL family-contract gates to expose their own `summary_txt` / `summary_json` identities, one smaller asymmetry remained directly above them:
+- `regex_parser_family_status_gate` and `vhdl_parser_family_status_gate` required the family-contract JSON sidecars to exist,
+- but they still treated those sidecars mostly as presence-only files and pulled the actual contract only from TXT.
+
+That left the just-added family-contract self-description as write-only metadata.
+
+### Implementation
+- Updated [regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh) and [vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh):
+  - read `gate`, `version`, `generated_at_utc`, `state_dir`, `summary_txt`, and `summary_json` from the upstream family-contract `summary.json`,
+  - parity-check those fields against the family-contract TXT sidecar and actual expected paths,
+  - re-emit the consumed family-contract gate metadata and `family_contract_state_dir` in the family-status summaries.
+
+### Why This Matters
+- Family-status now consumes declared family-contract provenance instead of reconstructing it from filenames plus TXT only.
+- The regex/VHDL proof stack stays consistent with the broader roadmap rule that once a lower proof layer exposes machine-readable provenance, the next layer should consume it in the same slice.
+
 ## 2026-03-23 - Give VHDL combined telemetry a machine-readable sidecar
 ### Context
 After landing the same aggregate JSON proof for SystemVerilog and regex, the VHDL proof stack still had the same final asymmetry:

@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-24 - Consume family-contract JSON in family-status gates
+### ✅ Achievement Summary
+PGEN now makes the shipped regex and VHDL family-status gates actually consume the family-contract JSON self-description they depend on, instead of only treating those sidecars as presence-only artifacts.
+
+### Scope of Changes
+- Updated:
+  - [regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh)
+  - [vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh)
+- Each gate now:
+  - validates the upstream family-contract gate identity from `summary.json`,
+  - parity-checks the family-contract `state_dir`, `summary_json`, and `generated_at_utc` across TXT/JSON sidecars,
+  - re-emits family-contract gate metadata plus `family_contract_state_dir` in its own status summary surfaces.
+
+### Why This Matters
+- The family-contract self-paths landed in the previous slice are no longer write-only metadata.
+- Regex and VHDL family-status now consume declared family-contract provenance directly, which is the same proof-discipline already expected higher in the stack.
+
 ## 2026-03-24 - Surface family-contract self-paths
 ### ✅ Achievement Summary
 PGEN now makes the shipped regex and VHDL family-contract gates expose their own `summary.txt` / `summary.json` identities consistently, instead of only pointing at the upstream proof surfaces they validate.
