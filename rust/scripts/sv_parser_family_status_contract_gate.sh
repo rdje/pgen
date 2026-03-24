@@ -337,6 +337,9 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "systemverilog_parser_aggregate_state_dir: $main_parser_aggregate_state_dir"
     echo "systemverilog_parser_aggregate_summary_txt: $main_parser_aggregate_summary_txt"
     echo "systemverilog_parser_aggregate_summary_json: $main_parser_aggregate_summary_json"
+    echo "systemverilog_semantic_scope_contract_state_dir: $main_semantic_scope_contract_state_dir"
+    echo "systemverilog_semantic_scope_contract_summary_txt: $main_semantic_scope_contract_summary_txt"
+    echo "systemverilog_semantic_scope_contract_summary_json: $main_semantic_scope_contract_summary_json"
     echo "systemverilog_unmet_closure_criteria_json: $main_unmet_json"
     echo "systemverilog_unmet_closure_criteria_details_json: $main_details_json"
     echo "systemverilog_preprocessor_tracker_alignment_ok: $svpp_tracker_alignment_ok"
@@ -368,6 +371,9 @@ jq -n \
     --arg systemverilog_parser_aggregate_state_dir "$main_parser_aggregate_state_dir" \
     --arg systemverilog_parser_aggregate_summary_txt "$main_parser_aggregate_summary_txt" \
     --arg systemverilog_parser_aggregate_summary_json "$main_parser_aggregate_summary_json" \
+    --arg systemverilog_semantic_scope_contract_state_dir "$main_semantic_scope_contract_state_dir" \
+    --arg systemverilog_semantic_scope_contract_summary_txt "$main_semantic_scope_contract_summary_txt" \
+    --arg systemverilog_semantic_scope_contract_summary_json "$main_semantic_scope_contract_summary_json" \
     --argjson systemverilog_unmet_closure_criteria "$main_unmet_json" \
     --argjson systemverilog_unmet_closure_criteria_details "$main_details_json" \
     --argjson systemverilog_preprocessor_tracker_alignment_ok "$svpp_tracker_alignment_ok" \
@@ -400,7 +406,10 @@ jq -n \
           proof_surfaces: {
             parser_aggregate_state_dir: $systemverilog_parser_aggregate_state_dir,
             parser_aggregate_summary_txt: $systemverilog_parser_aggregate_summary_txt,
-            parser_aggregate_summary_json: $systemverilog_parser_aggregate_summary_json
+            parser_aggregate_summary_json: $systemverilog_parser_aggregate_summary_json,
+            semantic_scope_contract_state_dir: $systemverilog_semantic_scope_contract_state_dir,
+            semantic_scope_contract_summary_txt: $systemverilog_semantic_scope_contract_summary_txt,
+            semantic_scope_contract_summary_json: $systemverilog_semantic_scope_contract_summary_json
           },
           unmet_closure_criteria: $systemverilog_unmet_closure_criteria,
           unmet_closure_criteria_details: $systemverilog_unmet_closure_criteria_details

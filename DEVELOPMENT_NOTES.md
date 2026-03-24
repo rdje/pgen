@@ -24017,3 +24017,11 @@ Architectural north star:
     - `parseability_report_json`
     - `counterexample_triage_json`
     - `gap_stage3_json`
+- The next direct proof-chain gap after that was in `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh` itself. The gate already read and parity-checked the main parser's semantic-scope proof paths from `sv_parser_family_status_gate`, but it still dropped those validated paths from its own `summary.txt` / `summary.json`, so the contract layer regressed back to aggregate-only provenance.
+- Tightened that SV status-contract seam:
+  - `summary.txt` now preserves:
+    - `systemverilog_semantic_scope_contract_state_dir`
+    - `systemverilog_semantic_scope_contract_summary_txt`
+    - `systemverilog_semantic_scope_contract_summary_json`
+  - `summary.json` now preserves the same three fields under the `systemverilog` family's `proof_surfaces`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` now locks both the family-status and family-status-contract `semantic_scope_contract_summary_json` fields as part of the shipped SV family-layer provenance surface

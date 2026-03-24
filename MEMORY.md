@@ -6512,3 +6512,22 @@ Use this file to resume work without replaying full chat history.
     - `gap_stage3_json: $gap_stage3_json`
 - Filtered validation for this local-CI slice remains:
   - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash /Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh`
+- The next direct SV provenance hole after that is in `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh`:
+  - it already reads and parity-checks:
+    - `systemverilog_semantic_scope_contract_state_dir`
+    - `systemverilog_semantic_scope_contract_summary_txt`
+    - `systemverilog_semantic_scope_contract_summary_json`
+  - but before this slice it did not re-emit them in its own sidecars
+- The representative literals for that preservation slice are:
+  - in `summary.txt`:
+    - `systemverilog_semantic_scope_contract_state_dir: $main_semantic_scope_contract_state_dir`
+    - `systemverilog_semantic_scope_contract_summary_txt: $main_semantic_scope_contract_summary_txt`
+    - `systemverilog_semantic_scope_contract_summary_json: $main_semantic_scope_contract_summary_json`
+  - in the JSON writer:
+    - `--arg systemverilog_semantic_scope_contract_summary_json "$main_semantic_scope_contract_summary_json"`
+    - `semantic_scope_contract_summary_json: $systemverilog_semantic_scope_contract_summary_json`
+- The matching local-CI provenance literals are:
+  - in `sv_parser_family_status_gate.sh`:
+    - `semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json`
+  - in `sv_parser_family_status_contract_gate.sh`:
+    - `semantic_scope_contract_summary_json: $systemverilog_semantic_scope_contract_summary_json`

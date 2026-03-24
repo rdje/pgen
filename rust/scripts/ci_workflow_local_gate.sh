@@ -341,10 +341,16 @@ audit_family_layer_provenance_surface() {
     'parser_aggregate_summary_json: $sv_parser_summary_json'
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_gate.sh" \
+    'semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
     'aggregate_summary_json: $svpp_aggregate_summary_json'
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_contract_gate.sh" \
     'parser_aggregate_summary_json: $systemverilog_parser_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_contract_gate.sh" \
+    'semantic_scope_contract_summary_json: $systemverilog_semantic_scope_contract_summary_json'
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_contract_gate.sh" \
     'aggregate_summary_json: $systemverilog_preprocessor_aggregate_summary_json'
