@@ -142,18 +142,30 @@ sota_exit_informational_failures="$(jq -r '.counts.informational_failures' "$sot
 sota_exit_all_failures="$(jq -r '.counts.all_failures' "$sota_summary_json")"
 sota_exit_sv_parser_family_status_summary_json_from_json="$(jq -r '.proof_surfaces.sv_parser_family_status_summary_json' "$sota_summary_json")"
 sota_exit_sv_parser_family_status_contract_summary_json_from_json="$(jq -r '.proof_surfaces.sv_parser_family_status_contract_summary_json' "$sota_summary_json")"
-sota_exit_sv_systemverilog_parser_aggregate_state_dir="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_parser_aggregate_state_dir' "$sota_summary_json")"
-sota_exit_sv_systemverilog_parser_aggregate_summary_txt="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_parser_aggregate_summary_txt' "$sota_summary_json")"
-sota_exit_sv_systemverilog_parser_aggregate_summary_json="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_parser_aggregate_summary_json' "$sota_summary_json")"
-sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_state_dir' "$sota_summary_json")"
-sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_summary_txt' "$sota_summary_json")"
-sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_summary_json' "$sota_summary_json")"
-sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_state_dir' "$sota_summary_json")"
-sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_txt' "$sota_summary_json")"
-sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_json' "$sota_summary_json")"
-sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir' "$sota_summary_json")"
-sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt' "$sota_summary_json")"
-sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_parser_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_parser_aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_parser_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_parser_aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_parser_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_parser_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_parser_aggregate_state_dir="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_parser_aggregate_summary_txt="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_parser_aggregate_summary_json="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_json' "$sota_summary_json")"
 sota_exit_sv_systemverilog_primary_unmet="$(jq -r '.family_status.systemverilog.primary_unmet_closure_criterion' "$sota_summary_json")"
 sota_exit_sv_systemverilog_unmet_json="$(jq -cer '.family_status.systemverilog.unmet_closure_criteria' "$sota_summary_json")"
 sota_exit_sv_systemverilog_unmet_details_json="$(jq -cer '.family_status.systemverilog.unmet_closure_criteria_details' "$sota_summary_json")"
@@ -233,6 +245,54 @@ assert_equal \
     "SOTA exit SV parser-family status contract summary json path" \
     "$sv_parser_family_status_contract_summary_json" \
     "$sota_exit_sv_parser_family_status_contract_summary_json_from_json"
+assert_equal \
+    "SOTA exit main parser aggregate state dir mirror" \
+    "$sota_exit_sv_systemverilog_parser_aggregate_state_dir" \
+    "$sota_exit_sv_systemverilog_parser_aggregate_state_dir_top_level"
+assert_equal \
+    "SOTA exit main parser aggregate summary txt mirror" \
+    "$sota_exit_sv_systemverilog_parser_aggregate_summary_txt" \
+    "$sota_exit_sv_systemverilog_parser_aggregate_summary_txt_top_level"
+assert_equal \
+    "SOTA exit main parser aggregate summary json mirror" \
+    "$sota_exit_sv_systemverilog_parser_aggregate_summary_json" \
+    "$sota_exit_sv_systemverilog_parser_aggregate_summary_json_top_level"
+assert_equal \
+    "SOTA exit preprocessor aggregate state dir mirror" \
+    "$sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir" \
+    "$sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir_top_level"
+assert_equal \
+    "SOTA exit preprocessor aggregate summary txt mirror" \
+    "$sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt" \
+    "$sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt_top_level"
+assert_equal \
+    "SOTA exit preprocessor aggregate summary json mirror" \
+    "$sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json" \
+    "$sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json_top_level"
+assert_equal \
+    "SOTA exit main contract parser aggregate state dir mirror" \
+    "$sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir_top_level"
+assert_equal \
+    "SOTA exit main contract parser aggregate summary txt mirror" \
+    "$sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt_top_level"
+assert_equal \
+    "SOTA exit main contract parser aggregate summary json mirror" \
+    "$sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json_top_level"
+assert_equal \
+    "SOTA exit preprocessor contract aggregate state dir mirror" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir_top_level"
+assert_equal \
+    "SOTA exit preprocessor contract aggregate summary txt mirror" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt_top_level"
+assert_equal \
+    "SOTA exit preprocessor contract aggregate summary json mirror" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json_top_level"
 
 sv_failure_summary_available=0
 sv_roundtrip_summary_available=0

@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-24 - Consume nested SV aggregate provenance in combined telemetry
+### ✅ Achievement Summary
+PGEN now makes `sv_combined_telemetry_contract_gate` read the SV parser/preprocessor aggregate proof paths from SOTA's structured family JSON payloads instead of only from mirrored top-level SOTA keys.
+
+### Scope of Changes
+- Updated:
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+- The combined SV aggregate gate now:
+  - reads parser/preprocessor aggregate `state_dir` / `summary.txt` / `summary.json` from:
+    - `family_status.systemverilog.proof_surfaces`
+    - `family_status.systemverilog_preprocessor.proof_surfaces`
+    - `family_status_contract.systemverilog.proof_surfaces`
+    - `family_status_contract.systemverilog_preprocessor.proof_surfaces`
+  - and parity-checks those nested copies against the existing mirrored top-level SOTA proof-surface fields.
+
+### Why This Matters
+- The shipped SV aggregate sign-off now consumes the canonical structured SOTA family payloads directly.
+- The older top-level SOTA mirrors remain checked as consistency guards instead of being the only source of truth.
+
 ## 2026-03-24 - Surface SV aggregate provenance inside SOTA family JSON
 ### ✅ Achievement Summary
 PGEN now makes the structured SV `family_status` and `family_status_contract` entries inside `sota_exit_gate/summary.json` carry the parser/preprocessor aggregate proof paths directly.

@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make SV combined telemetry consume nested SOTA family provenance
+### Context
+After the last slice, `sota_exit_gate/summary.json` exposed the SV parser/preprocessor aggregate proof paths twice:
+- once in top-level `proof_surfaces`,
+- and once in the structured:
+  - `family_status.*.proof_surfaces`
+  - `family_status_contract.*.proof_surfaces`
+
+But `sv_combined_telemetry_contract_gate` was still reading only the older top-level mirrors.
+
+### Implementation
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - switched the SOTA JSON reads for SV parser/preprocessor aggregate provenance to the nested family payloads,
+  - kept the previous top-level SOTA fields as explicit parity-checked mirrors,
+  - left the combined-telemetry output schema unchanged because it already re-emitted the validated aggregate provenance.
+
+### Why This Matters
+- The shipped SV aggregate gate now consumes the same structured family data that SOTA uses to describe the blockers themselves.
+- The top-level SOTA proof-surface fields are still guarded for consistency, but no longer act as the only source of truth for this provenance.
+
 ## 2026-03-24 - Make SOTA family JSON carry SV aggregate provenance directly
 ### Context
 After the last two SV slices:

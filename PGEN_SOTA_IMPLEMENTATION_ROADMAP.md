@@ -45,6 +45,7 @@ Interpretation rule:
 - once both SV family-status layers preserve aggregate-contract JSON provenance, `sota_exit_gate` should parity-check and re-emit those parser/preprocessor aggregate JSON paths too rather than collapsing back to TXT-only aggregate references at the top gate.
 - once `sota_exit_gate` exposes those SV aggregate JSON proof paths, `sv_combined_telemetry_contract_gate` should consume and re-emit them too rather than leaving the new provenance stranded at SOTA.
 - once SOTA already exposes family-specific aggregate provenance at top-level proof surfaces, prefer the matching structured `family_status` and `family_status_contract` JSON payloads to carry the same proof paths too, so downstream readers do not have to stitch family payloads together with unrelated top-level keys.
+- once those nested SOTA family proof surfaces exist, downstream aggregate readers should consume them as the canonical payload and treat the older top-level SOTA mirrors as parity-checked compatibility fields rather than the only source of truth.
 - once a family-status sidecar exposes richer proof provenance, the corresponding aggregate layer should parity-check and re-emit that provenance in the same slice rather than leaving it as an undocumented side effect.
 - once a family-status contract gate exists, prefer it to expose both:
   - `summary.txt`
