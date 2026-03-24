@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Surface SV auxiliary contract JSON proof
+### Context
+After the SV semantic-scope provenance slice landed, the main shipped SV stack still had two TXT-only side proofs hanging off the aggregate path: `sv_failure_context_contract_gate` and `sv_roundtrip_contract_gate`.
+
+### Implementation
+- Updated [sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh) and [sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
+  - added `summary.json`,
+  - added `generated_at_utc` and `summary_json` to `summary.txt`,
+  - wrote focused machine-readable proof/metric payloads.
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - required those JSON sidecars when the gates run or are reused,
+  - surfaced `sv_failure_context_contract_summary_json` and `sv_roundtrip_contract_summary_json`,
+  - pulled the excerpt/roundtrip metrics from the new JSON sidecars.
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - consumed the new SOTA proof-surface JSON paths,
+  - parsed the leaf JSON sidecars directly,
+  - re-emitted structured `failure_context_contract` and `roundtrip_contract` views.
+
+### Why This Matters
+- The shipped SV aggregate path now treats those two side proofs like the rest of the proof spine: human TXT plus machine JSON, with explicit upstream provenance.
+
 ## 2026-03-24 - Lock family-contract proof-surface emission in local CI
 ### Context
 After the family-sidecar identity and family-layer provenance guards landed, the regex and VHDL family-contract gates still only kept their own proof-surface outputs by convention.

@@ -8,6 +8,7 @@ STATE_DIR="${PGEN_SV_ROUNDTRIP_CONTRACT_STATE_DIR:-$RUST_DIR/target/sv_roundtrip
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 SV_CONTRACT_FILE="${PGEN_SV_ROUNDTRIP_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json}"
 SVPP_POLICY_ENV_FILE="${PGEN_SV_ROUNDTRIP_SVPP_POLICY_ENV_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env}"
@@ -18,6 +19,8 @@ SVPP_AGGREGATE_SCRIPT="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate
 
 EXISTING_SV_STIMULI_QUALITY_STATE_DIR="${PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="${PGEN_SV_ROUNDTRIP_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}"
+EXISTING_SV_PARSER_AGGREGATE_STATE_DIR="${PGEN_SV_ROUNDTRIP_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR:-}"
+EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR="${PGEN_SV_ROUNDTRIP_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -85,6 +88,7 @@ extract_summary_number() {
 }
 
 require_tool awk
+require_tool jq
 require_file "$SV_CONTRACT_FILE"
 require_file "$SVPP_POLICY_ENV_FILE"
 require_file "$SV_GATE_SCRIPT"
@@ -94,6 +98,8 @@ require_file "$SVPP_AGGREGATE_SCRIPT"
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
+
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
 sv_quality_state_dir="$WORK_DIR/systemverilog_roundtrip_quality_state"
 if [[ -n "$EXISTING_SV_STIMULI_QUALITY_STATE_DIR" ]]; then
@@ -106,10 +112,14 @@ else
 fi
 
 sv_parser_aggregate_state_dir="$WORK_DIR/sv_parser_aggregate_contract_gate"
-run_logged "systemverilog_roundtrip_aggregate_contract_gate" env \
-    PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="$sv_parser_aggregate_state_dir" \
-    PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$sv_quality_state_dir" \
-    "$SV_PARSER_AGGREGATE_SCRIPT"
+if [[ -n "$EXISTING_SV_PARSER_AGGREGATE_STATE_DIR" ]]; then
+    sv_parser_aggregate_state_dir="$EXISTING_SV_PARSER_AGGREGATE_STATE_DIR"
+else
+    run_logged "systemverilog_roundtrip_aggregate_contract_gate" env \
+        PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR="$sv_parser_aggregate_state_dir" \
+        PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR="$sv_quality_state_dir" \
+        "$SV_PARSER_AGGREGATE_SCRIPT"
+fi
 
 sv_parser_summary_txt="$sv_parser_aggregate_state_dir/summary.txt"
 require_nonempty_file "$sv_parser_summary_txt"
@@ -143,10 +153,14 @@ else
 fi
 
 svpp_aggregate_state_dir="$WORK_DIR/sv_preprocessor_aggregate_contract_gate"
-run_logged "systemverilog_preprocessor_roundtrip_aggregate_contract_gate" env \
-    PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="$svpp_aggregate_state_dir" \
-    PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR="$svpp_quality_state_dir" \
-    "$SVPP_AGGREGATE_SCRIPT"
+if [[ -n "$EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR" ]]; then
+    svpp_aggregate_state_dir="$EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR"
+else
+    run_logged "systemverilog_preprocessor_roundtrip_aggregate_contract_gate" env \
+        PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR="$svpp_aggregate_state_dir" \
+        PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR="$svpp_quality_state_dir" \
+        "$SVPP_AGGREGATE_SCRIPT"
+fi
 
 svpp_summary_txt="$svpp_aggregate_state_dir/summary.txt"
 require_nonempty_file "$svpp_summary_txt"
@@ -178,6 +192,8 @@ fi
 {
     echo "SV Roundtrip Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "sv_contract_file: $SV_CONTRACT_FILE"
     echo "svpp_policy_env_file: $SVPP_POLICY_ENV_FILE"
     echo "existing_sv_stimuli_quality_state_dir: ${EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-<unset>}"
@@ -205,6 +221,74 @@ fi
 } >"$SUMMARY_TXT"
 
 require_nonempty_file "$SUMMARY_TXT"
+jq -n \
+  --arg gate "sv_roundtrip_contract_gate" \
+  --argjson version 1 \
+  --arg generated_at_utc "$generated_at_utc" \
+  --arg state_dir "$STATE_DIR" \
+  --arg summary_txt "$SUMMARY_TXT" \
+  --arg summary_json "$SUMMARY_JSON" \
+  --arg sv_contract_file "$SV_CONTRACT_FILE" \
+  --arg svpp_policy_env_file "$SVPP_POLICY_ENV_FILE" \
+  --arg existing_sv_stimuli_quality_state_dir "${EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-}" \
+  --arg existing_sv_preprocessor_quality_state_dir "${EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}" \
+  --arg systemverilog_roundtrip_quality_state_dir "$sv_quality_state_dir" \
+  --arg systemverilog_roundtrip_aggregate_state_dir "$sv_parser_aggregate_state_dir" \
+  --arg systemverilog_preprocessor_roundtrip_quality_state_dir "$svpp_quality_state_dir" \
+  --arg systemverilog_preprocessor_roundtrip_aggregate_state_dir "$svpp_aggregate_state_dir" \
+  --argjson systemverilog_roundtrip_initial_targets "$sv_initial_targets" \
+  --argjson systemverilog_roundtrip_replay_targets "$sv_replay_targets" \
+  --argjson systemverilog_roundtrip_initial_covered_reachable_rules "$sv_initial_rules" \
+  --argjson systemverilog_roundtrip_replay_covered_reachable_rules "$sv_replay_rules" \
+  --argjson systemverilog_roundtrip_initial_covered_reachable_branches "$sv_initial_branches" \
+  --argjson systemverilog_roundtrip_replay_covered_reachable_branches "$sv_replay_branches" \
+  --argjson systemverilog_preprocessor_roundtrip_stage0_targets "$svpp_stage0_targets" \
+  --argjson systemverilog_preprocessor_roundtrip_stage1_targets "$svpp_stage1_targets" \
+  --argjson systemverilog_preprocessor_roundtrip_final_targets "$svpp_final_targets" \
+  --argjson systemverilog_preprocessor_roundtrip_stage4_targets "$svpp_stage4_targets" \
+  --arg systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules "$svpp_stage0_rules" \
+  --arg systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules "$svpp_stage1_rules" \
+  --arg systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules "$svpp_stage4_rules" \
+  --arg systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches "$svpp_stage0_branches" \
+  --arg systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches "$svpp_stage1_branches" \
+  --arg systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches "$svpp_stage4_branches" \
+  '{
+    gate: $gate,
+    version: $version,
+    generated_at_utc: $generated_at_utc,
+    state_dir: $state_dir,
+    summary_txt: $summary_txt,
+    summary_json: $summary_json,
+    sv_contract_file: $sv_contract_file,
+    svpp_policy_env_file: $svpp_policy_env_file,
+    existing_sv_stimuli_quality_state_dir: (if $existing_sv_stimuli_quality_state_dir == "" then null else $existing_sv_stimuli_quality_state_dir end),
+    existing_sv_preprocessor_quality_state_dir: (if $existing_sv_preprocessor_quality_state_dir == "" then null else $existing_sv_preprocessor_quality_state_dir end),
+    proof_surfaces: {
+      systemverilog_roundtrip_quality_state_dir: $systemverilog_roundtrip_quality_state_dir,
+      systemverilog_roundtrip_aggregate_state_dir: $systemverilog_roundtrip_aggregate_state_dir,
+      systemverilog_preprocessor_roundtrip_quality_state_dir: $systemverilog_preprocessor_roundtrip_quality_state_dir,
+      systemverilog_preprocessor_roundtrip_aggregate_state_dir: $systemverilog_preprocessor_roundtrip_aggregate_state_dir
+    },
+    metrics: {
+      systemverilog_roundtrip_initial_targets: $systemverilog_roundtrip_initial_targets,
+      systemverilog_roundtrip_replay_targets: $systemverilog_roundtrip_replay_targets,
+      systemverilog_roundtrip_initial_covered_reachable_rules: $systemverilog_roundtrip_initial_covered_reachable_rules,
+      systemverilog_roundtrip_replay_covered_reachable_rules: $systemverilog_roundtrip_replay_covered_reachable_rules,
+      systemverilog_roundtrip_initial_covered_reachable_branches: $systemverilog_roundtrip_initial_covered_reachable_branches,
+      systemverilog_roundtrip_replay_covered_reachable_branches: $systemverilog_roundtrip_replay_covered_reachable_branches,
+      systemverilog_preprocessor_roundtrip_stage0_targets: $systemverilog_preprocessor_roundtrip_stage0_targets,
+      systemverilog_preprocessor_roundtrip_stage1_targets: $systemverilog_preprocessor_roundtrip_stage1_targets,
+      systemverilog_preprocessor_roundtrip_final_targets: $systemverilog_preprocessor_roundtrip_final_targets,
+      systemverilog_preprocessor_roundtrip_stage4_targets: $systemverilog_preprocessor_roundtrip_stage4_targets,
+      systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules: $systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules,
+      systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules: $systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules,
+      systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules: $systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules,
+      systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches: $systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches,
+      systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches: $systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches,
+      systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches: $systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches
+    }
+  }' >"$SUMMARY_JSON"
+require_nonempty_file "$SUMMARY_JSON"
 cat "$SUMMARY_TXT"
 echo "Logs: $LOG_DIR"
 echo "Artifacts: $WORK_DIR"

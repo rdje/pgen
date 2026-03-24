@@ -1523,7 +1523,7 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
         if [[ -n "$EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR" ]]; then
             SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR"
             run_check "sv_failure_context_contract_gate" "informational" "reused existing combined SV-family failure-context proof over produced artifacts" \
-                bash -lc "test -s \"$SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR/summary.txt\""
+                bash -lc "test -s \"$SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR/summary.txt\" && test -s \"$SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR/summary.json\""
         elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
             run_check "sv_failure_context_contract_gate" "required" "strict combined SV-family failure-context proof over produced artifacts" \
                 env \
@@ -1540,19 +1540,21 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                     make -C rust SHELL=/bin/bash sv_failure_context_contract_gate
         fi
         SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="${SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR}/summary.txt"
-        if [[ ! -f "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT" ]]; then
+        SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON="${SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR}/summary.json"
+        if [[ ! -f "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT" || ! -f "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON" ]]; then
             SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="<missing>"
+            SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON="<missing>"
         else
-            SV_FAILURE_CONTEXT_GENERATION_EXCERPTS="$(summary_value_from_txt "systemverilog_generation_failure_context_excerpts" "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT")"
-            SV_FAILURE_CONTEXT_SHADOW_EXCERPTS="$(summary_value_from_txt "systemverilog_shadow_failure_context_excerpts" "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_FAILURE_CONTEXT_EXCERPTS="$(summary_value_from_txt "systemverilog_preprocessor_failure_context_excerpts" "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT")"
+            SV_FAILURE_CONTEXT_GENERATION_EXCERPTS="$(jq -r '.metrics.systemverilog_generation_failure_context_excerpts' "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON")"
+            SV_FAILURE_CONTEXT_SHADOW_EXCERPTS="$(jq -r '.metrics.systemverilog_shadow_failure_context_excerpts' "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_FAILURE_CONTEXT_EXCERPTS="$(jq -r '.metrics.systemverilog_preprocessor_failure_context_excerpts' "$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON")"
         fi
 
         SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR="${STATE_DIR}/work/sv_roundtrip_contract_gate"
         if [[ -n "$EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR" ]]; then
             SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR="$EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR"
             run_check "sv_roundtrip_contract_gate" "informational" "reused existing combined SV-family parser/stimuli roundtrip proof over produced artifacts" \
-                bash -lc "test -s \"$SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR/summary.txt\""
+                bash -lc "test -s \"$SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR/summary.txt\" && test -s \"$SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR/summary.json\""
         elif [[ "$REQUIRE_SV_STIMULI_QUALITY_STRICT" -eq 1 && "$REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT" -eq 1 ]]; then
             run_check "sv_roundtrip_contract_gate" "required" "strict combined SV-family parser/stimuli roundtrip proof over produced artifacts" \
                 env \
@@ -1569,25 +1571,27 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
                     make -C rust SHELL=/bin/bash sv_roundtrip_contract_gate
         fi
         SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="${SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR}/summary.txt"
-        if [[ ! -f "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT" ]]; then
+        SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON="${SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR}/summary.json"
+        if [[ ! -f "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT" || ! -f "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON" ]]; then
             SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT="<missing>"
+            SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON="<missing>"
         else
-            SV_ROUNDTRIP_INITIAL_TARGETS="$(summary_value_from_txt "systemverilog_roundtrip_initial_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_ROUNDTRIP_REPLAY_TARGETS="$(summary_value_from_txt "systemverilog_roundtrip_replay_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_roundtrip_initial_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_roundtrip_replay_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_roundtrip_initial_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_roundtrip_replay_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage0_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage1_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_FINAL_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_final_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_TARGETS="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage4_targets" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_RULES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
-            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_BRANCHES="$(summary_value_from_txt "systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches" "$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT")"
+            SV_ROUNDTRIP_INITIAL_TARGETS="$(jq -r '.metrics.systemverilog_roundtrip_initial_targets' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_ROUNDTRIP_REPLAY_TARGETS="$(jq -r '.metrics.systemverilog_roundtrip_replay_targets' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES="$(jq -r '.metrics.systemverilog_roundtrip_initial_covered_reachable_rules' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_RULES="$(jq -r '.metrics.systemverilog_roundtrip_replay_covered_reachable_rules' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_BRANCHES="$(jq -r '.metrics.systemverilog_roundtrip_initial_covered_reachable_branches' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_ROUNDTRIP_REPLAY_COVERED_REACHABLE_BRANCHES="$(jq -r '.metrics.systemverilog_roundtrip_replay_covered_reachable_branches' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_TARGETS="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage0_targets' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_TARGETS="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage1_targets' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_FINAL_TARGETS="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_final_targets' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_TARGETS="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage4_targets' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_RULES="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage0_covered_reachable_rules' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_RULES="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage1_covered_reachable_rules' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_RULES="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage4_covered_reachable_rules' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE0_COVERED_REACHABLE_BRANCHES="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage0_covered_reachable_branches' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE1_COVERED_REACHABLE_BRANCHES="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage1_covered_reachable_branches' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
+            SV_PREPROCESSOR_ROUNDTRIP_STAGE4_COVERED_REACHABLE_BRANCHES="$(jq -r '.metrics.systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches' "$SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON")"
         fi
         SV_PREPROCESSOR_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT="$SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
         SV_PREPROCESSOR_ROUNDTRIP_CONTRACT_SUMMARY_TXT="$SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
@@ -1998,9 +2002,11 @@ if [[ "$RUN_SV_STIMULI_QUALITY" -eq 1 ]]; then
     echo "sv_focused_initial_covered_reachable_branches: $SV_FOCUSED_INITIAL_COVERED_REACHABLE_BRANCHES"
     echo "sv_focused_replay_covered_reachable_branches: $SV_FOCUSED_REPLAY_COVERED_REACHABLE_BRANCHES"
     echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
+    echo "sv_failure_context_contract_summary_json: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON"
     echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
     echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"
     echo "sv_roundtrip_contract_summary_txt: $SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
+    echo "sv_roundtrip_contract_summary_json: $SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON"
     echo "sv_roundtrip_initial_targets: $SV_ROUNDTRIP_INITIAL_TARGETS"
     echo "sv_roundtrip_replay_targets: $SV_ROUNDTRIP_REPLAY_TARGETS"
     echo "sv_roundtrip_initial_covered_reachable_rules: $SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES"
@@ -3026,9 +3032,11 @@ informational_failures=$((all_failures - required_failures))
         echo "sv_focused_initial_covered_reachable_branches: $SV_FOCUSED_INITIAL_COVERED_REACHABLE_BRANCHES"
         echo "sv_focused_replay_covered_reachable_branches: $SV_FOCUSED_REPLAY_COVERED_REACHABLE_BRANCHES"
         echo "sv_failure_context_contract_summary_txt: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT"
+        echo "sv_failure_context_contract_summary_json: $SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON"
         echo "sv_failure_context_generation_excerpts: $SV_FAILURE_CONTEXT_GENERATION_EXCERPTS"
         echo "sv_failure_context_shadow_excerpts: $SV_FAILURE_CONTEXT_SHADOW_EXCERPTS"
         echo "sv_roundtrip_contract_summary_txt: $SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT"
+        echo "sv_roundtrip_contract_summary_json: $SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON"
         echo "sv_roundtrip_initial_targets: $SV_ROUNDTRIP_INITIAL_TARGETS"
         echo "sv_roundtrip_replay_targets: $SV_ROUNDTRIP_REPLAY_TARGETS"
         echo "sv_roundtrip_initial_covered_reachable_rules: $SV_ROUNDTRIP_INITIAL_COVERED_REACHABLE_RULES"
@@ -3534,6 +3542,8 @@ jq -n \
     --argjson all_failures "$all_failures" \
     --argjson checks "$checks_json" \
     --arg ebnf_dual_run_summary_json "$EBNF_DUAL_RUN_SUMMARY_JSON" \
+    --arg sv_failure_context_contract_summary_json "${SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_roundtrip_contract_summary_json "${SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON:-<not-run>}" \
     --arg sv_parser_family_status_summary_json "${SV_PARSER_FAMILY_STATUS_SUMMARY_JSON:-<not-run>}" \
     --arg sv_parser_family_status_contract_summary_json "${SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON:-<not-run>}" \
     --arg sv_family_status_systemverilog_parser_aggregate_state_dir "${SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR:-<not-run>}" \
@@ -3712,6 +3722,8 @@ jq -n \
             summary_csv: $summary_csv,
             summary_json: $summary_json,
             ebnf_dual_run_summary_json: maybe_path($ebnf_dual_run_summary_json),
+            sv_failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json),
+            sv_roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json),
             sv_parser_family_status_summary_json: maybe_path($sv_parser_family_status_summary_json),
             sv_parser_family_status_contract_summary_json: maybe_path($sv_parser_family_status_contract_summary_json),
             sv_family_status_systemverilog_parser_aggregate_state_dir: maybe_path($sv_family_status_systemverilog_parser_aggregate_state_dir),

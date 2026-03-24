@@ -208,6 +208,12 @@ audit_sota_json_consumption_surface() {
     '.family_status.systemverilog.primary_unmet_closure_criterion'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.sv_failure_context_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.proof_surfaces.sv_roundtrip_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
@@ -333,6 +339,42 @@ audit_combined_telemetry_nested_provenance_surface() {
   assert_file_contains \
     "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
     'summary_json: $vhdl_family_status_contract_vhdl_family_contract_summary_json'
+}
+
+audit_sv_auxiliary_contract_surface() {
+  note "auditing SV auxiliary-contract summary surface"
+
+  assert_tracked "rust/scripts/sota_exit_gate.sh"
+  assert_tracked "rust/scripts/sv_combined_telemetry_contract_gate.sh"
+  assert_tracked "rust/scripts/sv_failure_context_contract_gate.sh"
+  assert_tracked "rust/scripts/sv_roundtrip_contract_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'sv_failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'sv_roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)'
+
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'sv_failure_context_contract_summary_json: $sv_failure_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'sv_roundtrip_contract_summary_json: $sv_roundtrip_summary_json'
+
+  assert_file_contains \
+    "rust/scripts/sv_failure_context_contract_gate.sh" \
+    'systemverilog_generation_counterexample_triage_json: $systemverilog_generation_counterexample_triage_json'
+  assert_file_contains \
+    "rust/scripts/sv_failure_context_contract_gate.sh" \
+    'systemverilog_preprocessor_counterexample_triage_json: $systemverilog_preprocessor_counterexample_triage_json'
+  assert_file_contains \
+    "rust/scripts/sv_roundtrip_contract_gate.sh" \
+    'systemverilog_roundtrip_initial_targets: $systemverilog_roundtrip_initial_targets'
+  assert_file_contains \
+    "rust/scripts/sv_roundtrip_contract_gate.sh" \
+    'systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches: $systemverilog_preprocessor_roundtrip_stage4_covered_reachable_branches'
 }
 
 audit_family_layer_provenance_surface() {
@@ -484,6 +526,8 @@ audit_summary_json_emission_surface() {
   assert_tracked "rust/scripts/vhdl_combined_telemetry_contract_gate.sh"
 
   for repo_file in \
+    rust/scripts/sv_failure_context_contract_gate.sh \
+    rust/scripts/sv_roundtrip_contract_gate.sh \
     rust/scripts/sota_exit_gate.sh \
     rust/scripts/sv_combined_telemetry_contract_gate.sh \
     rust/scripts/regex_combined_telemetry_contract_gate.sh \
@@ -549,6 +593,7 @@ main() {
   audit_sota_json_consumption_surface
   audit_sota_nested_family_emission_surface
   audit_combined_telemetry_nested_provenance_surface
+  audit_sv_auxiliary_contract_surface
   audit_family_layer_provenance_surface
   audit_family_summary_identity_surface
   audit_family_contract_proof_surface

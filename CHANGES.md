@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-24 - Surface SV auxiliary contract JSON proof
+### ✅ Achievement Summary
+PGEN now gives the shipped SV failure-context and roundtrip side proofs real `summary.json` sidecars, and the SV aggregate proof stack now consumes those JSON surfaces instead of leaving them TXT-only.
+
+### Scope of Changes
+- Updated:
+  - [sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh)
+  - [sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh)
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The two SV side proofs now emit:
+  - `generated_at_utc`
+  - `summary_json`
+  - machine-readable proof/metric payloads
+- SOTA and SV combined telemetry now surface and consume:
+  - `sv_failure_context_contract_summary_json`
+  - `sv_roundtrip_contract_summary_json`
+
+### Why This Matters
+- The remaining shipped SV side proofs are no longer TXT-only islands.
+- Higher aggregate layers can now reuse those proofs through JSON sidecars instead of brittle text-only scraping.
+
 ## 2026-03-24 - Lock family-contract proof-surface policy
 ### ✅ Achievement Summary
 PGEN now makes the local CI workflow gate enforce the shipped family-contract proof-surface outputs directly.

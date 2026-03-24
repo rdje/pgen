@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next clean SV proof-plumbing gap after semantic-scope provenance reached SOTA and combined telemetry was the two remaining shipped TXT-only side proofs:
+  - `sv_failure_context_contract_gate`
+  - `sv_roundtrip_contract_gate`
+- That seam is now being closed by:
+  - adding `summary.json` sidecars plus `generated_at_utc` / `summary_json` self-description to both gates,
+  - making `sota_exit_gate.sh` surface `sv_failure_context_contract_summary_json` and `sv_roundtrip_contract_summary_json`,
+  - making `sv_combined_telemetry_contract_gate.sh` parse those sidecars directly for the failure-context excerpt counts and roundtrip metrics,
+  - locking the producer/consumer path in `ci_workflow_local_gate.sh`.
 - The next proof-plumbing coherence seam after local CI started locking family-sidecar identity was the family-contract proof surface itself:
   - the shipped family sidecars now had their self-description and family-layer provenance guarded,
   - but the regex and VHDL family-contract proof-surface outputs still only remained stable by convention.
