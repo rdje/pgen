@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-24 - Surface SV aggregate provenance inside SOTA family JSON
+### ✅ Achievement Summary
+PGEN now makes the structured SV `family_status` and `family_status_contract` entries inside `sota_exit_gate/summary.json` carry the parser/preprocessor aggregate proof paths directly.
+
+### Scope of Changes
+- Updated:
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+- The SOTA JSON sidecar now embeds, inside the relevant SV family entries:
+  - parser/preprocessor aggregate `state_dir`
+  - parser/preprocessor aggregate `summary.txt`
+  - parser/preprocessor aggregate `summary.json`
+- The existing top-level SOTA proof-surface fields remain unchanged.
+
+### Why This Matters
+- The SV aggregate provenance in SOTA is now preserved in the family objects that actually describe those blockers, not only in top-level proof-surface fields.
+- Downstream readers can consume the structured SV family payloads directly without having to cross-reference separate top-level SOTA keys for the same aggregate proof paths.
+
 ## 2026-03-24 - Consume SV aggregate JSON provenance in combined telemetry
 ### ✅ Achievement Summary
 PGEN now makes `sv_combined_telemetry_contract_gate` consume the SV parser/preprocessor aggregate `summary.json` proof paths that `sota_exit_gate` now exposes.

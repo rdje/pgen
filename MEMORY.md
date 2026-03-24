@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next SV proof-normalization seam after combined telemetry started consuming SOTA aggregate JSON provenance was still inside SOTA JSON structure itself:
+  - the top-level `proof_surfaces` object already carried the parser/preprocessor aggregate paths,
+  - but the nested SV `family_status` and `family_status_contract` objects still exposed only family-summary sidecar pointers.
+- That seam is now being closed by making `sota_exit_gate/summary.json`:
+  - embed SV parser/preprocessor aggregate state/TXT/JSON paths directly inside the relevant family objects,
+  - while keeping the existing top-level proof-surface fields unchanged.
 - The next SV proof-normalization seam after SOTA started preserving aggregate JSON provenance was the shipped SV aggregate layer:
   - `sv_combined_telemetry_contract_gate` already consumed SOTA JSON,
   - but it was still ignoring the new parser/preprocessor aggregate `summary.json` proof paths surfaced there.

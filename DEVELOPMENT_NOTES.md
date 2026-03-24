@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make SOTA family JSON carry SV aggregate provenance directly
+### Context
+After the last two SV slices:
+- `sota_exit_gate` already exposed the SV parser/preprocessor aggregate proof paths at top-level `proof_surfaces`,
+- `sv_combined_telemetry_contract_gate` already consumed those top-level fields.
+
+But the structured SOTA JSON payloads for:
+- `family_status.systemverilog`
+- `family_status.systemverilog_preprocessor`
+- `family_status_contract.systemverilog`
+- `family_status_contract.systemverilog_preprocessor`
+
+still only pointed back to the family summary sidecars.
+
+### Implementation
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - extended the SOTA JSON helper functions to accept extra per-family proof-surface payloads,
+  - embedded the SV parser/preprocessor aggregate state/TXT/JSON paths directly in the relevant `family_status` and `family_status_contract` entries,
+  - left non-SV families unchanged.
+
+### Why This Matters
+- SOTA now preserves the SV aggregate provenance in the structured family objects that actually own those closure signals.
+- Downstream readers can use the nested family payloads directly instead of stitching together family objects plus top-level proof-surface fields.
+
 ## 2026-03-24 - Make SV combined telemetry consume aggregate JSON provenance from SOTA
 ### Context
 After the previous slice, `sota_exit_gate` already surfaced the SV parser/preprocessor aggregate:

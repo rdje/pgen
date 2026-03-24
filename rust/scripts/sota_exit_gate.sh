@@ -3570,7 +3570,11 @@ jq -n \
         if ($v | length) == 0 or (($v | startswith("<")) and ($v | endswith(">"))) then null
         else ($v | fromjson?)
         end;
-    def family_status_entry($summary_json; $contract_json; $status; $tracker_status; $tracker_alignment_ok; $primary_unmet; $unmet_json; $unmet_details_json):
+    def maybe_object_json($v):
+        if ($v | length) == 0 or (($v | startswith("<")) and ($v | endswith(">"))) then {}
+        else ($v | fromjson? // {})
+        end;
+    def family_status_entry($summary_json; $contract_json; $status; $tracker_status; $tracker_alignment_ok; $primary_unmet; $unmet_json; $unmet_details_json; $proof_surfaces_extra_json):
         if maybe_path($summary_json) == null then null else {
             status: maybe_text($status),
             tracker_status: maybe_text($tracker_status),
@@ -3578,20 +3582,20 @@ jq -n \
             primary_unmet_closure_criterion: maybe_text($primary_unmet),
             unmet_closure_criteria: maybe_json($unmet_json),
             unmet_closure_criteria_details: maybe_json($unmet_details_json),
-            proof_surfaces: {
+            proof_surfaces: ({
                 family_status_summary_json: maybe_path($summary_json),
                 family_status_contract_summary_json: maybe_path($contract_json)
-            }
+            } + maybe_object_json($proof_surfaces_extra_json))
         } end;
-    def family_status_contract_entry($summary_json; $tracker_alignment_ok; $primary_unmet_detail; $unmet_json; $unmet_details_json):
+    def family_status_contract_entry($summary_json; $tracker_alignment_ok; $primary_unmet_detail; $unmet_json; $unmet_details_json; $proof_surfaces_extra_json):
         if maybe_path($summary_json) == null then null else {
             tracker_alignment_ok: maybe_bool($tracker_alignment_ok),
             primary_unmet_detail_criterion: maybe_text($primary_unmet_detail),
             unmet_closure_criteria: maybe_json($unmet_json),
             unmet_closure_criteria_details: maybe_json($unmet_details_json),
-            proof_surfaces: {
+            proof_surfaces: ({
                 family_status_contract_summary_json: maybe_path($summary_json)
-            }
+            } + maybe_object_json($proof_surfaces_extra_json))
         } end;
     ($required_checks | split(" ") | map(select(length > 0))) as $required_check_list
     | ($checks
@@ -3655,16 +3659,32 @@ jq -n \
             regex_parser_family_status_contract_summary_json: maybe_path($regex_parser_family_status_contract_summary_json)
         },
         family_status: {
-            systemverilog: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_status; $sv_systemverilog_tracker_status; $sv_systemverilog_tracker_alignment_ok; $sv_systemverilog_primary_unmet; $sv_systemverilog_unmet_json; $sv_systemverilog_unmet_details_json),
-            systemverilog_preprocessor: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_preprocessor_status; $sv_systemverilog_preprocessor_tracker_status; $sv_systemverilog_preprocessor_tracker_alignment_ok; $sv_systemverilog_preprocessor_primary_unmet; $sv_systemverilog_preprocessor_unmet_json; $sv_systemverilog_preprocessor_unmet_details_json),
-            vhdl: family_status_entry($vhdl_parser_family_status_summary_json; $vhdl_parser_family_status_contract_summary_json; $vhdl_status; $vhdl_tracker_status; $vhdl_tracker_alignment_ok; $vhdl_primary_unmet; $vhdl_unmet_json; $vhdl_unmet_details_json),
-            regex: family_status_entry($regex_parser_family_status_summary_json; $regex_parser_family_status_contract_summary_json; $regex_status; $regex_tracker_status; $regex_tracker_alignment_ok; $regex_primary_unmet; $regex_unmet_json; $regex_unmet_details_json)
+            systemverilog: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_status; $sv_systemverilog_tracker_status; $sv_systemverilog_tracker_alignment_ok; $sv_systemverilog_primary_unmet; $sv_systemverilog_unmet_json; $sv_systemverilog_unmet_details_json; ({
+                parser_aggregate_state_dir: maybe_path($sv_family_status_systemverilog_parser_aggregate_state_dir),
+                parser_aggregate_summary_txt: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_txt),
+                parser_aggregate_summary_json: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_json)
+            } | tojson)),
+            systemverilog_preprocessor: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_preprocessor_status; $sv_systemverilog_preprocessor_tracker_status; $sv_systemverilog_preprocessor_tracker_alignment_ok; $sv_systemverilog_preprocessor_primary_unmet; $sv_systemverilog_preprocessor_unmet_json; $sv_systemverilog_preprocessor_unmet_details_json; ({
+                aggregate_state_dir: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_state_dir),
+                aggregate_summary_txt: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_summary_txt),
+                aggregate_summary_json: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_summary_json)
+            } | tojson)),
+            vhdl: family_status_entry($vhdl_parser_family_status_summary_json; $vhdl_parser_family_status_contract_summary_json; $vhdl_status; $vhdl_tracker_status; $vhdl_tracker_alignment_ok; $vhdl_primary_unmet; $vhdl_unmet_json; $vhdl_unmet_details_json; "<not-run>"),
+            regex: family_status_entry($regex_parser_family_status_summary_json; $regex_parser_family_status_contract_summary_json; $regex_status; $regex_tracker_status; $regex_tracker_alignment_ok; $regex_primary_unmet; $regex_unmet_json; $regex_unmet_details_json; "<not-run>")
         },
         family_status_contract: {
-            systemverilog: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_tracker_alignment_ok; $sv_contract_systemverilog_primary_unmet_detail; $sv_contract_systemverilog_unmet_json; $sv_contract_systemverilog_unmet_details_json),
-            systemverilog_preprocessor: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_preprocessor_tracker_alignment_ok; $sv_contract_systemverilog_preprocessor_primary_unmet_detail; $sv_contract_systemverilog_preprocessor_unmet_json; $sv_contract_systemverilog_preprocessor_unmet_details_json),
-            vhdl: family_status_contract_entry($vhdl_parser_family_status_contract_summary_json; $vhdl_contract_tracker_alignment_ok; $vhdl_contract_primary_unmet_detail; $vhdl_contract_unmet_json; $vhdl_contract_unmet_details_json),
-            regex: family_status_contract_entry($regex_parser_family_status_contract_summary_json; $regex_contract_tracker_alignment_ok; $regex_contract_primary_unmet_detail; $regex_contract_unmet_json; $regex_contract_unmet_details_json)
+            systemverilog: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_tracker_alignment_ok; $sv_contract_systemverilog_primary_unmet_detail; $sv_contract_systemverilog_unmet_json; $sv_contract_systemverilog_unmet_details_json; ({
+                parser_aggregate_state_dir: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_state_dir),
+                parser_aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_txt),
+                parser_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_json)
+            } | tojson)),
+            systemverilog_preprocessor: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_preprocessor_tracker_alignment_ok; $sv_contract_systemverilog_preprocessor_primary_unmet_detail; $sv_contract_systemverilog_preprocessor_unmet_json; $sv_contract_systemverilog_preprocessor_unmet_details_json; ({
+                aggregate_state_dir: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir),
+                aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt),
+                aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json)
+            } | tojson)),
+            vhdl: family_status_contract_entry($vhdl_parser_family_status_contract_summary_json; $vhdl_contract_tracker_alignment_ok; $vhdl_contract_primary_unmet_detail; $vhdl_contract_unmet_json; $vhdl_contract_unmet_details_json; "<not-run>"),
+            regex: family_status_contract_entry($regex_parser_family_status_contract_summary_json; $regex_contract_tracker_alignment_ok; $regex_contract_primary_unmet_detail; $regex_contract_unmet_json; $regex_contract_unmet_details_json; "<not-run>")
         },
         checks: $checks_enriched
     }
