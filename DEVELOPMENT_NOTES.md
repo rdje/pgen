@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Lock nested family SOTA consumption in local CI
+### Context
+After the SV, regex, and VHDL aggregate readers started consuming nested family proof surfaces from `sota_exit_gate/summary.json`, that rule still lived only in the aggregate scripts themselves.
+
+### Implementation
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the existing SOTA JSON audit now also asserts nested-family proof-surface reads for:
+    - SV aggregate parser/preprocessor provenance,
+    - regex dual-run / family-contract provenance,
+    - VHDL quality / family-contract provenance.
+
+### Why This Matters
+- This turns the recent nested-family aggregate consumption doctrine into an enforced regression guard.
+- If an aggregate reader drifts back to using only the older top-level SOTA mirrors, local CI will catch it.
+
 ## 2026-03-24 - Make VHDL combined telemetry consume nested SOTA family provenance
 ### Context
 After the last VHDL SOTA slice:

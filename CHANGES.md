@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-24 - Lock nested family SOTA consumption policy
+### ✅ Achievement Summary
+PGEN now makes the local CI workflow gate enforce that shipped aggregate readers keep consuming nested family proof surfaces from `sota_exit_gate/summary.json`.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI contract now asserts that:
+  - SV aggregate readers keep consuming nested parser/preprocessor aggregate proof paths,
+  - regex aggregate readers keep consuming nested family-contract / dual-run proof paths,
+  - VHDL aggregate readers keep consuming nested family-contract / quality proof paths.
+
+### Why This Matters
+- The recent nested-family SOTA consumption work is now protected against drift.
+- Aggregate readers cannot silently fall back to relying only on the older top-level SOTA mirror fields.
+
 ## 2026-03-24 - Consume nested VHDL family provenance in combined telemetry
 ### ✅ Achievement Summary
 PGEN now makes `vhdl_combined_telemetry_contract_gate` consume the nested VHDL proof provenance already carried by `sota_exit_gate/summary.json`.

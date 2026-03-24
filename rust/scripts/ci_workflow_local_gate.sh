@@ -206,6 +206,12 @@ audit_sota_json_consumption_surface() {
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     '.family_status.systemverilog.primary_unmet_closure_criterion'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_json'
 
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
@@ -219,6 +225,12 @@ audit_sota_json_consumption_surface() {
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     '.family_status.regex.primary_unmet_closure_criterion'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status.regex.proof_surfaces.dual_run_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.regex.proof_surfaces.family_contract_summary_json'
 
   assert_file_contains \
     "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
@@ -232,6 +244,12 @@ audit_sota_json_consumption_surface() {
   assert_file_contains \
     "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
     '.family_status.vhdl.primary_unmet_closure_criterion'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    '.family_status.vhdl.proof_surfaces.quality_parseability_report_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.vhdl.proof_surfaces.family_contract_summary_json'
 }
 
 audit_summary_json_emission_surface() {
