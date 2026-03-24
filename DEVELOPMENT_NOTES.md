@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make SOTA family JSON carry VHDL provenance directly
+### Context
+After the recent VHDL proof-provenance work:
+- `sota_exit_gate` already exposed the VHDL family contract / status / status-contract summary sidecars,
+- and it already exposed the VHDL quality and strict-promotion evidence at top level.
+
+But the structured SOTA JSON payloads for:
+- `family_status.vhdl`
+- `family_status_contract.vhdl`
+
+still only carried the generic family summary pointers.
+
+### Implementation
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - extracted VHDL family-contract `state_dir` in addition to the already-available summary paths,
+  - extracted VHDL family-contract provenance from `vhdl_parser_family_status_contract_gate/summary.json`,
+  - embedded VHDL family-contract, quality, and strict-promotion proof paths inside `family_status.vhdl.proof_surfaces`,
+  - embedded VHDL family-status and family-contract proof paths inside `family_status_contract.vhdl.proof_surfaces`.
+
+### Why This Matters
+- The structured VHDL family payloads in SOTA now carry the proof chain directly instead of forcing downstream readers to stitch it together from top-level fields.
+- This brings the VHDL family row closer to the same “blocker object owns its provenance” shape already applied to SV.
+
 ## 2026-03-24 - Make SV combined telemetry consume nested SOTA family provenance
 ### Context
 After the last slice, `sota_exit_gate/summary.json` exposed the SV parser/preprocessor aggregate proof paths twice:

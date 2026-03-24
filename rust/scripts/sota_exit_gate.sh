@@ -2528,6 +2528,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_SATISFIED_COUNT="<missing>"
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT="<missing>"
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_STATE_DIR="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN="<missing>"
@@ -2556,6 +2557,7 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_SATISFIED_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_satisfied_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_TOTAL_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_total_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT="$(summary_value_from_txt "vhdl_closure_criteria_unsatisfied_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_STATE_DIR="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_state_dir' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_summary_txt' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_summary_json' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN="$(summary_value_from_txt "vhdl_family_contract_green" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
@@ -2602,6 +2604,9 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR="<missing>"
         VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON="<missing>"
         VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT="<missing>"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_STATE_DIR="<missing>"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT="<missing>"
@@ -2616,6 +2621,9 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR="$(jq -r '.family_status_state_dir' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON="$(jq -r '.family_status_summary_json' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT="$(jq -r '.family_status_summary_txt' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_STATE_DIR="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.state_dir' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.summary_txt' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.summary_json' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="$(summary_value_from_txt "family_count" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "vhdl_tracker_alignment_ok" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "vhdl_false_criteria_count" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
@@ -3497,23 +3505,33 @@ jq -n \
     --argjson all_failures "$all_failures" \
     --argjson checks "$checks_json" \
     --arg ebnf_dual_run_summary_json "$EBNF_DUAL_RUN_SUMMARY_JSON" \
-    --arg sv_parser_family_status_summary_json "$SV_PARSER_FAMILY_STATUS_SUMMARY_JSON" \
-    --arg sv_parser_family_status_contract_summary_json "$SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON" \
-    --arg sv_family_status_systemverilog_parser_aggregate_state_dir "$SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR" \
-    --arg sv_family_status_systemverilog_parser_aggregate_summary_txt "$SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT" \
-    --arg sv_family_status_systemverilog_parser_aggregate_summary_json "$SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON" \
-    --arg sv_family_status_systemverilog_preprocessor_aggregate_state_dir "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_STATE_DIR" \
-    --arg sv_family_status_systemverilog_preprocessor_aggregate_summary_txt "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT" \
-    --arg sv_family_status_systemverilog_preprocessor_aggregate_summary_json "$SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_JSON" \
-    --arg sv_family_status_contract_systemverilog_parser_aggregate_state_dir "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR" \
-    --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_txt "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT" \
-    --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_json "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON" \
-    --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_STATE_DIR" \
-    --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT" \
-    --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json "$SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_JSON" \
+    --arg sv_parser_family_status_summary_json "${SV_PARSER_FAMILY_STATUS_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_parser_family_status_contract_summary_json "${SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_family_status_systemverilog_parser_aggregate_state_dir "${SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR:-<not-run>}" \
+    --arg sv_family_status_systemverilog_parser_aggregate_summary_txt "${SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT:-<not-run>}" \
+    --arg sv_family_status_systemverilog_parser_aggregate_summary_json "${SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_family_status_systemverilog_preprocessor_aggregate_state_dir "${SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_STATE_DIR:-<not-run>}" \
+    --arg sv_family_status_systemverilog_preprocessor_aggregate_summary_txt "${SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT:-<not-run>}" \
+    --arg sv_family_status_systemverilog_preprocessor_aggregate_summary_json "${SV_FAMILY_STATUS_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_parser_aggregate_state_dir "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_txt "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_TXT:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_parser_aggregate_summary_json "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PARSER_AGGREGATE_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_STATE_DIR:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_TXT:-<not-run>}" \
+    --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json "${SV_FAMILY_STATUS_CONTRACT_SYSTEMVERILOG_PREPROCESSOR_AGGREGATE_SUMMARY_JSON:-<not-run>}" \
     --arg vhdl_parser_family_contract_summary_json "${VHDL_PARSER_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
     --arg vhdl_parser_family_status_summary_json "${VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON:-<not-run>}" \
     --arg vhdl_parser_family_status_contract_summary_json "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg vhdl_family_status_vhdl_family_contract_state_dir "${VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_STATE_DIR:-<not-run>}" \
+    --arg vhdl_family_status_vhdl_family_contract_summary_txt "${VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT:-<not-run>}" \
+    --arg vhdl_family_status_vhdl_family_contract_summary_json "${VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg vhdl_family_quality_state_dir "${VHDL_FAMILY_QUALITY_STATE_DIR:-<not-run>}" \
+    --arg vhdl_family_quality_summary_txt "${VHDL_FAMILY_QUALITY_SUMMARY_TXT:-<not-run>}" \
+    --arg vhdl_family_quality_realistic_report_json "${VHDL_FAMILY_QUALITY_REALISTIC_REPORT_JSON:-<not-run>}" \
+    --arg vhdl_family_quality_parseability_report_json "${VHDL_FAMILY_QUALITY_PARSEABILITY_REPORT_JSON:-<not-run>}" \
+    --arg vhdl_family_strict_promotion_state_dir "${VHDL_FAMILY_STRICT_PROMOTION_STATE_DIR:-<not-run>}" \
+    --arg vhdl_family_strict_promotion_summary_txt "${VHDL_FAMILY_STRICT_PROMOTION_SUMMARY_TXT:-<not-run>}" \
+    --arg vhdl_family_strict_promotion_report_json "${VHDL_FAMILY_STRICT_PROMOTION_REPORT_JSON:-<not-run>}" \
     --arg regex_parser_family_contract_summary_json "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON" \
     --arg regex_parser_family_status_summary_json "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON" \
     --arg regex_parser_family_status_contract_summary_json "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON" \
@@ -3553,6 +3571,12 @@ jq -n \
     --arg vhdl_contract_primary_unmet_detail "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_PRIMARY_UNMET_DETAIL_CRITERION:-<not-run>}" \
     --arg vhdl_contract_unmet_json "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_JSON:-<not-run>}" \
     --arg vhdl_contract_unmet_details_json "${VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_DETAILS_JSON:-<not-run>}" \
+    --arg vhdl_family_status_contract_family_status_state_dir "${VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_STATE_DIR:-<not-run>}" \
+    --arg vhdl_family_status_contract_family_status_summary_txt "${VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_TXT:-<not-run>}" \
+    --arg vhdl_family_status_contract_family_status_summary_json "${VHDL_FAMILY_STATUS_CONTRACT_FAMILY_STATUS_SUMMARY_JSON:-<not-run>}" \
+    --arg vhdl_family_status_contract_vhdl_family_contract_state_dir "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_STATE_DIR:-<not-run>}" \
+    --arg vhdl_family_status_contract_vhdl_family_contract_summary_txt "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_TXT:-<not-run>}" \
+    --arg vhdl_family_status_contract_vhdl_family_contract_summary_json "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
     --arg regex_contract_tracker_alignment_ok "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK:-<not-run>}" \
     --arg regex_contract_primary_unmet_detail "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION:-<not-run>}" \
     --arg regex_contract_unmet_json "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON:-<not-run>}" \
@@ -3669,7 +3693,18 @@ jq -n \
                 aggregate_summary_txt: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_summary_txt),
                 aggregate_summary_json: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_summary_json)
             } | tojson)),
-            vhdl: family_status_entry($vhdl_parser_family_status_summary_json; $vhdl_parser_family_status_contract_summary_json; $vhdl_status; $vhdl_tracker_status; $vhdl_tracker_alignment_ok; $vhdl_primary_unmet; $vhdl_unmet_json; $vhdl_unmet_details_json; "<not-run>"),
+            vhdl: family_status_entry($vhdl_parser_family_status_summary_json; $vhdl_parser_family_status_contract_summary_json; $vhdl_status; $vhdl_tracker_status; $vhdl_tracker_alignment_ok; $vhdl_primary_unmet; $vhdl_unmet_json; $vhdl_unmet_details_json; ({
+                family_contract_state_dir: maybe_path($vhdl_family_status_vhdl_family_contract_state_dir),
+                family_contract_summary_txt: maybe_path($vhdl_family_status_vhdl_family_contract_summary_txt),
+                family_contract_summary_json: maybe_path($vhdl_family_status_vhdl_family_contract_summary_json),
+                quality_state_dir: maybe_path($vhdl_family_quality_state_dir),
+                quality_summary_txt: maybe_path($vhdl_family_quality_summary_txt),
+                quality_realistic_report_json: maybe_path($vhdl_family_quality_realistic_report_json),
+                quality_parseability_report_json: maybe_path($vhdl_family_quality_parseability_report_json),
+                strict_promotion_state_dir: maybe_path($vhdl_family_strict_promotion_state_dir),
+                strict_promotion_summary_txt: maybe_path($vhdl_family_strict_promotion_summary_txt),
+                strict_promotion_report_json: maybe_path($vhdl_family_strict_promotion_report_json)
+            } | tojson)),
             regex: family_status_entry($regex_parser_family_status_summary_json; $regex_parser_family_status_contract_summary_json; $regex_status; $regex_tracker_status; $regex_tracker_alignment_ok; $regex_primary_unmet; $regex_unmet_json; $regex_unmet_details_json; "<not-run>")
         },
         family_status_contract: {
@@ -3683,7 +3718,14 @@ jq -n \
                 aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt),
                 aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json)
             } | tojson)),
-            vhdl: family_status_contract_entry($vhdl_parser_family_status_contract_summary_json; $vhdl_contract_tracker_alignment_ok; $vhdl_contract_primary_unmet_detail; $vhdl_contract_unmet_json; $vhdl_contract_unmet_details_json; "<not-run>"),
+            vhdl: family_status_contract_entry($vhdl_parser_family_status_contract_summary_json; $vhdl_contract_tracker_alignment_ok; $vhdl_contract_primary_unmet_detail; $vhdl_contract_unmet_json; $vhdl_contract_unmet_details_json; ({
+                family_status_state_dir: maybe_path($vhdl_family_status_contract_family_status_state_dir),
+                family_status_summary_txt: maybe_path($vhdl_family_status_contract_family_status_summary_txt),
+                family_status_summary_json: maybe_path($vhdl_family_status_contract_family_status_summary_json),
+                family_contract_state_dir: maybe_path($vhdl_family_status_contract_vhdl_family_contract_state_dir),
+                family_contract_summary_txt: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_txt),
+                family_contract_summary_json: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_json)
+            } | tojson)),
             regex: family_status_contract_entry($regex_parser_family_status_contract_summary_json; $regex_contract_tracker_alignment_ok; $regex_contract_primary_unmet_detail; $regex_contract_unmet_json; $regex_contract_unmet_details_json; "<not-run>")
         },
         checks: $checks_enriched

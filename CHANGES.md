@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-24 - Surface VHDL family provenance inside SOTA family JSON
+### ✅ Achievement Summary
+PGEN now makes `sota_exit_gate/summary.json` carry VHDL family proof provenance directly inside the structured `family_status.vhdl` and `family_status_contract.vhdl` payloads.
+
+### Scope of Changes
+- Updated:
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+- The nested VHDL family-status payload now carries:
+  - family-contract `state_dir` / `summary.txt` / `summary.json`
+  - quality `state_dir` / `summary.txt` / report JSON paths
+  - strict-promotion `state_dir` / `summary.txt` / report JSON path
+- The nested VHDL family-status-contract payload now carries:
+  - family-status `state_dir` / `summary.txt` / `summary.json`
+  - family-contract `state_dir` / `summary.txt` / `summary.json`
+
+### Why This Matters
+- VHDL blocker rows in SOTA can now point straight at the actual proof artifacts they came from.
+- Downstream readers no longer need to reconstruct the VHDL proof chain from unrelated top-level SOTA keys.
+
 ## 2026-03-24 - Consume nested SV aggregate provenance in combined telemetry
 ### ✅ Achievement Summary
 PGEN now makes `sv_combined_telemetry_contract_gate` read the SV parser/preprocessor aggregate proof paths from SOTA's structured family JSON payloads instead of only from mirrored top-level SOTA keys.

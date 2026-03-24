@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next aggregate-proof coherence seam after SV nested-family provenance landed was the sibling VHDL path in `sota_exit_gate`:
+  - top-level SOTA already carried the VHDL family contract / quality / strict-promotion evidence,
+  - but the structured `family_status.vhdl` and `family_status_contract.vhdl` payloads still only exposed generic summary pointers.
+- That seam is now being closed by making SOTA:
+  - embed VHDL family-contract plus quality/strict-promotion proof surfaces directly in `family_status.vhdl`,
+  - and embed VHDL family-status plus family-contract proof surfaces directly in `family_status_contract.vhdl`.
 - The next SV proof-normalization seam after SOTA started embedding aggregate provenance in its structured family payloads was the shipped SV aggregate reader:
   - `sv_combined_telemetry_contract_gate` already consumed SOTA JSON,
   - but it still treated the old top-level SOTA proof-surface mirrors as canonical for parser/preprocessor aggregate provenance.
