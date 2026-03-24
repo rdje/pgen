@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Give SV aggregate-contract gates machine-readable sidecars
+### Context
+On the SV side, the practical family-contract-equivalent surfaces are the two existing aggregate contract gates:
+- `sv_parser_aggregate_contract_gate`,
+- `sv_preprocessor_aggregate_contract_gate`.
+
+Unlike the regex and VHDL family-contract layers, both of those SV gates still stopped at `summary.txt`, which meant later SV provenance work would have to keep scraping text or inventing side-paths.
+
+### Implementation
+- Updated [sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh) and [sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+  - added `SUMMARY_JSON`,
+  - recorded `generated_at_utc` and `summary_json` in `summary.txt`,
+  - emitted focused `summary.json` sidecars carrying self-path metadata, proof-surface paths, and the already-tracked aggregate metrics.
+
+### Why This Matters
+- SV now has a canonical machine-readable aggregate-contract layer that later family-status and combined-telemetry slices can consume directly.
+- This keeps the next SV provenance work aligned with the same proof-stack doctrine already used on regex and VHDL.
+
 ## 2026-03-24 - Make combined telemetry consume family-contract provenance
 ### Context
 After teaching regex and VHDL family-status-contract to re-emit validated family-contract provenance, the top shipped aggregate layer for those families still had the same smaller asymmetry:

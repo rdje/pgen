@@ -8,6 +8,7 @@ STATE_DIR="${PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR:-$RUST_DIR/target/sv_pa
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 BASE_CONTRACT_FILE="${PGEN_SV_PARSER_AGGREGATE_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/systemverilog_core_v0_contract.json}"
 SV_GATE_SCRIPT="$RUST_DIR/scripts/sv_stimuli_quality_gate.sh"
@@ -597,9 +598,13 @@ replay_gap_target_primary_rule_count="$(jq -er 'if (.by_rule_name | length) > 0 
 replay_gap_target_primary_dependency="$(jq -er 'if (.by_dependency | length) > 0 then (.by_dependency | sort_by(-.count, .dependency) | .[0].dependency) else "<none>" end' "$replay_gap_target_triage_json")"
 replay_gap_target_primary_dependency_count="$(jq -er 'if (.by_dependency | length) > 0 then (.by_dependency | sort_by(-.count, .dependency) | .[0].count) else 0 end' "$replay_gap_target_triage_json")"
 
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 {
     echo "SV Parser Aggregate Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "existing_sv_stimuli_quality_state_dir: ${EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-<unset>}"
     echo "base_contract_file: $BASE_CONTRACT_FILE"
     echo "generation_contract_file: $generation_contract"
@@ -668,6 +673,164 @@ replay_gap_target_primary_dependency_count="$(jq -er 'if (.by_dependency | lengt
     echo "focused_initial_covered_reachable_branches: $initial_covered_reachable_branches"
     echo "focused_replay_covered_reachable_branches: $replay_covered_reachable_branches"
 } | tee "$SUMMARY_TXT"
+
+jq -n \
+    --arg gate "sv_parser_aggregate_contract_gate" \
+    --argjson version 1 \
+    --arg state_dir "$STATE_DIR" \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
+    --arg existing_sv_stimuli_quality_state_dir "${EXISTING_SV_STIMULI_QUALITY_STATE_DIR:-<unset>}" \
+    --arg base_contract_file "$BASE_CONTRACT_FILE" \
+    --arg generation_contract_file "$generation_contract" \
+    --arg shadow_contract_file "$shadow_contract" \
+    --arg generation_state_dir "$generation_state_dir" \
+    --arg shadow_state_dir "$shadow_state_dir" \
+    --arg generation_report_json "$generation_report_json" \
+    --arg shadow_report_json "$shadow_report_json" \
+    --arg generation_counterexample_triage_json "$generation_counterexample_triage_json" \
+    --arg generation_counterexample_triage_txt "$generation_counterexample_triage_txt" \
+    --arg shadow_counterexample_triage_json "$shadow_counterexample_triage_json" \
+    --arg shadow_counterexample_triage_txt "$shadow_counterexample_triage_txt" \
+    --arg replay_gap_target_triage_json "$replay_gap_target_triage_json" \
+    --arg replay_gap_target_triage_txt "$replay_gap_target_triage_txt" \
+    --arg source_gap_json "$closed_loop_replay_gap_json" \
+    --argjson generation_parser_rejections_total "$generation_parser_rejections" \
+    --argjson generation_counterexamples_count "$generation_counterexamples_count" \
+    --argjson generation_counterexample_unique_shrunk_samples "$generation_counterexample_unique_shrunk_samples" \
+    --arg generation_counterexample_primary_stage "$generation_counterexample_primary_stage" \
+    --argjson generation_counterexample_primary_stage_count "$generation_counterexample_primary_stage_count" \
+    --arg generation_counterexample_primary_shrunk_sample "$generation_counterexample_primary_shrunk_sample" \
+    --argjson generation_counterexample_primary_shrunk_sample_count "$generation_counterexample_primary_shrunk_sample_count" \
+    --arg generation_counterexample_primary_parser_error "$generation_counterexample_primary_parser_error" \
+    --argjson generation_counterexample_primary_parser_error_count "$generation_counterexample_primary_parser_error_count" \
+    --arg generation_counterexample_primary_failure_location "$generation_counterexample_primary_failure_location" \
+    --argjson generation_counterexample_primary_failure_location_count "$generation_counterexample_primary_failure_location_count" \
+    --arg generation_counterexample_primary_failure_line_excerpt_json "$generation_counterexample_primary_failure_line_excerpt_json" \
+    --argjson generation_counterexample_primary_failure_line_excerpt_count "$generation_counterexample_primary_failure_line_excerpt_count" \
+    --arg generation_counterexample_primary_failure_context_excerpt_json "$generation_counterexample_primary_failure_context_excerpt_json" \
+    --argjson generation_counterexample_primary_failure_context_excerpt_count "$generation_counterexample_primary_failure_context_excerpt_count" \
+    --argjson generation_counterexample_unique_failure_locations "$generation_counterexample_unique_failure_locations" \
+    --argjson generation_counterexample_unique_failure_line_excerpts "$generation_counterexample_unique_failure_line_excerpts" \
+    --argjson generation_counterexample_unique_failure_context_excerpts "$generation_counterexample_unique_failure_context_excerpts" \
+    --argjson shadow_parser_rejections_total "$shadow_parser_rejections" \
+    --argjson shadow_counterexamples_count "$shadow_counterexamples_count" \
+    --argjson shadow_counterexamples_captured_total "$shadow_counterexamples_captured_total" \
+    --argjson shadow_counterexample_unique_shrunk_samples "$shadow_counterexample_unique_shrunk_samples" \
+    --arg shadow_counterexample_primary_stage "$shadow_counterexample_primary_stage" \
+    --argjson shadow_counterexample_primary_stage_count "$shadow_counterexample_primary_stage_count" \
+    --arg shadow_counterexample_primary_shrunk_sample "$shadow_counterexample_primary_shrunk_sample" \
+    --argjson shadow_counterexample_primary_shrunk_sample_count "$shadow_counterexample_primary_shrunk_sample_count" \
+    --arg shadow_counterexample_primary_parser_error "$shadow_counterexample_primary_parser_error" \
+    --argjson shadow_counterexample_primary_parser_error_count "$shadow_counterexample_primary_parser_error_count" \
+    --arg shadow_counterexample_primary_failure_location "$shadow_counterexample_primary_failure_location" \
+    --argjson shadow_counterexample_primary_failure_location_count "$shadow_counterexample_primary_failure_location_count" \
+    --arg shadow_counterexample_primary_failure_line_excerpt_json "$shadow_counterexample_primary_failure_line_excerpt_json" \
+    --argjson shadow_counterexample_primary_failure_line_excerpt_count "$shadow_counterexample_primary_failure_line_excerpt_count" \
+    --arg shadow_counterexample_primary_failure_context_excerpt_json "$shadow_counterexample_primary_failure_context_excerpt_json" \
+    --argjson shadow_counterexample_primary_failure_context_excerpt_count "$shadow_counterexample_primary_failure_context_excerpt_count" \
+    --argjson shadow_counterexample_unique_failure_locations "$shadow_counterexample_unique_failure_locations" \
+    --argjson shadow_counterexample_unique_failure_line_excerpts "$shadow_counterexample_unique_failure_line_excerpts" \
+    --argjson shadow_counterexample_unique_failure_context_excerpts "$shadow_counterexample_unique_failure_context_excerpts" \
+    --argjson replay_gap_target_unique_rules "$replay_gap_target_unique_rules" \
+    --argjson replay_gap_target_unique_reasons "$replay_gap_target_unique_reasons" \
+    --argjson replay_gap_target_unique_dependencies "$replay_gap_target_unique_dependencies" \
+    --arg replay_gap_target_primary_target_type "$replay_gap_target_primary_target_type" \
+    --argjson replay_gap_target_primary_target_type_count "$replay_gap_target_primary_target_type_count" \
+    --arg replay_gap_target_primary_reason "$replay_gap_target_primary_reason" \
+    --argjson replay_gap_target_primary_reason_count "$replay_gap_target_primary_reason_count" \
+    --arg replay_gap_target_primary_rule "$replay_gap_target_primary_rule" \
+    --argjson replay_gap_target_primary_rule_count "$replay_gap_target_primary_rule_count" \
+    --arg replay_gap_target_primary_dependency "$replay_gap_target_primary_dependency" \
+    --argjson replay_gap_target_primary_dependency_count "$replay_gap_target_primary_dependency_count" \
+    --argjson focused_initial_target_count "$initial_target_count" \
+    --argjson focused_replay_target_count "$replay_target_count" \
+    --argjson focused_initial_covered_reachable_rules "$initial_covered_reachable_rules" \
+    --argjson focused_replay_covered_reachable_rules "$replay_covered_reachable_rules" \
+    --argjson focused_initial_covered_reachable_branches "$initial_covered_reachable_branches" \
+    --argjson focused_replay_covered_reachable_branches "$replay_covered_reachable_branches" \
+    '{
+      gate: $gate,
+      version: $version,
+      generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
+      proof_surfaces: {
+        generation_state_dir: $generation_state_dir,
+        shadow_state_dir: $shadow_state_dir,
+        generation_report_json: $generation_report_json,
+        shadow_report_json: $shadow_report_json,
+        generation_counterexample_triage_json: $generation_counterexample_triage_json,
+        generation_counterexample_triage_txt: $generation_counterexample_triage_txt,
+        shadow_counterexample_triage_json: $shadow_counterexample_triage_json,
+        shadow_counterexample_triage_txt: $shadow_counterexample_triage_txt,
+        replay_gap_target_triage_json: $replay_gap_target_triage_json,
+        replay_gap_target_triage_txt: $replay_gap_target_triage_txt,
+        source_gap_json: $source_gap_json
+      },
+      metrics: {
+        existing_sv_stimuli_quality_state_dir: $existing_sv_stimuli_quality_state_dir,
+        base_contract_file: $base_contract_file,
+        generation_contract_file: $generation_contract_file,
+        shadow_contract_file: $shadow_contract_file,
+        generation_parser_rejections_total: $generation_parser_rejections_total,
+        generation_counterexamples_count: $generation_counterexamples_count,
+        generation_counterexample_unique_shrunk_samples: $generation_counterexample_unique_shrunk_samples,
+        generation_counterexample_primary_stage: $generation_counterexample_primary_stage,
+        generation_counterexample_primary_stage_count: $generation_counterexample_primary_stage_count,
+        generation_counterexample_primary_shrunk_sample: $generation_counterexample_primary_shrunk_sample,
+        generation_counterexample_primary_shrunk_sample_count: $generation_counterexample_primary_shrunk_sample_count,
+        generation_counterexample_primary_parser_error: $generation_counterexample_primary_parser_error,
+        generation_counterexample_primary_parser_error_count: $generation_counterexample_primary_parser_error_count,
+        generation_counterexample_primary_failure_location: $generation_counterexample_primary_failure_location,
+        generation_counterexample_primary_failure_location_count: $generation_counterexample_primary_failure_location_count,
+        generation_counterexample_primary_failure_line_excerpt_json: $generation_counterexample_primary_failure_line_excerpt_json,
+        generation_counterexample_primary_failure_line_excerpt_count: $generation_counterexample_primary_failure_line_excerpt_count,
+        generation_counterexample_primary_failure_context_excerpt_json: $generation_counterexample_primary_failure_context_excerpt_json,
+        generation_counterexample_primary_failure_context_excerpt_count: $generation_counterexample_primary_failure_context_excerpt_count,
+        generation_counterexample_unique_failure_locations: $generation_counterexample_unique_failure_locations,
+        generation_counterexample_unique_failure_line_excerpts: $generation_counterexample_unique_failure_line_excerpts,
+        generation_counterexample_unique_failure_context_excerpts: $generation_counterexample_unique_failure_context_excerpts,
+        shadow_parser_rejections_total: $shadow_parser_rejections_total,
+        shadow_counterexamples_count: $shadow_counterexamples_count,
+        shadow_counterexamples_captured_total: $shadow_counterexamples_captured_total,
+        shadow_counterexample_unique_shrunk_samples: $shadow_counterexample_unique_shrunk_samples,
+        shadow_counterexample_primary_stage: $shadow_counterexample_primary_stage,
+        shadow_counterexample_primary_stage_count: $shadow_counterexample_primary_stage_count,
+        shadow_counterexample_primary_shrunk_sample: $shadow_counterexample_primary_shrunk_sample,
+        shadow_counterexample_primary_shrunk_sample_count: $shadow_counterexample_primary_shrunk_sample_count,
+        shadow_counterexample_primary_parser_error: $shadow_counterexample_primary_parser_error,
+        shadow_counterexample_primary_parser_error_count: $shadow_counterexample_primary_parser_error_count,
+        shadow_counterexample_primary_failure_location: $shadow_counterexample_primary_failure_location,
+        shadow_counterexample_primary_failure_location_count: $shadow_counterexample_primary_failure_location_count,
+        shadow_counterexample_primary_failure_line_excerpt_json: $shadow_counterexample_primary_failure_line_excerpt_json,
+        shadow_counterexample_primary_failure_line_excerpt_count: $shadow_counterexample_primary_failure_line_excerpt_count,
+        shadow_counterexample_primary_failure_context_excerpt_json: $shadow_counterexample_primary_failure_context_excerpt_json,
+        shadow_counterexample_primary_failure_context_excerpt_count: $shadow_counterexample_primary_failure_context_excerpt_count,
+        shadow_counterexample_unique_failure_locations: $shadow_counterexample_unique_failure_locations,
+        shadow_counterexample_unique_failure_line_excerpts: $shadow_counterexample_unique_failure_line_excerpts,
+        shadow_counterexample_unique_failure_context_excerpts: $shadow_counterexample_unique_failure_context_excerpts,
+        replay_gap_target_unique_rules: $replay_gap_target_unique_rules,
+        replay_gap_target_unique_reasons: $replay_gap_target_unique_reasons,
+        replay_gap_target_unique_dependencies: $replay_gap_target_unique_dependencies,
+        replay_gap_target_primary_target_type: $replay_gap_target_primary_target_type,
+        replay_gap_target_primary_target_type_count: $replay_gap_target_primary_target_type_count,
+        replay_gap_target_primary_reason: $replay_gap_target_primary_reason,
+        replay_gap_target_primary_reason_count: $replay_gap_target_primary_reason_count,
+        replay_gap_target_primary_rule: $replay_gap_target_primary_rule,
+        replay_gap_target_primary_rule_count: $replay_gap_target_primary_rule_count,
+        replay_gap_target_primary_dependency: $replay_gap_target_primary_dependency,
+        replay_gap_target_primary_dependency_count: $replay_gap_target_primary_dependency_count,
+        focused_initial_target_count: $focused_initial_target_count,
+        focused_replay_target_count: $focused_replay_target_count,
+        focused_initial_covered_reachable_rules: $focused_initial_covered_reachable_rules,
+        focused_replay_covered_reachable_rules: $focused_replay_covered_reachable_rules,
+        focused_initial_covered_reachable_branches: $focused_initial_covered_reachable_branches,
+        focused_replay_covered_reachable_branches: $focused_replay_covered_reachable_branches
+      }
+    }' >"$SUMMARY_JSON"
 
 echo "✅ SV parser aggregate contract gate passed."
 echo "Logs: $LOG_DIR"

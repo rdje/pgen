@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next SV proof-normalization seam after regex/VHDL combined-telemetry family-contract provenance is lower in the stack:
+  - `sv_parser_aggregate_contract_gate` and `sv_preprocessor_aggregate_contract_gate` are the practical SV family-contract-like surfaces,
+  - but they still stopped at TXT-only summaries.
+- That seam is now being closed by making those two SV aggregate-contract gates:
+  - emit `summary.json`,
+  - expose `generated_at_utc` plus self-path metadata,
+  - and preserve their current proof surfaces and metrics in machine-readable form.
 - The next proof-normalization seam after family-status-contract started preserving family-contract provenance was the shipped aggregate layer:
   - regex and VHDL combined telemetry already consumed family-status and family-status-contract summaries,
   - but they still dropped the family-contract gate metadata those lower layers now exposed.

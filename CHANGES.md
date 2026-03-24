@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-24 - Surface SV aggregate-contract JSON proof
+### ✅ Achievement Summary
+PGEN now makes the shipped SystemVerilog parser-aggregate and preprocessor-aggregate contract gates emit machine-readable `summary.json` sidecars instead of stopping at `summary.txt`.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh)
+  - [sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh)
+- Each gate now:
+  - records `generated_at_utc` and `summary_json` in `summary.txt`,
+  - emits a focused `summary.json` sidecar with self-path metadata,
+  - preserves the existing high-signal proof surfaces and aggregate metrics in machine-readable form.
+
+### Why This Matters
+- The SV proof stack now has canonical JSON at the aggregate-contract layer, which was the missing family-contract-like surface for later SV status/aggregate provenance work.
+- Future SV family-status and combined-telemetry slices can consume declared aggregate-contract provenance directly instead of reconstructing it from TXT-only summaries.
+
 ## 2026-03-24 - Consume family-contract provenance in combined telemetry
 ### ✅ Achievement Summary
 PGEN now makes the shipped regex and VHDL combined-telemetry gates validate and re-emit the family-contract provenance already carried by their family-status and family-status-contract layers.

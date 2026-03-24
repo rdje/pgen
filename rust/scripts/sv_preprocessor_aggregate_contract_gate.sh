@@ -8,6 +8,7 @@ STATE_DIR="${PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR:-$RUST_DIR/target
 WORK_DIR="$STATE_DIR/work"
 LOG_DIR="$STATE_DIR/logs"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+SUMMARY_JSON="$STATE_DIR/summary.json"
 
 QUALITY_GATE_SCRIPT="$RUST_DIR/scripts/sv_preprocessor_quality_gate.sh"
 EXISTING_QUALITY_STATE_DIR="${PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR:-}"
@@ -457,9 +458,13 @@ counterexample_primary_failure_line_excerpt_count="$(jq -er 'if (.by_failure_lin
 counterexample_primary_failure_context_excerpt_json="$(jq -er 'if (.by_failure_context_excerpt | length) > 0 then (.by_failure_context_excerpt | sort_by(-.count, .failure_context_excerpt) | .[0].failure_context_excerpt | @json) else "\"<none>\"" end' "$counterexample_triage_json")"
 counterexample_primary_failure_context_excerpt_count="$(jq -er 'if (.by_failure_context_excerpt | length) > 0 then (.by_failure_context_excerpt | sort_by(-.count, .failure_context_excerpt) | .[0].count) else 0 end' "$counterexample_triage_json")"
 
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 {
     echo "SV Preprocessor Aggregate Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "existing_quality_state_dir: ${EXISTING_QUALITY_STATE_DIR:-<unset>}"
     echo "quality_state_dir: $quality_state_dir"
     echo "parseability_report_json: $parseability_report_json"
@@ -503,6 +508,110 @@ counterexample_primary_failure_context_excerpt_count="$(jq -er 'if (.by_failure_
     echo "fuzz_replay_rejected_cases: $fuzz_replay_rejected_cases"
     echo "fuzz_replay_parseability_counterexamples: $fuzz_replay_parseability_counterexamples"
 } | tee "$SUMMARY_TXT"
+
+jq -n \
+    --arg gate "sv_preprocessor_aggregate_contract_gate" \
+    --argjson version 1 \
+    --arg state_dir "$STATE_DIR" \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
+    --arg existing_quality_state_dir "${EXISTING_QUALITY_STATE_DIR:-<unset>}" \
+    --arg quality_state_dir "$quality_state_dir" \
+    --arg parseability_report_json "$parseability_report_json" \
+    --arg counterexample_triage_json "$counterexample_triage_json" \
+    --arg counterexample_triage_txt "$counterexample_triage_txt" \
+    --arg gap_stage3_json "$gap_stage3_json" \
+    --argjson parseability_attempts_total "$parseability_attempts_total" \
+    --argjson parseability_accepted_total "$parseability_accepted_total" \
+    --argjson parseability_rejected_total "$parseability_rejected_total" \
+    --argjson parseability_parser_rejections_total "$parseability_parser_rejections_total" \
+    --argjson parseability_counterexamples_captured_total "$parseability_counterexamples_captured_total" \
+    --argjson counterexample_unique_shrunk_samples "$counterexample_unique_shrunk_samples" \
+    --arg counterexample_primary_stage "$counterexample_primary_stage" \
+    --argjson counterexample_primary_stage_count "$counterexample_primary_stage_count" \
+    --arg counterexample_primary_shrunk_sample "$counterexample_primary_shrunk_sample" \
+    --argjson counterexample_primary_shrunk_sample_count "$counterexample_primary_shrunk_sample_count" \
+    --arg counterexample_primary_parser_error "$counterexample_primary_parser_error" \
+    --argjson counterexample_primary_parser_error_count "$counterexample_primary_parser_error_count" \
+    --arg counterexample_primary_failure_location "$counterexample_primary_failure_location" \
+    --argjson counterexample_primary_failure_location_count "$counterexample_primary_failure_location_count" \
+    --arg counterexample_primary_failure_line_excerpt_json "$counterexample_primary_failure_line_excerpt_json" \
+    --argjson counterexample_primary_failure_line_excerpt_count "$counterexample_primary_failure_line_excerpt_count" \
+    --arg counterexample_primary_failure_context_excerpt_json "$counterexample_primary_failure_context_excerpt_json" \
+    --argjson counterexample_primary_failure_context_excerpt_count "$counterexample_primary_failure_context_excerpt_count" \
+    --argjson counterexample_unique_failure_locations "$counterexample_unique_failure_locations" \
+    --argjson counterexample_unique_failure_line_excerpts "$counterexample_unique_failure_line_excerpts" \
+    --argjson counterexample_unique_failure_context_excerpts "$counterexample_unique_failure_context_excerpts" \
+    --argjson stage0_target_count "$stage0_target_count" \
+    --argjson stage1_target_count "$stage1_target_count" \
+    --argjson final_targets "$final_targets" \
+    --argjson stage4_target_count "$stage4_target_count" \
+    --arg stage0_covered_reachable_rules "$(printf '%s/%s' "$stage0_covered_reachable_rules" "$stage0_reachable_rules")" \
+    --arg stage1_covered_reachable_rules "$(printf '%s/%s' "$stage1_covered_reachable_rules" "$stage1_reachable_rules")" \
+    --arg covered_reachable_rules "$(printf '%s/%s' "$covered_reachable_rules" "$reachable_rules")" \
+    --arg stage4_covered_reachable_rules "$(printf '%s/%s' "$stage4_covered_reachable_rules" "$stage4_reachable_rules")" \
+    --arg stage0_covered_reachable_branches "$(printf '%s/%s' "$stage0_covered_reachable_branches" "$stage0_reachable_branches")" \
+    --arg stage1_covered_reachable_branches "$(printf '%s/%s' "$stage1_covered_reachable_branches" "$stage1_reachable_branches")" \
+    --arg covered_reachable_branches "$(printf '%s/%s' "$covered_reachable_branches" "$reachable_branches")" \
+    --arg stage4_covered_reachable_branches "$(printf '%s/%s' "$stage4_covered_reachable_branches" "$stage4_reachable_branches")" \
+    --argjson fuzz_replay_accepted_cases "$fuzz_replay_accepted_cases" \
+    --argjson fuzz_replay_rejected_cases "$fuzz_replay_rejected_cases" \
+    --argjson fuzz_replay_parseability_counterexamples "$fuzz_replay_parseability_counterexamples" \
+    '{
+      gate: $gate,
+      version: $version,
+      generated_at_utc: $generated_at_utc,
+      state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
+      proof_surfaces: {
+        quality_state_dir: $quality_state_dir,
+        parseability_report_json: $parseability_report_json,
+        counterexample_triage_json: $counterexample_triage_json,
+        counterexample_triage_txt: $counterexample_triage_txt,
+        gap_stage3_json: $gap_stage3_json
+      },
+      metrics: {
+        existing_quality_state_dir: $existing_quality_state_dir,
+        parseability_attempts_total: $parseability_attempts_total,
+        parseability_accepted_total: $parseability_accepted_total,
+        parseability_rejected_total: $parseability_rejected_total,
+        parseability_parser_rejections_total: $parseability_parser_rejections_total,
+        parseability_counterexamples_captured_total: $parseability_counterexamples_captured_total,
+        counterexample_unique_shrunk_samples: $counterexample_unique_shrunk_samples,
+        counterexample_primary_stage: $counterexample_primary_stage,
+        counterexample_primary_stage_count: $counterexample_primary_stage_count,
+        counterexample_primary_shrunk_sample: $counterexample_primary_shrunk_sample,
+        counterexample_primary_shrunk_sample_count: $counterexample_primary_shrunk_sample_count,
+        counterexample_primary_parser_error: $counterexample_primary_parser_error,
+        counterexample_primary_parser_error_count: $counterexample_primary_parser_error_count,
+        counterexample_primary_failure_location: $counterexample_primary_failure_location,
+        counterexample_primary_failure_location_count: $counterexample_primary_failure_location_count,
+        counterexample_primary_failure_line_excerpt_json: $counterexample_primary_failure_line_excerpt_json,
+        counterexample_primary_failure_line_excerpt_count: $counterexample_primary_failure_line_excerpt_count,
+        counterexample_primary_failure_context_excerpt_json: $counterexample_primary_failure_context_excerpt_json,
+        counterexample_primary_failure_context_excerpt_count: $counterexample_primary_failure_context_excerpt_count,
+        counterexample_unique_failure_locations: $counterexample_unique_failure_locations,
+        counterexample_unique_failure_line_excerpts: $counterexample_unique_failure_line_excerpts,
+        counterexample_unique_failure_context_excerpts: $counterexample_unique_failure_context_excerpts,
+        stage0_target_count: $stage0_target_count,
+        stage1_target_count: $stage1_target_count,
+        final_targets: $final_targets,
+        stage4_target_count: $stage4_target_count,
+        stage0_covered_reachable_rules: $stage0_covered_reachable_rules,
+        stage1_covered_reachable_rules: $stage1_covered_reachable_rules,
+        covered_reachable_rules: $covered_reachable_rules,
+        stage4_covered_reachable_rules: $stage4_covered_reachable_rules,
+        stage0_covered_reachable_branches: $stage0_covered_reachable_branches,
+        stage1_covered_reachable_branches: $stage1_covered_reachable_branches,
+        covered_reachable_branches: $covered_reachable_branches,
+        stage4_covered_reachable_branches: $stage4_covered_reachable_branches,
+        fuzz_replay_accepted_cases: $fuzz_replay_accepted_cases,
+        fuzz_replay_rejected_cases: $fuzz_replay_rejected_cases,
+        fuzz_replay_parseability_counterexamples: $fuzz_replay_parseability_counterexamples
+      }
+    }' >"$SUMMARY_JSON"
 
 echo "✅ SV preprocessor aggregate contract gate passed."
 echo "Logs: $LOG_DIR"
