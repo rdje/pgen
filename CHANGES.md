@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-24 - Surface SV aggregate JSON provenance in SOTA exit
+### ✅ Achievement Summary
+PGEN now makes `sota_exit_gate` preserve the SV parser/preprocessor aggregate `summary.json` proof paths that the SV family-status layers already validate.
+
+### Scope of Changes
+- Updated:
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+- The SOTA gate now:
+  - reads the SV parser/preprocessor aggregate `summary.json` paths from `sv_parser_family_status_gate`,
+  - reads the same paths from `sv_parser_family_status_contract_gate`,
+  - parity-checks those two copies,
+  - records the validated status/contract aggregate JSON provenance in `summary.txt`,
+  - and exposes the same paths in top-level SOTA `summary.json` proof surfaces.
+
+### Why This Matters
+- The new SV aggregate JSON sidecars are no longer stranded below SOTA.
+- Higher aggregate readers can now consume declared SV aggregate provenance from the top gate instead of reopening lower SV family-status artifacts just to recover those JSON paths.
+
 ## 2026-03-24 - Preserve SV aggregate JSON provenance in family-status contract
 ### ✅ Achievement Summary
 PGEN now makes the SV family-status contract layer re-emit the validated parser/preprocessor aggregate proof paths instead of dropping them after parity-check.

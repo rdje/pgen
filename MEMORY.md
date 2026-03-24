@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next SV proof-normalization seam after family-status and family-status-contract started preserving aggregate JSON provenance was the top SOTA layer:
+  - `sota_exit_gate` still carried the SV aggregate TXT paths,
+  - but it was dropping the new parser/preprocessor aggregate `summary.json` proof paths.
+- That seam is now being closed by making `sota_exit_gate`:
+  - read the aggregate JSON paths from both SV family-status sidecars,
+  - parity-check the two copies,
+  - and preserve the validated status/contract aggregate JSON provenance in SOTA TXT/JSON outputs.
 - The next SV proof-normalization seam after family-status started carrying aggregate JSON proof paths is its sibling contract layer:
   - `sv_parser_family_status_contract_gate` already validates those parser/preprocessor aggregate JSON paths,
   - but it was still dropping them from its own output.
