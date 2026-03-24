@@ -274,6 +274,12 @@ audit_sota_nested_family_emission_surface() {
     'parser_aggregate_summary_json: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_json)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
+    'failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
     'systemverilog: family_status_contract_entry('
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
@@ -281,6 +287,12 @@ audit_sota_nested_family_emission_surface() {
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
     'semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)'
 
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \

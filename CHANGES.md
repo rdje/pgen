@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-24 - Surface SV auxiliary provenance inside SOTA family JSON
+### ✅ Achievement Summary
+PGEN now carries the shipped SV failure-context and roundtrip side-proof paths directly inside SOTA's structured SV family JSON payloads, instead of leaving them only at top-level proof surfaces.
+
+### Scope of Changes
+- Updated:
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- SOTA nested JSON now preserves those auxiliary proof paths for:
+  - `family_status.systemverilog`
+  - `family_status.systemverilog_preprocessor`
+  - `family_status_contract.systemverilog`
+  - `family_status_contract.systemverilog_preprocessor`
+
+### Why This Matters
+- Downstream readers can now treat the structured SV family payloads as self-contained provenance-bearing objects.
+- The producer side of that nested-family contract is now guarded in local CI.
+
 ## 2026-03-24 - Surface SV auxiliary contract JSON proof
 ### ✅ Achievement Summary
 PGEN now gives the shipped SV failure-context and roundtrip side proofs real `summary.json` sidecars, and the SV aggregate proof stack now consumes those JSON surfaces instead of leaving them TXT-only.

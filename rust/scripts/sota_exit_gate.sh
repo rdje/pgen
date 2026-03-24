@@ -3544,6 +3544,10 @@ jq -n \
     --arg ebnf_dual_run_summary_json "$EBNF_DUAL_RUN_SUMMARY_JSON" \
     --arg sv_failure_context_contract_summary_json "${SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_JSON:-<not-run>}" \
     --arg sv_roundtrip_contract_summary_json "${SV_ROUNDTRIP_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg sv_failure_context_contract_state_dir "${SV_FAILURE_CONTEXT_CONTRACT_STAGE_STATE_DIR:-<not-run>}" \
+    --arg sv_failure_context_contract_summary_txt "${SV_FAILURE_CONTEXT_CONTRACT_SUMMARY_TXT:-<not-run>}" \
+    --arg sv_roundtrip_contract_state_dir "${SV_ROUNDTRIP_CONTRACT_STAGE_STATE_DIR:-<not-run>}" \
+    --arg sv_roundtrip_contract_summary_txt "${SV_ROUNDTRIP_CONTRACT_SUMMARY_TXT:-<not-run>}" \
     --arg sv_parser_family_status_summary_json "${SV_PARSER_FAMILY_STATUS_SUMMARY_JSON:-<not-run>}" \
     --arg sv_parser_family_status_contract_summary_json "${SV_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON:-<not-run>}" \
     --arg sv_family_status_systemverilog_parser_aggregate_state_dir "${SV_FAMILY_STATUS_SYSTEMVERILOG_PARSER_AGGREGATE_STATE_DIR:-<not-run>}" \
@@ -3752,12 +3756,24 @@ jq -n \
             systemverilog: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_status; $sv_systemverilog_tracker_status; $sv_systemverilog_tracker_alignment_ok; $sv_systemverilog_primary_unmet; $sv_systemverilog_unmet_json; $sv_systemverilog_unmet_details_json; ({
                 parser_aggregate_state_dir: maybe_path($sv_family_status_systemverilog_parser_aggregate_state_dir),
                 parser_aggregate_summary_txt: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_txt),
-                parser_aggregate_summary_json: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_json)
+                parser_aggregate_summary_json: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_json),
+                failure_context_contract_state_dir: maybe_path($sv_failure_context_contract_state_dir),
+                failure_context_contract_summary_txt: maybe_path($sv_failure_context_contract_summary_txt),
+                failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json),
+                roundtrip_contract_state_dir: maybe_path($sv_roundtrip_contract_state_dir),
+                roundtrip_contract_summary_txt: maybe_path($sv_roundtrip_contract_summary_txt),
+                roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)
             } | tojson)),
             systemverilog_preprocessor: family_status_entry($sv_parser_family_status_summary_json; $sv_parser_family_status_contract_summary_json; $sv_systemverilog_preprocessor_status; $sv_systemverilog_preprocessor_tracker_status; $sv_systemverilog_preprocessor_tracker_alignment_ok; $sv_systemverilog_preprocessor_primary_unmet; $sv_systemverilog_preprocessor_unmet_json; $sv_systemverilog_preprocessor_unmet_details_json; ({
                 aggregate_state_dir: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_state_dir),
                 aggregate_summary_txt: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_summary_txt),
-                aggregate_summary_json: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_summary_json)
+                aggregate_summary_json: maybe_path($sv_family_status_systemverilog_preprocessor_aggregate_summary_json),
+                failure_context_contract_state_dir: maybe_path($sv_failure_context_contract_state_dir),
+                failure_context_contract_summary_txt: maybe_path($sv_failure_context_contract_summary_txt),
+                failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json),
+                roundtrip_contract_state_dir: maybe_path($sv_roundtrip_contract_state_dir),
+                roundtrip_contract_summary_txt: maybe_path($sv_roundtrip_contract_summary_txt),
+                roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)
             } | tojson)),
             vhdl: family_status_entry($vhdl_parser_family_status_summary_json; $vhdl_parser_family_status_contract_summary_json; $vhdl_status; $vhdl_tracker_status; $vhdl_tracker_alignment_ok; $vhdl_primary_unmet; $vhdl_unmet_json; $vhdl_unmet_details_json; ({
                 family_contract_state_dir: maybe_path($vhdl_family_status_vhdl_family_contract_state_dir),
@@ -3794,12 +3810,24 @@ jq -n \
                 parser_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_parser_aggregate_summary_json),
                 semantic_scope_contract_state_dir: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir),
                 semantic_scope_contract_summary_txt: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt),
-                semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json)
+                semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json),
+                failure_context_contract_state_dir: maybe_path($sv_failure_context_contract_state_dir),
+                failure_context_contract_summary_txt: maybe_path($sv_failure_context_contract_summary_txt),
+                failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json),
+                roundtrip_contract_state_dir: maybe_path($sv_roundtrip_contract_state_dir),
+                roundtrip_contract_summary_txt: maybe_path($sv_roundtrip_contract_summary_txt),
+                roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)
             } | tojson)),
             systemverilog_preprocessor: family_status_contract_entry($sv_parser_family_status_contract_summary_json; $sv_contract_systemverilog_preprocessor_tracker_alignment_ok; $sv_contract_systemverilog_preprocessor_primary_unmet_detail; $sv_contract_systemverilog_preprocessor_unmet_json; $sv_contract_systemverilog_preprocessor_unmet_details_json; ({
                 aggregate_state_dir: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir),
                 aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt),
-                aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json)
+                aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json),
+                failure_context_contract_state_dir: maybe_path($sv_failure_context_contract_state_dir),
+                failure_context_contract_summary_txt: maybe_path($sv_failure_context_contract_summary_txt),
+                failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json),
+                roundtrip_contract_state_dir: maybe_path($sv_roundtrip_contract_state_dir),
+                roundtrip_contract_summary_txt: maybe_path($sv_roundtrip_contract_summary_txt),
+                roundtrip_contract_summary_json: maybe_path($sv_roundtrip_contract_summary_json)
             } | tojson)),
             vhdl: family_status_contract_entry($vhdl_parser_family_status_contract_summary_json; $vhdl_contract_tracker_alignment_ok; $vhdl_contract_primary_unmet_detail; $vhdl_contract_unmet_json; $vhdl_contract_unmet_details_json; ({
                 family_status_state_dir: maybe_path($vhdl_family_status_contract_family_status_state_dir),

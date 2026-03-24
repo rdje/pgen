@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Surface SV auxiliary provenance inside SOTA family JSON
+### Context
+After the SV auxiliary side-proof JSON slice landed, `sota_exit_gate` still only exposed those two new sidecars at the top level of its proof surfaces.
+
+### Implementation
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - threaded the failure-context and roundtrip sidecar `state_dir` / `summary.txt` / `summary.json` paths into nested SV family payloads,
+  - preserved those paths for both `family_status` and `family_status_contract`,
+  - applied the same shared auxiliary proof surfaces to both shipped SV families because the side proofs report main-parser and preprocessor evidence together.
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - locked representative nested SOTA emission fields for the new SV auxiliary proof paths.
+
+### Why This Matters
+- SOTA's structured SV family payloads are now closer to being self-contained proof objects.
+- That reduces the amount of top-level stitching downstream readers need to do.
+
 ## 2026-03-24 - Surface SV auxiliary contract JSON proof
 ### Context
 After the SV semantic-scope provenance slice landed, the main shipped SV stack still had two TXT-only side proofs hanging off the aggregate path: `sv_failure_context_contract_gate` and `sv_roundtrip_contract_gate`.

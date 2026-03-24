@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next clean SV proof-plumbing seam after SOTA started carrying the new failure-context / roundtrip JSON sidecars at top level was the nested family payload itself:
+  - those auxiliary proof paths were present in `sota_exit_gate` top-level proof surfaces,
+  - but `family_status` / `family_status_contract` for the shipped SV families still dropped back to aggregate-only nested provenance.
+- That seam is now being closed by:
+  - threading the shared SV auxiliary side-proof `state_dir` / `summary.txt` / `summary.json` paths into the nested `systemverilog` and `systemverilog_preprocessor` payloads inside `sota_exit_gate/summary.json`,
+  - locking representative nested-emission fields in `ci_workflow_local_gate.sh`.
 - The next clean SV proof-plumbing gap after semantic-scope provenance reached SOTA and combined telemetry was the two remaining shipped TXT-only side proofs:
   - `sv_failure_context_contract_gate`
   - `sv_roundtrip_contract_gate`
