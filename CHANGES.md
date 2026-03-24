@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-24 - Preserve SV auxiliary provenance in combined telemetry family JSON
+### ✅ Achievement Summary
+PGEN now preserves the SV failure-context and roundtrip side-proof paths inside the nested SV family payloads of combined telemetry JSON, instead of only keeping them at top level.
+
+### Scope of Changes
+- Updated:
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- Combined telemetry nested JSON now keeps the auxiliary proof paths for:
+  - `family_status.systemverilog`
+  - `family_status.systemverilog_preprocessor`
+  - `family_status_contract.systemverilog`
+  - `family_status_contract.systemverilog_preprocessor`
+
+### Why This Matters
+- The combined telemetry family payloads are now more self-contained proof objects.
+- The auxiliary SV provenance no longer drops out between the SOTA reader layer and the combined-telemetry family layer.
+
 ## 2026-03-24 - Consume nested SV auxiliary provenance in combined telemetry
 ### ✅ Achievement Summary
 PGEN now treats the nested SV auxiliary side-proof paths in SOTA JSON as the canonical reader surface for SV combined telemetry, instead of only relying on the older top-level SOTA mirrors.

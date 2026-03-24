@@ -2441,6 +2441,12 @@ jq -n \
               parser_aggregate_state_dir: $sv_family_status_systemverilog_parser_aggregate_state_dir,
               parser_aggregate_summary_txt: $sv_family_status_systemverilog_parser_aggregate_summary_txt,
               parser_aggregate_summary_json: $sv_family_status_systemverilog_parser_aggregate_summary_json,
+              failure_context_contract_state_dir: $sv_failure_context_contract_state_dir,
+              failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,
+              failure_context_contract_summary_json: $sv_failure_context_contract_summary_json,
+              roundtrip_contract_state_dir: $sv_roundtrip_contract_state_dir,
+              roundtrip_contract_summary_txt: $sv_roundtrip_contract_summary_txt,
+              roundtrip_contract_summary_json: $sv_roundtrip_contract_summary_json,
               semantic_scope_contract_state_dir: $sv_family_status_systemverilog_semantic_scope_contract_state_dir,
               semantic_scope_contract_summary_txt: $sv_family_status_systemverilog_semantic_scope_contract_summary_txt,
               semantic_scope_contract_summary_json: $sv_family_status_systemverilog_semantic_scope_contract_summary_json
@@ -2475,6 +2481,12 @@ jq -n \
               aggregate_state_dir: $sv_family_status_systemverilog_preprocessor_aggregate_state_dir,
               aggregate_summary_txt: $sv_family_status_systemverilog_preprocessor_aggregate_summary_txt,
               aggregate_summary_json: $sv_family_status_systemverilog_preprocessor_aggregate_summary_json,
+              failure_context_contract_state_dir: $sv_failure_context_contract_state_dir,
+              failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,
+              failure_context_contract_summary_json: $sv_failure_context_contract_summary_json,
+              roundtrip_contract_state_dir: $sv_roundtrip_contract_state_dir,
+              roundtrip_contract_summary_txt: $sv_roundtrip_contract_summary_txt,
+              roundtrip_contract_summary_json: $sv_roundtrip_contract_summary_json,
               reachability_state_dir: $sv_family_status_systemverilog_preprocessor_reachability_state_dir,
               reachability_summary_txt: $sv_family_status_systemverilog_preprocessor_reachability_summary_txt
             }
@@ -2502,6 +2514,12 @@ jq -n \
               parser_aggregate_state_dir: $sv_family_status_contract_systemverilog_parser_aggregate_state_dir,
               parser_aggregate_summary_txt: $sv_family_status_contract_systemverilog_parser_aggregate_summary_txt,
               parser_aggregate_summary_json: $sv_family_status_contract_systemverilog_parser_aggregate_summary_json,
+              failure_context_contract_state_dir: $sv_failure_context_contract_state_dir,
+              failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,
+              failure_context_contract_summary_json: $sv_failure_context_contract_summary_json,
+              roundtrip_contract_state_dir: $sv_roundtrip_contract_state_dir,
+              roundtrip_contract_summary_txt: $sv_roundtrip_contract_summary_txt,
+              roundtrip_contract_summary_json: $sv_roundtrip_contract_summary_json,
               semantic_scope_contract_state_dir: $sv_family_status_contract_systemverilog_semantic_scope_contract_state_dir,
               semantic_scope_contract_summary_txt: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_txt,
               semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json
@@ -2518,7 +2536,13 @@ jq -n \
             proof_surfaces: {
               aggregate_state_dir: $sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir,
               aggregate_summary_txt: $sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt,
-              aggregate_summary_json: $sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json
+              aggregate_summary_json: $sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json,
+              failure_context_contract_state_dir: $sv_failure_context_contract_state_dir,
+              failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,
+              failure_context_contract_summary_json: $sv_failure_context_contract_summary_json,
+              roundtrip_contract_state_dir: $sv_roundtrip_contract_state_dir,
+              roundtrip_contract_summary_txt: $sv_roundtrip_contract_summary_txt,
+              roundtrip_contract_summary_json: $sv_roundtrip_contract_summary_json
             }
           }
         ]

@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Preserve SV auxiliary provenance in combined telemetry family JSON
+### Context
+After the reader-side switch to nested SOTA SV family payloads landed, `sv_combined_telemetry_contract_gate` still only preserved the auxiliary failure-context and roundtrip sidecar paths at top level.
+
+### Implementation
+- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - threaded the validated auxiliary sidecar `state_dir` / `summary.txt` / `summary.json` paths into nested SV `family_status` proof surfaces,
+  - threaded the same shared auxiliary sidecar paths into nested SV `family_status_contract` proof surfaces.
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - locked representative nested combined-telemetry output fields for those auxiliary sidecars.
+
+### Why This Matters
+- The combined telemetry family payloads now preserve the same auxiliary proof chain they already consume.
+- That keeps the structured SV family JSON closer to self-contained provenance-bearing objects.
+
 ## 2026-03-24 - Consume nested SV auxiliary provenance in combined telemetry
 ### Context
 After SOTA started carrying the SV failure-context and roundtrip side-proof paths inside nested SV family payloads, `sv_combined_telemetry_contract_gate` still treated the older top-level SOTA mirrors as the practical source for those two sidecars.

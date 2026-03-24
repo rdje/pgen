@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next clean preservation seam after `sv_combined_telemetry_contract_gate` switched to nested SOTA SV auxiliary provenance was its own nested family output:
+  - the gate now consumed the shared failure-context / roundtrip sidecars from nested SOTA payloads,
+  - but its nested `family_status` / `family_status_contract` JSON still dropped those same sidecar paths.
+- That seam is now being closed by:
+  - threading the validated auxiliary `state_dir` / `summary.txt` / `summary.json` paths into the nested SV family proof surfaces inside combined telemetry JSON,
+  - locking representative nested output fields in `ci_workflow_local_gate.sh`.
 - The next clean reader-side follow-up after SOTA started nesting the shared SV auxiliary side proofs was `sv_combined_telemetry_contract_gate`:
   - it still relied on SOTA's older top-level mirrors for the failure-context / roundtrip sidecars,
   - even though the nested SV family payloads already carried the same paths.

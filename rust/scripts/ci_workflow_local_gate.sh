@@ -345,7 +345,13 @@ audit_combined_telemetry_nested_provenance_surface() {
     'state_dir: $sv_failure_context_contract_state_dir'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'failure_context_contract_summary_json: $sv_failure_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'parser_aggregate_summary_json: $sv_family_status_systemverilog_parser_aggregate_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'roundtrip_contract_summary_json: $sv_roundtrip_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'parser_aggregate_summary_json: $sv_family_status_contract_systemverilog_parser_aggregate_summary_json'
