@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-24 - Surface regex family provenance inside SOTA family JSON
+### ✅ Achievement Summary
+PGEN now makes `sota_exit_gate/summary.json` carry regex family proof provenance directly inside the structured `family_status.regex` and `family_status_contract.regex` payloads.
+
+### Scope of Changes
+- Updated:
+  - [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+- The nested regex family-status payload now carries:
+  - family-contract `state_dir` / `summary.txt` / `summary.json`
+  - frontend `state_dir` / `summary.txt` / `summary.csv`
+  - dual-run `state_dir` / `summary.txt` / `summary.csv` / `summary.json`
+  - stimuli `state_dir` / `summary.txt` / `summary.csv`
+- The nested regex family-status-contract payload now carries:
+  - family-status `state_dir` / `summary.txt` / `summary.json`
+  - family-contract `state_dir` / `summary.txt` / `summary.json`
+
+### Why This Matters
+- Regex blocker rows in SOTA now point directly at the frontend, dual-run, and stimuli proof artifacts behind them.
+- Downstream readers no longer need to reconstruct the regex proof chain from separate top-level SOTA keys.
+
 ## 2026-03-24 - Surface VHDL family provenance inside SOTA family JSON
 ### ✅ Achievement Summary
 PGEN now makes `sota_exit_gate/summary.json` carry VHDL family proof provenance directly inside the structured `family_status.vhdl` and `family_status_contract.vhdl` payloads.

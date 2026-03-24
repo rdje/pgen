@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make SOTA family JSON carry regex provenance directly
+### Context
+After the recent regex family-proof work:
+- `sota_exit_gate` already exposed the regex family contract / status / status-contract sidecars,
+- and it already exposed the regex frontend / dual-run / stimuli evidence at top level.
+
+But the structured SOTA JSON payloads for:
+- `family_status.regex`
+- `family_status_contract.regex`
+
+still only carried the generic family summary pointers.
+
+### Implementation
+- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - extracted regex family-contract `state_dir` from the regex family-status sidecar,
+  - extracted regex family-contract provenance from `regex_parser_family_status_contract_gate/summary.json`,
+  - embedded regex family-contract plus frontend / dual-run / stimuli proof paths in `family_status.regex.proof_surfaces`,
+  - embedded regex family-status plus family-contract proof paths in `family_status_contract.regex.proof_surfaces`.
+
+### Why This Matters
+- The structured regex family payloads in SOTA now carry the actual proof chain instead of forcing downstream readers to stitch it together from top-level fields.
+- This gives regex the same “family object owns its provenance” shape already applied to SV and VHDL.
+
 ## 2026-03-24 - Make SOTA family JSON carry VHDL provenance directly
 ### Context
 After the recent VHDL proof-provenance work:

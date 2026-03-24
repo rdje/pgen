@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next aggregate-proof coherence seam after VHDL nested-family provenance landed was the regex sibling in `sota_exit_gate`:
+  - top-level SOTA already carried the regex family contract / frontend / dual-run / stimuli evidence,
+  - but the structured `family_status.regex` and `family_status_contract.regex` payloads still exposed only generic summary pointers.
+- That seam is now being closed by making SOTA:
+  - embed regex family-contract plus frontend/dual-run/stimuli proof surfaces directly in `family_status.regex`,
+  - and embed regex family-status plus family-contract proof surfaces directly in `family_status_contract.regex`.
 - The next aggregate-proof coherence seam after SV nested-family provenance landed was the sibling VHDL path in `sota_exit_gate`:
   - top-level SOTA already carried the VHDL family contract / quality / strict-promotion evidence,
   - but the structured `family_status.vhdl` and `family_status_contract.vhdl` payloads still only exposed generic summary pointers.
