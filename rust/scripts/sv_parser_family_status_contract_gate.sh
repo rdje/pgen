@@ -137,10 +137,10 @@ require_nonempty_file "$family_status_summary_txt"
 
 main_expected_criteria='["syntax_closure_gate_green","parser_aggregate_contract_green","generation_parser_rejections_zero","replay_shadow_parser_rejections_zero","focused_replay_target_debt_zero","semantic_scope_contract_green"]'
 main_expected_metrics='["syntax_closure_status","syntax_closure_failure_count","syntax_defined_rule_count","syntax_unresolved_rule_reference_count","syntax_unreachable_rules","syntax_unreachable_branches","syntax_target_debt_count","semantic_scope_case_count","semantic_scope_failed_count","generation_parser_rejections_total","replay_shadow_parser_rejections_total","focused_replay_target_count","focused_replay_covered_reachable_rules","focused_replay_covered_reachable_branches","replay_gap_target_primary_rule"]'
-main_expected_proof_surfaces='["syntax_closure_state_dir","syntax_closure_summary_txt","syntax_closure_summary_json","parser_aggregate_state_dir","parser_aggregate_summary_txt","semantic_scope_contract_state_dir","semantic_scope_contract_summary_txt","semantic_scope_contract_summary_json"]'
+main_expected_proof_surfaces='["syntax_closure_state_dir","syntax_closure_summary_txt","syntax_closure_summary_json","parser_aggregate_state_dir","parser_aggregate_summary_txt","parser_aggregate_summary_json","semantic_scope_contract_state_dir","semantic_scope_contract_summary_txt","semantic_scope_contract_summary_json"]'
 svpp_expected_criteria='["syntax_closure_gate_green","aggregate_contract_green","reachability_closure_green","parser_rejections_zero","parseability_rejections_zero","reachability_stage3_targets_zero","reachability_stage4_targets_zero","reachability_stage3_rules_full","reachability_stage4_rules_full","reachability_stage3_branches_full","reachability_stage4_branches_full"]'
 svpp_expected_metrics='["syntax_closure_status","syntax_closure_failure_count","syntax_defined_rule_count","syntax_unresolved_rule_reference_count","syntax_unreachable_rules","syntax_unreachable_branches","syntax_target_debt_count","parseability_parser_rejections_total","parseability_rejected_total","final_targets","covered_reachable_rules","covered_reachable_branches","counterexample_primary_stage","reachability_stage3_targets","reachability_stage4_targets","reachability_stage3_rules","reachability_stage4_rules","reachability_stage3_branches","reachability_stage4_branches"]'
-svpp_expected_proof_surfaces='["syntax_closure_state_dir","syntax_closure_summary_txt","syntax_closure_summary_json","aggregate_state_dir","aggregate_summary_txt","reachability_state_dir","reachability_summary_txt"]'
+svpp_expected_proof_surfaces='["syntax_closure_state_dir","syntax_closure_summary_txt","syntax_closure_summary_json","aggregate_state_dir","aggregate_summary_txt","aggregate_summary_json","reachability_state_dir","reachability_summary_txt"]'
 
 jq -e \
     --argjson main_expected_criteria "$main_expected_criteria" \
@@ -248,6 +248,7 @@ summary_main_syntax_closure_summary_txt="$(extract_summary_value "$family_status
 summary_main_syntax_closure_summary_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_syntax_closure_summary_json")"
 summary_main_parser_aggregate_state_dir="$(extract_summary_value "$family_status_summary_txt" "systemverilog_parser_aggregate_state_dir")"
 summary_main_parser_aggregate_summary_txt="$(extract_summary_value "$family_status_summary_txt" "systemverilog_parser_aggregate_summary_txt")"
+summary_main_parser_aggregate_summary_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_parser_aggregate_summary_json")"
 summary_main_semantic_scope_contract_state_dir="$(extract_summary_value "$family_status_summary_txt" "systemverilog_semantic_scope_contract_state_dir")"
 summary_main_semantic_scope_contract_summary_txt="$(extract_summary_value "$family_status_summary_txt" "systemverilog_semantic_scope_contract_summary_txt")"
 summary_main_semantic_scope_contract_summary_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_semantic_scope_contract_summary_json")"
@@ -256,6 +257,7 @@ summary_svpp_syntax_closure_summary_txt="$(extract_summary_value "$family_status
 summary_svpp_syntax_closure_summary_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_syntax_closure_summary_json")"
 summary_svpp_aggregate_state_dir="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_aggregate_state_dir")"
 summary_svpp_aggregate_summary_txt="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_aggregate_summary_txt")"
+summary_svpp_aggregate_summary_json="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_aggregate_summary_json")"
 summary_svpp_reachability_state_dir="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_reachability_state_dir")"
 summary_svpp_reachability_summary_txt="$(extract_summary_value "$family_status_summary_txt" "systemverilog_preprocessor_reachability_summary_txt")"
 main_syntax_closure_state_dir="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.syntax_closure_state_dir' "$family_status_summary_json")"
@@ -263,6 +265,7 @@ main_syntax_closure_summary_txt="$(jq -r '.families[] | select(.family=="systemv
 main_syntax_closure_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.syntax_closure_summary_json' "$family_status_summary_json")"
 main_parser_aggregate_state_dir="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_state_dir' "$family_status_summary_json")"
 main_parser_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$family_status_summary_json")"
+main_parser_aggregate_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_json' "$family_status_summary_json")"
 main_semantic_scope_contract_state_dir="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_state_dir' "$family_status_summary_json")"
 main_semantic_scope_contract_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_txt' "$family_status_summary_json")"
 main_semantic_scope_contract_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_json' "$family_status_summary_json")"
@@ -271,6 +274,7 @@ svpp_syntax_closure_summary_txt="$(jq -r '.families[] | select(.family=="systemv
 svpp_syntax_closure_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.syntax_closure_summary_json' "$family_status_summary_json")"
 svpp_aggregate_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_state_dir' "$family_status_summary_json")"
 svpp_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_txt' "$family_status_summary_json")"
+svpp_aggregate_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_json' "$family_status_summary_json")"
 svpp_reachability_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_state_dir' "$family_status_summary_json")"
 svpp_reachability_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_summary_txt' "$family_status_summary_json")"
 
@@ -306,11 +310,11 @@ if [[ "$summary_svpp_tracker_alignment" != "$svpp_tracker_alignment_ok" ]]; then
     echo "error: preprocessor family tracker alignment mismatch between summary.txt and summary.json" >&2
     exit 1
 fi
-if [[ "$summary_main_syntax_closure_state_dir" != "$main_syntax_closure_state_dir" || "$summary_main_syntax_closure_summary_txt" != "$main_syntax_closure_summary_txt" || "$summary_main_syntax_closure_summary_json" != "$main_syntax_closure_summary_json" || "$summary_main_parser_aggregate_state_dir" != "$main_parser_aggregate_state_dir" || "$summary_main_parser_aggregate_summary_txt" != "$main_parser_aggregate_summary_txt" || "$summary_main_semantic_scope_contract_state_dir" != "$main_semantic_scope_contract_state_dir" || "$summary_main_semantic_scope_contract_summary_txt" != "$main_semantic_scope_contract_summary_txt" || "$summary_main_semantic_scope_contract_summary_json" != "$main_semantic_scope_contract_summary_json" ]]; then
+if [[ "$summary_main_syntax_closure_state_dir" != "$main_syntax_closure_state_dir" || "$summary_main_syntax_closure_summary_txt" != "$main_syntax_closure_summary_txt" || "$summary_main_syntax_closure_summary_json" != "$main_syntax_closure_summary_json" || "$summary_main_parser_aggregate_state_dir" != "$main_parser_aggregate_state_dir" || "$summary_main_parser_aggregate_summary_txt" != "$main_parser_aggregate_summary_txt" || "$summary_main_parser_aggregate_summary_json" != "$main_parser_aggregate_summary_json" || "$summary_main_semantic_scope_contract_state_dir" != "$main_semantic_scope_contract_state_dir" || "$summary_main_semantic_scope_contract_summary_txt" != "$main_semantic_scope_contract_summary_txt" || "$summary_main_semantic_scope_contract_summary_json" != "$main_semantic_scope_contract_summary_json" ]]; then
     echo "error: main family proof-surface path mismatch between summary.txt and summary.json" >&2
     exit 1
 fi
-if [[ "$summary_svpp_syntax_closure_state_dir" != "$svpp_syntax_closure_state_dir" || "$summary_svpp_syntax_closure_summary_txt" != "$svpp_syntax_closure_summary_txt" || "$summary_svpp_syntax_closure_summary_json" != "$svpp_syntax_closure_summary_json" || "$summary_svpp_aggregate_state_dir" != "$svpp_aggregate_state_dir" || "$summary_svpp_aggregate_summary_txt" != "$svpp_aggregate_summary_txt" || "$summary_svpp_reachability_state_dir" != "$svpp_reachability_state_dir" || "$summary_svpp_reachability_summary_txt" != "$svpp_reachability_summary_txt" ]]; then
+if [[ "$summary_svpp_syntax_closure_state_dir" != "$svpp_syntax_closure_state_dir" || "$summary_svpp_syntax_closure_summary_txt" != "$svpp_syntax_closure_summary_txt" || "$summary_svpp_syntax_closure_summary_json" != "$svpp_syntax_closure_summary_json" || "$summary_svpp_aggregate_state_dir" != "$svpp_aggregate_state_dir" || "$summary_svpp_aggregate_summary_txt" != "$svpp_aggregate_summary_txt" || "$summary_svpp_aggregate_summary_json" != "$svpp_aggregate_summary_json" || "$summary_svpp_reachability_state_dir" != "$svpp_reachability_state_dir" || "$summary_svpp_reachability_summary_txt" != "$svpp_reachability_summary_txt" ]]; then
     echo "error: preprocessor family proof-surface path mismatch between summary.txt and summary.json" >&2
     exit 1
 fi

@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make SV family-status carry aggregate JSON proof paths
+### Context
+After giving the two SV aggregate-contract gates their own `summary.json` sidecars, the next asymmetry was immediately above them:
+- `sv_parser_family_status_gate` still only exposed `parser_aggregate_summary_txt` and `aggregate_summary_txt`,
+- `sv_parser_family_status_contract_gate` still validated only those TXT paths.
+
+That left the just-added aggregate JSON sidecars as write-only metadata at the SV family-status boundary.
+
+### Implementation
+- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+  - require `sv_parser_aggregate_contract_gate/summary.json`,
+  - require `sv_preprocessor_aggregate_contract_gate/summary.json`,
+  - carry both JSON paths in the family-status TXT and JSON sidecars,
+  - bump the SV family-status gate version to `4`.
+- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - extend the expected SV proof-surface sets with the new aggregate JSON paths,
+  - parity-check those new fields between the family-status TXT and JSON sidecars.
+
+### Why This Matters
+- SV family-status now preserves the full aggregate-contract path set:
+  - state dir,
+  - summary txt,
+  - summary json.
+- Higher SV aggregate layers can now consume those aggregate JSON proof paths directly, instead of backfilling them from older TXT-only assumptions.
+
 ## 2026-03-24 - Give SV aggregate-contract gates machine-readable sidecars
 ### Context
 On the SV side, the practical family-contract-equivalent surfaces are the two existing aggregate contract gates:

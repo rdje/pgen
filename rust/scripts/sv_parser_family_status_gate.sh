@@ -187,7 +187,9 @@ else
 fi
 
 sv_parser_summary_txt="$sv_parser_gate_state_dir/summary.txt"
+sv_parser_summary_json="$sv_parser_gate_state_dir/summary.json"
 sv_preprocessor_aggregate_summary_txt="$sv_preprocessor_aggregate_state_dir/summary.txt"
+sv_preprocessor_aggregate_summary_json="$sv_preprocessor_aggregate_state_dir/summary.json"
 sv_preprocessor_reachability_summary_txt="$sv_preprocessor_reachability_state_dir/summary.txt"
 sv_syntax_summary_txt="$sv_syntax_closure_state_dir/summary.txt"
 sv_semantic_scope_contract_summary_txt="$sv_semantic_scope_contract_state_dir/summary.txt"
@@ -195,7 +197,9 @@ svpp_syntax_summary_txt="$sv_preprocessor_syntax_closure_state_dir/summary.txt"
 sv_semantic_scope_contract_summary_json="$sv_semantic_scope_contract_state_dir/summary.json"
 
 require_nonempty_file "$sv_parser_summary_txt"
+require_nonempty_file "$sv_parser_summary_json"
 require_nonempty_file "$sv_preprocessor_aggregate_summary_txt"
+require_nonempty_file "$sv_preprocessor_aggregate_summary_json"
 require_nonempty_file "$sv_preprocessor_reachability_summary_txt"
 require_nonempty_file "$sv_syntax_summary_txt"
 require_nonempty_file "$sv_semantic_scope_contract_summary_txt"
@@ -483,6 +487,7 @@ jq -n \
     --arg sv_semantic_scope_case_count "$sv_semantic_scope_case_count" \
     --arg sv_semantic_scope_failed_count "$sv_semantic_scope_failed_count" \
     --arg sv_parser_summary_txt "$sv_parser_summary_txt" \
+    --arg sv_parser_summary_json "$sv_parser_summary_json" \
     --arg sv_generation_parser_rejections_total "$sv_generation_parser_rejections_total" \
     --arg sv_shadow_parser_rejections_total "$sv_shadow_parser_rejections_total" \
     --arg sv_focused_replay_target_count "$sv_focused_replay_target_count" \
@@ -514,6 +519,7 @@ jq -n \
     --arg svpp_syntax_target_debt_count "$svpp_syntax_target_debt_count" \
     --arg sv_preprocessor_aggregate_state_dir "$sv_preprocessor_aggregate_state_dir" \
     --arg svpp_aggregate_summary_txt "$sv_preprocessor_aggregate_summary_txt" \
+    --arg svpp_aggregate_summary_json "$sv_preprocessor_aggregate_summary_json" \
     --arg sv_preprocessor_reachability_state_dir "$sv_preprocessor_reachability_state_dir" \
     --arg svpp_reachability_summary_txt "$sv_preprocessor_reachability_summary_txt" \
     --arg svpp_parseability_parser_rejections_total "$svpp_parseability_parser_rejections_total" \
@@ -549,7 +555,7 @@ jq -n \
     '
     {
       gate: "sv_parser_family_status_gate",
-      version: 3,
+      version: 4,
       generated_at_utc: $generated_at_utc,
       state_dir: $state_dir,
       summary_txt: $summary_txt,
@@ -568,6 +574,7 @@ jq -n \
             syntax_closure_summary_json: $sv_syntax_summary_json,
             parser_aggregate_state_dir: $sv_parser_gate_state_dir,
             parser_aggregate_summary_txt: $sv_parser_summary_txt,
+            parser_aggregate_summary_json: $sv_parser_summary_json,
             semantic_scope_contract_state_dir: $sv_semantic_scope_contract_state_dir,
             semantic_scope_contract_summary_txt: $sv_semantic_scope_contract_summary_txt,
             semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json
@@ -652,6 +659,7 @@ jq -n \
             syntax_closure_summary_json: $svpp_syntax_summary_json,
             aggregate_state_dir: $sv_preprocessor_aggregate_state_dir,
             aggregate_summary_txt: $svpp_aggregate_summary_txt,
+            aggregate_summary_json: $svpp_aggregate_summary_json,
             reachability_state_dir: $sv_preprocessor_reachability_state_dir,
             reachability_summary_txt: $svpp_reachability_summary_txt
           },
@@ -790,6 +798,7 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_syntax_closure_summary_json: $sv_syntax_summary_json"
     echo "systemverilog_parser_aggregate_state_dir: $sv_parser_gate_state_dir"
     echo "systemverilog_parser_aggregate_summary_txt: $sv_parser_summary_txt"
+    echo "systemverilog_parser_aggregate_summary_json: $sv_parser_summary_json"
     echo "systemverilog_semantic_scope_contract_state_dir: $sv_semantic_scope_contract_state_dir"
     echo "systemverilog_semantic_scope_contract_summary_txt: $sv_semantic_scope_contract_summary_txt"
     echo "systemverilog_semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json"
@@ -824,6 +833,7 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_preprocessor_syntax_closure_summary_json: $svpp_syntax_summary_json"
     echo "systemverilog_preprocessor_aggregate_state_dir: $sv_preprocessor_aggregate_state_dir"
     echo "systemverilog_preprocessor_aggregate_summary_txt: $sv_preprocessor_aggregate_summary_txt"
+    echo "systemverilog_preprocessor_aggregate_summary_json: $sv_preprocessor_aggregate_summary_json"
     echo "systemverilog_preprocessor_reachability_state_dir: $sv_preprocessor_reachability_state_dir"
     echo "systemverilog_preprocessor_reachability_summary_txt: $sv_preprocessor_reachability_summary_txt"
     echo "systemverilog_preprocessor_parseability_parser_rejections_total: $svpp_parseability_parser_rejections_total"

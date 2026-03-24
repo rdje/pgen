@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-24 - Surface SV aggregate JSON provenance in family status
+### ✅ Achievement Summary
+PGEN now makes the SV family-status proof layer carry the new parser/preprocessor aggregate `summary.json` paths instead of treating those aggregate contracts as TXT-only surfaces.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh)
+  - [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh)
+- The status gate now:
+  - requires both SV aggregate-contract `summary.json` sidecars,
+  - records those paths in `summary.txt`,
+  - re-emits them in `summary.json`.
+- The status-contract gate now:
+  - expects those new proof-surface fields,
+  - parity-checks them between the SV family-status TXT and JSON sidecars.
+
+### Why This Matters
+- The next SV provenance layers no longer have to reconstruct aggregate JSON paths from filenames or assume TXT-only aggregate contracts.
+- This keeps the SV proof stack aligned with the same “surface JSON as soon as it exists, then consume it one layer up” rule already used elsewhere.
+
 ## 2026-03-24 - Surface SV aggregate-contract JSON proof
 ### ✅ Achievement Summary
 PGEN now makes the shipped SystemVerilog parser-aggregate and preprocessor-aggregate contract gates emit machine-readable `summary.json` sidecars instead of stopping at `summary.txt`.

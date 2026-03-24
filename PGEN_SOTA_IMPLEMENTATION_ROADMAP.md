@@ -40,6 +40,7 @@ Interpretation rule:
 - once a family-status layer starts surfacing consumed family-contract provenance, the sibling family-status-contract layer should preserve and parity-check that provenance too instead of dropping back to blocker-only structure.
 - once both family-status and family-status-contract preserve family-contract provenance, the shipped combined-telemetry aggregate for that family should consume and re-emit the same provenance rather than stopping at blocker-only family summaries.
 - when a family uses aggregate-contract gates as its practical family-contract layer, those aggregate-contract gates should emit their own `summary.json` sidecars before higher SV provenance slices start depending on ad hoc TXT scraping.
+- once those aggregate-contract JSON sidecars exist, the next SV family-status layer should carry and parity-check their `summary_json` paths rather than preserving only aggregate TXT paths.
 - once a family-status sidecar exposes richer proof provenance, the corresponding aggregate layer should parity-check and re-emit that provenance in the same slice rather than leaving it as an undocumented side effect.
 - once a family-status contract gate exists, prefer it to expose both:
   - `summary.txt`
