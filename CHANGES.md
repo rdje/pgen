@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-24 - Consume nested SV auxiliary provenance in combined telemetry
+### ✅ Achievement Summary
+PGEN now treats the nested SV auxiliary side-proof paths in SOTA JSON as the canonical reader surface for SV combined telemetry, instead of only relying on the older top-level SOTA mirrors.
+
+### Scope of Changes
+- Updated:
+  - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- SV combined telemetry now reads and parity-checks nested SOTA family payloads for:
+  - failure-context contract sidecar paths
+  - roundtrip contract sidecar paths
+- The combined telemetry output now also re-emits:
+  - failure-context contract `state_dir`
+  - roundtrip contract `state_dir`
+
+### Why This Matters
+- The nested SV family payloads are now the practical source of truth for those auxiliary proof surfaces.
+- The consumed auxiliary provenance no longer disappears again in the combined telemetry JSON.
+
 ## 2026-03-24 - Surface SV auxiliary provenance inside SOTA family JSON
 ### ✅ Achievement Summary
 PGEN now carries the shipped SV failure-context and roundtrip side-proof paths directly inside SOTA's structured SV family JSON payloads, instead of leaving them only at top-level proof surfaces.

@@ -137,8 +137,8 @@ sota_exit_status="$(jq -r '.status' "$sota_summary_json")"
 sota_exit_summary_txt_from_json="$(jq -r '.proof_surfaces.summary_txt' "$sota_summary_json")"
 sota_exit_summary_csv_from_json="$(jq -r '.proof_surfaces.summary_csv' "$sota_summary_json")"
 sota_exit_summary_json_from_json="$(jq -r '.proof_surfaces.summary_json' "$sota_summary_json")"
-sota_exit_sv_failure_context_summary_json_from_json="$(jq -r '.proof_surfaces.sv_failure_context_contract_summary_json' "$sota_summary_json")"
-sota_exit_sv_roundtrip_summary_json_from_json="$(jq -r '.proof_surfaces.sv_roundtrip_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_failure_context_summary_json_top_level="$(jq -r '.proof_surfaces.sv_failure_context_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_roundtrip_summary_json_top_level="$(jq -r '.proof_surfaces.sv_roundtrip_contract_summary_json' "$sota_summary_json")"
 sota_exit_required_failures="$(jq -r '.counts.required_failures' "$sota_summary_json")"
 sota_exit_informational_failures="$(jq -r '.counts.informational_failures' "$sota_summary_json")"
 sota_exit_all_failures="$(jq -r '.counts.all_failures' "$sota_summary_json")"
@@ -162,18 +162,42 @@ sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json_top_leve
 sota_exit_sv_systemverilog_parser_aggregate_state_dir="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_systemverilog_parser_aggregate_summary_txt="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_systemverilog_parser_aggregate_summary_json="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_failure_context_contract_state_dir="$(jq -r '.family_status.systemverilog.proof_surfaces.failure_context_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_failure_context_contract_summary_txt="$(jq -r '.family_status.systemverilog.proof_surfaces.failure_context_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_failure_context_contract_summary_json="$(jq -r '.family_status.systemverilog.proof_surfaces.failure_context_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_roundtrip_contract_state_dir="$(jq -r '.family_status.systemverilog.proof_surfaces.roundtrip_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_roundtrip_contract_summary_txt="$(jq -r '.family_status.systemverilog.proof_surfaces.roundtrip_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_roundtrip_contract_summary_json="$(jq -r '.family_status.systemverilog.proof_surfaces.roundtrip_contract_summary_json' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_failure_context_contract_state_dir="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.failure_context_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_failure_context_contract_summary_txt="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_failure_context_contract_summary_json="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_roundtrip_contract_state_dir="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.roundtrip_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_roundtrip_contract_summary_txt="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.roundtrip_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_roundtrip_contract_summary_json="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.roundtrip_contract_summary_json' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.parser_aggregate_summary_json' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_semantic_scope_contract_state_dir="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_txt="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_semantic_scope_contract_summary_json="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_failure_context_contract_state_dir="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.failure_context_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_failure_context_contract_summary_txt="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.failure_context_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_failure_context_contract_summary_json="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.failure_context_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_roundtrip_contract_state_dir="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.roundtrip_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_roundtrip_contract_summary_txt="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.roundtrip_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_roundtrip_contract_summary_json="$(jq -r '.family_status_contract.systemverilog.proof_surfaces.roundtrip_contract_summary_json' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.failure_context_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_roundtrip_contract_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.roundtrip_contract_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_roundtrip_contract_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.roundtrip_contract_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_roundtrip_contract_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.roundtrip_contract_summary_json' "$sota_summary_json")"
 sota_exit_sv_systemverilog_primary_unmet="$(jq -r '.family_status.systemverilog.primary_unmet_closure_criterion' "$sota_summary_json")"
 sota_exit_sv_systemverilog_unmet_json="$(jq -cer '.family_status.systemverilog.unmet_closure_criteria' "$sota_summary_json")"
 sota_exit_sv_systemverilog_unmet_details_json="$(jq -cer '.family_status.systemverilog.unmet_closure_criteria_details' "$sota_summary_json")"
@@ -260,13 +284,13 @@ assert_equal \
     "$sv_parser_family_status_contract_summary_json" \
     "$sota_exit_sv_parser_family_status_contract_summary_json_from_json"
 assert_equal \
-    "SOTA exit SV failure-context contract summary json path" \
+    "SOTA exit SV failure-context contract summary json top-level path" \
     "$sv_failure_summary_json" \
-    "$sota_exit_sv_failure_context_summary_json_from_json"
+    "$sota_exit_sv_failure_context_summary_json_top_level"
 assert_equal \
-    "SOTA exit SV roundtrip contract summary json path" \
+    "SOTA exit SV roundtrip contract summary json top-level path" \
     "$sv_roundtrip_summary_json" \
-    "$sota_exit_sv_roundtrip_summary_json_from_json"
+    "$sota_exit_sv_roundtrip_summary_json_top_level"
 assert_equal \
     "SOTA exit main parser aggregate state dir mirror" \
     "$sota_exit_sv_systemverilog_parser_aggregate_state_dir" \
@@ -340,15 +364,21 @@ fi
 sv_failure_gate_name="$(jq -r '.gate' "$sv_failure_summary_json")"
 sv_failure_gate_version="$(jq -r '.version' "$sv_failure_summary_json")"
 sv_failure_generated_at_utc="$(jq -r '.generated_at_utc' "$sv_failure_summary_json")"
+sv_failure_state_dir="$(jq -r '.state_dir' "$sv_failure_summary_json")"
 sv_failure_summary_txt_from_json="$(jq -r '.summary_txt' "$sv_failure_summary_json")"
 sv_failure_summary_json_from_json="$(jq -r '.summary_json' "$sv_failure_summary_json")"
 
 sv_roundtrip_gate_name="$(jq -r '.gate' "$sv_roundtrip_summary_json")"
 sv_roundtrip_gate_version="$(jq -r '.version' "$sv_roundtrip_summary_json")"
 sv_roundtrip_generated_at_utc="$(jq -r '.generated_at_utc' "$sv_roundtrip_summary_json")"
+sv_roundtrip_state_dir="$(jq -r '.state_dir' "$sv_roundtrip_summary_json")"
 sv_roundtrip_summary_txt_from_json="$(jq -r '.summary_txt' "$sv_roundtrip_summary_json")"
 sv_roundtrip_summary_json_from_json="$(jq -r '.summary_json' "$sv_roundtrip_summary_json")"
 
+assert_equal \
+    "SV failure-context state dir self path" \
+    "$sv_failure_state_dir" \
+    "$(dirname "$sv_failure_summary_json")"
 assert_equal \
     "SV failure-context summary txt self path" \
     "$sv_failure_summary_txt" \
@@ -358,6 +388,10 @@ assert_equal \
     "$sv_failure_summary_json" \
     "$sv_failure_summary_json_from_json"
 assert_equal \
+    "SV roundtrip state dir self path" \
+    "$sv_roundtrip_state_dir" \
+    "$(dirname "$sv_roundtrip_summary_json")"
+assert_equal \
     "SV roundtrip summary txt self path" \
     "$sv_roundtrip_summary_txt" \
     "$sv_roundtrip_summary_txt_from_json"
@@ -365,6 +399,102 @@ assert_equal \
     "SV roundtrip summary json self path" \
     "$sv_roundtrip_summary_json" \
     "$sv_roundtrip_summary_json_from_json"
+assert_equal \
+    "SOTA exit main family failure-context state dir" \
+    "$sv_failure_state_dir" \
+    "$sota_exit_sv_systemverilog_failure_context_contract_state_dir"
+assert_equal \
+    "SOTA exit main family failure-context summary txt" \
+    "$sv_failure_summary_txt" \
+    "$sota_exit_sv_systemverilog_failure_context_contract_summary_txt"
+assert_equal \
+    "SOTA exit main family failure-context summary json" \
+    "$sv_failure_summary_json" \
+    "$sota_exit_sv_systemverilog_failure_context_contract_summary_json"
+assert_equal \
+    "SOTA exit preprocessor family failure-context state dir" \
+    "$sv_failure_state_dir" \
+    "$sota_exit_sv_systemverilog_preprocessor_failure_context_contract_state_dir"
+assert_equal \
+    "SOTA exit preprocessor family failure-context summary txt" \
+    "$sv_failure_summary_txt" \
+    "$sota_exit_sv_systemverilog_preprocessor_failure_context_contract_summary_txt"
+assert_equal \
+    "SOTA exit preprocessor family failure-context summary json" \
+    "$sv_failure_summary_json" \
+    "$sota_exit_sv_systemverilog_preprocessor_failure_context_contract_summary_json"
+assert_equal \
+    "SOTA exit main contract failure-context state dir" \
+    "$sv_failure_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_failure_context_contract_state_dir"
+assert_equal \
+    "SOTA exit main contract failure-context summary txt" \
+    "$sv_failure_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_failure_context_contract_summary_txt"
+assert_equal \
+    "SOTA exit main contract failure-context summary json" \
+    "$sv_failure_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_failure_context_contract_summary_json"
+assert_equal \
+    "SOTA exit preprocessor contract failure-context state dir" \
+    "$sv_failure_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_state_dir"
+assert_equal \
+    "SOTA exit preprocessor contract failure-context summary txt" \
+    "$sv_failure_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_summary_txt"
+assert_equal \
+    "SOTA exit preprocessor contract failure-context summary json" \
+    "$sv_failure_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_summary_json"
+assert_equal \
+    "SOTA exit main family roundtrip state dir" \
+    "$sv_roundtrip_state_dir" \
+    "$sota_exit_sv_systemverilog_roundtrip_contract_state_dir"
+assert_equal \
+    "SOTA exit main family roundtrip summary txt" \
+    "$sv_roundtrip_summary_txt" \
+    "$sota_exit_sv_systemverilog_roundtrip_contract_summary_txt"
+assert_equal \
+    "SOTA exit main family roundtrip summary json" \
+    "$sv_roundtrip_summary_json" \
+    "$sota_exit_sv_systemverilog_roundtrip_contract_summary_json"
+assert_equal \
+    "SOTA exit preprocessor family roundtrip state dir" \
+    "$sv_roundtrip_state_dir" \
+    "$sota_exit_sv_systemverilog_preprocessor_roundtrip_contract_state_dir"
+assert_equal \
+    "SOTA exit preprocessor family roundtrip summary txt" \
+    "$sv_roundtrip_summary_txt" \
+    "$sota_exit_sv_systemverilog_preprocessor_roundtrip_contract_summary_txt"
+assert_equal \
+    "SOTA exit preprocessor family roundtrip summary json" \
+    "$sv_roundtrip_summary_json" \
+    "$sota_exit_sv_systemverilog_preprocessor_roundtrip_contract_summary_json"
+assert_equal \
+    "SOTA exit main contract roundtrip state dir" \
+    "$sv_roundtrip_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_roundtrip_contract_state_dir"
+assert_equal \
+    "SOTA exit main contract roundtrip summary txt" \
+    "$sv_roundtrip_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_roundtrip_contract_summary_txt"
+assert_equal \
+    "SOTA exit main contract roundtrip summary json" \
+    "$sv_roundtrip_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_roundtrip_contract_summary_json"
+assert_equal \
+    "SOTA exit preprocessor contract roundtrip state dir" \
+    "$sv_roundtrip_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_roundtrip_contract_state_dir"
+assert_equal \
+    "SOTA exit preprocessor contract roundtrip summary txt" \
+    "$sv_roundtrip_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_roundtrip_contract_summary_txt"
+assert_equal \
+    "SOTA exit preprocessor contract roundtrip summary json" \
+    "$sv_roundtrip_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_roundtrip_contract_summary_json"
 
 sv_parser_family_status_gate_name="$(jq -r '.gate' "$sv_parser_family_status_summary_json")"
 sv_parser_family_status_gate_version="$(jq -r '.version' "$sv_parser_family_status_summary_json")"
@@ -1770,11 +1900,13 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "sota_exit_all_failures: $sota_exit_all_failures"
     echo "sv_stimuli_quality_aggregate_contract_summary_txt: $sv_parser_aggregate_summary_txt"
     echo "sv_preprocessor_quality_aggregate_contract_summary_txt: $sv_preprocessor_aggregate_summary_txt"
+    echo "sv_failure_context_contract_state_dir: $sv_failure_state_dir"
     echo "sv_failure_context_contract_summary_txt: $sv_failure_summary_txt"
     echo "sv_failure_context_contract_summary_json: $sv_failure_summary_json"
     echo "sv_failure_context_contract_gate: $sv_failure_gate_name"
     echo "sv_failure_context_contract_gate_version: $sv_failure_gate_version"
     echo "sv_failure_context_contract_generated_at_utc: $sv_failure_generated_at_utc"
+    echo "sv_roundtrip_contract_state_dir: $sv_roundtrip_state_dir"
     echo "sv_roundtrip_contract_summary_txt: $sv_roundtrip_summary_txt"
     echo "sv_roundtrip_contract_summary_json: $sv_roundtrip_summary_json"
     echo "sv_roundtrip_contract_gate: $sv_roundtrip_gate_name"
@@ -2065,11 +2197,13 @@ jq -n \
     --argjson sota_exit_all_failures "$sota_exit_all_failures" \
     --arg sv_stimuli_quality_aggregate_contract_summary_txt "$sv_parser_aggregate_summary_txt" \
     --arg sv_preprocessor_quality_aggregate_contract_summary_txt "$sv_preprocessor_aggregate_summary_txt" \
+    --arg sv_failure_context_contract_state_dir "$sv_failure_state_dir" \
     --arg sv_failure_context_contract_summary_txt "$sv_failure_summary_txt" \
     --arg sv_failure_context_contract_summary_json "$sv_failure_summary_json" \
     --arg sv_failure_context_contract_gate "$sv_failure_gate_name" \
     --argjson sv_failure_context_contract_gate_version "$sv_failure_gate_version" \
     --arg sv_failure_context_contract_generated_at_utc "$sv_failure_generated_at_utc" \
+    --arg sv_roundtrip_contract_state_dir "$sv_roundtrip_state_dir" \
     --arg sv_roundtrip_contract_summary_txt "$sv_roundtrip_summary_txt" \
     --arg sv_roundtrip_contract_summary_json "$sv_roundtrip_summary_json" \
     --arg sv_roundtrip_contract_gate "$sv_roundtrip_gate_name" \
@@ -2216,8 +2350,10 @@ jq -n \
         sota_exit_summary_json: $sota_exit_summary_json,
         sv_stimuli_quality_aggregate_contract_summary_txt: $sv_stimuli_quality_aggregate_contract_summary_txt,
         sv_preprocessor_quality_aggregate_contract_summary_txt: $sv_preprocessor_quality_aggregate_contract_summary_txt,
+        sv_failure_context_contract_state_dir: $sv_failure_context_contract_state_dir,
         sv_failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,
         sv_failure_context_contract_summary_json: $sv_failure_context_contract_summary_json,
+        sv_roundtrip_contract_state_dir: $sv_roundtrip_contract_state_dir,
         sv_roundtrip_contract_summary_txt: $sv_roundtrip_contract_summary_txt,
         sv_roundtrip_contract_summary_json: $sv_roundtrip_contract_summary_json,
         sv_preprocessor_reachability_closure_summary_txt: $sv_preprocessor_reachability_closure_summary_txt,
@@ -2234,6 +2370,7 @@ jq -n \
         gate: $sv_failure_context_contract_gate,
         version: $sv_failure_context_contract_gate_version,
         generated_at_utc: $sv_failure_context_contract_generated_at_utc,
+        state_dir: $sv_failure_context_contract_state_dir,
         summary_txt: $sv_failure_context_contract_summary_txt,
         summary_json: $sv_failure_context_contract_summary_json,
         metrics: {
@@ -2246,6 +2383,7 @@ jq -n \
         gate: $sv_roundtrip_contract_gate,
         version: $sv_roundtrip_contract_gate_version,
         generated_at_utc: $sv_roundtrip_contract_generated_at_utc,
+        state_dir: $sv_roundtrip_contract_state_dir,
         summary_txt: $sv_roundtrip_contract_summary_txt,
         summary_json: $sv_roundtrip_contract_summary_json,
         metrics: {

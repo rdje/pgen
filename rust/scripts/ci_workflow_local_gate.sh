@@ -214,6 +214,12 @@ audit_sota_json_consumption_surface() {
     '.proof_surfaces.sv_roundtrip_contract_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status.systemverilog.proof_surfaces.failure_context_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status.systemverilog.proof_surfaces.roundtrip_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
@@ -221,6 +227,12 @@ audit_sota_json_consumption_surface() {
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     '.family_status_contract.systemverilog.proof_surfaces.semantic_scope_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.systemverilog.proof_surfaces.failure_context_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.systemverilog.proof_surfaces.roundtrip_contract_summary_json'
 
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
@@ -330,6 +342,9 @@ audit_combined_telemetry_nested_provenance_surface() {
 
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'state_dir: $sv_failure_context_contract_state_dir'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'parser_aggregate_summary_json: $sv_family_status_systemverilog_parser_aggregate_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
@@ -337,6 +352,9 @@ audit_combined_telemetry_nested_provenance_surface() {
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'state_dir: $sv_roundtrip_contract_state_dir'
 
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
