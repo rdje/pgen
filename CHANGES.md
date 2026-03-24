@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-03-24 - Lock family-contract proof-surface policy
+### ✅ Achievement Summary
+PGEN now makes the local CI workflow gate enforce the shipped family-contract proof-surface outputs directly.
+
+### Scope of Changes
+- Updated:
+  - [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- The local CI contract now asserts:
+  - regex family-contract frontend / dual-run / stimuli proof-surface fields
+  - VHDL family-contract quality / strict-promotion proof-surface fields
+
+### Why This Matters
+- The low-level proof-surface producers for regex and VHDL are now guarded directly, not only through higher-level consumers.
+- That reduces the chance of silent drift in the origin sidecars that feed the rest of the proof chain.
+
 ## 2026-03-24 - Lock family-sidecar summary identity policy
 ### ✅ Achievement Summary
 PGEN now makes the local CI workflow gate enforce the self-description shape of the shipped family sidecars.

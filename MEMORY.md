@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next proof-plumbing coherence seam after local CI started locking family-sidecar identity was the family-contract proof surface itself:
+  - the shipped family sidecars now had their self-description and family-layer provenance guarded,
+  - but the regex and VHDL family-contract proof-surface outputs still only remained stable by convention.
+- That seam is now being closed by making `ci_workflow_local_gate.sh` assert:
+  - regex frontend / dual-run / stimuli proof-surface fields,
+  - VHDL quality / strict-promotion proof-surface fields.
 - The next proof-plumbing coherence seam after local CI started locking family-layer provenance was the family sidecars' own identity contract:
   - provenance-bearing fields were now guarded at the family layer,
   - but the shipped family sidecars still only kept their `summary_json` / `summary_txt` / `state_dir` self-description shape by convention.

@@ -398,6 +398,30 @@ audit_family_summary_identity_surface() {
   done
 }
 
+audit_family_contract_proof_surface() {
+  note "auditing family-contract proof-surface emission surface"
+
+  assert_tracked "rust/scripts/regex_parser_family_contract_gate.sh"
+  assert_tracked "rust/scripts/vhdl_parser_family_contract_gate.sh"
+
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'frontend_state_dir: $frontend_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'dual_run_summary_json: $dual_run_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'stimuli_summary_csv: $stimuli_summary_csv'
+
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_contract_gate.sh" \
+    'quality_parseability_report_json: $quality_parseability_report_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_contract_gate.sh" \
+    'strict_promotion_report_json: $strict_promotion_report_json'
+}
+
 audit_summary_json_emission_surface() {
   note "auditing top-level proof summary.json emission surface"
 
@@ -474,6 +498,7 @@ main() {
   audit_combined_telemetry_nested_provenance_surface
   audit_family_layer_provenance_surface
   audit_family_summary_identity_surface
+  audit_family_contract_proof_surface
   audit_summary_json_emission_surface
 
   run_workflow \

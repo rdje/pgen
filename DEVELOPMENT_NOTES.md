@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Lock family-contract proof-surface emission in local CI
+### Context
+After the family-sidecar identity and family-layer provenance guards landed, the regex and VHDL family-contract gates still only kept their own proof-surface outputs by convention.
+
+### Implementation
+- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a dedicated family-contract proof-surface audit,
+  - asserted regex frontend / dual-run / stimuli proof-surface fields,
+  - asserted VHDL quality / strict-promotion proof-surface fields.
+
+### Why This Matters
+- This locks the low-level proof producers that higher family and aggregate layers depend on.
+- If those family-contract proof-surface outputs drift, local CI now catches it before the regression has to be inferred indirectly upstream.
+
 ## 2026-03-24 - Lock family-sidecar summary identity in local CI
 ### Context
 After local CI started guarding provenance-bearing fields at the family layer, the shipped family sidecars still only kept their own self-description shape by convention.
