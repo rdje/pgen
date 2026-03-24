@@ -23622,3 +23622,7 @@ Architectural north star:
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh`
   already emitted `summary.json`, but they still leaned too heavily on upstream proof-surface paths and did not identify their own sidecars consistently. They now need to carry `state_dir`, `summary_txt`, and `summary_json` at the top level of their JSON sidecars too, and the SV TXT header should also surface `generated_at_utc` so the three sibling gates line up cleanly.
+- The sibling layer below that is family-contract itself. The shipped regex and VHDL family-contract gates:
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh`
+  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh`
+  already emitted `summary.json`, but they still only named the upstream frontend/dual-run/stimuli or quality/strict-promotion proof surfaces. They now need to carry their own `summary_txt` and `summary_json` at the top level of their JSON sidecars too, and the VHDL TXT header should also surface `generated_at_utc` / `summary_json` so the family-contract layer follows the same self-description rule as the layers above it.

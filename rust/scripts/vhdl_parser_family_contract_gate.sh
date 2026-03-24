@@ -241,9 +241,13 @@ assert_equal "strict promotion observed_ratio_min json parity" "$strict_promotio
 assert_equal "strict promotion observed_ratio_max json parity" "$strict_promotion_observed_ratio_max" "$strict_promotion_observed_ratio_max_json"
 assert_equal "strict promotion observed_ratio_avg json parity" "$strict_promotion_observed_ratio_avg" "$strict_promotion_observed_ratio_avg_json"
 
+generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
 {
     echo "VHDL Parser Family Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
+    echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "quality_state_dir: $quality_state_dir"
     echo "quality_summary_txt: $quality_summary_txt"
     echo "quality_contract_file: $quality_contract_file"
@@ -286,7 +290,9 @@ jq -n \
     --arg gate "vhdl_parser_family_contract_gate" \
     --argjson version 1 \
     --arg state_dir "$STATE_DIR" \
-    --arg generated_at_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    --arg generated_at_utc "$generated_at_utc" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
     --arg quality_state_dir "$quality_state_dir" \
     --arg quality_summary_txt "$quality_summary_txt" \
     --arg quality_realistic_report_json "$quality_realistic_report_json" \
@@ -335,6 +341,8 @@ jq -n \
       version: $version,
       generated_at_utc: $generated_at_utc,
       state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
       proof_surfaces: {
         quality_state_dir: $quality_state_dir,
         quality_summary_txt: $quality_summary_txt,

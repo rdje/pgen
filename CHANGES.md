@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-24 - Surface family-contract self-paths
+### ✅ Achievement Summary
+PGEN now makes the shipped regex and VHDL family-contract gates expose their own `summary.txt` / `summary.json` identities consistently, instead of only pointing at the upstream proof surfaces they validate.
+
+### Scope of Changes
+- Updated:
+  - [regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh)
+  - [vhdl_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh)
+- Each gate now:
+  - records `summary_json` in `summary.txt`
+  - records `summary_txt` and `summary_json` at the top level of `summary.json`
+- The VHDL family-contract TXT surface now also records `generated_at_utc`, matching the other proof layers.
+
+### Why This Matters
+- Before this slice, those family-contract gates already emitted `summary.json`, but their top-level sidecars were not as self-describing as the sibling family-status, family-status-contract, combined-telemetry, and SOTA gates.
+- The family-contract layer now fits the same machine-readable proof pattern as the layers above it.
+
 ## 2026-03-24 - Surface family-status self-paths
 ### ✅ Achievement Summary
 PGEN now makes the shipped family-status gates expose their own `summary.txt` / `summary.json` identities consistently, instead of only reporting the upstream proof surfaces they summarize.

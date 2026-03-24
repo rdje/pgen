@@ -237,6 +237,7 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "Regex Parser Family Contract Gate Summary"
     echo "state_dir: $STATE_DIR"
     echo "generated_at_utc: $generated_at_utc"
+    echo "summary_json: $SUMMARY_JSON"
     echo "frontend_state_dir: $frontend_state_dir"
     echo "frontend_summary_txt: $frontend_summary_txt"
     echo "frontend_summary_csv: $frontend_summary_csv"
@@ -280,6 +281,8 @@ jq -n \
     --argjson version 1 \
     --arg generated_at_utc "$generated_at_utc" \
     --arg state_dir "$STATE_DIR" \
+    --arg summary_txt "$SUMMARY_TXT" \
+    --arg summary_json "$SUMMARY_JSON" \
     --arg frontend_state_dir "$frontend_state_dir" \
     --arg frontend_summary_txt "$frontend_summary_txt" \
     --arg frontend_summary_csv "$frontend_summary_csv" \
@@ -321,6 +324,8 @@ jq -n \
       version: $version,
       generated_at_utc: $generated_at_utc,
       state_dir: $state_dir,
+      summary_txt: $summary_txt,
+      summary_json: $summary_json,
       proof_surfaces: {
         frontend_state_dir: $frontend_state_dir,
         frontend_summary_txt: $frontend_summary_txt,
