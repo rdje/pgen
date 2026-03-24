@@ -334,12 +334,18 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "systemverilog_false_criteria_count: $main_false_criteria_count"
     echo "systemverilog_unmet_details_count: $main_details_count"
     echo "systemverilog_primary_unmet_detail_criterion: $main_primary_detail_criterion"
+    echo "systemverilog_parser_aggregate_state_dir: $main_parser_aggregate_state_dir"
+    echo "systemverilog_parser_aggregate_summary_txt: $main_parser_aggregate_summary_txt"
+    echo "systemverilog_parser_aggregate_summary_json: $main_parser_aggregate_summary_json"
     echo "systemverilog_unmet_closure_criteria_json: $main_unmet_json"
     echo "systemverilog_unmet_closure_criteria_details_json: $main_details_json"
     echo "systemverilog_preprocessor_tracker_alignment_ok: $svpp_tracker_alignment_ok"
     echo "systemverilog_preprocessor_false_criteria_count: $svpp_false_criteria_count"
     echo "systemverilog_preprocessor_unmet_details_count: $svpp_details_count"
     echo "systemverilog_preprocessor_primary_unmet_detail_criterion: $svpp_primary_detail_criterion"
+    echo "systemverilog_preprocessor_aggregate_state_dir: $svpp_aggregate_state_dir"
+    echo "systemverilog_preprocessor_aggregate_summary_txt: $svpp_aggregate_summary_txt"
+    echo "systemverilog_preprocessor_aggregate_summary_json: $svpp_aggregate_summary_json"
     echo "systemverilog_preprocessor_unmet_closure_criteria_json: $svpp_unmet_json"
     echo "systemverilog_preprocessor_unmet_closure_criteria_details_json: $svpp_details_json"
 } | tee "$SUMMARY_TXT"
@@ -359,12 +365,18 @@ jq -n \
     --argjson systemverilog_false_criteria_count "$main_false_criteria_count" \
     --argjson systemverilog_unmet_details_count "$main_details_count" \
     --arg systemverilog_primary_unmet_detail_criterion "$main_primary_detail_criterion" \
+    --arg systemverilog_parser_aggregate_state_dir "$main_parser_aggregate_state_dir" \
+    --arg systemverilog_parser_aggregate_summary_txt "$main_parser_aggregate_summary_txt" \
+    --arg systemverilog_parser_aggregate_summary_json "$main_parser_aggregate_summary_json" \
     --argjson systemverilog_unmet_closure_criteria "$main_unmet_json" \
     --argjson systemverilog_unmet_closure_criteria_details "$main_details_json" \
     --argjson systemverilog_preprocessor_tracker_alignment_ok "$svpp_tracker_alignment_ok" \
     --argjson systemverilog_preprocessor_false_criteria_count "$svpp_false_criteria_count" \
     --argjson systemverilog_preprocessor_unmet_details_count "$svpp_details_count" \
     --arg systemverilog_preprocessor_primary_unmet_detail_criterion "$svpp_primary_detail_criterion" \
+    --arg systemverilog_preprocessor_aggregate_state_dir "$svpp_aggregate_state_dir" \
+    --arg systemverilog_preprocessor_aggregate_summary_txt "$svpp_aggregate_summary_txt" \
+    --arg systemverilog_preprocessor_aggregate_summary_json "$svpp_aggregate_summary_json" \
     --argjson systemverilog_preprocessor_unmet_closure_criteria "$svpp_unmet_json" \
     --argjson systemverilog_preprocessor_unmet_closure_criteria_details "$svpp_details_json" \
     '{
@@ -385,6 +397,11 @@ jq -n \
           false_criteria_count: $systemverilog_false_criteria_count,
           unmet_details_count: $systemverilog_unmet_details_count,
           primary_unmet_detail_criterion: $systemverilog_primary_unmet_detail_criterion,
+          proof_surfaces: {
+            parser_aggregate_state_dir: $systemverilog_parser_aggregate_state_dir,
+            parser_aggregate_summary_txt: $systemverilog_parser_aggregate_summary_txt,
+            parser_aggregate_summary_json: $systemverilog_parser_aggregate_summary_json
+          },
           unmet_closure_criteria: $systemverilog_unmet_closure_criteria,
           unmet_closure_criteria_details: $systemverilog_unmet_closure_criteria_details
         },
@@ -394,6 +411,11 @@ jq -n \
           false_criteria_count: $systemverilog_preprocessor_false_criteria_count,
           unmet_details_count: $systemverilog_preprocessor_unmet_details_count,
           primary_unmet_detail_criterion: $systemverilog_preprocessor_primary_unmet_detail_criterion,
+          proof_surfaces: {
+            aggregate_state_dir: $systemverilog_preprocessor_aggregate_state_dir,
+            aggregate_summary_txt: $systemverilog_preprocessor_aggregate_summary_txt,
+            aggregate_summary_json: $systemverilog_preprocessor_aggregate_summary_json
+          },
           unmet_closure_criteria: $systemverilog_preprocessor_unmet_closure_criteria,
           unmet_closure_criteria_details: $systemverilog_preprocessor_unmet_closure_criteria_details
         }

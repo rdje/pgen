@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-24 - Preserve SV aggregate JSON provenance in family-status contract
+### ✅ Achievement Summary
+PGEN now makes the SV family-status contract layer re-emit the validated parser/preprocessor aggregate proof paths instead of dropping them after parity-check.
+
+### Scope of Changes
+- Updated:
+  - [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh)
+- The contract gate now:
+  - records the SV parser-aggregate state/TXT/JSON paths in `summary.txt`,
+  - records the SV preprocessor-aggregate state/TXT/JSON paths in `summary.txt`,
+  - re-emits those same proof-surface paths in `summary.json` under each family entry.
+
+### Why This Matters
+- The next SV aggregate layers can now recover the validated aggregate-contract provenance directly from the family-status contract sidecar.
+- This keeps the SV proof stack aligned with the rule that once a layer validates machine-readable provenance, it should preserve it for the next layer up.
+
 ## 2026-03-24 - Surface SV aggregate JSON provenance in family status
 ### ✅ Achievement Summary
 PGEN now makes the SV family-status proof layer carry the new parser/preprocessor aggregate `summary.json` paths instead of treating those aggregate contracts as TXT-only surfaces.

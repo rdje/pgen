@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next SV proof-normalization seam after family-status started carrying aggregate JSON proof paths is its sibling contract layer:
+  - `sv_parser_family_status_contract_gate` already validates those parser/preprocessor aggregate JSON paths,
+  - but it was still dropping them from its own output.
+- That seam is now being closed by making the contract layer:
+  - echo the validated aggregate state/TXT/JSON paths in `summary.txt`,
+  - and preserve them in `summary.json` under each family entry.
 - The next SV proof-normalization seam after aggregate-contract JSON emission is directly above it:
   - `sv_parser_family_status_gate` and `sv_parser_family_status_contract_gate` still only carried aggregate TXT paths.
 - That seam is now being closed by making the SV family-status layer:

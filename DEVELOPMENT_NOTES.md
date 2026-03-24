@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-24 - Make SV family-status contract preserve aggregate JSON provenance
+### Context
+After the previous slice, `sv_parser_family_status_contract_gate` validated the new SV aggregate JSON paths successfully, but then still emitted only blocker structure plus family-status self-paths.
+
+That meant the aggregate JSON provenance survived into family-status, but not through the sibling contract layer.
+
+### Implementation
+- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - records parser-aggregate `state_dir` / `summary_txt` / `summary_json` for `systemverilog`,
+  - records preprocessor-aggregate `state_dir` / `summary_txt` / `summary_json` for `systemverilog_preprocessor`,
+  - re-emits those paths in the contract `summary.json` under each family’s `proof_surfaces`.
+
+### Why This Matters
+- The SV family-status contract sidecar now preserves the same validated aggregate-contract provenance it already checks.
+- Higher SV aggregate layers can consume that contract sidecar directly instead of reopening family-status just to recover aggregate JSON proof paths.
+
 ## 2026-03-24 - Make SV family-status carry aggregate JSON proof paths
 ### Context
 After giving the two SV aggregate-contract gates their own `summary.json` sidecars, the next asymmetry was immediately above them:
