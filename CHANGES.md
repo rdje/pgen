@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust binary-role map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact map of the main Rust executables and what each one is actually for.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes:
+  - a `Main Rust Executables And Roles` section
+  - a new task-navigation entry for choosing the right Rust executable/workflow surface
+- The new executable map covers:
+  - `ast_pipeline` / `ast_pipeline_bootstrap`
+  - `test_runner`
+  - `parseability_probe`
+  - `ebnf_dual_run_diff`
+  - `perf_bench`
+  - `pgen_ast`
+  - `return_annotation_generated_audit`
+  - `pgen`
+
+### Why This Matters
+- Future sessions now have a faster way to answer “which binary actually owns this workflow?” before touching code.
+- That should reduce wasted time bouncing between `main.rs`, `src/bin`, and the shell gate layer.
+
 ## 2026-03-25 - Add task-oriented navigation to Rust analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust architecture/state analysis is now more operational: it includes a task-oriented navigation map and explicit high-risk change zones.

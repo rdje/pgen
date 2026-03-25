@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-task-oriented-navigation-to-rust-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-binary-role-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,13 @@ Use this file to resume work without replaying full chat history.
 ## Current Session Note
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- The live Rust analysis doc now also includes a compact executable-role map:
+  - a `Main Rust Executables And Roles` section,
+  - and a task-navigation entry for “which Rust executable owns this workflow?”
+- That new section covers the practical binary split between:
+  - the shared `ast_pipeline` / `ast_pipeline_bootstrap` orchestration entrypoint in `rust/src/main.rs`,
+  - the main support binaries like `test_runner`, `parseability_probe`, `ebnf_dual_run_diff`, and `perf_bench`,
+  - and the narrower specialist/legacy-support utilities like `pgen_ast`, `return_annotation_generated_audit`, and `pgen`.
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

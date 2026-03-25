@@ -210,7 +210,64 @@ Assessment:
 - `main.rs` is functionally rich but overly large.
 - The shell-gate surface is now big enough that architecture comprehension requires understanding both Rust and shell proof plumbing together.
 
+## Main Rust Executables And Roles
+- `ast_pipeline` / `ast_pipeline_bootstrap`
+  - Both are wired to `rust/src/main.rs` via Cargo features.
+  - This is the main orchestration CLI for:
+    - AST transformation
+    - parser generation
+    - stimuli generation
+    - stimuli-module generation
+    - generation-input AST dumps
+    - SystemVerilog preprocessing
+  - If a task sounds like “run the Rust pipeline on a grammar or source file,” this is usually the first executable to inspect.
+- `test_runner`
+  - The main round-trip and suite-running harness for bootstrap/generated parser validation.
+  - Important when the task is test-suite behavior, normalization in tests, or parser-family regression coverage.
+- `parseability_probe`
+  - The compact machine-facing probe for “does this grammar/profile parse this input?” and “dump the AST for this parse.”
+  - This is one of the cleanest executable surfaces for external parseability contracts and AST-dump behavior.
+- `ebnf_dual_run_diff`
+  - A specialist diagnostic tool for the generated EBNF parser path.
+  - It compares `parse` vs `parse_full` behavior and emits structured diagnostics for unconsumed tails and frontend drift.
+- `perf_bench`
+  - Benchmark/threshold executable for bootstrap-vs-generated parser throughput and latency.
+  - Relevant when performance changes need proof, not just anecdotal timing.
+- `pgen_ast`
+  - A focused AST-based codegen CLI that reads transformed AST JSON and emits parser source.
+  - It is narrower than `ast_pipeline`, but still useful for direct generator work or compatibility testing around AST-based emission.
+- `return_annotation_generated_audit`
+  - A small audit executable for generated return-annotation typed-AST serialization over sample lists.
+  - Useful as a niche contract checker, not as a primary day-to-day workflow surface.
+- `pgen`
+  - An older parser smoke-test CLI for semantic/return/regex parser inputs with log-file output.
+  - It is not the main modern operational surface, but it still exists and should be treated as a legacy-adjacent utility rather than deleted-by-assumption.
+
+Assessment:
+- Not every Rust executable here is equally strategic.
+- The practical “primary” binaries are:
+  - `ast_pipeline` / `ast_pipeline_bootstrap`
+  - `test_runner`
+  - `parseability_probe`
+  - `ebnf_dual_run_diff`
+  - `perf_bench`
+- The smaller `pgen_ast`, `return_annotation_generated_audit`, and `pgen` executables are better thought of as specialist or legacy-support utilities.
+
 ## Where To Start By Task Type
+
+### If the task is figuring out which Rust executable owns a workflow
+Start here:
+- `rust/Cargo.toml`
+- `rust/src/main.rs`
+- `rust/src/bin/test_runner.rs`
+- `rust/src/bin/parseability_probe.rs`
+- `rust/src/bin/ebnf_dual_run_diff.rs`
+- `rust/src/bin/perf_bench.rs`
+- `RUST_CODEBASE_ANALYSIS.md` section `Main Rust Executables And Roles`
+
+Reason:
+- Cargo wiring matters in this repo because feature-gated binaries share entrypoints.
+- The fastest way to stop wandering is to identify whether a task belongs to the main pipeline CLI, a validation harness, a parseability contract tool, a frontend diagnostic, or a specialist audit utility.
 
 ### If the task is grammar normalization or parser-shape behavior
 Start here:

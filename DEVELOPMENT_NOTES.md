@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust binary-role map to analysis doc
+### Context
+After adding task-oriented navigation to `RUST_CODEBASE_ANALYSIS.md`, the document still mostly navigated by subsystem. A future session could still lose time on a simpler question first: which Rust executable actually owns this workflow?
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Main Rust Executables And Roles` section,
+  - added a task-navigation entry for selecting the correct Rust executable/workflow surface.
+- The executable-role map now explains the current place of:
+  - `ast_pipeline` / `ast_pipeline_bootstrap`
+  - `test_runner`
+  - `parseability_probe`
+  - `ebnf_dual_run_diff`
+  - `perf_bench`
+  - `pgen_ast`
+  - `return_annotation_generated_audit`
+  - `pgen`
+- The new section also distinguishes the practical primary binaries from the narrower specialist or legacy-support utilities.
+
+### Why This Matters
+- Future work can now navigate not only by subsystem, but by executable entrypoint.
+- That is especially useful in this repo because some workflows live in `main.rs`, some in `src/bin`, and some in the shell proof layer.
+
 ## 2026-03-25 - Add task-oriented navigation to Rust analysis doc
 ### Context
 After creating and surfacing `RUST_CODEBASE_ANALYSIS.md`, it was still primarily a descriptive architecture assessment. It explained the codebase well, but it did not yet help a future session quickly answer “where do I start for this specific kind of Rust task?”
