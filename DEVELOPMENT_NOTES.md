@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust trap list to analysis doc
+### Context
+After documenting the artifact spine, operational vocabulary, build model, and validation ladder, one practical gap remained: the live Rust analysis doc still did not explicitly call out the false assumptions that repeatedly cause wrong-turn debugging in this repo.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Known Traps And False Assumptions` section near the build/testing area.
+- The new section now captures recurring mistakes around:
+  - treating Cargo binary presence as proof of runtime availability,
+  - collapsing raw AST, generation-input AST, and parser-backed AST dumps into one concept,
+  - stopping at compile success instead of validating across the changed seam,
+  - treating shell gates as outside the real product contract,
+  - forgetting the important grammar-family asymmetries.
+
+### Why This Matters
+- Future sessions now have an explicit “do not assume this” list inside the repo instead of only in chat memory.
+- That should help steer debugging toward the right layer faster.
+
 ## 2026-03-25 - Add Rust operational vocabulary to analysis doc
 ### Context
 After adding the artifact spine, the live Rust analysis doc still assumed familiarity with recurring project terms like raw AST, generation-input AST, parseability reports, family-status contracts, and `summary.txt` / `summary.json`.

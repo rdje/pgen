@@ -644,6 +644,32 @@ Operational takeaway:
   - the relevant `PGEN_*_PARSER_PATH` resolution and resulting `has_generated_*` cfg
 - A surprising amount of apparent parser/runtime breakage in this repo can actually be feature/build-shape drift.
 
+## Known Traps And False Assumptions
+- “If Cargo lists the binary, the runtime path must be available.”
+  - False here.
+  - A binary can exist in Cargo while the relevant generated parser path is still unavailable because the matching `has_generated_*` cfg was never emitted.
+- “Raw AST and generation-input AST are basically the same artifact.”
+  - False here.
+  - The normalization layer is substantial; many downstream changes only make sense once you know which side of that boundary is wrong.
+- “Parser-backed AST dumps and generation-input AST dumps are the same debugging surface.”
+  - False here.
+  - One is a runtime parser output, the other is a pre-generation pipeline artifact.
+- “A successful compile is enough validation for a Rust change.”
+  - Usually false here.
+  - In this repo, the next real consumer of the artifact is often the meaningful validation seam.
+- “Shell gates are just wrappers around the real Rust product.”
+  - False here.
+  - The shell proof layer is part of the effective product contract because it defines and preserves the executable proof surfaces.
+- “`summary.txt` is just for humans and `summary.json` is optional.”
+  - False for the shipped proof spine.
+  - Higher layers increasingly depend on the JSON sidecar, while TXT/JSON parity remains part of the contract.
+- “Every generated grammar family follows the same include-path and cfg rules.”
+  - False here.
+  - `ebnf` and the tracked annotation parsers are important exceptions.
+- “The modern surface is always in `rust/src/main.rs`.”
+  - Not always.
+  - A lot of live operational behavior sits in `rust/src/bin/*.rs`, `rust/scripts/*.sh`, and feature/cfg wiring rather than the main orchestration CLI alone.
+
 ## Testing And Verification Shape
 - The test surface is not only `cargo test`.
 - The codebase relies on:

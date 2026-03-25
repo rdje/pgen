@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-operational-vocabulary-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-trap-list-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -70,6 +70,14 @@ Use this file to resume work without replaying full chat history.
   - and, when possible, stop at the next real consumer of the touched artifact rather than at pure compile success
 - The live Rust analysis doc now also includes an `Operational Vocabulary` section:
   - a compact glossary for recurring artifact/proof terms like raw AST, generation-input AST, parseability report, coverage/gap report, `summary.txt`, `summary.json`, family status, combined telemetry, and SOTA.
+- The live Rust analysis doc now also includes a `Known Traps And False Assumptions` section:
+  - a compact warning list for the recurring wrong assumptions in this repo's Rust/build/proof stack.
+- The main traps now recorded there include:
+  - Cargo binary presence is not the same thing as runtime generated-parser availability
+  - raw AST, generation-input AST, and parser-backed AST dumps are not interchangeable artifacts
+  - compile success is often weaker than validating the next real consumer
+  - shell proof gates are part of the effective product contract, not just wrappers
+  - `summary.txt` / `summary.json` parity and grammar-family asymmetries are easy to underestimate
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

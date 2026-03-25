@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust trap list to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact list of recurring traps and false assumptions about the Rust/build/proof stack.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Known Traps And False Assumptions` section covering recurring mistakes around:
+  - Cargo binary presence vs runtime availability
+  - raw AST vs generation-input AST
+  - parser-backed AST dumps vs generation-input AST dumps
+  - compile success vs seam-crossing validation
+  - shell gates as part of the product contract
+  - `summary.txt` / `summary.json` proof expectations
+  - grammar-family asymmetries
+  - over-focusing on `rust/src/main.rs`
+
+### Why This Matters
+- Future sessions now have an explicit in-repo warning list for the assumptions that most often lead to wrong-turn debugging.
+- That should reduce time lost on false equivalences between artifact layers, build layers, and proof layers.
+
 ## 2026-03-25 - Add Rust operational vocabulary to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact operational vocabulary for the recurring artifact and proof terms used across the Rust and gate layers.
