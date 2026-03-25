@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust artifact persistence classes to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact artifact-persistence map so future sessions can distinguish authored source, tracked-generated files, build-discovered parser artifacts, and ephemeral proof/debug outputs.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes an `Artifact Persistence Classes` section covering:
+  - hand-authored source-of-truth artifacts
+  - tracked generated artifacts
+  - build-discovered parser artifacts
+  - ephemeral operational artifacts
+  - consumer-visible but derived contract artifacts
+
+### Why This Matters
+- Future sessions now have one explicit place to decide whether a file/output should be edited, regenerated, or only inspected.
+- That should reduce accidental edits to derived artifacts and improve validation hygiene.
+
 ## 2026-03-25 - Add Rust grammar-family asymmetry map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact grammar-family asymmetry map so future sessions can stop over-generalizing one family’s build/proof/runtime rules to the others.

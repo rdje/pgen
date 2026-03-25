@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust artifact persistence classes to analysis doc
+### Context
+The live Rust analysis doc already described artifact flow and source-of-truth layers, but it still did not say plainly which Rust-adjacent artifacts are authored source, tracked-generated files, build-discovered runtime inputs, or throwaway proof/debug outputs. That made it too easy to patch the wrong layer.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added an `Artifact Persistence Classes` section near the artifact-spine area.
+- The new section now distinguishes:
+  - hand-authored source-of-truth artifacts
+  - tracked generated artifacts
+  - build-discovered parser artifacts
+  - ephemeral operational artifacts
+  - consumer-visible but derived contract artifacts
+
+### Why This Matters
+- Future sessions now have a compact “should I edit this, regenerate it, or just inspect it?” map before touching Rust-adjacent artifacts.
+- That should reduce derived-artifact drift and make upstream/downstream fixes clearer.
+
 ## 2026-03-25 - Add Rust grammar-family asymmetry map to analysis doc
 ### Context
 The live Rust analysis doc already captured build-shape asymmetries and bootstrap/generated boundary exceptions, but it still did not say in one place how the main grammar families differ operationally. That leaves too much room for “this worked for regex/SV/VHDL, so it should work everywhere” reasoning.

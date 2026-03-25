@@ -263,6 +263,55 @@ Operational reading rule:
   - stimuli/coverage telemetry
   - proof sidecar summaries
 
+## Artifact Persistence Classes
+- Hand-authored source-of-truth artifacts
+  - Examples:
+    - `rust/src/**/*.rs`
+    - `grammars/*.ebnf`
+    - repo docs such as `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and this analysis doc
+  - How to treat them:
+    - edit directly when changing architecture, grammar intent, or authored implementation
+- Tracked generated artifacts
+  - Examples:
+    - checked-in generated parser sources under `generated/`
+    - especially tracked annotation/runtime-support artifacts like `generated/return_annotation_parser.rs` and `generated/semantic_annotation_parser.rs`
+  - How to treat them:
+    - do not hand-edit unless the project explicitly treats that file as maintained source
+    - prefer regenerating from the real upstream grammar/pipeline and then committing the regenerated result when that tracked file is part of the intended contract
+- Build-discovered parser artifacts
+  - Examples:
+    - parser files reached through `PGEN_*_PARSER_PATH`
+    - files whose availability is surfaced via `build.rs` as `has_generated_*` cfgs
+  - How to treat them:
+    - confirm whether the current task expects a checked-in parser source, a locally generated file, or a gate/workdir-produced file
+    - these are often runtime-available without being repository source-of-truth
+- Ephemeral operational artifacts
+  - Examples:
+    - `rust/target/**`
+    - temporary AST dumps
+    - parseability reports
+    - stimuli outputs
+    - gate `summary.txt` / `summary.json` sidecars
+  - How to treat them:
+    - use them for proof, debugging, and validation
+    - do not treat them as authoring surfaces unless a task is explicitly about emitted proof artifacts
+- Consumer-visible but derived contract artifacts
+  - Examples:
+    - generated parser-backed AST JSON output
+    - proof summaries consumed by higher gates
+    - machine-readable reports consumed by status/aggregate layers
+  - How to treat them:
+    - these may be operationally important even when they are not checked in
+    - fix the producer or the upstream source-of-truth first; do not “repair” the artifact by hand unless the task is specifically about the artifact schema/text itself
+
+Operational rule:
+- Before editing an artifact, classify it first:
+  - authored source,
+  - tracked generated file,
+  - build-discovered runtime file,
+  - or ephemeral proof/debug output
+- A lot of accidental drift in this repo comes from patching a derived artifact when the real intended change belonged one layer upstream.
+
 ## Operational Vocabulary
 - Raw AST
   - The frontend-oriented grammar structure coming directly from `.ebnf` ingestion or equivalent JSON import.
