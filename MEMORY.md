@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-23 (+0100, task: surface-vhdl-combined-telemetry-json-proof)
+Last updated: 2026-03-25 (+0100, task: add-rust-codebase-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
+- It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The next small compatibility follow-up after `sota_exit_gate` started exposing fuller top-level SV auxiliary mirrors was `sv_combined_telemetry_contract_gate` itself:
   - it still only consumed the top-level SOTA auxiliary `summary.json` mirrors,
   - even though the top-level compatibility surface now also exposed auxiliary `state_dir` and `summary.txt`.

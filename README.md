@@ -60,12 +60,13 @@ PGEN is a production-focused parser and stimuli generator platform.
 3. `PGEN_USER_GUIDE.md`
 4. `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 5. `LIVE_ACHIEVEMENT_STATUS.md`
-6. `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-7. `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-8. `CHANGES.md`
-9. `DEVELOPMENT_NOTES.md`
-10. `MEMORY.md`
-11. `COMMIT.md`
+6. `RUST_CODEBASE_ANALYSIS.md`
+7. `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+8. `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+9. `CHANGES.md`
+10. `DEVELOPMENT_NOTES.md`
+11. `MEMORY.md`
+12. `COMMIT.md`
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
@@ -126,6 +127,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `PGEN_USER_GUIDE.md`
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `RUST_CODEBASE_ANALYSIS.md`
   - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
@@ -144,6 +146,8 @@ PGEN is a production-focused parser and stimuli generator platform.
 ## Documentation Structure
 - Project governance and status:
   - `PROJECT_OVERVIEW.md`, `CURRENT_STATUS.md`, `PGEN_RELEASE_POLICY.md`, `WARP.md`
+- Rust architecture/state assessment:
+  - `RUST_CODEBASE_ANALYSIS.md`
 - Core contracts and roadmaps:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Operational continuity:
@@ -229,6 +233,7 @@ The list below is the complete set of tracked markdown files and is intended to 
 - `QUICKSTART_AI_ONBOARDING.md`
 - `README.md`
 - `REGEX_BOOTSTRAP_ARCHITECTURE.md`
+- `RUST_CODEBASE_ANALYSIS.md`
 - `rust/BRANCH_RETURN_ANNOTATIONS.md`
 - `rust/DEBUG_IMPLEMENTATION.md`
 - `rust/docs/CLI_REFERENCE.md`

@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-25 - Add live Rust codebase analysis reference
+### ✅ Achievement Summary
+PGEN now has a dedicated live Rust-codebase analysis document to preserve the current architecture/state assessment and steer future sessions.
+
+### Scope of Changes
+- Added:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+- Updated:
+  - [README.md](/Users/richarddje/Documents/github/pgen/README.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The new document is explicitly a live document:
+  - meant to be refreshed when the Rust architecture/risk picture materially changes,
+  - expected to be reviewed at the start of future Rust-focused sessions.
+
+### Why This Matters
+- The project now keeps the deep Rust architecture assessment inside the repo instead of only in chat history.
+- Future sessions have a clearer, faster path to re-enter the current Rust codebase with the right mental model.
+
 ## 2026-03-25 - Consume SV auxiliary top-level SOTA proof mirrors
 ### ✅ Achievement Summary
 PGEN now makes the SV combined telemetry reader consume the fuller top-level SOTA auxiliary compatibility mirrors instead of only checking the JSON leaf paths.

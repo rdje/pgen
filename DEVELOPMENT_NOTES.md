@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add live Rust codebase analysis reference
+### Context
+The current Rust codebase has grown into a large parser-generation, stimuli, and proof platform, and the most useful high-level architecture assessment only existed in chat context.
+
+### Implementation
+- Added [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - captured the current high-level architecture of the Rust crate and surrounding Rust-owned operational layer,
+  - summarized the main engines, public integration surfaces, strengths, and current technical risks,
+  - marked it as a live document that should be refreshed when a new session starts from a meaningfully different project state.
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - added the new document to the ramp-up order,
+  - added it to the authoritative Rust-first doc set,
+  - added it to the repository markdown index and documentation structure map.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded the existence and intended maintenance rule for the new Rust analysis document.
+
+### Why This Matters
+- The repo now stores the current Rust architecture assessment as a tracked artifact rather than leaving it transient in a single session.
+- Future implementation work can start from a preserved, amendable mental model of the Rust codebase.
+
 ## 2026-03-25 - Consume SV auxiliary top-level SOTA proof mirrors
 ### Context
 After `sota_exit_gate` started exposing fuller top-level SV auxiliary compatibility mirrors, `sv_combined_telemetry_contract_gate` still only used those top-level JSON mirrors for the auxiliary `summary.json` leaf paths.
