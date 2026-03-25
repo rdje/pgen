@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust session-start sanity probes to analysis doc
+### Context
+After turning `RUST_CODEBASE_ANALYSIS.md` into a stronger steering document, it still lacked one pragmatic startup aid: a tiny set of cheap commands that let a new session confirm the Rust workspace, binary surface, and build-shape assumptions before digging deeper.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Session-Start Sanity Probes` section after the “what to re-check” guidance.
+- The new section now recommends a compact probe set for:
+  - workspace dirt
+  - Cargo bin/feature shape
+  - generated-parser env/cfg shape
+  - active `rust/src/bin` surface
+  - proof/gate vocabulary drift when the task is gate-heavy
+
+### Why This Matters
+- Future sessions now have a lightweight reorientation checklist that is more concrete than a purely narrative reminder.
+- That should make startup triage quicker and lower the chance of confusing workspace/build drift with real architectural change.
+
 ## 2026-03-25 - Add Rust change-impact checklist to analysis doc
 ### Context
 After documenting subsystem navigation, executable ownership, build shape, and artifact flow, the live Rust analysis doc still lacked one very practical steering aid: a first-pass checklist of what else usually has to be revisited when a given subsystem changes.

@@ -685,6 +685,23 @@ Assessment:
   - bootstrap/generated maintenance cost
   - mixed-generation testing layers
 
+## Session-Start Sanity Probes
+Use these as cheap orientation probes before deeper Rust work, not as a replacement for task-specific validation.
+
+- `git status --short`
+  - Confirms whether unrelated dirt, generated artifacts, or untracked directories are already present before you start attributing odd behavior to the code.
+- `rg -n "^\\[\\[bin\\]\\]|^\\[features\\]" rust/Cargo.toml`
+  - Re-checks whether the binary and feature surface still matches this document’s assumptions.
+- `rg -n "PGEN_[A-Z_]+_PARSER_PATH|has_generated_" rust/build.rs rust/src/lib.rs`
+  - Re-checks the generated-parser availability contract quickly without re-reading the full files.
+- `rg --files rust/src/bin`
+  - Re-confirms the active Rust utility-binary surface.
+- `sed -n '1,120p' RUST_CODEBASE_ANALYSIS.md`
+  - Fast check that the live analysis doc still presents the same top-level structure and hasn’t fallen behind a major architectural shift.
+- If the task is proof/gate-heavy:
+  - `rg -n "summary\\.json|summary\\.txt|sota_exit_gate|combined_telemetry|family_status" rust/scripts`
+  - Quick way to confirm whether the proof-sidecar vocabulary or aggregate-gate surface has drifted materially since the last session.
+
 ## Limits Of This Snapshot
 - This assessment came from a deep source read and structural review.
 - It is not a benchmark report.

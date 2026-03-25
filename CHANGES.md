@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust session-start sanity probes to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact session-start sanity-probe section for cheap workspace/build-surface reorientation.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Session-Start Sanity Probes` section covering low-cost checks for:
+  - workspace dirt
+  - Cargo binary/feature shape
+  - generated-parser env/cfg shape
+  - active `rust/src/bin` surface
+  - proof/gate vocabulary drift when the task is gate-heavy
+
+### Why This Matters
+- Future sessions now have a faster way to confirm the Rust workspace is still in the expected shape before deeper changes begin.
+- That should reduce wasted time on startup reorientation and misdiagnosis of environment drift as code drift.
+
 ## 2026-03-25 - Add Rust change-impact checklist to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact companion-check map for common Rust change areas.

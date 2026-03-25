@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-change-impact-checklist-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-session-start-sanity-probes-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -57,6 +57,11 @@ Use this file to resume work without replaying full chat history.
   - EBNF frontend
   - SV preprocessing
   - proof-sidecar / gate aggregation
+- The live Rust analysis doc now also includes a `Session-Start Sanity Probes` section:
+  - a compact startup probe list for confirming workspace shape,
+  - Cargo/bin/feature shape,
+  - generated-parser env/cfg shape,
+  - and proof-sidecar vocabulary drift when the task is gate-heavy.
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,
