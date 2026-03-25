@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add task-oriented navigation to Rust analysis doc
+### Context
+After creating and surfacing `RUST_CODEBASE_ANALYSIS.md`, it was still primarily a descriptive architecture assessment. It explained the codebase well, but it did not yet help a future session quickly answer “where do I start for this specific kind of Rust task?”
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Where To Start By Task Type` section,
+  - added a `High-Risk Change Zones` section.
+- The task-oriented navigation now points readers to the right starting modules for:
+  - grammar normalization
+  - parser generation
+  - stimuli/coverage
+  - annotation parsing/validation/runtime
+  - embedder/API work
+  - SV preprocessing
+  - EBNF frontend work
+  - CLI orchestration
+  - proof/gate plumbing
+
+### Why This Matters
+- The live Rust analysis doc is now more useful as a working session-start tool.
+- Future implementation work should be able to jump into the right subsystem faster and with less re-discovery.
+
 ## 2026-03-25 - Bind Rust analysis doc into roadmap and historical Rust architecture redirect
 ### Context
 After surfacing `RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archival top-level docs, the roadmap and one older Rust-specific architecture doc still referenced the current Rust architecture picture only indirectly.

@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-03-25 - Add task-oriented navigation to Rust analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust architecture/state analysis is now more operational: it includes a task-oriented navigation map and explicit high-risk change zones.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes:
+  - “Where To Start By Task Type”
+  - “High-Risk Change Zones”
+- The new sections cover:
+  - grammar normalization
+  - parser generation
+  - stimuli/coverage
+  - annotations/semantic runtime
+  - API/integration
+  - SV preprocessing
+  - EBNF frontend conversion
+  - CLI orchestration
+  - proof/gate plumbing
+
+### Why This Matters
+- Future sessions can use the live Rust analysis doc as a working navigation tool, not just as a narrative architecture summary.
+- That should reduce time spent re-mapping the codebase before making changes in the right subsystem.
+
 ## 2026-03-25 - Bind Rust analysis doc into roadmap and historical Rust architecture redirect
 ### ✅ Achievement Summary
 PGEN now references the live Rust architecture/state analysis from the roadmap’s deferred-engineering section and from the older Rust technical-architecture redirect note.

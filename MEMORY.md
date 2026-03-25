@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: bind-rust-analysis-doc-into-roadmap-and-rust-archival-redirect)
+Last updated: 2026-03-25 (+0100, task: add-task-oriented-navigation-to-rust-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,6 +23,9 @@ Use this file to resume work without replaying full chat history.
 - The roadmap/history side now points at it too:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` deferred engineering concerns,
   - `rust/docs/TECHNICAL_ARCHITECTURE.md` historical redirect note.
+- The live Rust analysis doc itself is now more operational:
+  - it includes task-oriented “where to start” guidance,
+  - and an explicit list of high-risk change zones in the Rust codebase.
 - The next small compatibility follow-up after `sota_exit_gate` started exposing fuller top-level SV auxiliary mirrors was `sv_combined_telemetry_contract_gate` itself:
   - it still only consumed the top-level SOTA auxiliary `summary.json` mirrors,
   - even though the top-level compatibility surface now also exposed auxiliary `state_dir` and `summary.txt`.

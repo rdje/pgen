@@ -210,6 +210,125 @@ Assessment:
 - `main.rs` is functionally rich but overly large.
 - The shell-gate surface is now big enough that architecture comprehension requires understanding both Rust and shell proof plumbing together.
 
+## Where To Start By Task Type
+
+### If the task is grammar normalization or parser-shape behavior
+Start here:
+- `rust/src/ast_pipeline/mod.rs`
+- `rust/src/ast_pipeline/grouped_quantifier_parser.rs`
+- `rust/src/ast_pipeline/mutual_recursion_handler.rs`
+- `rust/src/ast_pipeline/return_annotation_handler.rs`
+
+Reason:
+- This is where raw grammar structure becomes the normalized grammar tree that the rest of the system depends on.
+- Changes here can affect parser generation, stimuli generation, annotation validation, and closure metrics all at once.
+
+### If the task is generated parser behavior or parser code shape
+Start here:
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+- `rust/src/ast_pipeline/ast_code_generator.rs`
+- `rust/src/ast_pipeline/ast_generator_direct.rs`
+
+Reason:
+- This is the emitted-parser contract layer.
+- Parser runtime telemetry, semantic-runtime ownership, recovery behavior, and branch ordering all converge here.
+
+### If the task is stimuli, gap reports, or coverage closure
+Start here:
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+
+Then usually inspect:
+- `rust/src/ast_pipeline/mod.rs`
+- `rust/src/ast_pipeline/semantic_runtime.rs`
+
+Reason:
+- Stimuli generation is highly coupled to normalized grammar shape and semantic steering.
+- Coverage/debt behavior is not a thin report layer; it is part of how closure work is directed.
+
+### If the task is return/semantic annotation parsing or validation
+Start here:
+- `rust/src/ast_pipeline/unified_return_ast.rs`
+- `rust/src/ast_pipeline/unified_semantic_ast.rs`
+- `rust/src/ast_pipeline/annotation_validator.rs`
+- `rust/src/ast_pipeline/semantic_directive_registry.rs`
+- `rust/src/ast_pipeline/semantic_runtime.rs`
+
+Reason:
+- The typed annotation model, validator rules, directive registry, and runtime behavior are split across these files.
+- It is easy to fix one layer and accidentally leave the others inconsistent.
+
+### If the task is external integration or embedder-facing API behavior
+Start here:
+- `rust/src/embedding_api.rs`
+- `rust/src/parser_registry.rs`
+- `rust/src/lib.rs`
+- `rust/build.rs`
+
+Reason:
+- Consumer-visible behavior depends on both runtime dispatch and build-time generated-parser availability.
+- Feature/cfg/build-path interactions matter here as much as function signatures do.
+
+### If the task is SystemVerilog preprocessing
+Start here:
+- `rust/src/sv_preprocessor.rs`
+
+Then usually inspect:
+- `rust/src/main.rs`
+- relevant `rust/scripts/sv_*` gates
+
+Reason:
+- The SV preprocessor is its own subsystem with policies, diagnostics, event logs, and source maps.
+- Its behavior is not just a helper phase before parsing.
+
+### If the task is EBNF frontend conversion
+Start here:
+- `rust/src/ebnf_frontend.rs`
+- `rust/src/main.rs`
+- `rust/Makefile`
+- relevant `rust/scripts/ebnf_*` gates
+
+Reason:
+- The Rust EBNF frontend sits at the start of the build/proof spine, not only as a parsing helper.
+- Changes here can affect raw-AST conversion, dual-run differentials, and the generated-parser pipeline.
+
+### If the task is CLI mode behavior or top-level orchestration
+Start here:
+- `rust/src/main.rs`
+- `rust/src/bin/*.rs`
+- `rust/Makefile`
+
+Reason:
+- The codebase has one large orchestration entrypoint plus several smaller utility binaries.
+- The main risk is changing mode behavior without aligning the supporting build/gate surface.
+
+### If the task is proof plumbing, contract sidecars, or release-gate behavior
+Start here:
+- `rust/scripts/*.sh`
+- `rust/Makefile`
+- `rust/src/bin/parseability_probe.rs`
+- `rust/src/parser_registry.rs`
+- `rust/src/embedding_api.rs`
+
+Reason:
+- A large amount of project truth now lives in the shell-gate layer and the artifacts it consumes/emits.
+- These tasks often require understanding both machine-readable sidecars and the Rust producer/consumer seams behind them.
+
+## High-Risk Change Zones
+- `rust/src/ast_pipeline/mod.rs`
+  - high blast radius because it changes the normalized grammar contract used by both parser and stimuli generation.
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+  - high blast radius because emitted parser behavior, runtime telemetry, and semantic hooks all converge here.
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+  - high blast radius because closure metrics, target planning, and semantic steering are co-located here.
+- `rust/src/main.rs`
+  - high coordination cost because many modes share one orchestration entrypoint.
+- `rust/build.rs`
+  - easy to underestimate; build-time parser-availability bugs can look like runtime/parser bugs elsewhere.
+- `rust/src/embedding_api.rs` and `rust/src/parser_registry.rs`
+  - small files relative to the engines, but they sit on public integration seams where drift is expensive.
+- `rust/scripts/sota_exit_gate.sh` and sibling family aggregate/status gates
+  - not Rust code, but they are part of the effective Rust-owned product contract.
+
 ## Build And Feature Model
 - The crate is feature-gated around bootstrap, normal, generated-parser, and EBNF-dual-run modes.
 - Generated parser modules are not hardwired; `rust/build.rs` resolves them from environment-configured paths and only enables grammar-specific `cfg`s when files actually exist.
