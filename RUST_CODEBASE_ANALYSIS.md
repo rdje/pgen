@@ -375,6 +375,56 @@ Operational rule:
   - Common mistake:
     - stopping validation at compile/test success instead of crossing the seam that the changed artifact feeds
 
+## Safe Intervention Order
+When a bug spans multiple layers, prefer these patch orders over ad hoc consumer-first edits.
+
+- Build / availability problem
+  - Preferred order:
+    - `rust/Cargo.toml`
+    - `rust/build.rs`
+    - `rust/src/lib.rs`
+    - `rust/src/parser_registry.rs` / `rust/src/embedding_api.rs`
+    - CLI binaries / gates
+  - Reason:
+    - if feature wiring or cfg emission is wrong, every downstream layer will only produce misleading symptoms
+- Parser-shape or acceptance problem
+  - Preferred order:
+    - frontend/raw-AST layer when applicable
+    - normalized generation-input AST
+    - parser generator
+    - runtime parser consumers
+    - proof/gate readers
+  - Reason:
+    - generator/runtime fixes applied before the normalized grammar contract is correct usually create brittle compensations
+- Stimuli / coverage / target-drive problem
+  - Preferred order:
+    - normalized grammar contract
+    - `stimuli_generator.rs`
+    - CLI/report emission in `rust/src/main.rs`
+    - nearest consuming gate or contract layer
+  - Reason:
+    - the proof artifacts are downstream of generation policy, not the source of it
+- Registry / embedding disagreement
+  - Preferred order:
+    - generated-parser availability layer
+    - `parser_registry.rs`
+    - `embedding_api.rs`
+    - CLI probes / external consumers
+  - Reason:
+    - embedder behavior should not be patched around registry/build drift
+- Proof-sidecar disagreement
+  - Preferred order:
+    - emitting gate
+    - direct reader one layer above
+    - higher aggregates
+    - local CI regression guard
+  - Reason:
+    - if the emitted proof surface is wrong, fixing only the aggregate consumer tends to multiply schema drift
+
+Operational rule:
+- Patch the earliest layer that can truthfully explain the symptom.
+- Only patch a downstream layer first when the upstream contract is already verified correct and the bug is strictly in the consumer.
+
 ## Main Rust Executables And Roles
 - `ast_pipeline` / `ast_pipeline_bootstrap`
   - Both are wired to `rust/src/main.rs` via Cargo features.

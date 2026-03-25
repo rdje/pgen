@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-symptom-triage-shortcuts-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-intervention-order-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -92,6 +92,11 @@ Use this file to resume work without replaying full chat history.
   - EBNF frontend drift
   - proof-sidecar / aggregate disagreement
   - compile success without seam-level consistency
+- The live Rust analysis doc now also includes a `Safe Intervention Order` section:
+  - a compact preferred patch order for multi-layer bugs spanning build, parser, stimuli, registry, and proof-sidecar layers.
+- The key rule now recorded there is:
+  - patch the earliest layer that can truthfully explain the symptom,
+  - and only start downstream if the upstream contract is already verified correct.
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

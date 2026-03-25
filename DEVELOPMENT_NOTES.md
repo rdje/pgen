@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust intervention-order map to analysis doc
+### Context
+After adding the symptom-triage shortcuts, the live Rust analysis doc could say which layer was most likely wrong first. The missing follow-up was procedural: in what order should a future session patch the layers when several of them are implicated?
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Safe Intervention Order` section after symptom triage.
+- The new section now records preferred patch order for:
+  - build / availability problems
+  - parser-shape / acceptance problems
+  - stimuli / coverage / target-drive problems
+  - registry / embedding disagreement
+  - proof-sidecar disagreement
+- It also records the main steering rule:
+  - patch the earliest layer that can truthfully explain the symptom,
+  - only start downstream when the upstream contract is already known-good.
+
+### Why This Matters
+- Future sessions now have guidance not just on where a bug probably lives, but how to intervene with less risk.
+- That should reduce brittle downstream compensations for upstream contract bugs.
+
 ## 2026-03-25 - Add Rust symptom-triage shortcuts to analysis doc
 ### Context
 After adding the source-of-truth map, the live Rust analysis doc could already answer “which layer is authoritative?” What it still did not answer directly was the earlier debugging question: given a symptom, which layer is most likely wrong first?

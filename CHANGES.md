@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust intervention-order map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact safe-intervention-order map for multi-layer Rust/build/proof bugs.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Safe Intervention Order` section covering preferred patch order for:
+  - build / availability problems
+  - parser-shape / acceptance problems
+  - stimuli / coverage / target-drive problems
+  - registry / embedding disagreement
+  - proof-sidecar disagreement
+
+### Why This Matters
+- Future sessions now have a clearer rule for where to start patching when several layers are implicated.
+- That should reduce downstream-only fixes that hide, rather than solve, upstream contract problems.
+
 ## 2026-03-25 - Add Rust symptom-triage shortcuts to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact symptom-to-layer triage section for common Rust/build/proof debugging patterns.
