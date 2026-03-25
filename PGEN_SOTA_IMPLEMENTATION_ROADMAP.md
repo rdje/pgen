@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-23
+Last updated: 2026-03-25
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -614,6 +614,7 @@ Deferred-until-later rule:
 - when resumed, treat them as maintainability and operability hardening on top of an already-proven parser stack, not as substitutes for parser proof work.
 
 Recorded concerns from the 2026-03-17 full Rust codebase analysis:
+- the live current-state architecture/risk assessment for these concerns now lives in [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md); refresh that document when any of the concerns below materially change rather than leaving the roadmap to carry a stale architecture snapshot by implication,
 - split [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs) into smaller command/orchestration modules so parser generation, stimuli generation, parseability reporting, fuzz replay, and SV preprocessing are no longer coupled through one very large entrypoint,
 - reduce implementation concentration inside [rust/src/ast_pipeline/mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs), [rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs), [rust/src/ast_pipeline/annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs), [rust/src/ast_pipeline/ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs), and [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) by introducing narrower modules and clearer internal boundaries,
 - progressively move the highest-risk summary/schema/parity logic out of very large shell gates such as [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) into typed/shared Rust utilities where that reduces drift risk without weakening the machine-checkable gate layer,

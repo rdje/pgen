@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Bind Rust analysis doc into roadmap and historical Rust architecture redirect
+### Context
+After surfacing `RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archival top-level docs, the roadmap and one older Rust-specific architecture doc still referenced the current Rust architecture picture only indirectly.
+
+### Implementation
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - refreshed the doc date,
+  - added an explicit pointer from the deferred Rust engineering concerns to `RUST_CODEBASE_ANALYSIS.md` as the live architecture/risk snapshot.
+- Updated [rust/docs/TECHNICAL_ARCHITECTURE.md](/Users/richarddje/Documents/github/pgen/rust/docs/TECHNICAL_ARCHITECTURE.md):
+  - extended its historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that the roadmap and historical Rust architecture redirect now include the live Rust analysis doc.
+
+### Why This Matters
+- The roadmap now points readers at the tracked document that actually carries the current Rust architecture/risk assessment.
+- The remaining obvious historical Rust-architecture entrypoint now redirects to the same live analysis doc used elsewhere.
+
 ## 2026-03-25 - Surface Rust analysis doc in archival top-level docs
 ### Context
 After wiring `RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two archival top-level docs still redirected readers to the current authoritative set without mentioning the new live Rust architecture/state assessment.

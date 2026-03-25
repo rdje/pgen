@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: surface-rust-analysis-doc-in-archival-top-level-docs)
+Last updated: 2026-03-25 (+0100, task: bind-rust-analysis-doc-into-roadmap-and-rust-archival-redirect)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -20,6 +20,9 @@ Use this file to resume work without replaying full chat history.
 - The archival top-level redirects now point at it too:
   - `CURRENT_STATUS.md`
   - `PROJECT_OVERVIEW.md`
+- The roadmap/history side now points at it too:
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` deferred engineering concerns,
+  - `rust/docs/TECHNICAL_ARCHITECTURE.md` historical redirect note.
 - The next small compatibility follow-up after `sota_exit_gate` started exposing fuller top-level SV auxiliary mirrors was `sv_combined_telemetry_contract_gate` itself:
   - it still only consumed the top-level SOTA auxiliary `summary.json` mirrors,
   - even though the top-level compatibility surface now also exposed auxiliary `state_dir` and `summary.txt`.
