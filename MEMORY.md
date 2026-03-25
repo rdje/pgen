@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-canonical-vs-legacy-surface-map-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-to-shell-contract-seam-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,13 @@ Use this file to resume work without replaying full chat history.
 ## Current Session Note
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- The live Rust analysis doc now also includes a `Rust-To-Shell Contract Seams` section:
+  - a compact map of the main places where Rust-produced artifacts become shell-gate and proof-sidecar contracts.
+- That new section covers:
+  - parser availability / registry seam
+  - parseability / stimuli / gap-report seam
+  - summary sidecar seam
+  - frontend / dual-run seam
 - The live Rust analysis doc now also includes a `Canonical-Vs-Legacy Surface Map` section:
   - a compact guide to which Rust-facing surfaces are primary, specialist-but-current, or legacy-adjacent.
 - That new section covers:

@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust-to-shell contract seam map to analysis doc
+### Context
+The live Rust analysis doc already acknowledged that the shell proof layer is part of the effective product contract, but it still did not say in one place which Rust artifact seams most often propagate into shell-gate and sidecar drift. That made seam-crossing validation too implicit.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Rust-To-Shell Contract Seams` section near the executable/surface guidance.
+- The new section now maps:
+  - parser availability / registry seam
+  - parseability / stimuli / gap-report seam
+  - summary sidecar seam
+  - frontend / dual-run seam
+
+### Why This Matters
+- Future sessions now have a compact reference for which Rust outputs are most likely to require gate-side validation or updates.
+- That should make shell-aware Rust debugging less guess-heavy.
+
 ## 2026-03-25 - Add Rust canonical-vs-legacy surface map to analysis doc
 ### Context
 The live Rust analysis doc already named the main executables and noted that some testing/proof layers are more current than others, but it still did not say in one place which Rust-facing surfaces are canonical, specialist-but-current, or legacy-adjacent. That makes it too easy for a future session to start from the wrong layer.

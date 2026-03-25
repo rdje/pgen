@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust-to-shell contract seam map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact Rust-to-shell contract seam map so future sessions can see which Rust-produced artifacts most often force gate or sidecar changes when they move.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Rust-To-Shell Contract Seams` section covering:
+  - parser availability / registry seam
+  - parseability / stimuli / gap-report seam
+  - summary sidecar seam
+  - frontend / dual-run seam
+
+### Why This Matters
+- Future sessions now have one explicit map of where Rust changes most often become shell-gate or proof-surface regressions.
+- That should improve seam-crossing validation choices and reduce “fixed Rust, broke the gates” surprises.
+
 ## 2026-03-25 - Add Rust canonical-vs-legacy surface map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact canonical-vs-legacy surface map so future sessions can distinguish primary operational surfaces from specialist or carryover ones.

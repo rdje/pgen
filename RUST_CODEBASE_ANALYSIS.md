@@ -548,6 +548,56 @@ Operational rule:
 - If a newer canonical surface and an older carryover surface disagree, debug the canonical one first unless the user explicitly asks about compatibility or historical behavior.
 - Use legacy-adjacent surfaces as corroborating evidence, not as the primary definition of current repo truth.
 
+## Rust-To-Shell Contract Seams
+- Parser availability / registry seam
+  - Main Rust producers:
+    - `rust/build.rs`
+    - `rust/src/lib.rs`
+    - `rust/src/parser_registry.rs`
+    - `rust/src/embedding_api.rs`
+    - `rust/src/bin/parseability_probe.rs`
+  - Main shell-side consumers:
+    - grammar-quality and family-contract gates under `rust/scripts/*.sh`
+  - Typical failure mode:
+    - a Rust cfg/registry change looks like a gate/proof failure because the shell layer only sees “adapter unavailable”, missing parseability support, or missing downstream report fields
+- Parseability / stimuli / gap-report seam
+  - Main Rust producers:
+    - `rust/src/main.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/bin/parseability_probe.rs`
+  - Main shell-side consumers:
+    - family-contract, family-status, and aggregate proof gates that ingest parseability reports, coverage reports, gap reports, and target-drive summaries
+  - Typical failure mode:
+    - a Rust-side artifact schema or counting rule changes and the nearest shell consumer starts failing parity checks or status derivation
+- Summary sidecar seam
+  - Main producers:
+    - emitting gates under `rust/scripts/*.sh`
+    - Rust tools whose outputs are re-packaged into `summary.txt` / `summary.json`
+  - Main consumers:
+    - family-status
+    - family-status-contract
+    - combined telemetry
+    - `sota_exit_gate`
+    - `ci_workflow_local_gate`
+  - Typical failure mode:
+    - the artifact still exists, but the structured contract changed and higher readers disagree on path, key, or parity expectations
+- Frontend / dual-run seam
+  - Main Rust producers:
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/main.rs`
+    - `rust/src/bin/ebnf_dual_run_diff.rs`
+  - Main shell-side consumers:
+    - `rust/scripts/ebnf_*`
+    - grammar-quality gates that depend on frontend parity or generated-parser freshness
+  - Typical failure mode:
+    - an ingestion/frontend change first appears as an `ebnf` gate drift or a generated-parser proof mismatch rather than a direct Rust test failure
+
+Operational rule:
+- When a Rust change affects artifact names, paths, schemas, or count semantics, inspect the nearest shell consumer above that artifact before assuming the bug is isolated to Rust.
+- The meaningful validation seam is usually:
+  - the emitted Rust artifact,
+  - plus the next gate that consumes it.
+
 ## Where To Start By Task Type
 
 ### If the task is figuring out which Rust executable owns a workflow
