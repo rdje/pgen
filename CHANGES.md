@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-03-25 - Surface Rust analysis doc in archival top-level docs
+### ✅ Achievement Summary
+PGEN now points archival top-level docs at the live Rust architecture/state analysis as part of the current authoritative doc set.
+
+### Scope of Changes
+- Updated:
+  - [CURRENT_STATUS.md](/Users/richarddje/Documents/github/pgen/CURRENT_STATUS.md)
+  - [PROJECT_OVERVIEW.md](/Users/richarddje/Documents/github/pgen/PROJECT_OVERVIEW.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The historical-note pointers in both archival top-level docs now include `RUST_CODEBASE_ANALYSIS.md`.
+
+### Why This Matters
+- Even if a future session or reader opens an older top-level framing/status doc first, the redirect to current Rust-first documentation now includes the live Rust architecture assessment.
+- That reduces the chance of landing in archival framing without seeing the current codebase mental model.
+
 ## 2026-03-25 - Bind Rust analysis doc into commit workflow
 ### ✅ Achievement Summary
 PGEN now treats the live Rust architecture/state analysis as part of the formal commit-time continuity surface instead of leaving its maintenance rule implicit.

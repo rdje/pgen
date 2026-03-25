@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Surface Rust analysis doc in archival top-level docs
+### Context
+After wiring `RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two archival top-level docs still redirected readers to the current authoritative set without mentioning the new live Rust architecture/state assessment.
+
+### Implementation
+- Updated [CURRENT_STATUS.md](/Users/richarddje/Documents/github/pgen/CURRENT_STATUS.md):
+  - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
+- Updated [PROJECT_OVERVIEW.md](/Users/richarddje/Documents/github/pgen/PROJECT_OVERVIEW.md):
+  - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that the archival top-level redirect path now includes the Rust analysis doc too.
+
+### Why This Matters
+- Older top-level docs now redirect to the full current Rust-first doc set instead of only a partial slice.
+- The repo’s “if you landed in an archival top-level doc, here is the current truth” path is more consistent.
+
 ## 2026-03-25 - Bind Rust analysis doc into commit workflow
 ### Context
 After adding and surfacing `RUST_CODEBASE_ANALYSIS.md`, its maintenance rule still lived mostly in the document itself and in recent chat context, not in the formal commit workflow.

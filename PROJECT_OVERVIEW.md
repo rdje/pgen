@@ -3,7 +3,8 @@
 > Historical note
 > This document captures an earlier multi-language project framing and directory map.
 > The current actively maintained product surface is the Rust-first pipeline documented in
-> `README.md`, `PGEN_USER_GUIDE.md`, and `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`.
+> `README.md`, `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and
+> `RUST_CODEBASE_ANALYSIS.md`.
 
 ## Project Purpose
 
