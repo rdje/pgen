@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust bootstrap-generated boundary map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact boundary map for the repo’s bootstrap-vs-generated execution surfaces.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Bootstrap-Vs-Generated Boundary Map` section covering:
+  - `ast_pipeline`
+  - `ast_pipeline_bootstrap`
+  - `test_runner`
+  - `parseability_probe`
+  - tracked annotation parser exceptions
+  - `ebnf` dual-run exception
+  - registry / embedding boundary consumers
+
+### Why This Matters
+- Future sessions now have a clearer in-repo explanation of where the bootstrap/generated seam actually lives.
+- That should reduce confusion between true parser behavior bugs and boundary-wiring availability bugs.
+
 ## 2026-03-25 - Add Rust intervention-order map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact safe-intervention-order map for multi-layer Rust/build/proof bugs.

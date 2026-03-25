@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust bootstrap-generated boundary map to analysis doc
+### Context
+After documenting build shape, source-of-truth layers, traps, and intervention order, one seam still remained easy to misread: the repo’s bootstrap-vs-generated boundary. It was documented indirectly, but not as one explicit map.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Bootstrap-Vs-Generated Boundary Map` section near the build/testing area.
+- The new section now explains the boundary role of:
+  - `ast_pipeline`
+  - `ast_pipeline_bootstrap`
+  - `test_runner`
+  - `parseability_probe`
+  - tracked annotation parser exceptions
+  - the EBNF dual-run exception
+  - registry / embedding consumers where the boundary becomes externally visible
+
+### Why This Matters
+- Future sessions now have a direct explanation of which surfaces are bootstrap, generated, or mixed-boundary.
+- That should make bootstrap/generated mismatch debugging less guess-heavy.
+
 ## 2026-03-25 - Add Rust intervention-order map to analysis doc
 ### Context
 After adding the symptom-triage shortcuts, the live Rust analysis doc could say which layer was most likely wrong first. The missing follow-up was procedural: in what order should a future session patch the layers when several of them are implicated?

@@ -776,6 +776,36 @@ Operational takeaway:
   - the relevant `PGEN_*_PARSER_PATH` resolution and resulting `has_generated_*` cfg
 - A surprising amount of apparent parser/runtime breakage in this repo can actually be feature/build-shape drift.
 
+## Bootstrap-Vs-Generated Boundary Map
+- `ast_pipeline`
+  - The normal orchestration binary from `rust/src/main.rs`
+  - Usually the right entrypoint when generated-parser-backed behavior is intended to be available
+- `ast_pipeline_bootstrap`
+  - The bootstrap-mode sibling from the same `rust/src/main.rs`
+  - Important when the pipeline must remain usable even while generated-parser availability is intentionally constrained
+- `test_runner`
+  - A hybrid validation surface
+  - It can exercise bootstrap behavior, generated-parser behavior, and parity between them depending on feature set and suite path
+- `parseability_probe`
+  - A generated-parser-oriented runtime probe
+  - If this surface is unavailable or behaving oddly, suspect generated-parser availability and registry exposure before assuming generic parser bugs
+- `return_annotation` / `semantic_annotation`
+  - Important boundary exception
+  - They sit under `generated_parsers`, but come from tracked generated sources rather than the same env-resolved grammar-family path model used by the larger HDL/regex families
+- `ebnf`
+  - Another important boundary exception
+  - Dual-run EBNF uses build-script-resolved include paths, but not the same `has_generated_*` cfg pattern as the other env-driven grammar families
+- `parser_registry.rs` / `embedding_api.rs`
+  - These are the main mixed-boundary consumers
+  - They are where bootstrap-vs-generated availability differences become host-visible behavior
+
+Operational rule:
+- When debugging a bootstrap-vs-generated mismatch, do not start from the consumer alone.
+- First confirm:
+  - which side of the boundary you are actually on
+  - whether the relevant generated parser is truly available
+  - whether the mismatch is in parser behavior itself or only in boundary wiring/exposure
+
 ## Known Traps And False Assumptions
 - “If Cargo lists the binary, the runtime path must be available.”
   - False here.
