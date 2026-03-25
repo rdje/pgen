@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust feature/build matrix to analysis doc
+### Context
+After adding the executable-role map to `RUST_CODEBASE_ANALYSIS.md`, there was still one session-start question that required re-reading `Cargo.toml` and `build.rs`: which features unlock which binaries and how generated-parser availability is actually decided at build time.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - expanded the `Build And Feature Model` section with a compact feature/build matrix,
+  - added the practical distinction between Cargo feature enablement and build-time generated-parser discovery.
+- The new matrix now explains:
+  - `normal`
+  - `bootstrap`
+  - `generated_parsers`
+  - `ebnf_dual_run`
+- It also now records the key `build.rs` rule:
+  - feature flags can make a path eligible,
+  - but grammar-specific generated-parser behavior still depends on the resolved parser file existing and the corresponding `has_generated_*` `cfg` being emitted.
+
+### Why This Matters
+- Future sessions should no longer need to reconstruct the feature/build contract from scratch just to understand why a binary or parser path is available or missing.
+- That is especially useful in this repo because feature gating and build-time parser discovery interact in non-trivial ways.
+
 ## 2026-03-25 - Add Rust binary-role map to analysis doc
 ### Context
 After adding task-oriented navigation to `RUST_CODEBASE_ANALYSIS.md`, the document still mostly navigated by subsystem. A future session could still lose time on a simpler question first: which Rust executable actually owns this workflow?

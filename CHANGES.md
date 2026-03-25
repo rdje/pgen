@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust feature/build matrix to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact feature/build matrix for the main Cargo features, binaries, and generated-parser availability model.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes:
+  - a feature/build matrix for `normal`, `bootstrap`, `generated_parsers`, and `ebnf_dual_run`
+  - an explicit two-layer availability model:
+    - Cargo feature enabled
+    - generated parser file discovered by `build.rs`
+  - a compact operational takeaway for diagnosing feature/build-shape drift
+
+### Why This Matters
+- Future sessions can now answer “why does this binary/path exist in Cargo but not behave as expected?” without re-deriving the whole feature/build contract.
+- That should reduce confusion around generated-parser availability and `build.rs`-driven `cfg` behavior.
+
 ## 2026-03-25 - Add Rust binary-role map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact map of the main Rust executables and what each one is actually for.

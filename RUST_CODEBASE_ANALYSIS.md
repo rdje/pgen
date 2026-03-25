@@ -396,6 +396,40 @@ Reason:
   - partial grammar availability
 - It also means more conditional complexity and more chances for path/feature divergence.
 
+Feature/build matrix:
+- `normal`
+  - unlocks the `ast_pipeline` binary from `rust/src/main.rs`
+  - represents the standard non-bootstrap orchestration path
+- `bootstrap`
+  - unlocks the `ast_pipeline_bootstrap` binary from the same `rust/src/main.rs` entrypoint
+  - exists so the pipeline can keep functioning when generated-parser availability is intentionally reduced or absent
+- `generated_parsers`
+  - unlocks binaries and code paths that depend on the generated parser registry and generated parser includes
+  - directly gates:
+    - `parseability_probe`
+    - `perf_bench`
+    - generated-parser branches in the embedding/test surfaces
+- `ebnf_dual_run`
+  - unlocks the generated-EBNF differential tooling
+  - directly gates:
+    - `ebnf_dual_run_diff`
+    - Rust-frontend/generated-frontend comparison flows in the CLI/build ecosystem
+
+Build-time availability model:
+- `rust/build.rs` does two distinct jobs:
+  - resolves include paths from environment variables like `PGEN_SYSTEMVERILOG_PARSER_PATH` and `PGEN_VHDL_PARSER_PATH`
+  - emits grammar-specific `cfg`s like `has_generated_systemverilog_parser` only when the resolved file actually exists
+- That means feature enablement alone is not enough for every generated-parser behavior.
+- In practice there are two layers of availability:
+  - Cargo feature enabled
+  - matching generated parser file found by `build.rs`
+
+Operational takeaway:
+- If a binary or API path appears to “exist but not really work,” check both:
+  - the Cargo feature set
+  - the relevant `PGEN_*_PARSER_PATH` resolution and resulting `has_generated_*` cfg
+- A surprising amount of apparent parser/runtime breakage in this repo can actually be feature/build-shape drift.
+
 ## Testing And Verification Shape
 - The test surface is not only `cargo test`.
 - The codebase relies on:

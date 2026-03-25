@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-binary-role-map-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-feature-build-matrix-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -17,6 +17,13 @@ Use this file to resume work without replaying full chat history.
   - the shared `ast_pipeline` / `ast_pipeline_bootstrap` orchestration entrypoint in `rust/src/main.rs`,
   - the main support binaries like `test_runner`, `parseability_probe`, `ebnf_dual_run_diff`, and `perf_bench`,
   - and the narrower specialist/legacy-support utilities like `pgen_ast`, `return_annotation_generated_audit`, and `pgen`.
+- The live Rust analysis doc now also includes a compact feature/build matrix in its `Build And Feature Model` section:
+  - which features unlock which primary binaries,
+  - which flows depend on `generated_parsers` or `ebnf_dual_run`,
+  - and the key two-layer availability rule:
+    - Cargo feature enabled
+    - matching generated parser file discovered by `rust/build.rs`
+- That new note is meant to save future sessions from re-deriving the same feature/build contract from `Cargo.toml` and `build.rs` every time a binary or parser path appears to be “present but unavailable.”
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,
