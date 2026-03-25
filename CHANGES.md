@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-25 - Bind Rust analysis doc into commit workflow
+### ✅ Achievement Summary
+PGEN now treats the live Rust architecture/state analysis as part of the formal commit-time continuity surface instead of leaving its maintenance rule implicit.
+
+### Scope of Changes
+- Updated:
+  - [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The commit workflow now explicitly includes:
+  - `RUST_CODEBASE_ANALYSIS.md` in tracked workflow files,
+  - a review/update trigger when Rust architecture or the high-level Rust risk picture materially changes.
+
+### Why This Matters
+- Future architecture-significant Rust work now has an explicit reminder to refresh the live Rust analysis doc before commit.
+- That turns the new analysis file into part of the repo’s standing workflow instead of a one-off document.
+
 ## 2026-03-25 - Surface Rust analysis doc in onboarding docs
 ### ✅ Achievement Summary
 PGEN now points future sessions to the live Rust architecture/state analysis from the onboarding surfaces that people are likely to open after `README.md`.

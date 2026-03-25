@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: surface-rust-analysis-doc-in-onboarding)
+Last updated: 2026-03-25 (+0100, task: bind-rust-analysis-doc-into-commit-workflow)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -14,6 +14,9 @@ Use this file to resume work without replaying full chat history.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,
   - `PGEN_USER_GUIDE.md` current-state companion-doc section.
+- `COMMIT.md` now also treats `RUST_CODEBASE_ANALYSIS.md` as part of the formal continuity/workflow surface:
+  - review/update it when Rust architecture or the high-level Rust risk picture materially changes,
+  - do not leave it stale across architecture-significant Rust commits.
 - The next small compatibility follow-up after `sota_exit_gate` started exposing fuller top-level SV auxiliary mirrors was `sv_combined_telemetry_contract_gate` itself:
   - it still only consumed the top-level SOTA auxiliary `summary.json` mirrors,
   - even though the top-level compatibility surface now also exposed auxiliary `state_dir` and `summary.txt`.

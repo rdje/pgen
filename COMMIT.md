@@ -1,6 +1,6 @@
 # COMMIT.md
 
-Last updated: 2026-03-17
+Last updated: 2026-03-25
 
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
@@ -28,6 +28,9 @@ Run this workflow after each completed task/activity.
   - Detailed technical notes: root cause, implementation, validation.
 - `MEMORY.md` (tracked)
   - Live continuity file for resume/handoff.
+- `RUST_CODEBASE_ANALYSIS.md` (tracked)
+  - Live Rust architecture/state assessment.
+  - Must be reviewed and updated whenever a task materially changes Rust architecture, major subsystem boundaries, public integration seams, or the current high-level risk/steering picture.
 - `questions_keep_untracked.txt` (must remain untracked)
   - User backlog/questions for future UG work.
 - `generated/` artifacts
@@ -43,11 +46,16 @@ Run this workflow after each completed task/activity.
    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
    - strict source lint must pass.
    - generated-parser lint runs too; set `PGEN_CLIPPY_GENERATED_STRICT=1` to fail on generated clippy debt.
-3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
+3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `RUST_CODEBASE_ANALYSIS.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
    - Treat markdown synchronization as systematic, not optional:
      - always review the tracked continuity/workflow markdown surface before commit,
      - always update every relevant tracked `.md` file touched by the task or affected by its workflow/policy/command/documentation impact,
      - do not leave a relevant markdown file stale just because code/tests already passed.
+   - `RUST_CODEBASE_ANALYSIS.md` review/update is mandatory before each commit when the task materially changes:
+     - Rust architecture,
+     - major subsystem boundaries,
+     - public integration surfaces,
+     - or the current high-level implementation/risk assessment of the Rust codebase.
    - `LIVE_ACHIEVEMENT_STATUS.md` review/update is mandatory before each commit whenever the task changes:
      - what is `Done`,
      - what is `Mostly Done`,
