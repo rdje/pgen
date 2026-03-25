@@ -424,6 +424,42 @@ Build-time availability model:
   - Cargo feature enabled
   - matching generated parser file found by `build.rs`
 
+Generated parser env/cfg map:
+- `PGEN_EBNF_PARSER_PATH`
+  - resolved by `build.rs` into:
+    - `PGEN_EBNF_PARSER_PATH_RESOLVED`
+    - `PGEN_EBNF_PARSER_PATH_RESOLVED_BIN`
+  - used by the `ebnf_dual_run` surface
+  - important nuance: there is no `has_generated_ebnf_parser` cfg; EBNF availability is handled differently from the other grammar families
+- `PGEN_JSON_PARSER_PATH`
+  - drives `has_generated_json_parser`
+  - controls `generated_parsers::json` and related parser-registry exposure
+- `PGEN_REGEX_PARSER_PATH`
+  - drives `has_generated_regex_parser`
+  - controls `generated_parsers::regex` and related parser-registry exposure
+- `PGEN_SYSTEMVERILOG_PARSER_PATH`
+  - drives `has_generated_systemverilog_parser`
+  - controls generated SystemVerilog registry, embedding, and parseability paths
+- `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`
+  - drives `has_generated_systemverilog_preprocessor_parser`
+  - controls generated SV-preprocessor parser availability
+- `PGEN_VHDL_PARSER_PATH`
+  - drives `has_generated_vhdl_parser`
+  - controls generated VHDL registry, embedding, and parseability paths
+- `PGEN_RTL_CONST_EXPR_PARSER_PATH`
+  - drives `has_generated_rtl_const_expr_parser`
+  - controls generated RTL-const-expr parser availability
+
+Important asymmetries:
+- `return_annotation` and `semantic_annotation`
+  - live under `generated_parsers`, but are included from tracked generated sources rather than `build.rs` env-driven grammar-path discovery
+- `ebnf`
+  - uses `build.rs`-resolved include paths, but not the same `has_generated_*` cfg pattern used by the other generated grammar families
+- `systemverilog`, `vhdl`, and the other env-driven grammar families
+  - usually require both:
+    - `feature = "generated_parsers"`
+    - matching `has_generated_*` cfg emitted by `build.rs`
+
 Operational takeaway:
 - If a binary or API path appears to “exist but not really work,” check both:
   - the Cargo feature set

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-feature-build-matrix-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-generated-parser-env-cfg-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -24,6 +24,13 @@ Use this file to resume work without replaying full chat history.
     - Cargo feature enabled
     - matching generated parser file discovered by `rust/build.rs`
 - That new note is meant to save future sessions from re-deriving the same feature/build contract from `Cargo.toml` and `build.rs` every time a binary or parser path appears to be “present but unavailable.”
+- The live Rust analysis doc now also includes a generated-parser env/cfg map:
+  - which `PGEN_*_PARSER_PATH` variables feed which grammar families,
+  - which ones emit `has_generated_*` cfgs,
+  - and which important exceptions do not follow the same pattern.
+- The most important exceptions now recorded there are:
+  - `return_annotation` / `semantic_annotation` use tracked generated sources under `generated_parsers`
+  - `ebnf` uses build-script-resolved include paths for dual-run mode but does not have a `has_generated_ebnf_parser` cfg
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

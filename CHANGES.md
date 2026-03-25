@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-25 - Add generated-parser env and cfg map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact map of the generated-parser path environment variables and the `has_generated_*` cfgs they drive.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes:
+  - a generated-parser env/cfg map under `Build And Feature Model`
+  - explicit notes for:
+    - `PGEN_EBNF_PARSER_PATH`
+    - `PGEN_JSON_PARSER_PATH`
+    - `PGEN_REGEX_PARSER_PATH`
+    - `PGEN_SYSTEMVERILOG_PARSER_PATH`
+    - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`
+    - `PGEN_VHDL_PARSER_PATH`
+    - `PGEN_RTL_CONST_EXPR_PARSER_PATH`
+  - important asymmetries between:
+    - env-driven generated grammar families
+    - tracked generated annotation parsers
+    - the special `ebnf` dual-run include path model
+
+### Why This Matters
+- Future sessions can now triage missing generated-parser availability from one place instead of reconstructing the env/cfg contract from `build.rs`, `lib.rs`, and registry guards.
+- That should reduce confusion around why some grammar families are cfg-gated, some are tracked generated sources, and `ebnf` behaves differently again.
+
 ## 2026-03-25 - Add Rust feature/build matrix to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact feature/build matrix for the main Cargo features, binaries, and generated-parser availability model.

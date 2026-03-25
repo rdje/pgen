@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add generated-parser env and cfg map to analysis doc
+### Context
+After adding the feature/build matrix to `RUST_CODEBASE_ANALYSIS.md`, one build-shape ambiguity still remained easy to forget: which `PGEN_*_PARSER_PATH` variables feed which generated parser modules and `has_generated_*` cfgs, and where the important exceptions are.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - expanded `Build And Feature Model` with a generated-parser env/cfg map,
+  - recorded the main environment variables and the cfgs/modules they influence,
+  - documented the asymmetry between env-driven generated grammar families, tracked generated annotation parsers, and the special EBNF dual-run path.
+- The new section now explicitly captures:
+  - `PGEN_EBNF_PARSER_PATH`
+  - `PGEN_JSON_PARSER_PATH`
+  - `PGEN_REGEX_PARSER_PATH`
+  - `PGEN_SYSTEMVERILOG_PARSER_PATH`
+  - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH`
+  - `PGEN_VHDL_PARSER_PATH`
+  - `PGEN_RTL_CONST_EXPR_PARSER_PATH`
+- It also records two nuances that are easy to miss in casual reading:
+  - `return_annotation` and `semantic_annotation` are tracked generated sources, not env-resolved grammar-path includes
+  - `ebnf` uses build-script-resolved include paths but not the same `has_generated_*` cfg pattern as the other grammar families
+
+### Why This Matters
+- Future sessions now have a direct map for generated-parser availability triage instead of having to infer it from several files.
+- That should make build/debug work faster whenever the code appears feature-enabled but a grammar-specific generated parser is still missing.
+
 ## 2026-03-25 - Add Rust feature/build matrix to analysis doc
 ### Context
 After adding the executable-role map to `RUST_CODEBASE_ANALYSIS.md`, there was still one session-start question that required re-reading `Cargo.toml` and `build.rs`: which features unlock which binaries and how generated-parser availability is actually decided at build time.
