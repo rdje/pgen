@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust grammar-family asymmetry map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact grammar-family asymmetry map so future sessions can stop over-generalizing one family’s build/proof/runtime rules to the others.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Grammar-Family Asymmetry Map` section covering:
+  - `systemverilog`
+  - `systemverilog_preprocessor`
+  - `vhdl`
+  - `regex`
+  - `ebnf`
+  - `return_annotation` / `semantic_annotation`
+  - `json` / `rtl_const_expr`
+
+### Why This Matters
+- Future sessions now have one explicit place to check which grammar families are truly analogous and which are not.
+- That should reduce bad fix-porting and validation assumptions across families.
+
 ## 2026-03-25 - Add Rust coupled-module map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact map of the Rust module clusters that usually need to be reasoned about together.

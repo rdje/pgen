@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust grammar-family asymmetry map to analysis doc
+### Context
+The live Rust analysis doc already captured build-shape asymmetries and bootstrap/generated boundary exceptions, but it still did not say in one place how the main grammar families differ operationally. That leaves too much room for “this worked for regex/SV/VHDL, so it should work everywhere” reasoning.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Grammar-Family Asymmetry Map` section near the build/boundary area.
+- The new section now distinguishes the operational shape of:
+  - `systemverilog`
+  - `systemverilog_preprocessor`
+  - `vhdl`
+  - `regex`
+  - `ebnf`
+  - `return_annotation` / `semantic_annotation`
+  - `json` / `rtl_const_expr`
+
+### Why This Matters
+- Future sessions now have a compact “do these families actually behave alike?” reference before copying fixes or validation patterns across them.
+- That should make cross-family reasoning less error-prone.
+
 ## 2026-03-25 - Add Rust coupled-module map to analysis doc
 ### Context
 The live Rust analysis doc already had task-start guidance, high-risk zones, change-impact checks, and symptom triage. The remaining navigation gap was cross-file coupling: which modules usually need to be reasoned about together even when only one looks primary at first glance?

@@ -858,6 +858,37 @@ Operational rule:
   - whether the relevant generated parser is truly available
   - whether the mismatch is in parser behavior itself or only in boundary wiring/exposure
 
+## Grammar-Family Asymmetry Map
+- `systemverilog`
+  - A major env-driven generated-parser family
+  - It also carries unusually heavy surrounding proof surface through aggregate, status, semantic-scope, roundtrip, and failure-context consumers
+- `systemverilog_preprocessor`
+  - Also env-driven, but not just a smaller copy of parser-only families
+  - Its runtime semantics include macro expansion, include handling, conditional policy, source mapping, diagnostics, and strict-promotion-adjacent behavior
+- `vhdl`
+  - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
+  - In practice it is strongly coupled to quality/parseability and strict-promotion proof surfaces
+- `regex`
+  - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
+  - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
+- `ebnf`
+  - Not just another generated runtime parser family
+  - It sits at the ingestion/frontend edge, uses build-script-resolved include paths, and has its own dual-run diagnostic shape rather than the standard `has_generated_*` family contract
+- `return_annotation` / `semantic_annotation`
+  - Important tracked-generated exceptions
+  - They live under `generated_parsers`, but come from checked-in generated sources and typed-annotation workflows rather than the env-driven grammar-family path model
+- `json` / `rtl_const_expr`
+  - Supporting generated-parser families
+  - They matter for build/registry completeness, but they are not the main day-to-day closure-driving families in the same way as SV, VHDL, and regex
+
+Operational rule:
+- Do not assume one family’s build, validation, or proof-plumbing shape generalizes cleanly to another.
+- Before copying a fix pattern across families, check whether the source family is:
+  - env-driven parser runtime
+  - frontend/ingestion
+  - tracked generated annotation support
+  - or a supporting parser family with lighter operational ownership
+
 ## Known Traps And False Assumptions
 - “If Cargo lists the binary, the runtime path must be available.”
   - False here.
