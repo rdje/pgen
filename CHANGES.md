@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust canonical-vs-legacy surface map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact canonical-vs-legacy surface map so future sessions can distinguish primary operational surfaces from specialist or carryover ones.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Canonical-Vs-Legacy Surface Map` section covering:
+  - canonical day-to-day Rust operational surfaces
+  - specialist but current surfaces
+  - legacy-adjacent or carryover surfaces
+  - canonical proof / verification surfaces
+
+### Why This Matters
+- Future sessions now have one explicit place to decide whether a Rust surface is primary, narrow-but-current, or only legacy-adjacent.
+- That should reduce time spent debugging the wrong executable or carryover test layer first.
+
 ## 2026-03-25 - Add Rust artifact persistence classes to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact artifact-persistence map so future sessions can distinguish authored source, tracked-generated files, build-discovered parser artifacts, and ephemeral proof/debug outputs.

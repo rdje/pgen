@@ -517,6 +517,37 @@ Assessment:
   - `perf_bench`
 - The smaller `pgen_ast`, `return_annotation_generated_audit`, and `pgen` executables are better thought of as specialist or legacy-support utilities.
 
+## Canonical-Vs-Legacy Surface Map
+- Canonical day-to-day Rust operational surfaces
+  - `ast_pipeline` / `ast_pipeline_bootstrap`
+  - `test_runner`
+  - `parseability_probe`
+  - `ebnf_dual_run_diff`
+  - `perf_bench`
+  - Why:
+    - these are the surfaces most likely to reflect the current intended build/runtime/proof contract
+- Specialist but current surfaces
+  - `pgen_ast`
+  - `return_annotation_generated_audit`
+  - selected grammar-specific operational flows that are narrow but still intentionally maintained
+  - Why:
+    - these are not the first place to look for most tasks, but they still represent real maintained seams
+- Legacy-adjacent or carryover surfaces
+  - `pgen`
+  - older test-layer pieces like `rust/src/test_registry.rs` and `rust/src/test_discovery.rs`
+  - Why:
+    - they still exist and can matter for compatibility or historical behavior, but they should not be assumed to define the repo’s main modern workflow
+- Canonical proof/verification surfaces
+  - `rust/scripts/*.sh` gates on the shipped proof spine
+  - family status / family status contract / combined telemetry / `sota_exit_gate`
+  - `rust/scripts/ci_workflow_local_gate.sh`
+  - Why:
+    - these are the main executable proof contracts that preserve and validate the Rust-produced artifacts
+
+Operational rule:
+- If a newer canonical surface and an older carryover surface disagree, debug the canonical one first unless the user explicitly asks about compatibility or historical behavior.
+- Use legacy-adjacent surfaces as corroborating evidence, not as the primary definition of current repo truth.
+
 ## Where To Start By Task Type
 
 ### If the task is figuring out which Rust executable owns a workflow

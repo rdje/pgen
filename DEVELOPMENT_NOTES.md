@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust canonical-vs-legacy surface map to analysis doc
+### Context
+The live Rust analysis doc already named the main executables and noted that some testing/proof layers are more current than others, but it still did not say in one place which Rust-facing surfaces are canonical, specialist-but-current, or legacy-adjacent. That makes it too easy for a future session to start from the wrong layer.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Canonical-Vs-Legacy Surface Map` section near the executable/test guidance.
+- The new section now distinguishes:
+  - canonical day-to-day Rust operational surfaces
+  - specialist but current surfaces
+  - legacy-adjacent or carryover surfaces
+  - canonical proof / verification surfaces
+
+### Why This Matters
+- Future sessions now have a compact “is this the main surface or a carryover one?” reference before debugging.
+- That should make codebase navigation and validation choices less error-prone.
+
 ## 2026-03-25 - Add Rust artifact persistence classes to analysis doc
 ### Context
 The live Rust analysis doc already described artifact flow and source-of-truth layers, but it still did not say plainly which Rust-adjacent artifacts are authored source, tracked-generated files, build-discovered runtime inputs, or throwaway proof/debug outputs. That made it too easy to patch the wrong layer.
