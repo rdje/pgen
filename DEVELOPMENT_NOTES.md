@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust symptom-triage shortcuts to analysis doc
+### Context
+After adding the source-of-truth map, the live Rust analysis doc could already answer “which layer is authoritative?” What it still did not answer directly was the earlier debugging question: given a symptom, which layer is most likely wrong first?
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Symptom-To-Layer Triage Shortcuts` section after the source-of-truth map.
+- The new section now gives first-pass triage guidance for recurring symptom patterns around:
+  - binary/build availability
+  - raw-AST vs normalized-AST vs generator drift
+  - registry/embedding vs CLI/runtime disagreement
+  - stimuli/coverage drift
+  - EBNF frontend drift
+  - proof-sidecar / aggregate proof disagreement
+  - compile-success-but-still-wrong situations
+
+### Why This Matters
+- Future sessions now have a more direct bridge from symptom to likely seam.
+- That should reduce time spent bouncing across layers before checking the most probable source first.
+
 ## 2026-03-25 - Add Rust source-of-truth map to analysis doc
 ### Context
 After documenting the operational vocabulary and the major traps, the live Rust analysis doc still lacked one practical steering aid: a direct map of which file or layer is actually authoritative for a given concern.

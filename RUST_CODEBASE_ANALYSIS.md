@@ -329,6 +329,52 @@ Operational rule:
 - When two layers disagree, fix the upstream source of truth first, then bring downstream consumers back into parity.
 - In this repo, a lot of wasted time comes from patching adapters, sidecars, or aggregate readers before confirming which layer is actually authoritative.
 
+## Symptom-To-Layer Triage Shortcuts
+- Symptom: Cargo can build or list a binary, but the expected parser/runtime path is still missing
+  - First likely seam:
+    - `rust/build.rs`
+    - `rust/src/lib.rs`
+  - Usually verify:
+    - feature enablement
+    - `PGEN_*_PARSER_PATH` resolution
+    - matching `has_generated_*` cfg emission
+- Symptom: A grammar looks fine at frontend/raw-AST level, but generated parser behavior is still wrong
+  - First likely seam:
+    - normalized generation-input AST in `rust/src/ast_pipeline/mod.rs`
+    - then `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Common mistake:
+    - assuming the raw AST already reflects the shape the generator actually consumes
+- Symptom: `parseability_probe` / embedding behavior disagrees with expectations from generation or registry changes
+  - First likely seam:
+    - `rust/src/parser_registry.rs`
+    - `rust/src/embedding_api.rs`
+    - then the generated parser availability layer
+  - Common mistake:
+    - debugging only the CLI surface without checking the dispatch/availability contract under it
+- Symptom: Generated samples, coverage, or target-drive behavior looks wrong while parser acceptance seems fine
+  - First likely seam:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - then the parseability-report and gap-report consumers in `rust/src/main.rs` and `rust/scripts/*.sh`
+  - Common mistake:
+    - treating stimuli/coverage problems as pure parser-codegen problems
+- Symptom: EBNF frontend output and generated-parser behavior drift apart
+  - First likely seam:
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/bin/ebnf_dual_run_diff.rs`
+  - Common mistake:
+    - debugging only downstream parser behavior without checking `parse` vs `parse_full` or frontend drift first
+- Symptom: Gate summaries, family contracts, or aggregate proof outputs disagree even though lower layers “passed”
+  - First likely seam:
+    - the emitting gate in `rust/scripts/*.sh`
+    - then the next aggregate reader above it
+  - Common mistake:
+    - patching only the aggregate reader when the emitting sidecar schema or TXT/JSON parity is actually wrong
+- Symptom: A change compiles and unit tests pass, but the repo still feels inconsistent
+  - First likely seam:
+    - the next real artifact consumer, not the producer you already changed
+  - Common mistake:
+    - stopping validation at compile/test success instead of crossing the seam that the changed artifact feeds
+
 ## Main Rust Executables And Roles
 - `ast_pipeline` / `ast_pipeline_bootstrap`
   - Both are wired to `rust/src/main.rs` via Cargo features.
