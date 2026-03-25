@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust validation ladder to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact validation ladder that maps common Rust change types to representative validation slices.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Validation Ladder By Change Type` section covering representative checks for:
+  - docs-only changes
+  - build-shape / feature-cfg changes
+  - parser-registry / embedding changes
+  - parser-behavior / typed-AST changes
+  - EBNF frontend / dual-run changes
+  - stimuli / coverage / gap-report changes
+  - proof-sidecar / gate changes
+
+### Why This Matters
+- Future sessions now have a faster way to choose a validation slice that actually crosses the changed seam instead of defaulting to either too little or too much.
+- That should improve close-out discipline without forcing every task through the same heavy validation path.
+
 ## 2026-03-25 - Add Rust session-start sanity probes to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact session-start sanity-probe section for cheap workspace/build-surface reorientation.

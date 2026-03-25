@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust validation ladder to analysis doc
+### Context
+After adding startup probes and impact-check guidance, the live Rust analysis doc still lacked one close-out aid: a compact map from change type to the smallest representative validation slice that usually makes sense in this repo.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Validation Ladder By Change Type` section under the testing/verification area.
+- The new section now records representative validation slices for:
+  - docs-only changes
+  - build-shape / feature-cfg changes
+  - parser-registry / embedding changes
+  - parser behavior / typed-AST changes
+  - EBNF frontend / dual-run changes
+  - stimuli / coverage / gap-report changes
+  - proof-sidecar / gate changes
+- It also records the core validation heuristic for this repo:
+  - prefer the smallest validation slice that still crosses the seam you changed
+  - and prefer the next real consumer of the artifact over stopping at raw build success
+
+### Why This Matters
+- Future sessions now have a more actionable answer to “what validation is enough for this kind of Rust change?”
+- That should reduce both under-validation and over-validation.
+
 ## 2026-03-25 - Add Rust session-start sanity probes to analysis doc
 ### Context
 After turning `RUST_CODEBASE_ANALYSIS.md` into a stronger steering document, it still lacked one pragmatic startup aid: a tiny set of cheap commands that let a new session confirm the Rust workspace, binary surface, and build-shape assumptions before digging deeper.

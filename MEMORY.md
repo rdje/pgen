@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-session-start-sanity-probes-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-validation-ladder-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -62,6 +62,12 @@ Use this file to resume work without replaying full chat history.
   - Cargo/bin/feature shape,
   - generated-parser env/cfg shape,
   - and proof-sidecar vocabulary drift when the task is gate-heavy.
+- The live Rust analysis doc now also includes a `Validation Ladder By Change Type` section:
+  - representative validation slices for the main Rust change categories
+  - plus the repo-specific rule to validate across the changed seam, not just at raw build level
+- The current validation rule now captured there is:
+  - prefer the smallest validation slice that still crosses the seam you changed
+  - and, when possible, stop at the next real consumer of the touched artifact rather than at pure compile success
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

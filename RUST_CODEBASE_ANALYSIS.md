@@ -628,6 +628,49 @@ Assessment:
 - The repo is very strong on proof surfaces.
 - The downside is that the test ecosystem is mixed-generation and not fully consolidated behind one obvious canonical layer.
 
+## Validation Ladder By Change Type
+Treat this as a representative ladder, not a claim that every task needs every step.
+
+- Docs-only or continuity-only change
+  - usually enough:
+    - `git diff --check`
+- Build-shape or feature/cfg change
+  - start with:
+    - `cargo check --manifest-path rust/Cargo.toml --bins`
+  - then usually add the relevant feature shape, for example:
+    - `cargo check --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline`
+    - `cargo check --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+    - `cargo check --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bins`
+- Parser-registry or embedder-facing change
+  - usually re-check:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib embedding_api`
+- Parser behavior or typed-AST conversion change
+  - usually re-check:
+    - focused `test_runner` suites
+    - focused `parseability_probe --parse ...`
+    - any generated-vs-bootstrap parity path that the touched parser family relies on
+- EBNF frontend or dual-run change
+  - usually re-check:
+    - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run --lib ebnf_frontend::tests`
+    - `cargo check --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ebnf_dual_run_diff`
+    - focused `ebnf_dual_run_diff` execution if the issue is parse/full-parse drift
+- Stimuli, coverage, or gap-report change
+  - usually re-check:
+    - focused `ast_pipeline --generate-stimuli ...`
+    - parseability report generation when the change affects parser-backed validation
+    - the nearest grammar-quality or family-contract gate that consumes those artifacts
+- Proof-sidecar or gate change
+  - usually re-check:
+    - the touched gate directly
+    - `bash rust/scripts/ci_workflow_local_gate.sh`
+  - and when the change affects aggregate proof flow:
+    - the nearest family-status / family-status-contract / combined-telemetry / SOTA reader above it
+
+Operational rule:
+- Prefer the smallest validation slice that still crosses the seam you changed.
+- In this repo, “build passes” is often weaker than “the next consumer of the artifact still agrees.”
+
 ## Strengths
 - Strong architecture around determinism, observability, and machine-checkable proof.
 - Clear Rust-first integration posture with explicit bootstrap escape hatches rather than hidden hand-written exceptions.
