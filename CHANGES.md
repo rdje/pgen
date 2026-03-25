@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust change-impact checklist to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact companion-check map for common Rust change areas.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Change-Impact Checklist` section covering common companion checks for:
+  - grammar normalization
+  - parser code generation
+  - stimuli/coverage logic
+  - annotation/runtime changes
+  - build-script and generated-parser availability changes
+  - embedding/registry changes
+  - EBNF frontend changes
+  - SV preprocessing changes
+  - proof-sidecar / gate aggregation changes
+
+### Why This Matters
+- Future sessions now have a faster answer to “if I change this subsystem, what else usually needs re-checking?”
+- That should reduce one-sided fixes that leave neighboring layers or proof surfaces stale.
+
 ## 2026-03-25 - Add Rust artifact-spine map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact end-to-end artifact flow map from grammar input through runtime parser consumers and up into proof sidecars.

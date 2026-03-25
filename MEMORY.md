@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-artifact-spine-map-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-change-impact-checklist-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -44,6 +44,19 @@ Use this file to resume work without replaying full chat history.
   - a generated parser/runtime issue,
   - a stimuli/coverage telemetry issue,
   - or a proof-sidecar aggregation issue.
+- The live Rust analysis doc now also includes a `Change-Impact Checklist` section:
+  - a first-pass companion-check map for common Rust subsystem changes
+  - intended to answer “what else usually needs re-checking if I touch this layer?”
+- The new checklist covers:
+  - AST pipeline / normalization
+  - parser code generation
+  - stimuli / coverage
+  - annotations / semantic runtime
+  - build-script and generated-parser availability
+  - registry / embedding surfaces
+  - EBNF frontend
+  - SV preprocessing
+  - proof-sidecar / gate aggregation
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

@@ -439,6 +439,101 @@ Reason:
 - `rust/scripts/sota_exit_gate.sh` and sibling family aggregate/status gates
   - not Rust code, but they are part of the effective Rust-owned product contract.
 
+## Change-Impact Checklist
+Use this as a first-pass companion-check map, not as a complete proof checklist.
+
+- If you change grammar normalization or core AST pipeline shape
+  - Typical primary files:
+    - `rust/src/ast_pipeline/mod.rs`
+    - `rust/src/ast_pipeline/grouped_quantifier_parser.rs`
+    - `rust/src/ast_pipeline/mutual_recursion_handler.rs`
+  - Usually re-check:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - generation-input AST dump behavior in `rust/src/main.rs`
+    - round-trip / parseability surfaces that implicitly depend on normalized rule shape
+- If you change parser code generation
+  - Typical primary files:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `rust/src/ast_pipeline/ast_code_generator.rs`
+    - `rust/src/ast_pipeline/ast_generator_direct.rs`
+  - Usually re-check:
+    - generated parser compileability and include-path assumptions
+    - `rust/src/parser_registry.rs`
+    - `rust/src/embedding_api.rs`
+    - `rust/src/bin/parseability_probe.rs`
+    - `rust/src/bin/test_runner.rs`
+    - `rust/src/bin/perf_bench.rs`
+- If you change stimuli, coverage, or gap logic
+  - Typical primary file:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Usually re-check:
+    - `rust/src/main.rs` stimuli CLI/report wiring
+    - parseability validation report behavior
+    - coverage / gap / target-drive JSON artifacts
+    - grammar-quality and family-contract gate expectations in `rust/scripts/*.sh`
+- If you change annotation parsing, validation, or semantic runtime behavior
+  - Typical primary files:
+    - `rust/src/ast_pipeline/unified_return_ast.rs`
+    - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+  - Usually re-check:
+    - generated parser conversion paths
+    - `test_runner` bootstrap vs generated parity
+    - annotation-focused suites and typed-AST consumers
+    - any docs or gates that currently treat return-annotation support as closed and semantic support as still more fluid
+- If you change build-script or generated-parser availability behavior
+  - Typical primary files:
+    - `rust/build.rs`
+    - `rust/src/lib.rs`
+    - `rust/src/parser_registry.rs`
+  - Usually re-check:
+    - Cargo feature combinations
+    - `PGEN_*_PARSER_PATH` resolution behavior
+    - `has_generated_*` cfg guards
+    - binaries gated by `generated_parsers` or `ebnf_dual_run`
+    - embedder-facing availability behavior in `embedding_api.rs`
+- If you change embedder-facing or registry-facing parse surfaces
+  - Typical primary files:
+    - `rust/src/embedding_api.rs`
+    - `rust/src/parser_registry.rs`
+  - Usually re-check:
+    - `rust/src/bin/parseability_probe.rs`
+    - AST dump contract behavior
+    - feature/cfg fallback behavior
+    - any gates or tests that rely on registry exposure or parser support checks
+- If you change EBNF frontend behavior
+  - Typical primary files:
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/main.rs`
+    - `rust/src/bin/ebnf_dual_run_diff.rs`
+  - Usually re-check:
+    - raw-AST export behavior
+    - dual-run drift reports
+    - `ebnf_dual_run` build assumptions
+    - readiness/quality gates that now rely on the Rust frontend path
+- If you change SystemVerilog preprocessing behavior
+  - Typical primary files:
+    - `rust/src/sv_preprocessor.rs`
+    - SV preprocess wiring in `rust/src/main.rs`
+  - Usually re-check:
+    - source-map and diagnostics behavior
+    - strict-warning policy handling
+    - downstream parseability expectations on preprocessed output
+    - SV quality/aggregate proof gates in `rust/scripts/`
+- If you change proof-sidecar shape or release-gate aggregation
+  - Typical primary files:
+    - `rust/scripts/*.sh`
+    - sometimes `rust/src/bin/parseability_probe.rs` or `rust/src/embedding_api.rs`
+  - Usually re-check:
+    - `summary.txt` / `summary.json` parity
+    - `ci_workflow_local_gate.sh`
+    - higher aggregate readers like family-status, combined telemetry, and SOTA exit
+    - `RUST_CODEBASE_ANALYSIS.md` if the effective operational contract changed
+
 ## Build And Feature Model
 - The crate is feature-gated around bootstrap, normal, generated-parser, and EBNF-dual-run modes.
 - Generated parser modules are not hardwired; `rust/build.rs` resolves them from environment-configured paths and only enables grammar-specific `cfg`s when files actually exist.

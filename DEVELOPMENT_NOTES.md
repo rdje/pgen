@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust change-impact checklist to analysis doc
+### Context
+After documenting subsystem navigation, executable ownership, build shape, and artifact flow, the live Rust analysis doc still lacked one very practical steering aid: a first-pass checklist of what else usually has to be revisited when a given subsystem changes.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Change-Impact Checklist` section near the risk/build model area.
+- The new checklist now records typical companion checks for changes in:
+  - grammar normalization / AST pipeline shape
+  - parser code generation
+  - stimuli / coverage / gap logic
+  - annotation parsing / validation / semantic runtime
+  - build-script and generated-parser availability behavior
+  - embedding / registry parse surfaces
+  - EBNF frontend behavior
+  - SystemVerilog preprocessing
+  - proof-sidecar and release-gate aggregation
+
+### Why This Matters
+- Future sessions can now use the live Rust analysis doc as a “what else should I inspect?” guide, not just a structural map.
+- That should reduce the common failure mode where one layer is fixed but a coupled neighbor is forgotten.
+
 ## 2026-03-25 - Add Rust artifact-spine map to analysis doc
 ### Context
 After documenting the executable surface and the build/env/cfg surface, the live Rust analysis doc still described the codebase more by subsystem than by artifact handoff. That left one practical debugging question underexplained: where in the pipeline did this artifact actually come from?
