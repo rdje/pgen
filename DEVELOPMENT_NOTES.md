@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust operational vocabulary to analysis doc
+### Context
+After adding the artifact spine, the live Rust analysis doc still assumed familiarity with recurring project terms like raw AST, generation-input AST, parseability reports, family-status contracts, and `summary.txt` / `summary.json`.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added an `Operational Vocabulary` section immediately after the artifact-spine section.
+- The new section now defines the main recurring artifact/proof terms used across:
+  - Rust generation/runtime work
+  - parser-backed validation
+  - shell proof-sidecar and aggregate-gate work
+
+### Why This Matters
+- Future sessions now have a tracked in-repo glossary for the project’s most repeated artifact/proof terms.
+- That should make the handoff between Rust-code analysis and gate/proof analysis less jargon-dependent.
+
 ## 2026-03-25 - Add Rust validation ladder to analysis doc
 ### Context
 After adding startup probes and impact-check guidance, the live Rust analysis doc still lacked one close-out aid: a compact map from change type to the smallest representative validation slice that usually makes sense in this repo.

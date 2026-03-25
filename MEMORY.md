@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-validation-ladder-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-operational-vocabulary-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -68,6 +68,8 @@ Use this file to resume work without replaying full chat history.
 - The current validation rule now captured there is:
   - prefer the smallest validation slice that still crosses the seam you changed
   - and, when possible, stop at the next real consumer of the touched artifact rather than at pure compile success
+- The live Rust analysis doc now also includes an `Operational Vocabulary` section:
+  - a compact glossary for recurring artifact/proof terms like raw AST, generation-input AST, parseability report, coverage/gap report, `summary.txt`, `summary.json`, family status, combined telemetry, and SOTA.
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

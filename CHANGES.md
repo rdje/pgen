@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust operational vocabulary to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact operational vocabulary for the recurring artifact and proof terms used across the Rust and gate layers.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes an `Operational Vocabulary` section covering:
+  - raw AST
+  - generation-input AST
+  - generated parser source
+  - parser-backed AST dumps
+  - parseability reports
+  - coverage / gap reports
+  - `summary.txt`
+  - `summary.json`
+  - family status / family status contract
+  - combined telemetry
+  - SOTA / `sota_exit_gate`
+
+### Why This Matters
+- Future sessions now have a tracked in-repo explanation of the recurring artifact/proof terms instead of relying on chat memory.
+- That should reduce confusion when moving between Rust generation/runtime work and the shell proof layer.
+
 ## 2026-03-25 - Add Rust validation ladder to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact validation ladder that maps common Rust change types to representative validation slices.

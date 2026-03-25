@@ -263,6 +263,36 @@ Operational reading rule:
   - stimuli/coverage telemetry
   - proof sidecar summaries
 
+## Operational Vocabulary
+- Raw AST
+  - The frontend-oriented grammar structure coming directly from `.ebnf` ingestion or equivalent JSON import.
+  - This is earlier and looser than the normalized generation-input AST.
+- Generation-input AST
+  - The normalized grammar tree actually consumed by parser generation and stimuli generation.
+  - When this shape changes, parser output and stimuli output often both move.
+- Generated parser source
+  - The emitted Rust parser code produced from the generation-input AST before it becomes a compiled runtime module.
+- Parser-backed AST dump
+  - An AST or parse-tree-shaped output produced by a runtime parser surface such as `parseability_probe` or embedding APIs.
+  - This is a runtime artifact, not the same thing as the generation-input AST.
+- Parseability report
+  - A machine-readable report about whether generated samples or corpus inputs are accepted by the relevant parser surface.
+  - In this repo, parseability is often the bridge between generation logic and proof gates.
+- Coverage / gap report
+  - The stimuli-side telemetry that says what rules/branches were covered, which reachable targets remain, and what target-drive work is still open.
+- `summary.txt`
+  - The human-readable proof sidecar for a gate or contract layer.
+  - Usually a flat `key: value` compatibility surface for quick inspection and shell-level checks.
+- `summary.json`
+  - The machine-readable proof sidecar for the same gate or contract layer.
+  - This is the preferred surface for higher-level gates when the proof chain needs structured consumption.
+- Family status / family status contract
+  - Mid-layer proof artifacts that summarize a parser family’s current closure state and then freeze that state into a parity-checked contract surface.
+- Combined telemetry
+  - A higher aggregate layer that collects family-contract, family-status, and contract-sidecar evidence into one family-level proof view.
+- SOTA / `sota_exit_gate`
+  - The top aggregate proof layer that rolls family-level evidence into the project’s highest-level executable status surface.
+
 ## Main Rust Executables And Roles
 - `ast_pipeline` / `ast_pipeline_bootstrap`
   - Both are wired to `rust/src/main.rs` via Cargo features.
