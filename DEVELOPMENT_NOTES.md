@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Surface Rust analysis doc in onboarding docs
+### Context
+After adding `RUST_CODEBASE_ANALYSIS.md` and wiring it into `README.md`, the older onboarding surfaces still did not point readers to the new live Rust architecture/state reference.
+
+### Implementation
+- Updated [QUICKSTART_AI_ONBOARDING.md](/Users/richarddje/Documents/github/pgen/QUICKSTART_AI_ONBOARDING.md):
+  - extended the historical-note pointer list to include `RUST_CODEBASE_ANALYSIS.md`.
+- Updated [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md):
+  - refreshed the file date,
+  - added a small “Current-State Companion Docs” section near the top pointing readers to:
+    - `README.md`
+    - `RUST_CODEBASE_ANALYSIS.md`
+    - `LIVE_ACHIEVEMENT_STATUS.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+  - recorded that the new Rust analysis doc is now surfaced beyond `README.md`.
+
+### Why This Matters
+- Future sessions are less likely to stop at mixed historical onboarding material without seeing the current Rust architecture snapshot.
+- The new live analysis document is now discoverable from both the main repo entrypoint and the older onboarding/doc surfaces.
+
 ## 2026-03-25 - Add live Rust codebase analysis reference
 ### Context
 The current Rust codebase has grown into a large parser-generation, stimuli, and proof platform, and the most useful high-level architecture assessment only existed in chat context.

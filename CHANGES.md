@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-03-25 - Surface Rust analysis doc in onboarding docs
+### ✅ Achievement Summary
+PGEN now points future sessions to the live Rust architecture/state analysis from the onboarding surfaces that people are likely to open after `README.md`.
+
+### Scope of Changes
+- Updated:
+  - [QUICKSTART_AI_ONBOARDING.md](/Users/richarddje/Documents/github/pgen/QUICKSTART_AI_ONBOARDING.md)
+  - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The historical quickstart warning now explicitly points at `RUST_CODEBASE_ANALYSIS.md`.
+- The user guide now has a small current-state companion-doc section at the top.
+
+### Why This Matters
+- The live Rust analysis doc is now easier to discover from the older onboarding paths, not only from `README.md`.
+- That reduces the chance that a future session lands in stale onboarding material and misses the current Rust architecture snapshot.
+
 ## 2026-03-25 - Add live Rust codebase analysis reference
 ### ✅ Achievement Summary
 PGEN now has a dedicated live Rust-codebase analysis document to preserve the current architecture/state assessment and steer future sessions.

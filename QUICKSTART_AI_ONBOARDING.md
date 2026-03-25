@@ -3,7 +3,8 @@
 > Historical note
 > This file contains earlier onboarding material and mixed historical snapshots.
 > Current commands, gates, and contracts live in `README.md`, `PGEN_USER_GUIDE.md`,
-> `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and `rust/docs/EMBEDDING_API_CONTRACT.md`.
+> `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `RUST_CODEBASE_ANALYSIS.md`, and
+> `rust/docs/EMBEDDING_API_CONTRACT.md`.
 
 ## 🚀 **Quick Start - Validate Parser Correctness**
 
