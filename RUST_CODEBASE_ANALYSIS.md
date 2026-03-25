@@ -210,6 +210,59 @@ Assessment:
 - `main.rs` is functionally rich but overly large.
 - The shell-gate surface is now big enough that architecture comprehension requires understanding both Rust and shell proof plumbing together.
 
+## End-To-End Artifact Spine
+1. Grammar/source input
+   - Typical starting artifacts:
+     - `grammars/*.ebnf`
+     - generated grammar JSON inputs
+     - real parser input samples
+     - raw SystemVerilog source for preprocessing mode
+2. Frontend / ingestion layer
+   - `rust/src/ebnf_frontend.rs` can produce raw-AST envelopes directly from `.ebnf`
+   - older or compatibility flows may still enter from precomputed JSON instead of live `.ebnf`
+   - SystemVerilog preprocessing can branch here and emit expanded source plus source-map/diagnostic metadata before parsing
+3. Normalization / transformation layer
+   - `RustASTPipeline` in `rust/src/ast_pipeline/mod.rs` turns raw AST into the normalized grammar tree used for downstream generation
+   - Important intermediate artifacts:
+     - transformed / generation-input AST JSON
+     - annotation metadata
+     - normalization statistics
+4. Generation layer
+   - `ast_based_generator.rs` turns normalized grammar AST into generated Rust parser source
+   - `stimuli_generator.rs` turns normalized grammar AST into:
+     - in-memory stimuli
+     - stimuli modules
+     - coverage JSON
+     - parseability reports
+     - gap reports
+     - target-drive telemetry
+5. Runtime / consumer layer
+   - Generated parser source becomes runtime parser modules through `build.rs` + `lib.rs`
+   - Those runtime surfaces are then consumed by:
+     - `parser_registry.rs`
+     - `embedding_api.rs`
+     - `parseability_probe`
+     - `test_runner`
+     - `perf_bench`
+     - grammar-specific operational binaries
+   - Parser-backed AST dumps can reappear here as a second artifact family, distinct from generation-input AST dumps
+6. Proof / release layer
+   - `rust/scripts/*.sh` collect upstream artifacts and emit machine-readable sidecars such as:
+     - `summary.txt`
+     - `summary.json`
+     - `summary.csv`
+   - Higher-level status / contract / combined-telemetry / SOTA gates then aggregate those sidecars into the project’s executable proof surface
+
+Operational reading rule:
+- Many bugs show up one stage later than where they originate.
+- If a proof gate or parser runtime looks wrong, first identify which artifact family is wrong:
+  - raw/frontend AST
+  - normalized generation-input AST
+  - generated parser source
+  - runtime parser output
+  - stimuli/coverage telemetry
+  - proof sidecar summaries
+
 ## Main Rust Executables And Roles
 - `ast_pipeline` / `ast_pipeline_bootstrap`
   - Both are wired to `rust/src/main.rs` via Cargo features.

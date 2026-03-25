@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust artifact-spine map to analysis doc
+### Context
+After documenting the executable surface and the build/env/cfg surface, the live Rust analysis doc still described the codebase more by subsystem than by artifact handoff. That left one practical debugging question underexplained: where in the pipeline did this artifact actually come from?
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added an `End-To-End Artifact Spine` section,
+  - added an operational reading rule for diagnosing issues by artifact family.
+- The new section now walks the main artifact handoffs across:
+  - grammar/source input
+  - frontend/ingestion
+  - normalization/transformation
+  - generation
+  - runtime/consumer
+  - proof/release
+- It explicitly distinguishes:
+  - generation-input AST artifacts
+  - parser-runtime output artifacts
+  - proof-sidecar artifacts
+
+### Why This Matters
+- Future sessions should be able to localize failures by stage more quickly instead of treating every issue as a generic “parser bug.”
+- That is especially useful in this repo because Rust engines and shell proof plumbing are tightly connected but not the same artifact layer.
+
 ## 2026-03-25 - Add generated-parser env and cfg map to analysis doc
 ### Context
 After adding the feature/build matrix to `RUST_CODEBASE_ANALYSIS.md`, one build-shape ambiguity still remained easy to forget: which `PGEN_*_PARSER_PATH` variables feed which generated parser modules and `has_generated_*` cfgs, and where the important exceptions are.

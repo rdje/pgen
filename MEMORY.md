@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-generated-parser-env-cfg-map-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-artifact-spine-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -31,6 +31,19 @@ Use this file to resume work without replaying full chat history.
 - The most important exceptions now recorded there are:
   - `return_annotation` / `semantic_annotation` use tracked generated sources under `generated_parsers`
   - `ebnf` uses build-script-resolved include paths for dual-run mode but does not have a `has_generated_ebnf_parser` cfg
+- The live Rust analysis doc now also includes an `End-To-End Artifact Spine` section:
+  - grammar/source input
+  - frontend/ingestion
+  - normalization/transformation
+  - generation
+  - runtime/consumer
+  - proof/release
+- That section is meant to make future debugging more stage-aware:
+  - identify whether the wrong artifact is a frontend/raw-AST issue,
+  - a normalized generation-input AST issue,
+  - a generated parser/runtime issue,
+  - a stimuli/coverage telemetry issue,
+  - or a proof-sidecar aggregation issue.
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

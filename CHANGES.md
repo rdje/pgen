@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust artifact-spine map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact end-to-end artifact flow map from grammar input through runtime parser consumers and up into proof sidecars.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes an `End-To-End Artifact Spine` section covering:
+  - grammar/source input
+  - frontend/ingestion
+  - normalization/transformation
+  - generation
+  - runtime/consumer
+  - proof/release
+- It also now records an operational reading rule for debugging by artifact family rather than by the surface where the bug first appears.
+
+### Why This Matters
+- Future sessions can now ask “which artifact stage is wrong?” before diving into code.
+- That should make debugging across the Rust pipeline and shell proof layer more targeted and less guess-heavy.
+
 ## 2026-03-25 - Add generated-parser env and cfg map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact map of the generated-parser path environment variables and the `has_generated_*` cfgs they drive.
