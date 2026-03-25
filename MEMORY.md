@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-trap-list-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-source-of-truth-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -78,6 +78,10 @@ Use this file to resume work without replaying full chat history.
   - compile success is often weaker than validating the next real consumer
   - shell proof gates are part of the effective product contract, not just wrappers
   - `summary.txt` / `summary.json` parity and grammar-family asymmetries are easy to underestimate
+- The live Rust analysis doc now also includes a `Canonical Source-Of-Truth Map` section:
+  - a compact map of which file/layer is authoritative for Cargo/features, build-script path resolution, library exposure, parser dispatch, embedder behavior, orchestration, stimuli behavior, frontend behavior, and proof-sidecar schema.
+- The operating rule now captured there is:
+  - when two layers disagree, fix the upstream source of truth first, then bring downstream consumers back into parity.
 - `README.md` now links that file in the ramp-up/doc-map path so future sessions can discover it through the normal project entrypoint.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,

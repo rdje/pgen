@@ -293,6 +293,42 @@ Operational reading rule:
 - SOTA / `sota_exit_gate`
   - The top aggregate proof layer that rolls family-level evidence into the project’s highest-level executable status surface.
 
+## Canonical Source-Of-Truth Map
+- Cargo binary and feature surface
+  - Canonical source: `rust/Cargo.toml`
+  - Use this first when the question is “does this binary/feature even exist?”
+- Generated parser path resolution and `has_generated_*` cfg emission
+  - Canonical source: `rust/build.rs`
+  - Use this first when the question is “why is this generated parser path available or unavailable?”
+- Feature-gated parser module exposure inside the crate
+  - Canonical source: `rust/src/lib.rs`
+  - Use this first when the question is “which generated modules are actually compiled into the library?”
+- Grammar/profile parse dispatch and parser availability
+  - Canonical source: `rust/src/parser_registry.rs`
+  - Use this first when the question is “which parser surface does this grammar/profile name resolve to?”
+- Embedder-facing parse, dump, and result contract
+  - Canonical source: `rust/src/embedding_api.rs`
+  - Use this first when the question is “what is the supported host-facing Rust/API behavior?”
+- Main orchestration modes and generation/stimuli/preprocess CLI wiring
+  - Canonical source: `rust/src/main.rs`
+  - Use this first when the question is “what does the main Rust pipeline CLI do in this mode?”
+- Stimuli, coverage, gap, and target-drive behavior
+  - Canonical source: `rust/src/ast_pipeline/stimuli_generator.rs`
+  - Use this first when the question is “why did generation/coverage/targeting behave this way?”
+- EBNF frontend behavior
+  - Canonical source: `rust/src/ebnf_frontend.rs`
+  - Use this first when the question is “what raw AST did the Rust frontend mean to produce?”
+- Proof-sidecar schema and aggregate proof flow
+  - Canonical source: the emitting gate in `rust/scripts/*.sh`, with `summary.json` as the preferred structured contract surface
+  - Use this first when the question is “which proof fields are actually promised here?”
+- Current architecture/risk/steering snapshot
+  - Canonical source: `RUST_CODEBASE_ANALYSIS.md`
+  - Use this first when the question is “what is the current repo-level understanding of the Rust codebase?”
+
+Operational rule:
+- When two layers disagree, fix the upstream source of truth first, then bring downstream consumers back into parity.
+- In this repo, a lot of wasted time comes from patching adapters, sidecars, or aggregate readers before confirming which layer is actually authoritative.
+
 ## Main Rust Executables And Roles
 - `ast_pipeline` / `ast_pipeline_bootstrap`
   - Both are wired to `rust/src/main.rs` via Cargo features.

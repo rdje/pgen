@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust source-of-truth map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact source-of-truth map for the main Rust/build/proof concerns.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Canonical Source-Of-Truth Map` section covering the primary authoritative files for:
+  - Cargo bin/feature wiring
+  - generated parser path resolution and cfg emission
+  - library module exposure
+  - parser registry dispatch
+  - embedder-facing contract behavior
+  - main CLI orchestration
+  - stimuli/coverage behavior
+  - EBNF frontend behavior
+  - proof-sidecar schema and aggregate proof flow
+
+### Why This Matters
+- Future sessions now have a faster answer to “which file/layer is actually authoritative for this concern?”
+- That should reduce downstream-only fixes when the real issue lives in an upstream source-of-truth layer.
+
 ## 2026-03-25 - Add Rust trap list to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact list of recurring traps and false assumptions about the Rust/build/proof stack.

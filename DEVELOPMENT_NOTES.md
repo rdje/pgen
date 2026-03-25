@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust source-of-truth map to analysis doc
+### Context
+After documenting the operational vocabulary and the major traps, the live Rust analysis doc still lacked one practical steering aid: a direct map of which file or layer is actually authoritative for a given concern.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Canonical Source-Of-Truth Map` section after the operational vocabulary.
+- The new section now identifies the primary authoritative files for:
+  - Cargo bin/feature shape
+  - generated parser path resolution and cfg emission
+  - library exposure
+  - parser dispatch
+  - embedder-facing behavior
+  - main CLI orchestration
+  - stimuli/coverage behavior
+  - EBNF frontend behavior
+  - proof-sidecar schema and aggregate proof flow
+- It also records the repo-specific rule to fix the upstream authoritative layer before patching downstream consumers.
+
+### Why This Matters
+- Future sessions now have an explicit guide for deciding where a fix should start.
+- That should reduce the common pattern of editing adapters or aggregate layers before checking the real authoritative source.
+
 ## 2026-03-25 - Add Rust trap list to analysis doc
 ### Context
 After documenting the artifact spine, operational vocabulary, build model, and validation ladder, one practical gap remained: the live Rust analysis doc still did not explicitly call out the false assumptions that repeatedly cause wrong-turn debugging in this repo.
