@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-25 - Add Rust coupled-module map to analysis doc
+### Context
+The live Rust analysis doc already had task-start guidance, high-risk zones, change-impact checks, and symptom triage. The remaining navigation gap was cross-file coupling: which modules usually need to be reasoned about together even when only one looks primary at first glance?
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Modules That Tend To Change Together` section near the high-risk/change-impact area.
+- The new section now maps the main coupled clusters:
+  - grammar normalization
+  - generated-parser availability
+  - semantic annotation
+  - EBNF/bootstrap ingestion
+  - proof / consumer
+
+### Why This Matters
+- Future sessions now have a compact “usual companion files” map before making validation decisions.
+- That should make it easier to catch coupled-layer regressions earlier.
+
 ## 2026-03-25 - Add Rust bootstrap-generated boundary map to analysis doc
 ### Context
 After documenting build shape, source-of-truth layers, traps, and intervention order, one seam still remained easy to misread: the repo’s bootstrap-vs-generated boundary. It was documented indirectly, but not as one explicit map.

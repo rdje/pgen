@@ -601,6 +601,58 @@ Reason:
 - `rust/scripts/sota_exit_gate.sh` and sibling family aggregate/status gates
   - not Rust code, but they are part of the effective Rust-owned product contract.
 
+## Modules That Tend To Change Together
+- Grammar normalization cluster
+  - Typical files:
+    - `rust/src/ast_pipeline/mod.rs`
+    - `rust/src/ast_pipeline/grouped_quantifier_parser.rs`
+    - `rust/src/ast_pipeline/mutual_recursion_handler.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+  - Why they move together:
+    - normalized rule shape leaks into parser generation, typed-annotation handling, and closure/stimuli behavior faster than the file boundaries suggest
+- Generated-parser availability cluster
+  - Typical files:
+    - `rust/Cargo.toml`
+    - `rust/build.rs`
+    - `rust/src/parser_registry.rs`
+    - `rust/src/embedding_api.rs`
+    - `rust/src/bin/parseability_probe.rs`
+  - Why they move together:
+    - build-time parser discovery and runtime parser exposure are separate layers, so “parser unavailable” bugs often span both
+- Semantic annotation cluster
+  - Typical files:
+    - `rust/src/ast_pipeline/unified_return_ast.rs`
+    - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/semantic_directive_registry.rs`
+    - `rust/src/ast_pipeline/semantic_runtime.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+  - Why they move together:
+    - annotation parse shape, validation policy, emitted parser hooks, and runtime execution semantics are distributed rather than owned by one module
+- EBNF/bootstrap ingestion cluster
+  - Typical files:
+    - `rust/src/ebnf_frontend.rs`
+    - `rust/src/main.rs`
+    - `rust/Makefile`
+    - `rust/src/bin/ebnf_dual_run_diff.rs`
+    - relevant `rust/scripts/ebnf_*` gates
+  - Why they move together:
+    - changes at the EBNF/raw-ingestion edge often propagate into bootstrap generation, dual-run proofs, and build orchestration
+- Proof/consumer cluster
+  - Typical files:
+    - `rust/src/parser_registry.rs`
+    - `rust/src/embedding_api.rs`
+    - `rust/src/bin/parseability_probe.rs`
+    - relevant `rust/scripts/*.sh` gates
+  - Why they move together:
+    - externally visible truth in this repo is shared between Rust artifact producers and shell-side proof consumers
+
+Operational rule:
+- If one file in a cluster changes, scan the rest of that cluster before deciding your validation scope.
+- If a task touches more than one cluster, validate at the first downstream artifact where those clusters converge rather than validating each layer in isolation.
+
 ## Change-Impact Checklist
 Use this as a first-pass companion-check map, not as a complete proof checklist.
 

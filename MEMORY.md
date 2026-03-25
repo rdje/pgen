@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-25 (+0100, task: add-rust-bootstrap-generated-boundary-map-to-analysis-doc)
+Last updated: 2026-03-25 (+0100, task: add-rust-coupled-module-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,14 @@ Use this file to resume work without replaying full chat history.
 ## Current Session Note
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- The live Rust analysis doc now also includes a `Modules That Tend To Change Together` section:
+  - a compact map of the main cross-file clusters that usually need companion checks.
+- That new section covers:
+  - grammar normalization
+  - generated-parser availability
+  - semantic annotation
+  - EBNF/bootstrap ingestion
+  - proof / consumer
 - The live Rust analysis doc now also includes a compact executable-role map:
   - a `Main Rust Executables And Roles` section,
   - and a task-navigation entry for “which Rust executable owns this workflow?”

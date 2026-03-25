@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-25 - Add Rust coupled-module map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact map of the Rust module clusters that usually need to be reasoned about together.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Modules That Tend To Change Together` section covering:
+  - grammar normalization cluster
+  - generated-parser availability cluster
+  - semantic annotation cluster
+  - EBNF/bootstrap ingestion cluster
+  - proof / consumer cluster
+
+### Why This Matters
+- Future sessions now have a simpler way to spot the modules most likely to require companion checks after a local change.
+- That should reduce the chance of “fixed one seam, forgot its coupled partner” regressions.
+
 ## 2026-03-25 - Add Rust bootstrap-generated boundary map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact boundary map for the repo’s bootstrap-vs-generated execution surfaces.
