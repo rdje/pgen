@@ -791,6 +791,47 @@ Reason:
 - `rust/scripts/sota_exit_gate.sh` and sibling family aggregate/status gates
   - not Rust code, but they are part of the effective Rust-owned product contract.
 
+## Review Hotspots And Common Regression Types
+- `rust/src/ast_pipeline/mod.rs`
+  - First review for:
+    - normalized rule-shape drift
+    - left-recursion or grouping rewrites that silently change generator/stimuli inputs
+    - raw-AST vs generation-input-AST confusion
+- `rust/src/ast_pipeline/ast_based_generator.rs`
+  - First review for:
+    - emitted parser behavior drift
+    - semantic-runtime hook drift
+    - telemetry/counterexample/recovery output regressions
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+  - First review for:
+    - reachable/unreachable accounting drift
+    - target-drive or closure-priority drift
+    - parseability/coverage report shape changes
+- `rust/src/main.rs`
+  - First review for:
+    - mode-selection drift
+    - output-path / artifact-emission drift
+    - wiring mismatches between CLI behavior and downstream consumer expectations
+- `rust/build.rs`
+  - First review for:
+    - generated-parser path discovery regressions
+    - missing or incorrect `has_generated_*` cfg emission
+    - “binary exists, runtime path unavailable” failure shapes
+- `rust/src/parser_registry.rs` and `rust/src/embedding_api.rs`
+  - First review for:
+    - parser availability/dispatch disagreements
+    - embedder-facing compatibility drift
+    - fixes that patch consumers instead of the upstream availability/source-of-truth layer
+- `rust/scripts/*.sh` on the shipped proof spine
+  - First review for:
+    - `summary.txt` / `summary.json` parity drift
+    - field/path/schema renames that higher readers were not updated for
+    - aggregate layers preserving consumed provenance instead of dropping it
+
+Operational rule:
+- In this repo, “high risk” often means “easy to preserve compile success while breaking a contract.”
+- Review the contract outputs and next consumers, not only the local code diff.
+
 ## Modules That Tend To Change Together
 - Grammar normalization cluster
   - Typical files:

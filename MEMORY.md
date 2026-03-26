@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: add-rust-open-architecture-questions-to-analysis-doc)
+Last updated: 2026-03-26 (+0100, task: add-rust-review-hotspot-guide-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,16 @@ Use this file to resume work without replaying full chat history.
 ## Current Session Note
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- The live Rust analysis doc now also includes a `Review Hotspots And Common Regression Types` section:
+  - a compact guide to the first regression classes to inspect in the main high-blast-radius Rust and proof files.
+- That new section covers:
+  - `mod.rs`
+  - `ast_based_generator.rs`
+  - `stimuli_generator.rs`
+  - `main.rs`
+  - `build.rs`
+  - `parser_registry.rs` / `embedding_api.rs`
+  - shipped proof-spine shell gates
 - The live Rust analysis doc now also includes an `Open Architecture Questions` section:
   - a compact list of the high-level design points that are still unresolved rather than settled.
 - That new section covers:

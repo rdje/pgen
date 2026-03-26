@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-26 - Add Rust review-hotspot guide to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact review-hotspot guide so future sessions can see the first regression types to look for in the highest-blast-radius Rust and proof files.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Review Hotspots And Common Regression Types` section covering:
+  - `mod.rs`
+  - `ast_based_generator.rs`
+  - `stimuli_generator.rs`
+  - `main.rs`
+  - `build.rs`
+  - `parser_registry.rs` / `embedding_api.rs`
+  - shipped proof-spine shell gates
+
+### Why This Matters
+- Future sessions now have a faster bridge from “this area is risky” to “these are the first failures to hunt for.”
+- That should make reviews sharper and reduce contract regressions that still compile.
+
 ## 2026-03-26 - Add Rust open-architecture questions to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact `Open Architecture Questions` section so future sessions can distinguish unresolved design choices from settled doctrine.

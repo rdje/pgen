@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Add Rust review-hotspot guide to analysis doc
+### Context
+The live Rust analysis doc already named high-risk files and change-coupling clusters, but it still did not say what kinds of regressions should be reviewed for first in those hotspots. That made the document stronger for navigation than for actual review work.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Review Hotspots And Common Regression Types` section near the high-risk/change-coupling area.
+- The new section now records first-review targets for:
+  - `mod.rs`
+  - `ast_based_generator.rs`
+  - `stimuli_generator.rs`
+  - `main.rs`
+  - `build.rs`
+  - `parser_registry.rs` / `embedding_api.rs`
+  - shipped proof-spine shell gates
+
+### Why This Matters
+- Future sessions now have a compact review aid, not just a hotspot list.
+- That should make regression hunting faster and more contract-aware.
+
 ## 2026-03-26 - Add Rust open-architecture questions to analysis doc
 ### Context
 The live Rust analysis doc had become strong on current structure, risks, invariants, and recommended refactors, but it still did not say in one place which architecture decisions remain genuinely open. That made it too easy to read current tradeoffs as if they were already settled doctrine.
