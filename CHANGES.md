@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-27 - Surface annotation proof spine in entry docs
+### ✅ Achievement Summary
+PGEN's repo-entry docs now expose the aggregate annotation proof spine more clearly, and local CI now protects those high-level references against drift.
+
+### Scope of Changes
+- Updated:
+  - [README.md](/Users/richarddje/Documents/github/pgen/README.md)
+  - [QUICKSTART_AI_ONBOARDING.md](/Users/richarddje/Documents/github/pgen/QUICKSTART_AI_ONBOARDING.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The high-level doc surface now explicitly points readers to:
+  - `annotation_contract_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+  - `annotation_stimuli_quality_gate`
+- The local-CI aggregate annotation audit now also asserts those README/quickstart/Rust-analysis references.
+
+### Why This Matters
+- Future sessions can find the aggregate annotation proof spine from the top of the repo instead of only from deep operator docs.
+- CI now protects the repo-entry documentation layer for that proof spine, not just the lower-level guide/spec map.
+
 ## 2026-03-27 - Surface aggregate annotation gate map in docs
 ### ✅ Achievement Summary
 PGEN's operator-facing annotation docs now surface the full aggregate annotation/semantic/return gate map, and local CI now protects that documentation layer against drift.

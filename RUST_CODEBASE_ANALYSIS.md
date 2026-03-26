@@ -696,6 +696,35 @@ Operational rule:
     - grammar-quality gates that depend on frontend parity or generated-parser freshness
   - Typical failure mode:
     - an ingestion/frontend change first appears as an `ebnf` gate drift or a generated-parser proof mismatch rather than a direct Rust test failure
+- Aggregate annotation proof seam
+  - Main Rust / Makefile producers:
+    - `rust/Makefile`
+    - `rust/src/ast_pipeline/annotation_validator.rs`
+    - `rust/src/ast_pipeline/unified_return_ast.rs`
+    - `rust/src/ast_pipeline/unified_semantic_ast.rs`
+  - Main shell-side / doc-side consumers:
+    - `rust/scripts/ci_workflow_local_gate.sh`
+    - `README.md`
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - Aggregate proof spine:
+    - `annotation_contract_gate`
+      - validator + built-in bootstrap suites
+      - shared bootstrap/generated annotation suites
+      - SC leaf contract gates
+      - `semantic_full_contract_gate`
+      - `return_full_contract_gate`
+      - `annotation_robustness_gate`
+      - `annotation_stimuli_quality_gate`
+    - `semantic_full_contract_gate`
+      - `semantic_runtime_contract_gate`
+      - `semantic_ast_roundtrip_gate`
+      - `semantic_differential_regression_gate`
+    - `return_annotation_support_gate`
+      - sits above `return_full_contract_gate`
+      - also requires the dedicated exhaustiveness proof
+  - Typical failure mode:
+    - the leaf tests still pass, but the operator-facing proof map or aggregate gate composition drifts and CI/humans stop running the intended top-level evidence path
 
 Operational rule:
 - When a Rust change affects artifact names, paths, schemas, or count semantics, inspect the nearest shell consumer above that artifact before assuming the bug is isolated to Rust.

@@ -377,6 +377,36 @@ audit_annotation_aggregate_contract_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '`return_full_contract_gate` (local gate target)'
+
+  assert_file_contains \
+    "README.md" \
+    '`make -C rust SHELL=/bin/bash annotation_contract_gate`'
+  assert_file_contains \
+    "README.md" \
+    '`make -C rust SHELL=/bin/bash semantic_full_contract_gate`'
+  assert_file_contains \
+    "README.md" \
+    '`make -C rust SHELL=/bin/bash return_annotation_support_gate`'
+
+  assert_file_contains \
+    "QUICKSTART_AI_ONBOARDING.md" \
+    '`annotation_contract_gate`, `semantic_full_contract_gate`,'
+  assert_file_contains \
+    "QUICKSTART_AI_ONBOARDING.md" \
+    '`return_annotation_support_gate`, and `annotation_stimuli_quality_gate`.'
+
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '## Rust-To-Shell Contract Seams'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '- Aggregate annotation proof seam'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '- `annotation_contract_gate`'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '- `return_annotation_support_gate`'
 }
 
 audit_annotation_semantic_contract_surface() {

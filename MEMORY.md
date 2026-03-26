@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: surface-aggregate-annotation-gate-map-in-docs)
+Last updated: 2026-03-27 (+0100, task: surface-annotation-proof-spine-in-entry-docs)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,19 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo-entry docs now surface the aggregate annotation proof spine more explicitly.
+- `README.md` now points readers directly to:
+  - `annotation_contract_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+- `QUICKSTART_AI_ONBOARDING.md` now redirects annotation-heavy work toward:
+  - `annotation_contract_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+  - `annotation_stimuli_quality_gate`
+- `RUST_CODEBASE_ANALYSIS.md` now includes an `Aggregate annotation proof seam` entry under `Rust-To-Shell Contract Seams`.
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts those README/quickstart/Rust-analysis references.
+- The repo-entry annotation proof map is now both documented and local-policy-guarded.
 - The repo now surfaces the aggregate annotation/semantic/return gate map more explicitly in the operator-facing docs.
 - `PGEN_USER_GUIDE.md` now includes explicit local-target entries for:
   - `annotation_shared_contract_gate`

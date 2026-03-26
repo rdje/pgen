@@ -40,7 +40,9 @@ PGEN is a production-focused parser and stimuli generator platform.
 - All other grammars use the non-bootstrap path.
 - `grammars/return_annotation.ebnf` with `generated/return_annotation_parser.rs` defines the supported AST-shaping language for parser return values.
 - `grammars/semantic_annotation.ebnf` with `generated/semantic_annotation_parser.rs` defines the supported steering language for parser-generation behavior.
+- `make -C rust SHELL=/bin/bash annotation_contract_gate` is the aggregate annotation contract spine for validator coverage, built-in/shared annotation suites, SC semantic contract slices, aggregate semantic/return contract gates, and annotation robustness/stimuli verification.
 - `make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate` is the required closed-loop proof surface for annotation stimuli quality, including the return-annotation generator/parser loop.
+- `make -C rust SHELL=/bin/bash semantic_full_contract_gate` is the focused aggregate proof surface for semantic annotation runtime, round-trip, and comparable differential-regression evidence.
 - `make -C rust SHELL=/bin/bash return_annotation_support_gate` is the focused aggregate proof surface for return-annotation closure in the Rust AST pipeline; it now includes the auto-derived `return_annotation_exhaustiveness_gate` (grammar-driven coverage closure, stimuli-module parity, and generated-parse-tree to typed-AST audit) and is the formal `Done` gate for the currently tracked return-annotation claim.
 - In general, PGEN supports two stimuli-delivery modes for a grammar:
   - default in-memory generation via `--generate-stimuli`,

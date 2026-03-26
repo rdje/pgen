@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Surface annotation proof spine in entry docs
+### Context
+The detailed operator docs now described the aggregate annotation contract spine well, but the repo-entry docs still under-surfaced it. That meant a new session could land in `README.md`, `QUICKSTART_AI_ONBOARDING.md`, or `RUST_CODEBASE_ANALYSIS.md` and still miss the top-level annotation proof surfaces that actually steer Rust annotation closure work.
+
+### Implementation
+- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+  - added explicit canonical-flow bullets for:
+    - `annotation_contract_gate`
+    - `semantic_full_contract_gate`
+    - `return_annotation_support_gate`
+- Updated [QUICKSTART_AI_ONBOARDING.md](/Users/richarddje/Documents/github/pgen/QUICKSTART_AI_ONBOARDING.md):
+  - extended the historical-note redirect so annotation-heavy work points readers to the aggregate annotation proof surfaces directly
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added an `Aggregate annotation proof seam` entry under `Rust-To-Shell Contract Seams`
+  - mapped the current aggregate annotation gate composition and its common failure mode
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts the new README/quickstart/Rust-analysis references
+- Updated the continuity docs to record that the repo-entry annotation proof map is now documented and policy-guarded.
+
+### Why This Matters
+- The aggregate annotation proof spine is now visible from the top of the repo, not just from the deepest operator docs.
+- Local CI now protects the entry-doc navigation layer for annotation closure work.
+
 ## 2026-03-27 - Surface aggregate annotation gate map in docs
 ### Context
 After locking the aggregate annotation contract composition in local CI, the operator-facing docs still under-described that same gate layer. The Makefile exposed reusable aggregate entrypoints like `annotation_shared_contract_gate`, `semantic_full_contract_gate`, and `return_annotation_support_gate`, but the user-facing map only surfaced part of that contract spine.

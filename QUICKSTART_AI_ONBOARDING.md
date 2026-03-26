@@ -5,6 +5,9 @@
 > Current commands, gates, and contracts live in `README.md`, `PGEN_USER_GUIDE.md`,
 > `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `RUST_CODEBASE_ANALYSIS.md`, and
 > `rust/docs/EMBEDDING_API_CONTRACT.md`.
+> For annotation-heavy work, start from the aggregate proof surfaces in `README.md`
+> / `PGEN_USER_GUIDE.md`: `annotation_contract_gate`, `semantic_full_contract_gate`,
+> `return_annotation_support_gate`, and `annotation_stimuli_quality_gate`.
 
 ## 🚀 **Quick Start - Validate Parser Correctness**
 
