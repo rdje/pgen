@@ -187,6 +187,150 @@ audit_ebnf_frontend_conversion_surface() {
     '"$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"'
 }
 
+audit_annotation_aggregate_contract_surface() {
+  note "auditing aggregate annotation contract gate surface"
+
+  assert_tracked "rust/scripts/annotation_robustness_gate.sh"
+  assert_tracked "rust/scripts/annotation_stimuli_quality_gate.sh"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'annotation_contract_gate - Enforce normative bootstrap annotation contracts + validator diagnostics'
+  assert_file_contains \
+    "rust/Makefile" \
+    'annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts'
+  assert_file_contains \
+    "rust/Makefile" \
+    'semantic_runtime_contract_gate - Enforce semantic runtime/typed-AST contract checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    'semantic_ast_roundtrip_gate - Enforce semantic AST round-trip contract checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    'semantic_full_contract_gate - Enforce aggregate semantic contract gate (runtime + round-trip + regression)'
+  assert_file_contains \
+    "rust/Makefile" \
+    'return_runtime_semantics_gate - Enforce typed return AST/runtime transform contract checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    'return_ast_roundtrip_gate - Enforce canonical return AST round-trip contract checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    'return_parity_gate - Enforce zero return mismatches on comparable (expectation-aligned) differential corpus'
+  assert_file_contains \
+    "rust/Makefile" \
+    'return_full_contract_gate - Enforce aggregate return contract gate (runtime + round-trip + parity)'
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo test --lib annotation_validator'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) return_full_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) semantic_full_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate'
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_normative_shared_contract'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser return --suite return_annotation_normative_shared_contract'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_normative_shared_contract'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo run --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_normative_shared_contract'
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo test --lib semantic_validator_'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo test --features generated_parsers --lib generated_semantic_tree_to_ast_'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) semantic_usage_gate'
+
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) semantic_runtime_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) semantic_ast_roundtrip_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) semantic_differential_regression_gate'
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo test --lib unified_return_ast'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo test --features generated_parsers --lib generated_return_tree_to_typed_ast_'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo test --lib return_validator'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && cargo test --lib test_round_trip_runner'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) return_runtime_semantics_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) return_ast_roundtrip_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) return_parity_gate'
+
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust annotation_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust annotation_shared_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust annotation_stimuli_quality_gate`'
+
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`annotation_contract_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`annotation_robustness_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`annotation_stimuli_quality_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`return_runtime_semantics_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`return_parity_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`return_full_contract_gate` (local gate target)'
+}
+
 audit_annotation_semantic_contract_surface() {
   note "auditing annotation semantic contract surface"
 
@@ -1013,6 +1157,7 @@ main() {
   audit_static_include_paths
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
+  audit_annotation_aggregate_contract_surface
   audit_annotation_semantic_contract_surface
   audit_sota_json_consumption_surface
   audit_sota_nested_family_emission_surface

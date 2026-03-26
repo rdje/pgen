@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Lock aggregate annotation contract gate policy
+### Context
+The repo had already hardened the individual SC semantic contract gates in local CI, but the higher-level annotation contract targets were still protected only indirectly. That left room for future edits to keep the leaf gates intact while quietly dropping an aggregate stage from `annotation_contract_gate`, `semantic_full_contract_gate`, or `return_full_contract_gate`.
+
+### Implementation
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a dedicated aggregate annotation contract audit that now asserts:
+    - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile) still exposes the aggregate annotation / semantic / return contract targets in its help surface
+    - `annotation_contract_gate` still runs validator checks, built-in return/semantic suites, shared-contract checks, return/semantic aggregate gates, and the annotation robustness/stimuli gates
+    - `annotation_shared_contract_gate` still runs both return and semantic shared suites in bootstrap and generated modes
+    - `semantic_runtime_contract_gate` and `semantic_full_contract_gate` still preserve the runtime + round-trip + regression composition
+    - `return_runtime_semantics_gate` and `return_full_contract_gate` still preserve the runtime + round-trip + parity composition
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md) still expose the main aggregate annotation gate entrypoints
+- Updated the continuity docs to record that the aggregate annotation contract layer now has its own local policy guard.
+
+### Why This Matters
+- This closes the most obvious gap above the SC leaf gates.
+- CI now protects not only the existence of the specialized contract slices, but also the top-level contract targets that real operators and workflows rely on.
+
 ## 2026-03-27 - Lock SC-11 and SC-12 annotation contract policy
 ### Context
 The local annotation semantic contract audit had already been extended through SC-10 and SC-13, but SC-11 and SC-12 were still outside that same policy layer. That left their Makefile wiring, suite ids, report paths, and pass/pass parity expectations guarded only indirectly.

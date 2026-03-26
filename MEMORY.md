@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: lock-sc11-sc12-annotation-contract-policy)
+Last updated: 2026-03-27 (+0100, task: lock-aggregate-annotation-contract-gate-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo now extends the local CI audit to the aggregate annotation contract gate layer as well.
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
+  - `annotation_contract_gate` still keeps the validator + built-in/shared + return/semantic aggregate + robustness/stimuli composition
+  - `annotation_shared_contract_gate` still runs both return and semantic shared suites in bootstrap and generated modes
+  - `semantic_runtime_contract_gate` and `semantic_full_contract_gate` still preserve the runtime + round-trip + regression composition
+  - `return_runtime_semantics_gate` and `return_full_contract_gate` still preserve the runtime + round-trip + parity composition
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` and `PGEN_USER_GUIDE.md` still expose the main aggregate annotation gate entrypoints
+- The aggregate annotation contract spine now has its own local policy guard above the already-hardened SC leaf gates.
 - The repo now extends the local annotation semantic contract audit to SC-11 and SC-12 as well.
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
   - `rust/Makefile` still advertises and invokes `sc11_contract_gate` and `sc12_contract_gate`

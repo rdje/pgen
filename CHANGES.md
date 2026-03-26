@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-03-27 - Lock aggregate annotation contract gate policy
+### ✅ Achievement Summary
+PGEN's local CI workflow gate now protects the aggregate annotation contract orchestration layer, so the top-level annotation, semantic, and return contract targets keep their intended composition instead of drifting silently.
+
+### Scope of Changes
+- Updated:
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The local-CI audit now also asserts that:
+  - `annotation_contract_gate` still keeps the validator + built-in/shared + return/semantic aggregate + robustness/stimuli composition
+  - `annotation_shared_contract_gate` still runs both return and semantic shared suites in bootstrap and generated modes
+  - `semantic_runtime_contract_gate` and `semantic_full_contract_gate` still preserve the current runtime/round-trip/regression composition
+  - `return_runtime_semantics_gate` and `return_full_contract_gate` still preserve the current runtime/round-trip/parity composition
+  - the normative spec and user guide still expose the main aggregate annotation gate entrypoints
+
+### Why This Matters
+- The repo now guards the annotation contract spine at both layers:
+  - the SC leaf contract gates
+  - the aggregate top-level contract targets that operators and CI actually run
+- That reduces the chance of quietly dropping a major contract stage while leaving the leaf gates themselves intact.
+
 ## 2026-03-27 - Lock SC-11 and SC-12 annotation contract policy
 ### ✅ Achievement Summary
 PGEN's local CI workflow gate now protects SC-11 and SC-12 inside the shared annotation semantic contract audit, extending the policy guard surface to the negative-case and deterministic-partition seams.
