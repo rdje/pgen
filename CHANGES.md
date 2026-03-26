@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-26 - Lock SC-13 annotation contract policy
+### ✅ Achievement Summary
+PGEN's local CI workflow gate now protects SC-13 in the same annotation semantic contract policy surface as SC-01 and SC-02.
+
+### Scope of Changes
+- Updated:
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The local-CI audit now also asserts that:
+  - `rust/Makefile` still advertises and invokes `sc13_contract_gate`
+  - the normative spec still references `make -C rust sc13_contract_gate`
+  - the steering matrix still references `semantic_annotation_sc13_contract`
+  - `sc13_contract_gate.sh` still targets the SC-13 suite and report path
+  - `sc13_contract_gate.sh` still requires `total_cases > 0`
+  - `sc13_contract.json` still records pass/pass generated parity
+
+### Why This Matters
+- SC-13 is now guarded by the same local policy layer as the newer SC-01/SC-02 annotation seams.
+- That reduces the chance of future drift between SC-13’s gate script, suite file, Makefile wiring, and docs.
+
 ## 2026-03-26 - Lock SC-01 and SC-02 gate-boundary policy
 ### ✅ Achievement Summary
 PGEN's local CI workflow gate now protects the gate-script-level contract difference between SC-01 and SC-02, not just their Makefile/docs wiring.

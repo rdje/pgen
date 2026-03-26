@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Lock SC-13 annotation contract policy
+### Context
+The annotation semantic contract audit in local CI had been extended for SC-01 and SC-02, but SC-13 still was not covered by that same policy layer. That left SC-13’s Makefile wiring, spec references, suite identity, report path, and parity expectation protected only indirectly.
+
+### Implementation
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the annotation semantic contract audit now also asserts:
+    - `rust/Makefile` still advertises and invokes `sc13_contract_gate`
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references `make -C rust sc13_contract_gate`
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc13_contract`
+    - [sc13_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc13_contract_gate.sh) still targets the SC-13 suite and report path
+    - [sc13_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc13_contract_gate.sh) still requires `total_cases > 0`
+    - [sc13_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc13_contract.json) still records pass/pass generated parity
+- Updated the continuity docs to record that SC-13 now shares the same local policy guard surface as SC-01 and SC-02.
+
+### Why This Matters
+- SC-13 is now protected by the same local annotation policy audit as the other recently hardened semantic seams.
+- That keeps its gate script, suite, docs, and parity expectations from drifting apart silently.
+
 ## 2026-03-26 - Lock SC-01 and SC-02 gate-boundary policy
 ### Context
 The previous SC-01/SC-02 local-CI audit protected the existence of the gates, suite names, and JSON expectation files, but it still did not assert the gate-script-level difference between them. That left the current differential-boundary policy implicit:
