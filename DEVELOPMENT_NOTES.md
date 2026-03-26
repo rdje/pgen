@@ -24746,3 +24746,10 @@ Architectural north star:
     - and inside `family_status_contract.systemverilog.proof_surfaces`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh` now consumes those contract-side semantic-scope paths from SOTA, parity-checks them against the local status-contract sidecar, and re-emits them in its own `family_status_contract.systemverilog.proof_surfaces`
   - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` now locks this exact seam on both the SOTA producer side and the SV combined-telemetry consumer/output side
+- 2026-03-26: Annotation-doc alignment audit:
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` had real implementation drift in both bootstrap sections.
+  - Fixed stale return-parser claims that still described the older pre-`trim_start()` arrow handling and permissive trailing-text/comma quirks.
+  - Fixed stale semantic-parser claims that still described bootstrap semantic parsing as `TransformExpr | Raw`; current bootstrap behavior is `TransformExpr | Structured | Raw`.
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` was also incomplete relative to the current typed registry/runtime surface; it now includes `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate`, plus notes the `@profiles` parser-side leverage asymmetry and legacy non-registry `@stimulus` alias.
+  - `grammars/builtin_semantic_annotation.ebnf` was refreshed as well, because the bootstrap compatibility grammar had the same stale transform-vs-raw-only assumption.
+  - Also refreshed the matching builtin semantic contract-case prose in `rust/test_data/semantic_annotation/builtin_contract.json` so the contract corpus description no longer calls trimmed simple payloads "raw" when the current bootstrap parser classifies them as `Structured`.

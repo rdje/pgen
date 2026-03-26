@@ -1,6 +1,6 @@
 # PGEN Annotation Normative Specification (Living)
 
-Last updated: 2026-03-14
+Last updated: 2026-03-26
 
 ## Purpose
 This document defines the normative contract for PGEN return and semantic annotations across bootstrap and generated pipelines.
@@ -107,19 +107,22 @@ PGEN annotation behavior is defined in three layers:
 ## Bootstrap Return Annotation Contract
 Normative input/output behavior for bootstrap return parsing:
 
-- Optional arrow stripping is only recognized when `->` starts at byte `0` of raw input.
-- Leading/trailing whitespace is trimmed only after optional arrow stripping.
+- Leading whitespace is normalized before optional arrow stripping (`trim_start()` first).
+- Optional arrow stripping is recognized when that leading-whitespace-normalized input starts with `->` or `-> `.
+- Leading/trailing whitespace is then trimmed after optional arrow stripping.
 - Empty payload after normalization maps to passthrough (`$1` on round-trip).
 - Positional refs (`$N`) are supported, including bootstrap acceptance of `$0`.
 - Extraction (`::first`, `::last`, `::N`) is supported, with `::0` rejected.
 - Spread suffix (`*`) is supported for positional/extraction forms.
 - Property/array access forms are supported.
 - Known permissive quirks are part of contract:
-  - trailing text after positional spread is ignored (`$1*trailing` -> `$1*`)
-  - trailing text after array access is ignored (`$1[0]trailing` -> `$1[0]`)
-  - extra commas in top-level arrays/objects are ignored
+  - leading whitespace before `->` does trigger arrow normalization
+  - property access remains permissive after `.` because bootstrap parser accepts any non-empty property tail
   - duplicate object keys keep the last value
-  - leading whitespace before `->` does not trigger arrow normalization
+- Known strictness quirks are also part of contract:
+  - trailing text after positional spread is rejected (`$1*trailing`)
+  - trailing text after array access is rejected (`$1[0]trailing`)
+  - leading/trailing/consecutive top-level commas in arrays/objects are rejected
 
 Source contract references:
 - `grammars/builtin_return_annotation.ebnf`
@@ -130,10 +133,16 @@ Normative input/output behavior for bootstrap semantic parsing:
 
 - Input is always outer-trimmed.
 - Parser never hard-fails in current behavior.
-- Classification to `TransformExpr` is marker-based only:
-  - contains `::parse::<`
-  - and contains `>().unwrap_or(`
-- Any other payload (including empty/nonsensical syntax) is accepted as `Raw`.
+- Classification order is:
+  - `TransformExpr` when payload contains both `::parse::<` and `>().unwrap_or(`.
+  - `Structured` when the bootstrap structured-value parser accepts the trimmed payload.
+  - `Raw` otherwise.
+- `TransformExpr` detection is marker-based only; it is not a structural expression parser.
+- Current bootstrap structured payload subset includes:
+  - scalar strings, numbers, booleans, null-like values, identifiers, and rule references
+  - arrays of structured values
+  - objects with identifier/string keys and structured values
+- Empty or nonsensical payloads remain accepted and fall back to `Raw`.
 
 Source contract references:
 - `grammars/builtin_semantic_annotation.ebnf`
@@ -146,7 +155,8 @@ Normative runtime leverage behavior for semantic annotations:
   - `TransformExpr` currently steers regex atom code generation for matching rule names.
   - Canonical parse transforms (`str::parse::<T>().unwrap_or(default)`) emit `TransformedTerminal` code paths.
   - Target type parsing is path-aware (for example `std::primitive::i64`).
-  - `Raw` semantic annotations do not alter regex atom parser generation behavior.
+  - `@profiles` is typed/validated and currently drives parser-side rule/profile guards in generated parsers.
+  - `Structured` and `Raw` semantic annotations do not alter regex atom parser generation behavior unless a typed directive path consumes them.
 - Stimuli generation (`rust/src/ast_pipeline/stimuli_generator.rs`):
   - Regex sample generation checks semantic hints before regex-HIR sampling.
   - Current hint mapping is canonical-transform-driven and contract-enforced:
@@ -158,6 +168,13 @@ Normative runtime leverage behavior for semantic annotations:
 - Shared canonical-transform parser utility:
   - `rust/src/ast_pipeline/semantic_transform.rs`
   - Used by validator, parser codegen, and stimuli hinting paths.
+- Semantic runtime scaffold (`rust/src/ast_pipeline/semantic_runtime.rs`):
+  - `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate` are typed/validated semantic directives with active generated-parser runtime behavior.
+  - Their payloads currently rely on `UnifiedSemanticAST::Structured` values (object/array/scalar forms as appropriate) rather than raw-string-only handling.
+  - Generated parsers compile these directives into semantic runtime flow for:
+    - scope open/close effects
+    - fact emission
+    - pre/post/branch predicate gating
 - Additional semantic steering contract (Phase K):
   - SC-03 typed directive routing + strictness policy contract:
     - directive names are resolved through typed registry entries (`semantic_directive_spec(...)`),
@@ -165,6 +182,7 @@ Normative runtime leverage behavior for semantic annotations:
     - strict warning promotion is selector-controlled (`PGEN_STRICT_SEMANTIC_WARNING_CODES`),
     - transform steering is name-aware (`transform` only),
     - raw literal hint steering is restricted to literalish directives (`sample|literal|example|stimulus`) in named mode.
+    - `stimulus` remains a legacy named-routing alias in stimuli generation; it is not a registry-listed typed directive in `semantic_directive_registry.rs`.
     - Tier-4 gate contract:
       - dedicated shared semantic contract slice:
         - `rust/test_data/semantic_annotation/sc03_contract.json`

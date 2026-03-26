@@ -6807,3 +6807,11 @@ Use this file to resume work without replaying full chat history.
     - `.families[] | select(.family=="systemverilog") | .proof_surfaces.semantic_scope_contract_summary_json`
   - preserved output field:
     - `semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json`
+- 2026-03-26: The live annotation docs needed a code-alignment correction pass.
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` now matches current bootstrap return/semantic parser behavior.
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` now matches the current typed semantic directive surface and records the important implementation nuances:
+    - runtime directives `emit_fact/open_scope/close_scope/predicate` are real generated-parser runtime features even though the registry still buckets them as `ParsedAndValidated`,
+    - `profiles` is registry-classified as parser+stimuli steering but its clearly surfaced leverage is parser-side today,
+    - `stimulus` remains a legacy stimuli-routing alias and is not registry-listed.
+  - `grammars/builtin_semantic_annotation.ebnf` was updated in the same pass so the bootstrap executable compatibility grammar stays aligned with `unified_semantic_ast.rs`.
+  - Also refreshed the first builtin semantic contract-case description so the checked-in bootstrap contract corpus prose matches the current `Structured` classification for simple trimmed payloads.

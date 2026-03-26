@@ -14,11 +14,11 @@
 
 # Parser trims outer whitespace first:
 #   trimmed = input.trim()
-# Then classifies trimmed text into TransformExpr or Raw.
+# Then classifies trimmed text into TransformExpr, Structured, or Raw.
 builtin_semantic_annotation := ws* semantic_payload ws*
 -> $2
 
-semantic_payload := transform_candidate | raw_payload
+semantic_payload := transform_candidate | structured_payload | raw_payload
 
 # ============================================================================
 # TRANSFORM CANDIDATE CLASSIFICATION
@@ -37,12 +37,65 @@ text_with_parse_marker_and_unwrap_marker :=
   | any_text ">().unwrap_or(" any_text "::parse::<" any_text
 
 # ============================================================================
+# STRUCTURED PAYLOADS
+# ============================================================================
+
+# Any trimmed payload not classified as transform_candidate is parsed through
+# the bootstrap structured-value parser before falling back to Raw.
+#
+# Supported structured forms in current implementation:
+# - strings (single or double quoted, with simple backslash escapes)
+# - numbers
+# - booleans / null-like identifiers
+# - identifier-like scalars (including dotted identifiers)
+# - rule references ($1, $name)
+# - arrays and objects of structured values
+structured_payload :=
+    structured_scalar
+  | structured_array
+  | structured_object
+
+structured_scalar :=
+    string_literal
+  | number_literal
+  | boolean_literal
+  | null_literal
+  | rule_reference
+  | identifier_literal
+
+structured_array := "[" ws* (structured_payload (ws* "," ws* structured_payload)*)? ws* "]"
+structured_object := "{" ws* (structured_property (ws* "," ws* structured_property)*)? ws* "}"
+structured_property := object_key ws* ":" ws* structured_payload
+object_key := string_literal | identifier_literal
+
+# ============================================================================
 # RAW FALLBACK
 # ============================================================================
 
-# Any trimmed payload not classified as transform_candidate is Raw.
+# Any trimmed payload not classified as transform_candidate or structured_payload is Raw.
 # Empty payload is also accepted and classified as Raw.
 raw_payload := any_text
+
+# ============================================================================
+# STRUCTURED LEXICAL HELPERS
+# ============================================================================
+
+string_literal := dq_string | sq_string
+dq_string := "\"" dq_char* "\""
+sq_string := "'" sq_char* "'"
+dq_char := /([^"\\]|\\.)/
+sq_char := /([^'\\]|\\.)/
+number_literal := /([+-]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)/
+boolean_literal := (
+    "true" | "false" |
+    "yes" | "no" |
+    "on" | "off" |
+    "enabled" | "disabled" |
+    "active" | "inactive"
+)
+null_literal := ("null" | "nil" | "none" | "undefined" | "void")
+rule_reference := "$" (/[0-9]+/ | /[A-Za-z_][A-Za-z0-9_]*/)
+identifier_literal := /[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*/
 
 # ============================================================================
 # LEXICAL HELPERS
@@ -55,6 +108,7 @@ ws := /[ \t\r\n]*/
 # IMPLEMENTATION NOTES (QUIRKS TO PRESERVE)
 # ============================================================================
 #
-# 1) No syntactic validation beyond the two substring checks above.
-# 2) No parse errors are emitted by parse_bootstrap in current behavior.
-# 3) Round-trip canonical form uses the trimmed input (outer whitespace removed).
+# 1) Transform detection stays procedural and marker-based; it is not structural parsing.
+# 2) Structured classification is attempted before Raw fallback.
+# 3) No parse errors are emitted by parse_bootstrap in current behavior.
+# 4) Round-trip canonical form uses the trimmed input (outer whitespace removed).

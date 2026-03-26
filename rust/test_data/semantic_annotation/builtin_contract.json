@@ -1,7 +1,7 @@
 [
   {
-    "name": "raw_payload_is_outer_trimmed",
-    "description": "Bootstrap semantic parser trims outer whitespace and keeps raw payload.",
+    "name": "simple_structured_payload_is_outer_trimmed",
+    "description": "Bootstrap semantic parser trims outer whitespace and retains simple structured payloads canonically.",
     "input": "   value   ",
     "expected_round_trip": "value",
     "parser_type": "semantic",

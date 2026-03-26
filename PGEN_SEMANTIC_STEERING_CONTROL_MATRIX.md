@@ -1,6 +1,6 @@
 # PGEN Semantic Steering Control Matrix (Living)
 
-Last updated: 2026-03-14
+Last updated: 2026-03-26
 
 ## Intent
 Semantic annotations are a language-level superset. The Rust AST pipeline is an implementation-level subset at any given time.
@@ -47,6 +47,10 @@ Parsed and validated:
 - `@category`
 - `@effect`
 - `@deprecated`
+- `@emit_fact`
+- `@open_scope`
+- `@close_scope`
+- `@predicate`
 
 Stimuli steering:
 - `@sample`
@@ -89,6 +93,12 @@ Parser and stimuli steering:
 Parsed only:
 - none are intentionally registry-listed as parsed-only today
 
+Implementation notes for the capability taxonomy above:
+- The registry is the authoritative capability table, but some directives have visible leverage beyond the simple bucket labels.
+- `@profiles` is registry-classified as parser-and-stimuli steering, while the currently explicit surfaced leverage is parser-side rule/profile gating in `rust/src/ast_pipeline/ast_based_generator.rs`; a distinct stimuli-side leverage path is not separately surfaced in `rust/src/ast_pipeline/stimuli_generator.rs`.
+- `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate` are registry-classified as parsed-and-validated, but they already drive generated-parser semantic runtime behavior through `rust/src/ast_pipeline/semantic_runtime.rs`.
+- `@stimulus` remains a legacy named-routing alias in stimuli generation; it is intentionally not a registry-listed typed directive.
+
 ## Capability Tiers
 - `Tier 0` Parsed only (stored as AST/raw, no validation contract).
 - `Tier 1` Parsed + validated (diagnostics), no runtime steering.
@@ -102,7 +112,7 @@ Parsed only:
 |---|---|---|---|---|---|---|---|
 | `SC-01` | Canonical terminal transform/coercion | Transform matched terminal into typed parse content | Bias sample shape by target type | `@transform: str::parse::<T>().unwrap_or(default)` | Implemented (canonical parser shared across validator/codegen/stimuli) | Tier 4 | P0 |
 | `SC-02` | Raw literal sample hint | None | Allow explicit literal sample override | Raw semantic payload (`"literal"`) | Implemented for stimuli only | Tier 3 | P1 |
-| `SC-03` | Name-based directive routing | Select behavior by semantic annotation name | Same | `@sample`, `@weight`, `@recover`, `@token`, `@constraint` | Gate-hardened routing baseline: typed directive registry with capability taxonomy checks + unknown-directive warn/strict policy contracts + strict-warning policy selectors + parser/stimuli transform/literal named-routing guards + dedicated SC-03 contract slices (bootstrap/generated semantic suite + differential taxonomy parity checks) wired into `annotation_contract_gate`/CI; broader directive steering remains tracked under per-control SC items | Tier 4 | P0 |
+| `SC-03` | Name-based directive routing | Select behavior by semantic annotation name | Same | `@sample`, `@weight`, `@recover`, `@token_class`, `@constraint` | Gate-hardened routing baseline: typed directive registry with capability taxonomy checks + unknown-directive warn/strict policy contracts + strict-warning policy selectors + parser/stimuli transform/literal named-routing guards + dedicated SC-03 contract slices (bootstrap/generated semantic suite + differential taxonomy parity checks) wired into `annotation_contract_gate`/CI; broader directive steering remains tracked under per-control SC items | Tier 4 | P0 |
 | `SC-04` | Token-class steering | Choose matcher strategy per regex atom/rule | Generate samples by token family/class | `@token_class`, `@charset`, `@pattern` | Implemented Tier 4 contract: typed payload validators + deterministic precedence (`@pattern > @charset > @token_class`) + parser regex matcher override + stimuli regex sampling override + grammar-aware inactive-steering warning when no regex atom is present + dedicated SC-04 gate slices (bootstrap/generated semantic contract suite + differential taxonomy parity checks) wired into `annotation_contract_gate`/CI | Tier 4 | P1 |
 | `SC-05` | Precedence/associativity steering | Resolve ambiguity/branching deterministically | Generate precedence-respecting trees | `@precedence`, `@associativity`, `@priority` | Implemented Tier 4 contract: typed payload validators (`@priority/@precedence/@associativity`) + deterministic conflict/duplicate contracts (`priority > precedence`, last-wins duplicates) + parser OR tie-break steering contracts (priority + associativity extraction/runtime emission) + stimuli branch steering contracts (priority bias, priority-over-precedence, associativity tie bias) + dedicated SC-05 contract slice (`semantic_annotation_sc05_contract`) with bootstrap/generated parity + differential taxonomy checks wired into `annotation_contract_gate`/CI | Tier 4 | P0 |
 | `SC-06` | Branch weighting and selection policy | Prefer deterministic branch policy where grammar is ambiguous | Coverage-guided weighted generation | `@weight`, `@branch_policy` | Implemented Tier 4 contract: typed branch-policy payload validators + parser/stimuli branch-policy steering (`longest_match`, `ordered`, `priority_first`) + deterministic weighted-probability stimuli contracts + dedicated SC-06 contract slice (`semantic_annotation_sc06_contract`) with bootstrap/generated parity + differential taxonomy checks wired into `annotation_contract_gate`/CI | Tier 4 | P1 |
