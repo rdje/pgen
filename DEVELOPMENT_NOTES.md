@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Add Rust architectural invariants list to analysis doc
+### Context
+The live Rust analysis doc already described risks, traps, task entrypoints, and validation seams, but it still did not say in one place which architectural traits future work should actively preserve. That left the “what should we not erode while improving things?” question too implicit.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added an `Architectural Invariants Worth Preserving` section near the steering/refactor area.
+- The new section now records the main invariants around:
+  - bootstrap/generated boundaries
+  - stage-distinct artifacts
+  - machine-readable proof contracts
+  - upstream source-of-truth repair
+  - seam-crossing validation
+  - observability/proof preservation
+  - shell proof surfaces
+
+### Why This Matters
+- Future sessions now have a compact preservation checklist before making “cleanup” changes that might otherwise weaken core repo doctrine.
+- That should help keep refactors aligned with the project’s actual architecture.
+
 ## 2026-03-25 - Add Rust-to-shell contract seam map to analysis doc
 ### Context
 The live Rust analysis doc already acknowledged that the shell proof layer is part of the effective product contract, but it still did not say in one place which Rust artifact seams most often propagate into shell-gate and sidecar drift. That made seam-crossing validation too implicit.

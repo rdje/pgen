@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-26 - Add Rust architectural invariants list to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact preservation list for the core architectural invariants that future Rust work should avoid eroding.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes an `Architectural Invariants Worth Preserving` section covering:
+  - explicit bootstrap-vs-generated boundaries
+  - stage-distinct artifacts
+  - machine-readable proof contracts
+  - upstream source-of-truth repair
+  - seam-crossing validation
+  - parser behavior plus observability
+  - shell proof layer as product surface
+
+### Why This Matters
+- Future sessions now have one explicit list of the repo traits that refactors and feature work should preserve.
+- That should make “safe improvement vs accidental erosion” easier to judge quickly.
+
 ## 2026-03-25 - Add Rust-to-shell contract seam map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact Rust-to-shell contract seam map so future sessions can see which Rust-produced artifacts most often force gate or sidecar changes when they move.

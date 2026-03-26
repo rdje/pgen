@@ -1130,6 +1130,28 @@ Operational rule:
 - Effort spent only on parser acceptance without preserving observability and proof surfaces will fight the project’s actual architecture.
 - Refactors should aim to reduce concentration without weakening the current proof doctrine.
 
+## Architectural Invariants Worth Preserving
+- Explicit bootstrap-vs-generated boundaries
+  - Keep parser availability visible through features, env-driven paths, and `build.rs`/cfg wiring rather than hidden fallback behavior.
+- Stage-distinct artifacts
+  - Preserve the distinction between:
+    - raw/frontend AST
+    - normalized generation-input AST
+    - generated parser source
+    - runtime parser output
+    - proof sidecars
+  - A lot of bugs come from collapsing these into one mental bucket.
+- Machine-readable proof contracts
+  - Preserve `summary.json` as a first-class contract surface alongside `summary.txt`, especially on the shipped proof spine.
+- Upstream source-of-truth repair
+  - Prefer fixing the emitting layer or canonical producer over patching an aggregate consumer to “make the drift disappear.”
+- Seam-crossing validation
+  - Keep validating at the next real consumer of the changed artifact; compile success alone is often not enough in this repo.
+- Parser behavior plus observability
+  - Avoid changes that improve acceptance or throughput by quietly weakening telemetry, counterexample capture, gap reporting, or proof surfaces.
+- Shell proof layer as product surface
+  - Treat `rust/scripts/*.sh` and their emitted sidecars as part of the effective Rust-owned contract, not as optional wrappers around “the real code.”
+
 ## Recommended Refactor Priorities
 - Split `rust/src/main.rs` into subcommand or mode-focused modules.
 - Break `rust/src/ast_pipeline/stimuli_generator.rs` into smaller policy/reporting/runtime units.
