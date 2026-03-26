@@ -201,6 +201,12 @@ audit_annotation_aggregate_contract_surface() {
     'annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts'
   assert_file_contains \
     "rust/Makefile" \
+    'annotation_robustness_gate - Enforce advanced annotation suites + generated parseability/coverage checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    'annotation_stimuli_quality_gate - Enforce strict closed-loop stimuli/coverage/gap checks (no-regression) for annotation grammars'
+  assert_file_contains \
+    "rust/Makefile" \
     'semantic_runtime_contract_gate - Enforce semantic runtime/typed-AST contract checks'
   assert_file_contains \
     "rust/Makefile" \
@@ -208,6 +214,9 @@ audit_annotation_aggregate_contract_surface() {
   assert_file_contains \
     "rust/Makefile" \
     'semantic_full_contract_gate - Enforce aggregate semantic contract gate (runtime + round-trip + regression)'
+  assert_file_contains \
+    "rust/Makefile" \
+    'return_annotation_support_gate - Enforce aggregate 100% return-annotation support proof (audit + contract + stimuli)'
   assert_file_contains \
     "rust/Makefile" \
     'return_runtime_semantics_gate - Enforce typed return AST/runtime transform contract checks'
@@ -309,6 +318,27 @@ audit_annotation_aggregate_contract_surface() {
     '`make -C rust annotation_shared_contract_gate`'
   assert_file_contains \
     "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust annotation_robustness_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust semantic_runtime_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust semantic_ast_roundtrip_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust semantic_full_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust return_runtime_semantics_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust return_ast_roundtrip_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust return_full_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust annotation_stimuli_quality_gate`'
 
   assert_file_contains \
@@ -316,10 +346,28 @@ audit_annotation_aggregate_contract_surface() {
     '`annotation_contract_gate` (local gate target)'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
+    '`annotation_shared_contract_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`semantic_usage_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`semantic_runtime_contract_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`semantic_ast_roundtrip_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`semantic_full_contract_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
     '`annotation_robustness_gate` (local gate target)'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '`annotation_stimuli_quality_gate` (local gate target)'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`return_annotation_support_gate` (local gate target)'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '`return_runtime_semantics_gate` (local gate target)'

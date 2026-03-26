@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-27 - Surface aggregate annotation gate map in docs
+### ✅ Achievement Summary
+PGEN's operator-facing annotation docs now surface the full aggregate annotation/semantic/return gate map, and local CI now protects that documentation layer against drift.
+
+### Scope of Changes
+- Updated:
+  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+  - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The docs now explicitly surface the missing aggregate entrypoints:
+  - `annotation_shared_contract_gate`
+  - `semantic_runtime_contract_gate`
+  - `semantic_ast_roundtrip_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+- The local-CI aggregate annotation audit now also asserts those guide/spec references and the related Makefile help lines.
+
+### Why This Matters
+- The aggregate annotation gate layer is now visible to operators, not just buried in `rust/Makefile`.
+- CI now protects both the executable gate composition and the operator-facing doc map for that layer.
+
 ## 2026-03-27 - Lock aggregate annotation contract gate policy
 ### ✅ Achievement Summary
 PGEN's local CI workflow gate now protects the aggregate annotation contract orchestration layer, so the top-level annotation, semantic, and return contract targets keep their intended composition instead of drifting silently.

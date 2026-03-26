@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: lock-aggregate-annotation-contract-gate-policy)
+Last updated: 2026-03-27 (+0100, task: surface-aggregate-annotation-gate-map-in-docs)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,17 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo now surfaces the aggregate annotation/semantic/return gate map more explicitly in the operator-facing docs.
+- `PGEN_USER_GUIDE.md` now includes explicit local-target entries for:
+  - `annotation_shared_contract_gate`
+  - `semantic_usage_gate`
+  - `semantic_runtime_contract_gate`
+  - `semantic_ast_roundtrip_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md` now reflects the missing aggregate gate entrypoints and the current aggregate gate composition more explicitly.
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts the corresponding Makefile help lines and guide/spec references for that aggregate gate layer.
+- The aggregate annotation gate map is now both documented and local-policy-guarded.
 - The repo now extends the local CI audit to the aggregate annotation contract gate layer as well.
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
   - `annotation_contract_gate` still keeps the validator + built-in/shared + return/semantic aggregate + robustness/stimuli composition

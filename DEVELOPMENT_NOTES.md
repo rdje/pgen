@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Surface aggregate annotation gate map in docs
+### Context
+After locking the aggregate annotation contract composition in local CI, the operator-facing docs still under-described that same gate layer. The Makefile exposed reusable aggregate entrypoints like `annotation_shared_contract_gate`, `semantic_full_contract_gate`, and `return_annotation_support_gate`, but the user-facing map only surfaced part of that contract spine.
+
+### Implementation
+- Updated [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md):
+  - added explicit local-target entries for:
+    - `annotation_shared_contract_gate`
+    - `semantic_usage_gate`
+    - `semantic_runtime_contract_gate`
+    - `semantic_ast_roundtrip_gate`
+    - `semantic_full_contract_gate`
+    - `return_annotation_support_gate`
+  - expanded the `annotation_contract_gate` description so it reads as the aggregate annotation contract spine rather than a vague bundle
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+  - expanded the gate-target list to include the missing aggregate annotation / semantic / return entrypoints
+  - updated the aggregate gate description to explicitly mention SC-01/SC-02, semantic-full-contract composition, return-full-contract composition, and annotation robustness
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts the corresponding Makefile help lines plus the new guide/spec references
+- Updated the continuity docs to record that the aggregate annotation gate map is now both documented and policy-guarded.
+
+### Why This Matters
+- The doc surface now matches the real aggregate gate surface operators can run.
+- Local CI now protects that doc map from drifting away from the Makefile and aggregate contract composition.
+
 ## 2026-03-27 - Lock aggregate annotation contract gate policy
 ### Context
 The repo had already hardened the individual SC semantic contract gates in local CI, but the higher-level annotation contract targets were still protected only indirectly. That left room for future edits to keep the leaf gates intact while quietly dropping an aggregate stage from `annotation_contract_gate`, `semantic_full_contract_gate`, or `return_full_contract_gate`.

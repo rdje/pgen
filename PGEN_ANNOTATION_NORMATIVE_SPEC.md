@@ -598,6 +598,9 @@ Normative contract checks are executable, not only documented:
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust annotation_robustness_gate`
+  - `make -C rust sc01_contract_gate`
+  - `make -C rust sc02_contract_gate`
   - `make -C rust sc13_contract_gate`
   - `make -C rust sc08_contract_gate`
   - `make -C rust sc05_contract_gate`
@@ -610,6 +613,12 @@ Normative contract checks are executable, not only documented:
   - `make -C rust sc03_contract_gate`
   - `make -C rust sc04_contract_gate`
   - `make -C rust semantic_usage_gate`
+  - `make -C rust semantic_runtime_contract_gate`
+  - `make -C rust semantic_ast_roundtrip_gate`
+  - `make -C rust semantic_full_contract_gate`
+  - `make -C rust return_runtime_semantics_gate`
+  - `make -C rust return_ast_roundtrip_gate`
+  - `make -C rust return_full_contract_gate`
   - `make -C rust annotation_stimuli_quality_gate`
 
 The gate runs:
@@ -618,6 +627,8 @@ The gate runs:
 - bootstrap semantic contract suite
 - shared return contract suite (bootstrap + generated)
 - shared semantic contract suite (bootstrap + generated)
+- SC-01 semantic contract slice + differential taxonomy parity check
+- SC-02 semantic contract slice + differential taxonomy parity check
 - SC-06 semantic contract slice + differential taxonomy parity check
 - SC-05 semantic contract slice + differential taxonomy parity check
 - SC-08 semantic contract slice + differential taxonomy parity check
@@ -630,6 +641,15 @@ The gate runs:
 - SC-03 semantic contract slice + differential taxonomy parity check
 - SC-04 semantic contract slice + differential taxonomy parity check
 - semantic leverage unit contract suite (parser + stimuli)
+- aggregate semantic contract verification:
+  - runtime/typed-AST contract checks,
+  - shared-suite round-trip verification,
+  - comparable-only semantic differential regression verification
+- aggregate return contract verification:
+  - typed return runtime/transform contract checks,
+  - return AST round-trip verification,
+  - comparable-only return differential parity verification
+- advanced annotation robustness verification for generated return/semantic parser-backed suites
 - strict closed-loop stimuli quality verification (return + semantic):
   - baseline parseability/coverage/gap snapshot,
   - gap-priority generation with merged-coverage monotonicity checks,

@@ -2097,7 +2097,30 @@ Tracked baselines:
   - recommendation:
     - `enable_runtime_declared_identifiers` or `hold`
 - `annotation_contract_gate` (local gate target)
-  - validator + built-in/shared contracts + semantic leverage + advanced robustness checks
+  - aggregate annotation contract gate:
+    - bootstrap validator + built-in return/semantic suites
+    - shared bootstrap/generated return/semantic suites
+    - SC Tier-4 semantic contract slices
+    - aggregate semantic + return contract gates
+    - annotation robustness + closed-loop annotation stimuli quality gates
+- `annotation_shared_contract_gate` (local gate target)
+  - shared bootstrap/generated annotation contract gate:
+    - return shared suite in both parser modes
+    - semantic shared suite in both parser modes
+- `semantic_usage_gate` (local gate target)
+  - focused parser/stimuli semantic leverage contract coverage (`semantic_usage_*`)
+- `semantic_runtime_contract_gate` (local gate target)
+  - focused semantic runtime contract checks:
+    - validator/runtime unit coverage
+    - generated semantic parse-tree -> typed-AST conversion regression checks
+    - semantic usage gate
+- `semantic_ast_roundtrip_gate` (local gate target)
+  - focused semantic shared-suite round-trip contract checks in bootstrap and generated modes
+- `semantic_full_contract_gate` (local gate target)
+  - aggregate semantic contract gate:
+    - `semantic_runtime_contract_gate`
+    - `semantic_ast_roundtrip_gate`
+    - `semantic_differential_regression_gate`
 - `annotation_nonbootstrap_e2e_gate` (local gate target)
   - generated-parser end-to-end verification for non-bootstrap annotation flow:
     - non-bootstrap parser generation for return / semantic / regex,
@@ -2222,6 +2245,11 @@ Tracked baselines:
 - `semantic_differential_regression_gate` (local gate target)
   - semantic differential regression on expectation-aligned (comparable) corpus only
   - tracks zero baseline debt for comparable semantic cases while allowing explicit bootstrap-only legacy cases to stay outside parity debt accounting
+- `return_annotation_support_gate` (local gate target)
+  - aggregate return-annotation support proof:
+    - parser-registry support audit
+    - `return_full_contract_gate`
+    - `return_annotation_exhaustiveness_gate`
 - `return_runtime_semantics_gate` (local gate target)
   - focused return runtime contract checks:
     - typed return AST bootstrap/runtime checks,
