@@ -187,6 +187,49 @@ audit_ebnf_frontend_conversion_surface() {
     '"$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"'
 }
 
+audit_annotation_semantic_contract_surface() {
+  note "auditing annotation semantic contract surface"
+
+  assert_tracked "rust/scripts/sc01_contract_gate.sh"
+  assert_tracked "rust/scripts/sc02_contract_gate.sh"
+  assert_tracked "rust/test_data/semantic_annotation/sc01_contract.json"
+  assert_tracked "rust/test_data/semantic_annotation/sc02_contract.json"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'sc01_contract_gate - Enforce SC-01 canonical-transform Tier-4 contract slices + differential taxonomy checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    'sc02_contract_gate - Enforce SC-02 raw literal sample-hint Tier-4 contract slices + differential taxonomy checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) sc01_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) sc02_contract_gate'
+
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust sc01_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust sc02_contract_gate`'
+
+  assert_file_contains \
+    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    'semantic_annotation_sc01_contract'
+  assert_file_contains \
+    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    'semantic_annotation_sc02_contract'
+
+  assert_file_contains \
+    "rust/test_data/semantic_annotation/sc01_contract.json" \
+    '"generated_parser": "expected_fail"'
+  assert_file_contains \
+    "rust/test_data/semantic_annotation/sc02_contract.json" \
+    '"generated_parser": "pass"'
+}
+
 audit_sota_json_consumption_surface() {
   note "auditing aggregate SOTA summary.json consumption surface"
 
@@ -650,6 +693,7 @@ main() {
   audit_static_include_paths
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
+  audit_annotation_semantic_contract_surface
   audit_sota_json_consumption_surface
   audit_sota_nested_family_emission_surface
   audit_combined_telemetry_nested_provenance_surface

@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-26 - Lock SC-01 and SC-02 annotation contract policy
+### ✅ Achievement Summary
+PGEN's local CI workflow gate now explicitly protects the newly added SC-01 and SC-02 annotation contract surfaces instead of relying on those gates to remain wired up by convention.
+
+### Scope of Changes
+- Updated:
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The local-CI audit now asserts:
+  - `rust/Makefile` still advertises and invokes `sc01_contract_gate` and `sc02_contract_gate`
+  - the normative spec still references both gate entrypoints
+  - the steering matrix still references both shared suite names
+  - `sc01_contract.json` still records the current generated-parser `expected_fail` boundary
+  - `sc02_contract.json` still records pass/pass parity for its generated-comparable named slice
+
+### Why This Matters
+- The repo now has a regression guard for the policy layer around SC-01 and SC-02, not just the gates themselves.
+- That makes it harder for future edits to silently drop the new contract seams from `annotation_contract_gate` or drift the documented expectations away from the enforced corpus.
+
 ## 2026-03-26 - Promote SC-01 canonical transform to a dedicated contract gate
 ### ✅ Achievement Summary
 PGEN now treats SC-01 canonical semantic transforms as a first-class Tier-4 contract seam with its own shared suite and gate, instead of relying on scattered local tests.

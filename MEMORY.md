@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: promote-sc01-canonical-transform-to-dedicated-contract-gate)
+Last updated: 2026-03-26 (+0100, task: lock-sc01-sc02-annotation-contract-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo now has a dedicated local-CI policy audit for the SC-01 and SC-02 annotation contract surfaces.
+- `rust/scripts/ci_workflow_local_gate.sh` now asserts:
+  - `rust/Makefile` still advertises and invokes `sc01_contract_gate` and `sc02_contract_gate`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` still references both gate entrypoints
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` still references both shared suite names
+  - `sc01_contract.json` still records the generated-parser `expected_fail` boundary
+  - `sc02_contract.json` still records pass/pass parity for its generated-comparable named slice
+- The SC-01/SC-02 annotation contract policy layer is now guarded locally, not just the gates themselves.
 - SC-01 canonical transforms are now being promoted from a matrix-only Tier-4 claim to a dedicated executable contract seam.
 - Added `rust/test_data/semantic_annotation/sc01_contract.json`:
   - shared bootstrap/generated semantic contract cases for canonical named `@transform` expressions across integer, float, bool, and path target types

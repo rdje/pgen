@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Lock SC-01 and SC-02 annotation contract policy
+### Context
+After adding dedicated SC-01 and SC-02 gates, the repo still lacked a local-CI source audit that protected the policy wiring around them. That left room for future edits to quietly drop those gates from `annotation_contract_gate`, drift their suite names, or erase the newly documented SC-01/SC-02 expectation shape without tripping the existing workflow parity checks.
+
+### Implementation
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a dedicated `audit_annotation_semantic_contract_surface` audit
+  - that audit now asserts:
+    - `rust/Makefile` still advertises `sc01_contract_gate` and `sc02_contract_gate`
+    - `annotation_contract_gate` still invokes both
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references both shared contract suite names
+    - `sc01_contract.json` still records the generated-parser `expected_fail` boundary
+    - `sc02_contract.json` still records pass/pass parity for the generated-comparable named slice
+- Updated the continuity docs to record that this SC-01/SC-02 annotation policy layer is now guarded locally too.
+
+### Why This Matters
+- The new annotation contract seams are now protected at the local workflow-policy layer, not only by the gates they introduced.
+- That keeps the docs, suite files, and Makefile wiring from drifting apart quietly.
+
 ## 2026-03-26 - Promote SC-01 canonical transform to a dedicated contract gate
 ### Context
 The semantic steering matrix had already been calling SC-01 Tier-4, but the repo still enforced that claim only through scattered utility, validator, codegen, and stimuli tests. There was no dedicated shared suite or gate that treated canonical transforms as a single cross-layer contract seam.
