@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-26 - Add Rust public-contract surface map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact public-contract surface map so future sessions can tell which Rust and proof outputs should be treated as compatibility surfaces when they change.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Public Contract Surface Map` section covering:
+  - embedder-facing Rust API contract
+  - grammar/profile dispatch contract
+  - generated-parser availability contract
+  - machine-readable proof contract
+  - human-readable proof compatibility surface
+  - parseability/AST probe contract
+
+### Why This Matters
+- Future sessions now have one explicit place to check whether a change is really a compatibility change, not just a local implementation tweak.
+- That should improve downstream validation choices and reduce accidental contract drift.
+
 ## 2026-03-26 - Add Rust refactor-pattern guide to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact refactor-pattern guide so future Rust cleanup work can follow shapes that fit the repo’s real seams instead of only following a priority list.

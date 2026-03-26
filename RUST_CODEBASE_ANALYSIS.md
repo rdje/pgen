@@ -378,6 +378,44 @@ Operational rule:
 - When two layers disagree, fix the upstream source of truth first, then bring downstream consumers back into parity.
 - In this repo, a lot of wasted time comes from patching adapters, sidecars, or aggregate readers before confirming which layer is actually authoritative.
 
+## Public Contract Surface Map
+- Embedder-facing Rust API contract
+  - Main surface:
+    - `rust/src/embedding_api.rs`
+  - Compatibility promise:
+    - host-visible parse, AST-dump, input-limit, and error/result behavior for Rust callers and bindings
+- Grammar/profile dispatch contract
+  - Main surface:
+    - `rust/src/parser_registry.rs`
+  - Compatibility promise:
+    - which grammar/profile names resolve to which parser-backed behaviors and whether those paths are available
+- Generated-parser availability contract
+  - Main surface:
+    - `rust/build.rs`
+    - `rust/src/lib.rs`
+  - Compatibility promise:
+    - whether generated parser modules are actually compiled/exposed for a given feature/path configuration
+- Machine-readable proof contract
+  - Main surface:
+    - emitting gates in `rust/scripts/*.sh`
+    - especially `summary.json`
+  - Compatibility promise:
+    - structured proof fields consumed by family-status, combined-telemetry, SOTA, and local-CI parity readers
+- Human-readable proof compatibility surface
+  - Main surface:
+    - gate `summary.txt`
+  - Compatibility promise:
+    - stable shell-readable `key: value` summaries that remain in parity with the JSON sidecar where the shipped proof spine requires it
+- Parseability/AST probe contract
+  - Main surface:
+    - `rust/src/bin/parseability_probe.rs`
+  - Compatibility promise:
+    - the narrow machine-facing parseability and AST-dump behavior used by external checks and higher proof layers
+
+Operational rule:
+- If a task changes one of these surfaces, treat it as a compatibility change even when the code edit feels local.
+- Validate not only the producer, but also the nearest real consumer that relies on that contract.
+
 ## Symptom-To-Layer Triage Shortcuts
 - Symptom: Cargo can build or list a binary, but the expected parser/runtime path is still missing
   - First likely seam:
