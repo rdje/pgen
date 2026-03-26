@@ -223,6 +223,29 @@ audit_annotation_semantic_contract_surface() {
     'semantic_annotation_sc02_contract'
 
   assert_file_contains \
+    "rust/scripts/sc01_contract_gate.sh" \
+    'semantic_annotation_sc01_contract'
+  assert_file_contains \
+    "rust/scripts/sc01_contract_gate.sh" \
+    'target/sc01_contract_gate/work/sc01_semantic_differential_report.json'
+  assert_file_contains \
+    "rust/scripts/sc01_contract_gate.sh" \
+    '(.mismatched_cases == 0)'
+  assert_file_not_contains \
+    "rust/scripts/sc01_contract_gate.sh" \
+    '(.total_cases > 0) and'
+
+  assert_file_contains \
+    "rust/scripts/sc02_contract_gate.sh" \
+    'semantic_annotation_sc02_contract'
+  assert_file_contains \
+    "rust/scripts/sc02_contract_gate.sh" \
+    'target/sc02_contract_gate/work/sc02_semantic_differential_report.json'
+  assert_file_contains \
+    "rust/scripts/sc02_contract_gate.sh" \
+    '(.total_cases > 0) and'
+
+  assert_file_contains \
     "rust/test_data/semantic_annotation/sc01_contract.json" \
     '"generated_parser": "expected_fail"'
   assert_file_contains \

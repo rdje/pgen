@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Lock SC-01 and SC-02 gate-boundary policy
+### Context
+The previous SC-01/SC-02 local-CI audit protected the existence of the gates, suite names, and JSON expectation files, but it still did not assert the gate-script-level difference between them. That left the current differential-boundary policy implicit:
+- SC-01 intentionally allows an empty comparable-only differential slice
+- SC-02 intentionally requires a non-empty comparable-only differential slice
+
+### Implementation
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the annotation semantic contract audit now also asserts:
+    - [sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh) still targets `semantic_annotation_sc01_contract`
+    - [sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh) still writes the SC-01 report path
+    - [sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh) still does not require `total_cases > 0`
+    - [sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh) still targets `semantic_annotation_sc02_contract`
+    - [sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh) still writes the SC-02 report path
+    - [sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh) still requires `total_cases > 0`
+- Updated the continuity docs to record that the SC-01/SC-02 gate-boundary distinction is now part of the guarded local policy surface.
+
+### Why This Matters
+- The repo now protects the current boundary semantics of the new gates, not just their existence.
+- That keeps future edits from silently flattening the intentional difference between SC-01’s empty comparable slice and SC-02’s parity-clean non-empty comparable slice.
+
 ## 2026-03-26 - Lock SC-01 and SC-02 annotation contract policy
 ### Context
 After adding dedicated SC-01 and SC-02 gates, the repo still lacked a local-CI source audit that protected the policy wiring around them. That left room for future edits to quietly drop those gates from `annotation_contract_gate`, drift their suite names, or erase the newly documented SC-01/SC-02 expectation shape without tripping the existing workflow parity checks.

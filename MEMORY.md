@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: lock-sc01-sc02-annotation-contract-policy)
+Last updated: 2026-03-26 (+0100, task: lock-sc01-sc02-gate-boundary-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,15 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo now guards the SC-01/SC-02 gate-boundary distinction inside local CI.
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
+  - `sc01_contract_gate.sh` still targets `semantic_annotation_sc01_contract`
+  - `sc01_contract_gate.sh` still writes the SC-01 report path
+  - `sc01_contract_gate.sh` still does not require `total_cases > 0`
+  - `sc02_contract_gate.sh` still targets `semantic_annotation_sc02_contract`
+  - `sc02_contract_gate.sh` still writes the SC-02 report path
+  - `sc02_contract_gate.sh` still requires `total_cases > 0`
+- The local policy surface now protects the current SC-01 empty-comparable-slice vs SC-02 non-empty-comparable-slice distinction explicitly.
 - The repo now has a dedicated local-CI policy audit for the SC-01 and SC-02 annotation contract surfaces.
 - `rust/scripts/ci_workflow_local_gate.sh` now asserts:
   - `rust/Makefile` still advertises and invokes `sc01_contract_gate` and `sc02_contract_gate`

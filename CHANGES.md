@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-26 - Lock SC-01 and SC-02 gate-boundary policy
+### ✅ Achievement Summary
+PGEN's local CI workflow gate now protects the gate-script-level contract difference between SC-01 and SC-02, not just their Makefile/docs wiring.
+
+### Scope of Changes
+- Updated:
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The local-CI audit now also asserts:
+  - `sc01_contract_gate.sh` still points at `semantic_annotation_sc01_contract`
+  - `sc01_contract_gate.sh` still uses the SC-01 report path and does not require `total_cases > 0`
+  - `sc02_contract_gate.sh` still points at `semantic_annotation_sc02_contract`
+  - `sc02_contract_gate.sh` still uses the SC-02 report path and still requires `total_cases > 0`
+
+### Why This Matters
+- SC-01 and SC-02 now have their current differential-boundary policy guarded explicitly, not just implied by the suite JSON files.
+- That makes it much harder to accidentally erase the current “SC-01 empty comparable slice vs SC-02 non-empty comparable slice” distinction without tripping local CI.
+
 ## 2026-03-26 - Lock SC-01 and SC-02 annotation contract policy
 ### ✅ Achievement Summary
 PGEN's local CI workflow gate now explicitly protects the newly added SC-01 and SC-02 annotation contract surfaces instead of relying on those gates to remain wired up by convention.
