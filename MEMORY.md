@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: add-rust-architectural-invariants-list-to-analysis-doc)
+Last updated: 2026-03-26 (+0100, task: add-rust-refactor-pattern-guide-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,15 @@ Use this file to resume work without replaying full chat history.
 ## Current Session Note
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- The live Rust analysis doc now also includes a `Refactor Patterns That Fit This Codebase` section:
+  - a compact guide to which cleanup shapes are safest in this repo’s artifact- and proof-heavy architecture.
+- That new section covers:
+  - splitting by artifact boundary
+  - stabilizing outputs before moving orchestration
+  - refactoring one contract seam at a time
+  - replacing repeated branching with narrow shared adapters
+  - adding proof before deleting carryover paths
+  - keeping the next consumer in the validation loop
 - The live Rust analysis doc now also includes an `Architectural Invariants Worth Preserving` section:
   - a compact list of the repo traits that future Rust work should not accidentally erode.
 - That new section covers:

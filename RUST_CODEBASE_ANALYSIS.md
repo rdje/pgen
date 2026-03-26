@@ -1152,6 +1152,48 @@ Operational rule:
 - Shell proof layer as product surface
   - Treat `rust/scripts/*.sh` and their emitted sidecars as part of the effective Rust-owned contract, not as optional wrappers around “the real code.”
 
+## Refactor Patterns That Fit This Codebase
+- Split by artifact boundary, not by raw line count
+  - Good split examples:
+    - parser emission vs semantic-runtime emission vs telemetry/report emission
+    - raw/frontend AST handling vs normalized-AST handling
+    - report production vs report aggregation
+  - Why:
+    - this repo’s real seams are artifact and contract boundaries, not just file size
+- Stabilize outputs before moving orchestration
+  - Prefer extracting helpers around stable outputs first:
+    - generated parser source
+    - parseability/coverage reports
+    - `summary.txt` / `summary.json`
+  - Why:
+    - if outputs stay stable, you can move internals without multiplying downstream drift
+- Refactor one contract seam at a time
+  - Prefer:
+    - `build.rs` + one direct consumer
+    - one report producer + one immediate gate consumer
+    - one dispatch layer + one public API layer
+  - Avoid broad simultaneous rewrites across:
+    - feature/cfg shape
+    - registry exposure
+    - proof-gate consumers
+  - Why:
+    - this repo has enough coupled seams that multi-seam rewrites get hard to validate honestly
+- Replace repeated branching with narrow shared adapters
+  - Best targets:
+    - repeated grammar/backend/profile dispatch
+    - repeated report-path / proof-surface extraction
+    - repeated parser-availability checks
+  - Why:
+    - duplicated branch logic is a bigger long-term risk here than small helper indirection
+- Add proof before deleting carryover paths
+  - If a refactor replaces a consumer or proof seam, lock the new behavior first with the nearest meaningful validation or local-CI assertion before removing the old path
+  - Why:
+    - subtractive cleanup is safer once the replacement seam is already machine-checked
+- Keep the next consumer in the loop while refactoring
+  - When extracting or moving code, validate at the first downstream consumer that depends on the moved artifact rather than stopping at compile success
+  - Why:
+    - many regressions here are contract regressions, not syntax or type-check failures
+
 ## Recommended Refactor Priorities
 - Split `rust/src/main.rs` into subcommand or mode-focused modules.
 - Break `rust/src/ast_pipeline/stimuli_generator.rs` into smaller policy/reporting/runtime units.

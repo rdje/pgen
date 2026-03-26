@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Add Rust refactor-pattern guide to analysis doc
+### Context
+The live Rust analysis doc already said which refactors were desirable, but it still did not say what refactor shapes are actually safe in a repo where artifact contracts, proof sidecars, and shell consumers are tightly coupled. That made the priority list less actionable than it should be.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Refactor Patterns That Fit This Codebase` section near the steering/refactor area.
+- The new section now records the main recommended refactor shapes around:
+  - splitting by artifact boundary
+  - stabilizing outputs before moving orchestration
+  - refactoring one contract seam at a time
+  - replacing repeated branching with narrow shared adapters
+  - adding proof before deleting carryover paths
+  - validating through the next consumer
+
+### Why This Matters
+- Future sessions now have a compact answer to “what kind of cleanup is actually safe here?”
+- That should make future Rust refactors more deliberate and less drift-prone.
+
 ## 2026-03-26 - Add Rust architectural invariants list to analysis doc
 ### Context
 The live Rust analysis doc already described risks, traps, task entrypoints, and validation seams, but it still did not say in one place which architectural traits future work should actively preserve. That left the “what should we not erode while improving things?” question too implicit.

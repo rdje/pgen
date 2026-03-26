@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-26 - Add Rust refactor-pattern guide to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact refactor-pattern guide so future Rust cleanup work can follow shapes that fit the repo’s real seams instead of only following a priority list.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Refactor Patterns That Fit This Codebase` section covering:
+  - splitting by artifact boundary
+  - stabilizing outputs before moving orchestration
+  - refactoring one contract seam at a time
+  - replacing repeated branching with narrow shared adapters
+  - adding proof before deleting carryover paths
+  - keeping the next consumer in the validation loop
+
+### Why This Matters
+- Future sessions now have a compact guide for what “safe cleanup” looks like in this repo.
+- That should make refactors more compatible with the project’s proof-heavy architecture.
+
 ## 2026-03-26 - Add Rust architectural invariants list to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact preservation list for the core architectural invariants that future Rust work should avoid eroding.
