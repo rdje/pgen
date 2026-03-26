@@ -1,0 +1,86 @@
+[
+  {
+    "name": "directive_profiles_string_list",
+    "description": "SC-13 shared contract: profiles directive remains parseable as a typed profile-list payload in bootstrap/generated parsers.",
+    "input": "@profiles: [\"sv_2017\", \"sv_2023\"]",
+    "expected_round_trip": "@profiles: [\"sv_2017\", \"sv_2023\"]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc13", "profile_runtime_scaffold"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_open_scope_structured_object",
+    "description": "SC-13 shared contract: open_scope directive remains parseable with structured scope payloads in both parser paths.",
+    "input": "@open_scope: { kind: package, name: top_pkg }",
+    "expected_round_trip": "@open_scope: { kind: package, name: top_pkg }",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc13", "profile_runtime_scaffold"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_close_scope_structured_object",
+    "description": "SC-13 shared contract: close_scope directive remains parseable with structured scope payloads in both parser paths.",
+    "input": "@close_scope: { kind: package, name: top_pkg }",
+    "expected_round_trip": "@close_scope: { kind: package, name: top_pkg }",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc13", "profile_runtime_scaffold"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_emit_fact_structured_object",
+    "description": "SC-13 shared contract: emit_fact directive remains parseable with structured fact payloads in both parser paths.",
+    "input": "@emit_fact: { kind: type_name, name: $class_identifier }",
+    "expected_round_trip": "@emit_fact: { kind: type_name, name: $class_identifier }",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc13", "profile_runtime_scaffold"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_predicate_identifier_payload",
+    "description": "SC-13 shared contract: predicate directive remains parseable with scalar predicate-name payloads in both parser paths.",
+    "input": "@predicate: has_fact",
+    "expected_round_trip": "@predicate: has_fact",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc13", "profile_runtime_scaffold"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_predicate_structured_object",
+    "description": "SC-13 shared contract: predicate directive remains parseable with explicit phase/view payloads in both parser paths.",
+    "input": "@predicate: { name: current_scope_is, args: [package], phase: post, view: shaped }",
+    "expected_round_trip": "@predicate: { name: current_scope_is, args: [package], phase: post, view: shaped }",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc13", "profile_runtime_scaffold"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

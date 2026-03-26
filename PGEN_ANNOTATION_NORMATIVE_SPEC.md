@@ -435,6 +435,26 @@ Normative runtime leverage behavior for semantic annotations:
         - allowed mismatch categories are constrained to the differential taxonomy set,
         - category-count totals must match `mismatched_cases`,
         - SC-09 comparable corpus currently requires `mismatched_cases == 0`.
+  - `@profiles/@emit_fact/@open_scope/@close_scope/@predicate` contract baseline:
+    - directives are typed/validated by the annotation validator,
+    - `@profiles` payload form:
+      - string-list payload naming one or more allowed grammar profiles,
+    - generated parser baseline:
+      - `@profiles` drives rule-level profile guards through the generated parser `grammar_profile` runtime setting,
+      - disabled rules backtrack before entering normal rule parsing.
+    - semantic runtime scaffold baseline:
+      - `@open_scope`, `@close_scope`, and `@emit_fact` compile into effect directives over scoped semantic runtime state,
+      - `@predicate` compiles into typed predicate directives with explicit phase/view defaults and object/scalar payload support,
+      - compiled rule views remain split across pre predicates, post predicates, branch predicates, and effect directives.
+    - Tier-4 gate contract:
+      - dedicated shared semantic contract slice:
+        - `rust/test_data/semantic_annotation/sc13_contract.json`
+      - dedicated gate target:
+        - `make -C rust sc13_contract_gate`
+      - gate includes differential mismatch taxonomy parity checks over the SC-13 suite:
+        - allowed mismatch categories are constrained to the differential taxonomy set,
+        - category-count totals must match `mismatched_cases`,
+        - SC-13 comparable corpus currently requires `mismatched_cases == 0`.
 
 ## Typed Annotation Validator Contract
 Validator diagnostics are part of normative generation-time behavior.
@@ -531,6 +551,8 @@ Normative contract checks are executable, not only documented:
   - `rust/test_data/semantic_annotation/sc11_contract.json`
 - SC-12 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc12_contract.json`
+- SC-13 shared semantic contract suite:
+  - `rust/test_data/semantic_annotation/sc13_contract.json`
 - SC-04 shared semantic contract suite:
   - `rust/test_data/semantic_annotation/sc04_contract.json`
 - Semantic leverage usage suite:
@@ -538,6 +560,7 @@ Normative contract checks are executable, not only documented:
 - Gate target:
   - `make -C rust annotation_contract_gate`
   - `make -C rust annotation_shared_contract_gate`
+  - `make -C rust sc13_contract_gate`
   - `make -C rust sc08_contract_gate`
   - `make -C rust sc05_contract_gate`
   - `make -C rust sc12_contract_gate`
@@ -564,6 +587,7 @@ The gate runs:
 - SC-10 semantic contract slice + differential taxonomy parity check
 - SC-11 semantic contract slice + differential taxonomy parity check
 - SC-12 semantic contract slice + differential taxonomy parity check
+- SC-13 semantic contract slice + differential taxonomy parity check
 - SC-07 semantic contract slice + differential taxonomy parity check
 - SC-03 semantic contract slice + differential taxonomy parity check
 - SC-04 semantic contract slice + differential taxonomy parity check

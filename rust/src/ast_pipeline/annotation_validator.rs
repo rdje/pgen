@@ -3987,6 +3987,87 @@ mod tests {
     }
 
     #[test]
+    fn semantic_validator_accepts_valid_profiles_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "profiles".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "[\"sv_2017\", \"sv_2023\"]".to_string(),
+                    value: UnifiedSemanticValue::Array(vec![
+                        UnifiedSemanticValue::String("sv_2017".to_string()),
+                        UnifiedSemanticValue::String("sv_2023".to_string()),
+                    ]),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_PROFILES_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_warns_on_invalid_profiles_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "profiles".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "[]".to_string(),
+                    value: UnifiedSemanticValue::Array(vec![]),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_PROFILES_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_accepts_valid_open_scope_runtime_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "open_scope".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "{ kind: package, name: top_pkg }".to_string(),
+                    value: UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                        },
+                    ]),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_OPEN_SCOPE_PAYLOAD")
+        );
+    }
+
+    #[test]
     fn semantic_validator_warns_on_invalid_open_scope_runtime_payload() {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
@@ -4009,6 +4090,84 @@ mod tests {
                 .diagnostics
                 .iter()
                 .any(|d| d.code == "W_SEM_INVALID_OPEN_SCOPE_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_accepts_valid_close_scope_runtime_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "close_scope".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "{ kind: package, name: top_pkg }".to_string(),
+                    value: UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("package".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("top_pkg".to_string()),
+                        },
+                    ]),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_CLOSE_SCOPE_PAYLOAD")
+        );
+    }
+
+    #[test]
+    fn semantic_validator_accepts_valid_predicate_runtime_payload() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "predicate".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical:
+                        "{ name: current_scope_is, args: [package], phase: post, view: shaped }"
+                            .to_string(),
+                    value: UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier(
+                                "current_scope_is".to_string(),
+                            ),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("package".to_string()),
+                            ]),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("post".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("shaped".to_string()),
+                        },
+                    ]),
+                },
+            }],
+        );
+
+        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        assert!(
+            !report
+                .diagnostics
+                .iter()
+                .any(|d| d.code == "W_SEM_INVALID_PREDICATE_PAYLOAD")
         );
     }
 }

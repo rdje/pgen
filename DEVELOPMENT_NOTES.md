@@ -24762,3 +24762,20 @@ Architectural north star:
   - Added focused `unified_semantic_ast.rs` tests proving:
     - those structured payloads classify as `Structured`
     - malformed structured prefixes still fall back to `Raw` instead of erroring
+- 2026-03-26: Added SC-13 for the semantic profile/runtime-scaffold seam.
+  - New shared semantic contract slice:
+    - `rust/test_data/semantic_annotation/sc13_contract.json`
+  - New gate:
+    - `rust/scripts/sc13_contract_gate.sh`
+    - `make -C rust sc13_contract_gate`
+  - `annotation_contract_gate` now includes SC-13.
+  - The new Tier-4 seam covers:
+    - `@profiles`
+    - `@emit_fact`
+    - `@open_scope`
+    - `@close_scope`
+    - `@predicate`
+  - Added focused tests for:
+    - valid/invalid `@profiles` payload validation
+    - valid runtime-directive payload validation for `open_scope`, `close_scope`, and `predicate`
+    - generated-parser `@profiles` extraction/guard emission

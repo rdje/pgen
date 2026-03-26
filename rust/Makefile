@@ -281,6 +281,7 @@ help:
 	@echo "  return_annotation_exhaustiveness_gate - Enforce auto-derived return-annotation closure proof (coverage + parity + typed AST)"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
+	@echo "  sc13_contract_gate - Enforce SC-13 profiles/runtime-scaffold Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc08_contract_gate - Enforce SC-08 value-domain Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc05_contract_gate - Enforce SC-05 precedence/associativity Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc12_contract_gate - Enforce SC-12 deterministic-partition Tier-4 contract slices + differential taxonomy checks"
@@ -733,6 +734,7 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
 	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
+	@$(MAKE) -C $(RUST_DIR) sc13_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc12_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc11_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc10_contract_gate
@@ -766,6 +768,12 @@ sc05_contract_gate:
 	@echo "🧪 Running SC-05 precedence/associativity contract gate..."
 	cd $(RUST_DIR) && ./scripts/sc05_contract_gate.sh
 	@echo "✅ SC-05 precedence/associativity contract gate passed."
+
+.PHONY: sc13_contract_gate
+sc13_contract_gate:
+	@echo "🧪 Running SC-13 profiles/runtime-scaffold contract gate..."
+	cd $(RUST_DIR) && ./scripts/sc13_contract_gate.sh
+	@echo "✅ SC-13 profiles/runtime-scaffold contract gate passed."
 
 .PHONY: sc12_contract_gate
 sc12_contract_gate:

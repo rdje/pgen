@@ -6822,3 +6822,19 @@ Use this file to resume work without replaying full chat history.
     - single-quoted strings
     - dotted identifiers
   - `rust/src/ast_pipeline/unified_semantic_ast.rs` now also has focused classification/fallback tests so the documented `TransformExpr | Structured | Raw` boundary is asserted in code, not just prose.
+- 2026-03-26: Added SC-13 as the dedicated Tier-4 semantic seam for profile gating plus runtime-scaffold directives.
+  - Shared corpus:
+    - `rust/test_data/semantic_annotation/sc13_contract.json`
+  - Gate:
+    - `rust/scripts/sc13_contract_gate.sh`
+    - wired into `make -C rust annotation_contract_gate`
+  - Focused proof surface now explicitly covers:
+    - `@profiles`
+    - `@emit_fact`
+    - `@open_scope`
+    - `@close_scope`
+    - `@predicate`
+  - Supporting focused Rust tests now cover:
+    - `@profiles` validator acceptance/rejection
+    - valid runtime-directive payload validation for scope/predicate directives
+    - generated parser rule-profile extraction/guard emission

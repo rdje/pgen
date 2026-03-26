@@ -5121,6 +5121,31 @@ mod semantic_usage_tests {
             .as_str()
     }
 
+    fn profile_guard_generator() -> AstBasedGenerator {
+        generator_with_named_semantic(
+            "package_declaration",
+            vec![("profiles", "[\"sv_2017\", \"sv_2023\"]")],
+        )
+    }
+
+    fn profile_guard_rendered_parser() -> &'static str {
+        static RENDERED: OnceLock<String> = OnceLock::new();
+        RENDERED
+            .get_or_init(|| {
+                let generator = profile_guard_generator();
+                let mut grammar_tree = HashMap::new();
+                grammar_tree.insert(
+                    "package_declaration".to_string(),
+                    token("quoted_string", "pkg"),
+                );
+                let rule_order = vec!["package_declaration".to_string()];
+                generator
+                    .generate_parser(&grammar_tree, &rule_order, "semantic_profile_usage.rs")
+                    .expect("parser generation should succeed")
+            })
+            .as_str()
+    }
+
     fn or_rule() -> ASTNode {
         ASTNode::Or {
             alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
@@ -5556,6 +5581,37 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("evaluate_content_aware_predicate"),
             "generated parser should evaluate branch predicates against semantic state without routing through effect application, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn semantic_usage_codegen_extracts_rule_profiles_from_named_directive() {
+        let generator = profile_guard_generator();
+        let profiles = generator.rule_profiles("package_declaration");
+        assert_eq!(
+            profiles,
+            vec!["sv_2017".to_string(), "sv_2023".to_string()]
+        );
+    }
+
+    #[test]
+    fn generated_parser_profile_contract_emits_rule_profile_guard() {
+        let rendered = profile_guard_rendered_parser();
+
+        assert!(
+            rendered.contains("if !self.rule_profile_is_enabled(&[\"sv_2017\", \"sv_2023\"])"),
+            "generated parser should emit a rule-profile guard when @profiles is present, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("sv_2017"),
+            "generated parser should embed the first allowed profile literal, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("sv_2023"),
+            "generated parser should embed the second allowed profile literal, got: {}",
             rendered
         );
     }
