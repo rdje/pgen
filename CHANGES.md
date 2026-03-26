@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-03-26 - Add Rust companion-crate map to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact map of the Rust-adjacent Cargo surfaces so future sessions can distinguish the main `rust/` crate from active companion crates and peripheral manifests.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Rust-Adjacent Cargo Surface` section covering:
+  - the main `rust/` product crate
+  - active companion crates `rtl_const_expr/` and `rtl_frontend/`
+  - peripheral manifests like `tools/generators`, `test_parsers/json_test`, and the repo-root `Cargo.toml`
+- The live analysis doc’s own `Last updated` line is now refreshed to `2026-03-26`.
+
+### Why This Matters
+- Future sessions now have one explicit place to decide which Cargo manifest actually owns the architecture they are trying to change.
+- That should reduce drift into peripheral crates when the real task belongs in the main `rust/` crate or the active Phase S companions.
+
 ## 2026-03-26 - Add Rust public-contract surface map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact public-contract surface map so future sessions can tell which Rust and proof outputs should be treated as compatibility surfaces when they change.

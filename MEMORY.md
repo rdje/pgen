@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: add-rust-public-contract-surface-map-to-analysis-doc)
+Last updated: 2026-03-26 (+0100, task: add-rust-companion-crate-map-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,13 @@ Use this file to resume work without replaying full chat history.
 ## Current Session Note
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- The live Rust analysis doc now also includes a `Rust-Adjacent Cargo Surface` section:
+  - a compact map of which Cargo manifests are central, companion, or peripheral to the live Rust architecture.
+- That new section covers:
+  - the main `rust/` product crate
+  - active companion crates `rtl_const_expr/` and `rtl_frontend/`
+  - peripheral manifests like `tools/generators`, `test_parsers/json_test`, and the repo-root `Cargo.toml`
+- The live Rust analysis doc’s own `Last updated` line is now refreshed to `2026-03-26`.
 - The live Rust analysis doc now also includes a `Public Contract Surface Map` section:
   - a compact map of the Rust and proof outputs that should be treated as compatibility surfaces when they change.
 - That new section covers:

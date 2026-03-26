@@ -1,6 +1,6 @@
 # RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-03-25
+Last updated: 2026-03-26
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -20,6 +20,28 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It covers the main Rust crate, the generated-parser integration layer, the major Rust-owned binaries, and the Rust-owned gate/build ecosystem around them.
 - It is not a claim that every parser family is closed.
 - It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
+
+## Rust-Adjacent Cargo Surface
+- Main product crate
+  - `rust/Cargo.toml`
+  - This is the primary crate for parser generation, runtime parser exposure, embeddings, operational binaries, and the main proof-facing Rust surfaces.
+- Active companion crates
+  - `rtl_const_expr/Cargo.toml`
+    - standalone constant-expression crate used by the RTL/frontend track
+  - `rtl_frontend/Cargo.toml`
+    - standalone frontend crate layered on top of `rtl_const_expr`
+  - These are not part of the main `rust/` crate, but they are still part of the project’s live Rust implementation story.
+- Auxiliary/peripheral Rust crates
+  - `tools/generators/Cargo.toml`
+    - auxiliary generator-tool surface, not the main runtime/proof spine
+  - `test_parsers/json_test/Cargo.toml`
+    - narrow test/example parser surface, not a central product architecture owner
+  - root `Cargo.toml`
+    - repository-local Rust surface, but not the canonical source for the main parser-generation architecture described here
+
+Operational rule:
+- When a task says “the Rust codebase,” default to `rust/` first, then pull in `rtl_const_expr/` and `rtl_frontend/` when the task touches Phase S or frontend/constant-expression ownership.
+- Do not let peripheral Cargo manifests distract from the main architecture unless the task is explicitly about those support crates.
 
 ## Executive Summary
 - PGEN's Rust codebase is not just a parser implementation. It is a parser-generation and parser-proof platform.

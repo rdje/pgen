@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Add Rust companion-crate map to analysis doc
+### Context
+The live Rust analysis doc focused correctly on the main `rust/` implementation, but it still did not say plainly how the other Cargo manifests in the repo relate to that main crate. That made it too easy to forget the active `rtl_const_expr` / `rtl_frontend` companions or to waste time in peripheral manifests. The doc’s own top-level `Last updated` line also needed to catch up with the current session date.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - refreshed `Last updated` to `2026-03-26`,
+  - added a `Rust-Adjacent Cargo Surface` section near the top-of-doc scope/orientation area.
+- The new section now distinguishes:
+  - the main `rust/` product crate
+  - active companion crates `rtl_const_expr/` and `rtl_frontend/`
+  - peripheral Cargo manifests such as `tools/generators`, `test_parsers/json_test`, and the repo-root `Cargo.toml`
+
+### Why This Matters
+- Future sessions now have a compact “which Cargo manifest actually matters for this task?” reference.
+- That should make Rust codebase navigation faster and less error-prone.
+
 ## 2026-03-26 - Add Rust public-contract surface map to analysis doc
 ### Context
 The live Rust analysis doc already described source-of-truth layers and several public/host-visible seams, but it still did not say in one place which outputs should be treated as compatibility surfaces when they move. That left too much compatibility reasoning implicit.
