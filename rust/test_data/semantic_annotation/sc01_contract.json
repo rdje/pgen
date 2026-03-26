@@ -1,0 +1,58 @@
+[
+  {
+    "name": "directive_transform_integer",
+    "description": "SC-01 shared contract: canonical integer transform directive remains parseable in bootstrap/generated parsers.",
+    "input": "@transform: str::parse::<i64>().unwrap_or(0)",
+    "expected_round_trip": "@transform: str::parse::<i64>().unwrap_or(0)",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc01", "canonical_transform"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "expected_fail"
+    }
+  },
+  {
+    "name": "directive_transform_float",
+    "description": "SC-01 shared contract: canonical float transform directive remains parseable in bootstrap/generated parsers.",
+    "input": "@transform: str::parse::<f64>().unwrap_or(0.0)",
+    "expected_round_trip": "@transform: str::parse::<f64>().unwrap_or(0.0)",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc01", "canonical_transform"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "expected_fail"
+    }
+  },
+  {
+    "name": "directive_transform_bool",
+    "description": "SC-01 shared contract: canonical bool transform directive remains parseable in bootstrap/generated parsers.",
+    "input": "@transform: str::parse::<bool>().unwrap_or(false)",
+    "expected_round_trip": "@transform: str::parse::<bool>().unwrap_or(false)",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc01", "canonical_transform"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "expected_fail"
+    }
+  },
+  {
+    "name": "directive_transform_path_target",
+    "description": "SC-01 shared contract: canonical path target transform directive remains parseable in bootstrap/generated parsers.",
+    "input": "@transform: str::parse::<std::primitive::u32>().unwrap_or(0)",
+    "expected_round_trip": "@transform: str::parse::<std::primitive::u32>().unwrap_or(0)",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc01", "canonical_transform"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "expected_fail"
+    }
+  }
+]

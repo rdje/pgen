@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Promote SC-01 canonical transform to a dedicated contract gate
+### Context
+The semantic steering matrix had already been calling SC-01 Tier-4, but the repo still enforced that claim only through scattered utility, validator, codegen, and stimuli tests. There was no dedicated shared suite or gate that treated canonical transforms as a single cross-layer contract seam.
+
+### Implementation
+- Added [rust/test_data/semantic_annotation/sc01_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc01_contract.json):
+  - shared bootstrap/generated semantic contract cases for canonical named `@transform` expressions across integer, float, bool, and path target types
+  - those cases now explicitly record the current parser boundary:
+    - bootstrap parser: pass
+    - generated parser: expected_fail
+- Added [rust/scripts/sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh):
+  - runs shared canonical-transform parser utility tests
+  - runs validator/codegen/stimuli contract tests already present in the Rust pipeline
+  - runs bootstrap/generated SC-01 shared suites
+  - enforces comparable-only differential mismatch cleanliness even though the current comparable slice is empty
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - new `sc01_contract_gate` target
+  - `annotation_contract_gate` now invokes the SC-01 gate
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
+  - SC-01 is now documented as a dedicated Tier-4 gate-enforced seam, not just an implied cross-file capability
+
+### Why This Matters
+- Canonical transform work now has one focused contract gate spanning utility parsing, validation, codegen, stimuli, and the currently explicit parser-boundary surface.
+- That makes future `@transform` changes easier to validate without mentally stitching together the whole pipeline.
+
 ## 2026-03-26 - Promote SC-02 raw literal sample hint to a dedicated contract gate
 ### Context
 The semantic steering matrix still described SC-02 raw literal sample hints as only an implemented stimuli behavior, even though the repo already had real literal-hint logic in `stimuli_generator.rs` and partial routing coverage under SC-03. What was missing was a dedicated shared corpus and gate that treated SC-02 itself as a first-class contract seam.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: promote-sc02-raw-literal-sample-hint-to-dedicated-contract-gate)
+Last updated: 2026-03-26 (+0100, task: promote-sc01-canonical-transform-to-dedicated-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,19 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- SC-01 canonical transforms are now being promoted from a matrix-only Tier-4 claim to a dedicated executable contract seam.
+- Added `rust/test_data/semantic_annotation/sc01_contract.json`:
+  - shared bootstrap/generated semantic contract cases for canonical named `@transform` expressions across integer, float, bool, and path target types
+  - these cases now explicitly record the current parser boundary:
+    - bootstrap parser: pass
+    - generated parser: expected_fail
+- Added `rust/scripts/sc01_contract_gate.sh`:
+  - runs shared canonical-transform parser utility tests
+  - runs validator/codegen/stimuli contract tests already present in the Rust pipeline
+  - runs bootstrap/generated SC-01 shared suites
+  - enforces comparable-only differential mismatch cleanliness even though the current comparable slice is empty
+- `rust/Makefile` now exposes `sc01_contract_gate` and wires it into `annotation_contract_gate`.
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md` and `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` now describe SC-01 as a dedicated Tier-4 gate-enforced seam and explicitly call out the current generated-parser parseability boundary for named canonical transforms.
 - SC-02 raw literal sample hints are now being promoted from an informal stimuli behavior to a dedicated Tier-4 contract seam.
 - Added `rust/test_data/semantic_annotation/sc02_contract.json`:
   - shared bootstrap/generated semantic contract cases for the generated-comparable named literal-hint forms:

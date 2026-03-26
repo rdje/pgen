@@ -281,6 +281,7 @@ help:
 	@echo "  return_annotation_exhaustiveness_gate - Enforce auto-derived return-annotation closure proof (coverage + parity + typed AST)"
 	@echo "  annotation_nonbootstrap_e2e_gate - Enforce non-bootstrap annotation parser/stimuli end-to-end checks"
 	@echo "  annotation_shared_contract_gate - Enforce shared bootstrap/generated annotation contracts"
+	@echo "  sc01_contract_gate - Enforce SC-01 canonical-transform Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc02_contract_gate - Enforce SC-02 raw literal sample-hint Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc13_contract_gate - Enforce SC-13 profiles/runtime-scaffold Tier-4 contract slices + differential taxonomy checks"
 	@echo "  sc08_contract_gate - Enforce SC-08 value-domain Tier-4 contract slices + differential taxonomy checks"
@@ -735,6 +736,7 @@ annotation_contract_gate:
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser return --suite return_annotation_builtin_contract
 	cd $(RUST_DIR) && cargo run --bin test_runner -- --parser semantic --suite semantic_annotation_builtin_contract
 	@$(MAKE) -C $(RUST_DIR) annotation_shared_contract_gate
+	@$(MAKE) -C $(RUST_DIR) sc01_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc02_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc13_contract_gate
 	@$(MAKE) -C $(RUST_DIR) sc12_contract_gate
@@ -752,6 +754,12 @@ annotation_contract_gate:
 	@$(MAKE) -C $(RUST_DIR) annotation_robustness_gate
 	@$(MAKE) -C $(RUST_DIR) annotation_stimuli_quality_gate
 	@echo "✅ Annotation normative contract gate passed."
+
+.PHONY: sc01_contract_gate
+sc01_contract_gate:
+	@echo "🧪 Running SC-01 canonical-transform contract gate..."
+	cd $(RUST_DIR) && ./scripts/sc01_contract_gate.sh
+	@echo "✅ SC-01 canonical-transform contract gate passed."
 
 .PHONY: sc02_contract_gate
 sc02_contract_gate:

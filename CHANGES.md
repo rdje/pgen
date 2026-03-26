@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-03-26 - Promote SC-01 canonical transform to a dedicated contract gate
+### ✅ Achievement Summary
+PGEN now treats SC-01 canonical semantic transforms as a first-class Tier-4 contract seam with its own shared suite and gate, instead of relying on scattered local tests.
+
+### Scope of Changes
+- Added:
+  - [rust/scripts/sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh)
+  - [rust/test_data/semantic_annotation/sc01_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc01_contract.json)
+- Updated:
+  - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile)
+  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+  - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The new SC-01 gate now enforces:
+  - canonical-transform parser utility parsing/rejection behavior
+  - validator acceptance of canonical transforms plus strict rejection of noncanonical ones
+  - parser codegen transformed-terminal emission
+  - stimuli canonical hint mapping plus noncanonical guard behavior
+  - bootstrap-pass/generated-expected-fail shared-suite tracking for the current named canonical-transform parseability boundary
+  - comparable-only differential zero-mismatch checks, with the current comparable slice intentionally empty
+
+### Why This Matters
+- The matrix’s long-standing Tier-4 claim for SC-01 is now backed by a dedicated executable contract that is honest about the current generated-parser boundary.
+- Future transform changes now have one focused gate that crosses utility parsing, validation, codegen, stimuli, and parser-path parity.
+
 ## 2026-03-26 - Promote SC-02 raw literal sample hint to a dedicated contract gate
 ### ✅ Achievement Summary
 PGEN now treats SC-02 raw literal sample hints as a first-class Tier-4 semantic contract instead of an informal stimuli-only behavior.

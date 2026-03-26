@@ -176,6 +176,28 @@ Normative runtime leverage behavior for semantic annotations:
     - fact emission
     - pre/post/branch predicate gating
 - Additional semantic steering contract (Phase K):
+  - SC-01 canonical terminal transform/coercion Tier-4 contract:
+    - shared canonical-transform parser utility contracts:
+      - canonical `str::parse::<T>().unwrap_or(default)` expressions must parse successfully,
+      - outer-whitespace trimming must not change canonical parsing,
+      - noncanonical transform expressions must be rejected by the shared parser utility.
+    - validator/codegen/stimuli contracts:
+      - canonical transform expressions must validate cleanly,
+      - strict semantic-transform mode must promote noncanonical transforms to errors,
+      - parser codegen must emit `TransformedTerminal` paths for canonical transforms, including path target types,
+      - stimuli generation must derive canonical numeric/float/bool hints and ignore noncanonical transforms.
+    - dedicated shared semantic contract slice:
+      - `rust/test_data/semantic_annotation/sc01_contract.json`
+      - the shared slice currently tracks the named canonical-transform parseability boundary explicitly:
+        - bootstrap parser: pass
+        - generated parser: expected_fail
+    - dedicated gate target:
+      - `make -C rust sc01_contract_gate`
+    - gate includes differential mismatch taxonomy parity checks over the SC-01 suite:
+      - the comparable-only differential slice is currently empty because generated semantic parsing does not yet accept named canonical transform expressions,
+      - allowed mismatch categories are constrained to the differential taxonomy set,
+      - category-count totals must match `mismatched_cases`,
+      - SC-01 currently still requires `mismatched_cases == 0`.
   - SC-02 raw literal sample hint Tier-4 contract:
     - stimuli runtime contracts:
       - bare quoted string payloads must surface as unquoted literal sample hints,
