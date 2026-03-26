@@ -6491,6 +6491,81 @@ mod tests {
     }
 
     #[test]
+    fn semantic_usage_stimuli_literalish_directives_accept_structured_and_legacy_alias_hints() {
+        let cases = [
+            (
+                None,
+                UnifiedSemanticAST::Structured {
+                    canonical: "\"structured-bare\"".to_string(),
+                    value: UnifiedSemanticValue::String("structured-bare".to_string()),
+                },
+                "structured-bare",
+            ),
+            (
+                Some("sample"),
+                UnifiedSemanticAST::Structured {
+                    canonical: "\"sample-seed\"".to_string(),
+                    value: UnifiedSemanticValue::String("sample-seed".to_string()),
+                },
+                "sample-seed",
+            ),
+            (
+                Some("literal"),
+                UnifiedSemanticAST::Structured {
+                    canonical: "\"literal-seed\"".to_string(),
+                    value: UnifiedSemanticValue::String("literal-seed".to_string()),
+                },
+                "literal-seed",
+            ),
+            (
+                Some("example"),
+                UnifiedSemanticAST::Raw {
+                    content: "'example-seed'".to_string(),
+                },
+                "example-seed",
+            ),
+            (
+                Some("stimulus"),
+                UnifiedSemanticAST::Structured {
+                    canonical: "\"legacy-stimulus-seed\"".to_string(),
+                    value: UnifiedSemanticValue::String("legacy-stimulus-seed".to_string()),
+                },
+                "legacy-stimulus-seed",
+            ),
+        ];
+
+        for (directive_name, ast, expected) in cases {
+            let mut grammar_tree = HashMap::new();
+            grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{4}$"));
+            let rule_order = vec!["start".to_string()];
+
+            let mut annotations = Annotations::default();
+            let annotation = if let Some(name) = directive_name {
+                SemanticAnnotation::Named {
+                    name: name.to_string(),
+                    ast,
+                }
+            } else {
+                ast.into()
+            };
+            annotations
+                .semantic_annotations
+                .insert("start".to_string(), vec![annotation]);
+
+            let mut generator =
+                annotated_generator(&grammar_tree, &rule_order, &annotations, 9293);
+            let values = generator
+                .generate_many(1, Some("start"))
+                .expect("literalish semantic hint generation should succeed");
+            assert_eq!(
+                values[0], expected,
+                "directive {:?} should surface literal hint {:?}, got {:?}",
+                directive_name, expected, values[0]
+            );
+        }
+    }
+
+    #[test]
     fn semantic_usage_stimuli_raw_hint_requires_literalish_directive_when_named() {
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert("start".to_string(), token("regex", "^[A-Z]{4}$"));

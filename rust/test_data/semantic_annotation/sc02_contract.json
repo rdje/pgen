@@ -1,0 +1,58 @@
+[
+  {
+    "name": "directive_sample_string_hint",
+    "description": "SC-02 shared contract: sample directive string payload remains parseable for explicit literal sample overrides.",
+    "input": "@sample: \"sample_seed\"",
+    "expected_round_trip": "@sample: \"sample_seed\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc02", "literal_sample_hint"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_literal_string_hint",
+    "description": "SC-02 shared contract: literal directive string payload remains parseable for literal sample overrides.",
+    "input": "@literal: \"literal_seed\"",
+    "expected_round_trip": "@literal: \"literal_seed\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc02", "literal_sample_hint"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_example_string_hint",
+    "description": "SC-02 shared contract: example directive string payload remains parseable for literal sample overrides.",
+    "input": "@example: \"example_seed\"",
+    "expected_round_trip": "@example: \"example_seed\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc02", "literal_sample_hint"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  },
+  {
+    "name": "directive_stimulus_legacy_alias_hint",
+    "description": "SC-02 shared contract: legacy stimulus alias string payload remains parseable for named literal sample overrides.",
+    "input": "@stimulus: \"legacy_seed\"",
+    "expected_round_trip": "@stimulus: \"legacy_seed\"",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "shared", "semantic", "sc02", "literal_sample_hint"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "pass"
+    }
+  }
+]

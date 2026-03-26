@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-26 - Promote SC-02 raw literal sample hint to a dedicated contract gate
+### ✅ Achievement Summary
+PGEN now treats SC-02 raw literal sample hints as a first-class Tier-4 semantic contract instead of an informal stimuli-only behavior.
+
+### Scope of Changes
+- Added:
+  - [rust/scripts/sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh)
+  - [rust/test_data/semantic_annotation/sc02_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc02_contract.json)
+- Updated:
+  - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile)
+  - [rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs)
+  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+  - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The new SC-02 gate now enforces:
+  - focused stimuli literal-hint behavior for bare string payloads
+  - named literalish directives across `@sample`, `@literal`, `@example`, and legacy `@stimulus`
+  - raw/structured string-hint coverage plus non-literalish named guards
+  - bootstrap/generated shared-suite parity for generated-comparable named forms plus comparable-only differential zero-mismatch checks
+
+### Why This Matters
+- The raw literal sample-hint seam is no longer only implied by local stimuli tests or partially covered under SC-03 routing.
+- Future sessions now have a dedicated executable contract for one of the remaining annotation behaviors that was still below the SC-03..SC-13 gate standard.
+
 ## 2026-03-26 - Add Rust repo-doc crosswalk to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact crosswalk from Rust work to the top-level repo docs that define doctrine, status, semantics, and workflow expectations.

@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Promote SC-02 raw literal sample hint to a dedicated contract gate
+### Context
+The semantic steering matrix still described SC-02 raw literal sample hints as only an implemented stimuli behavior, even though the repo already had real literal-hint logic in `stimuli_generator.rs` and partial routing coverage under SC-03. What was missing was a dedicated shared corpus and gate that treated SC-02 itself as a first-class contract seam.
+
+### Implementation
+- Added [rust/test_data/semantic_annotation/sc02_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc02_contract.json):
+  - shared bootstrap/generated semantic contract cases for the generated-comparable named literal-hint forms:
+    - `@sample`
+    - `@literal`
+    - `@example`
+    - legacy `@stimulus`
+- Added [rust/scripts/sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh):
+  - runs focused stimuli literal-hint tests
+  - runs bootstrap/generated SC-02 shared suites
+  - enforces comparable-only differential parity with `mismatched_cases == 0`
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+  - added focused SC-02 tests proving literalish directives accept both structured-string and raw-string payload forms
+  - added explicit coverage for the legacy `@stimulus` alias
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - new `sc02_contract_gate` target
+  - `annotation_contract_gate` now invokes the SC-02 gate
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
+  - SC-02 is now documented as a Tier-4 gate-enforced contract
+  - the literal-hint doctrine now explicitly matches current source behavior, including the current shared-suite/generated-parser comparability boundary
+
+### Why This Matters
+- SC-02 no longer depends on SC-03’s broader routing gate to catch regressions in the literal-hint behavior itself.
+- The semantic docs are now closer to the actual enforcement shape of the Rust stimuli pipeline.
+
 ## 2026-03-26 - Add Rust repo-doc crosswalk to analysis doc
 ### Context
 The live Rust analysis doc had become a strong map of code, artifacts, seams, and risks, but it still did not say clearly which top-level repo docs answer the non-code questions that frequently come up during Rust work: doctrine, live status, annotation meaning, semantic-steering policy, and workflow rules.

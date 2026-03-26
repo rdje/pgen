@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: add-rust-repo-doc-crosswalk-to-analysis-doc)
+Last updated: 2026-03-26 (+0100, task: promote-sc02-raw-literal-sample-hint-to-dedicated-contract-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- SC-02 raw literal sample hints are now being promoted from an informal stimuli behavior to a dedicated Tier-4 contract seam.
+- Added `rust/test_data/semantic_annotation/sc02_contract.json`:
+  - shared bootstrap/generated semantic contract cases for the generated-comparable named literal-hint forms:
+    - `@sample`
+    - `@literal`
+    - `@example`
+    - legacy `@stimulus`
+- Added `rust/scripts/sc02_contract_gate.sh`:
+  - runs focused stimuli literal-hint tests
+  - runs bootstrap/generated SC-02 shared suites
+  - enforces comparable-only differential parity with `mismatched_cases == 0`
+- `rust/src/ast_pipeline/stimuli_generator.rs` now has focused SC-02 tests proving:
+  - literalish directives accept both structured-string and raw-string payload forms
+  - the legacy `@stimulus` alias still participates in named literal-hint steering
+- `rust/Makefile` now exposes `sc02_contract_gate` and wires it into `annotation_contract_gate`.
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md` and `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` now describe SC-02 as a Tier-4 gate-enforced contract rather than a merely implemented stimuli-only behavior.
+- The SC-02 docs also now call out the current comparability boundary explicitly:
+  - focused stimuli tests cover bare-string and single-quoted/raw literal-hint behavior,
+  - the shared bootstrap/generated parity slice is currently limited to generated-comparable named string forms.
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
 - The live Rust analysis doc now also includes a `Rust-Facing Repo Doc Crosswalk` section:

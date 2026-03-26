@@ -164,7 +164,7 @@ Normative runtime leverage behavior for semantic annotations:
     - parse integer/unsigned/isize/usize targets -> `"1"`
     - parse bool targets -> `"true"`
   - Non-canonical transform expressions do not apply typed hint overrides.
-  - raw quoted payloads -> unquoted literal output
+  - bare string payloads and literalish named string payloads (`sample|literal|example|stimulus`) -> unquoted literal output
 - Shared canonical-transform parser utility:
   - `rust/src/ast_pipeline/semantic_transform.rs`
   - Used by validator, parser codegen, and stimuli hinting paths.
@@ -176,6 +176,22 @@ Normative runtime leverage behavior for semantic annotations:
     - fact emission
     - pre/post/branch predicate gating
 - Additional semantic steering contract (Phase K):
+  - SC-02 raw literal sample hint Tier-4 contract:
+    - stimuli runtime contracts:
+      - bare quoted string payloads must surface as unquoted literal sample hints,
+      - named literalish directives (`sample|literal|example|stimulus`) must surface string payloads as unquoted literal sample hints,
+      - both raw-string and structured-string semantic payload representations must preserve that literal hint behavior,
+      - non-literalish named directives must not override regex-driven sample generation.
+    - dedicated shared semantic contract slice:
+      - `rust/test_data/semantic_annotation/sc02_contract.json`
+      - shared bootstrap/generated parity currently targets the generated-comparable named string forms (`@sample|@literal|@example|@stimulus`),
+      - bare-string and single-quoted named-string literal-hint behavior remain covered by focused stimuli runtime contracts.
+    - dedicated gate target:
+      - `make -C rust sc02_contract_gate`
+    - gate includes differential mismatch taxonomy parity checks over the SC-02 suite:
+      - allowed mismatch categories are constrained to the differential taxonomy set,
+      - category-count totals must match `mismatched_cases`,
+      - SC-02 comparable corpus currently requires `mismatched_cases == 0`.
   - SC-03 typed directive routing + strictness policy contract:
     - directive names are resolved through typed registry entries (`semantic_directive_spec(...)`),
     - unknown directive behavior is policy-controlled (`ignore|warn|strict`),
