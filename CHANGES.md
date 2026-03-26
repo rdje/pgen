@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-27 - Lock SC-07 and SC-08 annotation contract policy
+### ✅ Achievement Summary
+PGEN's local CI workflow gate now protects SC-07 and SC-08 inside the shared annotation semantic contract audit, extending the policy guard surface to the recovery/sync and value-domain seams.
+
+### Scope of Changes
+- Updated:
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The local-CI audit now also asserts that:
+  - `rust/Makefile` still advertises and invokes `sc07_contract_gate` and `sc08_contract_gate`
+  - the normative spec still references both gate entrypoints
+  - the steering matrix still references `semantic_annotation_sc07_contract` and `semantic_annotation_sc08_contract`
+  - `sc07_contract_gate.sh` and `sc08_contract_gate.sh` still target the correct suites and report paths
+  - both gate scripts still require `total_cases > 0`
+  - both shared contract JSON files still record pass/pass generated parity
+
+### Why This Matters
+- SC-07 and SC-08 are now guarded by the same local annotation policy layer as the other recently hardened semantic seams.
+- That reduces the chance of drift between their gate scripts, suite files, Makefile wiring, and docs.
+
 ## 2026-03-27 - Lock SC-05 and SC-06 annotation contract policy
 ### ✅ Achievement Summary
 PGEN's local CI workflow gate now protects SC-05 and SC-06 inside the shared annotation semantic contract audit, extending the policy guard surface to the precedence/associativity and branch-policy seams.

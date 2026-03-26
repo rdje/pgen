@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Lock SC-07 and SC-08 annotation contract policy
+### Context
+The local annotation semantic contract audit had already been extended through SC-06 and SC-13, but SC-07 and SC-08 were still outside that same policy layer. That left their Makefile wiring, suite ids, report paths, and pass/pass parity expectations guarded only indirectly.
+
+### Implementation
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the annotation semantic contract audit now also asserts:
+    - `rust/Makefile` still advertises and invokes `sc07_contract_gate` and `sc08_contract_gate`
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc07_contract` and `semantic_annotation_sc08_contract`
+    - [sc07_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc07_contract_gate.sh) and [sc08_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc08_contract_gate.sh) still target the correct suites and report paths
+    - both gate scripts still require `total_cases > 0`
+    - [sc07_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc07_contract.json) and [sc08_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc08_contract.json) still record pass/pass generated parity
+- Updated the continuity docs to record that SC-07 and SC-08 now share the same local policy guard surface as the other annotation contract seams.
+
+### Why This Matters
+- SC-07 and SC-08 are now covered by the same local annotation policy audit as the rest of the recently hardened semantic gates.
+- That keeps their gate scripts, suite files, docs, and parity expectations from drifting apart quietly.
+
 ## 2026-03-27 - Lock SC-05 and SC-06 annotation contract policy
 ### Context
 The local annotation semantic contract audit had already been extended through SC-04 and SC-13, but SC-05 and SC-06 were still outside that same policy layer. That left their Makefile wiring, suite ids, report paths, and pass/pass parity expectations guarded only indirectly.
