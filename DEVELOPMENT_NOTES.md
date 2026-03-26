@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Add Rust repo-doc crosswalk to analysis doc
+### Context
+The live Rust analysis doc had become a strong map of code, artifacts, seams, and risks, but it still did not say clearly which top-level repo docs answer the non-code questions that frequently come up during Rust work: doctrine, live status, annotation meaning, semantic-steering policy, and workflow rules.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added a `Rust-Facing Repo Doc Crosswalk` section near the top-of-doc orientation area.
+- The new section now maps Rust work to the main top-level docs for:
+  - repo orientation
+  - session-start onboarding
+  - user-facing workflow framing
+  - live closure/status truth
+  - roadmap/doctrine
+  - annotation semantics
+  - semantic-steering policy
+  - workflow/continuity expectations
+
+### Why This Matters
+- Future sessions now have a compact answer to “which doc should I open for this Rust-side question?”
+- That should make architecture work less code-only and better aligned with project intent.
+
 ## 2026-03-26 - Add Rust review-hotspot guide to analysis doc
 ### Context
 The live Rust analysis doc already named high-risk files and change-coupling clusters, but it still did not say what kinds of regressions should be reviewed for first in those hotspots. That made the document stronger for navigation than for actual review work.

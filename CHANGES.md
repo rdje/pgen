@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-26 - Add Rust repo-doc crosswalk to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact crosswalk from Rust work to the top-level repo docs that define doctrine, status, semantics, and workflow expectations.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now includes a `Rust-Facing Repo Doc Crosswalk` section covering:
+  - `README.md`
+  - `QUICKSTART_AI_ONBOARDING.md`
+  - `PGEN_USER_GUIDE.md`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `COMMIT.md`
+  - continuity docs
+
+### Why This Matters
+- Future sessions now have one explicit place to decide which top-level doc answers a Rust-side doctrine, status, semantics, or workflow question.
+- That should reduce code-only reasoning when the real answer lives in project policy or continuity docs.
+
 ## 2026-03-26 - Add Rust review-hotspot guide to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact review-hotspot guide so future sessions can see the first regression types to look for in the highest-blast-radius Rust and proof files.

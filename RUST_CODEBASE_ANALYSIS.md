@@ -43,6 +43,51 @@ Operational rule:
 - When a task says “the Rust codebase,” default to `rust/` first, then pull in `rtl_const_expr/` and `rtl_frontend/` when the task touches Phase S or frontend/constant-expression ownership.
 - Do not let peripheral Cargo manifests distract from the main architecture unless the task is explicitly about those support crates.
 
+## Rust-Facing Repo Doc Crosswalk
+- `README.md`
+  - Use for:
+    - repo-level orientation
+    - current doc map
+    - first-hop navigation into the maintained project surfaces
+- `QUICKSTART_AI_ONBOARDING.md`
+  - Use for:
+    - session-start ramp-up expectations
+    - which current docs a new session should read first
+- `PGEN_USER_GUIDE.md`
+  - Use for:
+    - user-facing workflow framing
+    - understanding which operational surfaces are meant to be consumed externally
+- `LIVE_ACHIEVEMENT_STATUS.md`
+  - Use for:
+    - current closure/status truth
+    - distinguishing architecture work from “family actually closed” claims
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - Use for:
+    - current project doctrine
+    - phase/closure expectations
+    - deferred or still-open engineering directions
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - Use for:
+    - return/semantic annotation meaning
+    - typed-annotation intent that should constrain Rust-side parser/generator/runtime changes
+- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - Use for:
+    - semantic-steering behavior expectations
+    - understanding whether a semantic-runtime or stimuli/generator change still matches repo policy
+- `COMMIT.md`
+  - Use for:
+    - workflow and continuity expectations
+    - knowing when `RUST_CODEBASE_ANALYSIS.md` itself should be refreshed as part of a task
+- `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`
+  - Use for:
+    - short-term continuity
+    - recent implementation history
+    - crash/handoff recovery
+
+Operational rule:
+- If a Rust task raises a question about doctrine, status, semantics, or workflow, reach for the matching repo doc instead of trying to infer everything from code alone.
+- The code explains implementation; these docs explain whether the current implementation is aligned with project intent.
+
 ## Executive Summary
 - PGEN's Rust codebase is not just a parser implementation. It is a parser-generation and parser-proof platform.
 - The center of gravity is the AST pipeline in `rust/src/ast_pipeline/`, especially:
