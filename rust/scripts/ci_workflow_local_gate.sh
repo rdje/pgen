@@ -194,11 +194,15 @@ audit_annotation_semantic_contract_surface() {
   assert_tracked "rust/scripts/sc02_contract_gate.sh"
   assert_tracked "rust/scripts/sc03_contract_gate.sh"
   assert_tracked "rust/scripts/sc04_contract_gate.sh"
+  assert_tracked "rust/scripts/sc05_contract_gate.sh"
+  assert_tracked "rust/scripts/sc06_contract_gate.sh"
   assert_tracked "rust/scripts/sc13_contract_gate.sh"
   assert_tracked "rust/test_data/semantic_annotation/sc01_contract.json"
   assert_tracked "rust/test_data/semantic_annotation/sc02_contract.json"
   assert_tracked "rust/test_data/semantic_annotation/sc03_contract.json"
   assert_tracked "rust/test_data/semantic_annotation/sc04_contract.json"
+  assert_tracked "rust/test_data/semantic_annotation/sc05_contract.json"
+  assert_tracked "rust/test_data/semantic_annotation/sc06_contract.json"
   assert_tracked "rust/test_data/semantic_annotation/sc13_contract.json"
 
   assert_file_contains \
@@ -215,6 +219,12 @@ audit_annotation_semantic_contract_surface() {
     'sc04_contract_gate - Enforce SC-04 token steering Tier-4 contract slices + differential taxonomy checks'
   assert_file_contains \
     "rust/Makefile" \
+    'sc05_contract_gate - Enforce SC-05 precedence/associativity Tier-4 contract slices + differential taxonomy checks'
+  assert_file_contains \
+    "rust/Makefile" \
+    'sc06_contract_gate - Enforce SC-06 branch weighting/selection Tier-4 contract slices + differential taxonomy checks'
+  assert_file_contains \
+    "rust/Makefile" \
     'sc13_contract_gate - Enforce SC-13 profiles/runtime-scaffold Tier-4 contract slices + differential taxonomy checks'
   assert_file_contains \
     "rust/Makefile" \
@@ -228,6 +238,12 @@ audit_annotation_semantic_contract_surface() {
   assert_file_contains \
     "rust/Makefile" \
     '@$(MAKE) -C $(RUST_DIR) sc04_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) sc05_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) sc06_contract_gate'
   assert_file_contains \
     "rust/Makefile" \
     '@$(MAKE) -C $(RUST_DIR) sc13_contract_gate'
@@ -246,6 +262,12 @@ audit_annotation_semantic_contract_surface() {
     '`make -C rust sc04_contract_gate`'
   assert_file_contains \
     "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust sc05_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    '`make -C rust sc06_contract_gate`'
+  assert_file_contains \
+    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc13_contract_gate`'
 
   assert_file_contains \
@@ -260,6 +282,12 @@ audit_annotation_semantic_contract_surface() {
   assert_file_contains \
     "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc04_contract'
+  assert_file_contains \
+    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    'semantic_annotation_sc05_contract'
+  assert_file_contains \
+    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    'semantic_annotation_sc06_contract'
   assert_file_contains \
     "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc13_contract'
@@ -308,6 +336,26 @@ audit_annotation_semantic_contract_surface() {
     '(.total_cases > 0) and'
 
   assert_file_contains \
+    "rust/scripts/sc05_contract_gate.sh" \
+    'semantic_annotation_sc05_contract'
+  assert_file_contains \
+    "rust/scripts/sc05_contract_gate.sh" \
+    'target/sc05_contract_gate/work/sc05_semantic_differential_report.json'
+  assert_file_contains \
+    "rust/scripts/sc05_contract_gate.sh" \
+    '(.total_cases > 0) and'
+
+  assert_file_contains \
+    "rust/scripts/sc06_contract_gate.sh" \
+    'semantic_annotation_sc06_contract'
+  assert_file_contains \
+    "rust/scripts/sc06_contract_gate.sh" \
+    'target/sc06_contract_gate/work/sc06_semantic_differential_report.json'
+  assert_file_contains \
+    "rust/scripts/sc06_contract_gate.sh" \
+    '(.total_cases > 0) and'
+
+  assert_file_contains \
     "rust/scripts/sc13_contract_gate.sh" \
     'semantic_annotation_sc13_contract'
   assert_file_contains \
@@ -328,6 +376,12 @@ audit_annotation_semantic_contract_surface() {
     '"generated_parser": "pass"'
   assert_file_contains \
     "rust/test_data/semantic_annotation/sc04_contract.json" \
+    '"generated_parser": "pass"'
+  assert_file_contains \
+    "rust/test_data/semantic_annotation/sc05_contract.json" \
+    '"generated_parser": "pass"'
+  assert_file_contains \
+    "rust/test_data/semantic_annotation/sc06_contract.json" \
     '"generated_parser": "pass"'
   assert_file_contains \
     "rust/test_data/semantic_annotation/sc13_contract.json" \

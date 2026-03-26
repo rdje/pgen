@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: lock-sc03-sc04-annotation-contract-policy)
+Last updated: 2026-03-27 (+0100, task: lock-sc05-sc06-annotation-contract-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,15 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo now extends the local annotation semantic contract audit to SC-05 and SC-06 as well.
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
+  - `rust/Makefile` still advertises and invokes `sc05_contract_gate` and `sc06_contract_gate`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` still references both gate entrypoints
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` still references `semantic_annotation_sc05_contract` and `semantic_annotation_sc06_contract`
+  - `sc05_contract_gate.sh` and `sc06_contract_gate.sh` still target the correct suites and report paths
+  - both gate scripts still require `total_cases > 0`
+  - `sc05_contract.json` and `sc06_contract.json` still record pass/pass generated parity
+- SC-05 and SC-06 now share the same local annotation policy guard surface as the other hardened semantic seams.
 - The repo now extends the local annotation semantic contract audit to SC-03 and SC-04 as well.
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
   - `rust/Makefile` still advertises and invokes `sc03_contract_gate` and `sc04_contract_gate`
