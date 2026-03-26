@@ -14,6 +14,62 @@
     }
   },
   {
+    "name": "structured_array_payload_is_retained",
+    "description": "Bootstrap semantic parser accepts the current structured array subset and round-trips it canonically.",
+    "input": " [9, $1, foo] ",
+    "expected_round_trip": "[9, $1, foo]",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic", "structured"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "structured_object_payload_with_rule_reference_is_retained",
+    "description": "Bootstrap semantic parser accepts structured object payloads with identifier keys and rule-reference values.",
+    "input": " { kind: type_name, name: $class_identifier } ",
+    "expected_round_trip": "{ kind: type_name, name: $class_identifier }",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic", "structured"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "single_quoted_string_payload_is_retained",
+    "description": "Bootstrap semantic parser accepts the current single-quoted structured string subset.",
+    "input": " 'scoped_name' ",
+    "expected_round_trip": "'scoped_name'",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic", "structured"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
+    "name": "dotted_identifier_payload_is_retained",
+    "description": "Bootstrap semantic parser accepts dotted identifier payloads as part of the current structured scalar subset.",
+    "input": " lhs.ready ",
+    "expected_round_trip": "lhs.ready",
+    "parser_type": "semantic",
+    "normalizer": "text",
+    "tier": "A",
+    "tags": ["normative_contract", "bootstrap", "builtin_semantic", "structured"],
+    "expectations": {
+      "bootstrap_parser": "pass",
+      "generated_parser": "skip"
+    }
+  },
+  {
     "name": "canonical_transform_marker_pattern_is_transform_expr",
     "description": "Payload containing both parse and unwrap markers is classified as TransformExpr.",
     "input": "str::parse::<u32>().unwrap_or(0)",

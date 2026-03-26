@@ -24753,3 +24753,12 @@ Architectural north star:
   - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` was also incomplete relative to the current typed registry/runtime surface; it now includes `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate`, plus notes the `@profiles` parser-side leverage asymmetry and legacy non-registry `@stimulus` alias.
   - `grammars/builtin_semantic_annotation.ebnf` was refreshed as well, because the bootstrap compatibility grammar had the same stale transform-vs-raw-only assumption.
   - Also refreshed the matching builtin semantic contract-case prose in `rust/test_data/semantic_annotation/builtin_contract.json` so the contract corpus description no longer calls trimmed simple payloads "raw" when the current bootstrap parser classifies them as `Structured`.
+- 2026-03-26: Followed the doc-alignment fix with stronger executable bootstrap semantic coverage.
+  - Added builtin semantic contract cases for:
+    - structured arrays
+    - structured objects with rule references
+    - single-quoted structured strings
+    - dotted identifiers
+  - Added focused `unified_semantic_ast.rs` tests proving:
+    - those structured payloads classify as `Structured`
+    - malformed structured prefixes still fall back to `Raw` instead of erroring

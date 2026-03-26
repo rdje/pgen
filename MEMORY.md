@@ -6815,3 +6815,10 @@ Use this file to resume work without replaying full chat history.
     - `stimulus` remains a legacy stimuli-routing alias and is not registry-listed.
   - `grammars/builtin_semantic_annotation.ebnf` was updated in the same pass so the bootstrap executable compatibility grammar stays aligned with `unified_semantic_ast.rs`.
   - Also refreshed the first builtin semantic contract-case description so the checked-in bootstrap contract corpus prose matches the current `Structured` classification for simple trimmed payloads.
+- 2026-03-26: Strengthened the executable bootstrap semantic contract after the doc/spec alignment.
+  - `rust/test_data/semantic_annotation/builtin_contract.json` now covers the structured bootstrap subset more explicitly:
+    - arrays
+    - objects with rule references
+    - single-quoted strings
+    - dotted identifiers
+  - `rust/src/ast_pipeline/unified_semantic_ast.rs` now also has focused classification/fallback tests so the documented `TransformExpr | Structured | Raw` boundary is asserted in code, not just prose.

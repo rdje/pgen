@@ -578,6 +578,51 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn bootstrap_semantic_structures_object_payload_with_rule_reference() {
+        let logger = crate::test_runner::NoOpLogger;
+        let parsed = UnifiedSemanticAST::parse_bootstrap(
+            " { kind: type_name, name: $class_identifier } ",
+            &logger,
+        )
+        .expect("bootstrap semantic parser should retain structured object payloads");
+        assert!(matches!(
+            parsed,
+            UnifiedSemanticAST::Structured { ref canonical, .. }
+                if canonical == "{ kind: type_name, name: $class_identifier }"
+        ));
+    }
+
+    #[test]
+    fn bootstrap_semantic_structures_single_quoted_and_dotted_identifier_payloads() {
+        let logger = crate::test_runner::NoOpLogger;
+
+        let single_quoted = UnifiedSemanticAST::parse_bootstrap(" 'scoped_name' ", &logger)
+            .expect("bootstrap semantic parser should retain single-quoted strings");
+        assert!(matches!(
+            single_quoted,
+            UnifiedSemanticAST::Structured { ref canonical, .. } if canonical == "'scoped_name'"
+        ));
+
+        let dotted_identifier = UnifiedSemanticAST::parse_bootstrap(" lhs.ready ", &logger)
+            .expect("bootstrap semantic parser should retain dotted identifiers");
+        assert!(matches!(
+            dotted_identifier,
+            UnifiedSemanticAST::Structured { ref canonical, .. } if canonical == "lhs.ready"
+        ));
+    }
+
+    #[test]
+    fn bootstrap_semantic_invalid_structured_prefix_falls_back_to_raw() {
+        let logger = crate::test_runner::NoOpLogger;
+        let parsed = UnifiedSemanticAST::parse_bootstrap("{ kind: }", &logger)
+            .expect("bootstrap semantic parser should never error on invalid structured syntax");
+        assert!(matches!(
+            parsed,
+            UnifiedSemanticAST::Raw { ref content } if content == "{ kind: }"
+        ));
+    }
+
     #[cfg(feature = "generated_parsers")]
     #[test]
     fn generated_semantic_tree_to_ast_supports_transform_and_named_raw() {
