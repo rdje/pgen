@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-26 - Add Rust open-architecture questions to analysis doc
+### Context
+The live Rust analysis doc had become strong on current structure, risks, invariants, and recommended refactors, but it still did not say in one place which architecture decisions remain genuinely open. That made it too easy to read current tradeoffs as if they were already settled doctrine.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - added an `Open Architecture Questions` section near the steering/refactor/session-start area.
+- The new section now records active questions around:
+  - giant-engine file splitting
+  - dispatch/adapter unification
+  - canonical versus carryover test layers
+  - shell-versus-Rust proof-spine ownership
+  - family-asymmetry normalization
+  - `rust/` versus companion RTL crate boundaries
+
+### Why This Matters
+- Future sessions now have a compact reminder that some high-level design choices are still open, not fixed.
+- That should improve architectural judgment and make this live analysis doc more honest about uncertainty.
+
 ## 2026-03-26 - Add Rust companion-crate map to analysis doc
 ### Context
 The live Rust analysis doc focused correctly on the main `rust/` implementation, but it still did not say plainly how the other Cargo manifests in the repo relate to that main crate. That made it too easy to forget the active `rtl_const_expr` / `rtl_frontend` companions or to waste time in peripheral manifests. The doc’s own top-level `Last updated` line also needed to catch up with the current session date.

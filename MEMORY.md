@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-26 (+0100, task: add-rust-companion-crate-map-to-analysis-doc)
+Last updated: 2026-03-26 (+0100, task: add-rust-open-architecture-questions-to-analysis-doc)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -10,6 +10,15 @@ Use this file to resume work without replaying full chat history.
 ## Current Session Note
 - The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
+- The live Rust analysis doc now also includes an `Open Architecture Questions` section:
+  - a compact list of the high-level design points that are still unresolved rather than settled.
+- That new section covers:
+  - splitting giant engine files safely
+  - dispatch/adapter unification
+  - canonical versus carryover test layers
+  - shell-versus-Rust proof-spine ownership
+  - family-asymmetry normalization
+  - the long-term relationship between `rust/` and the companion RTL crates
 - The live Rust analysis doc now also includes a `Rust-Adjacent Cargo Surface` section:
   - a compact map of which Cargo manifests are central, companion, or peripheral to the live Rust architecture.
 - That new section covers:

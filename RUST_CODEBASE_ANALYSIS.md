@@ -1268,6 +1268,41 @@ Operational rule:
   - CLI/binary consumers
 - Clarify which test layers are canonical and which are legacy carryovers.
 
+## Open Architecture Questions
+- How far can the giant engine files be split without weakening artifact/proof seams?
+  - Main hotspots:
+    - `rust/src/main.rs`
+    - `rust/src/ast_pipeline/mod.rs`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+- Can parser dispatch be unified further without hiding important feature/cfg/build-path realities?
+  - Main seam:
+    - `rust/src/parser_registry.rs`
+    - `rust/src/embedding_api.rs`
+    - CLI consumers
+- Which older/carryover test layers still provide unique value, and which are just maintenance drag?
+  - Main seam:
+    - `test_runner` versus `rust/src/test_registry.rs` / `rust/src/test_discovery.rs`
+- How much of the proof spine should remain in shell versus moving into Rust?
+  - Main seam:
+    - `rust/scripts/*.sh`
+    - Rust-produced artifacts and machine-readable reports
+- Which family asymmetries are permanent design facts versus candidates for normalization?
+  - Main seam:
+    - `ebnf`
+    - tracked annotation parsers
+    - env-driven generated families
+    - companion crates like `rtl_const_expr` / `rtl_frontend`
+- What is the long-term relationship between the main `rust/` crate and the companion RTL crates?
+  - Main seam:
+    - `rust/`
+    - `rtl_const_expr/`
+    - `rtl_frontend/`
+
+Operational rule:
+- Treat these as active design questions, not settled doctrine.
+- If a future task materially resolves one of them, refresh this section instead of letting the answer stay implicit in scattered commits.
+
 ## What To Re-Check At The Start Of A New Session
 - Whether the hotspot files and their responsibilities have materially shifted.
 - Whether new grammar families or generated parser integrations changed the build/registry shape.

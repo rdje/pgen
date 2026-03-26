@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-26 - Add Rust open-architecture questions to analysis doc
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes a compact `Open Architecture Questions` section so future sessions can distinguish unresolved design choices from settled doctrine.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust analysis doc now records open questions around:
+  - splitting giant engine files safely
+  - dispatch/adapter unification
+  - canonical versus carryover test layers
+  - shell-versus-Rust proof-spine ownership
+  - grammar-family asymmetry normalization
+  - the long-term relationship between `rust/` and the companion RTL crates
+
+### Why This Matters
+- Future sessions now have one explicit place to see which design points are still intentionally unresolved.
+- That should reduce the chance of treating an open architecture question as if it were already settled repo doctrine.
+
 ## 2026-03-26 - Add Rust companion-crate map to analysis doc
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes a compact map of the Rust-adjacent Cargo surfaces so future sessions can distinguish the main `rust/` crate from active companion crates and peripheral manifests.
