@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: lock-sc09-sc10-annotation-contract-policy)
+Last updated: 2026-03-27 (+0100, task: lock-sc11-sc12-annotation-contract-policy)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,15 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repo now extends the local annotation semantic contract audit to SC-11 and SC-12 as well.
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
+  - `rust/Makefile` still advertises and invokes `sc11_contract_gate` and `sc12_contract_gate`
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` still references both gate entrypoints
+  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` still references `semantic_annotation_sc11_contract` and `semantic_annotation_sc12_contract`
+  - `sc11_contract_gate.sh` and `sc12_contract_gate.sh` still target the correct suites and report paths
+  - both gate scripts still require `total_cases > 0`
+  - `sc11_contract.json` and `sc12_contract.json` still record pass/pass generated parity
+- SC-11 and SC-12 now share the same local annotation policy guard surface as the other hardened semantic seams.
 - The repo now extends the local annotation semantic contract audit to SC-09 and SC-10 as well.
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts:
   - `rust/Makefile` still advertises and invokes `sc09_contract_gate` and `sc10_contract_gate`

@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-27 - Lock SC-11 and SC-12 annotation contract policy
+### ✅ Achievement Summary
+PGEN's local CI workflow gate now protects SC-11 and SC-12 inside the shared annotation semantic contract audit, extending the policy guard surface to the negative-case and deterministic-partition seams.
+
+### Scope of Changes
+- Updated:
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The local-CI audit now also asserts that:
+  - `rust/Makefile` still advertises and invokes `sc11_contract_gate` and `sc12_contract_gate`
+  - the normative spec still references both gate entrypoints
+  - the steering matrix still references `semantic_annotation_sc11_contract` and `semantic_annotation_sc12_contract`
+  - `sc11_contract_gate.sh` and `sc12_contract_gate.sh` still target the correct suites and report paths
+  - both gate scripts still require `total_cases > 0`
+  - both shared contract JSON files still record pass/pass generated parity
+
+### Why This Matters
+- SC-11 and SC-12 are now guarded by the same local annotation policy layer as the other recently hardened semantic seams.
+- That reduces the chance of drift between their gate scripts, suite files, Makefile wiring, and docs.
+
 ## 2026-03-27 - Lock SC-09 and SC-10 annotation contract policy
 ### ✅ Achievement Summary
 PGEN's local CI workflow gate now protects SC-09 and SC-10 inside the shared annotation semantic contract audit, extending the policy guard surface to the relational and coverage-target seams.
