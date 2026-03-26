@@ -407,6 +407,18 @@ audit_annotation_aggregate_contract_surface() {
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
     '- `return_annotation_support_gate`'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '### If the task is return/semantic annotation parsing or validation'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'And pick the nearest aggregate proof surface:'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '### If the task is proof plumbing, contract sidecars, or release-gate behavior'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'For annotation-specific proof plumbing, narrow quickly to:'
 }
 
 audit_annotation_semantic_contract_surface() {

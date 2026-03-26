@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: surface-annotation-proof-spine-in-entry-docs)
+Last updated: 2026-03-27 (+0100, task: add-annotation-proof-spine-navigation-to-rust-analysis)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,15 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `RUST_CODEBASE_ANALYSIS.md` now points annotation-heavy tasks toward the aggregate annotation proof spine directly.
+- Under task-oriented navigation, annotation parsing/validation work now explicitly routes readers toward:
+  - `annotation_contract_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+  - `annotation_stimuli_quality_gate`
+- The proof-plumbing task path now also narrows annotation-specific gate work to that same proof spine.
+- `rust/scripts/ci_workflow_local_gate.sh` now asserts those new task-navigation cues in the live Rust analysis doc.
+- The Rust analysis task map now links annotation code-start points to the aggregate validation surfaces the repo actually relies on.
 - The repo-entry docs now surface the aggregate annotation proof spine more explicitly.
 - `README.md` now points readers directly to:
   - `annotation_contract_gate`

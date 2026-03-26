@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Add annotation proof-spine navigation to Rust analysis
+### Context
+The live Rust analysis doc now named the aggregate annotation proof seam, but its task-oriented navigation still treated annotation work as mostly a code-module problem. That was missing an important repo-specific reality: annotation changes are only really “done” when they still fit the aggregate annotation proof spine.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - under `If the task is return/semantic annotation parsing or validation`, added:
+    - the usual aggregate-doc follow-up files
+    - the nearest aggregate proof surfaces to choose from:
+      - `annotation_contract_gate`
+      - `semantic_full_contract_gate`
+      - `return_annotation_support_gate`
+      - `annotation_stimuli_quality_gate`
+  - under `If the task is proof plumbing, contract sidecars, or release-gate behavior`, added an annotation-specific narrowing list for the same proof spine
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts those task-navigation cues in the live Rust analysis doc
+- Updated the continuity docs to record that the Rust analysis task map now explicitly points annotation work toward the aggregate proof spine.
+
+### Why This Matters
+- The live Rust analysis doc now tells future sessions not only where the annotation code lives, but also which proof surfaces should anchor validation and closure work.
+- Local CI now keeps that navigation guidance from drifting away from the repo’s actual annotation contract story.
+
 ## 2026-03-27 - Surface annotation proof spine in entry docs
 ### Context
 The detailed operator docs now described the aggregate annotation contract spine well, but the repo-entry docs still under-surfaced it. That meant a new session could land in `README.md`, `QUICKSTART_AI_ONBOARDING.md`, or `RUST_CODEBASE_ANALYSIS.md` and still miss the top-level annotation proof surfaces that actually steer Rust annotation closure work.

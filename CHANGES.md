@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-27 - Add annotation proof-spine navigation to Rust analysis
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now points annotation-heavy tasks toward the aggregate proof surfaces directly, and local CI now protects that navigation guidance.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The task-oriented Rust analysis navigation now:
+  - tells annotation parsing/validation work to inspect the aggregate proof surfaces
+  - tells annotation-specific proof-plumbing work to narrow quickly to the annotation proof spine
+- The local-CI aggregate annotation audit now also asserts those new analysis-doc cues.
+
+### Why This Matters
+- Future sessions now get both code-level starting points and the right top-level proof targets from the same live analysis doc.
+- That reduces the risk of fixing annotation internals while forgetting the aggregate evidence path that the repo actually claims.
+
 ## 2026-03-27 - Surface annotation proof spine in entry docs
 ### ✅ Achievement Summary
 PGEN's repo-entry docs now expose the aggregate annotation proof spine more clearly, and local CI now protects those high-level references against drift.

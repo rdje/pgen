@@ -789,9 +789,21 @@ Start here:
 - `rust/src/ast_pipeline/semantic_directive_registry.rs`
 - `rust/src/ast_pipeline/semantic_runtime.rs`
 
+Then usually inspect:
+- `rust/Makefile`
+- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `PGEN_USER_GUIDE.md`
+
+And pick the nearest aggregate proof surface:
+- `annotation_contract_gate`
+- `semantic_full_contract_gate`
+- `return_annotation_support_gate`
+- `annotation_stimuli_quality_gate`
+
 Reason:
 - The typed annotation model, validator rules, directive registry, and runtime behavior are split across these files.
 - It is easy to fix one layer and accidentally leave the others inconsistent.
+- In this repo, annotation work is not fully real until it still fits the aggregate proof spine that operators and CI actually run.
 
 ### If the task is external integration or embedder-facing API behavior
 Start here:
@@ -844,6 +856,12 @@ Start here:
 - `rust/src/bin/parseability_probe.rs`
 - `rust/src/parser_registry.rs`
 - `rust/src/embedding_api.rs`
+
+For annotation-specific proof plumbing, narrow quickly to:
+- `annotation_contract_gate`
+- `semantic_full_contract_gate`
+- `return_annotation_support_gate`
+- `annotation_stimuli_quality_gate`
 
 Reason:
 - A large amount of project truth now lives in the shell-gate layer and the artifacts it consumes/emits.
