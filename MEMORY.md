@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: add-annotation-proof-spine-navigation-to-rust-analysis)
+Last updated: 2026-03-27 (+0100, task: clarify-annotation-proof-doc-routing-in-rust-analysis)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,13 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `RUST_CODEBASE_ANALYSIS.md` now routes aggregate annotation proof questions to the right repo docs more explicitly.
+- In `Rust-Facing Repo Doc Crosswalk`, it now says:
+  - `README.md` is the high-level entrypoint into aggregate annotation proof surfaces
+  - `PGEN_USER_GUIDE.md` is the operator-facing map of aggregate annotation / semantic / return local gates
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` carries the annotation proof obligations and gate targets behind aggregate annotation claims
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts those crosswalk cues.
+- The Rust-analysis doc-routing layer is now explicit and local-policy-guarded for annotation proof questions.
 - `RUST_CODEBASE_ANALYSIS.md` now points annotation-heavy tasks toward the aggregate annotation proof spine directly.
 - Under task-oriented navigation, annotation parsing/validation work now explicitly routes readers toward:
   - `annotation_contract_gate`

@@ -49,6 +49,7 @@ Operational rule:
     - repo-level orientation
     - current doc map
     - first-hop navigation into the maintained project surfaces
+    - high-level entrypoints into aggregate annotation proof surfaces
 - `QUICKSTART_AI_ONBOARDING.md`
   - Use for:
     - session-start ramp-up expectations
@@ -57,6 +58,7 @@ Operational rule:
   - Use for:
     - user-facing workflow framing
     - understanding which operational surfaces are meant to be consumed externally
+    - operator-facing map of aggregate annotation / semantic / return local gates
 - `LIVE_ACHIEVEMENT_STATUS.md`
   - Use for:
     - current closure/status truth
@@ -70,6 +72,7 @@ Operational rule:
   - Use for:
     - return/semantic annotation meaning
     - typed-annotation intent that should constrain Rust-side parser/generator/runtime changes
+    - annotation proof obligations and gate targets behind aggregate annotation claims
 - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - Use for:
     - semantic-steering behavior expectations

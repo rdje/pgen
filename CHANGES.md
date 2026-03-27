@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-27 - Clarify annotation proof-doc routing in Rust analysis
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now tells future sessions more explicitly which repo docs answer aggregate annotation proof-spine questions, and local CI now protects those crosswalk cues.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust-analysis doc crosswalk now explicitly says:
+  - `README.md` is the high-level entrypoint for aggregate annotation proof surfaces
+  - `PGEN_USER_GUIDE.md` is the operator-facing map of aggregate annotation / semantic / return local gates
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` carries the annotation proof obligations and gate targets behind aggregate annotation claims
+- The local-CI aggregate annotation audit now asserts those new crosswalk cues.
+
+### Why This Matters
+- Future sessions can now find the right annotation proof doc faster from the analysis doc alone.
+- CI now protects not only the proof-spine map, but also the doc-routing advice that points people to it.
+
 ## 2026-03-27 - Add annotation proof-spine navigation to Rust analysis
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now points annotation-heavy tasks toward the aggregate proof surfaces directly, and local CI now protects that navigation guidance.

@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Clarify annotation proof-doc routing in Rust analysis
+### Context
+The live Rust analysis doc already named the aggregate annotation proof spine, but its repo-doc crosswalk still described the relevant docs too generically. That made it slower than necessary for a future session to answer a narrow question like “which doc explains the operator-facing annotation gate map?” or “which doc defines the aggregate annotation proof obligations?”
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - in `Rust-Facing Repo Doc Crosswalk`, clarified that:
+    - [README.md](/Users/richarddje/Documents/github/pgen/README.md) is the high-level entrypoint into aggregate annotation proof surfaces
+    - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md) is the operator-facing map of aggregate annotation / semantic / return local gates
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) carries the annotation proof obligations and gate targets behind aggregate annotation claims
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts those new crosswalk cues
+- Updated the continuity docs to record that the Rust-analysis doc-routing layer is now explicit for annotation proof questions.
+
+### Why This Matters
+- The live Rust analysis doc now routes annotation-proof questions to the right repo doc faster.
+- Local CI now protects that crosswalk guidance from drifting back into generic, lower-signal wording.
+
 ## 2026-03-27 - Add annotation proof-spine navigation to Rust analysis
 ### Context
 The live Rust analysis doc now named the aggregate annotation proof seam, but its task-oriented navigation still treated annotation work as mostly a code-module problem. That was missing an important repo-specific reality: annotation changes are only really “done” when they still fit the aggregate annotation proof spine.

@@ -409,6 +409,15 @@ audit_annotation_aggregate_contract_surface() {
     '- `return_annotation_support_gate`'
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
+    'high-level entrypoints into aggregate annotation proof surfaces'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'operator-facing map of aggregate annotation / semantic / return local gates'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'annotation proof obligations and gate targets behind aggregate annotation claims'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
     '### If the task is return/semantic annotation parsing or validation'
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
