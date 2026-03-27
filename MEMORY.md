@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: clarify-annotation-proof-doc-routing-in-rust-analysis)
+Last updated: 2026-03-27 (+0100, task: add-annotation-validation-guidance-to-rust-analysis)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `RUST_CODEBASE_ANALYSIS.md` now gives more explicit aggregate-gate rerun guidance for annotation-heavy changes.
+- In `Change-Impact Checklist` and `Validation Ladder By Change Type`, annotation work now points readers toward:
+  - `annotation_contract_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+  - `annotation_stimuli_quality_gate`
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts those annotation-specific validation cues.
+- The live Rust analysis doc now links annotation change types to the right aggregate proof reruns.
 - `RUST_CODEBASE_ANALYSIS.md` now routes aggregate annotation proof questions to the right repo docs more explicitly.
 - In `Rust-Facing Repo Doc Crosswalk`, it now says:
   - `README.md` is the high-level entrypoint into aggregate annotation proof surfaces

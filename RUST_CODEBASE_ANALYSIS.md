@@ -1025,6 +1025,11 @@ Use this as a first-pass companion-check map, not as a complete proof checklist.
     - `test_runner` bootstrap vs generated parity
     - annotation-focused suites and typed-AST consumers
     - any docs or gates that currently treat return-annotation support as closed and semantic support as still more fluid
+    - the nearest aggregate annotation proof surface:
+      - `annotation_contract_gate` for shared annotation contract drift
+      - `semantic_full_contract_gate` for semantic runtime/round-trip/regression drift
+      - `return_annotation_support_gate` for return-annotation closure drift
+      - `annotation_stimuli_quality_gate` when stimuli/coverage closure is part of the change
 - If you change build-script or generated-parser availability behavior
   - Typical primary files:
     - `rust/build.rs`
@@ -1277,6 +1282,9 @@ Treat this as a representative ladder, not a claim that every task needs every s
     - focused `test_runner` suites
     - focused `parseability_probe --parse ...`
     - any generated-vs-bootstrap parity path that the touched parser family relies on
+  - if the parser is `return_annotation` or `semantic_annotation`, usually also add:
+    - `make -C rust annotation_contract_gate`
+    - and the nearest annotation aggregate proof surface above the touched seam
 - EBNF frontend or dual-run change
   - usually re-check:
     - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run --lib ebnf_frontend::tests`
@@ -1287,12 +1295,20 @@ Treat this as a representative ladder, not a claim that every task needs every s
     - focused `ast_pipeline --generate-stimuli ...`
     - parseability report generation when the change affects parser-backed validation
     - the nearest grammar-quality or family-contract gate that consumes those artifacts
+  - for annotation-focused stimuli work, usually also add:
+    - `make -C rust annotation_stimuli_quality_gate`
+    - and, if annotation semantics changed too, `make -C rust annotation_contract_gate`
 - Proof-sidecar or gate change
   - usually re-check:
     - the touched gate directly
     - `bash rust/scripts/ci_workflow_local_gate.sh`
   - and when the change affects aggregate proof flow:
     - the nearest family-status / family-status-contract / combined-telemetry / SOTA reader above it
+  - for annotation-proof changes, the practical aggregate readers are usually:
+    - `annotation_contract_gate`
+    - `semantic_full_contract_gate`
+    - `return_annotation_support_gate`
+    - `annotation_stimuli_quality_gate`
 
 Operational rule:
 - Prefer the smallest validation slice that still crosses the seam you changed.

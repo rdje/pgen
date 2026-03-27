@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-27 - Add annotation validation guidance to Rust analysis
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now tells future sessions more explicitly which aggregate annotation gates to re-run for annotation-heavy changes, and local CI now protects that guidance.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust-analysis doc now adds annotation-specific guidance in:
+  - `Change-Impact Checklist`
+  - `Validation Ladder By Change Type`
+- That guidance now explicitly points annotation-heavy work toward:
+  - `annotation_contract_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+  - `annotation_stimuli_quality_gate`
+- The local-CI aggregate annotation audit now asserts those new validation cues.
+
+### Why This Matters
+- Future sessions now get not only code-start points and doc-routing cues, but also a clearer “what should I re-run?” answer for annotation changes.
+- CI now keeps that validation guidance aligned with the aggregate annotation proof spine.
+
 ## 2026-03-27 - Clarify annotation proof-doc routing in Rust analysis
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now tells future sessions more explicitly which repo docs answer aggregate annotation proof-spine questions, and local CI now protects those crosswalk cues.

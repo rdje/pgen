@@ -428,6 +428,18 @@ audit_annotation_aggregate_contract_surface() {
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
     'For annotation-specific proof plumbing, narrow quickly to:'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'the nearest aggregate annotation proof surface:'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'if the parser is `return_annotation` or `semantic_annotation`, usually also add:'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'for annotation-focused stimuli work, usually also add:'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'for annotation-proof changes, the practical aggregate readers are usually:'
 }
 
 audit_annotation_semantic_contract_surface() {

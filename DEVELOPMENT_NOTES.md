@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Add annotation validation guidance to Rust analysis
+### Context
+The live Rust analysis doc already had better annotation code-start and doc-routing guidance, but its change-impact and validation sections still spoke too generically about annotation work. That left a practical gap: a future session could understand the proof spine exists but still not get a crisp answer to “which aggregate gates should I re-run for this annotation change?”
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - under `Change-Impact Checklist`, the annotation-change entry now explicitly points readers to the nearest aggregate annotation proof surface:
+    - `annotation_contract_gate`
+    - `semantic_full_contract_gate`
+    - `return_annotation_support_gate`
+    - `annotation_stimuli_quality_gate`
+  - under `Validation Ladder By Change Type`, added annotation-specific guidance for:
+    - parser behavior / typed-AST conversion changes
+    - stimuli / coverage / gap-report changes
+    - proof-sidecar / gate changes
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts those new validation cues
+- Updated the continuity docs to record that the live Rust analysis doc now links annotation change types to the right aggregate proof reruns.
+
+### Why This Matters
+- The live Rust analysis doc now gives a better “what should I re-run?” answer for annotation-heavy work.
+- Local CI now keeps that validation guidance aligned with the repo’s actual annotation proof spine.
+
 ## 2026-03-27 - Clarify annotation proof-doc routing in Rust analysis
 ### Context
 The live Rust analysis doc already named the aggregate annotation proof spine, but its repo-doc crosswalk still described the relevant docs too generically. That made it slower than necessary for a future session to answer a narrow question like “which doc explains the operator-facing annotation gate map?” or “which doc defines the aggregate annotation proof obligations?”
