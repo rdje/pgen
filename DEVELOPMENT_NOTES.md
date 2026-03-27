@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Add regex parseability debt triage surface
+### Context
+After promoting `regex` onto the parser-backed shared stimuli contract, the family proof was still materially weaker than the SV-family aggregate debt surfaces in one specific way: the remaining regex parser rejection debt was visible only as totals (`rejected_total=4`, `parser_rejections_total=4`) plus the raw parseability report. That was enough to keep the family honest, but not enough to make the remaining debt easy to localize or to propagate a stable machine-checkable triage story through SOTA and combined telemetry.
+
+### Implementation
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+  - derived deterministic regex parseability debt-triage sidecars from the parser-backed stimuli report:
+    - `regex_parseability_counterexample_triage.json`
+    - `regex_parseability_counterexample_triage.txt`
+  - surfaced extracted counters and dominant buckets in `summary.txt` / `summary.json`:
+    - `stimuli_regex_parseability_counterexamples_captured_total`
+    - `stimuli_regex_parseability_counterexample_unique_shrunk_samples`
+    - `stimuli_regex_parseability_counterexample_unique_failure_locations`
+    - `stimuli_regex_parseability_counterexample_unique_failure_line_excerpts`
+    - `stimuli_regex_parseability_counterexample_unique_failure_context_excerpts`
+    - `stimuli_regex_parseability_counterexample_primary_stage`
+    - `stimuli_regex_parseability_counterexample_primary_parser_error`
+    - `stimuli_regex_parseability_counterexample_primary_failure_location`
+  - added a sanity check so parser-backed rejection debt cannot coexist with an empty captured-triage surface
+- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+  - SOTA now preserves the regex triage sidecar paths and extracted dominant-bucket values in its summary surface
+  - nested regex family proof surfaces now also carry the triage sidecar provenance
+- Updated [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+  - combined telemetry now parity-checks the new regex triage surface against the source family contract
+  - the aggregate-visible regex family contract object now preserves the triage sidecar paths and extracted triage metrics directly
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - the regex family is now documented as carrying deterministic parser-rejection triage, not only parser-backed totals
+  - the current measured regex triage surface is:
+    - `counterexamples_captured_total=5`
+    - `unique_shrunk_samples=5`
+    - `unique_failure_locations=3`
+    - `unique_failure_line_excerpts=5`
+    - `unique_failure_context_excerpts=5`
+    - `primary_stage=target_drive_output_filter`
+    - `primary_parser_error=Backtrack at position 0`
+    - `primary_failure_location=1:1`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - local CI now locks representative regex triage producer fields in the family-contract gate and representative consumer fields in SOTA and combined telemetry
+
+### Why This Matters
+- Regex family closure now has a repeatable machine-checkable debt-localization seam instead of only a bounded rejection count.
+- The next regex roadmap work can now target dominant failing bucket families directly while keeping the family/status/aggregate proof stack aligned.
+
 ## 2026-03-27 - Promote regex to parser-backed family quality proof
 ### Context
 The previous roadmap slice exposed regex through the public embedding API, but the family-proof story was still materially weaker than the public surface suggested: the shared non-annotation stimuli contract still treated `regex` as a parseability-skip row because a default generated regex parser artifact was not tracked in the repository. That meant the regex family sidecars, status sidecars, aggregate SOTA telemetry, and roadmap language all had to talk around a missing parser-backed quality seam.

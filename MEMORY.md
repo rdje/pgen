@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: promote-regex-to-parser-backed-family-quality-proof)
+Last updated: 2026-03-27 (+0100, task: add-regex-parseability-debt-triage-surface)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next regex roadmap seam after the parser-backed family-quality promotion was deterministic debt triage rather than another status-label change.
+- [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh) now derives and emits deterministic regex parser-rejection triage sidecars:
+  - `regex_parseability_counterexample_triage.json`
+  - `regex_parseability_counterexample_triage.txt`
+- That family sidecar now also exports extracted bounded-debt metrics directly in `summary.txt` / `summary.json`:
+  - `stimuli_regex_parseability_counterexamples_captured_total`
+  - `stimuli_regex_parseability_counterexample_unique_shrunk_samples`
+  - `stimuli_regex_parseability_counterexample_unique_failure_locations`
+  - `stimuli_regex_parseability_counterexample_unique_failure_line_excerpts`
+  - `stimuli_regex_parseability_counterexample_unique_failure_context_excerpts`
+  - `stimuli_regex_parseability_counterexample_primary_stage`
+  - `stimuli_regex_parseability_counterexample_primary_parser_error`
+  - `stimuli_regex_parseability_counterexample_primary_failure_location`
+- Fresh measured regex triage values are now:
+  - `counterexamples_captured_total=5`
+  - `unique_shrunk_samples=5`
+  - `unique_failure_locations=3`
+  - `unique_failure_line_excerpts=5`
+  - `unique_failure_context_excerpts=5`
+  - `primary_stage=target_drive_output_filter`
+  - `primary_parser_error=Backtrack at position 0`
+  - `primary_failure_location=1:1`
+- [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now preserves those regex triage sidecar paths and extracted dominant-bucket values in both top-level telemetry and the nested regex family proof surfaces.
+- [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now parity-checks and re-emits the same regex triage surface so aggregate-visible regex debt is no longer totals-only.
+- [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md) now describe regex from that parser-backed-plus-triage baseline.
+- [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now locks representative regex triage producer/consumer fields across family, SOTA, and combined telemetry layers.
 - The repository now tracks the default generated regex parser artifact expected by `build.rs`:
   - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
 - The shared non-annotation stimuli contract now treats `regex` as parser-backed instead of a parseability-skip row.

@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-27 - Add regex parseability debt triage surface
+### ✅ Achievement Summary
+PGEN's parser-backed regex family proof now carries deterministic debt-triage artifacts instead of leaving the remaining regex rejection debt as totals-only telemetry, and that triage surface is preserved through SOTA and combined telemetry.
+
+### Scope of Changes
+- Updated:
+  - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh) now derives deterministic regex parseability debt-triage sidecars from the parser-backed stimuli report:
+  - `regex_parseability_counterexample_triage.json`
+  - `regex_parseability_counterexample_triage.txt`
+  - extracted counters and dominant buckets for stage, shrunk sample, parser error, and failure location
+- The current measured regex triage surface is:
+  - `counterexamples_captured_total=5`
+  - `unique_shrunk_samples=5`
+  - `unique_failure_locations=3`
+  - `unique_failure_line_excerpts=5`
+  - `unique_failure_context_excerpts=5`
+  - `primary_stage=target_drive_output_filter`
+  - `primary_parser_error=Backtrack at position 0`
+  - `primary_failure_location=1:1`
+- [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) and [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now preserve and parity-check those regex triage sidecars and extracted buckets instead of collapsing the remaining debt back to totals-only aggregate fields.
+- [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now locks representative producer/consumer fields for the new regex triage surface.
+
+### Why This Matters
+- The remaining regex parser-backed rejection debt is now actionable in a repeatable, machine-checkable way rather than only visible as `4` rejected cases.
+- This narrows the next regex roadmap moves: burn down concrete failing bucket families, then finish target debt and formal exhaustive closure.
+
 ## 2026-03-27 - Promote regex to parser-backed family quality proof
 ### ✅ Achievement Summary
 PGEN's `regex` family now has real parser-backed quality evidence in the shared non-annotation stimuli contract, that evidence is preserved through the regex family/status/aggregate proof spine, and the roadmap/status docs now describe regex from that more honest parser-backed baseline instead of from the older parseability-skip posture.

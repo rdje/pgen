@@ -2702,6 +2702,8 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STIMULI_SUMMARY_TXT="<missing>"
         REGEX_FAMILY_STIMULI_SUMMARY_CSV="<missing>"
         REGEX_FAMILY_STIMULI_PARSEABILITY_REPORT_JSON="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_JSON="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_TXT="<missing>"
         REGEX_FAMILY_FRONTEND_OVERALL="<missing>"
         REGEX_FAMILY_DUAL_RUN_OVERALL="<missing>"
         REGEX_FAMILY_DUAL_RUN_RAW_AST_STATUS="<missing>"
@@ -2716,6 +2718,19 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STIMULI_PARSEABILITY_REJECTED_TOTAL="<missing>"
         REGEX_FAMILY_STIMULI_PARSEABILITY_PARSER_REJECTIONS_TOTAL="<missing>"
         REGEX_FAMILY_STIMULI_PARSEABILITY_ACCEPTANCE_RATE_PERCENT="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLES_CAPTURED_TOTAL="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_SHRUNK_SAMPLES="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_LOCATIONS="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_LINE_EXCERPTS="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_CONTEXT_EXCERPTS="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_STAGE="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_STAGE_COUNT="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_SHRUNK_SAMPLE="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_SHRUNK_SAMPLE_COUNT="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_PARSER_ERROR="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_PARSER_ERROR_COUNT="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_FAILURE_LOCATION="<missing>"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_FAILURE_LOCATION_COUNT="<missing>"
         REGEX_FAMILY_STIMULI_INITIAL_TARGETS="<missing>"
         REGEX_FAMILY_STIMULI_RESOLVED_TARGETS="<missing>"
         REGEX_FAMILY_STIMULI_FINAL_TARGETS="<missing>"
@@ -2734,6 +2749,8 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STIMULI_SUMMARY_TXT="$(jq -r '.proof_surfaces.stimuli_summary_txt' "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON")"
         REGEX_FAMILY_STIMULI_SUMMARY_CSV="$(jq -r '.proof_surfaces.stimuli_summary_csv' "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON")"
         REGEX_FAMILY_STIMULI_PARSEABILITY_REPORT_JSON="$(jq -r '.proof_surfaces.stimuli_parseability_report_json' "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_JSON="$(jq -r '.proof_surfaces.stimuli_parseability_counterexample_triage_json' "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_TXT="$(jq -r '.proof_surfaces.stimuli_parseability_counterexample_triage_txt' "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_JSON")"
         REGEX_FAMILY_FRONTEND_OVERALL="$(summary_value_from_txt "frontend_regex_overall" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         REGEX_FAMILY_DUAL_RUN_OVERALL="$(summary_value_from_txt "dual_run_regex_overall" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         REGEX_FAMILY_DUAL_RUN_RAW_AST_STATUS="$(summary_value_from_txt "dual_run_regex_raw_ast_status" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
@@ -2748,6 +2765,19 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STIMULI_PARSEABILITY_REJECTED_TOTAL="$(summary_value_from_txt "stimuli_regex_parseability_rejected_total" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         REGEX_FAMILY_STIMULI_PARSEABILITY_PARSER_REJECTIONS_TOTAL="$(summary_value_from_txt "stimuli_regex_parseability_parser_rejections_total" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         REGEX_FAMILY_STIMULI_PARSEABILITY_ACCEPTANCE_RATE_PERCENT="$(summary_value_from_txt "stimuli_regex_parseability_acceptance_rate_percent" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLES_CAPTURED_TOTAL="$(summary_value_from_txt "stimuli_regex_parseability_counterexamples_captured_total" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_SHRUNK_SAMPLES="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_unique_shrunk_samples" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_LOCATIONS="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_unique_failure_locations" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_LINE_EXCERPTS="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_unique_failure_line_excerpts" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_CONTEXT_EXCERPTS="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_unique_failure_context_excerpts" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_STAGE="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_stage" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_STAGE_COUNT="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_stage_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_SHRUNK_SAMPLE="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_shrunk_sample" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_SHRUNK_SAMPLE_COUNT="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_shrunk_sample_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_PARSER_ERROR="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_parser_error" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_PARSER_ERROR_COUNT="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_parser_error_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_FAILURE_LOCATION="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_failure_location" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
+        REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_FAILURE_LOCATION_COUNT="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_failure_location_count" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         REGEX_FAMILY_STIMULI_INITIAL_TARGETS="$(summary_value_from_txt "stimuli_regex_initial_targets" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         REGEX_FAMILY_STIMULI_RESOLVED_TARGETS="$(summary_value_from_txt "stimuli_regex_resolved_targets" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
         REGEX_FAMILY_STIMULI_FINAL_TARGETS="$(summary_value_from_txt "stimuli_regex_final_targets" "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT")"
@@ -3486,6 +3516,8 @@ informational_failures=$((all_failures - required_failures))
         echo "regex_family_stimuli_summary_txt: $REGEX_FAMILY_STIMULI_SUMMARY_TXT"
         echo "regex_family_stimuli_summary_csv: $REGEX_FAMILY_STIMULI_SUMMARY_CSV"
         echo "regex_family_stimuli_parseability_report_json: $REGEX_FAMILY_STIMULI_PARSEABILITY_REPORT_JSON"
+        echo "regex_family_stimuli_parseability_counterexample_triage_json: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_JSON"
+        echo "regex_family_stimuli_parseability_counterexample_triage_txt: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_TXT"
         echo "regex_family_frontend_overall: $REGEX_FAMILY_FRONTEND_OVERALL"
         echo "regex_family_dual_run_overall: $REGEX_FAMILY_DUAL_RUN_OVERALL"
         echo "regex_family_dual_run_raw_ast_status: $REGEX_FAMILY_DUAL_RUN_RAW_AST_STATUS"
@@ -3500,6 +3532,19 @@ informational_failures=$((all_failures - required_failures))
         echo "regex_family_stimuli_parseability_rejected_total: $REGEX_FAMILY_STIMULI_PARSEABILITY_REJECTED_TOTAL"
         echo "regex_family_stimuli_parseability_parser_rejections_total: $REGEX_FAMILY_STIMULI_PARSEABILITY_PARSER_REJECTIONS_TOTAL"
         echo "regex_family_stimuli_parseability_acceptance_rate_percent: $REGEX_FAMILY_STIMULI_PARSEABILITY_ACCEPTANCE_RATE_PERCENT"
+        echo "regex_family_stimuli_parseability_counterexamples_captured_total: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLES_CAPTURED_TOTAL"
+        echo "regex_family_stimuli_parseability_counterexample_unique_shrunk_samples: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_SHRUNK_SAMPLES"
+        echo "regex_family_stimuli_parseability_counterexample_unique_failure_locations: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_LOCATIONS"
+        echo "regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_LINE_EXCERPTS"
+        echo "regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_UNIQUE_FAILURE_CONTEXT_EXCERPTS"
+        echo "regex_family_stimuli_parseability_counterexample_primary_stage: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_STAGE"
+        echo "regex_family_stimuli_parseability_counterexample_primary_stage_count: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_STAGE_COUNT"
+        echo "regex_family_stimuli_parseability_counterexample_primary_shrunk_sample: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_SHRUNK_SAMPLE"
+        echo "regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_SHRUNK_SAMPLE_COUNT"
+        echo "regex_family_stimuli_parseability_counterexample_primary_parser_error: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_PARSER_ERROR"
+        echo "regex_family_stimuli_parseability_counterexample_primary_parser_error_count: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_PARSER_ERROR_COUNT"
+        echo "regex_family_stimuli_parseability_counterexample_primary_failure_location: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_FAILURE_LOCATION"
+        echo "regex_family_stimuli_parseability_counterexample_primary_failure_location_count: $REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_PRIMARY_FAILURE_LOCATION_COUNT"
         echo "regex_family_stimuli_initial_targets: $REGEX_FAMILY_STIMULI_INITIAL_TARGETS"
         echo "regex_family_stimuli_resolved_targets: $REGEX_FAMILY_STIMULI_RESOLVED_TARGETS"
         echo "regex_family_stimuli_final_targets: $REGEX_FAMILY_STIMULI_FINAL_TARGETS"
@@ -3665,6 +3710,8 @@ jq -n \
     --arg regex_family_stimuli_summary_txt "${REGEX_FAMILY_STIMULI_SUMMARY_TXT:-<not-run>}" \
     --arg regex_family_stimuli_summary_csv "${REGEX_FAMILY_STIMULI_SUMMARY_CSV:-<not-run>}" \
     --arg regex_family_stimuli_parseability_report_json "${REGEX_FAMILY_STIMULI_PARSEABILITY_REPORT_JSON:-<not-run>}" \
+    --arg regex_family_stimuli_parseability_counterexample_triage_json "${REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_JSON:-<not-run>}" \
+    --arg regex_family_stimuli_parseability_counterexample_triage_txt "${REGEX_FAMILY_STIMULI_PARSEABILITY_COUNTEREXAMPLE_TRIAGE_TXT:-<not-run>}" \
     --arg regex_contract_tracker_alignment_ok "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK:-<not-run>}" \
     --arg regex_contract_primary_unmet_detail "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION:-<not-run>}" \
     --arg regex_contract_unmet_json "${REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON:-<not-run>}" \
@@ -3834,7 +3881,9 @@ jq -n \
                 stimuli_state_dir: maybe_path($regex_family_stimuli_state_dir),
                 stimuli_summary_txt: maybe_path($regex_family_stimuli_summary_txt),
                 stimuli_summary_csv: maybe_path($regex_family_stimuli_summary_csv),
-                stimuli_parseability_report_json: maybe_path($regex_family_stimuli_parseability_report_json)
+                stimuli_parseability_report_json: maybe_path($regex_family_stimuli_parseability_report_json),
+                stimuli_parseability_counterexample_triage_json: maybe_path($regex_family_stimuli_parseability_counterexample_triage_json),
+                stimuli_parseability_counterexample_triage_txt: maybe_path($regex_family_stimuli_parseability_counterexample_triage_txt)
             } | tojson))
         },
         family_status_contract: {

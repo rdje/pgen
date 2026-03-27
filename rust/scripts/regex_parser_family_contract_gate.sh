@@ -190,6 +190,8 @@ stimuli_regex_parseability_rejected_total="$(extract_csv_value "$stimuli_summary
 stimuli_regex_parseability_parser_rejections_total="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_parser_rejections_total")"
 stimuli_regex_parseability_acceptance_rate_percent="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_acceptance_rate_percent")"
 stimuli_regex_parseability_report_json="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_report_json")"
+stimuli_regex_parseability_counterexample_triage_json="$WORK_DIR/regex_parseability_counterexample_triage.json"
+stimuli_regex_parseability_counterexample_triage_txt="$WORK_DIR/regex_parseability_counterexample_triage.txt"
 stimuli_regex_initial_targets="$(extract_csv_value "$stimuli_summary_csv" "regex" "initial_targets")"
 stimuli_regex_resolved_targets="$(extract_csv_value "$stimuli_summary_csv" "regex" "resolved_targets")"
 stimuli_regex_final_targets="$(extract_csv_value "$stimuli_summary_csv" "regex" "final_targets")"
@@ -229,12 +231,121 @@ assert_int_ge "stimuli regex parseability_accepted_total" "$stimuli_regex_parsea
 assert_int_ge "stimuli regex parseability_rejected_total" "$stimuli_regex_parseability_rejected_total" 0
 assert_int_ge "stimuli regex parseability_parser_rejections_total" "$stimuli_regex_parseability_parser_rejections_total" 0
 require_nonempty_file "$stimuli_regex_parseability_report_json"
+
+jq \
+    --arg source_report "$stimuli_regex_parseability_report_json" \
+    '(.stages | [.[]?.counterexamples[]?]) as $counterexamples
+    | {
+        source_report: $source_report,
+        counterexamples_captured_total: ($counterexamples | length),
+        by_stage: (
+            $counterexamples
+            | map(.stage)
+            | group_by(.)
+            | map({
+                stage: .[0],
+                count: length
+            })
+        ),
+        by_shrunk_sample: (
+            $counterexamples
+            | map(.shrunk_sample)
+            | group_by(.)
+            | map({
+                shrunk_sample: .[0],
+                count: length
+            })
+        ),
+        by_parser_error: (
+            $counterexamples
+            | map(.parser_error // "<none>")
+            | group_by(.)
+            | map({
+                parser_error: .[0],
+                count: length
+            })
+        ),
+        by_failure_location: (
+            $counterexamples
+            | map([(.failure_line // -1), (.failure_column // -1)])
+            | group_by(.)
+            | map({
+                failure_line: .[0][0],
+                failure_column: .[0][1],
+                count: length
+            })
+        ),
+        by_failure_line_excerpt: (
+            $counterexamples
+            | map(.failure_line_excerpt // "<none>")
+            | group_by(.)
+            | map({
+                failure_line_excerpt: .[0],
+                count: length
+            })
+        ),
+        by_failure_context_excerpt: (
+            $counterexamples
+            | map(.failure_context_excerpt // "<none>")
+            | group_by(.)
+            | map({
+                failure_context_excerpt: .[0],
+                count: length
+            })
+        ),
+        sample_previews: (
+            $counterexamples[:5]
+            | map({
+                stage,
+                parser_error,
+                failure_line,
+                failure_column,
+                shrunk_sample,
+                failure_line_excerpt,
+                failure_context_excerpt,
+                sample_preview: (.sample[:80])
+            })
+        )
+    }' \
+    "$stimuli_regex_parseability_report_json" >"$stimuli_regex_parseability_counterexample_triage_json"
+require_nonempty_file "$stimuli_regex_parseability_counterexample_triage_json"
+
+{
+    echo "Regex Parseability Counterexample Triage"
+    echo "source_report: $stimuli_regex_parseability_report_json"
+    jq -r '.by_stage[]? | "stage_count[\(.stage)]: \(.count)"' "$stimuli_regex_parseability_counterexample_triage_json"
+    jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$stimuli_regex_parseability_counterexample_triage_json"
+    jq -r '.by_parser_error[]? | "parser_error_count[\(.parser_error | @json)]: \(.count)"' "$stimuli_regex_parseability_counterexample_triage_json"
+    jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$stimuli_regex_parseability_counterexample_triage_json"
+    jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$stimuli_regex_parseability_counterexample_triage_json"
+    jq -r '.by_failure_context_excerpt[]? | "failure_context_excerpt_count[\(.failure_context_excerpt | @json)]: \(.count)"' "$stimuli_regex_parseability_counterexample_triage_json"
+} >"$stimuli_regex_parseability_counterexample_triage_txt"
+require_nonempty_file "$stimuli_regex_parseability_counterexample_triage_txt"
+
+stimuli_regex_parseability_counterexamples_captured_total="$(jq -er '.counterexamples_captured_total | numbers' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_unique_shrunk_samples="$(jq -er '(.by_shrunk_sample | length) | numbers' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_unique_failure_locations="$(jq -er '(.by_failure_location | length) | numbers' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_unique_failure_line_excerpts="$(jq -er '(.by_failure_line_excerpt | length) | numbers' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_unique_failure_context_excerpts="$(jq -er '(.by_failure_context_excerpt | length) | numbers' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_stage="$(jq -er 'if (.by_stage | length) > 0 then (.by_stage | sort_by(-.count, .stage) | .[0].stage) else "<none>" end' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_stage_count="$(jq -er 'if (.by_stage | length) > 0 then (.by_stage | sort_by(-.count, .stage) | .[0].count) else 0 end' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_shrunk_sample="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].shrunk_sample) else "<none>" end' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_shrunk_sample_count="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].count) else 0 end' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_parser_error="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].parser_error) else "<none>" end' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_parser_error_count="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].count) else 0 end' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_failure_location="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0] | "\(.failure_line):\(.failure_column)") else "<none>" end' "$stimuli_regex_parseability_counterexample_triage_json")"
+stimuli_regex_parseability_counterexample_primary_failure_location_count="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0].count) else 0 end' "$stimuli_regex_parseability_counterexample_triage_json")"
+
 assert_int_ge "stimuli regex initial_targets" "$stimuli_regex_initial_targets" 1
 assert_int_ge "stimuli regex resolved_targets" "$stimuli_regex_resolved_targets" 1
 assert_int_ge "stimuli regex target_attempts" "$stimuli_regex_target_attempts" 1
 assert_int_ge "stimuli regex stage0_successes" "$stimuli_regex_stage0_successes" 1
 if (( stimuli_regex_parseability_parser_rejections_total > stimuli_regex_parseability_rejected_total )); then
     echo "error: stimuli regex parseability parser_rejections_total ${stimuli_regex_parseability_parser_rejections_total} exceeds rejected_total ${stimuli_regex_parseability_rejected_total}" >&2
+    exit 1
+fi
+if (( stimuli_regex_parseability_parser_rejections_total > 0 && stimuli_regex_parseability_counterexamples_captured_total < 1 )); then
+    echo "error: stimuli regex parseability triage captured no counterexamples despite parser_rejections_total ${stimuli_regex_parseability_parser_rejections_total}" >&2
     exit 1
 fi
 if (( stimuli_regex_resolved_targets + stimuli_regex_final_targets != stimuli_regex_initial_targets )); then
@@ -282,12 +393,27 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "stimuli_summary_csv: $stimuli_summary_csv"
     echo "stimuli_contract_file: $stimuli_contract_file"
     echo "stimuli_parseability_report_json: $stimuli_regex_parseability_report_json"
+    echo "stimuli_parseability_counterexample_triage_json: $stimuli_regex_parseability_counterexample_triage_json"
+    echo "stimuli_parseability_counterexample_triage_txt: $stimuli_regex_parseability_counterexample_triage_txt"
     echo "stimuli_regex_parseability_required: $stimuli_regex_parseability_required"
     echo "stimuli_regex_parseability_attempts_total: $stimuli_regex_parseability_attempts_total"
     echo "stimuli_regex_parseability_accepted_total: $stimuli_regex_parseability_accepted_total"
     echo "stimuli_regex_parseability_rejected_total: $stimuli_regex_parseability_rejected_total"
     echo "stimuli_regex_parseability_parser_rejections_total: $stimuli_regex_parseability_parser_rejections_total"
     echo "stimuli_regex_parseability_acceptance_rate_percent: $stimuli_regex_parseability_acceptance_rate_percent"
+    echo "stimuli_regex_parseability_counterexamples_captured_total: $stimuli_regex_parseability_counterexamples_captured_total"
+    echo "stimuli_regex_parseability_counterexample_unique_shrunk_samples: $stimuli_regex_parseability_counterexample_unique_shrunk_samples"
+    echo "stimuli_regex_parseability_counterexample_unique_failure_locations: $stimuli_regex_parseability_counterexample_unique_failure_locations"
+    echo "stimuli_regex_parseability_counterexample_unique_failure_line_excerpts: $stimuli_regex_parseability_counterexample_unique_failure_line_excerpts"
+    echo "stimuli_regex_parseability_counterexample_unique_failure_context_excerpts: $stimuli_regex_parseability_counterexample_unique_failure_context_excerpts"
+    echo "stimuli_regex_parseability_counterexample_primary_stage: $stimuli_regex_parseability_counterexample_primary_stage"
+    echo "stimuli_regex_parseability_counterexample_primary_stage_count: $stimuli_regex_parseability_counterexample_primary_stage_count"
+    echo "stimuli_regex_parseability_counterexample_primary_shrunk_sample: $stimuli_regex_parseability_counterexample_primary_shrunk_sample"
+    echo "stimuli_regex_parseability_counterexample_primary_shrunk_sample_count: $stimuli_regex_parseability_counterexample_primary_shrunk_sample_count"
+    echo "stimuli_regex_parseability_counterexample_primary_parser_error: $stimuli_regex_parseability_counterexample_primary_parser_error"
+    echo "stimuli_regex_parseability_counterexample_primary_parser_error_count: $stimuli_regex_parseability_counterexample_primary_parser_error_count"
+    echo "stimuli_regex_parseability_counterexample_primary_failure_location: $stimuli_regex_parseability_counterexample_primary_failure_location"
+    echo "stimuli_regex_parseability_counterexample_primary_failure_location_count: $stimuli_regex_parseability_counterexample_primary_failure_location_count"
     echo "stimuli_regex_initial_targets: $stimuli_regex_initial_targets"
     echo "stimuli_regex_resolved_targets: $stimuli_regex_resolved_targets"
     echo "stimuli_regex_final_targets: $stimuli_regex_final_targets"
@@ -333,12 +459,27 @@ jq -n \
     --arg stimuli_summary_csv "$stimuli_summary_csv" \
     --arg stimuli_contract_file "$stimuli_contract_file" \
     --arg stimuli_parseability_report_json "$stimuli_regex_parseability_report_json" \
+    --arg stimuli_parseability_counterexample_triage_json "$stimuli_regex_parseability_counterexample_triage_json" \
+    --arg stimuli_parseability_counterexample_triage_txt "$stimuli_regex_parseability_counterexample_triage_txt" \
     --argjson stimuli_regex_parseability_required "$stimuli_regex_parseability_required" \
     --argjson stimuli_regex_parseability_attempts_total "$stimuli_regex_parseability_attempts_total" \
     --argjson stimuli_regex_parseability_accepted_total "$stimuli_regex_parseability_accepted_total" \
     --argjson stimuli_regex_parseability_rejected_total "$stimuli_regex_parseability_rejected_total" \
     --argjson stimuli_regex_parseability_parser_rejections_total "$stimuli_regex_parseability_parser_rejections_total" \
     --argjson stimuli_regex_parseability_acceptance_rate_percent "$stimuli_regex_parseability_acceptance_rate_percent" \
+    --argjson stimuli_regex_parseability_counterexamples_captured_total "$stimuli_regex_parseability_counterexamples_captured_total" \
+    --argjson stimuli_regex_parseability_counterexample_unique_shrunk_samples "$stimuli_regex_parseability_counterexample_unique_shrunk_samples" \
+    --argjson stimuli_regex_parseability_counterexample_unique_failure_locations "$stimuli_regex_parseability_counterexample_unique_failure_locations" \
+    --argjson stimuli_regex_parseability_counterexample_unique_failure_line_excerpts "$stimuli_regex_parseability_counterexample_unique_failure_line_excerpts" \
+    --argjson stimuli_regex_parseability_counterexample_unique_failure_context_excerpts "$stimuli_regex_parseability_counterexample_unique_failure_context_excerpts" \
+    --arg stimuli_regex_parseability_counterexample_primary_stage "$stimuli_regex_parseability_counterexample_primary_stage" \
+    --argjson stimuli_regex_parseability_counterexample_primary_stage_count "$stimuli_regex_parseability_counterexample_primary_stage_count" \
+    --arg stimuli_regex_parseability_counterexample_primary_shrunk_sample "$stimuli_regex_parseability_counterexample_primary_shrunk_sample" \
+    --argjson stimuli_regex_parseability_counterexample_primary_shrunk_sample_count "$stimuli_regex_parseability_counterexample_primary_shrunk_sample_count" \
+    --arg stimuli_regex_parseability_counterexample_primary_parser_error "$stimuli_regex_parseability_counterexample_primary_parser_error" \
+    --argjson stimuli_regex_parseability_counterexample_primary_parser_error_count "$stimuli_regex_parseability_counterexample_primary_parser_error_count" \
+    --arg stimuli_regex_parseability_counterexample_primary_failure_location "$stimuli_regex_parseability_counterexample_primary_failure_location" \
+    --argjson stimuli_regex_parseability_counterexample_primary_failure_location_count "$stimuli_regex_parseability_counterexample_primary_failure_location_count" \
     --argjson stimuli_regex_initial_targets "$stimuli_regex_initial_targets" \
     --argjson stimuli_regex_resolved_targets "$stimuli_regex_resolved_targets" \
     --argjson stimuli_regex_final_targets "$stimuli_regex_final_targets" \
@@ -364,7 +505,9 @@ jq -n \
         stimuli_state_dir: $stimuli_state_dir,
         stimuli_summary_txt: $stimuli_summary_txt,
         stimuli_summary_csv: $stimuli_summary_csv,
-        stimuli_parseability_report_json: $stimuli_parseability_report_json
+        stimuli_parseability_report_json: $stimuli_parseability_report_json,
+        stimuli_parseability_counterexample_triage_json: $stimuli_parseability_counterexample_triage_json,
+        stimuli_parseability_counterexample_triage_txt: $stimuli_parseability_counterexample_triage_txt
       },
       metrics: {
         frontend_impl: $frontend_impl,
@@ -391,6 +534,19 @@ jq -n \
         stimuli_regex_parseability_rejected_total: $stimuli_regex_parseability_rejected_total,
         stimuli_regex_parseability_parser_rejections_total: $stimuli_regex_parseability_parser_rejections_total,
         stimuli_regex_parseability_acceptance_rate_percent: $stimuli_regex_parseability_acceptance_rate_percent,
+        stimuli_regex_parseability_counterexamples_captured_total: $stimuli_regex_parseability_counterexamples_captured_total,
+        stimuli_regex_parseability_counterexample_unique_shrunk_samples: $stimuli_regex_parseability_counterexample_unique_shrunk_samples,
+        stimuli_regex_parseability_counterexample_unique_failure_locations: $stimuli_regex_parseability_counterexample_unique_failure_locations,
+        stimuli_regex_parseability_counterexample_unique_failure_line_excerpts: $stimuli_regex_parseability_counterexample_unique_failure_line_excerpts,
+        stimuli_regex_parseability_counterexample_unique_failure_context_excerpts: $stimuli_regex_parseability_counterexample_unique_failure_context_excerpts,
+        stimuli_regex_parseability_counterexample_primary_stage: $stimuli_regex_parseability_counterexample_primary_stage,
+        stimuli_regex_parseability_counterexample_primary_stage_count: $stimuli_regex_parseability_counterexample_primary_stage_count,
+        stimuli_regex_parseability_counterexample_primary_shrunk_sample: $stimuli_regex_parseability_counterexample_primary_shrunk_sample,
+        stimuli_regex_parseability_counterexample_primary_shrunk_sample_count: $stimuli_regex_parseability_counterexample_primary_shrunk_sample_count,
+        stimuli_regex_parseability_counterexample_primary_parser_error: $stimuli_regex_parseability_counterexample_primary_parser_error,
+        stimuli_regex_parseability_counterexample_primary_parser_error_count: $stimuli_regex_parseability_counterexample_primary_parser_error_count,
+        stimuli_regex_parseability_counterexample_primary_failure_location: $stimuli_regex_parseability_counterexample_primary_failure_location,
+        stimuli_regex_parseability_counterexample_primary_failure_location_count: $stimuli_regex_parseability_counterexample_primary_failure_location_count,
         stimuli_regex_initial_targets: $stimuli_regex_initial_targets,
         stimuli_regex_resolved_targets: $stimuli_regex_resolved_targets,
         stimuli_regex_final_targets: $stimuli_regex_final_targets,

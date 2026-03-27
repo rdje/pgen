@@ -721,6 +721,8 @@ Operational rule:
     - family-contract, family-status, and aggregate proof gates that ingest parseability reports, coverage reports, gap reports, and target-drive summaries
   - Typical failure mode:
     - a Rust-side artifact schema or counting rule changes and the nearest shell consumer starts failing parity checks or status derivation
+  - Regex-specific note:
+    - the regex family now also depends on deterministic parseability-counterexample triage artifacts derived from the parser-backed stimuli report, so report-shape/counting changes can now break family-contract, SOTA, and combined-telemetry parity even when headline totals still look stable
 - Summary sidecar seam
   - Main producers:
     - emitting gates under `rust/scripts/*.sh`
@@ -1055,6 +1057,7 @@ Use this as a first-pass companion-check map, not as a complete proof checklist.
   - Usually re-check:
     - `rust/src/main.rs` stimuli CLI/report wiring
     - parseability validation report behavior
+    - any derived counterexample-triage artifacts that shell gates summarize from parseability reports
     - coverage / gap / target-drive JSON artifacts
     - grammar-quality and family-contract gate expectations in `rust/scripts/*.sh`
 - If you change annotation parsing, validation, or semantic runtime behavior
@@ -1248,6 +1251,7 @@ Operational rule:
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
   - It now also has real parser-backed quality evidence in the shared non-annotation stimuli contract, but that surface still carries bounded parser-rejection debt and bounded target debt
+  - It now also has deterministic parser-rejection triage sidecars in its family-contract and aggregate proof stack, so regex closure work can talk about dominant failing sample/error/location buckets instead of only total rejection counts
   - It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself
 - `ebnf`
   - Not just another generated runtime parser family

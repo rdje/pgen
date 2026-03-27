@@ -125,6 +125,8 @@ sota_exit_regex_status_stimuli_state_dir="$(jq -r '.family_status.regex.proof_su
 sota_exit_regex_status_stimuli_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.stimuli_summary_txt' "$sota_summary_json")"
 sota_exit_regex_status_stimuli_summary_csv="$(jq -r '.family_status.regex.proof_surfaces.stimuli_summary_csv' "$sota_summary_json")"
 sota_exit_regex_status_stimuli_parseability_report_json="$(jq -r '.family_status.regex.proof_surfaces.stimuli_parseability_report_json' "$sota_summary_json")"
+sota_exit_regex_status_stimuli_parseability_counterexample_triage_json="$(jq -r '.family_status.regex.proof_surfaces.stimuli_parseability_counterexample_triage_json' "$sota_summary_json")"
+sota_exit_regex_status_stimuli_parseability_counterexample_triage_txt="$(jq -r '.family_status.regex.proof_surfaces.stimuli_parseability_counterexample_triage_txt' "$sota_summary_json")"
 sota_exit_regex_contract_family_status_contract_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_contract_summary_json' "$sota_summary_json")"
 sota_exit_regex_contract_family_status_state_dir="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_state_dir' "$sota_summary_json")"
 sota_exit_regex_contract_family_status_summary_txt="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_summary_txt' "$sota_summary_json")"
@@ -243,6 +245,8 @@ regex_family_stimuli_state_dir="$(jq -r '.proof_surfaces.stimuli_state_dir' "$re
 regex_family_stimuli_summary_txt="$(jq -r '.proof_surfaces.stimuli_summary_txt' "$regex_family_summary_json")"
 regex_family_stimuli_summary_csv="$(jq -r '.proof_surfaces.stimuli_summary_csv' "$regex_family_summary_json")"
 regex_family_stimuli_parseability_report_json="$(jq -r '.proof_surfaces.stimuli_parseability_report_json' "$regex_family_summary_json")"
+regex_family_stimuli_parseability_counterexample_triage_json="$(jq -r '.proof_surfaces.stimuli_parseability_counterexample_triage_json' "$regex_family_summary_json")"
+regex_family_stimuli_parseability_counterexample_triage_txt="$(jq -r '.proof_surfaces.stimuli_parseability_counterexample_triage_txt' "$regex_family_summary_json")"
 regex_family_stimuli_status="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_status")"
 regex_family_stimuli_parseability_required="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_required")"
 regex_family_stimuli_parseability_attempts_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_attempts_total")"
@@ -250,6 +254,19 @@ regex_family_stimuli_parseability_accepted_total="$(extract_summary_value "$rege
 regex_family_stimuli_parseability_rejected_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_rejected_total")"
 regex_family_stimuli_parseability_parser_rejections_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_parser_rejections_total")"
 regex_family_stimuli_parseability_acceptance_rate_percent="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_acceptance_rate_percent")"
+regex_family_stimuli_parseability_counterexamples_captured_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexamples_captured_total")"
+regex_family_stimuli_parseability_counterexample_unique_shrunk_samples="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_unique_shrunk_samples")"
+regex_family_stimuli_parseability_counterexample_unique_failure_locations="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_unique_failure_locations")"
+regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_unique_failure_line_excerpts")"
+regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_unique_failure_context_excerpts")"
+regex_family_stimuli_parseability_counterexample_primary_stage="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_stage")"
+regex_family_stimuli_parseability_counterexample_primary_stage_count="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_stage_count")"
+regex_family_stimuli_parseability_counterexample_primary_shrunk_sample="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_shrunk_sample")"
+regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_shrunk_sample_count")"
+regex_family_stimuli_parseability_counterexample_primary_parser_error="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_parser_error")"
+regex_family_stimuli_parseability_counterexample_primary_parser_error_count="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_parser_error_count")"
+regex_family_stimuli_parseability_counterexample_primary_failure_location="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_failure_location")"
+regex_family_stimuli_parseability_counterexample_primary_failure_location_count="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_counterexample_primary_failure_location_count")"
 regex_family_stimuli_initial_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_initial_targets")"
 regex_family_stimuli_resolved_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_resolved_targets")"
 regex_family_stimuli_final_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_final_targets")"
@@ -313,6 +330,14 @@ assert_equal \
     "SOTA exit nested regex stimuli parseability report json" \
     "$regex_family_stimuli_parseability_report_json" \
     "$sota_exit_regex_status_stimuli_parseability_report_json"
+assert_equal \
+    "SOTA exit nested regex stimuli parseability counterexample triage json" \
+    "$regex_family_stimuli_parseability_counterexample_triage_json" \
+    "$sota_exit_regex_status_stimuli_parseability_counterexample_triage_json"
+assert_equal \
+    "SOTA exit nested regex stimuli parseability counterexample triage txt" \
+    "$regex_family_stimuli_parseability_counterexample_triage_txt" \
+    "$sota_exit_regex_status_stimuli_parseability_counterexample_triage_txt"
 
 regex_parser_family_status_gate="$(jq -r '.gate' "$regex_family_status_summary_json")"
 regex_parser_family_status_gate_version="$(jq -r '.version' "$regex_family_status_summary_json")"
@@ -462,6 +487,14 @@ assert_equal \
     "$regex_family_stimuli_parseability_report_json" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_report_json")"
 assert_equal \
+    "Regex family stimuli parseability counterexample triage json" \
+    "$regex_family_stimuli_parseability_counterexample_triage_json" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_triage_json")"
+assert_equal \
+    "Regex family stimuli parseability counterexample triage txt" \
+    "$regex_family_stimuli_parseability_counterexample_triage_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_triage_txt")"
+assert_equal \
     "Regex family stimuli status" \
     "$regex_family_stimuli_status" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_status")"
@@ -489,6 +522,58 @@ assert_equal \
     "Regex family stimuli parseability acceptance rate percent" \
     "$regex_family_stimuli_parseability_acceptance_rate_percent" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_acceptance_rate_percent")"
+assert_equal \
+    "Regex family stimuli parseability counterexamples captured total" \
+    "$regex_family_stimuli_parseability_counterexamples_captured_total" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexamples_captured_total")"
+assert_equal \
+    "Regex family stimuli parseability counterexample unique shrunk samples" \
+    "$regex_family_stimuli_parseability_counterexample_unique_shrunk_samples" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_unique_shrunk_samples")"
+assert_equal \
+    "Regex family stimuli parseability counterexample unique failure locations" \
+    "$regex_family_stimuli_parseability_counterexample_unique_failure_locations" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_unique_failure_locations")"
+assert_equal \
+    "Regex family stimuli parseability counterexample unique failure line excerpts" \
+    "$regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts")"
+assert_equal \
+    "Regex family stimuli parseability counterexample unique failure context excerpts" \
+    "$regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary stage" \
+    "$regex_family_stimuli_parseability_counterexample_primary_stage" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_stage")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary stage count" \
+    "$regex_family_stimuli_parseability_counterexample_primary_stage_count" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_stage_count")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary shrunk sample" \
+    "$regex_family_stimuli_parseability_counterexample_primary_shrunk_sample" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_shrunk_sample")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary shrunk sample count" \
+    "$regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary parser error" \
+    "$regex_family_stimuli_parseability_counterexample_primary_parser_error" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_parser_error")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary parser error count" \
+    "$regex_family_stimuli_parseability_counterexample_primary_parser_error_count" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_parser_error_count")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary failure location" \
+    "$regex_family_stimuli_parseability_counterexample_primary_failure_location" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_failure_location")"
+assert_equal \
+    "Regex family stimuli parseability counterexample primary failure location count" \
+    "$regex_family_stimuli_parseability_counterexample_primary_failure_location_count" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_primary_failure_location_count")"
 assert_equal \
     "Regex family stimuli initial targets" \
     "$regex_family_stimuli_initial_targets" \
@@ -781,6 +866,8 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_stimuli_summary_txt: $regex_family_stimuli_summary_txt"
     echo "regex_family_stimuli_summary_csv: $regex_family_stimuli_summary_csv"
     echo "regex_family_stimuli_parseability_report_json: $regex_family_stimuli_parseability_report_json"
+    echo "regex_family_stimuli_parseability_counterexample_triage_json: $regex_family_stimuli_parseability_counterexample_triage_json"
+    echo "regex_family_stimuli_parseability_counterexample_triage_txt: $regex_family_stimuli_parseability_counterexample_triage_txt"
     echo "regex_family_status_contract_gate: $regex_family_status_contract_gate"
     echo "regex_family_status_contract_gate_version: $regex_family_status_contract_gate_version"
     echo "regex_family_status_contract_generated_at_utc: $regex_family_status_contract_generated_at_utc"
@@ -805,6 +892,19 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_stimuli_parseability_rejected_total: $regex_family_stimuli_parseability_rejected_total"
     echo "regex_family_stimuli_parseability_parser_rejections_total: $regex_family_stimuli_parseability_parser_rejections_total"
     echo "regex_family_stimuli_parseability_acceptance_rate_percent: $regex_family_stimuli_parseability_acceptance_rate_percent"
+    echo "regex_family_stimuli_parseability_counterexamples_captured_total: $regex_family_stimuli_parseability_counterexamples_captured_total"
+    echo "regex_family_stimuli_parseability_counterexample_unique_shrunk_samples: $regex_family_stimuli_parseability_counterexample_unique_shrunk_samples"
+    echo "regex_family_stimuli_parseability_counterexample_unique_failure_locations: $regex_family_stimuli_parseability_counterexample_unique_failure_locations"
+    echo "regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts: $regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts"
+    echo "regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts: $regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts"
+    echo "regex_family_stimuli_parseability_counterexample_primary_stage: $regex_family_stimuli_parseability_counterexample_primary_stage"
+    echo "regex_family_stimuli_parseability_counterexample_primary_stage_count: $regex_family_stimuli_parseability_counterexample_primary_stage_count"
+    echo "regex_family_stimuli_parseability_counterexample_primary_shrunk_sample: $regex_family_stimuli_parseability_counterexample_primary_shrunk_sample"
+    echo "regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count: $regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count"
+    echo "regex_family_stimuli_parseability_counterexample_primary_parser_error: $regex_family_stimuli_parseability_counterexample_primary_parser_error"
+    echo "regex_family_stimuli_parseability_counterexample_primary_parser_error_count: $regex_family_stimuli_parseability_counterexample_primary_parser_error_count"
+    echo "regex_family_stimuli_parseability_counterexample_primary_failure_location: $regex_family_stimuli_parseability_counterexample_primary_failure_location"
+    echo "regex_family_stimuli_parseability_counterexample_primary_failure_location_count: $regex_family_stimuli_parseability_counterexample_primary_failure_location_count"
     echo "regex_family_stimuli_initial_targets: $regex_family_stimuli_initial_targets"
     echo "regex_family_stimuli_resolved_targets: $regex_family_stimuli_resolved_targets"
     echo "regex_family_stimuli_final_targets: $regex_family_stimuli_final_targets"
@@ -885,6 +985,8 @@ jq -n \
     --arg regex_family_stimuli_summary_txt "$regex_family_stimuli_summary_txt" \
     --arg regex_family_stimuli_summary_csv "$regex_family_stimuli_summary_csv" \
     --arg regex_family_stimuli_parseability_report_json "$regex_family_stimuli_parseability_report_json" \
+    --arg regex_family_stimuli_parseability_counterexample_triage_json "$regex_family_stimuli_parseability_counterexample_triage_json" \
+    --arg regex_family_stimuli_parseability_counterexample_triage_txt "$regex_family_stimuli_parseability_counterexample_triage_txt" \
     --arg regex_family_frontend_overall "$regex_family_frontend_overall" \
     --arg regex_family_dual_run_overall "$regex_family_dual_run_overall" \
     --arg regex_family_dual_run_raw_ast_status "$regex_family_dual_run_raw_ast_status" \
@@ -903,6 +1005,19 @@ jq -n \
     --argjson regex_family_stimuli_parseability_rejected_total "$regex_family_stimuli_parseability_rejected_total" \
     --argjson regex_family_stimuli_parseability_parser_rejections_total "$regex_family_stimuli_parseability_parser_rejections_total" \
     --argjson regex_family_stimuli_parseability_acceptance_rate_percent "$regex_family_stimuli_parseability_acceptance_rate_percent" \
+    --argjson regex_family_stimuli_parseability_counterexamples_captured_total "$regex_family_stimuli_parseability_counterexamples_captured_total" \
+    --argjson regex_family_stimuli_parseability_counterexample_unique_shrunk_samples "$regex_family_stimuli_parseability_counterexample_unique_shrunk_samples" \
+    --argjson regex_family_stimuli_parseability_counterexample_unique_failure_locations "$regex_family_stimuli_parseability_counterexample_unique_failure_locations" \
+    --argjson regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts "$regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts" \
+    --argjson regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts "$regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts" \
+    --arg regex_family_stimuli_parseability_counterexample_primary_stage "$regex_family_stimuli_parseability_counterexample_primary_stage" \
+    --argjson regex_family_stimuli_parseability_counterexample_primary_stage_count "$regex_family_stimuli_parseability_counterexample_primary_stage_count" \
+    --arg regex_family_stimuli_parseability_counterexample_primary_shrunk_sample "$regex_family_stimuli_parseability_counterexample_primary_shrunk_sample" \
+    --argjson regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count "$regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count" \
+    --arg regex_family_stimuli_parseability_counterexample_primary_parser_error "$regex_family_stimuli_parseability_counterexample_primary_parser_error" \
+    --argjson regex_family_stimuli_parseability_counterexample_primary_parser_error_count "$regex_family_stimuli_parseability_counterexample_primary_parser_error_count" \
+    --arg regex_family_stimuli_parseability_counterexample_primary_failure_location "$regex_family_stimuli_parseability_counterexample_primary_failure_location" \
+    --argjson regex_family_stimuli_parseability_counterexample_primary_failure_location_count "$regex_family_stimuli_parseability_counterexample_primary_failure_location_count" \
     --argjson regex_family_stimuli_initial_targets "$regex_family_stimuli_initial_targets" \
     --argjson regex_family_stimuli_resolved_targets "$regex_family_stimuli_resolved_targets" \
     --argjson regex_family_stimuli_final_targets "$regex_family_stimuli_final_targets" \
@@ -1010,6 +1125,19 @@ jq -n \
         stimuli_parseability_rejected_total: $regex_family_stimuli_parseability_rejected_total,
         stimuli_parseability_parser_rejections_total: $regex_family_stimuli_parseability_parser_rejections_total,
         stimuli_parseability_acceptance_rate_percent: $regex_family_stimuli_parseability_acceptance_rate_percent,
+        stimuli_parseability_counterexamples_captured_total: $regex_family_stimuli_parseability_counterexamples_captured_total,
+        stimuli_parseability_counterexample_unique_shrunk_samples: $regex_family_stimuli_parseability_counterexample_unique_shrunk_samples,
+        stimuli_parseability_counterexample_unique_failure_locations: $regex_family_stimuli_parseability_counterexample_unique_failure_locations,
+        stimuli_parseability_counterexample_unique_failure_line_excerpts: $regex_family_stimuli_parseability_counterexample_unique_failure_line_excerpts,
+        stimuli_parseability_counterexample_unique_failure_context_excerpts: $regex_family_stimuli_parseability_counterexample_unique_failure_context_excerpts,
+        stimuli_parseability_counterexample_primary_stage: $regex_family_stimuli_parseability_counterexample_primary_stage,
+        stimuli_parseability_counterexample_primary_stage_count: $regex_family_stimuli_parseability_counterexample_primary_stage_count,
+        stimuli_parseability_counterexample_primary_shrunk_sample: $regex_family_stimuli_parseability_counterexample_primary_shrunk_sample,
+        stimuli_parseability_counterexample_primary_shrunk_sample_count: $regex_family_stimuli_parseability_counterexample_primary_shrunk_sample_count,
+        stimuli_parseability_counterexample_primary_parser_error: $regex_family_stimuli_parseability_counterexample_primary_parser_error,
+        stimuli_parseability_counterexample_primary_parser_error_count: $regex_family_stimuli_parseability_counterexample_primary_parser_error_count,
+        stimuli_parseability_counterexample_primary_failure_location: $regex_family_stimuli_parseability_counterexample_primary_failure_location,
+        stimuli_parseability_counterexample_primary_failure_location_count: $regex_family_stimuli_parseability_counterexample_primary_failure_location_count,
         stimuli_initial_targets: $regex_family_stimuli_initial_targets,
         stimuli_resolved_targets: $regex_family_stimuli_resolved_targets,
         stimuli_final_targets: $regex_family_stimuli_final_targets,
@@ -1027,7 +1155,9 @@ jq -n \
           stimuli_state_dir: $regex_family_stimuli_state_dir,
           stimuli_summary_txt: $regex_family_stimuli_summary_txt,
           stimuli_summary_csv: $regex_family_stimuli_summary_csv,
-          stimuli_parseability_report_json: $regex_family_stimuli_parseability_report_json
+          stimuli_parseability_report_json: $regex_family_stimuli_parseability_report_json,
+          stimuli_parseability_counterexample_triage_json: $regex_family_stimuli_parseability_counterexample_triage_json,
+          stimuli_parseability_counterexample_triage_txt: $regex_family_stimuli_parseability_counterexample_triage_txt
         }
       },
       family_status: {
