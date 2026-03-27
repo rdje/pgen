@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: add-annotation-triage-patterns-to-rust-analysis)
+Last updated: 2026-03-27 (+0100, task: add-annotation-source-of-truth-map-to-rust-analysis)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `RUST_CODEBASE_ANALYSIS.md` now makes annotation proof ownership more explicit.
+- It now states:
+  - `rust/Makefile` is the source of truth for aggregate annotation proof composition
+  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` is the source of truth for annotation proof obligations and semantic intent
+  - `PGEN_USER_GUIDE.md` is the source of truth for the operator-facing annotation gate map
+- It also now includes an explicit `Aggregate annotation proof contract` entry in `Public Contract Surface Map`.
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts those annotation proof ownership cues.
+- The live Rust analysis doc now answers annotation proof ownership questions more directly.
 - `RUST_CODEBASE_ANALYSIS.md` now carries annotation-specific symptom triage and intervention-order guidance.
 - It now includes:
   - a symptom shortcut for the case where annotation leaf suites pass but the repo-level proof still feels wrong or incomplete

@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Add annotation source-of-truth map to Rust analysis
+### Context
+The live Rust analysis doc already mapped the annotation proof spine, doc routing, rerun guidance, and triage flow, but it still did not answer one practical ownership question clearly enough: which layer is authoritative for aggregate annotation proof composition versus semantic intent versus the operator-facing gate map?
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - under `Canonical Source-Of-Truth Map`, added explicit annotation proof ownership entries for:
+    - aggregate annotation proof composition -> `rust/Makefile`
+    - annotation proof obligations and semantic intent -> [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+    - operator-facing annotation gate map -> [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - under `Public Contract Surface Map`, added an explicit `Aggregate annotation proof contract` entry covering:
+    - `annotation_contract_gate`
+    - `semantic_full_contract_gate`
+    - `return_annotation_support_gate`
+    - `annotation_stimuli_quality_gate`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts those new source-of-truth and contract-surface cues
+- Updated the continuity docs to record that the annotation proof ownership map is now explicit in the live Rust analysis doc.
+
+### Why This Matters
+- Future sessions can now answer “which layer is authoritative for this annotation proof question?” faster.
+- Local CI now keeps the annotation proof ownership map aligned with the rest of the aggregate proof-spine guidance.
+
 ## 2026-03-27 - Add annotation triage patterns to Rust analysis
 ### Context
 The live Rust analysis doc now had better annotation code-start, doc-routing, and rerun guidance, but it still did not explicitly answer two practical questions that show up in real sessions:

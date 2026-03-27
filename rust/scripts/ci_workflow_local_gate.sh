@@ -418,6 +418,15 @@ audit_annotation_aggregate_contract_surface() {
     'annotation proof obligations and gate targets behind aggregate annotation claims'
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
+    'Aggregate annotation proof composition'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'Operator-facing annotation gate map'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'Aggregate annotation proof contract'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
     '### If the task is return/semantic annotation parsing or validation'
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \

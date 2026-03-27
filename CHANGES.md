@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-27 - Add annotation source-of-truth map to Rust analysis
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now states which layers are authoritative for aggregate annotation proof composition and operator-facing annotation claims, and local CI now protects those cues.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust-analysis doc now explicitly says:
+  - `rust/Makefile` is the source of truth for aggregate annotation proof composition
+  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) is the source of truth for annotation proof obligations and semantic intent
+  - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md) is the source of truth for the operator-facing annotation gate map
+- The public-contract map now also names the aggregate annotation proof contract explicitly.
+- The local-CI aggregate annotation audit now asserts those new source-of-truth cues.
+
+### Why This Matters
+- Future sessions can answer “which layer is authoritative for this annotation proof question?” faster.
+- CI now protects the annotation proof ownership map, not just the navigation and validation guidance around it.
+
 ## 2026-03-27 - Add annotation triage patterns to Rust analysis
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now includes annotation-specific symptom triage and intervention-order guidance, and local CI now protects those cues.

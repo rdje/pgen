@@ -440,6 +440,15 @@ Operational rule:
 - Proof-sidecar schema and aggregate proof flow
   - Canonical source: the emitting gate in `rust/scripts/*.sh`, with `summary.json` as the preferred structured contract surface
   - Use this first when the question is “which proof fields are actually promised here?”
+- Aggregate annotation proof composition
+  - Canonical source: `rust/Makefile`
+  - Use this first when the question is “which top-level annotation/semantic/return proof targets are supposed to run together?”
+- Annotation proof obligations and semantic intent
+  - Canonical source: `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - Use this first when the question is “what annotation behavior and proof obligations are we actually claiming?”
+- Operator-facing annotation gate map
+  - Canonical source: `PGEN_USER_GUIDE.md`
+  - Use this first when the question is “which aggregate annotation gates are meant to be run or read by humans?”
 - Current architecture/risk/steering snapshot
   - Canonical source: `RUST_CODEBASE_ANALYSIS.md`
   - Use this first when the question is “what is the current repo-level understanding of the Rust codebase?”
@@ -471,6 +480,15 @@ Operational rule:
     - especially `summary.json`
   - Compatibility promise:
     - structured proof fields consumed by family-status, combined-telemetry, SOTA, and local-CI parity readers
+- Aggregate annotation proof contract
+  - Main surface:
+    - `rust/Makefile`
+    - `annotation_contract_gate`
+    - `semantic_full_contract_gate`
+    - `return_annotation_support_gate`
+    - `annotation_stimuli_quality_gate`
+  - Compatibility promise:
+    - which aggregate annotation proof targets compose the repo’s practical closure claims for validator coverage, runtime/round-trip evidence, return support, and annotation stimuli closure
 - Human-readable proof compatibility surface
   - Main surface:
     - gate `summary.txt`
