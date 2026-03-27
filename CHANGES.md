@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-27 - Add annotation proof trap to Rust analysis
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now explicitly warns that a passing annotation leaf suite is not the same as a valid aggregate annotation proof claim, and local CI now protects that warning.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The `Known Traps And False Assumptions` section now explicitly says that passing:
+  - one annotation leaf suite
+  - or one SC gate
+  - does not by itself establish the repo-level annotation proof claim
+- The local-CI aggregate annotation audit now asserts that new trap cue.
+
+### Why This Matters
+- Future sessions now get a clearer warning against one of the easiest annotation-proof mistakes in this repo.
+- CI now keeps that caution aligned with the aggregate annotation proof spine.
+
 ## 2026-03-27 - Add annotation source-of-truth map to Rust analysis
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now states which layers are authoritative for aggregate annotation proof composition and operator-facing annotation claims, and local CI now protects those cues.

@@ -1273,6 +1273,9 @@ Operational rule:
 - “A successful compile is enough validation for a Rust change.”
   - Usually false here.
   - In this repo, the next real consumer of the artifact is often the meaningful validation seam.
+- “If an annotation leaf suite or one SC gate passes, the repo-level annotation proof claim is done.”
+  - False here.
+  - Aggregate annotation claims usually live one layer higher in `annotation_contract_gate`, `semantic_full_contract_gate`, `return_annotation_support_gate`, or `annotation_stimuli_quality_gate`.
 - “Shell gates are just wrappers around the real Rust product.”
   - False here.
   - The shell proof layer is part of the effective product contract because it defines and preserves the executable proof surfaces.

@@ -418,6 +418,9 @@ audit_annotation_aggregate_contract_surface() {
     'annotation proof obligations and gate targets behind aggregate annotation claims'
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
+    'If an annotation leaf suite or one SC gate passes, the repo-level annotation proof claim is done.'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
     'Aggregate annotation proof composition'
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \

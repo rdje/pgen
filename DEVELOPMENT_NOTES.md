@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Add annotation proof trap to Rust analysis
+### Context
+The live Rust analysis doc now had a much stronger annotation proof-spine map, but its trap list still did not call out one of the easiest annotation-specific mistakes: assuming that a passing leaf suite or individual SC gate automatically means the repo-level annotation proof claim is complete.
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - under `Known Traps And False Assumptions`, added an annotation-specific warning that passing one leaf annotation suite or one SC gate is not the same thing as satisfying the aggregate annotation proof surface
+  - the trap now points readers back to the aggregate annotation proof layer:
+    - `annotation_contract_gate`
+    - `semantic_full_contract_gate`
+    - `return_annotation_support_gate`
+    - `annotation_stimuli_quality_gate`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts that new trap cue
+- Updated the continuity docs to record that the live Rust analysis trap list now contains an annotation-specific aggregate-proof warning.
+
+### Why This Matters
+- The analysis doc now warns future sessions away from a common false completion signal in annotation work.
+- Local CI now keeps that warning aligned with the rest of the aggregate annotation proof guidance.
+
 ## 2026-03-27 - Add annotation source-of-truth map to Rust analysis
 ### Context
 The live Rust analysis doc already mapped the annotation proof spine, doc routing, rerun guidance, and triage flow, but it still did not answer one practical ownership question clearly enough: which layer is authoritative for aggregate annotation proof composition versus semantic intent versus the operator-facing gate map?

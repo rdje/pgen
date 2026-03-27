@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: add-annotation-source-of-truth-map-to-rust-analysis)
+Last updated: 2026-03-27 (+0100, task: add-annotation-proof-trap-to-rust-analysis)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `RUST_CODEBASE_ANALYSIS.md` now explicitly warns that passing one annotation leaf suite or one SC gate is not the same as satisfying the repo-level annotation proof claim.
+- That trap now points readers back to the aggregate annotation proof layer:
+  - `annotation_contract_gate`
+  - `semantic_full_contract_gate`
+  - `return_annotation_support_gate`
+  - `annotation_stimuli_quality_gate`
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts that annotation-specific aggregate-proof warning.
+- The live Rust analysis trap list now contains a clearer annotation-specific false-completion warning.
 - `RUST_CODEBASE_ANALYSIS.md` now makes annotation proof ownership more explicit.
 - It now states:
   - `rust/Makefile` is the source of truth for aggregate annotation proof composition
