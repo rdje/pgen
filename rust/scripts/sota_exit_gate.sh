@@ -133,6 +133,7 @@ EXISTING_VHDL_FAMILY_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_FAMILY_CONTRA
 EXISTING_VHDL_FAMILY_STATUS_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_STATE_DIR:-}"
 EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_VHDL_FAMILY_STATUS_CONTRACT_STATE_DIR:-}"
 EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR:-}"
+EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${PGEN_SOTA_EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-}"
 EXISTING_REGEX_FAMILY_STATUS_STATE_DIR="${PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_STATE_DIR:-}"
 EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR="${PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR:-}"
 VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS_SOURCE="policy"
@@ -2799,12 +2800,14 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
                 env \
                     PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
                     PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-}" \
                     make -C rust SHELL=/bin/bash regex_parser_family_status_gate
         else
             run_check "regex_parser_family_status_gate" "informational" "report-only regex family-status proof over produced artifacts" \
                 env \
                     PGEN_REGEX_FAMILY_STATUS_STATE_DIR="$REGEX_PARSER_FAMILY_STATUS_STAGE_STATE_DIR" \
                     PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR="$REGEX_PARSER_FAMILY_CONTRACT_STAGE_STATE_DIR" \
+                    PGEN_REGEX_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-}" \
                     make -C rust SHELL=/bin/bash regex_parser_family_status_gate
         fi
     fi
@@ -2830,6 +2833,14 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_STATE_DIR="<missing>"
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE_VERSION="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GENERATED_AT_UTC="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_PRIMARY_UNMET_CLOSURE_CRITERION="<missing>"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_UNMET_CLOSURE_CRITERIA_COUNT="<missing>"
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_GREEN="<missing>"
         REGEX_FAMILY_STATUS_REGEX_FRONTEND_OVERALL_PASS="<missing>"
         REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_OVERALL_PASS="<missing>"
@@ -2857,6 +2868,14 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_STATE_DIR="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_state_dir' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_summary_txt' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_summary_json' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$(summary_value_from_txt "regex_formal_exhaustive_closure_gate" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE_VERSION="$(summary_value_from_txt "regex_formal_exhaustive_closure_gate_version" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GENERATED_AT_UTC="$(summary_value_from_txt "regex_formal_exhaustive_closure_generated_at_utc" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.formal_exhaustive_closure_state_dir' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.formal_exhaustive_closure_summary_txt' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.formal_exhaustive_closure_summary_json' "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_PRIMARY_UNMET_CLOSURE_CRITERION="$(summary_value_from_txt "regex_formal_exhaustive_closure_primary_unmet_closure_criterion" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "regex_formal_exhaustive_closure_unmet_closure_criteria_count" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_GREEN="$(summary_value_from_txt "regex_family_contract_green" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         REGEX_FAMILY_STATUS_REGEX_FRONTEND_OVERALL_PASS="$(summary_value_from_txt "regex_frontend_overall_pass" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_OVERALL_PASS="$(summary_value_from_txt "regex_dual_run_overall_pass" "$REGEX_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
@@ -2902,6 +2921,9 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_STATE_DIR="<missing>"
         REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
         REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="<missing>"
+        REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="<missing>"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK="<missing>"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_FALSE_CRITERIA_COUNT="<missing>"
@@ -2919,6 +2941,9 @@ if [[ -f "$EBNF_FRONTEND_READINESS_SUMMARY_CSV" && -f "$EBNF_DUAL_RUN_SUMMARY_JS
         REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_STATE_DIR="$(jq -r '.families[] | select(.family=="regex") | .family_contract.state_dir' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="regex") | .family_contract.summary_txt' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="regex") | .family_contract.summary_json' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.state_dir' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.summary_txt' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.summary_json' "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="$(summary_value_from_txt "family_count" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "regex_tracker_alignment_ok" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "regex_false_criteria_count" "$REGEX_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
@@ -3570,6 +3595,14 @@ informational_failures=$((all_failures - required_failures))
         echo "regex_family_status_regex_closure_criteria_unsatisfied_count: $REGEX_FAMILY_STATUS_REGEX_CLOSURE_CRITERIA_UNSATISFIED_COUNT"
         echo "regex_family_status_regex_family_contract_summary_txt: $REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT"
         echo "regex_family_status_regex_family_contract_summary_json: $REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON"
+        echo "regex_family_status_regex_formal_exhaustive_closure_gate: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
+        echo "regex_family_status_regex_formal_exhaustive_closure_gate_version: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE_VERSION"
+        echo "regex_family_status_regex_formal_exhaustive_closure_generated_at_utc: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GENERATED_AT_UTC"
+        echo "regex_family_status_regex_formal_exhaustive_closure_state_dir: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR"
+        echo "regex_family_status_regex_formal_exhaustive_closure_summary_txt: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT"
+        echo "regex_family_status_regex_formal_exhaustive_closure_summary_json: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON"
+        echo "regex_family_status_regex_formal_exhaustive_closure_primary_unmet_closure_criterion: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_PRIMARY_UNMET_CLOSURE_CRITERION"
+        echo "regex_family_status_regex_formal_exhaustive_closure_unmet_closure_criteria_count: $REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_UNMET_CLOSURE_CRITERIA_COUNT"
         echo "regex_family_status_regex_family_contract_green: $REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_GREEN"
         echo "regex_family_status_regex_frontend_overall_pass: $REGEX_FAMILY_STATUS_REGEX_FRONTEND_OVERALL_PASS"
         echo "regex_family_status_regex_dual_run_overall_pass: $REGEX_FAMILY_STATUS_REGEX_DUAL_RUN_OVERALL_PASS"
@@ -3593,6 +3626,9 @@ informational_failures=$((all_failures - required_failures))
         echo "regex_family_status_contract_regex_primary_unmet_detail_criterion: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_PRIMARY_UNMET_DETAIL_CRITERION"
         echo "regex_family_status_contract_regex_unmet_closure_criteria_json: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_JSON"
         echo "regex_family_status_contract_regex_unmet_closure_criteria_details_json: $REGEX_PARSER_FAMILY_STATUS_CONTRACT_REGEX_UNMET_CLOSURE_CRITERIA_DETAILS_JSON"
+        echo "regex_family_status_contract_regex_formal_exhaustive_closure_state_dir: $REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR"
+        echo "regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt: $REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT"
+        echo "regex_family_status_contract_regex_formal_exhaustive_closure_summary_json: $REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON"
     fi
 } >"$SUMMARY_TXT"
 
@@ -3699,6 +3735,9 @@ jq -n \
     --arg regex_family_status_regex_family_contract_state_dir "${REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_STATE_DIR:-<not-run>}" \
     --arg regex_family_status_regex_family_contract_summary_txt "${REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT:-<not-run>}" \
     --arg regex_family_status_regex_family_contract_summary_json "${REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_state_dir "${REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-<not-run>}" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_summary_txt "${REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT:-<not-run>}" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_summary_json "${REGEX_FAMILY_STATUS_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON:-<not-run>}" \
     --arg regex_family_frontend_state_dir "${REGEX_FAMILY_FRONTEND_STATE_DIR:-<not-run>}" \
     --arg regex_family_frontend_summary_txt "${REGEX_FAMILY_FRONTEND_SUMMARY_TXT:-<not-run>}" \
     --arg regex_family_frontend_summary_csv "${REGEX_FAMILY_FRONTEND_SUMMARY_CSV:-<not-run>}" \
@@ -3722,6 +3761,9 @@ jq -n \
     --arg regex_family_status_contract_regex_family_contract_state_dir "${REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_STATE_DIR:-<not-run>}" \
     --arg regex_family_status_contract_regex_family_contract_summary_txt "${REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_SUMMARY_TXT:-<not-run>}" \
     --arg regex_family_status_contract_regex_family_contract_summary_json "${REGEX_FAMILY_STATUS_CONTRACT_REGEX_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_state_dir "${REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-<not-run>}" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt "${REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT:-<not-run>}" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_summary_json "${REGEX_FAMILY_STATUS_CONTRACT_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON:-<not-run>}" \
     '
     def maybe_text($v):
         if ($v | length) == 0 or (($v | startswith("<")) and ($v | endswith(">"))) then null else $v end;
@@ -3829,6 +3871,9 @@ jq -n \
             vhdl_parser_family_status_summary_json: maybe_path($vhdl_parser_family_status_summary_json),
             vhdl_parser_family_status_contract_summary_json: maybe_path($vhdl_parser_family_status_contract_summary_json),
             regex_parser_family_contract_summary_json: maybe_path($regex_parser_family_contract_summary_json),
+            regex_formal_exhaustive_closure_state_dir: maybe_path($regex_family_status_regex_formal_exhaustive_closure_state_dir),
+            regex_formal_exhaustive_closure_summary_txt: maybe_path($regex_family_status_regex_formal_exhaustive_closure_summary_txt),
+            regex_formal_exhaustive_closure_summary_json: maybe_path($regex_family_status_regex_formal_exhaustive_closure_summary_json),
             regex_parser_family_status_summary_json: maybe_path($regex_parser_family_status_summary_json),
             regex_parser_family_status_contract_summary_json: maybe_path($regex_parser_family_status_contract_summary_json)
         },
@@ -3871,6 +3916,9 @@ jq -n \
                 family_contract_state_dir: maybe_path($regex_family_status_regex_family_contract_state_dir),
                 family_contract_summary_txt: maybe_path($regex_family_status_regex_family_contract_summary_txt),
                 family_contract_summary_json: maybe_path($regex_family_status_regex_family_contract_summary_json),
+                formal_exhaustive_closure_state_dir: maybe_path($regex_family_status_regex_formal_exhaustive_closure_state_dir),
+                formal_exhaustive_closure_summary_txt: maybe_path($regex_family_status_regex_formal_exhaustive_closure_summary_txt),
+                formal_exhaustive_closure_summary_json: maybe_path($regex_family_status_regex_formal_exhaustive_closure_summary_json),
                 frontend_state_dir: maybe_path($regex_family_frontend_state_dir),
                 frontend_summary_txt: maybe_path($regex_family_frontend_summary_txt),
                 frontend_summary_csv: maybe_path($regex_family_frontend_summary_csv),
@@ -3926,7 +3974,10 @@ jq -n \
                 family_status_summary_json: maybe_path($regex_family_status_contract_family_status_summary_json),
                 family_contract_state_dir: maybe_path($regex_family_status_contract_regex_family_contract_state_dir),
                 family_contract_summary_txt: maybe_path($regex_family_status_contract_regex_family_contract_summary_txt),
-                family_contract_summary_json: maybe_path($regex_family_status_contract_regex_family_contract_summary_json)
+                family_contract_summary_json: maybe_path($regex_family_status_contract_regex_family_contract_summary_json),
+                formal_exhaustive_closure_state_dir: maybe_path($regex_family_status_contract_regex_formal_exhaustive_closure_state_dir),
+                formal_exhaustive_closure_summary_txt: maybe_path($regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt),
+                formal_exhaustive_closure_summary_json: maybe_path($regex_family_status_contract_regex_formal_exhaustive_closure_summary_json)
             } | tojson))
         },
         checks: $checks_enriched

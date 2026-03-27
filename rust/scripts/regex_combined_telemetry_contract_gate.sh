@@ -114,6 +114,9 @@ sota_exit_regex_status_family_status_contract_summary_json="$(jq -r '.family_sta
 sota_exit_regex_status_family_contract_state_dir="$(jq -r '.family_status.regex.proof_surfaces.family_contract_state_dir' "$sota_summary_json")"
 sota_exit_regex_status_family_contract_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.family_contract_summary_txt' "$sota_summary_json")"
 sota_exit_regex_status_family_contract_summary_json="$(jq -r '.family_status.regex.proof_surfaces.family_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_status_formal_exhaustive_closure_state_dir="$(jq -r '.family_status.regex.proof_surfaces.formal_exhaustive_closure_state_dir' "$sota_summary_json")"
+sota_exit_regex_status_formal_exhaustive_closure_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.formal_exhaustive_closure_summary_txt' "$sota_summary_json")"
+sota_exit_regex_status_formal_exhaustive_closure_summary_json="$(jq -r '.family_status.regex.proof_surfaces.formal_exhaustive_closure_summary_json' "$sota_summary_json")"
 sota_exit_regex_status_frontend_state_dir="$(jq -r '.family_status.regex.proof_surfaces.frontend_state_dir' "$sota_summary_json")"
 sota_exit_regex_status_frontend_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.frontend_summary_txt' "$sota_summary_json")"
 sota_exit_regex_status_frontend_summary_csv="$(jq -r '.family_status.regex.proof_surfaces.frontend_summary_csv' "$sota_summary_json")"
@@ -134,6 +137,9 @@ sota_exit_regex_contract_family_status_summary_json="$(jq -r '.family_status_con
 sota_exit_regex_contract_family_contract_state_dir="$(jq -r '.family_status_contract.regex.proof_surfaces.family_contract_state_dir' "$sota_summary_json")"
 sota_exit_regex_contract_family_contract_summary_txt="$(jq -r '.family_status_contract.regex.proof_surfaces.family_contract_summary_txt' "$sota_summary_json")"
 sota_exit_regex_contract_family_contract_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.family_contract_summary_json' "$sota_summary_json")"
+sota_exit_regex_contract_formal_exhaustive_closure_state_dir="$(jq -r '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_state_dir' "$sota_summary_json")"
+sota_exit_regex_contract_formal_exhaustive_closure_summary_txt="$(jq -r '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_summary_txt' "$sota_summary_json")"
+sota_exit_regex_contract_formal_exhaustive_closure_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_summary_json' "$sota_summary_json")"
 sota_exit_regex_primary_unmet="$(jq -r '.family_status.regex.primary_unmet_closure_criterion' "$sota_summary_json")"
 sota_exit_regex_unmet_json="$(jq -cer '.family_status.regex.unmet_closure_criteria' "$sota_summary_json")"
 sota_exit_regex_unmet_details_json="$(jq -cer '.family_status.regex.unmet_closure_criteria_details' "$sota_summary_json")"
@@ -220,7 +226,6 @@ assert_equal \
     "SOTA exit nested regex family-status-contract self summary json path" \
     "$regex_family_status_contract_summary_json" \
     "$sota_exit_regex_contract_family_status_contract_summary_json"
-
 regex_family_frontend_overall="$(extract_summary_value "$regex_family_summary_txt" "frontend_regex_overall")"
 regex_family_dual_run_overall="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_overall")"
 regex_family_dual_run_raw_ast_status="$(extract_summary_value "$regex_family_summary_txt" "dual_run_regex_raw_ast_status")"
@@ -357,9 +362,29 @@ regex_family_status_regex_closure_criteria_unsatisfied_count="$(extract_summary_
 regex_family_status_regex_family_contract_gate="$(jq -r '.families[] | select(.family=="regex") | .metrics.family_contract_gate' "$regex_family_status_summary_json")"
 regex_family_status_regex_family_contract_gate_version="$(jq -r '.families[] | select(.family=="regex") | .metrics.family_contract_gate_version' "$regex_family_status_summary_json")"
 regex_family_status_regex_family_contract_generated_at_utc="$(jq -r '.families[] | select(.family=="regex") | .metrics.family_contract_generated_at_utc' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_gate="$(jq -r '.families[] | select(.family=="regex") | .metrics.formal_exhaustive_closure_gate' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_gate_version="$(jq -r '.families[] | select(.family=="regex") | .metrics.formal_exhaustive_closure_gate_version' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_generated_at_utc="$(jq -r '.families[] | select(.family=="regex") | .metrics.formal_exhaustive_closure_generated_at_utc' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_primary_unmet_closure_criterion="$(jq -r '.families[] | select(.family=="regex") | .metrics.formal_exhaustive_closure_primary_unmet_closure_criterion' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_unmet_closure_criteria_count="$(jq -r '.families[] | select(.family=="regex") | .metrics.formal_exhaustive_closure_unmet_closure_criteria_count' "$regex_family_status_summary_json")"
 regex_family_status_regex_family_contract_state_dir="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_state_dir' "$regex_family_status_summary_json")"
 regex_family_status_regex_family_contract_summary_txt="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_summary_txt' "$regex_family_status_summary_json")"
 regex_family_status_regex_family_contract_summary_json="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.family_contract_summary_json' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_state_dir="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.formal_exhaustive_closure_state_dir' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_summary_txt="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.formal_exhaustive_closure_summary_txt' "$regex_family_status_summary_json")"
+regex_family_status_regex_formal_exhaustive_closure_summary_json="$(jq -r '.families[] | select(.family=="regex") | .proof_surfaces.formal_exhaustive_closure_summary_json' "$regex_family_status_summary_json")"
+assert_equal \
+    "SOTA exit nested regex formal closure state dir" \
+    "$regex_family_status_regex_formal_exhaustive_closure_state_dir" \
+    "$sota_exit_regex_status_formal_exhaustive_closure_state_dir"
+assert_equal \
+    "SOTA exit nested regex formal closure summary txt" \
+    "$regex_family_status_regex_formal_exhaustive_closure_summary_txt" \
+    "$sota_exit_regex_status_formal_exhaustive_closure_summary_txt"
+assert_equal \
+    "SOTA exit nested regex formal closure summary json" \
+    "$regex_family_status_regex_formal_exhaustive_closure_summary_json" \
+    "$sota_exit_regex_status_formal_exhaustive_closure_summary_json"
 regex_family_status_regex_family_contract_green="$(extract_summary_value "$regex_family_status_summary_txt" "regex_family_contract_green")"
 regex_family_status_regex_frontend_overall_pass="$(extract_summary_value "$regex_family_status_summary_txt" "regex_frontend_overall_pass")"
 regex_family_status_regex_dual_run_overall_pass="$(extract_summary_value "$regex_family_status_summary_txt" "regex_dual_run_overall_pass")"
@@ -388,6 +413,14 @@ regex_family_status_contract_regex_family_contract_generated_at_utc="$(jq -r '.f
 regex_family_status_contract_regex_family_contract_state_dir="$(jq -r '.families[] | select(.family=="regex") | .family_contract.state_dir' "$regex_family_status_contract_summary_json")"
 regex_family_status_contract_regex_family_contract_summary_txt="$(jq -r '.families[] | select(.family=="regex") | .family_contract.summary_txt' "$regex_family_status_contract_summary_json")"
 regex_family_status_contract_regex_family_contract_summary_json="$(jq -r '.families[] | select(.family=="regex") | .family_contract.summary_json' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_gate="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.gate' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_gate_version="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.version' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_generated_at_utc="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.generated_at_utc' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_primary_unmet_closure_criterion="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.primary_unmet_closure_criterion' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_unmet_closure_criteria_count="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.unmet_closure_criteria_count' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_state_dir="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.state_dir' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.summary_txt' "$regex_family_status_contract_summary_json")"
+regex_family_status_contract_regex_formal_exhaustive_closure_summary_json="$(jq -r '.families[] | select(.family=="regex") | .formal_exhaustive_closure.summary_json' "$regex_family_status_contract_summary_json")"
 
 assert_equal \
     "SOTA exit nested regex contract family-status state dir" \
@@ -413,6 +446,18 @@ assert_equal \
     "SOTA exit nested regex contract family contract summary json" \
     "$regex_family_status_contract_regex_family_contract_summary_json" \
     "$sota_exit_regex_contract_family_contract_summary_json"
+assert_equal \
+    "SOTA exit nested regex contract formal closure state dir" \
+    "$regex_family_status_contract_regex_formal_exhaustive_closure_state_dir" \
+    "$sota_exit_regex_contract_formal_exhaustive_closure_state_dir"
+assert_equal \
+    "SOTA exit nested regex contract formal closure summary txt" \
+    "$regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt" \
+    "$sota_exit_regex_contract_formal_exhaustive_closure_summary_txt"
+assert_equal \
+    "SOTA exit nested regex contract formal closure summary json" \
+    "$regex_family_status_contract_regex_formal_exhaustive_closure_summary_json" \
+    "$sota_exit_regex_contract_formal_exhaustive_closure_summary_json"
 
 assert_equal \
     "Regex family frontend overall" \
@@ -494,6 +539,18 @@ assert_equal \
     "Regex family stimuli parseability counterexample triage txt" \
     "$regex_family_stimuli_parseability_counterexample_triage_txt" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_counterexample_triage_txt")"
+assert_equal \
+    "Regex family formal closure state dir" \
+    "$regex_family_status_regex_formal_exhaustive_closure_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_formal_exhaustive_closure_state_dir")"
+assert_equal \
+    "Regex family formal closure summary txt" \
+    "$regex_family_status_regex_formal_exhaustive_closure_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_formal_exhaustive_closure_summary_txt")"
+assert_equal \
+    "Regex family formal closure summary json" \
+    "$regex_family_status_regex_formal_exhaustive_closure_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_formal_exhaustive_closure_summary_json")"
 assert_equal \
     "Regex family stimuli status" \
     "$regex_family_stimuli_status" \
@@ -927,6 +984,14 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_status_regex_family_contract_state_dir: $regex_family_status_regex_family_contract_state_dir"
     echo "regex_family_status_regex_family_contract_summary_txt: $regex_family_status_regex_family_contract_summary_txt"
     echo "regex_family_status_regex_family_contract_summary_json: $regex_family_status_regex_family_contract_summary_json"
+    echo "regex_family_status_regex_formal_exhaustive_closure_gate: $regex_family_status_regex_formal_exhaustive_closure_gate"
+    echo "regex_family_status_regex_formal_exhaustive_closure_gate_version: $regex_family_status_regex_formal_exhaustive_closure_gate_version"
+    echo "regex_family_status_regex_formal_exhaustive_closure_generated_at_utc: $regex_family_status_regex_formal_exhaustive_closure_generated_at_utc"
+    echo "regex_family_status_regex_formal_exhaustive_closure_state_dir: $regex_family_status_regex_formal_exhaustive_closure_state_dir"
+    echo "regex_family_status_regex_formal_exhaustive_closure_summary_txt: $regex_family_status_regex_formal_exhaustive_closure_summary_txt"
+    echo "regex_family_status_regex_formal_exhaustive_closure_summary_json: $regex_family_status_regex_formal_exhaustive_closure_summary_json"
+    echo "regex_family_status_regex_formal_exhaustive_closure_primary_unmet_closure_criterion: $regex_family_status_regex_formal_exhaustive_closure_primary_unmet_closure_criterion"
+    echo "regex_family_status_regex_formal_exhaustive_closure_unmet_closure_criteria_count: $regex_family_status_regex_formal_exhaustive_closure_unmet_closure_criteria_count"
     echo "regex_family_status_regex_family_contract_green: $regex_family_status_regex_family_contract_green"
     echo "regex_family_status_regex_frontend_overall_pass: $regex_family_status_regex_frontend_overall_pass"
     echo "regex_family_status_regex_dual_run_overall_pass: $regex_family_status_regex_dual_run_overall_pass"
@@ -948,6 +1013,14 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_status_contract_regex_family_contract_state_dir: $regex_family_status_contract_regex_family_contract_state_dir"
     echo "regex_family_status_contract_regex_family_contract_summary_txt: $regex_family_status_contract_regex_family_contract_summary_txt"
     echo "regex_family_status_contract_regex_family_contract_summary_json: $regex_family_status_contract_regex_family_contract_summary_json"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_gate: $regex_family_status_contract_regex_formal_exhaustive_closure_gate"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_gate_version: $regex_family_status_contract_regex_formal_exhaustive_closure_gate_version"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_generated_at_utc: $regex_family_status_contract_regex_formal_exhaustive_closure_generated_at_utc"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_state_dir: $regex_family_status_contract_regex_formal_exhaustive_closure_state_dir"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt: $regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_summary_json: $regex_family_status_contract_regex_formal_exhaustive_closure_summary_json"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_primary_unmet_closure_criterion: $regex_family_status_contract_regex_formal_exhaustive_closure_primary_unmet_closure_criterion"
+    echo "regex_family_status_contract_regex_formal_exhaustive_closure_unmet_closure_criteria_count: $regex_family_status_contract_regex_formal_exhaustive_closure_unmet_closure_criteria_count"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
@@ -974,6 +1047,8 @@ jq -n \
     --arg regex_parser_family_status_summary_json "$regex_family_status_summary_json" \
     --arg regex_parser_family_status_contract_summary_txt "$regex_family_status_contract_summary_txt" \
     --arg regex_parser_family_status_contract_summary_json "$regex_family_status_contract_summary_json" \
+    --arg regex_formal_exhaustive_closure_summary_txt "$regex_family_status_regex_formal_exhaustive_closure_summary_txt" \
+    --arg regex_formal_exhaustive_closure_summary_json "$regex_family_status_regex_formal_exhaustive_closure_summary_json" \
     --arg regex_family_frontend_state_dir "$regex_family_frontend_state_dir" \
     --arg regex_family_frontend_summary_txt "$regex_family_frontend_summary_txt" \
     --arg regex_family_frontend_summary_csv "$regex_family_frontend_summary_csv" \
@@ -1042,9 +1117,17 @@ jq -n \
     --arg regex_family_status_regex_family_contract_gate "$regex_family_status_regex_family_contract_gate" \
     --argjson regex_family_status_regex_family_contract_gate_version "$regex_family_status_regex_family_contract_gate_version" \
     --arg regex_family_status_regex_family_contract_generated_at_utc "$regex_family_status_regex_family_contract_generated_at_utc" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_gate "$regex_family_status_regex_formal_exhaustive_closure_gate" \
+    --argjson regex_family_status_regex_formal_exhaustive_closure_gate_version "$regex_family_status_regex_formal_exhaustive_closure_gate_version" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_generated_at_utc "$regex_family_status_regex_formal_exhaustive_closure_generated_at_utc" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_primary_unmet_closure_criterion "$regex_family_status_regex_formal_exhaustive_closure_primary_unmet_closure_criterion" \
+    --argjson regex_family_status_regex_formal_exhaustive_closure_unmet_closure_criteria_count "$regex_family_status_regex_formal_exhaustive_closure_unmet_closure_criteria_count" \
     --arg regex_family_status_regex_family_contract_state_dir "$regex_family_status_regex_family_contract_state_dir" \
     --arg regex_family_status_regex_family_contract_summary_txt "$regex_family_status_regex_family_contract_summary_txt" \
     --arg regex_family_status_regex_family_contract_summary_json "$regex_family_status_regex_family_contract_summary_json" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_state_dir "$regex_family_status_regex_formal_exhaustive_closure_state_dir" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_summary_txt "$regex_family_status_regex_formal_exhaustive_closure_summary_txt" \
+    --arg regex_family_status_regex_formal_exhaustive_closure_summary_json "$regex_family_status_regex_formal_exhaustive_closure_summary_json" \
     --argjson regex_family_status_regex_family_contract_green "$regex_family_status_regex_family_contract_green" \
     --argjson regex_family_status_regex_frontend_overall_pass "$regex_family_status_regex_frontend_overall_pass" \
     --argjson regex_family_status_regex_dual_run_overall_pass "$regex_family_status_regex_dual_run_overall_pass" \
@@ -1072,6 +1155,14 @@ jq -n \
     --arg regex_family_status_contract_regex_family_contract_state_dir "$regex_family_status_contract_regex_family_contract_state_dir" \
     --arg regex_family_status_contract_regex_family_contract_summary_txt "$regex_family_status_contract_regex_family_contract_summary_txt" \
     --arg regex_family_status_contract_regex_family_contract_summary_json "$regex_family_status_contract_regex_family_contract_summary_json" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_gate "$regex_family_status_contract_regex_formal_exhaustive_closure_gate" \
+    --argjson regex_family_status_contract_regex_formal_exhaustive_closure_gate_version "$regex_family_status_contract_regex_formal_exhaustive_closure_gate_version" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_generated_at_utc "$regex_family_status_contract_regex_formal_exhaustive_closure_generated_at_utc" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_primary_unmet_closure_criterion "$regex_family_status_contract_regex_formal_exhaustive_closure_primary_unmet_closure_criterion" \
+    --argjson regex_family_status_contract_regex_formal_exhaustive_closure_unmet_closure_criteria_count "$regex_family_status_contract_regex_formal_exhaustive_closure_unmet_closure_criteria_count" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_state_dir "$regex_family_status_contract_regex_formal_exhaustive_closure_state_dir" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt "$regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt" \
+    --arg regex_family_status_contract_regex_formal_exhaustive_closure_summary_json "$regex_family_status_contract_regex_formal_exhaustive_closure_summary_json" \
     '{
       gate: $gate,
       version: $version,
@@ -1099,6 +1190,8 @@ jq -n \
         sota_exit_summary_json: $sota_summary_json,
         regex_parser_family_contract_summary_txt: $regex_parser_family_contract_summary_txt,
         regex_parser_family_contract_summary_json: $regex_parser_family_contract_summary_json,
+        regex_formal_exhaustive_closure_summary_txt: $regex_formal_exhaustive_closure_summary_txt,
+        regex_formal_exhaustive_closure_summary_json: $regex_formal_exhaustive_closure_summary_json,
         regex_parser_family_status_summary_txt: $regex_parser_family_status_summary_txt,
         regex_parser_family_status_summary_json: $regex_parser_family_status_summary_json,
         regex_parser_family_status_contract_summary_txt: $regex_parser_family_status_contract_summary_txt,
@@ -1186,10 +1279,23 @@ jq -n \
             summary_txt: $regex_family_status_regex_family_contract_summary_txt,
             summary_json: $regex_family_status_regex_family_contract_summary_json
           },
+          formal_exhaustive_closure: {
+            gate: $regex_family_status_regex_formal_exhaustive_closure_gate,
+            version: $regex_family_status_regex_formal_exhaustive_closure_gate_version,
+            generated_at_utc: $regex_family_status_regex_formal_exhaustive_closure_generated_at_utc,
+            primary_unmet_closure_criterion: $regex_family_status_regex_formal_exhaustive_closure_primary_unmet_closure_criterion,
+            unmet_closure_criteria_count: $regex_family_status_regex_formal_exhaustive_closure_unmet_closure_criteria_count,
+            state_dir: $regex_family_status_regex_formal_exhaustive_closure_state_dir,
+            summary_txt: $regex_family_status_regex_formal_exhaustive_closure_summary_txt,
+            summary_json: $regex_family_status_regex_formal_exhaustive_closure_summary_json
+          },
           proof_surfaces: {
             family_contract_state_dir: $regex_family_status_regex_family_contract_state_dir,
             family_contract_summary_txt: $regex_family_status_regex_family_contract_summary_txt,
-            family_contract_summary_json: $regex_family_status_regex_family_contract_summary_json
+            family_contract_summary_json: $regex_family_status_regex_family_contract_summary_json,
+            formal_exhaustive_closure_state_dir: $regex_family_status_regex_formal_exhaustive_closure_state_dir,
+            formal_exhaustive_closure_summary_txt: $regex_family_status_regex_formal_exhaustive_closure_summary_txt,
+            formal_exhaustive_closure_summary_json: $regex_family_status_regex_formal_exhaustive_closure_summary_json
           },
           criteria: {
             family_contract_green: $regex_family_status_regex_family_contract_green,
@@ -1226,6 +1332,16 @@ jq -n \
             state_dir: $regex_family_status_contract_regex_family_contract_state_dir,
             summary_txt: $regex_family_status_contract_regex_family_contract_summary_txt,
             summary_json: $regex_family_status_contract_regex_family_contract_summary_json
+          },
+          formal_exhaustive_closure: {
+            gate: $regex_family_status_contract_regex_formal_exhaustive_closure_gate,
+            version: $regex_family_status_contract_regex_formal_exhaustive_closure_gate_version,
+            generated_at_utc: $regex_family_status_contract_regex_formal_exhaustive_closure_generated_at_utc,
+            primary_unmet_closure_criterion: $regex_family_status_contract_regex_formal_exhaustive_closure_primary_unmet_closure_criterion,
+            unmet_closure_criteria_count: $regex_family_status_contract_regex_formal_exhaustive_closure_unmet_closure_criteria_count,
+            state_dir: $regex_family_status_contract_regex_formal_exhaustive_closure_state_dir,
+            summary_txt: $regex_family_status_contract_regex_formal_exhaustive_closure_summary_txt,
+            summary_json: $regex_family_status_contract_regex_formal_exhaustive_closure_summary_json
           }
         }
       }

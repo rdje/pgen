@@ -981,7 +981,13 @@ audit_sota_json_consumption_surface() {
     '.family_status.regex.proof_surfaces.dual_run_summary_json'
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status.regex.proof_surfaces.formal_exhaustive_closure_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     '.family_status_contract.regex.proof_surfaces.family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_summary_json'
 
   assert_file_contains \
     "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
@@ -1050,10 +1056,22 @@ audit_sota_nested_family_emission_surface() {
     'dual_run_summary_json: maybe_path($regex_family_dual_run_summary_json)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_state_dir: maybe_path($regex_family_status_regex_formal_exhaustive_closure_state_dir)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_summary_json: maybe_path($regex_family_status_regex_formal_exhaustive_closure_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
     'regex: family_status_contract_entry('
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
     'family_contract_summary_json: maybe_path($regex_family_status_contract_regex_family_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_state_dir: maybe_path($regex_family_status_contract_regex_formal_exhaustive_closure_state_dir)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_summary_json: maybe_path($regex_family_status_contract_regex_formal_exhaustive_closure_summary_json)'
 
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
@@ -1116,6 +1134,18 @@ audit_combined_telemetry_nested_provenance_surface() {
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     'summary_json: $regex_family_status_contract_regex_family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'state_dir: $regex_family_status_regex_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'formal_exhaustive_closure_summary_json: $regex_family_status_regex_formal_exhaustive_closure_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'state_dir: $regex_family_status_contract_regex_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'summary_json: $regex_family_status_contract_regex_formal_exhaustive_closure_summary_json'
 
   assert_file_contains \
     "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
@@ -1209,11 +1239,23 @@ audit_family_layer_provenance_surface() {
     "rust/scripts/regex_parser_family_status_gate.sh" \
     'family_contract_summary_json: $regex_family_contract_summary_json'
   assert_file_contains \
+    "rust/scripts/regex_parser_family_status_gate.sh" \
+    'formal_exhaustive_closure_state_dir: $regex_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_status_gate.sh" \
+    'formal_exhaustive_closure_summary_json: $regex_formal_exhaustive_closure_summary_json'
+  assert_file_contains \
     "rust/scripts/regex_parser_family_status_contract_gate.sh" \
     'state_dir: $regex_family_contract_state_dir'
   assert_file_contains \
     "rust/scripts/regex_parser_family_status_contract_gate.sh" \
     'summary_json: $regex_family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_status_contract_gate.sh" \
+    'state_dir: $regex_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_status_contract_gate.sh" \
+    'summary_json: $regex_formal_exhaustive_closure_summary_json'
 
   assert_file_contains \
     "rust/scripts/vhdl_parser_family_status_gate.sh" \
@@ -1236,6 +1278,7 @@ audit_family_summary_identity_surface() {
     rust/scripts/sv_parser_aggregate_contract_gate.sh \
     rust/scripts/sv_preprocessor_aggregate_contract_gate.sh \
     rust/scripts/regex_parser_family_contract_gate.sh \
+    rust/scripts/regex_formal_exhaustive_closure_gate.sh \
     rust/scripts/vhdl_parser_family_contract_gate.sh \
     rust/scripts/sv_parser_family_status_gate.sh \
     rust/scripts/regex_parser_family_status_gate.sh \
@@ -1287,6 +1330,46 @@ audit_family_contract_proof_surface() {
   assert_file_contains \
     "rust/scripts/vhdl_parser_family_contract_gate.sh" \
     'strict_promotion_report_json: $strict_promotion_report_json'
+}
+
+audit_regex_formal_exhaustive_closure_surface() {
+  note "auditing regex formal exhaustive-closure surface"
+
+  assert_tracked "rust/scripts/regex_formal_exhaustive_closure_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'regex_formal_exhaustive_closure_gate - Compute the explicit regex exhaustive-closure proof surface status from the family sidecar'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/regex_formal_exhaustive_closure_gate.sh'
+
+  assert_file_contains \
+    "rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json" \
+    '"required_surface_key": "broader_corpus_backed_proof_surface"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json" \
+    '"required_surface_missing_detail": "Regex still lacks a checked-in broader corpus-backed proof surface'
+
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'REGEX_FAMILY_CONTRACT_GATE="$RUST_DIR/scripts/regex_parser_family_contract_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'EXISTING_BROADER_CORPUS_PROOF_STATE_DIR="${PGEN_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_BROADER_CORPUS_PROOF_STATE_DIR:-}"'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'broader_corpus_backed_proof_surface_present'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'regex_unmet+=("${required_surface_key}=missing")'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'regex_formal_exhaustive_closure_surface_green'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'broader_corpus_backed_proof_summary_json'
 }
 
 audit_sv_aggregate_contract_proof_surface() {
@@ -1408,6 +1491,7 @@ main() {
   audit_family_layer_provenance_surface
   audit_family_summary_identity_surface
   audit_family_contract_proof_surface
+  audit_regex_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface
   audit_summary_json_emission_surface
 

@@ -12,11 +12,13 @@ SUMMARY_TXT="$STATE_DIR/summary.txt"
 LIVE_TRACKER_FILE="$ROOT_DIR/LIVE_ACHIEVEMENT_STATUS.md"
 
 REGEX_FAMILY_CONTRACT_GATE="$RUST_DIR/scripts/regex_parser_family_contract_gate.sh"
+REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$RUST_DIR/scripts/regex_formal_exhaustive_closure_gate.sh"
 
 EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR:-}"
 EXISTING_REGEX_FRONTEND_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_FRONTEND_STATE_DIR:-}"
 EXISTING_REGEX_DUAL_RUN_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_DUAL_RUN_STATE_DIR:-}"
 EXISTING_REGEX_STIMULI_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_STIMULI_STATE_DIR:-}"
+EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${PGEN_REGEX_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-}"
 
 DONE_RULE="Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim."
 
@@ -97,6 +99,7 @@ run_logged() {
 require_tool jq
 require_file "$LIVE_TRACKER_FILE"
 require_file "$REGEX_FAMILY_CONTRACT_GATE"
+require_file "$REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -201,6 +204,85 @@ regex_stimuli_target_attempts="$(summary_value_from_txt "stimuli_regex_target_at
 regex_stimuli_stage0_successes="$(summary_value_from_txt "stimuli_regex_stage0_successes" "$regex_family_contract_summary_txt")"
 regex_stimuli_stage3_successes="$(summary_value_from_txt "stimuli_regex_stage3_successes" "$regex_family_contract_summary_txt")"
 
+regex_formal_exhaustive_closure_state_dir="${EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-$WORK_DIR/regex_formal_exhaustive_closure_gate}"
+if [[ -z "$EXISTING_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR" ]]; then
+    regex_formal_exhaustive_closure_cmd=(
+        env
+        PGEN_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$regex_formal_exhaustive_closure_state_dir"
+        PGEN_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_CONTRACT_STATE_DIR="$regex_family_contract_state_dir"
+    )
+    regex_formal_exhaustive_closure_cmd+=("$REGEX_FORMAL_EXHAUSTIVE_CLOSURE_GATE")
+    run_logged "regex_formal_exhaustive_closure_gate" "${regex_formal_exhaustive_closure_cmd[@]}"
+fi
+
+regex_formal_exhaustive_closure_summary_txt="$regex_formal_exhaustive_closure_state_dir/summary.txt"
+regex_formal_exhaustive_closure_summary_json="$regex_formal_exhaustive_closure_state_dir/summary.json"
+
+require_nonempty_file "$regex_formal_exhaustive_closure_summary_txt"
+require_nonempty_file "$regex_formal_exhaustive_closure_summary_json"
+
+regex_formal_exhaustive_closure_gate_name="$(jq -r '.gate' "$regex_formal_exhaustive_closure_summary_json")"
+regex_formal_exhaustive_closure_gate_version="$(jq -r '.version' "$regex_formal_exhaustive_closure_summary_json")"
+regex_formal_exhaustive_closure_generated_at_utc="$(jq -r '.generated_at_utc' "$regex_formal_exhaustive_closure_summary_json")"
+regex_formal_exhaustive_closure_state_dir_from_json="$(jq -r '.state_dir' "$regex_formal_exhaustive_closure_summary_json")"
+regex_formal_exhaustive_closure_summary_txt_from_json="$(jq -r '.summary_txt' "$regex_formal_exhaustive_closure_summary_json")"
+regex_formal_exhaustive_closure_summary_json_from_json="$(jq -r '.summary_json' "$regex_formal_exhaustive_closure_summary_json")"
+regex_formal_exhaustive_closure_surface_green="$(summary_value_from_txt "regex_formal_exhaustive_closure_surface_green" "$regex_formal_exhaustive_closure_summary_txt")"
+regex_formal_exhaustive_closure_primary_unmet_closure_criterion="$(summary_value_from_txt "regex_primary_unmet_closure_criterion" "$regex_formal_exhaustive_closure_summary_txt")"
+regex_formal_exhaustive_closure_unmet_closure_criteria_count="$(summary_value_from_txt "regex_unmet_closure_criteria_count" "$regex_formal_exhaustive_closure_summary_txt")"
+regex_formal_exhaustive_closure_primary_unmet_detail_json_raw="$(jq -cer '.families[0].unmet_closure_criteria_details[0] // {"criterion":"<none>","evidence_key":"<none>","observed":"<none>","expected":"<none>","detail":"<none>"}' "$regex_formal_exhaustive_closure_summary_json")"
+regex_formal_exhaustive_closure_primary_unmet_detail_json="$(jq -cn \
+    --argjson raw "$regex_formal_exhaustive_closure_primary_unmet_detail_json_raw" \
+    '{
+        criterion: "formal_exhaustive_closure_surface_green",
+        evidence_key: $raw.evidence_key,
+        observed: $raw.observed,
+        expected: $raw.expected,
+        detail: $raw.detail
+    }'
+)"
+
+summary_regex_formal_exhaustive_closure_state_dir="$(top_level_summary_value_from_txt "state_dir" "$regex_formal_exhaustive_closure_summary_txt")"
+summary_regex_formal_exhaustive_closure_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$regex_formal_exhaustive_closure_summary_txt")"
+summary_regex_formal_exhaustive_closure_summary_json="$(top_level_summary_value_from_txt "summary_json" "$regex_formal_exhaustive_closure_summary_txt")"
+
+if [[ "$regex_formal_exhaustive_closure_gate_name" != "regex_formal_exhaustive_closure_gate" ]]; then
+    echo "error: unexpected regex formal-closure gate identity '$regex_formal_exhaustive_closure_gate_name'" >&2
+    exit 1
+fi
+if [[ ! "$regex_formal_exhaustive_closure_gate_version" =~ ^[0-9]+$ ]]; then
+    echo "error: regex formal-closure gate version is not numeric: '$regex_formal_exhaustive_closure_gate_version'" >&2
+    exit 1
+fi
+if [[ -z "$regex_formal_exhaustive_closure_generated_at_utc" ]]; then
+    echo "error: regex formal-closure generated_at_utc is empty" >&2
+    exit 1
+fi
+if [[ "$summary_regex_formal_exhaustive_closure_state_dir" != "$regex_formal_exhaustive_closure_state_dir" ]]; then
+    echo "error: regex formal-closure state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$regex_formal_exhaustive_closure_state_dir_from_json" != "$regex_formal_exhaustive_closure_state_dir" ]]; then
+    echo "error: regex formal-closure state_dir mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$regex_formal_exhaustive_closure_summary_txt_from_json" != "$regex_formal_exhaustive_closure_summary_txt" ]]; then
+    echo "error: regex formal-closure summary_txt mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_formal_exhaustive_closure_summary_json" != "$regex_formal_exhaustive_closure_summary_json" ]]; then
+    echo "error: regex formal-closure summary_json mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$regex_formal_exhaustive_closure_summary_json_from_json" != "$regex_formal_exhaustive_closure_summary_json" ]]; then
+    echo "error: regex formal-closure summary_json mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_regex_formal_exhaustive_closure_generated_at_utc" != "$regex_formal_exhaustive_closure_generated_at_utc" ]]; then
+    echo "error: regex formal-closure generated_at_utc mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+
 regex_family_contract_green=true
 regex_frontend_overall_pass=false
 regex_dual_run_overall_pass=false
@@ -208,8 +290,6 @@ regex_dual_run_raw_ast_missing_on_rust_zero=false
 regex_stimuli_status_pass=false
 regex_stimuli_parseability_parser_rejections_zero=false
 regex_stimuli_final_target_debt_zero=false
-regex_formal_exhaustive_closure_surface_green=false
-
 if [[ "$regex_frontend_overall" == "pass" ]]; then
     regex_frontend_overall_pass=true
 fi
@@ -273,8 +353,8 @@ if [[ "$regex_stimuli_final_target_debt_zero" != true ]]; then
     regex_unmet_details+=("{\"criterion\":\"stimuli_final_target_debt_zero\",\"evidence_key\":\"stimuli_regex_final_targets\",\"observed\":\"${regex_stimuli_final_targets}\",\"expected\":\"0\",\"detail\":\"Current regex stimuli closure still has bounded remaining target debt.\"}")
 fi
 if [[ "$regex_formal_exhaustive_closure_surface_green" != true ]]; then
-    regex_unmet+=("formal_exhaustive_closure_surface=missing")
-    regex_unmet_details+=("{\"criterion\":\"formal_exhaustive_closure_surface_green\",\"evidence_key\":\"formal_exhaustive_closure_surface\",\"observed\":\"missing\",\"expected\":\"present_and_green\",\"detail\":\"No formal exhaustive regex closure gate is wired yet, so the repository Done rule cannot be met.\"}")
+    regex_unmet+=("$regex_formal_exhaustive_closure_primary_unmet_closure_criterion")
+    regex_unmet_details+=("$regex_formal_exhaustive_closure_primary_unmet_detail_json")
 fi
 
 regex_status="Not Started"
@@ -366,6 +446,14 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_family_contract_state_dir: $regex_family_contract_state_dir_from_json"
     echo "regex_family_contract_summary_txt: $regex_family_contract_summary_txt"
     echo "regex_family_contract_summary_json: $regex_family_contract_summary_json"
+    echo "regex_formal_exhaustive_closure_gate: $regex_formal_exhaustive_closure_gate_name"
+    echo "regex_formal_exhaustive_closure_gate_version: $regex_formal_exhaustive_closure_gate_version"
+    echo "regex_formal_exhaustive_closure_generated_at_utc: $regex_formal_exhaustive_closure_generated_at_utc"
+    echo "regex_formal_exhaustive_closure_state_dir: $regex_formal_exhaustive_closure_state_dir"
+    echo "regex_formal_exhaustive_closure_summary_txt: $regex_formal_exhaustive_closure_summary_txt"
+    echo "regex_formal_exhaustive_closure_summary_json: $regex_formal_exhaustive_closure_summary_json"
+    echo "regex_formal_exhaustive_closure_primary_unmet_closure_criterion: $regex_formal_exhaustive_closure_primary_unmet_closure_criterion"
+    echo "regex_formal_exhaustive_closure_unmet_closure_criteria_count: $regex_formal_exhaustive_closure_unmet_closure_criteria_count"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
@@ -420,6 +508,14 @@ jq -n \
     --arg regex_family_contract_state_dir "$regex_family_contract_state_dir_from_json" \
     --arg regex_family_contract_summary_txt "$regex_family_contract_summary_txt" \
     --arg regex_family_contract_summary_json "$regex_family_contract_summary_json" \
+    --arg regex_formal_exhaustive_closure_gate "$regex_formal_exhaustive_closure_gate_name" \
+    --argjson regex_formal_exhaustive_closure_gate_version "$regex_formal_exhaustive_closure_gate_version" \
+    --arg regex_formal_exhaustive_closure_generated_at_utc "$regex_formal_exhaustive_closure_generated_at_utc" \
+    --arg regex_formal_exhaustive_closure_state_dir "$regex_formal_exhaustive_closure_state_dir" \
+    --arg regex_formal_exhaustive_closure_summary_txt "$regex_formal_exhaustive_closure_summary_txt" \
+    --arg regex_formal_exhaustive_closure_summary_json "$regex_formal_exhaustive_closure_summary_json" \
+    --arg regex_formal_exhaustive_closure_primary_unmet_closure_criterion "$regex_formal_exhaustive_closure_primary_unmet_closure_criterion" \
+    --argjson regex_formal_exhaustive_closure_unmet_closure_criteria_count "$regex_formal_exhaustive_closure_unmet_closure_criteria_count" \
     '{
       gate: $gate,
       version: $version,
@@ -474,12 +570,20 @@ jq -n \
             stimuli_status: $regex_stimuli_status,
             family_contract_gate: $regex_family_contract_gate,
             family_contract_gate_version: $regex_family_contract_gate_version,
-            family_contract_generated_at_utc: $regex_family_contract_generated_at_utc
+            family_contract_generated_at_utc: $regex_family_contract_generated_at_utc,
+            formal_exhaustive_closure_gate: $regex_formal_exhaustive_closure_gate,
+            formal_exhaustive_closure_gate_version: $regex_formal_exhaustive_closure_gate_version,
+            formal_exhaustive_closure_generated_at_utc: $regex_formal_exhaustive_closure_generated_at_utc,
+            formal_exhaustive_closure_primary_unmet_closure_criterion: $regex_formal_exhaustive_closure_primary_unmet_closure_criterion,
+            formal_exhaustive_closure_unmet_closure_criteria_count: $regex_formal_exhaustive_closure_unmet_closure_criteria_count
           },
           proof_surfaces: {
             family_contract_state_dir: $regex_family_contract_state_dir,
             family_contract_summary_txt: $regex_family_contract_summary_txt,
-            family_contract_summary_json: $regex_family_contract_summary_json
+            family_contract_summary_json: $regex_family_contract_summary_json,
+            formal_exhaustive_closure_state_dir: $regex_formal_exhaustive_closure_state_dir,
+            formal_exhaustive_closure_summary_txt: $regex_formal_exhaustive_closure_summary_txt,
+            formal_exhaustive_closure_summary_json: $regex_formal_exhaustive_closure_summary_json
           }
         }
       ]

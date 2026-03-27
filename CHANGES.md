@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-03-27 - Add regex formal exhaustive closure gate
+### ✅ Achievement Summary
+PGEN's `regex` family now has a real machine-checkable formal-closure sidecar instead of a hardcoded missing-closure placeholder, and that new proof surface is preserved through the regex status, SOTA, and combined-telemetry layers.
+
+### Scope of Changes
+- Added:
+  - [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh)
+  - [rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json)
+- Updated:
+  - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile)
+  - [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh)
+  - [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The new regex closure gate now:
+  - consumes the canonical regex family-contract sidecar
+  - turns regex exhaustive-closure into a named contract instead of a status-placeholder string
+  - currently records required proof key `broader_corpus_backed_proof_surface`
+  - currently keeps the closure surface red with blocker `broader_corpus_backed_proof_surface=missing`
+- The regex family/status/aggregate proof spine now preserves that new closure sidecar end to end:
+  - regex family status consumes the gate and uses its blocker directly
+  - regex family-status contract preserves the closure sidecar provenance
+  - `sota_exit_gate` preserves the closure sidecar in top-level and nested regex proof surfaces
+  - `regex_combined_telemetry_contract_gate` parity-checks and re-emits the same closure provenance
+- Local CI now locks the new gate, its contract file, its Makefile surface, and representative producer/consumer fields across family, SOTA, and combined telemetry.
+
+### Why This Matters
+- Regex closure work now has a real machine-checkable formal-closure seam instead of a documentation-only “missing closure surface” marker.
+- The remaining regex roadmap gap is now narrower and more explicit: land the broader corpus-backed proof surface the new gate is waiting for, while separately burning down parser rejection debt and target debt.
+
 ## 2026-03-27 - Add regex parseability debt triage surface
 ### ✅ Achievement Summary
 PGEN's parser-backed regex family proof now carries deterministic debt-triage artifacts instead of leaving the remaining regex rejection debt as totals-only telemetry, and that triage surface is preserved through SOTA and combined telemetry.

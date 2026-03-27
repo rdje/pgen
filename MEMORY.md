@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: add-regex-parseability-debt-triage-surface)
+Last updated: 2026-03-27 (+0100, task: add-regex-formal-exhaustive-closure-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,18 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The next regex roadmap seam after parser-backed quality promotion and debt triage was the missing explicit formal-closure contract itself.
+- Added [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh) plus checked-in contract [rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json).
+- The new closure gate now turns regex exhaustive closure into a real sidecar instead of a placeholder blocker string.
+- Current measured regex closure-gate values are:
+  - `required_surface_key=broader_corpus_backed_proof_surface`
+  - `regex_formal_exhaustive_closure_surface_green=false`
+  - `regex_primary_unmet_closure_criterion=broader_corpus_backed_proof_surface=missing`
+  - closure counts `0/1/1`
+- [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh) now consumes that closure sidecar and uses its blocker directly instead of hardcoding `formal_exhaustive_closure_surface=missing`.
+- [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh), [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh), and [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now preserve and parity-check the same regex formal-closure provenance.
+- The current regex live status is still `In Progress`, with closure counts `5/8/3`, but the third blocker is now the more precise:
+  - `broader_corpus_backed_proof_surface=missing`
 - The next regex roadmap seam after the parser-backed family-quality promotion was deterministic debt triage rather than another status-label change.
 - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh) now derives and emits deterministic regex parser-rejection triage sidecars:
   - `regex_parseability_counterexample_triage.json`
@@ -63,7 +75,7 @@ Use this file to resume work without replaying full chat history.
 - The current regex live status is still `In Progress`, but it is now computed from parser-backed family proof with closure counts `5/8/3` and explicit blockers:
   - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
   - `stimuli_regex_final_targets=35 > 0`
-  - `formal_exhaustive_closure_surface=missing`
+  - `broader_corpus_backed_proof_surface=missing`
 - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md) now describe regex from that parser-backed baseline.
 - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now guards the tracked regex parser artifact and the new parser-backed regex family proof fields across family, SOTA, and combined-telemetry layers.
 - `pgen::embedding_api` now exposes regex as a first-class public grammar/profile surface.
