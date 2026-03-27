@@ -514,6 +514,16 @@ Operational rule:
     - then the parseability-report and gap-report consumers in `rust/src/main.rs` and `rust/scripts/*.sh`
   - Common mistake:
     - treating stimuli/coverage problems as pure parser-codegen problems
+- Symptom: Annotation-focused unit tests or leaf suites pass, but the repo-level annotation proof still feels wrong or incomplete
+  - First likely seam:
+    - the nearest aggregate annotation proof surface:
+      - `annotation_contract_gate`
+      - `semantic_full_contract_gate`
+      - `return_annotation_support_gate`
+      - `annotation_stimuli_quality_gate`
+    - then the leaf validator/runtime/stimuli seam that feeds it
+  - Common mistake:
+    - stopping at the leaf suite that passed instead of checking which aggregate proof claim the repo is actually making
 - Symptom: EBNF frontend output and generated-parser behavior drift apart
   - First likely seam:
     - `rust/src/ebnf_frontend.rs`
@@ -561,6 +571,18 @@ When a bug spans multiple layers, prefer these patch orders over ad hoc consumer
     - nearest consuming gate or contract layer
   - Reason:
     - the proof artifacts are downstream of generation policy, not the source of it
+- Annotation proof / closure problem
+  - Preferred order:
+    - typed annotation parse/validation/runtime layer
+    - nearest leaf annotation contract or typed-AST suite
+    - nearest aggregate annotation proof surface
+      - `semantic_full_contract_gate`
+      - `return_annotation_support_gate`
+      - `annotation_stimuli_quality_gate`
+      - `annotation_contract_gate`
+    - doc / local-CI routing if the operator-facing proof map changed
+  - Reason:
+    - patching the top-level proof claim before the nearest annotation seam is correct tends to hide whether the real drift is semantic behavior, closure evidence, or just the proof map
 - Registry / embedding disagreement
   - Preferred order:
     - generated-parser availability layer

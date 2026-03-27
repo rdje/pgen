@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-03-27 - Add annotation triage patterns to Rust analysis
+### ✅ Achievement Summary
+PGEN's live Rust analysis doc now includes annotation-specific symptom triage and intervention-order guidance, and local CI now protects those cues.
+
+### Scope of Changes
+- Updated:
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust-analysis doc now adds:
+  - an annotation-specific symptom shortcut for “leaf suites pass but the repo-level proof still feels wrong”
+  - an annotation-specific safe intervention order for proof/closure problems
+- The local-CI aggregate annotation audit now asserts those new triage cues.
+
+### Why This Matters
+- Future sessions now get a faster answer for where to look first and where to patch first when annotation proof drift shows up.
+- CI now keeps that annotation-triage guidance aligned with the aggregate proof spine.
+
 ## 2026-03-27 - Add annotation validation guidance to Rust analysis
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now tells future sessions more explicitly which aggregate annotation gates to re-run for annotation-heavy changes, and local CI now protects that guidance.

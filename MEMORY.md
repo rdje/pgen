@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: add-annotation-validation-guidance-to-rust-analysis)
+Last updated: 2026-03-27 (+0100, task: add-annotation-triage-patterns-to-rust-analysis)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,12 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `RUST_CODEBASE_ANALYSIS.md` now carries annotation-specific symptom triage and intervention-order guidance.
+- It now includes:
+  - a symptom shortcut for the case where annotation leaf suites pass but the repo-level proof still feels wrong or incomplete
+  - an `Annotation proof / closure problem` patch-order entry under `Safe Intervention Order`
+- `rust/scripts/ci_workflow_local_gate.sh` now also asserts those annotation-specific triage cues.
+- The live Rust analysis doc now helps future sessions localize and patch annotation proof drift in a more consistent order.
 - `RUST_CODEBASE_ANALYSIS.md` now gives more explicit aggregate-gate rerun guidance for annotation-heavy changes.
 - In `Change-Impact Checklist` and `Validation Ladder By Change Type`, annotation work now points readers toward:
   - `annotation_contract_gate`

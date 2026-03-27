@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Add annotation triage patterns to Rust analysis
+### Context
+The live Rust analysis doc now had better annotation code-start, doc-routing, and rerun guidance, but it still did not explicitly answer two practical questions that show up in real sessions:
+- “Where should I look first if annotation leaf tests pass but the repo-level proof still feels wrong?”
+- “Which order should I patch layers in when an annotation proof/closure problem spans code, gates, and docs?”
+
+### Implementation
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - under `Symptom-To-Layer Triage Shortcuts`, added an annotation-specific shortcut for the case where leaf suites pass but the aggregate annotation proof still looks wrong or incomplete
+  - under `Safe Intervention Order`, added an annotation-specific `Annotation proof / closure problem` patch order that routes through:
+    - typed annotation parse/validation/runtime
+    - nearest leaf annotation contract / typed-AST suite
+    - nearest aggregate annotation proof surface
+    - doc/local-CI routing only after the proof seam itself is understood
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - the aggregate annotation audit now also asserts those new triage/intervention cues
+- Updated the continuity docs to record that the live Rust analysis doc now carries annotation-specific symptom and patch-order guidance.
+
+### Why This Matters
+- The live Rust analysis doc now helps future sessions localize annotation proof drift faster.
+- Local CI now keeps that triage advice aligned with the aggregate annotation proof spine.
+
 ## 2026-03-27 - Add annotation validation guidance to Rust analysis
 ### Context
 The live Rust analysis doc already had better annotation code-start and doc-routing guidance, but its change-impact and validation sections still spoke too generically about annotation work. That left a practical gap: a future session could understand the proof spine exists but still not get a crisp answer to “which aggregate gates should I re-run for this annotation change?”

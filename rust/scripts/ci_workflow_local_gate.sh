@@ -440,6 +440,18 @@ audit_annotation_aggregate_contract_surface() {
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
     'for annotation-proof changes, the practical aggregate readers are usually:'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'Symptom: Annotation-focused unit tests or leaf suites pass, but the repo-level annotation proof still feels wrong or incomplete'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'Annotation proof / closure problem'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'stopping at the leaf suite that passed instead of checking which aggregate proof claim the repo is actually making'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'patching the top-level proof claim before the nearest annotation seam is correct tends to hide whether the real drift is semantic behavior, closure evidence, or just the proof map'
 }
 
 audit_annotation_semantic_contract_surface() {
