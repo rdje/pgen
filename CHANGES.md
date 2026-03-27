@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-27 - Expose regex through the public embedding API
+### ✅ Achievement Summary
+PGEN's stable Rust embedding API now exposes regex as a first-class public grammar/profile surface, the live Rust analysis doc now records the internal-vs-public capability distinction more explicitly, and the roadmap/status docs now describe regex closure debt from that updated baseline instead of from the older “no public embedding seam yet” state.
+
+### Scope of Changes
+- Updated:
+  - [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs)
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- `pgen::embedding_api` now exposes:
+  - `GrammarFamily::Regex`
+  - `GrammarProfile::RegexDefault`
+  - regex parse/result entry points
+  - regex AST-dump entry points
+  - regex generated-backend availability in `ParserEmbeddingApiContract`
+- The embedding contract docs and user guide now describe the regex public surface directly.
+- The live status/roadmap language now treats regex as having a public embedding seam already, while keeping realistic-corpus and exhaustive-closure work explicitly open.
+- Local CI now protects that public regex embedding surface and the key doc-routing cues around it.
+
+### Why This Matters
+- This moves one concrete roadmap seam from “internal capability only” to a real public contract.
+- Future regex closure work can now build on a public embedding baseline instead of restating that missing seam every session.
+
 ## 2026-03-27 - Add annotation proof trap to Rust analysis
 ### ✅ Achievement Summary
 PGEN's live Rust analysis doc now explicitly warns that a passing annotation leaf suite is not the same as a valid aggregate annotation proof claim, and local CI now protects that warning.

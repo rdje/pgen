@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Expose regex through the public embedding API
+### Context
+The fresh Rust/codebase read showed a real roadmap-relevant asymmetry: parser-registry/probe support for `regex` already existed, but the stable embedder-facing contract in [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) still only exposed the SV/VHDL grammar-profile lane. That kept the roadmap/status docs stuck describing regex as missing an explicit embedding surface even though the lower runtime machinery was already closer than the public contract suggested.
+
+### Implementation
+- Updated [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs):
+  - added `GrammarFamily::Regex` and `GrammarProfile::RegexDefault`
+  - extended `ParserEmbeddingApiContract` with `supports_regex_generated_backend`
+  - added regex parse/result convenience entry points
+  - added regex AST-dump convenience entry points
+  - routed the generic grammar/profile dispatchers through generated regex parse and AST-dump helpers
+  - bumped `EMBEDDING_API_VERSION` from `1.0.0` to `1.1.0` for the backward-compatible public contract expansion
+- Updated [rust/docs/EMBEDDING_API_CONTRACT.md](/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md) and [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md):
+  - documented the new regex public profile surface and host-oriented convenience APIs
+  - clarified that `embedding_api_gate` now covers the public regex surface while `nexsim_parser_embedding_contract_gate` remains the narrower SV/VHDL host-profile slice
+- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - refreshed the date
+  - made the roadmap priority rule more explicit
+  - recorded the fresh lesson that internal registry/probe capability can lead the stable public embedding contract
+  - updated the regex family-asymmetry note so the new public embedding seam is visible without overstating closure
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md) and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - removed the stale implication that regex still lacks any public embedding surface
+  - kept the parser-backed realistic-corpus and exhaustive-closure work explicitly open
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - added a focused embedding-API audit that protects the regex public contract surface and its main doc cues
+
+### Why This Matters
+- The roadmap now advances on a real code seam rather than only on proof-plumbing/documentation.
+- The live docs and status tracker now describe regex from the more accurate baseline: public embedding exists, but professional-grade parser-family closure still does not.
+
 ## 2026-03-27 - Add annotation proof trap to Rust analysis
 ### Context
 The live Rust analysis doc now had a much stronger annotation proof-spine map, but its trap list still did not call out one of the easiest annotation-specific mistakes: assuming that a passing leaf suite or individual SC gate automatically means the repo-level annotation proof claim is complete.

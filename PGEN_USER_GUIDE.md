@@ -3630,18 +3630,24 @@ Current stable surfaces:
 Current parser profiles:
 - `systemverilog`: `sv_2017`, `sv_2023`
 - `vhdl`: `vhdl_1076_2019`
+- `regex`: `regex_default`
 
-Nexsim-oriented convenience parser entry points:
+Host-oriented convenience parser entry points:
 - `parse_systemverilog_2017(...)`
 - `parse_systemverilog_2023(...)`
 - `parse_vhdl_1076_2019(...)`
+- `parse_regex_default(...)`
 - each has corresponding `*_with_limits`, `*_result`, and `*_with_limits_result` variants.
 
-Nexsim-oriented convenience AST dump entry points:
+Host-oriented convenience AST dump entry points:
 - `parse_systemverilog_2017_ast_dump(...)`
 - `parse_systemverilog_2023_ast_dump(...)`
 - `parse_vhdl_1076_2019_ast_dump(...)`
+- `parse_regex_default_ast_dump(...)`
 - each has corresponding `*_ast_dump_with_limits(...)` variants.
+
+Operator note:
+- the public embedding API now exposes regex through `regex_default`, even though `nexsim_parser_embedding_contract_gate` remains SV/VHDL-specific.
 
 Deterministic integration behavior:
 - grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.

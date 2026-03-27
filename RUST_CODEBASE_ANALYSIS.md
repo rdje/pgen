@@ -1,6 +1,6 @@
 # RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-03-26
+Last updated: 2026-03-27
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -20,6 +20,8 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It covers the main Rust crate, the generated-parser integration layer, the major Rust-owned binaries, and the Rust-owned gate/build ecosystem around them.
 - It is not a claim that every parser family is closed.
 - It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
+- It should be read alongside the roadmap priority rule:
+  - active parser-family closure work for `systemverilog`, `vhdl`, and `regex` outranks deferred maintainability refactors until those families reach their intended closure bar.
 
 ## Rust-Adjacent Cargo Surface
 - Main product crate
@@ -503,6 +505,8 @@ Operational rule:
 Operational rule:
 - If a task changes one of these surfaces, treat it as a compatibility change even when the code edit feels local.
 - Validate not only the producer, but also the nearest real consumer that relies on that contract.
+- Do not assume internal parser-registry or probe availability automatically means the same family already has a public embedding contract.
+  - In this repo, internal capability can be ahead of the stable embedder-facing surface.
 
 ## Symptom-To-Layer Triage Shortcuts
 - Symptom: Cargo can build or list a binary, but the expected parser/runtime path is still missing
@@ -1169,7 +1173,7 @@ Generated parser env/cfg map:
   - controls `generated_parsers::json` and related parser-registry exposure
 - `PGEN_REGEX_PARSER_PATH`
   - drives `has_generated_regex_parser`
-  - controls `generated_parsers::regex` and related parser-registry exposure
+  - controls `generated_parsers::regex`, related parser-registry exposure, and regex generated-backend availability inside `embedding_api.rs`
 - `PGEN_SYSTEMVERILOG_PARSER_PATH`
   - drives `has_generated_systemverilog_parser`
   - controls generated SystemVerilog registry, embedding, and parseability paths
@@ -1242,6 +1246,7 @@ Operational rule:
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
+  - It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself
 - `ebnf`
   - Not just another generated runtime parser family
   - It sits at the ingestion/frontend edge, uses build-script-resolved include paths, and has its own dual-run diagnostic shape rather than the standard `has_generated_*` family contract

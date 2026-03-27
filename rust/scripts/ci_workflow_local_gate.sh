@@ -187,6 +187,77 @@ audit_ebnf_frontend_conversion_surface() {
     '"$EBNF_TO_JSON" --pretty --quiet "$EBNF_BOOTSTRAP_GRAMMAR" -o "$EBNF_BOOTSTRAP_JSON"'
 }
 
+audit_embedding_api_surface() {
+  note "auditing public embedding API surface"
+
+  assert_tracked "rust/src/embedding_api.rs"
+  assert_tracked "rust/docs/EMBEDDING_API_CONTRACT.md"
+
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub const EMBEDDING_API_VERSION: &str = "1.1.0";'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    '#[serde(rename = "regex")]'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    '#[serde(rename = "regex_default")]'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub supports_regex_generated_backend: bool,'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub fn parse_regex_default(input: &str) -> GrammarParseOutcome {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub fn parse_regex_default_ast_dump('
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'GrammarFamily::Regex => parse_generated_regex(input),'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_generated_backend_enabled() -> bool {'
+
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    'Provide a stable, versioned surface for external projects embedding PGEN annotation parsing and selected grammar parsing'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`parse_regex_default(...)`'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`parse_regex_default_ast_dump(...)`'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`GrammarFamily`: `systemverilog | vhdl | regex`'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019 | regex_default`'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`embedding_api_gate` now covers the public regex parser/profile surface too.'
+
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '- `regex`: `regex_default`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '- `parse_regex_default(...)`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '- `parse_regex_default_ast_dump(...)`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'the public embedding API now exposes regex through `regex_default`'
+
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'internal parser-registry or probe availability automatically means the same family already has a public embedding contract'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself'
+}
+
 audit_annotation_aggregate_contract_surface() {
   note "auditing aggregate annotation contract gate surface"
 
@@ -1292,6 +1363,7 @@ main() {
   audit_static_include_paths
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
+  audit_embedding_api_surface
   audit_annotation_aggregate_contract_surface
   audit_annotation_semantic_contract_surface
   audit_sota_json_consumption_surface

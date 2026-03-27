@@ -1,7 +1,7 @@
 # Embedding API Contract (Rust)
 
 ## Purpose
-Provide a stable, versioned surface for external projects embedding PGEN annotation parsing (for example, HDL frontends and regex tooling) without depending on internal parser/AST implementation details.
+Provide a stable, versioned surface for external projects embedding PGEN annotation parsing and selected grammar parsing (for example, HDL frontends and regex tooling) without depending on internal parser/AST implementation details.
 
 ## Stable Module
 - Rust module: `pgen::embedding_api`
@@ -9,15 +9,17 @@ Provide a stable, versioned surface for external projects embedding PGEN annotat
   - `embedding_api_contract() -> EmbeddingApiContract`
   - `parser_embedding_api_contract() -> ParserEmbeddingApiContract`
 - Parse API:
-  - Nexsim convenience grammar entry points:
+  - host-oriented convenience grammar entry points:
     - `parse_systemverilog_2017(...)`
     - `parse_systemverilog_2023(...)`
     - `parse_vhdl_1076_2019(...)`
+    - `parse_regex_default(...)`
     - plus `*_with_limits`, `*_result`, `*_with_limits_result` variants
-  - Nexsim convenience grammar AST-dump entry points:
+  - host-oriented convenience grammar AST-dump entry points:
     - `parse_systemverilog_2017_ast_dump(...)`
     - `parse_systemverilog_2023_ast_dump(...)`
     - `parse_vhdl_1076_2019_ast_dump(...)`
+    - `parse_regex_default_ast_dump(...)`
     - plus `*_ast_dump_with_limits` variants
   - idiomatic Rust `Result` surface:
     - `parse_annotation_result(family, backend, input) -> Result<(), ParseDiagnostic>`
@@ -49,7 +51,7 @@ Provide a stable, versioned surface for external projects embedding PGEN annotat
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.0.0"`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.1.0"`
 - Schema version constant: `EMBEDDING_API_SCHEMA_VERSION = 1`
 - Compatibility rules:
   - Major version bump: breaking API or behavioral contract change.
@@ -64,8 +66,8 @@ Annotation API:
 - `ParseDiagnostic`: stable `code` + human-readable `message`.
 
 Grammar parser API:
-- `GrammarFamily`: `systemverilog | vhdl`
-- `GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019`
+- `GrammarFamily`: `systemverilog | vhdl | regex`
+- `GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019 | regex_default`
 - `InputOwnershipModel`: `borrowed_str`
 - `ParseSessionModel`: `stateless_per_call`
 - `GrammarParseOutcome`: includes API version, grammar, profile, status, optional diagnostic.
@@ -120,10 +122,11 @@ Grammar parser API:
   - `reason`
 - If `max_ast_bytes` is too small to fit truncation diagnostics envelope itself, API returns `E_INVALID_LIMITS`.
 
-## Grammar Profile Contract (Nexsim-Oriented)
+## Grammar Profile Contract (Host-Oriented)
 - Stable profile-aware parser entry points exist for host integration:
   - SystemVerilog: `sv_2017`, `sv_2023`
   - VHDL: `vhdl_1076_2019`
+  - regex: `regex_default`
 - The API enforces grammar/profile compatibility deterministically (`E_UNSUPPORTED_PROFILE` on mismatch).
 - Input is accepted as `&str` and consumed without ownership transfer (zero-copy call boundary).
 - Session model is intentionally stateless per-call for deterministic embedding behavior:
@@ -138,9 +141,12 @@ Grammar parser API:
 - Gate runs:
   - bootstrap build tests: `cargo test --lib embedding_api`
   - generated build tests: `cargo test --features generated_parsers --lib embedding_api`
-  - parser-profile contract subset:
+  - Nexsim parser-profile contract subset:
     - `cargo test --lib parser_embedding_`
     - `cargo test --features generated_parsers --lib parser_embedding_`
+- Scope note:
+  - `embedding_api_gate` now covers the public regex parser/profile surface too.
+  - `nexsim_parser_embedding_contract_gate` remains the stricter SV/VHDL host-profile contract slice.
 
 ## Scope Note
 - This contract intentionally returns structured parse outcomes instead of exposing internal AST node types. Internal AST representations may evolve as long as contract behavior, versions, and diagnostic codes remain stable.

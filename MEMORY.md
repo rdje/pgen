@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: add-annotation-proof-trap-to-rust-analysis)
+Last updated: 2026-03-27 (+0100, task: expose-regex-through-public-embedding-api)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,21 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `pgen::embedding_api` now exposes regex as a first-class public grammar/profile surface.
+- [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) now includes:
+  - `GrammarFamily::Regex`
+  - `GrammarProfile::RegexDefault`
+  - regex parse/result convenience APIs
+  - regex AST-dump convenience APIs
+  - `supports_regex_generated_backend` in `ParserEmbeddingApiContract`
+- `EMBEDDING_API_VERSION` was bumped from `1.0.0` to `1.1.0` for that backward-compatible public contract expansion.
+- [rust/docs/EMBEDDING_API_CONTRACT.md](/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md) and [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md) now describe the regex public embedding surface directly.
+- [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md) now also says more explicitly that:
+  - parser-family closure work for `systemverilog`, `vhdl`, and `regex` outranks deferred refactors
+  - internal registry/probe support can lead the stable public embedding contract
+  - `regex` now has a public embedding seam, but that does not by itself mean the regex family is closed
+- [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md) and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) now treat regex as having a public embedding/AST-dump surface already, while keeping parser-backed realistic-corpus proof and exhaustive closure explicitly open.
+- [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now audits that public regex embedding seam and its key doc cues.
 - `RUST_CODEBASE_ANALYSIS.md` now explicitly warns that passing one annotation leaf suite or one SC gate is not the same as satisfying the repo-level annotation proof claim.
 - That trap now points readers back to the aggregate annotation proof layer:
   - `annotation_contract_gate`
