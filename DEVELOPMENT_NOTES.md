@@ -1,4 +1,61 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-27 - Promote regex to parser-backed family quality proof
+### Context
+The previous roadmap slice exposed regex through the public embedding API, but the family-proof story was still materially weaker than the public surface suggested: the shared non-annotation stimuli contract still treated `regex` as a parseability-skip row because a default generated regex parser artifact was not tracked in the repository. That meant the regex family sidecars, status sidecars, aggregate SOTA telemetry, and roadmap language all had to talk around a missing parser-backed quality seam.
+
+### Implementation
+- Regenerated and tracked the default regex generated parser artifacts expected by [rust/build.rs](/Users/richarddje/Documents/github/pgen/rust/build.rs):
+  - [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json)
+  - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
+- Updated [rust/test_data/grammar_quality/ebnf_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/ebnf_stimuli_contract.json):
+  - promoted the `regex` row from `require_parseability=false` to `require_parseability=true`
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+  - the regex family contract now emits the parser-backed regex quality proof surfaces directly:
+    - `stimuli_parseability_report_json`
+    - `stimuli_regex_parseability_required`
+    - `stimuli_regex_parseability_attempts_total`
+    - `stimuli_regex_parseability_accepted_total`
+    - `stimuli_regex_parseability_rejected_total`
+    - `stimuli_regex_parseability_parser_rejections_total`
+    - `stimuli_regex_parseability_acceptance_rate_percent`
+  - the gate now asserts `stimuli regex parseability_required = 1` and sanity-checks parser-rejection totals
+- Updated [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh):
+  - regex live status now incorporates parser-backed parseability debt explicitly through the new boolean criterion `stimuli_parseability_parser_rejections_zero`
+  - closure counts now move from `7` total criteria to `8`
+  - the latest validated regex status is still `In Progress`, but from a more honest parser-backed basis:
+    - `closure_criteria_satisfied_count=5`
+    - `closure_criteria_total_count=8`
+    - `closure_criteria_unsatisfied_count=3`
+    - blockers `stimuli_regex_parseability_parser_rejections_total=4 > 0`, `stimuli_regex_final_targets=35 > 0`, `formal_exhaustive_closure_surface=missing`
+- Updated [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh):
+  - expected criteria/metrics now include the parser-backed regex parseability fields and the new status criterion
+- Updated the aggregate proof spine:
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now re-emits regex parser-backed quality evidence and the new status boolean
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now consumes and preserves that parser-backed regex family proof
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - regex is now described as having parser-backed quality proof in the shared non-annotation stimuli contract
+  - the docs now record the current measured regex family values:
+    - `parseability_required=1`
+    - `attempts=742`
+    - `accepted=738`
+    - `rejected=4`
+    - `parser_rejections_total=4`
+    - `acceptance_rate_percent=99.46`
+    - target debt `236 -> 35`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - local CI now protects:
+    - tracked presence of `generated/regex_parser.rs`
+    - regex family contract emission of parser-backed parseability fields
+    - aggregate SOTA emission of the nested regex parseability report surface
+    - combined-telemetry preservation of the parser-backed regex proof/status fields
+
+### Why This Matters
+- Regex now has a credible parser-backed family-quality seam instead of an explicit parseability exception.
+- The remaining regex roadmap work is now better localized:
+  - eliminate the remaining parser-backed parser rejections
+  - eliminate the remaining target debt
+  - add broader realistic-corpus and explicit exhaustive-closure proof
+
 ## 2026-03-27 - Expose regex through the public embedding API
 ### Context
 The fresh Rust/codebase read showed a real roadmap-relevant asymmetry: parser-registry/probe support for `regex` already existed, but the stable embedder-facing contract in [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) still only exposed the SV/VHDL grammar-profile lane. That kept the roadmap/status docs stuck describing regex as missing an explicit embedding surface even though the lower runtime machinery was already closer than the public contract suggested.

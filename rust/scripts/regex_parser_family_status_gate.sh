@@ -187,6 +187,12 @@ regex_dual_run_raw_ast_status="$(summary_value_from_txt "dual_run_regex_raw_ast_
 regex_dual_run_raw_ast_missing_on_perl_count="$(summary_value_from_txt "dual_run_regex_raw_ast_missing_on_perl_count" "$regex_family_contract_summary_txt")"
 regex_dual_run_raw_ast_missing_on_rust_count="$(summary_value_from_txt "dual_run_regex_raw_ast_missing_on_rust_count" "$regex_family_contract_summary_txt")"
 regex_dual_run_rust_rule_count="$(summary_value_from_txt "dual_run_regex_rust_rule_count" "$regex_family_contract_summary_txt")"
+regex_stimuli_parseability_required="$(summary_value_from_txt "stimuli_regex_parseability_required" "$regex_family_contract_summary_txt")"
+regex_stimuli_parseability_attempts_total="$(summary_value_from_txt "stimuli_regex_parseability_attempts_total" "$regex_family_contract_summary_txt")"
+regex_stimuli_parseability_accepted_total="$(summary_value_from_txt "stimuli_regex_parseability_accepted_total" "$regex_family_contract_summary_txt")"
+regex_stimuli_parseability_rejected_total="$(summary_value_from_txt "stimuli_regex_parseability_rejected_total" "$regex_family_contract_summary_txt")"
+regex_stimuli_parseability_parser_rejections_total="$(summary_value_from_txt "stimuli_regex_parseability_parser_rejections_total" "$regex_family_contract_summary_txt")"
+regex_stimuli_parseability_acceptance_rate_percent="$(summary_value_from_txt "stimuli_regex_parseability_acceptance_rate_percent" "$regex_family_contract_summary_txt")"
 regex_stimuli_status="$(summary_value_from_txt "stimuli_regex_status" "$regex_family_contract_summary_txt")"
 regex_stimuli_initial_targets="$(summary_value_from_txt "stimuli_regex_initial_targets" "$regex_family_contract_summary_txt")"
 regex_stimuli_resolved_targets="$(summary_value_from_txt "stimuli_regex_resolved_targets" "$regex_family_contract_summary_txt")"
@@ -200,6 +206,7 @@ regex_frontend_overall_pass=false
 regex_dual_run_overall_pass=false
 regex_dual_run_raw_ast_missing_on_rust_zero=false
 regex_stimuli_status_pass=false
+regex_stimuli_parseability_parser_rejections_zero=false
 regex_stimuli_final_target_debt_zero=false
 regex_formal_exhaustive_closure_surface_green=false
 
@@ -215,11 +222,14 @@ fi
 if [[ "$regex_stimuli_status" == "pass" ]]; then
     regex_stimuli_status_pass=true
 fi
+if [[ "$regex_stimuli_parseability_parser_rejections_total" == "0" ]]; then
+    regex_stimuli_parseability_parser_rejections_zero=true
+fi
 if [[ "$regex_stimuli_final_targets" == "0" ]]; then
     regex_stimuli_final_target_debt_zero=true
 fi
 
-regex_closure_criteria_total_count=7
+regex_closure_criteria_total_count=8
 regex_closure_criteria_satisfied_count=0
 for criterion in \
     "$regex_family_contract_green" \
@@ -227,6 +237,7 @@ for criterion in \
     "$regex_dual_run_overall_pass" \
     "$regex_dual_run_raw_ast_missing_on_rust_zero" \
     "$regex_stimuli_status_pass" \
+    "$regex_stimuli_parseability_parser_rejections_zero" \
     "$regex_stimuli_final_target_debt_zero" \
     "$regex_formal_exhaustive_closure_surface_green"; do
     if [[ "$criterion" == true ]]; then
@@ -253,6 +264,10 @@ if [[ "$regex_stimuli_status_pass" != true ]]; then
     regex_unmet+=("stimuli_regex_status=${regex_stimuli_status} != pass")
     regex_unmet_details+=("{\"criterion\":\"stimuli_status_pass\",\"evidence_key\":\"stimuli_regex_status\",\"observed\":\"${regex_stimuli_status}\",\"expected\":\"pass\",\"detail\":\"The regex closed-loop stimuli surface must stay green before the family can be promoted.\"}")
 fi
+if [[ "$regex_stimuli_parseability_parser_rejections_zero" != true ]]; then
+    regex_unmet+=("stimuli_regex_parseability_parser_rejections_total=${regex_stimuli_parseability_parser_rejections_total} > 0")
+    regex_unmet_details+=("{\"criterion\":\"stimuli_parseability_parser_rejections_zero\",\"evidence_key\":\"stimuli_regex_parseability_parser_rejections_total\",\"observed\":\"${regex_stimuli_parseability_parser_rejections_total}\",\"expected\":\"0\",\"detail\":\"The parser-backed regex quality surface still records parser rejections, so parser-backed quality remains bounded debt rather than closed proof.\"}")
+fi
 if [[ "$regex_stimuli_final_target_debt_zero" != true ]]; then
     regex_unmet+=("stimuli_regex_final_targets=${regex_stimuli_final_targets} > 0")
     regex_unmet_details+=("{\"criterion\":\"stimuli_final_target_debt_zero\",\"evidence_key\":\"stimuli_regex_final_targets\",\"observed\":\"${regex_stimuli_final_targets}\",\"expected\":\"0\",\"detail\":\"Current regex stimuli closure still has bounded remaining target debt.\"}")
@@ -271,6 +286,7 @@ if [[ "$regex_family_contract_green" == true \
    && "$regex_dual_run_overall_pass" == true \
    && "$regex_dual_run_raw_ast_missing_on_rust_zero" == true \
    && "$regex_stimuli_status_pass" == true \
+   && "$regex_stimuli_parseability_parser_rejections_zero" == true \
    && "$regex_stimuli_final_target_debt_zero" == true ]]; then
     regex_status="Mostly Done"
 fi
@@ -322,6 +338,7 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_dual_run_overall_pass: $regex_dual_run_overall_pass"
     echo "regex_dual_run_raw_ast_missing_on_rust_zero: $regex_dual_run_raw_ast_missing_on_rust_zero"
     echo "regex_stimuli_status_pass: $regex_stimuli_status_pass"
+    echo "regex_stimuli_parseability_parser_rejections_zero: $regex_stimuli_parseability_parser_rejections_zero"
     echo "regex_stimuli_final_target_debt_zero: $regex_stimuli_final_target_debt_zero"
     echo "regex_formal_exhaustive_closure_surface_green: $regex_formal_exhaustive_closure_surface_green"
     echo "regex_frontend_overall: $regex_frontend_overall"
@@ -330,6 +347,12 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_dual_run_raw_ast_missing_on_perl_count: $regex_dual_run_raw_ast_missing_on_perl_count"
     echo "regex_dual_run_raw_ast_missing_on_rust_count: $regex_dual_run_raw_ast_missing_on_rust_count"
     echo "regex_dual_run_rust_rule_count: $regex_dual_run_rust_rule_count"
+    echo "regex_stimuli_parseability_required: $regex_stimuli_parseability_required"
+    echo "regex_stimuli_parseability_attempts_total: $regex_stimuli_parseability_attempts_total"
+    echo "regex_stimuli_parseability_accepted_total: $regex_stimuli_parseability_accepted_total"
+    echo "regex_stimuli_parseability_rejected_total: $regex_stimuli_parseability_rejected_total"
+    echo "regex_stimuli_parseability_parser_rejections_total: $regex_stimuli_parseability_parser_rejections_total"
+    echo "regex_stimuli_parseability_acceptance_rate_percent: $regex_stimuli_parseability_acceptance_rate_percent"
     echo "regex_stimuli_initial_targets: $regex_stimuli_initial_targets"
     echo "regex_stimuli_resolved_targets: $regex_stimuli_resolved_targets"
     echo "regex_stimuli_final_targets: $regex_stimuli_final_targets"
@@ -369,6 +392,7 @@ jq -n \
     --argjson regex_dual_run_overall_pass "$regex_dual_run_overall_pass" \
     --argjson regex_dual_run_raw_ast_missing_on_rust_zero "$regex_dual_run_raw_ast_missing_on_rust_zero" \
     --argjson regex_stimuli_status_pass "$regex_stimuli_status_pass" \
+    --argjson regex_stimuli_parseability_parser_rejections_zero "$regex_stimuli_parseability_parser_rejections_zero" \
     --argjson regex_stimuli_final_target_debt_zero "$regex_stimuli_final_target_debt_zero" \
     --argjson regex_formal_exhaustive_closure_surface_green "$regex_formal_exhaustive_closure_surface_green" \
     --arg regex_frontend_overall "$regex_frontend_overall" \
@@ -377,6 +401,12 @@ jq -n \
     --argjson regex_dual_run_raw_ast_missing_on_perl_count "$regex_dual_run_raw_ast_missing_on_perl_count" \
     --argjson regex_dual_run_raw_ast_missing_on_rust_count "$regex_dual_run_raw_ast_missing_on_rust_count" \
     --argjson regex_dual_run_rust_rule_count "$regex_dual_run_rust_rule_count" \
+    --argjson regex_stimuli_parseability_required "$regex_stimuli_parseability_required" \
+    --argjson regex_stimuli_parseability_attempts_total "$regex_stimuli_parseability_attempts_total" \
+    --argjson regex_stimuli_parseability_accepted_total "$regex_stimuli_parseability_accepted_total" \
+    --argjson regex_stimuli_parseability_rejected_total "$regex_stimuli_parseability_rejected_total" \
+    --argjson regex_stimuli_parseability_parser_rejections_total "$regex_stimuli_parseability_parser_rejections_total" \
+    --argjson regex_stimuli_parseability_acceptance_rate_percent "$regex_stimuli_parseability_acceptance_rate_percent" \
     --argjson regex_stimuli_initial_targets "$regex_stimuli_initial_targets" \
     --argjson regex_stimuli_resolved_targets "$regex_stimuli_resolved_targets" \
     --argjson regex_stimuli_final_targets "$regex_stimuli_final_targets" \
@@ -418,6 +448,7 @@ jq -n \
             dual_run_overall_pass: $regex_dual_run_overall_pass,
             dual_run_raw_ast_missing_on_rust_zero: $regex_dual_run_raw_ast_missing_on_rust_zero,
             stimuli_status_pass: $regex_stimuli_status_pass,
+            stimuli_parseability_parser_rejections_zero: $regex_stimuli_parseability_parser_rejections_zero,
             stimuli_final_target_debt_zero: $regex_stimuli_final_target_debt_zero,
             formal_exhaustive_closure_surface_green: $regex_formal_exhaustive_closure_surface_green
           },
@@ -428,6 +459,12 @@ jq -n \
             dual_run_raw_ast_missing_on_perl_count: $regex_dual_run_raw_ast_missing_on_perl_count,
             dual_run_raw_ast_missing_on_rust_count: $regex_dual_run_raw_ast_missing_on_rust_count,
             dual_run_rust_rule_count: $regex_dual_run_rust_rule_count,
+            stimuli_parseability_required: $regex_stimuli_parseability_required,
+            stimuli_parseability_attempts_total: $regex_stimuli_parseability_attempts_total,
+            stimuli_parseability_accepted_total: $regex_stimuli_parseability_accepted_total,
+            stimuli_parseability_rejected_total: $regex_stimuli_parseability_rejected_total,
+            stimuli_parseability_parser_rejections_total: $regex_stimuli_parseability_parser_rejections_total,
+            stimuli_parseability_acceptance_rate_percent: $regex_stimuli_parseability_acceptance_rate_percent,
             stimuli_initial_targets: $regex_stimuli_initial_targets,
             stimuli_resolved_targets: $regex_stimuli_resolved_targets,
             stimuli_final_targets: $regex_stimuli_final_targets,

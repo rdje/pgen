@@ -184,6 +184,12 @@ dual_run_regex_notes="$(jq -r '.entries[] | select(.grammar=="regex") | .notes' 
 stimuli_contract_file="$(extract_summary_value "$stimuli_summary_txt" "contract_file")"
 stimuli_regex_grammar_name="$(extract_csv_value "$stimuli_summary_csv" "regex" "grammar_name")"
 stimuli_regex_parseability_required="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_required")"
+stimuli_regex_parseability_attempts_total="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_attempts_total")"
+stimuli_regex_parseability_accepted_total="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_accepted_total")"
+stimuli_regex_parseability_rejected_total="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_rejected_total")"
+stimuli_regex_parseability_parser_rejections_total="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_parser_rejections_total")"
+stimuli_regex_parseability_acceptance_rate_percent="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_acceptance_rate_percent")"
+stimuli_regex_parseability_report_json="$(extract_csv_value "$stimuli_summary_csv" "regex" "parseability_report_json")"
 stimuli_regex_initial_targets="$(extract_csv_value "$stimuli_summary_csv" "regex" "initial_targets")"
 stimuli_regex_resolved_targets="$(extract_csv_value "$stimuli_summary_csv" "regex" "resolved_targets")"
 stimuli_regex_final_targets="$(extract_csv_value "$stimuli_summary_csv" "regex" "final_targets")"
@@ -216,12 +222,21 @@ if (( dual_run_regex_rust_rule_count < dual_run_regex_perl_rule_count )); then
 fi
 
 assert_equal "stimuli regex grammar_name" "regex" "$stimuli_regex_grammar_name"
-assert_equal "stimuli regex parseability_required" "0" "$stimuli_regex_parseability_required"
+assert_equal "stimuli regex parseability_required" "1" "$stimuli_regex_parseability_required"
 assert_equal "stimuli regex status" "pass" "$stimuli_regex_status"
+assert_int_ge "stimuli regex parseability_attempts_total" "$stimuli_regex_parseability_attempts_total" 1
+assert_int_ge "stimuli regex parseability_accepted_total" "$stimuli_regex_parseability_accepted_total" 1
+assert_int_ge "stimuli regex parseability_rejected_total" "$stimuli_regex_parseability_rejected_total" 0
+assert_int_ge "stimuli regex parseability_parser_rejections_total" "$stimuli_regex_parseability_parser_rejections_total" 0
+require_nonempty_file "$stimuli_regex_parseability_report_json"
 assert_int_ge "stimuli regex initial_targets" "$stimuli_regex_initial_targets" 1
 assert_int_ge "stimuli regex resolved_targets" "$stimuli_regex_resolved_targets" 1
 assert_int_ge "stimuli regex target_attempts" "$stimuli_regex_target_attempts" 1
 assert_int_ge "stimuli regex stage0_successes" "$stimuli_regex_stage0_successes" 1
+if (( stimuli_regex_parseability_parser_rejections_total > stimuli_regex_parseability_rejected_total )); then
+    echo "error: stimuli regex parseability parser_rejections_total ${stimuli_regex_parseability_parser_rejections_total} exceeds rejected_total ${stimuli_regex_parseability_rejected_total}" >&2
+    exit 1
+fi
 if (( stimuli_regex_resolved_targets + stimuli_regex_final_targets != stimuli_regex_initial_targets )); then
     echo "error: stimuli regex target accounting mismatch (${stimuli_regex_resolved_targets} + ${stimuli_regex_final_targets} != ${stimuli_regex_initial_targets})" >&2
     exit 1
@@ -266,7 +281,13 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "stimuli_summary_txt: $stimuli_summary_txt"
     echo "stimuli_summary_csv: $stimuli_summary_csv"
     echo "stimuli_contract_file: $stimuli_contract_file"
+    echo "stimuli_parseability_report_json: $stimuli_regex_parseability_report_json"
     echo "stimuli_regex_parseability_required: $stimuli_regex_parseability_required"
+    echo "stimuli_regex_parseability_attempts_total: $stimuli_regex_parseability_attempts_total"
+    echo "stimuli_regex_parseability_accepted_total: $stimuli_regex_parseability_accepted_total"
+    echo "stimuli_regex_parseability_rejected_total: $stimuli_regex_parseability_rejected_total"
+    echo "stimuli_regex_parseability_parser_rejections_total: $stimuli_regex_parseability_parser_rejections_total"
+    echo "stimuli_regex_parseability_acceptance_rate_percent: $stimuli_regex_parseability_acceptance_rate_percent"
     echo "stimuli_regex_initial_targets: $stimuli_regex_initial_targets"
     echo "stimuli_regex_resolved_targets: $stimuli_regex_resolved_targets"
     echo "stimuli_regex_final_targets: $stimuli_regex_final_targets"
@@ -311,7 +332,13 @@ jq -n \
     --arg stimuli_summary_txt "$stimuli_summary_txt" \
     --arg stimuli_summary_csv "$stimuli_summary_csv" \
     --arg stimuli_contract_file "$stimuli_contract_file" \
+    --arg stimuli_parseability_report_json "$stimuli_regex_parseability_report_json" \
     --argjson stimuli_regex_parseability_required "$stimuli_regex_parseability_required" \
+    --argjson stimuli_regex_parseability_attempts_total "$stimuli_regex_parseability_attempts_total" \
+    --argjson stimuli_regex_parseability_accepted_total "$stimuli_regex_parseability_accepted_total" \
+    --argjson stimuli_regex_parseability_rejected_total "$stimuli_regex_parseability_rejected_total" \
+    --argjson stimuli_regex_parseability_parser_rejections_total "$stimuli_regex_parseability_parser_rejections_total" \
+    --argjson stimuli_regex_parseability_acceptance_rate_percent "$stimuli_regex_parseability_acceptance_rate_percent" \
     --argjson stimuli_regex_initial_targets "$stimuli_regex_initial_targets" \
     --argjson stimuli_regex_resolved_targets "$stimuli_regex_resolved_targets" \
     --argjson stimuli_regex_final_targets "$stimuli_regex_final_targets" \
@@ -336,7 +363,8 @@ jq -n \
         dual_run_summary_json: $dual_run_summary_json,
         stimuli_state_dir: $stimuli_state_dir,
         stimuli_summary_txt: $stimuli_summary_txt,
-        stimuli_summary_csv: $stimuli_summary_csv
+        stimuli_summary_csv: $stimuli_summary_csv,
+        stimuli_parseability_report_json: $stimuli_parseability_report_json
       },
       metrics: {
         frontend_impl: $frontend_impl,
@@ -358,6 +386,11 @@ jq -n \
         dual_run_regex_notes: $dual_run_regex_notes,
         stimuli_contract_file: $stimuli_contract_file,
         stimuli_regex_parseability_required: $stimuli_regex_parseability_required,
+        stimuli_regex_parseability_attempts_total: $stimuli_regex_parseability_attempts_total,
+        stimuli_regex_parseability_accepted_total: $stimuli_regex_parseability_accepted_total,
+        stimuli_regex_parseability_rejected_total: $stimuli_regex_parseability_rejected_total,
+        stimuli_regex_parseability_parser_rejections_total: $stimuli_regex_parseability_parser_rejections_total,
+        stimuli_regex_parseability_acceptance_rate_percent: $stimuli_regex_parseability_acceptance_rate_percent,
         stimuli_regex_initial_targets: $stimuli_regex_initial_targets,
         stimuli_regex_resolved_targets: $stimuli_regex_resolved_targets,
         stimuli_regex_final_targets: $stimuli_regex_final_targets,

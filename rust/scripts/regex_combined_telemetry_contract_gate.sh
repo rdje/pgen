@@ -124,6 +124,7 @@ sota_exit_regex_status_dual_run_summary_json="$(jq -r '.family_status.regex.proo
 sota_exit_regex_status_stimuli_state_dir="$(jq -r '.family_status.regex.proof_surfaces.stimuli_state_dir' "$sota_summary_json")"
 sota_exit_regex_status_stimuli_summary_txt="$(jq -r '.family_status.regex.proof_surfaces.stimuli_summary_txt' "$sota_summary_json")"
 sota_exit_regex_status_stimuli_summary_csv="$(jq -r '.family_status.regex.proof_surfaces.stimuli_summary_csv' "$sota_summary_json")"
+sota_exit_regex_status_stimuli_parseability_report_json="$(jq -r '.family_status.regex.proof_surfaces.stimuli_parseability_report_json' "$sota_summary_json")"
 sota_exit_regex_contract_family_status_contract_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_contract_summary_json' "$sota_summary_json")"
 sota_exit_regex_contract_family_status_state_dir="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_state_dir' "$sota_summary_json")"
 sota_exit_regex_contract_family_status_summary_txt="$(jq -r '.family_status_contract.regex.proof_surfaces.family_status_summary_txt' "$sota_summary_json")"
@@ -241,7 +242,14 @@ regex_family_dual_run_summary_json="$(jq -r '.proof_surfaces.dual_run_summary_js
 regex_family_stimuli_state_dir="$(jq -r '.proof_surfaces.stimuli_state_dir' "$regex_family_summary_json")"
 regex_family_stimuli_summary_txt="$(jq -r '.proof_surfaces.stimuli_summary_txt' "$regex_family_summary_json")"
 regex_family_stimuli_summary_csv="$(jq -r '.proof_surfaces.stimuli_summary_csv' "$regex_family_summary_json")"
+regex_family_stimuli_parseability_report_json="$(jq -r '.proof_surfaces.stimuli_parseability_report_json' "$regex_family_summary_json")"
 regex_family_stimuli_status="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_status")"
+regex_family_stimuli_parseability_required="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_required")"
+regex_family_stimuli_parseability_attempts_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_attempts_total")"
+regex_family_stimuli_parseability_accepted_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_accepted_total")"
+regex_family_stimuli_parseability_rejected_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_rejected_total")"
+regex_family_stimuli_parseability_parser_rejections_total="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_parser_rejections_total")"
+regex_family_stimuli_parseability_acceptance_rate_percent="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_parseability_acceptance_rate_percent")"
 regex_family_stimuli_initial_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_initial_targets")"
 regex_family_stimuli_resolved_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_resolved_targets")"
 regex_family_stimuli_final_targets="$(extract_summary_value "$regex_family_summary_txt" "stimuli_regex_final_targets")"
@@ -301,6 +309,10 @@ assert_equal \
     "SOTA exit nested regex stimuli summary csv" \
     "$regex_family_stimuli_summary_csv" \
     "$sota_exit_regex_status_stimuli_summary_csv"
+assert_equal \
+    "SOTA exit nested regex stimuli parseability report json" \
+    "$regex_family_stimuli_parseability_report_json" \
+    "$sota_exit_regex_status_stimuli_parseability_report_json"
 
 regex_parser_family_status_gate="$(jq -r '.gate' "$regex_family_status_summary_json")"
 regex_parser_family_status_gate_version="$(jq -r '.version' "$regex_family_status_summary_json")"
@@ -328,6 +340,7 @@ regex_family_status_regex_frontend_overall_pass="$(extract_summary_value "$regex
 regex_family_status_regex_dual_run_overall_pass="$(extract_summary_value "$regex_family_status_summary_txt" "regex_dual_run_overall_pass")"
 regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero="$(extract_summary_value "$regex_family_status_summary_txt" "regex_dual_run_raw_ast_missing_on_rust_zero")"
 regex_family_status_regex_stimuli_status_pass="$(extract_summary_value "$regex_family_status_summary_txt" "regex_stimuli_status_pass")"
+regex_family_status_regex_stimuli_parseability_parser_rejections_zero="$(extract_summary_value "$regex_family_status_summary_txt" "regex_stimuli_parseability_parser_rejections_zero")"
 regex_family_status_regex_stimuli_final_target_debt_zero="$(extract_summary_value "$regex_family_status_summary_txt" "regex_stimuli_final_target_debt_zero")"
 regex_family_status_regex_formal_exhaustive_closure_surface_green="$(extract_summary_value "$regex_family_status_summary_txt" "regex_formal_exhaustive_closure_surface_green")"
 
@@ -445,9 +458,37 @@ assert_equal \
     "$regex_family_stimuli_summary_csv" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_summary_csv")"
 assert_equal \
+    "Regex family stimuli parseability report json" \
+    "$regex_family_stimuli_parseability_report_json" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_report_json")"
+assert_equal \
     "Regex family stimuli status" \
     "$regex_family_stimuli_status" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_status")"
+assert_equal \
+    "Regex family stimuli parseability required" \
+    "$regex_family_stimuli_parseability_required" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_required")"
+assert_equal \
+    "Regex family stimuli parseability attempts total" \
+    "$regex_family_stimuli_parseability_attempts_total" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_attempts_total")"
+assert_equal \
+    "Regex family stimuli parseability accepted total" \
+    "$regex_family_stimuli_parseability_accepted_total" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_accepted_total")"
+assert_equal \
+    "Regex family stimuli parseability rejected total" \
+    "$regex_family_stimuli_parseability_rejected_total" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_rejected_total")"
+assert_equal \
+    "Regex family stimuli parseability parser rejections total" \
+    "$regex_family_stimuli_parseability_parser_rejections_total" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_parser_rejections_total")"
+assert_equal \
+    "Regex family stimuli parseability acceptance rate percent" \
+    "$regex_family_stimuli_parseability_acceptance_rate_percent" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_stimuli_parseability_acceptance_rate_percent")"
 assert_equal \
     "Regex family stimuli initial targets" \
     "$regex_family_stimuli_initial_targets" \
@@ -585,6 +626,10 @@ assert_equal \
     "Regex family stimuli status pass criterion" \
     "$regex_family_status_regex_stimuli_status_pass" \
     "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_stimuli_status_pass")"
+assert_equal \
+    "Regex family stimuli parseability parser rejections zero criterion" \
+    "$regex_family_status_regex_stimuli_parseability_parser_rejections_zero" \
+    "$(extract_summary_value "$sota_summary_txt" "regex_family_status_regex_stimuli_parseability_parser_rejections_zero")"
 assert_equal \
     "Regex family stimuli final target debt zero criterion" \
     "$regex_family_status_regex_stimuli_final_target_debt_zero" \
@@ -735,6 +780,7 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_stimuli_state_dir: $regex_family_stimuli_state_dir"
     echo "regex_family_stimuli_summary_txt: $regex_family_stimuli_summary_txt"
     echo "regex_family_stimuli_summary_csv: $regex_family_stimuli_summary_csv"
+    echo "regex_family_stimuli_parseability_report_json: $regex_family_stimuli_parseability_report_json"
     echo "regex_family_status_contract_gate: $regex_family_status_contract_gate"
     echo "regex_family_status_contract_gate_version: $regex_family_status_contract_gate_version"
     echo "regex_family_status_contract_generated_at_utc: $regex_family_status_contract_generated_at_utc"
@@ -753,6 +799,12 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_contract_generated_at_utc: $regex_family_contract_generated_at_utc"
     echo "regex_family_contract_state_dir: $regex_family_contract_state_dir"
     echo "regex_family_stimuli_status: $regex_family_stimuli_status"
+    echo "regex_family_stimuli_parseability_required: $regex_family_stimuli_parseability_required"
+    echo "regex_family_stimuli_parseability_attempts_total: $regex_family_stimuli_parseability_attempts_total"
+    echo "regex_family_stimuli_parseability_accepted_total: $regex_family_stimuli_parseability_accepted_total"
+    echo "regex_family_stimuli_parseability_rejected_total: $regex_family_stimuli_parseability_rejected_total"
+    echo "regex_family_stimuli_parseability_parser_rejections_total: $regex_family_stimuli_parseability_parser_rejections_total"
+    echo "regex_family_stimuli_parseability_acceptance_rate_percent: $regex_family_stimuli_parseability_acceptance_rate_percent"
     echo "regex_family_stimuli_initial_targets: $regex_family_stimuli_initial_targets"
     echo "regex_family_stimuli_resolved_targets: $regex_family_stimuli_resolved_targets"
     echo "regex_family_stimuli_final_targets: $regex_family_stimuli_final_targets"
@@ -780,6 +832,7 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "regex_family_status_regex_dual_run_overall_pass: $regex_family_status_regex_dual_run_overall_pass"
     echo "regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero: $regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero"
     echo "regex_family_status_regex_stimuli_status_pass: $regex_family_status_regex_stimuli_status_pass"
+    echo "regex_family_status_regex_stimuli_parseability_parser_rejections_zero: $regex_family_status_regex_stimuli_parseability_parser_rejections_zero"
     echo "regex_family_status_regex_stimuli_final_target_debt_zero: $regex_family_status_regex_stimuli_final_target_debt_zero"
     echo "regex_family_status_regex_formal_exhaustive_closure_surface_green: $regex_family_status_regex_formal_exhaustive_closure_surface_green"
     echo "regex_family_status_contract_family_count: $regex_family_status_contract_family_count"
@@ -831,6 +884,7 @@ jq -n \
     --arg regex_family_stimuli_state_dir "$regex_family_stimuli_state_dir" \
     --arg regex_family_stimuli_summary_txt "$regex_family_stimuli_summary_txt" \
     --arg regex_family_stimuli_summary_csv "$regex_family_stimuli_summary_csv" \
+    --arg regex_family_stimuli_parseability_report_json "$regex_family_stimuli_parseability_report_json" \
     --arg regex_family_frontend_overall "$regex_family_frontend_overall" \
     --arg regex_family_dual_run_overall "$regex_family_dual_run_overall" \
     --arg regex_family_dual_run_raw_ast_status "$regex_family_dual_run_raw_ast_status" \
@@ -843,6 +897,12 @@ jq -n \
     --arg regex_family_contract_generated_at_utc "$regex_family_contract_generated_at_utc" \
     --arg regex_family_contract_state_dir "$regex_family_contract_state_dir" \
     --arg regex_family_stimuli_status "$regex_family_stimuli_status" \
+    --argjson regex_family_stimuli_parseability_required "$regex_family_stimuli_parseability_required" \
+    --argjson regex_family_stimuli_parseability_attempts_total "$regex_family_stimuli_parseability_attempts_total" \
+    --argjson regex_family_stimuli_parseability_accepted_total "$regex_family_stimuli_parseability_accepted_total" \
+    --argjson regex_family_stimuli_parseability_rejected_total "$regex_family_stimuli_parseability_rejected_total" \
+    --argjson regex_family_stimuli_parseability_parser_rejections_total "$regex_family_stimuli_parseability_parser_rejections_total" \
+    --argjson regex_family_stimuli_parseability_acceptance_rate_percent "$regex_family_stimuli_parseability_acceptance_rate_percent" \
     --argjson regex_family_stimuli_initial_targets "$regex_family_stimuli_initial_targets" \
     --argjson regex_family_stimuli_resolved_targets "$regex_family_stimuli_resolved_targets" \
     --argjson regex_family_stimuli_final_targets "$regex_family_stimuli_final_targets" \
@@ -875,6 +935,7 @@ jq -n \
     --argjson regex_family_status_regex_dual_run_overall_pass "$regex_family_status_regex_dual_run_overall_pass" \
     --argjson regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero "$regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero" \
     --argjson regex_family_status_regex_stimuli_status_pass "$regex_family_status_regex_stimuli_status_pass" \
+    --argjson regex_family_status_regex_stimuli_parseability_parser_rejections_zero "$regex_family_status_regex_stimuli_parseability_parser_rejections_zero" \
     --argjson regex_family_status_regex_stimuli_final_target_debt_zero "$regex_family_status_regex_stimuli_final_target_debt_zero" \
     --argjson regex_family_status_regex_formal_exhaustive_closure_surface_green "$regex_family_status_regex_formal_exhaustive_closure_surface_green" \
     --arg regex_family_status_contract_gate "$regex_family_status_contract_gate" \
@@ -943,6 +1004,12 @@ jq -n \
         dual_run_raw_ast_missing_on_perl_count: $regex_family_dual_run_raw_ast_missing_on_perl_count,
         dual_run_raw_ast_missing_on_rust_count: $regex_family_dual_run_raw_ast_missing_on_rust_count,
         stimuli_status: $regex_family_stimuli_status,
+        stimuli_parseability_required: $regex_family_stimuli_parseability_required,
+        stimuli_parseability_attempts_total: $regex_family_stimuli_parseability_attempts_total,
+        stimuli_parseability_accepted_total: $regex_family_stimuli_parseability_accepted_total,
+        stimuli_parseability_rejected_total: $regex_family_stimuli_parseability_rejected_total,
+        stimuli_parseability_parser_rejections_total: $regex_family_stimuli_parseability_parser_rejections_total,
+        stimuli_parseability_acceptance_rate_percent: $regex_family_stimuli_parseability_acceptance_rate_percent,
         stimuli_initial_targets: $regex_family_stimuli_initial_targets,
         stimuli_resolved_targets: $regex_family_stimuli_resolved_targets,
         stimuli_final_targets: $regex_family_stimuli_final_targets,
@@ -959,7 +1026,8 @@ jq -n \
           dual_run_summary_json: $regex_family_dual_run_summary_json,
           stimuli_state_dir: $regex_family_stimuli_state_dir,
           stimuli_summary_txt: $regex_family_stimuli_summary_txt,
-          stimuli_summary_csv: $regex_family_stimuli_summary_csv
+          stimuli_summary_csv: $regex_family_stimuli_summary_csv,
+          stimuli_parseability_report_json: $regex_family_stimuli_parseability_report_json
         }
       },
       family_status: {
@@ -999,6 +1067,7 @@ jq -n \
             dual_run_overall_pass: $regex_family_status_regex_dual_run_overall_pass,
             dual_run_raw_ast_missing_on_rust_zero: $regex_family_status_regex_dual_run_raw_ast_missing_on_rust_zero,
             stimuli_status_pass: $regex_family_status_regex_stimuli_status_pass,
+            stimuli_parseability_parser_rejections_zero: $regex_family_status_regex_stimuli_parseability_parser_rejections_zero,
             stimuli_final_target_debt_zero: $regex_family_status_regex_stimuli_final_target_debt_zero,
             formal_exhaustive_closure_surface_green: $regex_family_status_regex_formal_exhaustive_closure_surface_green
           }

@@ -1174,6 +1174,7 @@ Generated parser env/cfg map:
 - `PGEN_REGEX_PARSER_PATH`
   - drives `has_generated_regex_parser`
   - controls `generated_parsers::regex`, related parser-registry exposure, and regex generated-backend availability inside `embedding_api.rs`
+  - the repo now also carries the default tracked artifact at [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs), so a normal checkout no longer needs an ad hoc env override just to make regex’s generated backend exist
 - `PGEN_SYSTEMVERILOG_PARSER_PATH`
   - drives `has_generated_systemverilog_parser`
   - controls generated SystemVerilog registry, embedding, and parseability paths
@@ -1246,6 +1247,7 @@ Operational rule:
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
+  - It now also has real parser-backed quality evidence in the shared non-annotation stimuli contract, but that surface still carries bounded parser-rejection debt and bounded target debt
   - It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself
 - `ebnf`
   - Not just another generated runtime parser family

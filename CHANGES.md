@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-27 - Promote regex to parser-backed family quality proof
+### ✅ Achievement Summary
+PGEN's `regex` family now has real parser-backed quality evidence in the shared non-annotation stimuli contract, that evidence is preserved through the regex family/status/aggregate proof spine, and the roadmap/status docs now describe regex from that more honest parser-backed baseline instead of from the older parseability-skip posture.
+
+### Scope of Changes
+- Updated:
+  - [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json)
+  - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
+  - [rust/test_data/grammar_quality/ebnf_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/ebnf_stimuli_contract.json)
+  - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh)
+  - [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh)
+  - [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh)
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The repository now tracks the default generated regex parser artifact expected by `build.rs`:
+  - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
+- The shared non-annotation stimuli contract now treats `regex` as parser-backed:
+  - `require_parseability=1`
+  - latest measured totals `attempts=742`, `accepted=738`, `rejected=4`, `parser_rejections_total=4`, `acceptance_rate_percent=99.46`
+- The regex family proof spine now preserves that parser-backed quality surface end to end:
+  - family contract now emits parseability report/proof fields and parser-backed totals
+  - family status now includes `stimuli_parseability_parser_rejections_zero`
+  - family status contract now requires the new criterion/metric set
+  - aggregate SOTA and combined telemetry now re-emit the parser-backed regex quality proof surfaces and status boolean
+- The live docs now describe regex from the updated measured baseline:
+  - parser-backed quality is landed
+  - remaining blockers are parser-backed rejections `4`, target debt `35`, and missing formal exhaustive closure
+- Local CI now protects the tracked regex generated parser artifact and the new parser-backed regex family proof fields.
+
+### Why This Matters
+- Regex closure work now builds from an actual parser-backed family-quality seam instead of from an explicit parseability gap.
+- The remaining regex roadmap debt is narrower and more actionable: burn down bounded parser-backed rejection debt, burn down bounded target debt, then add broader corpus-backed and exhaustive closure proof.
+
 ## 2026-03-27 - Expose regex through the public embedding API
 ### ✅ Achievement Summary
 PGEN's stable Rust embedding API now exposes regex as a first-class public grammar/profile surface, the live Rust analysis doc now records the internal-vs-public capability distinction more explicitly, and the roadmap/status docs now describe regex closure debt from that updated baseline instead of from the older “no public embedding seam yet” state.

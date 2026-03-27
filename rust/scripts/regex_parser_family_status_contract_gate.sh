@@ -111,8 +111,8 @@ family_status_summary_txt="$family_status_state_dir/summary.txt"
 require_nonempty_file "$family_status_summary_json"
 require_nonempty_file "$family_status_summary_txt"
 
-expected_criteria='["family_contract_green","frontend_overall_pass","dual_run_overall_pass","dual_run_raw_ast_missing_on_rust_zero","stimuli_status_pass","stimuli_final_target_debt_zero","formal_exhaustive_closure_surface_green"]'
-expected_metrics='["frontend_overall","dual_run_overall","dual_run_raw_ast_status","dual_run_raw_ast_missing_on_perl_count","dual_run_raw_ast_missing_on_rust_count","dual_run_rust_rule_count","stimuli_initial_targets","stimuli_resolved_targets","stimuli_final_targets","stimuli_target_attempts","stimuli_stage0_successes","stimuli_stage3_successes","stimuli_status","family_contract_gate","family_contract_gate_version","family_contract_generated_at_utc"]'
+expected_criteria='["family_contract_green","frontend_overall_pass","dual_run_overall_pass","dual_run_raw_ast_missing_on_rust_zero","stimuli_status_pass","stimuli_parseability_parser_rejections_zero","stimuli_final_target_debt_zero","formal_exhaustive_closure_surface_green"]'
+expected_metrics='["frontend_overall","dual_run_overall","dual_run_raw_ast_status","dual_run_raw_ast_missing_on_perl_count","dual_run_raw_ast_missing_on_rust_count","dual_run_rust_rule_count","stimuli_parseability_required","stimuli_parseability_attempts_total","stimuli_parseability_accepted_total","stimuli_parseability_rejected_total","stimuli_parseability_parser_rejections_total","stimuli_parseability_acceptance_rate_percent","stimuli_initial_targets","stimuli_resolved_targets","stimuli_final_targets","stimuli_target_attempts","stimuli_stage0_successes","stimuli_stage3_successes","stimuli_status","family_contract_gate","family_contract_gate_version","family_contract_generated_at_utc"]'
 expected_proof_surfaces='["family_contract_state_dir","family_contract_summary_txt","family_contract_summary_json"]'
 
 jq -e \

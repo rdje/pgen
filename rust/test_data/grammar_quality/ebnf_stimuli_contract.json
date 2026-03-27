@@ -21,7 +21,7 @@
       "grammar_name": "regex",
       "ebnf_path": "grammars/regex.ebnf",
       "seed_base": 9301,
-      "require_parseability": false
+      "require_parseability": true
     },
     {
       "id": "builtin_return_annotation",

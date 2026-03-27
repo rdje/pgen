@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-27 (+0100, task: expose-regex-through-public-embedding-api)
+Last updated: 2026-03-27 (+0100, task: promote-regex-to-parser-backed-family-quality-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The repository now tracks the default generated regex parser artifact expected by `build.rs`:
+  - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
+- The shared non-annotation stimuli contract now treats `regex` as parser-backed instead of a parseability-skip row.
+- [rust/test_data/grammar_quality/ebnf_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/ebnf_stimuli_contract.json) now sets `require_parseability=true` for the `regex` row.
+- The regex family/source-side proof stack now preserves parser-backed regex quality evidence end to end:
+  - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh) now emits:
+    - `stimuli_parseability_report_json`
+    - `stimuli_regex_parseability_required`
+    - `stimuli_regex_parseability_attempts_total`
+    - `stimuli_regex_parseability_accepted_total`
+    - `stimuli_regex_parseability_rejected_total`
+    - `stimuli_regex_parseability_parser_rejections_total`
+    - `stimuli_regex_parseability_acceptance_rate_percent`
+  - [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh) now adds `stimuli_parseability_parser_rejections_zero` as a real closure criterion
+  - [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh) now requires the new parser-backed regex criterion/metric set
+- The aggregate regex proof stack now preserves the same parser-backed quality evidence:
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now re-emits the regex parseability report path, parseability totals, and `regex_family_status_regex_stimuli_parseability_parser_rejections_zero`
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now consumes and preserves those parser-backed regex family/status fields
+- Fresh measured regex family values under the shared parser-backed contract are now:
+  - `parseability_required=1`
+  - `attempts=742`
+  - `accepted=738`
+  - `rejected=4`
+  - `parser_rejections_total=4`
+  - `acceptance_rate_percent=99.46`
+  - target debt `236 -> 35`
+- The current regex live status is still `In Progress`, but it is now computed from parser-backed family proof with closure counts `5/8/3` and explicit blockers:
+  - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
+  - `stimuli_regex_final_targets=35 > 0`
+  - `formal_exhaustive_closure_surface=missing`
+- [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md) now describe regex from that parser-backed baseline.
+- [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now guards the tracked regex parser artifact and the new parser-backed regex family proof fields across family, SOTA, and combined-telemetry layers.
 - `pgen::embedding_api` now exposes regex as a first-class public grammar/profile surface.
 - [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) now includes:
   - `GrammarFamily::Regex`

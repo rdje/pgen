@@ -190,6 +190,8 @@ audit_ebnf_frontend_conversion_surface() {
 audit_embedding_api_surface() {
   note "auditing public embedding API surface"
 
+  assert_tracked "generated/regex.json"
+  assert_tracked "generated/regex_parser.rs"
   assert_tracked "rust/src/embedding_api.rs"
   assert_tracked "rust/docs/EMBEDDING_API_CONTRACT.md"
 
@@ -973,6 +975,9 @@ audit_sota_json_consumption_surface() {
     '.family_status.regex.primary_unmet_closure_criterion'
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status.regex.proof_surfaces.stimuli_parseability_report_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     '.family_status.regex.proof_surfaces.dual_run_summary_json'
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
@@ -1036,6 +1041,9 @@ audit_sota_nested_family_emission_surface() {
     'regex: family_status_entry('
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
+    'stimuli_parseability_report_json: maybe_path($regex_family_stimuli_parseability_report_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
     'dual_run_summary_json: maybe_path($regex_family_dual_run_summary_json)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
@@ -1090,6 +1098,12 @@ audit_combined_telemetry_nested_provenance_surface() {
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     'dual_run_summary_json: $regex_family_dual_run_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'stimuli_parseability_report_json: $regex_family_stimuli_parseability_report_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    'stimuli_parseability_parser_rejections_zero: $regex_family_status_regex_stimuli_parseability_parser_rejections_zero'
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     'summary_json: $regex_family_status_contract_regex_family_contract_summary_json'
@@ -1245,6 +1259,12 @@ audit_family_contract_proof_surface() {
   assert_file_contains \
     "rust/scripts/regex_parser_family_contract_gate.sh" \
     'stimuli_summary_csv: $stimuli_summary_csv'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'stimuli_parseability_report_json: $stimuli_regex_parseability_report_json'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'stimuli_regex_parseability_parser_rejections_total: $stimuli_regex_parseability_parser_rejections_total'
 
   assert_file_contains \
     "rust/scripts/vhdl_parser_family_contract_gate.sh" \
