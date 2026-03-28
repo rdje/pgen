@@ -99,6 +99,13 @@ audit_static_include_paths() {
   assert_tracked "generated/semantic_annotation_parser.rs"
 }
 
+audit_markdown_repo_relative_paths() {
+  note "auditing markdown repo-path policy"
+  if (cd "$ROOT_DIR" && rg -n --glob '*.md' '/Users/richarddje/Documents/github/pgen/' . >/dev/null 2>&1); then
+    fail "absolute PGEN checkout path found in markdown docs; use relative repo paths"
+  fi
+}
+
 audit_workflow_surface() {
   local workflow_file
   note "auditing tracked workflow surface"
@@ -1715,6 +1722,7 @@ main() {
 
   copy_tracked_worktree
   audit_static_include_paths
+  audit_markdown_repo_relative_paths
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface

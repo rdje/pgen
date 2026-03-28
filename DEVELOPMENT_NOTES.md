@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-28 - Enforce relative repo paths in Markdown docs
+### Context
+The repo had already gained consumer-facing parser integration docs, but many older Markdown files still embedded checkout-specific absolute paths into this PGEN clone. That made the docs less portable for RGX and any other downstream consumer, and it contradicted the requirement that repo-internal Markdown references should be clone-portable rather than machine-specific.
+
+### Implementation
+- Normalized every remaining tracked `.md` occurrence of a checkout-specific absolute repo path into a relative repo path.
+- The remaining affected tracked Markdown files were:
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [STRESS_TEST_STANDARDIZATION.md](STRESS_TEST_STANDARDIZATION.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [MEMORY.md](MEMORY.md)
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [RETURN_ANNOTATION_STATUS.md](rust/RETURN_ANNOTATION_STATUS.md)
+- Updated [COMMIT.md](COMMIT.md):
+  - repo-internal paths in tracked Markdown docs must be relative
+  - commit-time Markdown review now explicitly includes removing checkout-specific absolute repo paths
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - added `audit_markdown_repo_relative_paths`
+  - this audit now fails if any tracked `.md` file still contains the absolute checkout prefix for this PGEN clone
+
+### Validation
+- Markdown absolute-path scan over tracked `.md` files
+  - result: no matches
+- `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+  - result: `all selected local workflow commands passed`
+
+### Why This Matters
+- Markdown docs are now portable across clones and machines.
+- The rule now covers the whole repo, not just the new parser integration docs.
+
 ## 2026-03-28 - Add parser integration contracts, issue-reporting protocol, and released-bug ledger
 ### Context
 Regex had a real public embedding surface and a real closed-family proof stack, but downstream integration still relied on generic docs plus oral context. That was enough for internal understanding, not enough for painless RGX-style adoption. The next missing layer was not parser behavior; it was the downstream contract and support loop around that behavior:
@@ -9,7 +43,7 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
 
 ### Implementation
 - Added a root parser-family contract index:
-  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](/Users/richarddje/Documents/github/pgen/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
   - establishes the rule that every published parser family needs a tracked integration-contract document
   - lists the current family-doc set for:
     - `systemverilog`
@@ -19,22 +53,22 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
     - `return_annotation`
     - `semantic_annotation`
 - Added family-specific docs:
-  - [PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md](PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md](PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
 - Added a dedicated regex host-contract gate:
-  - [rust/scripts/regex_parser_integration_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_integration_contract_gate.sh)
-  - wired into [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile) and therefore also into `embedding_api_gate`
-  - exercises a focused new embedding-test prefix in [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs):
+  - [rust/scripts/regex_parser_integration_contract_gate.sh](rust/scripts/regex_parser_integration_contract_gate.sh)
+  - wired into [rust/Makefile](rust/Makefile) and therefore also into `embedding_api_gate`
+  - exercises a focused new embedding-test prefix in [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
     - `regex_parser_integration_contract_*`
 - Added a checked-in regex integration manifest:
-  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json)
   - captures representative success/failure samples for the downstream contract gate
 - Added release-support docs:
-  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](/Users/richarddje/Documents/github/pgen/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
     - defines the exact bundle a downstream project should return:
       - parser identity
       - host identity
@@ -42,7 +76,7 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
       - expected vs actual behavior
       - structured contract/outcome/AST artifacts
       - `parseability_probe --trace` bundle when available
-  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](/Users/richarddje/Documents/github/pgen/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
     - live ledger for accepted released-parser bugs
     - defines stable bug states from `Reported` through `Released`
   - the release-support loop is now explicitly GitHub-optional:
@@ -50,13 +84,13 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
     - reports are indexed there per parser family/profile
     - any number of downstream consumer repos may keep their own tracking refs and adoption notes in their own git histories
 - Updated the maintained doc map and workflow docs:
-  - [README.md](/Users/richarddje/Documents/github/pgen/README.md)
-  - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
-  - [rust/docs/EMBEDDING_API_CONTRACT.md](/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
-  - [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md)
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - [README.md](README.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [COMMIT.md](COMMIT.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks:
     - the new regex integration gate
     - the parser-contract index/family docs
@@ -87,24 +121,24 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
 The VHDL family row was still carrying one fake blocker even after its real quality/status plumbing existed: `vhdl_parser_family_status_gate` had to report `formal_exhaustive_closure_surface=missing` because there was no first-class proof object for that question. That left the VHDL roadmap story weaker than regex and the newer family-sidecar doctrine, and it also obscured the fact that the remaining VHDL debt was already mostly parser behavior rather than missing gate wiring.
 
 ### Implementation
-- Added [rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json):
+- Added [rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json):
   - declares the current VHDL closure rule as a checked-in contract
   - names the required proof key `external_corpus_backed_proof_surface`
   - makes the former missing-surface explanation explicit and machine-readable
-- Added [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_formal_exhaustive_closure_gate.sh):
-  - consumes or reuses [rust/scripts/vhdl_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh)
-  - consumes or reuses [rust/scripts/vhdl_external_corpus_triage_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_external_corpus_triage_gate.sh)
+- Added [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](rust/scripts/vhdl_formal_exhaustive_closure_gate.sh):
+  - consumes or reuses [rust/scripts/vhdl_parser_family_contract_gate.sh](rust/scripts/vhdl_parser_family_contract_gate.sh)
+  - consumes or reuses [rust/scripts/vhdl_external_corpus_triage_gate.sh](rust/scripts/vhdl_external_corpus_triage_gate.sh)
   - emits dedicated `summary.txt` / `summary.json` sidecars
   - current validated closure result is green on `external_corpus_backed_proof_surface`
 - Updated the VHDL proof spine:
-  - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile) now exposes `vhdl_formal_exhaustive_closure_gate`
-  - [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh) now consumes the new formal-closure sidecar instead of hardcoding a missing-surface blocker
-  - [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh) now preserves the formal-closure provenance too
-  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now carries the VHDL formal-closure state/TXT/JSON paths through both top-level and nested VHDL proof surfaces
-  - [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) now parity-checks and re-emits that same formal-closure provenance
-  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now locks the new VHDL formal-closure producer/consumer seam
+  - [rust/Makefile](rust/Makefile) now exposes `vhdl_formal_exhaustive_closure_gate`
+  - [rust/scripts/vhdl_parser_family_status_gate.sh](rust/scripts/vhdl_parser_family_status_gate.sh) now consumes the new formal-closure sidecar instead of hardcoding a missing-surface blocker
+  - [rust/scripts/vhdl_parser_family_status_contract_gate.sh](rust/scripts/vhdl_parser_family_status_contract_gate.sh) now preserves the formal-closure provenance too
+  - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh) now carries the VHDL formal-closure state/TXT/JSON paths through both top-level and nested VHDL proof surfaces
+  - [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh) now parity-checks and re-emits that same formal-closure provenance
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now locks the new VHDL formal-closure producer/consumer seam
 - Validation exposed one real aggregate bug:
-  - the new formal-closure parity checks in [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) were originally placed before the corresponding VHDL status variables were loaded
+  - the new formal-closure parity checks in [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh) were originally placed before the corresponding VHDL status variables were loaded
   - with `set -u`, that crashed the gate
   - the fix was to move those asserts to the point where the VHDL status formal-closure fields are actually extracted
 - Fresh validated VHDL family/status state is now:
@@ -133,14 +167,14 @@ The VHDL family row was still carrying one fake blocker even after its real qual
 After the regex layout/literal fixes landed, the direct regex-only `ebnf_stimuli_quality_gate` slice was already better than the published regex proof stack: the live parser-clean measurements were `197/197/0` with remaining target debt `122`, but the canonical regex family/status/aggregate sidecars were still stuck on the older `742/738/4` and `final_targets=35` snapshot. That meant the roadmap truth and the shipped sidecar truth were diverging even though the parser behavior had already improved.
 
 ### Implementation
-- Added [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_family_stimuli_contract.json):
+- Added [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](rust/test_data/grammar_quality/regex_family_stimuli_contract.json):
   - checked-in regex-only parser/stimuli contract for the canonical regex family proof lane
   - removes the need for the regex family gate to depend on the broader shared non-annotation stimuli contract just to compute regex status
-- Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh):
   - now defaults to that regex-only family stimuli contract
   - still emits the same contract sidecars and extracted proof fields
 - Revalidated the regex proof ladder on the refreshed baseline:
-  - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh)
+  - [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh)
     - current summary:
       - dual run `perl_rule_count=65`
       - dual run `rust_rule_count=88`
@@ -152,26 +186,26 @@ After the regex layout/literal fixes landed, the direct regex-only `ebnf_stimuli
       - `initial_targets=355`
       - `resolved_targets=233`
       - `final_targets=122`
-  - [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh)
+  - [rust/scripts/regex_formal_exhaustive_closure_gate.sh](rust/scripts/regex_formal_exhaustive_closure_gate.sh)
     - stayed green with closure counts `1/1/0`
-  - [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh)
+  - [rust/scripts/regex_parser_family_status_gate.sh](rust/scripts/regex_parser_family_status_gate.sh)
     - current summary:
       - `regex=In Progress`
       - closure counts `7/8/1`
       - sole blocker `stimuli_regex_final_targets=122 > 0`
-  - [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh)
+  - [rust/scripts/regex_parser_family_status_contract_gate.sh](rust/scripts/regex_parser_family_status_contract_gate.sh)
     - current summary:
       - `family_count=1`
       - `regex_false_criteria_count=1`
       - `regex_unmet_details_count=1`
       - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
-  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh)
     - reuse-backed aggregate run now surfaces the refreshed regex family metrics and `7/8/1` status counts
-  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh)
     - now parity-checks and re-emits the refreshed aggregate regex surface (`197/197/0`, `355 -> 122`, `7/8/1`)
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks the checked-in regex-family stimuli contract file and the family gate's explicit use of it
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - the regex row now reflects the refreshed family/status/aggregate proof stack instead of warning that those sidecars are stale
 
 ### Why This Matters
@@ -183,12 +217,12 @@ After the regex layout/literal fixes landed, the direct regex-only `ebnf_stimuli
 After the parser-backed regex family-quality promotion and the follow-on debt-triage work, the remaining regex blocker story was still weaker than the SV/VHDL proof stacks in one important way: `regex_parser_family_status_gate` was still carrying a literal placeholder blocker, `formal_exhaustive_closure_surface=missing`, rather than consuming a real machine-checkable closure sidecar. That kept the family honest, but it meant regex still lacked a first-class proof object for the “what would it take to promote this family beyond bounded evidence?” question.
 
 ### Implementation
-- Added [rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json):
+- Added [rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json):
   - declares the current regex closure rule as a checked-in contract instead of leaving it implicit in status text
   - names the current required proof key `broader_corpus_backed_proof_surface`
   - records the current unmet-detail explanation for why regex still is not exhaustively closed
-- Added [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh):
-  - consumes or reuses [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh)
+- Added [rust/scripts/regex_formal_exhaustive_closure_gate.sh](rust/scripts/regex_formal_exhaustive_closure_gate.sh):
+  - consumes or reuses [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh)
   - emits a dedicated `summary.txt` / `summary.json` sidecar
   - keeps the current closure surface objective rather than narrative:
     - `required_surface_key=broader_corpus_backed_proof_surface`
@@ -196,23 +230,23 @@ After the parser-backed regex family-quality promotion and the follow-on debt-tr
     - `regex_primary_unmet_closure_criterion=broader_corpus_backed_proof_surface=missing`
     - closure counts `0/1/1`
   - preserves contextual family metrics so the closure sidecar still explains the current regex debt backdrop
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added the new `regex_formal_exhaustive_closure_gate` help and target surface
 - Updated the regex proof spine:
-  - [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh) now consumes the new formal-closure sidecar instead of hardcoding a placeholder blocker
-  - [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh) now preserves the closure sidecar provenance too
-  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now carries the regex formal-closure provenance in both top-level and nested regex proof surfaces
-  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now parity-checks and re-emits that same closure provenance
-- Tightened [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh) slightly:
+  - [rust/scripts/regex_parser_family_status_gate.sh](rust/scripts/regex_parser_family_status_gate.sh) now consumes the new formal-closure sidecar instead of hardcoding a placeholder blocker
+  - [rust/scripts/regex_parser_family_status_contract_gate.sh](rust/scripts/regex_parser_family_status_contract_gate.sh) now preserves the closure sidecar provenance too
+  - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh) now carries the regex formal-closure provenance in both top-level and nested regex proof surfaces
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) now parity-checks and re-emits that same closure provenance
+- Tightened [rust/scripts/regex_parser_family_status_gate.sh](rust/scripts/regex_parser_family_status_gate.sh) slightly:
   - the formal-closure detail extraction now tolerates a future all-green closure sidecar instead of assuming a blocker is always present
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - regex is now described from the stronger baseline:
     - parser-backed quality
     - deterministic parser-rejection triage
     - explicit formal-closure sidecar
   - the current blocker wording is now the more precise:
     - `broader_corpus_backed_proof_surface=missing`
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks:
     - tracked presence of the new gate and contract file
     - the Makefile help/target surface
@@ -229,15 +263,15 @@ After the parser-backed regex family-quality promotion and the follow-on debt-tr
 Once the broader regex corpus had been improved to `43/44`, the remaining checked-in soft-fail was no longer ambiguous: the empty-regex case itself. Because that corpus case was already part of the checked-in proof surface, the clean next step was to accept an empty top-level regex deliberately rather than leave broader-corpus realism one case short.
 
 ### Implementation
-- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf):
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
   - the entry rule now accepts `pattern?` instead of requiring a non-empty `pattern`
   - this makes the empty string a valid top-level regex without changing the deeper `alternation` / `concatenation` structure yet
-- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+- Updated [rust/src/parser_registry.rs](rust/src/parser_registry.rs):
   - the focused regex parseability adapter test now explicitly treats `""` as valid
-- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
-- Validated the generated backend directly with [parseability_probe](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs):
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs)
+- Validated the generated backend directly with [parseability_probe](rust/src/bin/parseability_probe.rs):
   - empty input now passes for `regex`
-- Re-ran [regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh):
+- Re-ran [regex_broader_corpus_proof_gate.sh](rust/scripts/regex_broader_corpus_proof_gate.sh):
   - the checked-in broader corpus is now fully green
   - current measured summary:
     - `cases_declared=44`
@@ -256,22 +290,22 @@ Once the broader regex corpus had been improved to `43/44`, the remaining checke
 Once the broader regex corpus was in place, the next useful move was no longer more proof plumbing. The checked-in corpus and direct parseability probes exposed a real backend bug: quoted EBNF terminals like `"\\d"` and `"\\b"` were being preserved with their escape spellings rather than decoded into literal terminal text, so the generated regex parser was matching doubled backslashes. That same follow-up also exposed a second, narrower grammar gap: ordinary URL literals still rejected unescaped `:` and `/`.
 
 ### Implementation
-- Updated [rust/src/ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs):
+- Updated [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs):
   - quoted EBNF terminal bodies are now decoded before the Rust frontend emits `quoted_string` raw-AST tokens
   - the frontend now preserves the intended literal terminal values for escapes like `\\d`, `\\b`, `\\\\`, `\\n`, `\\r`, and `\\t`
-- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf):
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
   - `literal_char` now includes unescaped `:` and `/`
   - this closes the practical URL-prefix gap without widening the regex literal surface indiscriminately
-- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+- Updated [rust/src/parser_registry.rs](rust/src/parser_registry.rs):
   - extended the focused regex parseability adapter test coverage to include the checked-in URL-style sample `^https?://[^\\s/$.?#].[^\\s]*$`
-- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs) from the fixed frontend/grammar pair
-- Validated the generated backend directly with [parseability_probe](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs):
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs) from the fixed frontend/grammar pair
+- Validated the generated backend directly with [parseability_probe](rust/src/bin/parseability_probe.rs):
   - `\\d`
   - `\\bword\\b`
   - `\\\\`
   - `^\\+?[1-9]\\d{1,14}$`
   - `^https?://[^\\s/$.?#].[^\\s]*$`
-- Re-ran [regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh):
+- Re-ran [regex_broader_corpus_proof_gate.sh](rust/scripts/regex_broader_corpus_proof_gate.sh):
   - the checked-in broader-corpus floor improved from `31/44` to `43/44`
   - `url_pattern` is now `pass`
   - the only remaining soft-fail in that checked-in corpus is `empty_regex`
@@ -289,15 +323,15 @@ Once the broader regex corpus was in place, the next useful move was no longer m
 
 ## 2026-03-28 - Add regex broader corpus proof gate
 ### Context
-Once the regex formal-closure gate existed, the next missing seam was no longer ambiguous: `regex` needed a checked-in broader-corpus proof surface rather than another placeholder or one-off shell override. The repository already carried a meaningful checked-in regex source corpus in [stress_tests.json](/Users/richarddje/Documents/github/pgen/rust/test_data/regex/stress_tests.json), so the clean next step was to turn that corpus into a deterministic proof gate and let the formal-closure sidecar consume it directly.
+Once the regex formal-closure gate existed, the next missing seam was no longer ambiguous: `regex` needed a checked-in broader-corpus proof surface rather than another placeholder or one-off shell override. The repository already carried a meaningful checked-in regex source corpus in [stress_tests.json](rust/test_data/regex/stress_tests.json), so the clean next step was to turn that corpus into a deterministic proof gate and let the formal-closure sidecar consume it directly.
 
 ### Implementation
-- Added [rust/test_data/grammar_quality/regex_broader_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_broader_corpus_v0.json):
+- Added [rust/test_data/grammar_quality/regex_broader_corpus_v0.json](rust/test_data/grammar_quality/regex_broader_corpus_v0.json):
   - declares the checked-in regex stress corpus as the current broader-corpus proof source
   - fixes the expected case count at `44`
   - locks the expected parser type `regex` and normalizer `text`
-- Added [rust/scripts/regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh):
-  - builds the generated-parser-backed [parseability_probe](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs)
+- Added [rust/scripts/regex_broader_corpus_proof_gate.sh](rust/scripts/regex_broader_corpus_proof_gate.sh):
+  - builds the generated-parser-backed [parseability_probe](rust/src/bin/parseability_probe.rs)
   - verifies generated regex parser support
   - replays all checked-in broader-corpus cases deterministically through the generated regex parser
   - emits machine-readable `summary.txt` / `summary.json` with broader-corpus counts and case-level observations
@@ -308,16 +342,16 @@ Once the regex formal-closure gate existed, the next missing seam was no longer 
     - `parse_fail_total=13`
     - `primary_parse_failure_case=word_boundary`
     - `primary_parse_failure_parser_error=Backtrack at position 0`
-- Updated [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh):
+- Updated [rust/scripts/regex_formal_exhaustive_closure_gate.sh](rust/scripts/regex_formal_exhaustive_closure_gate.sh):
   - it now runs or reuses the broader-corpus proof gate directly instead of waiting for a manually injected proof state dir
   - it now preserves broader-corpus gate metadata and measured pass/fail totals in the closure sidecar
   - the regex formal-closure sidecar is now green:
     - `regex_formal_exhaustive_closure_surface_green=true`
     - `regex_primary_unmet_closure_criterion=<none>`
     - closure counts `1/1/0`
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added the new `regex_broader_corpus_proof_gate` help and target surface
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - regex is now described from the stronger baseline:
     - parser-backed quality
     - deterministic parser-rejection triage
@@ -326,7 +360,7 @@ Once the regex formal-closure gate existed, the next missing seam was no longer 
   - the current regex live status stays `In Progress`, but now with only two blockers:
     - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
     - `stimuli_regex_final_targets=35 > 0`
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks:
     - tracked presence of the broader-corpus gate and manifest
     - the new Makefile help/target surface
@@ -342,7 +376,7 @@ Once the regex formal-closure gate existed, the next missing seam was no longer 
 After promoting `regex` onto the parser-backed shared stimuli contract, the family proof was still materially weaker than the SV-family aggregate debt surfaces in one specific way: the remaining regex parser rejection debt was visible only as totals (`rejected_total=4`, `parser_rejections_total=4`) plus the raw parseability report. That was enough to keep the family honest, but not enough to make the remaining debt easy to localize or to propagate a stable machine-checkable triage story through SOTA and combined telemetry.
 
 ### Implementation
-- Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh):
   - derived deterministic regex parseability debt-triage sidecars from the parser-backed stimuli report:
     - `regex_parseability_counterexample_triage.json`
     - `regex_parseability_counterexample_triage.txt`
@@ -356,13 +390,13 @@ After promoting `regex` onto the parser-backed shared stimuli contract, the fami
     - `stimuli_regex_parseability_counterexample_primary_parser_error`
     - `stimuli_regex_parseability_counterexample_primary_failure_location`
   - added a sanity check so parser-backed rejection debt cannot coexist with an empty captured-triage surface
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - SOTA now preserves the regex triage sidecar paths and extracted dominant-bucket values in its summary surface
   - nested regex family proof surfaces now also carry the triage sidecar provenance
-- Updated [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh):
   - combined telemetry now parity-checks the new regex triage surface against the source family contract
   - the aggregate-visible regex family contract object now preserves the triage sidecar paths and extracted triage metrics directly
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - the regex family is now documented as carrying deterministic parser-rejection triage, not only parser-backed totals
   - the current measured regex triage surface is:
     - `counterexamples_captured_total=5`
@@ -373,7 +407,7 @@ After promoting `regex` onto the parser-backed shared stimuli contract, the fami
     - `primary_stage=target_drive_output_filter`
     - `primary_parser_error=Backtrack at position 0`
     - `primary_failure_location=1:1`
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks representative regex triage producer fields in the family-contract gate and representative consumer fields in SOTA and combined telemetry
 
 ### Why This Matters
@@ -385,12 +419,12 @@ After promoting `regex` onto the parser-backed shared stimuli contract, the fami
 The previous roadmap slice exposed regex through the public embedding API, but the family-proof story was still materially weaker than the public surface suggested: the shared non-annotation stimuli contract still treated `regex` as a parseability-skip row because a default generated regex parser artifact was not tracked in the repository. That meant the regex family sidecars, status sidecars, aggregate SOTA telemetry, and roadmap language all had to talk around a missing parser-backed quality seam.
 
 ### Implementation
-- Regenerated and tracked the default regex generated parser artifacts expected by [rust/build.rs](/Users/richarddje/Documents/github/pgen/rust/build.rs):
-  - [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json)
-  - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
-- Updated [rust/test_data/grammar_quality/ebnf_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/ebnf_stimuli_contract.json):
+- Regenerated and tracked the default regex generated parser artifacts expected by [rust/build.rs](rust/build.rs):
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/test_data/grammar_quality/ebnf_stimuli_contract.json](rust/test_data/grammar_quality/ebnf_stimuli_contract.json):
   - promoted the `regex` row from `require_parseability=false` to `require_parseability=true`
-- Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh):
   - the regex family contract now emits the parser-backed regex quality proof surfaces directly:
     - `stimuli_parseability_report_json`
     - `stimuli_regex_parseability_required`
@@ -400,7 +434,7 @@ The previous roadmap slice exposed regex through the public embedding API, but t
     - `stimuli_regex_parseability_parser_rejections_total`
     - `stimuli_regex_parseability_acceptance_rate_percent`
   - the gate now asserts `stimuli regex parseability_required = 1` and sanity-checks parser-rejection totals
-- Updated [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh):
+- Updated [rust/scripts/regex_parser_family_status_gate.sh](rust/scripts/regex_parser_family_status_gate.sh):
   - regex live status now incorporates parser-backed parseability debt explicitly through the new boolean criterion `stimuli_parseability_parser_rejections_zero`
   - closure counts now move from `7` total criteria to `8`
   - the latest validated regex status is still `In Progress`, but from a more honest parser-backed basis:
@@ -408,12 +442,12 @@ The previous roadmap slice exposed regex through the public embedding API, but t
     - `closure_criteria_total_count=8`
     - `closure_criteria_unsatisfied_count=3`
     - blockers `stimuli_regex_parseability_parser_rejections_total=4 > 0`, `stimuli_regex_final_targets=35 > 0`, `formal_exhaustive_closure_surface=missing`
-- Updated [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh):
+- Updated [rust/scripts/regex_parser_family_status_contract_gate.sh](rust/scripts/regex_parser_family_status_contract_gate.sh):
   - expected criteria/metrics now include the parser-backed regex parseability fields and the new status criterion
 - Updated the aggregate proof spine:
-  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now re-emits regex parser-backed quality evidence and the new status boolean
-  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now consumes and preserves that parser-backed regex family proof
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh) now re-emits regex parser-backed quality evidence and the new status boolean
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) now consumes and preserves that parser-backed regex family proof
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - regex is now described as having parser-backed quality proof in the shared non-annotation stimuli contract
   - the docs now record the current measured regex family values:
     - `parseability_required=1`
@@ -423,7 +457,7 @@ The previous roadmap slice exposed regex through the public embedding API, but t
     - `parser_rejections_total=4`
     - `acceptance_rate_percent=99.46`
     - target debt `236 -> 35`
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now protects:
     - tracked presence of `generated/regex_parser.rs`
     - regex family contract emission of parser-backed parseability fields
@@ -439,28 +473,28 @@ The previous roadmap slice exposed regex through the public embedding API, but t
 
 ## 2026-03-27 - Expose regex through the public embedding API
 ### Context
-The fresh Rust/codebase read showed a real roadmap-relevant asymmetry: parser-registry/probe support for `regex` already existed, but the stable embedder-facing contract in [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) still only exposed the SV/VHDL grammar-profile lane. That kept the roadmap/status docs stuck describing regex as missing an explicit embedding surface even though the lower runtime machinery was already closer than the public contract suggested.
+The fresh Rust/codebase read showed a real roadmap-relevant asymmetry: parser-registry/probe support for `regex` already existed, but the stable embedder-facing contract in [rust/src/embedding_api.rs](rust/src/embedding_api.rs) still only exposed the SV/VHDL grammar-profile lane. That kept the roadmap/status docs stuck describing regex as missing an explicit embedding surface even though the lower runtime machinery was already closer than the public contract suggested.
 
 ### Implementation
-- Updated [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs):
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
   - added `GrammarFamily::Regex` and `GrammarProfile::RegexDefault`
   - extended `ParserEmbeddingApiContract` with `supports_regex_generated_backend`
   - added regex parse/result convenience entry points
   - added regex AST-dump convenience entry points
   - routed the generic grammar/profile dispatchers through generated regex parse and AST-dump helpers
   - bumped `EMBEDDING_API_VERSION` from `1.0.0` to `1.1.0` for the backward-compatible public contract expansion
-- Updated [rust/docs/EMBEDDING_API_CONTRACT.md](/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md) and [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md):
+- Updated [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
   - documented the new regex public profile surface and host-oriented convenience APIs
   - clarified that `embedding_api_gate` now covers the public regex surface while `nexsim_parser_embedding_contract_gate` remains the narrower SV/VHDL host-profile slice
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - refreshed the date
   - made the roadmap priority rule more explicit
   - recorded the fresh lesson that internal registry/probe capability can lead the stable public embedding contract
   - updated the regex family-asymmetry note so the new public embedding seam is visible without overstating closure
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md) and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md) and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - removed the stale implication that regex still lacks any public embedding surface
   - kept the parser-backed realistic-corpus and exhaustive-closure work explicitly open
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a focused embedding-API audit that protects the regex public contract surface and its main doc cues
 
 ### Why This Matters
@@ -472,14 +506,14 @@ The fresh Rust/codebase read showed a real roadmap-relevant asymmetry: parser-re
 The live Rust analysis doc now had a much stronger annotation proof-spine map, but its trap list still did not call out one of the easiest annotation-specific mistakes: assuming that a passing leaf suite or individual SC gate automatically means the repo-level annotation proof claim is complete.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - under `Known Traps And False Assumptions`, added an annotation-specific warning that passing one leaf annotation suite or one SC gate is not the same thing as satisfying the aggregate annotation proof surface
   - the trap now points readers back to the aggregate annotation proof layer:
     - `annotation_contract_gate`
     - `semantic_full_contract_gate`
     - `return_annotation_support_gate`
     - `annotation_stimuli_quality_gate`
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts that new trap cue
 - Updated the continuity docs to record that the live Rust analysis trap list now contains an annotation-specific aggregate-proof warning.
 
@@ -492,17 +526,17 @@ The live Rust analysis doc now had a much stronger annotation proof-spine map, b
 The live Rust analysis doc already mapped the annotation proof spine, doc routing, rerun guidance, and triage flow, but it still did not answer one practical ownership question clearly enough: which layer is authoritative for aggregate annotation proof composition versus semantic intent versus the operator-facing gate map?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - under `Canonical Source-Of-Truth Map`, added explicit annotation proof ownership entries for:
     - aggregate annotation proof composition -> `rust/Makefile`
-    - annotation proof obligations and semantic intent -> [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
-    - operator-facing annotation gate map -> [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+    - annotation proof obligations and semantic intent -> [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+    - operator-facing annotation gate map -> [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - under `Public Contract Surface Map`, added an explicit `Aggregate annotation proof contract` entry covering:
     - `annotation_contract_gate`
     - `semantic_full_contract_gate`
     - `return_annotation_support_gate`
     - `annotation_stimuli_quality_gate`
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts those new source-of-truth and contract-surface cues
 - Updated the continuity docs to record that the annotation proof ownership map is now explicit in the live Rust analysis doc.
 
@@ -517,14 +551,14 @@ The live Rust analysis doc now had better annotation code-start, doc-routing, an
 - “Which order should I patch layers in when an annotation proof/closure problem spans code, gates, and docs?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - under `Symptom-To-Layer Triage Shortcuts`, added an annotation-specific shortcut for the case where leaf suites pass but the aggregate annotation proof still looks wrong or incomplete
   - under `Safe Intervention Order`, added an annotation-specific `Annotation proof / closure problem` patch order that routes through:
     - typed annotation parse/validation/runtime
     - nearest leaf annotation contract / typed-AST suite
     - nearest aggregate annotation proof surface
     - doc/local-CI routing only after the proof seam itself is understood
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts those new triage/intervention cues
 - Updated the continuity docs to record that the live Rust analysis doc now carries annotation-specific symptom and patch-order guidance.
 
@@ -537,7 +571,7 @@ The live Rust analysis doc now had better annotation code-start, doc-routing, an
 The live Rust analysis doc already had better annotation code-start and doc-routing guidance, but its change-impact and validation sections still spoke too generically about annotation work. That left a practical gap: a future session could understand the proof spine exists but still not get a crisp answer to “which aggregate gates should I re-run for this annotation change?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - under `Change-Impact Checklist`, the annotation-change entry now explicitly points readers to the nearest aggregate annotation proof surface:
     - `annotation_contract_gate`
     - `semantic_full_contract_gate`
@@ -547,7 +581,7 @@ The live Rust analysis doc already had better annotation code-start and doc-rout
     - parser behavior / typed-AST conversion changes
     - stimuli / coverage / gap-report changes
     - proof-sidecar / gate changes
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts those new validation cues
 - Updated the continuity docs to record that the live Rust analysis doc now links annotation change types to the right aggregate proof reruns.
 
@@ -560,12 +594,12 @@ The live Rust analysis doc already had better annotation code-start and doc-rout
 The live Rust analysis doc already named the aggregate annotation proof spine, but its repo-doc crosswalk still described the relevant docs too generically. That made it slower than necessary for a future session to answer a narrow question like “which doc explains the operator-facing annotation gate map?” or “which doc defines the aggregate annotation proof obligations?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - in `Rust-Facing Repo Doc Crosswalk`, clarified that:
-    - [README.md](/Users/richarddje/Documents/github/pgen/README.md) is the high-level entrypoint into aggregate annotation proof surfaces
-    - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md) is the operator-facing map of aggregate annotation / semantic / return local gates
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) carries the annotation proof obligations and gate targets behind aggregate annotation claims
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+    - [README.md](README.md) is the high-level entrypoint into aggregate annotation proof surfaces
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) is the operator-facing map of aggregate annotation / semantic / return local gates
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) carries the annotation proof obligations and gate targets behind aggregate annotation claims
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts those new crosswalk cues
 - Updated the continuity docs to record that the Rust-analysis doc-routing layer is now explicit for annotation proof questions.
 
@@ -578,7 +612,7 @@ The live Rust analysis doc already named the aggregate annotation proof spine, b
 The live Rust analysis doc now named the aggregate annotation proof seam, but its task-oriented navigation still treated annotation work as mostly a code-module problem. That was missing an important repo-specific reality: annotation changes are only really “done” when they still fit the aggregate annotation proof spine.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - under `If the task is return/semantic annotation parsing or validation`, added:
     - the usual aggregate-doc follow-up files
     - the nearest aggregate proof surfaces to choose from:
@@ -587,7 +621,7 @@ The live Rust analysis doc now named the aggregate annotation proof seam, but it
       - `return_annotation_support_gate`
       - `annotation_stimuli_quality_gate`
   - under `If the task is proof plumbing, contract sidecars, or release-gate behavior`, added an annotation-specific narrowing list for the same proof spine
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts those task-navigation cues in the live Rust analysis doc
 - Updated the continuity docs to record that the Rust analysis task map now explicitly points annotation work toward the aggregate proof spine.
 
@@ -600,17 +634,17 @@ The live Rust analysis doc now named the aggregate annotation proof seam, but it
 The detailed operator docs now described the aggregate annotation contract spine well, but the repo-entry docs still under-surfaced it. That meant a new session could land in `README.md`, `QUICKSTART_AI_ONBOARDING.md`, or `RUST_CODEBASE_ANALYSIS.md` and still miss the top-level annotation proof surfaces that actually steer Rust annotation closure work.
 
 ### Implementation
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+- Updated [README.md](README.md):
   - added explicit canonical-flow bullets for:
     - `annotation_contract_gate`
     - `semantic_full_contract_gate`
     - `return_annotation_support_gate`
-- Updated [QUICKSTART_AI_ONBOARDING.md](/Users/richarddje/Documents/github/pgen/QUICKSTART_AI_ONBOARDING.md):
+- Updated [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md):
   - extended the historical-note redirect so annotation-heavy work points readers to the aggregate annotation proof surfaces directly
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added an `Aggregate annotation proof seam` entry under `Rust-To-Shell Contract Seams`
   - mapped the current aggregate annotation gate composition and its common failure mode
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts the new README/quickstart/Rust-analysis references
 - Updated the continuity docs to record that the repo-entry annotation proof map is now documented and policy-guarded.
 
@@ -623,7 +657,7 @@ The detailed operator docs now described the aggregate annotation contract spine
 After locking the aggregate annotation contract composition in local CI, the operator-facing docs still under-described that same gate layer. The Makefile exposed reusable aggregate entrypoints like `annotation_shared_contract_gate`, `semantic_full_contract_gate`, and `return_annotation_support_gate`, but the user-facing map only surfaced part of that contract spine.
 
 ### Implementation
-- Updated [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md):
+- Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
   - added explicit local-target entries for:
     - `annotation_shared_contract_gate`
     - `semantic_usage_gate`
@@ -632,10 +666,10 @@ After locking the aggregate annotation contract composition in local CI, the ope
     - `semantic_full_contract_gate`
     - `return_annotation_support_gate`
   - expanded the `annotation_contract_gate` description so it reads as the aggregate annotation contract spine rather than a vague bundle
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md):
   - expanded the gate-target list to include the missing aggregate annotation / semantic / return entrypoints
   - updated the aggregate gate description to explicitly mention SC-01/SC-02, semantic-full-contract composition, return-full-contract composition, and annotation robustness
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts the corresponding Makefile help lines plus the new guide/spec references
 - Updated the continuity docs to record that the aggregate annotation gate map is now both documented and policy-guarded.
 
@@ -648,14 +682,14 @@ After locking the aggregate annotation contract composition in local CI, the ope
 The repo had already hardened the individual SC semantic contract gates in local CI, but the higher-level annotation contract targets were still protected only indirectly. That left room for future edits to keep the leaf gates intact while quietly dropping an aggregate stage from `annotation_contract_gate`, `semantic_full_contract_gate`, or `return_full_contract_gate`.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a dedicated aggregate annotation contract audit that now asserts:
-    - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile) still exposes the aggregate annotation / semantic / return contract targets in its help surface
+    - [rust/Makefile](rust/Makefile) still exposes the aggregate annotation / semantic / return contract targets in its help surface
     - `annotation_contract_gate` still runs validator checks, built-in return/semantic suites, shared-contract checks, return/semantic aggregate gates, and the annotation robustness/stimuli gates
     - `annotation_shared_contract_gate` still runs both return and semantic shared suites in bootstrap and generated modes
     - `semantic_runtime_contract_gate` and `semantic_full_contract_gate` still preserve the runtime + round-trip + regression composition
     - `return_runtime_semantics_gate` and `return_full_contract_gate` still preserve the runtime + round-trip + parity composition
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md) still expose the main aggregate annotation gate entrypoints
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) still expose the main aggregate annotation gate entrypoints
 - Updated the continuity docs to record that the aggregate annotation contract layer now has its own local policy guard.
 
 ### Why This Matters
@@ -667,14 +701,14 @@ The repo had already hardened the individual SC semantic contract gates in local
 The local annotation semantic contract audit had already been extended through SC-10 and SC-13, but SC-11 and SC-12 were still outside that same policy layer. That left their Makefile wiring, suite ids, report paths, and pass/pass parity expectations guarded only indirectly.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc11_contract_gate` and `sc12_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc11_contract` and `semantic_annotation_sc12_contract`
-    - [sc11_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc11_contract_gate.sh) and [sc12_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc12_contract_gate.sh) still target the correct suites and report paths
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc11_contract` and `semantic_annotation_sc12_contract`
+    - [sc11_contract_gate.sh](rust/scripts/sc11_contract_gate.sh) and [sc12_contract_gate.sh](rust/scripts/sc12_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
-    - [sc11_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc11_contract.json) and [sc12_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc12_contract.json) still record pass/pass generated parity
+    - [sc11_contract.json](rust/test_data/semantic_annotation/sc11_contract.json) and [sc12_contract.json](rust/test_data/semantic_annotation/sc12_contract.json) still record pass/pass generated parity
 - Updated the continuity docs to record that SC-11 and SC-12 now share the same local policy guard surface as the other annotation contract seams.
 
 ### Why This Matters
@@ -686,14 +720,14 @@ The local annotation semantic contract audit had already been extended through S
 The local annotation semantic contract audit had already been extended through SC-08 and SC-13, but SC-09 and SC-10 were still outside that same policy layer. That left their Makefile wiring, suite ids, report paths, and pass/pass parity expectations guarded only indirectly.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc09_contract_gate` and `sc10_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc09_contract` and `semantic_annotation_sc10_contract`
-    - [sc09_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc09_contract_gate.sh) and [sc10_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc10_contract_gate.sh) still target the correct suites and report paths
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc09_contract` and `semantic_annotation_sc10_contract`
+    - [sc09_contract_gate.sh](rust/scripts/sc09_contract_gate.sh) and [sc10_contract_gate.sh](rust/scripts/sc10_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
-    - [sc09_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc09_contract.json) and [sc10_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc10_contract.json) still record pass/pass generated parity
+    - [sc09_contract.json](rust/test_data/semantic_annotation/sc09_contract.json) and [sc10_contract.json](rust/test_data/semantic_annotation/sc10_contract.json) still record pass/pass generated parity
 - Updated the continuity docs to record that SC-09 and SC-10 now share the same local policy guard surface as the other annotation contract seams.
 
 ### Why This Matters
@@ -705,14 +739,14 @@ The local annotation semantic contract audit had already been extended through S
 The local annotation semantic contract audit had already been extended through SC-06 and SC-13, but SC-07 and SC-08 were still outside that same policy layer. That left their Makefile wiring, suite ids, report paths, and pass/pass parity expectations guarded only indirectly.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc07_contract_gate` and `sc08_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc07_contract` and `semantic_annotation_sc08_contract`
-    - [sc07_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc07_contract_gate.sh) and [sc08_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc08_contract_gate.sh) still target the correct suites and report paths
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc07_contract` and `semantic_annotation_sc08_contract`
+    - [sc07_contract_gate.sh](rust/scripts/sc07_contract_gate.sh) and [sc08_contract_gate.sh](rust/scripts/sc08_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
-    - [sc07_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc07_contract.json) and [sc08_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc08_contract.json) still record pass/pass generated parity
+    - [sc07_contract.json](rust/test_data/semantic_annotation/sc07_contract.json) and [sc08_contract.json](rust/test_data/semantic_annotation/sc08_contract.json) still record pass/pass generated parity
 - Updated the continuity docs to record that SC-07 and SC-08 now share the same local policy guard surface as the other annotation contract seams.
 
 ### Why This Matters
@@ -724,14 +758,14 @@ The local annotation semantic contract audit had already been extended through S
 The local annotation semantic contract audit had already been extended through SC-04 and SC-13, but SC-05 and SC-06 were still outside that same policy layer. That left their Makefile wiring, suite ids, report paths, and pass/pass parity expectations guarded only indirectly.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc05_contract_gate` and `sc06_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc05_contract` and `semantic_annotation_sc06_contract`
-    - [sc05_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc05_contract_gate.sh) and [sc06_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc06_contract_gate.sh) still target the correct suites and report paths
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc05_contract` and `semantic_annotation_sc06_contract`
+    - [sc05_contract_gate.sh](rust/scripts/sc05_contract_gate.sh) and [sc06_contract_gate.sh](rust/scripts/sc06_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
-    - [sc05_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc05_contract.json) and [sc06_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc06_contract.json) still record pass/pass generated parity
+    - [sc05_contract.json](rust/test_data/semantic_annotation/sc05_contract.json) and [sc06_contract.json](rust/test_data/semantic_annotation/sc06_contract.json) still record pass/pass generated parity
 - Updated the continuity docs to record that SC-05 and SC-06 now share the same local policy guard surface as the other annotation contract seams.
 
 ### Why This Matters
@@ -743,14 +777,14 @@ The local annotation semantic contract audit had already been extended through S
 The annotation semantic contract audit had grown to cover SC-01, SC-02, and SC-13, but the older shipped SC-03 and SC-04 seams were still outside that same local policy layer. That left their Makefile wiring, suite names, report paths, and pass/pass parity expectations guarded only indirectly.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc03_contract_gate` and `sc04_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc03_contract` and `semantic_annotation_sc04_contract`
-    - [sc03_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc03_contract_gate.sh) and [sc04_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc04_contract_gate.sh) still target the correct suites and report paths
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc03_contract` and `semantic_annotation_sc04_contract`
+    - [sc03_contract_gate.sh](rust/scripts/sc03_contract_gate.sh) and [sc04_contract_gate.sh](rust/scripts/sc04_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
-    - [sc03_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc03_contract.json) and [sc04_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc04_contract.json) still record pass/pass generated parity
+    - [sc03_contract.json](rust/test_data/semantic_annotation/sc03_contract.json) and [sc04_contract.json](rust/test_data/semantic_annotation/sc04_contract.json) still record pass/pass generated parity
 - Updated the continuity docs to record that SC-03 and SC-04 now share the same local policy guard surface as the newer annotation seams.
 
 ### Why This Matters
@@ -762,14 +796,14 @@ The annotation semantic contract audit had grown to cover SC-01, SC-02, and SC-1
 The annotation semantic contract audit in local CI had been extended for SC-01 and SC-02, but SC-13 still was not covered by that same policy layer. That left SC-13’s Makefile wiring, spec references, suite identity, report path, and parity expectation protected only indirectly.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc13_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references `make -C rust sc13_contract_gate`
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc13_contract`
-    - [sc13_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc13_contract_gate.sh) still targets the SC-13 suite and report path
-    - [sc13_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc13_contract_gate.sh) still requires `total_cases > 0`
-    - [sc13_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc13_contract.json) still records pass/pass generated parity
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references `make -C rust sc13_contract_gate`
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc13_contract`
+    - [sc13_contract_gate.sh](rust/scripts/sc13_contract_gate.sh) still targets the SC-13 suite and report path
+    - [sc13_contract_gate.sh](rust/scripts/sc13_contract_gate.sh) still requires `total_cases > 0`
+    - [sc13_contract.json](rust/test_data/semantic_annotation/sc13_contract.json) still records pass/pass generated parity
 - Updated the continuity docs to record that SC-13 now shares the same local policy guard surface as SC-01 and SC-02.
 
 ### Why This Matters
@@ -783,14 +817,14 @@ The previous SC-01/SC-02 local-CI audit protected the existence of the gates, su
 - SC-02 intentionally requires a non-empty comparable-only differential slice
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
-    - [sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh) still targets `semantic_annotation_sc01_contract`
-    - [sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh) still writes the SC-01 report path
-    - [sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh) still does not require `total_cases > 0`
-    - [sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh) still targets `semantic_annotation_sc02_contract`
-    - [sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh) still writes the SC-02 report path
-    - [sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh) still requires `total_cases > 0`
+    - [sc01_contract_gate.sh](rust/scripts/sc01_contract_gate.sh) still targets `semantic_annotation_sc01_contract`
+    - [sc01_contract_gate.sh](rust/scripts/sc01_contract_gate.sh) still writes the SC-01 report path
+    - [sc01_contract_gate.sh](rust/scripts/sc01_contract_gate.sh) still does not require `total_cases > 0`
+    - [sc02_contract_gate.sh](rust/scripts/sc02_contract_gate.sh) still targets `semantic_annotation_sc02_contract`
+    - [sc02_contract_gate.sh](rust/scripts/sc02_contract_gate.sh) still writes the SC-02 report path
+    - [sc02_contract_gate.sh](rust/scripts/sc02_contract_gate.sh) still requires `total_cases > 0`
 - Updated the continuity docs to record that the SC-01/SC-02 gate-boundary distinction is now part of the guarded local policy surface.
 
 ### Why This Matters
@@ -802,13 +836,13 @@ The previous SC-01/SC-02 local-CI audit protected the existence of the gates, su
 After adding dedicated SC-01 and SC-02 gates, the repo still lacked a local-CI source audit that protected the policy wiring around them. That left room for future edits to quietly drop those gates from `annotation_contract_gate`, drift their suite names, or erase the newly documented SC-01/SC-02 expectation shape without tripping the existing workflow parity checks.
 
 ### Implementation
-- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a dedicated `audit_annotation_semantic_contract_surface` audit
   - that audit now asserts:
     - `rust/Makefile` still advertises `sc01_contract_gate` and `sc02_contract_gate`
     - `annotation_contract_gate` still invokes both
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references both shared contract suite names
+    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references both shared contract suite names
     - `sc01_contract.json` still records the generated-parser `expected_fail` boundary
     - `sc02_contract.json` still records pass/pass parity for the generated-comparable named slice
 - Updated the continuity docs to record that this SC-01/SC-02 annotation policy layer is now guarded locally too.
@@ -822,20 +856,20 @@ After adding dedicated SC-01 and SC-02 gates, the repo still lacked a local-CI s
 The semantic steering matrix had already been calling SC-01 Tier-4, but the repo still enforced that claim only through scattered utility, validator, codegen, and stimuli tests. There was no dedicated shared suite or gate that treated canonical transforms as a single cross-layer contract seam.
 
 ### Implementation
-- Added [rust/test_data/semantic_annotation/sc01_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc01_contract.json):
+- Added [rust/test_data/semantic_annotation/sc01_contract.json](rust/test_data/semantic_annotation/sc01_contract.json):
   - shared bootstrap/generated semantic contract cases for canonical named `@transform` expressions across integer, float, bool, and path target types
   - those cases now explicitly record the current parser boundary:
     - bootstrap parser: pass
     - generated parser: expected_fail
-- Added [rust/scripts/sc01_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc01_contract_gate.sh):
+- Added [rust/scripts/sc01_contract_gate.sh](rust/scripts/sc01_contract_gate.sh):
   - runs shared canonical-transform parser utility tests
   - runs validator/codegen/stimuli contract tests already present in the Rust pipeline
   - runs bootstrap/generated SC-01 shared suites
   - enforces comparable-only differential mismatch cleanliness even though the current comparable slice is empty
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - new `sc01_contract_gate` target
   - `annotation_contract_gate` now invokes the SC-01 gate
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
   - SC-01 is now documented as a dedicated Tier-4 gate-enforced seam, not just an implied cross-file capability
 
 ### Why This Matters
@@ -847,23 +881,23 @@ The semantic steering matrix had already been calling SC-01 Tier-4, but the repo
 The semantic steering matrix still described SC-02 raw literal sample hints as only an implemented stimuli behavior, even though the repo already had real literal-hint logic in `stimuli_generator.rs` and partial routing coverage under SC-03. What was missing was a dedicated shared corpus and gate that treated SC-02 itself as a first-class contract seam.
 
 ### Implementation
-- Added [rust/test_data/semantic_annotation/sc02_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/semantic_annotation/sc02_contract.json):
+- Added [rust/test_data/semantic_annotation/sc02_contract.json](rust/test_data/semantic_annotation/sc02_contract.json):
   - shared bootstrap/generated semantic contract cases for the generated-comparable named literal-hint forms:
     - `@sample`
     - `@literal`
     - `@example`
     - legacy `@stimulus`
-- Added [rust/scripts/sc02_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sc02_contract_gate.sh):
+- Added [rust/scripts/sc02_contract_gate.sh](rust/scripts/sc02_contract_gate.sh):
   - runs focused stimuli literal-hint tests
   - runs bootstrap/generated SC-02 shared suites
   - enforces comparable-only differential parity with `mismatched_cases == 0`
-- Updated [rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
   - added focused SC-02 tests proving literalish directives accept both structured-string and raw-string payload forms
   - added explicit coverage for the legacy `@stimulus` alias
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - new `sc02_contract_gate` target
   - `annotation_contract_gate` now invokes the SC-02 gate
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
   - SC-02 is now documented as a Tier-4 gate-enforced contract
   - the literal-hint doctrine now explicitly matches current source behavior, including the current shared-suite/generated-parser comparability boundary
 
@@ -876,7 +910,7 @@ The semantic steering matrix still described SC-02 raw literal sample hints as o
 The live Rust analysis doc had become a strong map of code, artifacts, seams, and risks, but it still did not say clearly which top-level repo docs answer the non-code questions that frequently come up during Rust work: doctrine, live status, annotation meaning, semantic-steering policy, and workflow rules.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Rust-Facing Repo Doc Crosswalk` section near the top-of-doc orientation area.
 - The new section now maps Rust work to the main top-level docs for:
   - repo orientation
@@ -897,7 +931,7 @@ The live Rust analysis doc had become a strong map of code, artifacts, seams, an
 The live Rust analysis doc already named high-risk files and change-coupling clusters, but it still did not say what kinds of regressions should be reviewed for first in those hotspots. That made the document stronger for navigation than for actual review work.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Review Hotspots And Common Regression Types` section near the high-risk/change-coupling area.
 - The new section now records first-review targets for:
   - `mod.rs`
@@ -917,7 +951,7 @@ The live Rust analysis doc already named high-risk files and change-coupling clu
 The live Rust analysis doc had become strong on current structure, risks, invariants, and recommended refactors, but it still did not say in one place which architecture decisions remain genuinely open. That made it too easy to read current tradeoffs as if they were already settled doctrine.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added an `Open Architecture Questions` section near the steering/refactor/session-start area.
 - The new section now records active questions around:
   - giant-engine file splitting
@@ -936,7 +970,7 @@ The live Rust analysis doc had become strong on current structure, risks, invari
 The live Rust analysis doc focused correctly on the main `rust/` implementation, but it still did not say plainly how the other Cargo manifests in the repo relate to that main crate. That made it too easy to forget the active `rtl_const_expr` / `rtl_frontend` companions or to waste time in peripheral manifests. The doc’s own top-level `Last updated` line also needed to catch up with the current session date.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - refreshed `Last updated` to `2026-03-26`,
   - added a `Rust-Adjacent Cargo Surface` section near the top-of-doc scope/orientation area.
 - The new section now distinguishes:
@@ -953,7 +987,7 @@ The live Rust analysis doc focused correctly on the main `rust/` implementation,
 The live Rust analysis doc already described source-of-truth layers and several public/host-visible seams, but it still did not say in one place which outputs should be treated as compatibility surfaces when they move. That left too much compatibility reasoning implicit.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Public Contract Surface Map` section near the source-of-truth/triage area.
 - The new section now distinguishes the main compatibility surfaces around:
   - embedder-facing Rust APIs
@@ -972,7 +1006,7 @@ The live Rust analysis doc already described source-of-truth layers and several 
 The live Rust analysis doc already said which refactors were desirable, but it still did not say what refactor shapes are actually safe in a repo where artifact contracts, proof sidecars, and shell consumers are tightly coupled. That made the priority list less actionable than it should be.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Refactor Patterns That Fit This Codebase` section near the steering/refactor area.
 - The new section now records the main recommended refactor shapes around:
   - splitting by artifact boundary
@@ -991,7 +1025,7 @@ The live Rust analysis doc already said which refactors were desirable, but it s
 The live Rust analysis doc already described risks, traps, task entrypoints, and validation seams, but it still did not say in one place which architectural traits future work should actively preserve. That left the “what should we not erode while improving things?” question too implicit.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added an `Architectural Invariants Worth Preserving` section near the steering/refactor area.
 - The new section now records the main invariants around:
   - bootstrap/generated boundaries
@@ -1011,7 +1045,7 @@ The live Rust analysis doc already described risks, traps, task entrypoints, and
 The live Rust analysis doc already acknowledged that the shell proof layer is part of the effective product contract, but it still did not say in one place which Rust artifact seams most often propagate into shell-gate and sidecar drift. That made seam-crossing validation too implicit.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Rust-To-Shell Contract Seams` section near the executable/surface guidance.
 - The new section now maps:
   - parser availability / registry seam
@@ -1028,7 +1062,7 @@ The live Rust analysis doc already acknowledged that the shell proof layer is pa
 The live Rust analysis doc already named the main executables and noted that some testing/proof layers are more current than others, but it still did not say in one place which Rust-facing surfaces are canonical, specialist-but-current, or legacy-adjacent. That makes it too easy for a future session to start from the wrong layer.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Canonical-Vs-Legacy Surface Map` section near the executable/test guidance.
 - The new section now distinguishes:
   - canonical day-to-day Rust operational surfaces
@@ -1045,7 +1079,7 @@ The live Rust analysis doc already named the main executables and noted that som
 The live Rust analysis doc already described artifact flow and source-of-truth layers, but it still did not say plainly which Rust-adjacent artifacts are authored source, tracked-generated files, build-discovered runtime inputs, or throwaway proof/debug outputs. That made it too easy to patch the wrong layer.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added an `Artifact Persistence Classes` section near the artifact-spine area.
 - The new section now distinguishes:
   - hand-authored source-of-truth artifacts
@@ -1063,7 +1097,7 @@ The live Rust analysis doc already described artifact flow and source-of-truth l
 The live Rust analysis doc already captured build-shape asymmetries and bootstrap/generated boundary exceptions, but it still did not say in one place how the main grammar families differ operationally. That leaves too much room for “this worked for regex/SV/VHDL, so it should work everywhere” reasoning.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Grammar-Family Asymmetry Map` section near the build/boundary area.
 - The new section now distinguishes the operational shape of:
   - `systemverilog`
@@ -1083,7 +1117,7 @@ The live Rust analysis doc already captured build-shape asymmetries and bootstra
 The live Rust analysis doc already had task-start guidance, high-risk zones, change-impact checks, and symptom triage. The remaining navigation gap was cross-file coupling: which modules usually need to be reasoned about together even when only one looks primary at first glance?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Modules That Tend To Change Together` section near the high-risk/change-impact area.
 - The new section now maps the main coupled clusters:
   - grammar normalization
@@ -1101,7 +1135,7 @@ The live Rust analysis doc already had task-start guidance, high-risk zones, cha
 After documenting build shape, source-of-truth layers, traps, and intervention order, one seam still remained easy to misread: the repo’s bootstrap-vs-generated boundary. It was documented indirectly, but not as one explicit map.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Bootstrap-Vs-Generated Boundary Map` section near the build/testing area.
 - The new section now explains the boundary role of:
   - `ast_pipeline`
@@ -1121,7 +1155,7 @@ After documenting build shape, source-of-truth layers, traps, and intervention o
 After adding the symptom-triage shortcuts, the live Rust analysis doc could say which layer was most likely wrong first. The missing follow-up was procedural: in what order should a future session patch the layers when several of them are implicated?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Safe Intervention Order` section after symptom triage.
 - The new section now records preferred patch order for:
   - build / availability problems
@@ -1142,7 +1176,7 @@ After adding the symptom-triage shortcuts, the live Rust analysis doc could say 
 After adding the source-of-truth map, the live Rust analysis doc could already answer “which layer is authoritative?” What it still did not answer directly was the earlier debugging question: given a symptom, which layer is most likely wrong first?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Symptom-To-Layer Triage Shortcuts` section after the source-of-truth map.
 - The new section now gives first-pass triage guidance for recurring symptom patterns around:
   - binary/build availability
@@ -1162,7 +1196,7 @@ After adding the source-of-truth map, the live Rust analysis doc could already a
 After documenting the operational vocabulary and the major traps, the live Rust analysis doc still lacked one practical steering aid: a direct map of which file or layer is actually authoritative for a given concern.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Canonical Source-Of-Truth Map` section after the operational vocabulary.
 - The new section now identifies the primary authoritative files for:
   - Cargo bin/feature shape
@@ -1185,7 +1219,7 @@ After documenting the operational vocabulary and the major traps, the live Rust 
 After documenting the artifact spine, operational vocabulary, build model, and validation ladder, one practical gap remained: the live Rust analysis doc still did not explicitly call out the false assumptions that repeatedly cause wrong-turn debugging in this repo.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Known Traps And False Assumptions` section near the build/testing area.
 - The new section now captures recurring mistakes around:
   - treating Cargo binary presence as proof of runtime availability,
@@ -1203,7 +1237,7 @@ After documenting the artifact spine, operational vocabulary, build model, and v
 After adding the artifact spine, the live Rust analysis doc still assumed familiarity with recurring project terms like raw AST, generation-input AST, parseability reports, family-status contracts, and `summary.txt` / `summary.json`.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added an `Operational Vocabulary` section immediately after the artifact-spine section.
 - The new section now defines the main recurring artifact/proof terms used across:
   - Rust generation/runtime work
@@ -1219,7 +1253,7 @@ After adding the artifact spine, the live Rust analysis doc still assumed famili
 After adding startup probes and impact-check guidance, the live Rust analysis doc still lacked one close-out aid: a compact map from change type to the smallest representative validation slice that usually makes sense in this repo.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Validation Ladder By Change Type` section under the testing/verification area.
 - The new section now records representative validation slices for:
   - docs-only changes
@@ -1242,7 +1276,7 @@ After adding startup probes and impact-check guidance, the live Rust analysis do
 After turning `RUST_CODEBASE_ANALYSIS.md` into a stronger steering document, it still lacked one pragmatic startup aid: a tiny set of cheap commands that let a new session confirm the Rust workspace, binary surface, and build-shape assumptions before digging deeper.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Session-Start Sanity Probes` section after the “what to re-check” guidance.
 - The new section now recommends a compact probe set for:
   - workspace dirt
@@ -1260,7 +1294,7 @@ After turning `RUST_CODEBASE_ANALYSIS.md` into a stronger steering document, it 
 After documenting subsystem navigation, executable ownership, build shape, and artifact flow, the live Rust analysis doc still lacked one very practical steering aid: a first-pass checklist of what else usually has to be revisited when a given subsystem changes.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Change-Impact Checklist` section near the risk/build model area.
 - The new checklist now records typical companion checks for changes in:
   - grammar normalization / AST pipeline shape
@@ -1282,7 +1316,7 @@ After documenting subsystem navigation, executable ownership, build shape, and a
 After documenting the executable surface and the build/env/cfg surface, the live Rust analysis doc still described the codebase more by subsystem than by artifact handoff. That left one practical debugging question underexplained: where in the pipeline did this artifact actually come from?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added an `End-To-End Artifact Spine` section,
   - added an operational reading rule for diagnosing issues by artifact family.
 - The new section now walks the main artifact handoffs across:
@@ -1306,7 +1340,7 @@ After documenting the executable surface and the build/env/cfg surface, the live
 After adding the feature/build matrix to `RUST_CODEBASE_ANALYSIS.md`, one build-shape ambiguity still remained easy to forget: which `PGEN_*_PARSER_PATH` variables feed which generated parser modules and `has_generated_*` cfgs, and where the important exceptions are.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - expanded `Build And Feature Model` with a generated-parser env/cfg map,
   - recorded the main environment variables and the cfgs/modules they influence,
   - documented the asymmetry between env-driven generated grammar families, tracked generated annotation parsers, and the special EBNF dual-run path.
@@ -1331,7 +1365,7 @@ After adding the feature/build matrix to `RUST_CODEBASE_ANALYSIS.md`, one build-
 After adding the executable-role map to `RUST_CODEBASE_ANALYSIS.md`, there was still one session-start question that required re-reading `Cargo.toml` and `build.rs`: which features unlock which binaries and how generated-parser availability is actually decided at build time.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - expanded the `Build And Feature Model` section with a compact feature/build matrix,
   - added the practical distinction between Cargo feature enablement and build-time generated-parser discovery.
 - The new matrix now explains:
@@ -1352,7 +1386,7 @@ After adding the executable-role map to `RUST_CODEBASE_ANALYSIS.md`, there was s
 After adding task-oriented navigation to `RUST_CODEBASE_ANALYSIS.md`, the document still mostly navigated by subsystem. A future session could still lose time on a simpler question first: which Rust executable actually owns this workflow?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Main Rust Executables And Roles` section,
   - added a task-navigation entry for selecting the correct Rust executable/workflow surface.
 - The executable-role map now explains the current place of:
@@ -1375,7 +1409,7 @@ After adding task-oriented navigation to `RUST_CODEBASE_ANALYSIS.md`, the docume
 After creating and surfacing `RUST_CODEBASE_ANALYSIS.md`, it was still primarily a descriptive architecture assessment. It explained the codebase well, but it did not yet help a future session quickly answer “where do I start for this specific kind of Rust task?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - added a `Where To Start By Task Type` section,
   - added a `High-Risk Change Zones` section.
 - The task-oriented navigation now points readers to the right starting modules for:
@@ -1398,12 +1432,12 @@ After creating and surfacing `RUST_CODEBASE_ANALYSIS.md`, it was still primarily
 After surfacing `RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archival top-level docs, the roadmap and one older Rust-specific architecture doc still referenced the current Rust architecture picture only indirectly.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - refreshed the doc date,
   - added an explicit pointer from the deferred Rust engineering concerns to `RUST_CODEBASE_ANALYSIS.md` as the live architecture/risk snapshot.
-- Updated [rust/docs/TECHNICAL_ARCHITECTURE.md](/Users/richarddje/Documents/github/pgen/rust/docs/TECHNICAL_ARCHITECTURE.md):
+- Updated [rust/docs/TECHNICAL_ARCHITECTURE.md](rust/docs/TECHNICAL_ARCHITECTURE.md):
   - extended its historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded that the roadmap and historical Rust architecture redirect now include the live Rust analysis doc.
 
 ### Why This Matters
@@ -1415,11 +1449,11 @@ After surfacing `RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archi
 After wiring `RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two archival top-level docs still redirected readers to the current authoritative set without mentioning the new live Rust architecture/state assessment.
 
 ### Implementation
-- Updated [CURRENT_STATUS.md](/Users/richarddje/Documents/github/pgen/CURRENT_STATUS.md):
+- Updated [CURRENT_STATUS.md](CURRENT_STATUS.md):
   - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
-- Updated [PROJECT_OVERVIEW.md](/Users/richarddje/Documents/github/pgen/PROJECT_OVERVIEW.md):
+- Updated [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md):
   - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded that the archival top-level redirect path now includes the Rust analysis doc too.
 
 ### Why This Matters
@@ -1431,11 +1465,11 @@ After wiring `RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two arch
 After adding and surfacing `RUST_CODEBASE_ANALYSIS.md`, its maintenance rule still lived mostly in the document itself and in recent chat context, not in the formal commit workflow.
 
 ### Implementation
-- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+- Updated [COMMIT.md](COMMIT.md):
   - added `RUST_CODEBASE_ANALYSIS.md` to the tracked workflow files,
   - required review/update when a task materially changes Rust architecture, major subsystem boundaries, public integration seams, or the current high-level Rust risk picture,
   - added the file to the standard markdown-sync list used before commit.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded that the commit workflow now explicitly covers the live Rust analysis document.
 
 ### Why This Matters
@@ -1447,16 +1481,16 @@ After adding and surfacing `RUST_CODEBASE_ANALYSIS.md`, its maintenance rule sti
 After adding `RUST_CODEBASE_ANALYSIS.md` and wiring it into `README.md`, the older onboarding surfaces still did not point readers to the new live Rust architecture/state reference.
 
 ### Implementation
-- Updated [QUICKSTART_AI_ONBOARDING.md](/Users/richarddje/Documents/github/pgen/QUICKSTART_AI_ONBOARDING.md):
+- Updated [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md):
   - extended the historical-note pointer list to include `RUST_CODEBASE_ANALYSIS.md`.
-- Updated [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md):
+- Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
   - refreshed the file date,
   - added a small “Current-State Companion Docs” section near the top pointing readers to:
     - `README.md`
     - `RUST_CODEBASE_ANALYSIS.md`
     - `LIVE_ACHIEVEMENT_STATUS.md`
     - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded that the new Rust analysis doc is now surfaced beyond `README.md`.
 
 ### Why This Matters
@@ -1468,15 +1502,15 @@ After adding `RUST_CODEBASE_ANALYSIS.md` and wiring it into `README.md`, the old
 The current Rust codebase has grown into a large parser-generation, stimuli, and proof platform, and the most useful high-level architecture assessment only existed in chat context.
 
 ### Implementation
-- Added [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+- Added [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - captured the current high-level architecture of the Rust crate and surrounding Rust-owned operational layer,
   - summarized the main engines, public integration surfaces, strengths, and current technical risks,
   - marked it as a live document that should be refreshed when a new session starts from a meaningfully different project state.
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+- Updated [README.md](README.md):
   - added the new document to the ramp-up order,
   - added it to the authoritative Rust-first doc set,
   - added it to the repository markdown index and documentation structure map.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded the existence and intended maintenance rule for the new Rust analysis document.
 
 ### Why This Matters
@@ -1488,10 +1522,10 @@ The current Rust codebase has grown into a large parser-generation, stimuli, and
 After `sota_exit_gate` started exposing fuller top-level SV auxiliary compatibility mirrors, `sv_combined_telemetry_contract_gate` still only used those top-level JSON mirrors for the auxiliary `summary.json` leaf paths.
 
 ### Implementation
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - read the top-level SOTA failure-context and roundtrip `state_dir` / `summary.txt` mirrors,
   - parity-checked those new mirrors against the reused auxiliary sidecars alongside the existing `summary.json` checks.
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - locked those top-level SOTA auxiliary reads so the combined telemetry reader cannot silently drift back to JSON-leaf-only parity.
 
 ### Why This Matters
@@ -1503,12 +1537,12 @@ After `sota_exit_gate` started exposing fuller top-level SV auxiliary compatibil
 After the SV auxiliary side proofs were preserved in nested SOTA family payloads and then in nested combined telemetry payloads, the top-level SOTA compatibility mirrors still only exposed their `summary.json` paths.
 
 ### Implementation
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - echoed `sv_failure_context_contract_state_dir` and `sv_roundtrip_contract_state_dir` in `summary.txt`,
   - added top-level SOTA `proof_surfaces` entries for:
     - failure-context `state_dir` / `summary.txt`
     - roundtrip `state_dir` / `summary.txt`
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - locked those new top-level SOTA auxiliary proof-surface mirrors.
 
 ### Why This Matters
@@ -1520,10 +1554,10 @@ After the SV auxiliary side proofs were preserved in nested SOTA family payloads
 After the reader-side switch to nested SOTA SV family payloads landed, `sv_combined_telemetry_contract_gate` still only preserved the auxiliary failure-context and roundtrip sidecar paths at top level.
 
 ### Implementation
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - threaded the validated auxiliary sidecar `state_dir` / `summary.txt` / `summary.json` paths into nested SV `family_status` proof surfaces,
   - threaded the same shared auxiliary sidecar paths into nested SV `family_status_contract` proof surfaces.
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - locked representative nested combined-telemetry output fields for those auxiliary sidecars.
 
 ### Why This Matters
@@ -1535,11 +1569,11 @@ After the reader-side switch to nested SOTA SV family payloads landed, `sv_combi
 After SOTA started carrying the SV failure-context and roundtrip side-proof paths inside nested SV family payloads, `sv_combined_telemetry_contract_gate` still treated the older top-level SOTA mirrors as the practical source for those two sidecars.
 
 ### Implementation
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - read the auxiliary side-proof `state_dir` / `summary.txt` / `summary.json` paths from nested SV `family_status` and `family_status_contract` payloads,
   - kept the older top-level SOTA mirrors only as parity checks,
   - re-emitted the validated auxiliary `state_dir` values in combined telemetry TXT/JSON.
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - locked the new nested SOTA reads for the SV auxiliary sidecars,
   - locked the corresponding combined-telemetry `state_dir` re-emission.
 
@@ -1552,11 +1586,11 @@ After SOTA started carrying the SV failure-context and roundtrip side-proof path
 After the SV auxiliary side-proof JSON slice landed, `sota_exit_gate` still only exposed those two new sidecars at the top level of its proof surfaces.
 
 ### Implementation
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - threaded the failure-context and roundtrip sidecar `state_dir` / `summary.txt` / `summary.json` paths into nested SV family payloads,
   - preserved those paths for both `family_status` and `family_status_contract`,
   - applied the same shared auxiliary proof surfaces to both shipped SV families because the side proofs report main-parser and preprocessor evidence together.
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - locked representative nested SOTA emission fields for the new SV auxiliary proof paths.
 
 ### Why This Matters
@@ -1568,15 +1602,15 @@ After the SV auxiliary side-proof JSON slice landed, `sota_exit_gate` still only
 After the SV semantic-scope provenance slice landed, the main shipped SV stack still had two TXT-only side proofs hanging off the aggregate path: `sv_failure_context_contract_gate` and `sv_roundtrip_contract_gate`.
 
 ### Implementation
-- Updated [sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh) and [sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
+- Updated [sv_failure_context_contract_gate.sh](rust/scripts/sv_failure_context_contract_gate.sh) and [sv_roundtrip_contract_gate.sh](rust/scripts/sv_roundtrip_contract_gate.sh):
   - added `summary.json`,
   - added `generated_at_utc` and `summary_json` to `summary.txt`,
   - wrote focused machine-readable proof/metric payloads.
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - required those JSON sidecars when the gates run or are reused,
   - surfaced `sv_failure_context_contract_summary_json` and `sv_roundtrip_contract_summary_json`,
   - pulled the excerpt/roundtrip metrics from the new JSON sidecars.
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - consumed the new SOTA proof-surface JSON paths,
   - parsed the leaf JSON sidecars directly,
   - re-emitted structured `failure_context_contract` and `roundtrip_contract` views.
@@ -1589,7 +1623,7 @@ After the SV semantic-scope provenance slice landed, the main shipped SV stack s
 After the family-sidecar identity and family-layer provenance guards landed, the regex and VHDL family-contract gates still only kept their own proof-surface outputs by convention.
 
 ### Implementation
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a dedicated family-contract proof-surface audit,
   - asserted regex frontend / dual-run / stimuli proof-surface fields,
   - asserted VHDL quality / strict-promotion proof-surface fields.
@@ -1603,7 +1637,7 @@ After the family-sidecar identity and family-layer provenance guards landed, the
 After local CI started guarding provenance-bearing fields at the family layer, the shipped family sidecars still only kept their own self-description shape by convention.
 
 ### Implementation
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a dedicated audit over shipped family-contract, family-status, and family-status-contract gates,
   - asserted the shared self-description pattern:
     - `SUMMARY_JSON="$STATE_DIR/summary.json"`
@@ -1619,7 +1653,7 @@ After local CI started guarding provenance-bearing fields at the family layer, t
 After local CI started guarding nested provenance at the SOTA and combined-telemetry layers, the family-status and family-status-contract gates still only preserved their consumed provenance by convention.
 
 ### Implementation
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a dedicated family-layer provenance audit,
   - asserted representative output fields for SV aggregate JSON provenance and regex/VHDL family-contract provenance.
 
@@ -1632,11 +1666,11 @@ After local CI started guarding nested provenance at the SOTA and combined-telem
 After SOTA emission and aggregate consumption of nested family proof surfaces were both locked, the combined-telemetry gates still only had that nested provenance preserved by convention in their own JSON outputs.
 
 ### Implementation
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a dedicated audit for representative nested provenance fields emitted by:
-    - [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh)
-    - [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
-    - [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+    - [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh)
+    - [regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh)
+    - [vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
 
 ### Why This Matters
 - The nested provenance chain is now guarded on all three layers:
@@ -1649,7 +1683,7 @@ After SOTA emission and aggregate consumption of nested family proof surfaces we
 After `sota_exit_gate/summary.json` started carrying nested family proof surfaces for SV, regex, and VHDL, the local CI workflow gate still only guarded the downstream aggregate readers.
 
 ### Implementation
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - added a dedicated audit for nested family emission in `sota_exit_gate.sh`,
   - asserted representative nested proof-surface fields for SV, regex, and VHDL on both the family-status and family-status-contract sides.
 
@@ -1662,7 +1696,7 @@ After `sota_exit_gate/summary.json` started carrying nested family proof surface
 After the SV, regex, and VHDL aggregate readers started consuming nested family proof surfaces from `sota_exit_gate/summary.json`, that rule still lived only in the aggregate scripts themselves.
 
 ### Implementation
-- Updated [ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+- Updated [ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the existing SOTA JSON audit now also asserts nested-family proof-surface reads for:
     - SV aggregate parser/preprocessor provenance,
     - regex dual-run / family-contract provenance,
@@ -1679,10 +1713,10 @@ After the last VHDL SOTA slice:
   - `family_status.vhdl.proof_surfaces`
   - `family_status_contract.vhdl.proof_surfaces`
 
-But [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) was still treating the older top-level SOTA summary pointers as the practical source of VHDL provenance.
+But [vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh) was still treating the older top-level SOTA summary pointers as the practical source of VHDL provenance.
 
 ### Implementation
-- Updated [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - extracted nested VHDL proof surfaces from SOTA JSON,
   - validated the nested family-status paths for family-contract / quality / strict-promotion provenance,
   - validated the nested family-status-contract paths for family-status / family-contract provenance.
@@ -1698,10 +1732,10 @@ After the last regex SOTA slice:
   - `family_status.regex.proof_surfaces`
   - `family_status_contract.regex.proof_surfaces`
 
-But [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) was still treating the older top-level SOTA summary pointers as the practical source of regex provenance.
+But [regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) was still treating the older top-level SOTA summary pointers as the practical source of regex provenance.
 
 ### Implementation
-- Updated [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+- Updated [regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh):
   - extracted nested regex proof surfaces from SOTA JSON,
   - validated the nested family-status paths for family-contract / frontend / dual-run / stimuli provenance,
   - validated the nested family-status-contract paths for family-status / family-contract provenance.
@@ -1723,7 +1757,7 @@ But the structured SOTA JSON payloads for:
 still only carried the generic family summary pointers.
 
 ### Implementation
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - extracted regex family-contract `state_dir` from the regex family-status sidecar,
   - extracted regex family-contract provenance from `regex_parser_family_status_contract_gate/summary.json`,
   - embedded regex family-contract plus frontend / dual-run / stimuli proof paths in `family_status.regex.proof_surfaces`,
@@ -1746,7 +1780,7 @@ But the structured SOTA JSON payloads for:
 still only carried the generic family summary pointers.
 
 ### Implementation
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - extracted VHDL family-contract `state_dir` in addition to the already-available summary paths,
   - extracted VHDL family-contract provenance from `vhdl_parser_family_status_contract_gate/summary.json`,
   - embedded VHDL family-contract, quality, and strict-promotion proof paths inside `family_status.vhdl.proof_surfaces`,
@@ -1767,7 +1801,7 @@ After the last slice, `sota_exit_gate/summary.json` exposed the SV parser/prepro
 But `sv_combined_telemetry_contract_gate` was still reading only the older top-level mirrors.
 
 ### Implementation
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - switched the SOTA JSON reads for SV parser/preprocessor aggregate provenance to the nested family payloads,
   - kept the previous top-level SOTA fields as explicit parity-checked mirrors,
   - left the combined-telemetry output schema unchanged because it already re-emitted the validated aggregate provenance.
@@ -1791,7 +1825,7 @@ But the structured SOTA JSON payloads for:
 still only pointed back to the family summary sidecars.
 
 ### Implementation
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - extended the SOTA JSON helper functions to accept extra per-family proof-surface payloads,
   - embedded the SV parser/preprocessor aggregate state/TXT/JSON paths directly in the relevant `family_status` and `family_status_contract` entries,
   - left non-SV families unchanged.
@@ -1814,7 +1848,7 @@ for both:
 But `sv_combined_telemetry_contract_gate` still only consumed the older TXT-oriented subset, so the newly surfaced aggregate JSON provenance stopped at SOTA instead of reaching the shipped SV aggregate sign-off.
 
 ### Implementation
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - read the new aggregate proof-surface paths from SOTA `summary.json`,
   - parity-check them against the canonical SV family-status and family-status-contract JSON sidecars,
   - record the aggregate `summary.json` paths in combined-telemetry `summary.txt`,
@@ -1835,7 +1869,7 @@ already carried the parser/preprocessor aggregate `summary.json` proof paths.
 But `sota_exit_gate` still only surfaced the TXT side of that provenance, which meant the new aggregate JSON paths were validated one layer below SOTA and then dropped again.
 
 ### Implementation
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - read the SV parser/preprocessor aggregate `summary.json` paths from the family-status JSON sidecar,
   - read the same paths from the family-status-contract JSON sidecar,
   - parity-check state dir / `summary.txt` / `summary.json` for both SV families,
@@ -1853,7 +1887,7 @@ After the previous slice, `sv_parser_family_status_contract_gate` validated the 
 That meant the aggregate JSON provenance survived into family-status, but not through the sibling contract layer.
 
 ### Implementation
-- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+- Updated [sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
   - records parser-aggregate `state_dir` / `summary_txt` / `summary_json` for `systemverilog`,
   - records preprocessor-aggregate `state_dir` / `summary_txt` / `summary_json` for `systemverilog_preprocessor`,
   - re-emits those paths in the contract `summary.json` under each family’s `proof_surfaces`.
@@ -1871,12 +1905,12 @@ After giving the two SV aggregate-contract gates their own `summary.json` sideca
 That left the just-added aggregate JSON sidecars as write-only metadata at the SV family-status boundary.
 
 ### Implementation
-- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+- Updated [sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
   - require `sv_parser_aggregate_contract_gate/summary.json`,
   - require `sv_preprocessor_aggregate_contract_gate/summary.json`,
   - carry both JSON paths in the family-status TXT and JSON sidecars,
   - bump the SV family-status gate version to `4`.
-- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+- Updated [sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
   - extend the expected SV proof-surface sets with the new aggregate JSON paths,
   - parity-check those new fields between the family-status TXT and JSON sidecars.
 
@@ -1896,7 +1930,7 @@ On the SV side, the practical family-contract-equivalent surfaces are the two ex
 Unlike the regex and VHDL family-contract layers, both of those SV gates still stopped at `summary.txt`, which meant later SV provenance work would have to keep scraping text or inventing side-paths.
 
 ### Implementation
-- Updated [sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh) and [sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh) and [sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - added `SUMMARY_JSON`,
   - recorded `generated_at_utc` and `summary_json` in `summary.txt`,
   - emitted focused `summary.json` sidecars carrying self-path metadata, proof-surface paths, and the already-tracked aggregate metrics.
@@ -1914,7 +1948,7 @@ After teaching regex and VHDL family-status-contract to re-emit validated family
 That left the new provenance available below the aggregate layer, but not preserved in the aggregate sign-off itself.
 
 ### Implementation
-- Updated [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) and [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) and [vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - read family-contract gate identity/provenance from family-status and family-status-contract JSON,
   - parity-check those fields against the canonical family-contract summary,
   - re-emit the validated family-contract provenance in aggregate TXT/JSON outputs.
@@ -1932,7 +1966,7 @@ After teaching regex and VHDL family-status to consume family-contract JSON self
 That left the newly surfaced family-contract metadata unverified at the contract layer.
 
 ### Implementation
-- Updated [regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh) and [vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+- Updated [regex_parser_family_status_contract_gate.sh](rust/scripts/regex_parser_family_status_contract_gate.sh) and [vhdl_parser_family_status_contract_gate.sh](rust/scripts/vhdl_parser_family_status_contract_gate.sh):
   - require family-status JSON to expose family-contract gate metadata and `family_contract_state_dir`,
   - parity-check those fields against family-status TXT,
   - re-emit the validated family-contract provenance in the contract-gate summaries.
@@ -1950,7 +1984,7 @@ After teaching the shipped regex and VHDL family-contract gates to expose their 
 That left the just-added family-contract self-description as write-only metadata.
 
 ### Implementation
-- Updated [regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh) and [vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh):
+- Updated [regex_parser_family_status_gate.sh](rust/scripts/regex_parser_family_status_gate.sh) and [vhdl_parser_family_status_gate.sh](rust/scripts/vhdl_parser_family_status_gate.sh):
   - read `gate`, `version`, `generated_at_utc`, `state_dir`, `summary_txt`, and `summary_json` from the upstream family-contract `summary.json`,
   - parity-check those fields against the family-contract TXT sidecar and actual expected paths,
   - re-emit the consumed family-contract gate metadata and `family_contract_state_dir` in the family-status summaries.
@@ -1965,12 +1999,12 @@ After landing the same aggregate JSON proof for SystemVerilog and regex, the VHD
 - `vhdl_parser_family_contract_gate` emitted `summary.txt` and `summary.json`,
 - `vhdl_parser_family_status_gate` emitted `summary.txt` and `summary.json`,
 - `vhdl_parser_family_status_contract_gate` emitted `summary.txt` and `summary.json`,
-- but [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
+- but [vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
 
 That left the top VHDL aggregate sign-off as the last non-machine-readable layer in that proof stack.
 
 ### Implementation
-- Updated [vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - added `SUMMARY_JSON`,
   - records `generated_at_utc` and the `summary_json` path in `summary.txt`,
   - emits a focused `summary.json` sidecar.
@@ -1991,12 +2025,12 @@ After landing the same aggregate JSON proof for SystemVerilog, the regex proof s
 - `regex_parser_family_contract_gate` emitted `summary.txt` and `summary.json`,
 - `regex_parser_family_status_gate` emitted `summary.txt` and `summary.json`,
 - `regex_parser_family_status_contract_gate` emitted `summary.txt` and `summary.json`,
-- but [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
+- but [regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
 
 That left the top regex aggregate sign-off as the only non-machine-readable layer in that stack.
 
 ### Implementation
-- Updated [regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+- Updated [regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh):
   - added `SUMMARY_JSON`,
   - records `generated_at_utc` and the `summary_json` path in `summary.txt`,
   - emits a focused `summary.json` sidecar.
@@ -2016,12 +2050,12 @@ That left the top regex aggregate sign-off as the only non-machine-readable laye
 After normalizing the SV family-status and SV family-status-contract layers, one last asymmetry was still visible in the same proof stack:
 - `sv_parser_family_status_gate` emitted `summary.txt` and `summary.json`,
 - `sv_parser_family_status_contract_gate` emitted `summary.txt` and `summary.json`,
-- but [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
+- but [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh) still stopped at `summary.txt`.
 
 That meant the top SV aggregate sign-off still required TXT scraping even though the underlying proof surfaces were already machine-readable.
 
 ### Implementation
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - added `SUMMARY_JSON`,
   - now requires `jq` explicitly,
   - records `generated_at_utc` and `summary_json` in `summary.txt`,
@@ -2049,11 +2083,11 @@ The SV family-status sidecar still had one smaller asymmetry after the blocker-J
 That worked, but it was less explicit and more brittle than the already-normalized regex/VHDL shape.
 
 ### Implementation
-- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+- Updated [sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
   - emits explicit named primary-unmet fields for both SV families in TXT and JSON.
-- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+- Updated [sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
   - parity-checks those new named fields between the status TXT and JSON sidecars.
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) and [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh) and [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now consume the named fields directly,
   - no longer depend on `[...]` list-index extraction for the primary unmet criterion.
 
@@ -2076,21 +2110,21 @@ That meant the aggregate layer still threw away the contract gate's exact unmet-
 - VHDL aggregate telemetry already preserved them.
 
 ### Implementation
-- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+- Updated [sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
   - its `summary.txt` now echoes:
     - `systemverilog_unmet_closure_criteria_json`
     - `systemverilog_preprocessor_unmet_closure_criteria_json`
   - so the status TXT sidecar now matches the JSON sidecar it was already emitting.
-- Kept the in-flight update to [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+- Kept the in-flight update to [sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
   - emit and parity-check both:
     - unmet-criteria JSON arrays,
     - unmet-criteria detail JSON arrays,
   - for:
     - `systemverilog`
     - `systemverilog_preprocessor`
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - default, missing, extracted, and reported SV contract fields now include those four structured blocker payloads.
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - reads those four fields from the SV contract summary,
   - parity-checks them against `sota_exit_gate`,
   - re-emits them in the combined telemetry summary.
@@ -2117,14 +2151,14 @@ That made SystemVerilog the odd one out relative to the already-normalized:
 - regex family-status contract
 
 ### Implementation
-- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+- Updated [sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
   - added `SUMMARY_JSON`,
   - kept the existing TXT contract summary,
   - emitted a new JSON sidecar with:
     - gate metadata,
     - family-status summary paths,
     - per-family tracker-alignment and unmet-detail counts.
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - SV family-status contract reuse now requires both:
     - `summary.txt`
     - `summary.json`
@@ -2132,7 +2166,7 @@ That made SystemVerilog the odd one out relative to the already-normalized:
     - the SV contract summary JSON path,
     - contract gate metadata,
     - and the family-status summary paths referenced by that contract JSON.
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - reads the new SV contract JSON path from `sota_exit_gate`,
   - checks the contract metadata and referenced family-status paths for parity,
   - re-emits them in combined telemetry output.
@@ -2160,7 +2194,7 @@ That meant `sota_exit_gate` and `sv_combined_telemetry_contract_gate` could repo
 - preprocessor reachability proof.
 
 ### Implementation
-- Updated [sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+- Updated [sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
   - added proof-surface paths for the main parser:
     - syntax-closure state dir / `summary.txt` / `summary.json`
     - parser-aggregate state dir / `summary.txt`
@@ -2172,14 +2206,14 @@ That meant `sota_exit_gate` and `sv_combined_telemetry_contract_gate` could repo
   - emitted those paths in both:
     - `summary.json`
     - `summary.txt`
-- Updated [sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+- Updated [sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
   - expanded the expected `proof_surfaces` schema for both SV families,
   - added parity checks so the new proof-surface paths must match between:
     - `summary.txt`
     - `summary.json`
-- Updated [sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - forwarded those richer SV proof-surface paths into the SOTA summary.
-- Updated [sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - read the new proof-surface paths from the SV family-status sidecar,
   - checked them against the SOTA summary,
   - re-emitted them in combined telemetry output.
@@ -2206,7 +2240,7 @@ The reduced cast forms gave a clean proof surface:
 - `T::U'(1)`
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `ps_type_identifier_sv_2017`
   - `ps_type_identifier_sv_2023`
   - each now uses:
@@ -2237,7 +2271,7 @@ That made this a better next slice than broadening into noisier fronts like:
 - `blocking_assignment ... class_new`
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `ps_or_hierarchical_net_identifier`
   - now uses:
     - `non_typedef_package_scope`
@@ -2353,7 +2387,7 @@ That made this a better next slice than broadening:
 - `blocking_assignment ... class_new`
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `variable_lvalue`
   - now uses:
     - `non_typedef_package_scope`
@@ -2381,7 +2415,7 @@ That meant a local typedef head could still impersonate a package-scoped base-ne
 - later `nettype T::base_t derived_t;`
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `net_type_declaration_sv_2017`
   - `nettype_declaration_sv_2023`
   - their alias-style optional base-nettype side now uses:
@@ -2408,7 +2442,7 @@ That meant a local typedef head could still impersonate a package-scoped nettype
 - later `nettype logic nt with T::f;`
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `net_type_declaration_sv_2017`
   - `nettype_declaration_sv_2023`
   - their optional `kw_with ... tf_identifier` package-like side now uses:
@@ -2434,7 +2468,7 @@ After the recent semantic-fact pilots, a smaller but still real policy gap remai
 Those rules were still using raw `package_scope`, which meant the grammar-level package-vs-local-type policy was stronger on dedicated semantic-fact fronts than on these generic package-qualified value forms.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `ps_identifier`
   - `ps_or_hierarchical_array_identifier`
   - both now use:
@@ -2469,7 +2503,7 @@ The intended policy was the same one already proven on other name families:
 - local typedef heads should not impersonate package-scoped parameter prefixes.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `param_assignment_sv_2017`
   - `param_assignment_sv_2023`
   - now use:
@@ -2523,7 +2557,7 @@ But it still lacked a fact-aware unscoped path. That made it a good next slice b
 - the missing piece was simply “only treat bare `let_identifier(...)` as a `let_expression` when the name is actually known as a `let`.”
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `let_declaration` now uses:
     - `declared_let_identifier`
   - that helper emits:
@@ -2580,7 +2614,7 @@ AST inspection showed why:
   - `( kw_class_qualifier | package_scope )? hierarchical_identifier`
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `property_declaration` now uses:
     - `declared_property_identifier`
   - `sequence_declaration` now uses:
@@ -2630,7 +2664,7 @@ That meant the grammar still had raw package-like class-family fronts in a few i
 - `class_scoped_call_prefix`
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - rewired:
     - `scoped_class_scope_identifier`
     - `scoped_base_class_type_identifier`
@@ -2659,7 +2693,7 @@ That seam had the same structural weakness as the earlier callable/type fronts:
 - and unknown external package-like prefixes should remain available.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `checker_declaration` now uses:
     - `declared_checker_identifier`
   - that helper emits:
@@ -2695,7 +2729,7 @@ The remaining root cause turned out to be simpler and broader:
 - even when `T` was already known locally as a typedef-family type head
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - added:
     - `known_unscoped_data_type_identifier`
     - `scoped_data_type_identifier`
@@ -2726,7 +2760,7 @@ The generated predicate diagnostics and traces showed one accepting surface more
 - local typedef heads could therefore still impersonate package-scoped covergroup type fronts
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - named `covergroup` declaration heads now use:
     - `declared_covergroup_identifier`
   - that helper now emits:
@@ -2759,7 +2793,7 @@ The latest grammar experiments were useful, but they did not end in a clean sema
 - the remaining acceptance path therefore needs better direct observability before another semantic-steering edit
 
 ### Implementation
-- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Updated [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - generated parsers now synthesize a readable semantic predicate label helper
   - `pre` predicate failures log the exact blocking predicate
   - `post` predicate failures log the exact blocking predicate
@@ -2780,7 +2814,7 @@ But one nearby scoped leak still remained easy to describe:
 - so a shape like `T::U value;` could ride the broad `package_scope` branch even though `T` was already known locally as a typedef-family type head.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - helper now consistently uses:
     - `non_typedef_package_scope`
   - `let_expression` now uses the renamed helper
@@ -2818,14 +2852,14 @@ The key requirement turned out to be narrower than “reject all known type name
 - class-family heads must remain allowed because real class-scoped callable forms still need to parse
 
 ### Implementation
-- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Updated [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - added:
     - `lacks_fact_attribute_equals(kind, name, key, value)`
   - this is the negative attribute-aware counterpart to `fact_attribute_equals(...)`
   - focused tests now cover:
     - successful absence checks when the attribute value differs
     - negative checks when the exact attribute match exists
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - added helper rule:
     - `non_typedef_package_scope := package_scope`
     - guarded by:
@@ -2867,7 +2901,7 @@ The real requirement was instead:
   - “run this annotation exactly here inside the sequence”
 
 ### Implementation
-- Updated [ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs):
+- Updated [ebnf_frontend.rs](rust/src/ebnf_frontend.rs):
   - same surface syntax still parses in all positions
   - placement now decides tokenization:
     - top-level branch-start inline annotation:
@@ -2877,7 +2911,7 @@ The real requirement was instead:
   - the classifier is intentionally conservative:
     - only annotations at top-level branch start remain branch-local
     - annotations later in the branch, or inside a group, become mid-sequence
-- Updated [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+- Updated [mod.rs](rust/src/ast_pipeline/mod.rs):
   - added `MidSequenceSemanticAnnotation`
     - `syntax_position`
     - `group_depth`
@@ -2886,7 +2920,7 @@ The real requirement was instead:
   - raw-AST transformation now preserves:
     - branch-leading inline annotations in `branch_semantic_annotations`
     - non-leading inline annotations in `branch_mid_sequence_semantic_annotations`
-- Updated [main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+- Updated [main.rs](rust/src/main.rs):
   - profile filtering now keeps the new mid-sequence annotation map alive
 
 ### Why This Matters
@@ -2915,7 +2949,7 @@ After preserving inline rule-body semantic annotations as `Annotations.branch_se
 That meant branch-local semantic annotations were structurally preserved but operationally inert.
 
 ### Implementation
-- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Updated [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - widened `CompiledSemanticRuntimeAnnotations` with a parallel `branch_directives_by_rule` map
   - added:
     - `from_parts(...)`
@@ -2926,10 +2960,10 @@ That meant branch-local semantic annotations were structurally preserved but ope
   - `compile_semantic_runtime_annotations(...)` now compiles:
     - rule-level runtime directives from `semantic_annotations`
     - branch-local runtime directives from `branch_semantic_annotations`
-- Updated [annotation_validator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/annotation_validator.rs):
+- Updated [annotation_validator.rs](rust/src/ast_pipeline/annotation_validator.rs):
   - branch-local semantic annotations now go through the normal semantic validator and conflict checker
   - branch-local diagnostics are labeled as `rule_name (branch N)` so they do not disappear into rule-wide reports
-- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Updated [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - generated parser constructors now embed both:
     - rule-level semantic runtime directives
     - branch-local semantic runtime directives
@@ -2959,7 +2993,7 @@ This was another place where `kind + name` is too coarse:
 - but broadening that distinction across the whole `class_type` rule would have been too aggressive because `class_type` is reused in other contexts.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - added `known_unscoped_base_class_type_identifier`
     - gated by:
       - `fact_attribute_equals(type_name, $class_identifier, declaration_family, class)`
@@ -2999,7 +3033,7 @@ After landing generic attribute-aware fact predicates plus declaration-family me
 - and that distinction cannot be expressed with `has_fact(type_name, name)` alone because both declarations emit the same `type_name` fact family
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - added `known_unscoped_interface_class_type_identifier`
     - gated by:
       - `fact_attribute_equals(type_name, $class_identifier, declaration_family, interface_class)`
@@ -3036,7 +3070,7 @@ After explicitly recording why the first live semantic-fact rollout started with
 - keep current parse behavior unchanged unless a future grammar explicitly asks for those richer queries.
 
 ### Implementation
-- Updated [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Updated [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - added:
     - `has_fact_attribute(kind, name, key)`
     - `fact_attribute_equals(kind, name, key, value)`
@@ -3045,7 +3079,7 @@ After explicitly recording why the first live semantic-fact rollout started with
     - attribute presence works
     - attribute equality works
     - missing or mismatched attributes fail closed
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - `declared_type_identifier` now emits `declaration_family: typedef`
   - `declared_class_identifier` now emits `declaration_family: class`
   - added `declared_interface_class_identifier` for `declaration_family: interface_class`
@@ -3123,7 +3157,7 @@ One tempting next move would have been to widen block syntax itself to admit loc
 - so the existing block-local class-type gate can recognize declared names that appear earlier in surrounding SV scope.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - added `declared_class_identifier`
   - `declared_class_identifier` now:
     - emits `type_name` facts from successful class declaration heads
@@ -3157,7 +3191,7 @@ One tempting next move would have been to widen block syntax itself to admit loc
 The earlier `semantic_usage_tests` coverage for semantic runtime and branch predicates had become too coarse. Even after splitting assertions conceptually, one maximal generated-parser fixture was still enabling nearly every semantic path at once, which made the runtime contract surface slow, noisy, and harder to debug than it needed to be.
 
 ### Implementation
-- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Updated [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - replaced the old giant runtime contract test with focused tests grouped around:
     - parser ownership/reset
     - transaction helper exposure
@@ -3202,14 +3236,14 @@ One generator-runtime bug also surfaced while doing this for real: child-rule se
 - but `typedef int T; T x;` could still fail because the parent parse path was refreshing semantic state from the wrong snapshot.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - introduced a dedicated `block_data_declaration` front door under `block_item_declaration`
   - added block-local type helpers that distinguish:
     - known unscoped bare type/class/covergroup names
     - explicit scoped/package-qualified forms
   - wired local typedef alias positions through `declared_type_identifier`
   - `declared_type_identifier` now emits `type_name` facts and post-validates that the just-declared alias is present in semantic state
-- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Updated [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - `with_semantic_runtime_rule_transaction(...)` now:
     - saves the original semantic-runtime snapshot,
     - parses children against a cloned live state on `self`,
@@ -3244,7 +3278,7 @@ One generator-runtime bug also surfaced while doing this for real: child-rule se
 After letting `post` predicates see same-rule facts/scopes, there was still one important limitation left: those predicates could only query with static annotation literals. In other words, semantic facts were visible, but `has_fact(..., $1)` still was not meaningful because predicate args were not being resolved against the current rule’s parse content.
 
 ### Implementation
-- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Updated [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - added generated helper `resolve_semantic_predicate_spec_against_content(...)`
   - `post` predicate execution now:
     - selects `raw` or `shaped` content according to the predicate view,
@@ -3270,7 +3304,7 @@ After letting `post` predicates see same-rule facts/scopes, there was still one 
 The previous slice made `post/raw` predicates truthful across memo hits, but there was still one practical gap in semantic-fact support: `post` predicates were evaluating before the current rule’s transactional semantic effects were applied. That meant `has_fact(...)` and scope predicates could only inspect previously committed state, not the facts/scopes the just-succeeded rule was about to emit.
 
 ### Implementation
-- Updated [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Updated [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - generated rule execution now applies semantic effect directives into the live transaction before running `post` predicates
   - rollback safety is preserved because the transaction still commits only after `post` predicates pass
   - the focused generated-parser semantic usage proof now includes:
@@ -3298,16 +3332,16 @@ The previous slice made `post/raw` predicates truthful across memo hits, but the
 The earlier semantic predicate slices had the right surface shape, but there was one architectural lie left in the generated parser path: a `post/raw` predicate could only be correct on fresh parses. As soon as a rule returned from memoization, the generated parser only had the shaped `ParseNode`, so a raw-view `post` predicate would either need to fall back incorrectly or become impossible to evaluate.
 
 ### Implementation
-- Extended [mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+- Extended [mod.rs](rust/src/ast_pipeline/mod.rs):
   - `MemoEntry` now carries `raw_semantic_content` in addition to the shaped `ParseNode`
-- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Extended [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - added content-aware predicate evaluation over explicit `raw` vs `shaped` content views
   - added built-in `content_kind_is`
   - added rule helpers:
     - `post_predicates_for_rule(...)`
     - `has_post_predicates_for_rule(...)`
     - `needs_raw_post_capture_for_rule(...)`
-- Extended [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Extended [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - generated rule wrapper now:
     - evaluates `pre` predicates before parse,
     - evaluates `post` predicates after successful parse,
@@ -3337,10 +3371,10 @@ The earlier semantic predicate slices had the right surface shape, but there was
 The runtime-side entrypoints were in place, but parser integration still had a gap: generated parsers themselves did not own any semantic runtime state or compiled semantic-runtime directives. That meant even with `transaction_for_rule(...)` available in the runtime module, there was still no generated parser object that could actually host and expose that behavior.
 
 ### Implementation
-- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Extended [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - added `CompiledSemanticRuntimeAnnotations::from_rule_directives(...)`
   - this gives generated code a clean constructor path for precompiled runtime directives
-- Extended [ast_based_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs):
+- Extended [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs):
   - generated parser structs now own:
     - compiled semantic runtime annotations
     - live semantic runtime state
@@ -3368,7 +3402,7 @@ The runtime-side entrypoints were in place, but parser integration still had a g
 The previous slice gave the runtime a clean rule-driven execution seam, but parser integration would still have had to spell out two steps manually every time: open a transaction, then apply the compiled directives for the current rule. That is exactly the kind of repeated ceremony that tends to drift once it gets copied into parser code.
 
 ### Implementation
-- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Extended [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - added `SemanticRuntimeState::transaction_for_rule(...)`
   - the helper:
     - opens a fresh transaction,
@@ -3396,7 +3430,7 @@ The previous slice gave the runtime a clean rule-driven execution seam, but pars
 Precompiling runtime-capable semantic annotations by rule solved the repeated parsing problem, but it still left parser integration with one awkward step: future parser code would have to fetch a rule’s directives and loop over them manually. The right next increment was to turn the compiled map into an executable seam that can apply one rule’s directives directly to runtime state or a transaction.
 
 ### Implementation
-- Extended [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Extended [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - `CompiledSemanticRuntimeAnnotations::apply_to_rule(...)`
   - `SemanticRuntimeState::apply_directives(...)`
   - `SemanticRuntimeState::apply_compiled_rule(...)`
@@ -3423,7 +3457,7 @@ Precompiling runtime-capable semantic annotations by rule solved the repeated pa
 The semantic-runtime scaffold now had typed directives, checkpoints, and transactions, but one integration bottleneck was still obvious: future parser code would otherwise have to re-scan and re-parse whole semantic-annotation lists every time it wanted runtime behavior for a rule. That would duplicate work and blur where runtime-compilable directives stop and general semantic annotations begin.
 
 ### Implementation
-- Added `CompiledSemanticRuntimeAnnotations` in [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs).
+- Added `CompiledSemanticRuntimeAnnotations` in [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs).
 - Added:
   - `compile_rule_semantic_runtime_directives(...)`
   - `compile_semantic_runtime_annotations(...)`
@@ -3455,7 +3489,7 @@ The semantic-runtime scaffold now had typed directives, checkpoints, and transac
 Checkpoints made semantic runtime state reversible, but the next integration hazard was already obvious: if every future parser branch has to remember `checkpoint()`, `rollback_to(...)`, and `commit(...)` manually, transaction safety will drift. The right next increment was therefore an explicit transaction helper that owns the checkpoint and makes rollback the default.
 
 ### Implementation
-- Added `SemanticRuntimeTransaction` in [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs).
+- Added `SemanticRuntimeTransaction` in [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs).
 - Added `SemanticRuntimeState::transaction()` to open a transaction from the current state.
 - The transaction API now supports:
   - `apply_directive(...)`
@@ -3485,7 +3519,7 @@ Checkpoints made semantic runtime state reversible, but the next integration haz
 The first semantic-runtime scaffold established typed facts, scopes, predicates, and a mutable state container. The very next missing piece was transaction shape. Without explicit checkpoints, every future parser-steering experiment would have to reinvent “speculative branch state vs committed state” ad hoc, which is exactly the kind of hidden complexity that later breaks backtracking correctness.
 
 ### Implementation
-- Added `SemanticRuntimeCheckpoint` in [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs).
+- Added `SemanticRuntimeCheckpoint` in [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs).
 - Added:
   - `SemanticRuntimeState::checkpoint()`
   - `SemanticRuntimeState::rollback_to(...)`
@@ -3514,7 +3548,7 @@ The first semantic-runtime scaffold established typed facts, scopes, predicates,
 After widening `UnifiedSemanticAST`, the next missing piece was not “more payload retention.” It was a concrete runtime home for semantic facts, scopes, and predicate intent. The clean incremental move was to add typed semantic-runtime directives and a scoped runtime-state model, but to keep parser behavior unchanged until backtracking and memoization design are ready.
 
 ### Implementation
-- Added [semantic_runtime.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/semantic_runtime.rs):
+- Added [semantic_runtime.rs](rust/src/ast_pipeline/semantic_runtime.rs):
   - parses `SemanticAnnotation::Named` entries for:
     - `@emit_fact`
     - `@open_scope`
@@ -3551,7 +3585,7 @@ After widening `UnifiedSemanticAST`, the next missing piece was not “more payl
 The roadmap direction was already clear: before inventing a new annotation surface for semantic facts, PGEN should first widen the typed semantic AST so semantic annotations can retain more than `TransformExpr` or opaque raw text. This slice implements that first runtime step and also locks in the user correction that semantic-fact work belongs under semantic annotations, not by silently redefining return annotations.
 
 ### Implementation
-- Added a richer semantic value model in [unified_semantic_ast.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_semantic_ast.rs):
+- Added a richer semantic value model in [unified_semantic_ast.rs](rust/src/ast_pipeline/unified_semantic_ast.rs):
   - `UnifiedSemanticValue::{String, Number, Boolean, Null, Identifier, RuleReference, Array, Object}`
   - `UnifiedSemanticProperty { key, value }`
   - `UnifiedSemanticAST::Structured { canonical, value }`
@@ -3685,7 +3719,7 @@ The repository already has strong parser/stimuli roundtrip proof and full-file p
 The next UVM frontier after the comment-expansion fix turned out to be half real and half misleading. Preprocessed `uvm_pkg` still contained malformed `uvm_report_warning(...)` calls in which the message argument had been cut off after the first string literal, and a fresh focused rerun then regressed into `unterminated conditional block in .../uvm_objection.svh`. Those symptoms looked unrelated at first, but they actually shared the same root theme: the preprocessor was still treating too much non-code text as if it were top-level macro syntax.
 
 ### Implementation
-- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+- Updated [sv_preprocessor.rs](rust/src/sv_preprocessor.rs):
   - `parse_macro_invocation_args()` now tracks `paren_depth`, `brace_depth`, and `bracket_depth`, and only splits function-like macro arguments on commas at true top level
   - the same function now ignores `//` comments, `/* ... */` comments, and double-quoted strings while scanning macro actuals
   - `has_unclosed_function_macro_invocation()` now ignores comment and string regions too, so comment-contained example macros no longer trigger multiline logical-line collection
@@ -3694,7 +3728,7 @@ The next UVM frontier after the comment-expansion fix turned out to be half real
     - `ignores_unclosed_macro_examples_inside_comments_when_collecting_lines`
 
 ### Outcome
-- The old malformed UVM warning expansions are fixed in [case_uvm_pkg_2017.preprocessed.sv](/Users/richarddje/Documents/github/pgen/rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv):
+- The old malformed UVM warning expansions are fixed in [case_uvm_pkg_2017.preprocessed.sv](rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv):
   - `TYPE::type_name` and `start.get_full_name()` now stay inside the brace-concatenation message payload instead of being displaced by later macro arguments
 - The focused `uvm_pkg` preprocess regression is gone:
   - `case_uvm_pkg_2017_preprocess` is green again
@@ -3707,7 +3741,7 @@ The next UVM frontier after the comment-expansion fix turned out to be half real
 After inline conditional normalization was fixed, the first UVM parser frontier still looked suspicious: `uvm_pkg` and `uvm_compat_pkg` were failing near what should have been ordinary report-message setup code inside documentation examples. Inspection of the preprocessed UVM package showed the real problem immediately: comment lines such as `// |   `uvm_info_begin("MY_ID", ...)` were still triggering macro expansion, which injected live statements into package scope from comment text alone.
 
 ### Implementation
-- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+- Updated [sv_preprocessor.rs](rust/src/sv_preprocessor.rs):
   - made `expand_macros_in_text()` track three inert regions while scanning:
     - `//` line comments
     - `/* ... */` block comments
@@ -3733,7 +3767,7 @@ After inline conditional normalization was fixed, the first UVM parser frontier 
 After the paired-stringization fix, the focused UVM slice briefly regressed from parse-fail to preprocess-fail. That regression was actually informative: it showed that the UVM field/object macro families were carrying inline conditional directives inside multiline macro bodies, including forms such as `` `ifdef SYMBOL payload`` and one-line `` `ifndef SYMBOL expr `endif`` bodies. The older preprocessor either left those directives embedded in expanded output or treated them as unmatched conditional openings.
 
 ### Implementation
-- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+- Updated [sv_preprocessor.rs](rust/src/sv_preprocessor.rs):
   - preserved line boundaries while collecting multiline `` `define`` bodies
   - added `normalize_macro_body_for_directives()` so inline conditional forms are split into directive lines plus payload lines before expansion
   - made inline trailing `` `endif`` detection robust against trailing whitespace
@@ -3764,7 +3798,7 @@ After the paired-stringization fix, the focused UVM slice briefly regressed from
 After the VeeR bootstrap work was done, the remaining broad external SV failures were the two UVM packages. Fresh package-only inspection showed that those failures were no longer primarily about top-level package syntax. The preprocessed UVM package bodies still contained malformed leftovers from nested utility macros, especially paired stringization of the form `` `"T`"`` inside object-registry helpers. The old substitution logic emitted `"arg"` for the opening half but leaked the closing `` `"`` back into the output, which left broken `type_id` declarations and stray `` `uvm_type_name_decl`` invocations in the generated package body.
 
 ### Implementation
-- Updated [sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+- Updated [sv_preprocessor.rs](rust/src/sv_preprocessor.rs):
   - changed `substitute_function_macro_body()` so when a bound macro parameter is wrapped in the paired form `` `"TOKEN`"``, the preprocessor now emits one clean quoted string and consumes both delimiters
   - preserved the older one-sided `` `"TOKEN`` behavior so the existing token-paste/stringize regression still passes
   - added a new nested-macro regression that models the UVM object-helper pattern:
@@ -3791,14 +3825,14 @@ After the VeeR bootstrap work was done, the remaining broad external SV failures
 The earlier blocked-case treatment for `veer_el2_lsu` was honest, but temporary. The upstream maintainer clarified that `el2_param.vh` is not supposed to live checked in under the VeeR tree at all: it is generated by `configs/veer.config` into `snapshots/<snapshot>`. Once that was confirmed against the checked-out repo documentation, the cleaner policy became "bootstrap the local snapshot if needed" rather than permanently carrying VeeR as unevaluable parser debt.
 
 ### Implementation
-- Updated [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json):
+- Updated [systemverilog_external_corpus_triage_v0.json](rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json):
   - replaced the old `blocked_reason` / `blocked_profiles` metadata on `veer_el2_lsu`
   - added bootstrap metadata:
     - `bootstrap_kind=veer_default_snapshot`
     - `bootstrap_root=stimuli/sv/subs/Cores-VeeR-EL2`
     - `bootstrap_required_file=stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh`
   - added `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default` to the include-dir list so the generated headers participate in preprocessing immediately after bootstrap
-- Updated [sv_external_corpus_triage_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_external_corpus_triage_gate.sh):
+- Updated [sv_external_corpus_triage_gate.sh](rust/scripts/sv_external_corpus_triage_gate.sh):
   - added `bootstrap_veer_default_snapshot()`
   - when the required VeeR snapshot header is missing, the gate now:
     - enters the VeeR repo root,
@@ -3837,9 +3871,9 @@ uvm_core_state m_uvm_core_state[$];
 Tiny focused repros isolated the real issue. Dynamic-array declarations such as `m[]` parsed, but queue declarations such as `int m[$];` and `uvm_core_state m[$];` did not.
 
 ### Implementation
-- Updated [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [systemverilog.ebnf](grammars/systemverilog.ebnf):
   - changed `kw_dollar` from `/\$\b/` to `/\$/`
-- Updated [systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+- Updated [systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf):
   - mirrored the same fix into the profiled generated grammar snapshot
 - Revalidated through:
   - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
@@ -3866,10 +3900,10 @@ Tiny focused repros isolated the real issue. Dynamic-array declarations such as 
 The remaining VeeR representative file in the current SV external-corpus slice, `el2_lsu.sv`, was still appearing as preprocess debt even though the failure was not a parser/preprocessor correctness bug. The checked-out `Cores-VeeR-EL2` tree simply does not contain the included file `el2_param.vh`, so there is no local way to know the intended preprocessed source for that case.
 
 ### Implementation
-- Updated [systemverilog_external_corpus_triage_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json):
+- Updated [systemverilog_external_corpus_triage_v0.json](rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json):
   - added manifest-level blocked-case metadata for `veer_el2_lsu`
   - blocked both `2017` and `2023` profiles with the explicit reason that `el2_param.vh` is absent from the checked-out tree
-- Updated [sv_external_corpus_triage_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_external_corpus_triage_gate.sh):
+- Updated [sv_external_corpus_triage_gate.sh](rust/scripts/sv_external_corpus_triage_gate.sh):
   - added generic blocked-profile handling before preprocess/parse execution
   - blocked cases now write explanatory logs, preserve the source-file reference, and emit `status=blocked_external_dependency`
   - blocked cases are excluded from preprocess/parser failure totals but counted separately via `cases_blocked_total` and `primary_blocked_*`
@@ -3902,11 +3936,11 @@ endfunction
 Tiny focused repros then isolated the underlying grammar debt: pure ordered actuals (`g(a)`) and pure named actuals (`g(.b(0))`) already parsed, but mixed ordered-plus-named subroutine actuals (`g(a, .b(0))`) did not.
 
 ### Implementation
-- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
   - split `list_of_arguments` into ordered-only, named-only, and mixed forms
   - added `named_argument`
   - changed the mixed-form front to a recursive `list_of_arguments_mixed_head`, which prevents the ordered branch from greedily consuming the comma that should introduce the named tail
-- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf):
   - mirrored the same call-argument fix into the profiled generated grammar snapshot
 - Revalidated through:
   - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
@@ -3939,11 +3973,11 @@ assign dm_hart_status_qlfy.dbg_state = hdu2dm_rdc_qlfy ? dm_hart_status.dbg_stat
 From there, tiny focused repros showed the real issue was broader than SCR1 itself: the active grammar still rejected even minimal ternary expressions like `assign a = c ? d : F;`, which pointed to the `expression` / `conditional_expression` / `inside_expression` wiring rather than to one corpus-specific module form.
 
 ### Implementation
-- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
   - introduced `expression_base`
   - rewired `expression`, `cond_pattern`, `expression_or_cond_pattern`, and both profile-specific `inside_expression` rules to consume that non-left-recursive base
   - kept the richer SystemVerilog conditional surface (`matches`, `&&&`, `inside`) while removing the old self-recursive front door that prevented ordinary `?:` parsing
-- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf):
   - mirrored the same expression fix into the profiled generated grammar snapshot
 - Revalidated the grammar and the generated-parser behavior through:
   - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
@@ -3971,10 +4005,10 @@ From there, tiny focused repros showed the real issue was broader than SCR1 itse
 Focused external-corpus debugging had already shown that plain concatenation forms like `{a,b}` should be parseable in the active SystemVerilog grammar, yet the generated parser still rejected tiny repros and several real RTL files. The trace finally exposed the real culprit: speculative branches were caching `RecursionGuard` cycle results by `(rule, position)`, and those cached `Infinite` results survived after the speculative stack unwound. Once `expression@48` was marked recursive on one failed path, later legitimate parses of `expression@48` failed immediately too.
 
 ### Implementation
-- Updated [rust/src/ast_pipeline/mod.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs):
+- Updated [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs):
   - removed sticky cycle-result memoization from `RecursionGuard::check_cycle()`
   - cycle detection is still enforced against the live parse stack, but no longer poisons later parses after speculative backtracking
-- Updated [rust/src/ast_pipeline/mutual_recursion_handler.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mutual_recursion_handler.rs):
+- Updated [rust/src/ast_pipeline/mutual_recursion_handler.rs](rust/src/ast_pipeline/mutual_recursion_handler.rs):
   - mirrored the same change into the sibling helper so recursion handling stays internally consistent
 - Revalidated the generated-parser behavior through:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
@@ -4003,19 +4037,19 @@ Focused external-corpus debugging had already shown that plain concatenation for
 The first promoted Verilog snapshot was honest but still rough: it preserved the IEEE 1364-2005 extraction exactly as recovered at the time, which meant `96` `(From A.x.y)` placeholders and an `EBNF -> JSON` failure caused partly by the tool-emitted `(* ... *)` header comments. The next task was to separate “real Verilog promotion debt” from “our extraction helpers are still dropping/mis-emitting grammar.”
 
 ### Implementation
-- Hardened [tools/extract_grammar.py](/Users/richarddje/Documents/github/pgen/tools/extract_grammar.py):
+- Hardened [tools/extract_grammar.py](tools/extract_grammar.py):
   - rule heads now allow empty same-line RHS so multiline Annex productions are captured
   - structurally incomplete rules now continue through blank lines, code fences, and page-noise headers/footers instead of truncating early
-- Hardened [tools/extract_grammar_v2.py](/Users/richarddje/Documents/github/pgen/tools/extract_grammar_v2.py):
+- Hardened [tools/extract_grammar_v2.py](tools/extract_grammar_v2.py):
   - variant selection now prefers complete non-placeholder recovered definitions
   - added lexical alias repair for suffix-`a` rules that can be resolved from sibling numbered variants
   - changed generated header comments to `# ...` so frontend validation is no longer poisoned by `(* ... *)`
-- Hardened [tools/create_clean_grammar.py](/Users/richarddje/Documents/github/pgen/tools/create_clean_grammar.py):
+- Hardened [tools/create_clean_grammar.py](tools/create_clean_grammar.py):
   - changed generated header comments to `# ...`
 - Regenerated the Verilog artifacts in:
-  - [docs/verilog/2005](/Users/richarddje/Documents/github/pgen/docs/verilog/2005)
-  - [docs/verilog](/Users/richarddje/Documents/github/pgen/docs/verilog)
-  - [grammars/verilog_2005_lrm_extracted.ebnf](/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf)
+  - [docs/verilog/2005](docs/verilog/2005)
+  - [docs/verilog](docs/verilog)
+  - [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf)
 - Revalidated the refreshed extracted grammar surface:
   - `rules_extracted=943`
   - `rule_count=508`
@@ -4036,7 +4070,7 @@ The first promoted Verilog snapshot was honest but still rough: it preserved the
 After the IEEE 1364-2005 workspace landed, the next natural question was whether that immediately implies an active `grammars/verilog.ebnf`. The answer turned out to be “not yet”: the extracted grammar is valuable and worth preserving, but it still contains unresolved syntax-annex cross-reference placeholders that the current EBNF frontend cannot ingest unchanged.
 
 ### Implementation
-- Added [grammars/verilog_2005_lrm_extracted.ebnf](/Users/richarddje/Documents/github/pgen/grammars/verilog_2005_lrm_extracted.ebnf) as the canonical promoted snapshot from [docs/verilog/2005/grammar_clean.ebnf](/Users/richarddje/Documents/github/pgen/docs/verilog/2005/grammar_clean.ebnf).
+- Added [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf) as the canonical promoted snapshot from [docs/verilog/2005/grammar_clean.ebnf](docs/verilog/2005/grammar_clean.ebnf).
 - Validated the current extracted grammar surface:
   - `336` total `::=` rules
   - `96` placeholder references matching `(From A.x.y)`
@@ -4055,14 +4089,14 @@ After the IEEE 1364-2005 workspace landed, the next natural question was whether
 The repository already had documented LRM conversion workspaces for SystemVerilog and VHDL, and the user supplied the local IEEE 1364-2005 PDF at `/Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf`. The right move was to reuse the same tracked conversion workflow instead of treating Verilog as a one-off manual extraction.
 
 ### Implementation
-- Added [docs/verilog/README.md](/Users/richarddje/Documents/github/pgen/docs/verilog/README.md) and [docs/verilog/.gitignore](/Users/richarddje/Documents/github/pgen/docs/verilog/.gitignore) to mirror the established LRM workspace structure.
+- Added [docs/verilog/README.md](docs/verilog/README.md) and [docs/verilog/.gitignore](docs/verilog/.gitignore) to mirror the established LRM workspace structure.
 - Ran the shared converter pipeline against the IEEE 1364-2005 PDF:
-  - full versioned workspace at [docs/verilog/2005](/Users/richarddje/Documents/github/pgen/docs/verilog/2005)
-  - lightweight top-level companion workspace at [docs/verilog](/Users/richarddje/Documents/github/pgen/docs/verilog)
-- Updated [tools/txt_to_md_converter.py](/Users/richarddje/Documents/github/pgen/tools/txt_to_md_converter.py):
+  - full versioned workspace at [docs/verilog/2005](docs/verilog/2005)
+  - lightweight top-level companion workspace at [docs/verilog](docs/verilog)
+- Updated [tools/txt_to_md_converter.py](tools/txt_to_md_converter.py):
   - clause-heading detection now accepts the standard dotted form (`1. Overview`)
   - title selection now prefers an exact section-heading match and otherwise uses the filename-derived title, which avoids front-page copyright/boilerplate titles in the generated markdown
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md), [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md), [tools/LRM_CONVERSION_WORKFLOW.md](/Users/richarddje/Documents/github/pgen/tools/LRM_CONVERSION_WORKFLOW.md), [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md) so the new workspace is part of the documented repo workflow.
+- Updated [README.md](README.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [tools/LRM_CONVERSION_WORKFLOW.md](tools/LRM_CONVERSION_WORKFLOW.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md) so the new workspace is part of the documented repo workflow.
 
 ### Outcome
 - The versioned Verilog workspace now contains:
@@ -4079,11 +4113,11 @@ The repository already had documented LRM conversion workspaces for SystemVerilo
 After the earlier callable/select/port-connection fixes, the focused SV repros still showed one stubborn false parse shape: inside a task-body `seq_block`, text like `end return;` or `end if (...) ...` could still be reinterpreted as a declaration instead of closing the block. The user’s diagnosis was directionally right: this is fundamentally a keyword-vs-identifier discrimination problem, and the current grammar still allowed too many declaration-flavored aliases to fall back to raw `identifier`.
 
 ### Implementation
-- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
   - expanded `non_keyword_identifier` to reject control/end keywords in addition to the earlier declaration-opening keywords
   - changed `callable_identifier` to reuse `non_keyword_identifier`
   - changed `block_identifier`, `formal_identifier`, `formal_port_identifier`, `net_identifier`, `port_identifier`, and `variable_identifier` to use `declaration_identifier`
-- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf):
   - mirrored the same identifier-discipline tightening into the profiled/generated grammar surface
 
 ### Outcome
@@ -4104,11 +4138,11 @@ Once the first external SV preprocess blockers were removed and parser-error det
 - named instance port maps could be shadowed by the ordered-port-connection branch because ordered connections were tried first even though that branch allows an empty expression
 
 ### Implementation
-- Updated [grammars/systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf):
+- Updated [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
   - added `callable_identifier` and used it for `tf_identifier` and `hierarchical_tf_identifier`
   - widened `select` and `constant_select` so direct indexed/part-select brackets are legal as the first selector
   - reordered `list_of_port_connections` so named connections are preferred before ordered connections
-- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf):
+- Updated [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf):
   - mirrored the same active-grammar fixes into the profiled/generated surface
 
 ### Outcome
@@ -4124,11 +4158,11 @@ Once the first external SV preprocess blockers were removed and parser-error det
 Once the first external SV preprocess blockers were removed, the next debugging bottleneck was visibility: the triage logs still reduced every parser rejection to the same generic `parse_full rejected sample` message. That made the now-preprocess-green UVM, SCR1, and FRISCV slices harder to debug than they needed to be.
 
 ### Implementation
-- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+- Updated [rust/src/parser_registry.rs](rust/src/parser_registry.rs):
   - added `parse_sample_detail` / `parse_sample_detail_with_profile`
   - the new detail path returns `Result<(), String>` with the underlying generated-parser error instead of only a boolean
   - `systemverilog` keeps grammar-profile-aware dispatch in that detail surface
-- Updated [rust/src/bin/parseability_probe.rs](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs):
+- Updated [rust/src/bin/parseability_probe.rs](rust/src/bin/parseability_probe.rs):
   - `--parse` now routes through the detail-returning registry path
   - failures now emit `parse_full rejected sample ...: <real parser error>`
 
@@ -4144,7 +4178,7 @@ Once the first external SV preprocess blockers were removed, the next debugging 
 After wiring the new SV external corpora into `sv_external_corpus_triage_gate`, the first useful debugging target was the preprocess stage rather than parser acceptance. The initial measured surface was too preprocess-heavy to give good parser debt on the UVM and SCR1 slices, so the right move was to make the preprocessor robust enough to get those corpora through onboarding first.
 
 ### Implementation
-- Updated [rust/src/sv_preprocessor.rs](/Users/richarddje/Documents/github/pgen/rust/src/sv_preprocessor.rs):
+- Updated [rust/src/sv_preprocessor.rs](rust/src/sv_preprocessor.rs):
   - replaced hard UTF-8 reads with byte reads plus lossy fallback and warning `W_SVPP_NON_UTF8_SOURCE`
   - changed macro parameter parsing from bare names to structured parameters with optional defaults
   - enforced the SystemVerilog adjacency rule for function-like macros, so only `` `define FOO(bar)`` is function-like while `` `define FOO   (1<<0)`` remains object-like
@@ -4176,7 +4210,7 @@ After wiring the new SV external corpora into `sv_external_corpus_triage_gate`, 
 The user added a substantial external corpus base intended specifically to harden the `systemverilog` and `vhdl` parser families. Those sources are immediately valuable for future realistic-corpus proof work, but they should not be mistaken for closure on their own: the parser-trust doctrine still requires repeatable gates, reports, and objective pass/fail policy over those corpora.
 
 ### Implementation
-- Added [.gitmodules](/Users/richarddje/Documents/github/pgen/.gitmodules) with eight new top-level corpus submodules:
+- Added [.gitmodules](.gitmodules) with eight new top-level corpus submodules:
   - `stimuli/vhdl/subs/PoC`
   - `stimuli/vhdl/subs/Compliance-Tests`
   - `stimuli/vhdl/subs/Interfaces`
@@ -4185,10 +4219,10 @@ The user added a substantial external corpus base intended specifically to harde
   - `stimuli/sv/subs/Cores-VeeR-EL2`
   - `stimuli/sv/subs/scr1`
   - `stimuli/sv/subs/friscv`
-- Added vendored UVM source package [stimuli/sv/uvm/uvm-core-2020.3.1](/Users/richarddje/Documents/github/pgen/stimuli/sv/uvm/uvm-core-2020.3.1):
+- Added vendored UVM source package [stimuli/sv/uvm/uvm-core-2020.3.1](stimuli/sv/uvm/uvm-core-2020.3.1):
   - core package entrypoints `src/uvm_pkg.sv` and `src/uvm_macros.svh`
   - the broader UVM class/package/macro/sequence/register/TLM/DPI source tree for parser hardening
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new external corpus base for SV/VHDL
   - explicitly kept live status unchanged because tracked corpora only count toward closure once wired into machine-checkable proof surfaces
 
@@ -4197,7 +4231,7 @@ The user added a substantial external corpus base intended specifically to harde
 After landing the regex family contract, regex family-status, and regex family-status contract layers, the next missing proof surface was the same aggregate sign-off parity layer already present for SV and VHDL. The regex row should not depend on source-side sidecars alone; `sota_exit_gate` also needs to surface that sidecar stack explicitly and prove its aggregate telemetry matches the source artifacts exactly.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now scopes `ebnf_frontend_dual_run` into the aggregate workdir instead of leaving it only in the default target dir
   - now reruns and surfaces:
     - `regex_parser_family_contract_gate`
@@ -4208,15 +4242,15 @@ After landing the regex family contract, regex family-status, and regex family-s
     - frontend state/summary paths
     - dual-run state/summary paths
     - stimuli state/summary paths
-- Added [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh):
+- Added [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh):
   - runs bounded aggregate sign-off for the regex-family slice
   - proves exact parity between aggregate telemetry and the produced regex contract/status/status-contract sidecars
   - now also proves parity for the regex proof provenance fields, so reuse-backed aggregate evidence stays explicit
-- Added [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
+- Added [rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env](rust/test_data/grammar_quality/regex_combined_telemetry_lightweight_v0.env):
   - checked-in lightweight aggregate policy for the regex proof slice
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added target `regex_combined_telemetry_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that regex aggregate telemetry parity is now landed
   - kept `regex` at `In Progress`
 
@@ -4225,7 +4259,7 @@ After landing the regex family contract, regex family-status, and regex family-s
 After landing the regex family-status sidecar, the next missing layer was the same source-side contract proof the SV and VHDL families already had. The `regex` row should not just be machine-computed; the sidecar itself should also be schema-checked and parity-checked so later aggregate work can depend on it safely.
 
 ### Implementation
-- Added [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh):
+- Added [rust/scripts/regex_parser_family_status_contract_gate.sh](rust/scripts/regex_parser_family_status_contract_gate.sh):
   - validates the produced `regex_parser_family_status_gate` sidecar
   - checks schema shape, tracker alignment, closure-count arithmetic, false-criteria accounting, and parity between `summary.json` and `summary.txt`
   - emits both `summary.txt` and `summary.json`
@@ -4235,9 +4269,9 @@ After landing the regex family-status sidecar, the next missing layer was the sa
     - `regex_false_criteria_count=2`
     - `regex_unmet_details_count=2`
     - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added target `regex_parser_family_status_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new regex status-contract proof layer
   - kept `regex` at `In Progress`
 
@@ -4246,10 +4280,10 @@ After landing the regex family-status sidecar, the next missing layer was the sa
 After landing the first reusable regex family contract gate, the next missing layer was a real source-side status proof. The `regex` row should be computed from explicit closure criteria and tracker alignment, not left as a narrative inference.
 
 ### Implementation
-- Added [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh):
+- Added [rust/scripts/regex_parser_family_status_gate.sh](rust/scripts/regex_parser_family_status_gate.sh):
   - computes the `regex` status from `regex_parser_family_contract_gate`
   - emits both `summary.txt` and `summary.json`
-  - verifies tracker alignment against [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - verifies tracker alignment against [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
   - keeps the row conservative:
     - `regex_status=In Progress`
     - `closure_criteria_satisfied_count=5`
@@ -4258,9 +4292,9 @@ After landing the first reusable regex family contract gate, the next missing la
     - blockers:
       - `stimuli_regex_final_targets=81 > 0`
       - `formal_exhaustive_closure_surface=missing`
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added target `regex_parser_family_status_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new regex source-side status proof
   - kept `regex` at `In Progress`
 
@@ -4269,7 +4303,7 @@ After landing the first reusable regex family contract gate, the next missing la
 The `regex` row was still mostly narrative: it had frontend-readiness, dual-run parity, and closed-loop stimuli evidence, but no dedicated family-level proof wrapper comparable to the first VHDL family contract gate. The next useful step was to package those existing regex proof surfaces into one replayable family gate without overclaiming professional-grade closure.
 
 ### Implementation
-- Added [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+- Added [rust/scripts/regex_parser_family_contract_gate.sh](rust/scripts/regex_parser_family_contract_gate.sh):
   - validates the current regex family proof surface across:
     - `ebnf_frontend_gate`
     - `ebnf_frontend_dual_run_gate`
@@ -4280,9 +4314,9 @@ The `regex` row was still mostly narrative: it had frontend-readiness, dual-run 
     - dual-run overall `pass`
     - Rust raw-AST does not under-report relative to Perl (`raw_ast_missing_on_rust_count=0`)
     - current stimuli closure still leaves bounded debt (`initial_targets=167`, `final_targets=81`)
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added target `regex_parser_family_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new regex-family proof anchor
   - kept `regex` at `In Progress`
 
@@ -4291,7 +4325,7 @@ The `regex` row was still mostly narrative: it had frontend-readiness, dual-run 
 Aggregate sign-off already surfaced the VHDL family-status label, blocker arrays, criterion booleans, and the separate VHDL status-contract metadata. The next missing layer was the VHDL family-status sidecar's own identity and provenance metadata, so the aggregate proof could expose exactly which gate/version generated the sidecar and which tracker/proof-surface context it came from.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now reads the VHDL family-status sidecar `summary.json` directly
   - now surfaces:
     - `vhdl_parser_family_status_gate`
@@ -4300,10 +4334,10 @@ Aggregate sign-off already surfaced the VHDL family-status label, blocker arrays
     - `vhdl_parser_family_status_live_tracker_file`
     - `vhdl_parser_family_status_status_rule_done`
     - `vhdl_family_status_vhdl_family_contract_summary_txt`
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now extracts the VHDL family-status sidecar's top-level metadata directly from `summary.json`
   - now proves exact parity for the new aggregate-visible metadata and proof-surface path fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL family-status proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4312,18 +4346,18 @@ Aggregate sign-off already surfaced the VHDL family-status label, blocker arrays
 After a full README-driven documentation pass and a thorough static analysis of the Rust codebase, a few maintainability concerns were clear: several core Rust modules are very large, `main.rs` is a heavy orchestration hub, and some of the release-proof aggregation logic now lives in very large shell gates. Those concerns are legitimate, but the user explicitly prioritized finishing the parser-family roadmap objectives first, especially for `systemverilog`, `vhdl`, and `regex`.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added a dedicated deferred-engineering-concerns section
   - explicitly recorded that these concerns are real but must not displace parser-family closure work for `systemverilog`, `vhdl`, and `regex`
   - captured the concrete deferred concerns:
-    - split [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs) into smaller orchestration modules
+    - split [rust/src/main.rs](rust/src/main.rs) into smaller orchestration modules
     - reduce implementation concentration in the largest `ast_pipeline` / embedding modules
     - gradually lift the highest-risk shell-side aggregation logic into typed/shared Rust utilities where appropriate
     - continue current-vs-archival documentation cleanup
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded the same deferred-concerns rule for crash recovery and future resume continuity
   - kept parser finalization as the active priority and moved the maintainability concerns into explicitly post-closure follow-up
-- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md):
+- Updated [CHANGES.md](CHANGES.md):
   - logged the new deferred-concerns tracking decision
 
 ## 2026-03-17 - Surface VHDL status-contract metadata
@@ -4331,7 +4365,7 @@ After a full README-driven documentation pass and a thorough static analysis of 
 After adding the VHDL status-contract `summary.json` sidecar and surfacing its path in aggregate sign-off, the next missing layer was the sidecar's own identity and provenance metadata. The aggregate proof should expose not only where the sidecar lives, but also which gate/version produced it and which family-status sidecar it validated.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now reads VHDL status-contract metadata from `vhdl_parser_family_status_contract_gate/summary.json`
   - now surfaces:
     - `vhdl_family_status_contract_gate`
@@ -4340,10 +4374,10 @@ After adding the VHDL status-contract `summary.json` sidecar and surfacing its p
     - `vhdl_family_status_contract_family_status_state_dir`
     - `vhdl_family_status_contract_family_status_summary_json`
     - `vhdl_family_status_contract_family_status_summary_txt`
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now requires `jq` and reads the VHDL status-contract `summary.json` directly
   - now proves exact parity for the new aggregate-visible metadata/provenance fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL status-contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4352,7 +4386,7 @@ After adding the VHDL status-contract `summary.json` sidecar and surfacing its p
 The recent commit workflow already depended on continuity documents, but the post-commit reporting contract was still partly implicit. For crash recovery and seamless session resume, the workflow needs to require not just the live-status snapshot, but also the exact commit identity and committed file set.
 
 ### Implementation
-- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+- Updated [COMMIT.md](COMMIT.md):
   - made markdown synchronization explicit and systematic rather than loosely "as needed"
   - now requires every post-commit completion message to include:
     - commit ID
@@ -4360,11 +4394,11 @@ The recent commit workflow already depended on continuity documents, but the pos
     - full list of tracked files included in the commit
     - current live-status snapshot
     - whether the snapshot changed or stayed unchanged
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - added a dedicated commit-workflow continuity contract section so crash-recovery handoffs read the same rule directly
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+- Updated [README.md](README.md):
   - recorded the binding post-commit reporting rule in the repository entrypoint
-- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md):
+- Updated [CHANGES.md](CHANGES.md):
   - logged this workflow-contract hardening step
 
 ## 2026-03-17 - Add VHDL status-contract JSON sidecar
@@ -4372,15 +4406,15 @@ The recent commit workflow already depended on continuity documents, but the pos
 The VHDL family-status contract proof already exposed its key facts through `summary.txt`, but it still lacked the same machine-readable sidecar shape we rely on elsewhere for durable proof reuse. The next clean step was to add `summary.json` and surface its path in aggregate sign-off.
 
 ### Implementation
-- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](rust/scripts/vhdl_parser_family_status_contract_gate.sh):
   - now emits `summary.json` alongside `summary.txt`
   - the JSON sidecar records contract metadata, provenance paths, family counts, and structured blocker arrays
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces `vhdl_parser_family_status_contract_summary_json`
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now requires the produced `summary.json`
   - now proves exact parity for the aggregate-visible JSON-sidecar path
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger machine-readable VHDL status-contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4389,13 +4423,13 @@ The VHDL family-status contract proof already exposed its key facts through `sum
 Aggregate sign-off already exposed the VHDL status-contract counts and primary unmet-detail criterion, but it still hid the full contract-side blocker arrays that explain exactly which criteria remain false. The next clean step was to surface those arrays directly and parity-check them at the aggregate layer too.
 
 ### Implementation
-- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](rust/scripts/vhdl_parser_family_status_contract_gate.sh):
   - now surfaces the full VHDL status-contract blocker arrays
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces aggregate-visible VHDL status-contract blocker arrays
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those aggregate-visible VHDL status-contract blocker arrays
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL status-contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4404,11 +4438,11 @@ Aggregate sign-off already exposed the VHDL status-contract counts and primary u
 Aggregate sign-off already exposed the VHDL status label, blocker arrays, and closure-progress counts, but it still hid the exact boolean closure criteria that the VHDL family-status gate actually evaluates. The next clean step was to surface those criterion flags directly and parity-check them at the aggregate layer too.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the VHDL family-status criterion booleans from `vhdl_parser_family_status_gate/summary.txt`
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those aggregate-visible criterion flags
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL status-proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4417,13 +4451,13 @@ Aggregate sign-off already exposed the VHDL status label, blocker arrays, and cl
 Aggregate sign-off already surfaced the VHDL status label, blocker counts, and the primary blocker, but it still hid the full blocker arrays that actually explain the remaining closure debt. The next clean step was to expose those arrays directly and parity-check them at the aggregate layer too.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the full blocker arrays from `vhdl_parser_family_status_gate/summary.txt`:
     - `vhdl_family_status_vhdl_unmet_closure_criteria_json`
     - `vhdl_family_status_vhdl_unmet_closure_criteria_details_json`
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those new aggregate-visible VHDL blocker-array fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL blocker surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4432,10 +4466,10 @@ Aggregate sign-off already surfaced the VHDL status label, blocker counts, and t
 Once aggregate sign-off exposed the VHDL family-status sidecar directly, the next missing layer was the same one we already closed for the shipped SV families: aggregate telemetry still did not show whether that VHDL status sidecar had passed its own source-side contract gate. The next clean step was to thread the VHDL status-contract summary through aggregate sign-off and parity-check it there too.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now reruns `vhdl_parser_family_status_contract_gate` against the produced `vhdl_parser_family_status_gate` sidecar
   - now surfaces the resulting summary path and key contract-summary counts for the single tracked VHDL family row
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now requires the source-side VHDL status-contract summary under aggregate state
   - now proves exact parity for the new aggregate-visible contract fields:
     - `vhdl_family_status_contract_family_count`
@@ -4443,7 +4477,7 @@ Once aggregate sign-off exposed the VHDL family-status sidecar directly, the nex
     - `vhdl_family_status_contract_vhdl_false_criteria_count`
     - `vhdl_family_status_contract_vhdl_unmet_details_count`
     - `vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL family-status contract surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4452,7 +4486,7 @@ Once aggregate sign-off exposed the VHDL family-status sidecar directly, the nex
 The first VHDL status gate was useful, but its proof layering was wrong for long-term aggregate reuse: it depended on the aggregate-telemetry parity gate that should have been consuming it. The clean next step was to make `vhdl_parser_family_status_gate` source-side only, then let aggregate sign-off reuse and expose that sidecar explicitly.
 
 ### Implementation
-- Updated [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh):
+- Updated [rust/scripts/vhdl_parser_family_status_gate.sh](rust/scripts/vhdl_parser_family_status_gate.sh):
   - removed the dependency on `vhdl_combined_telemetry_contract_gate`
   - now computes the `vhdl` row only from `vhdl_parser_family_contract_gate`
   - current validated source-side closure counts are:
@@ -4464,16 +4498,16 @@ The first VHDL status gate was useful, but its proof layering was wrong for long
     - `quality_closed_loop_parseability_shadow_parser_rejections_total=20 > 0`
     - `quality_closed_loop_replay_targets=12 > 0`
     - `formal_exhaustive_closure_surface=missing`
-- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+- Updated [rust/scripts/vhdl_parser_family_status_contract_gate.sh](rust/scripts/vhdl_parser_family_status_contract_gate.sh):
   - now validates the refactored source-side 10-criterion status schema
   - now expects the proof-surface list rooted only in `family_contract_summary_txt`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now reruns `vhdl_parser_family_status_gate` against the produced VHDL family-contract artifact
   - now surfaces the VHDL status sidecar paths, computed/tracker labels, tracker-alignment flag, blocker count/primary blocker, and closure-progress counts directly in aggregate telemetry
-- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now requires the produced `vhdl_parser_family_status_gate` sidecar under aggregate state
   - now proves exact parity for those new aggregate-visible VHDL status fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the corrected proof layering and new aggregate-visible VHDL status surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4482,13 +4516,13 @@ The first VHDL status gate was useful, but its proof layering was wrong for long
 Once the VHDL family-status gate existed, the next clean hardening step was the same one we took for SV: validate the sidecar itself as an artifact. That gives the VHDL row a producer gate plus a source-side contract gate, instead of leaving all trust on the producer alone.
 
 ### Implementation
-- Added [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh):
+- Added [rust/scripts/vhdl_parser_family_status_contract_gate.sh](rust/scripts/vhdl_parser_family_status_contract_gate.sh):
   - can validate an existing `vhdl_parser_family_status_gate` state dir or produce one on demand
   - enforces sidecar schema shape, single-family roster, tracker alignment, closure-count arithmetic, false-criteria accounting, and blocker-detail count parity
   - enforces parity between `summary.json` and `summary.txt` for the VHDL blocker arrays, primary unmet criterion, and tracker-alignment boolean
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_parser_family_status_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new VHDL family-status contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4497,7 +4531,7 @@ Once the VHDL family-status gate existed, the next clean hardening step was the 
 The VHDL proof surface had already reached the point where the row deserved the same treatment as the shipped SV families: a machine-checkable status computation instead of a prose-only tracker label. The next clean step was to add a conservative VHDL family-status gate that reuses the landed VHDL family proof surfaces, verifies alignment with the live tracker, and makes the remaining blockers explicit without overpromoting the row.
 
 ### Implementation
-- Added [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh):
+- Added [rust/scripts/vhdl_parser_family_status_gate.sh](rust/scripts/vhdl_parser_family_status_gate.sh):
   - reuses `vhdl_parser_family_contract_gate` plus `vhdl_combined_telemetry_contract_gate`
   - can pass through existing VHDL quality, strict-promotion, and SOTA aggregate state dirs for fast validation
   - emits `summary.txt` and `summary.json` with tracker alignment, closure counts, proof-surface paths, and structured blocker details
@@ -4506,9 +4540,9 @@ The VHDL proof surface had already reached the point where the row deserved the 
     - `quality_closed_loop_parseability_shadow_parser_rejections_total=20 > 0`
     - `quality_closed_loop_replay_targets=12 > 0`
     - `formal_exhaustive_closure_surface=missing`
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_parser_family_status_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new VHDL family-status proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4517,17 +4551,17 @@ The VHDL proof surface had already reached the point where the row deserved the 
 The new VHDL family contract gate made the current VHDL proof surface reusable, but aggregate sign-off still only surfaced the lower-level VHDL gates separately. The next hardening step was to thread the family-level sidecar into `sota_exit_gate` and add a dedicated parity gate so the release summary can show one coherent VHDL family proof surface rather than two disconnected sub-surfaces.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now reuses `vhdl_parser_family_contract_gate` over the produced `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` artifacts
   - now surfaces the VHDL family summary path plus core quality/promotion metrics in aggregate telemetry
-- Added [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+- Added [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - runs a bounded VHDL-only aggregate flow or validates an existing aggregate state dir
   - proves exact parity between aggregate VHDL telemetry and `vhdl_parser_family_contract_gate/summary.txt`
-- Added [rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env):
+- Added [rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env](rust/test_data/grammar_quality/vhdl_combined_telemetry_lightweight_v0.env):
   - checked-in lightweight aggregate policy for the VHDL telemetry parity proof
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_combined_telemetry_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL family proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4536,13 +4570,13 @@ The new VHDL family contract gate made the current VHDL proof surface reusable, 
 Once the repository-wide parser proof doctrine was made explicit, the next useful follow-through was to apply it to a non-SV family in executable form. VHDL already had two meaningful proof surfaces, `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate`, but no reusable combined contract that treated them as one family-level evidence surface.
 
 ### Implementation
-- Added [rust/scripts/vhdl_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh):
+- Added [rust/scripts/vhdl_parser_family_contract_gate.sh](rust/scripts/vhdl_parser_family_contract_gate.sh):
   - can reuse existing `vhdl_stimuli_quality_gate` and `vhdl_strict_promotion_gate` state dirs for fast validation
   - enforces summary/JSON consistency and key VHDL-family invariants across those two gates
   - emits one reusable combined summary for current VHDL family evidence
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_parser_family_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger reusable VHDL proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -4551,13 +4585,13 @@ Once the repository-wide parser proof doctrine was made explicit, the next usefu
 The repo had already evolved a strong proof-first doctrine in practice, especially around the shipped SV parser families, but that doctrine still risked being read as a local SV standard rather than a universal PGEN parser standard. The next clean documentation step was to make the rule explicit: any EBNF-based parser built by PGEN is expected to converge toward the same professional-grade closure surface.
 
 ### Implementation
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+- Updated [README.md](README.md):
   - clarified that the parser proof doctrine applies to all PGEN EBNF-based parser families with no exception
   - clarified that tracker/status differences reflect landed proof depth, not differing quality bars
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added a universal-application rule under parser deliverable proof doctrine
   - clarified in live-tracking policy that every parser-family row is interpreted against that same common closure bar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the doctrine clarification
   - recorded that live-status labels remain unchanged
 
@@ -4566,13 +4600,13 @@ The repo had already evolved a strong proof-first doctrine in practice, especial
 We already had two adjacent proof layers for shipped SV-family status: the producer `sv_parser_family_status_gate`, and the source-side artifact contract `sv_parser_family_status_contract_gate`. Aggregate sign-off still only surfaced the producer sidecar, which meant the release telemetry did not explicitly show whether the sidecar itself had passed its own contract gate. The next clean hardening step was to thread that source-side contract layer through aggregate sign-off and parity-check its key counts too.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now reruns `sv_parser_family_status_contract_gate` against the produced `sv_parser_family_status_gate` state dir
   - now surfaces the resulting summary path and the contract-summary counts for both shipped SV parser families
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the source-side contract summary under `work/sv_parser_family_status_contract_gate/summary.txt`
   - now proves exact parity for the new aggregate-visible contract fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible family-status contract surface
   - recorded that live-status labels remain unchanged
 
@@ -4581,7 +4615,7 @@ We already had two adjacent proof layers for shipped SV-family status: the produ
 The project already had a producer for the SV family-status sidecar and consumers that reused it in aggregate sign-off, but the sidecar itself still lacked a dedicated contract gate. The next clean hardening step was to validate the sidecar as an artifact in its own right: schema shape, family roster, tracker-alignment consistency, closure-count arithmetic, false-criteria accounting, and parity between the JSON sidecar and the human summary.
 
 ### Implementation
-- Added [rust/scripts/sv_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh):
+- Added [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
   - can validate an existing `sv_parser_family_status_gate` state dir or produce one on demand
   - enforces required top-level fields and required per-family keys
   - enforces internal consistency for both shipped SV parser families:
@@ -4591,9 +4625,9 @@ The project already had a producer for the SV family-status sidecar and consumer
     - structured blocker detail count equals blocker count
     - structured blocker details map back to false criteria and the human blocker strings
   - enforces parity between the sidecar JSON and `summary.txt` for structured blocker arrays and tracker-alignment booleans
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added the new `sv_parser_family_status_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new source-side contract gate and the stronger sidecar proof surface
   - recorded that live-status labels remain unchanged
 
@@ -4602,18 +4636,18 @@ The project already had a producer for the SV family-status sidecar and consumer
 Aggregate sign-off already exposed the shipped SV-family blocker counts, first-blocker strings, and full blocker string arrays, but it still did not carry a machine-readable structured blocker surface. The next clean hardening step was to make each unmet closure criterion explicit as an object with a criterion id, evidence key, observed value, expected value, and detail string, so downstream telemetry can consume blocker evidence without parsing human-oriented strings.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
   - now emits per-family `unmet_closure_criteria_details` arrays in `summary.json`
   - now exposes those same arrays in `summary.txt` as:
     - `systemverilog_unmet_closure_criteria_details_json`
     - `systemverilog_preprocessor_unmet_closure_criteria_details_json`
   - now records the actual computed `tracker_alignment_ok` booleans in the JSON sidecar instead of hardcoded `true`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the two aggregate-visible structured blocker JSON fields directly in release telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads those structured blocker arrays from the family-status sidecar
   - now proves exact parity for the aggregate-visible `*_details_json` fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger structured blocker surface
   - recorded that live-status labels remain unchanged
 
@@ -4622,14 +4656,14 @@ Aggregate sign-off already exposed the shipped SV-family blocker counts, first-b
 Aggregate sign-off already exposed the shipped SV-family labels, blocker lists, syntax debt, criteria booleans, progress counts, tracker alignment, proof-surface paths, and contract metadata, but it still did not expose the source-of-truth family-status metrics that explain those rows numerically. The next clean hardening step was to surface those metric values directly so release telemetry can show the exact parser-rejection, replay-gap, parseability, and reachability numbers that the family-status gate used when it computed `Mostly Done`.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now extracts the `metrics.*` fields from `sv_parser_family_status_gate/summary.json` for both shipped SV parser families
   - now surfaces those family-status metrics directly in aggregate telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads the same `metrics.*` fields from the family-status JSON sidecar
   - now proves exact parity for every new aggregate-visible family-status metric field
   - now emits those fields in its own summary for deterministic inspection
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible family-status metric surface
   - recorded that live-status labels remain unchanged
 
@@ -4638,13 +4672,13 @@ Aggregate sign-off already exposed the shipped SV-family labels, blocker lists, 
 Aggregate sign-off already exposed the computed SV-family rows and the family-status sidecar metadata, but it still did not show the live-tracker statuses that those rows were checked against. The next clean hardening step was to surface the tracker side explicitly, plus a machine-checkable alignment flag, so aggregate telemetry can prove not just the computed state but also that the tracker agrees with it.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
   - now records per-family tracker-alignment booleans in both `summary.json` and `summary.txt`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the shipped SV families' tracker statuses and tracker-alignment flags directly in aggregate telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those aggregate-visible tracker fields against the family-status sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible tracker-alignment surface
   - recorded that live-status labels remain unchanged
 
@@ -4653,13 +4687,13 @@ Aggregate sign-off already exposed the computed SV-family rows and the family-st
 Aggregate sign-off already exposed the computed SV-family labels, blocker lists, criteria booleans, progress counts, and per-family proof-surface paths, but it still did not expose the contract metadata of the family-status sidecar itself. The next clean hardening step was to let release telemetry name the exact gate, version, timestamp, live tracker, and `Done` rule that produced those family rows.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now extracts the top-level family-status metadata from `sv_parser_family_status_gate/summary.json`
   - now surfaces those contract provenance fields directly in aggregate telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads the top-level family-status metadata from `sv_parser_family_status_gate/summary.json`
   - now proves exact parity for the aggregate-visible contract metadata fields emitted by `sota_exit_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible contract provenance surface
   - recorded that live-status labels remain unchanged
 
@@ -4668,13 +4702,13 @@ Aggregate sign-off already exposed the computed SV-family labels, blocker lists,
 Aggregate sign-off already surfaced the computed family-status labels, blocker lists, syntax debt, criteria booleans, and closure-progress counts, but it still did not expose the exact per-family sidecars that produced those rows. The next clean hardening step was to surface those proof-surface paths directly so release telemetry can point to the concrete syntax-closure, aggregate-contract, and reachability artifacts behind each family status.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now extracts per-family `proof_surfaces.*` paths from `sv_parser_family_status_gate/summary.json`
   - now surfaces those provenance paths directly in aggregate telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads the same per-family proof-surface paths from the family-status JSON sidecar
   - now proves exact parity for every new aggregate-visible provenance field
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible provenance surface
   - recorded that live-status labels remain unchanged
 
@@ -4683,14 +4717,14 @@ Aggregate sign-off already surfaced the computed family-status labels, blocker l
 After surfacing the exact family-status criteria booleans, aggregate sign-off still did not carry a compact progress ratio for each shipped SV parser family. The next clean hardening step was to let the source-of-truth family-status gate count how many closure criteria are currently satisfied, then promote those counts through aggregate telemetry so release summaries can say not just which booleans are green, but how far each family is from full closure in a machine-checkable way.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh):
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
   - now counts satisfied criteria directly from the same boolean closure checks used to compute each family status
   - now emits `closure_criteria_total_count`, `closure_criteria_satisfied_count`, and `closure_criteria_unsatisfied_count` in both `summary.json` and `summary.txt`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces those closure-progress counts directly in aggregate telemetry for both shipped SV families
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves exact parity for all new aggregate-visible progress-count fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible closure-progress surface
   - recorded that live-status labels remain unchanged
 
@@ -4699,13 +4733,13 @@ After surfacing the exact family-status criteria booleans, aggregate sign-off st
 Aggregate sign-off already carried the family-status labels, blocker lists, first blockers, and syntax-debt metrics, but it still did not expose the exact machine-checked closure criteria booleans that produced those rows. The next clean hardening step was to surface those booleans directly so release telemetry can answer not just "what is the status?" but "which closure checks are green right now?" without reopening the family-status sidecar JSON.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now extracts the shipped SV families' criteria booleans from `sv_parser_family_status_gate/summary.json`
   - now surfaces those boolean fields directly in aggregate telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads the same criteria booleans from the family-status JSON sidecar
   - now proves exact parity for every new aggregate-visible boolean field
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new aggregate-visible family-status criteria surface
   - recorded that live-status labels remain unchanged
 
@@ -4722,14 +4756,14 @@ Aggregate sign-off already carried the family-status labels, blocker lists, firs
 Aggregate sign-off already surfaced the blocker count and the first unmet closure criterion for each shipped SV parser family, but it still required opening the family-status sidecar to see the complete blocker list. The next clean hardening step was to surface the full unmet-closure arrays directly in aggregate telemetry so release summaries carry the whole normalized blocker set, not just a truncated leading example.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces:
     - `sv_family_status_systemverilog_unmet_closure_criteria_json`
     - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_json`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now extracts the compact unmet-closure arrays from the family-status JSON sidecar
   - now proves those aggregate blocker-list fields exactly match the family-status sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible blocker-list proof surface
   - recorded that the live-status labels did not change
 
@@ -4751,7 +4785,7 @@ Aggregate sign-off already surfaced the blocker count and the first unmet closur
 Aggregate sign-off already surfaced the family-status labels, blocker counts, blocker strings, and syntax pass/fail flags, but it still hid the concrete grammar-level syntax debt numbers that explain those flags. The next clean hardening step was to surface the syntax-debt metrics from the family-status sidecar directly in aggregate telemetry, so release summaries show the actual defined-rule, unresolved-reference, unreachable-rule/branch, and syntax-target-debt counts behind the current SV-family status proof.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces, for both shipped SV families:
     - `syntax_closure_failure_count`
     - `syntax_defined_rule_count`
@@ -4759,9 +4793,9 @@ Aggregate sign-off already surfaced the family-status labels, blocker counts, bl
     - `syntax_unreachable_rules`
     - `syntax_unreachable_branches`
     - `syntax_target_debt_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those aggregate syntax-debt fields exactly match the family-status summary
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible syntax-debt proof surface
   - recorded that the live-status labels did not change
 
@@ -4795,16 +4829,16 @@ Aggregate sign-off already surfaced the family-status labels, blocker counts, bl
 Aggregate sign-off already surfaced the computed SV-family status labels and unmet-closure counts, but it still made a reviewer open the family-status sidecar to see what the first blocker actually was. The next clean hardening step was to surface the primary unmet closure criterion directly in aggregate telemetry, alongside the family-status JSON sidecar path, so the normalized status proof is actionable from the aggregate release summary itself.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - added `summary_value_from_txt_literal` for literal-key extraction where summary keys contain `[0]`
   - now surfaces:
     - `sv_parser_family_status_summary_json`
     - `sv_family_status_systemverilog_primary_unmet_closure_criterion`
     - `sv_family_status_systemverilog_preprocessor_primary_unmet_closure_criterion`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the family-status JSON sidecar path
   - now proves the new aggregate blocker strings exactly match the family-status summary
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible blocker proof surface
   - recorded that live-status labels are unchanged
 
@@ -4827,7 +4861,7 @@ Aggregate sign-off already surfaced the computed SV-family status labels and unm
 The SV-family status gate now computes the authoritative `systemverilog` and `systemverilog_preprocessor` live-status labels from syntax closure plus parser/stimuli proof surfaces, but aggregate sign-off still stopped one layer lower at the raw proof sidecars. The next clean hardening step was to make `sota_exit_gate` surface that computed family-status proof directly, so release telemetry shows the normalized status claim and its unmet-closure counts instead of forcing separate manual correlation.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now runs `sv_parser_family_status_gate` against the produced SV-family artifact state
   - now surfaces:
     - `sv_parser_family_status_summary_txt`
@@ -4837,10 +4871,10 @@ The SV-family status gate now computes the authoritative `systemverilog` and `sy
     - `sv_family_status_systemverilog_preprocessor`
     - `sv_family_status_systemverilog_preprocessor_unmet_closure_criteria_count`
     - `sv_family_status_systemverilog_preprocessor_syntax_closure_status`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the family-status sidecar summary
   - now proves those aggregate telemetry fields exactly match the family-status summary
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate sign-off now carries the computed family-status proof surface
   - recorded that the live-status labels themselves did not change
 
@@ -4851,7 +4885,7 @@ The SV-family status gate now computes the authoritative `systemverilog` and `sy
   - passed
 - `git diff --check`
   - passed
-- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_family_status_telemetry_parity PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_family_status_telemetry_parity PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
   - passed
   - current aggregate-visible family-status proof:
     - `sv_family_status_systemverilog=Mostly Done`
@@ -4866,7 +4900,7 @@ The SV-family status gate now computes the authoritative `systemverilog` and `sy
 The main SV aggregate proof already surfaced dominant replay-gap buckets plus dominant stage/sample/parser-error/failure-location buckets and diversity counts for bounded parser-rejection debt, but it still did not expose the dominant failure-line and failure-context excerpt buckets themselves. The next clean hardening step was to surface those dominant excerpt buckets in JSON-safe form, so aggregate sign-off shows not only how broad the remaining debt is but also which exact excerpt buckets are leading it.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - now derives and records:
     - `generation_counterexample_primary_failure_line_excerpt_json`
     - `generation_counterexample_primary_failure_line_excerpt_count`
@@ -4876,7 +4910,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
     - `shadow_counterexample_primary_failure_line_excerpt_count`
     - `shadow_counterexample_primary_failure_context_excerpt_json`
     - `shadow_counterexample_primary_failure_context_excerpt_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the same values as:
     - `sv_generation_counterexample_primary_failure_line_excerpt_json`
     - `sv_generation_counterexample_primary_failure_line_excerpt_count`
@@ -4886,9 +4920,9 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
     - `sv_shadow_counterexample_primary_failure_line_excerpt_count`
     - `sv_shadow_counterexample_primary_failure_context_excerpt_json`
     - `sv_shadow_counterexample_primary_failure_context_excerpt_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV excerpt-bucket proof surface without changing the status labels
 
 ### Validation
@@ -4898,7 +4932,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
 - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_combined_telemetry_main_excerpt_buckets make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
   - passed
@@ -4917,7 +4951,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
 The main SV aggregate proof already surfaced dominant replay-gap buckets plus dominant stage/sample/parser-error/failure-location buckets for bounded parser-rejection debt, but aggregate sign-off still did not show how diverse the remaining parser-facing debt was. The next clean hardening step was to surface the main parser’s aggregate-visible diversity counts for failure locations, failure-line excerpts, and failure-context excerpts, so release telemetry reflects both the leading buckets and the breadth of the remaining rejection surface.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces:
     - `sv_generation_counterexample_unique_failure_locations`
     - `sv_generation_counterexample_unique_failure_line_excerpts`
@@ -4925,9 +4959,9 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
     - `sv_shadow_counterexample_unique_failure_locations`
     - `sv_shadow_counterexample_unique_failure_line_excerpts`
     - `sv_shadow_counterexample_unique_failure_context_excerpts`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt diversity proof surface without changing the status labels
 
 ### Validation
@@ -4950,21 +4984,21 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
 The main SV aggregate proof already surfaced dominant replay-gap buckets and dominant stage/sample/parser-error buckets for bounded parser-rejection debt, but it still did not expose which concrete failure-location buckets were leading that remaining debt. The next clean hardening step was to surface the dominant `line:column` buckets for both generation-side and replay-shadow bounded rejections, so aggregate sign-off shows parser-facing location as well as the dominant stage/sample/error class.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - now derives and records:
     - `generation_counterexample_primary_failure_location`
     - `generation_counterexample_primary_failure_location_count`
     - `shadow_counterexample_primary_failure_location`
     - `shadow_counterexample_primary_failure_location_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the same values as:
     - `sv_generation_counterexample_primary_failure_location`
     - `sv_generation_counterexample_primary_failure_location_count`
     - `sv_shadow_counterexample_primary_failure_location`
     - `sv_shadow_counterexample_primary_failure_location_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -4974,14 +5008,14 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets and dom
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
   - current main-SV parser aggregate values:
     - `generation_counterexample_primary_failure_location=1:20`
     - `generation_counterexample_primary_failure_location_count=1`
     - `shadow_counterexample_primary_failure_location=1:2`
     - `shadow_counterexample_primary_failure_location_count=2`
-- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_combined_telemetry_existing_main_failure_location PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+- `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/tmp/pgen_sv_combined_telemetry_existing_main_failure_location PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
   - passed
   - current bounded aggregate SOTA values match those same dominant failure-location buckets exactly
 
@@ -4990,17 +5024,17 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets and dom
 The preprocessor aggregate proof already surfaced the dominant stage/sample/parser-error buckets for bounded parser-rejection debt, but it still did not expose which concrete failure-location bucket was leading that remaining debt. The next clean hardening step was to surface the dominant `line:column` bucket for the preprocessor rejection surface, so aggregate sign-off shows the dominant parser-facing location as well as the dominant stage/sample/error class.
 
 ### Implementation
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - now derives and records:
     - `counterexample_primary_failure_location`
     - `counterexample_primary_failure_location_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the same values as:
     - `sv_preprocessor_counterexample_primary_failure_location`
     - `sv_preprocessor_counterexample_primary_failure_location_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger preprocessor parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -5010,7 +5044,7 @@ The preprocessor aggregate proof already surfaced the dominant stage/sample/pars
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
   - current preprocessor aggregate values:
     - `counterexample_primary_failure_location=1:1`
@@ -5024,17 +5058,17 @@ The preprocessor aggregate proof already surfaced the dominant stage/sample/pars
 The preprocessor aggregate proof already surfaced the dominant stage/sample buckets for bounded parser-rejection debt, but it still did not expose which parser error bucket was leading that remaining debt. The next clean hardening step was to surface the dominant parser-error bucket for the preprocessor rejection surface, so aggregate sign-off shows the dominant failure class as well as the dominant stage/sample bucket.
 
 ### Implementation
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - now derives and records:
     - `counterexample_primary_parser_error`
     - `counterexample_primary_parser_error_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the same values as:
     - `sv_preprocessor_counterexample_primary_parser_error`
     - `sv_preprocessor_counterexample_primary_parser_error_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger preprocessor parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -5044,7 +5078,7 @@ The preprocessor aggregate proof already surfaced the dominant stage/sample buck
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
   - current preprocessor aggregate values:
     - `counterexample_primary_parser_error=Parser did not consume full input at position 0`
@@ -5058,21 +5092,21 @@ The preprocessor aggregate proof already surfaced the dominant stage/sample buck
 The main SV aggregate proof already surfaced dominant replay-gap buckets and dominant stage/sample buckets for bounded parser-rejection debt, but it still did not expose which parser error bucket was leading that remaining debt. The next clean hardening step was to surface the dominant parser-error bucket for both generation-side and replay-shadow bounded rejections, so aggregate sign-off shows the dominant failure class as well as the dominant stage/sample bucket.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - now derives and records:
     - `generation_counterexample_primary_parser_error`
     - `generation_counterexample_primary_parser_error_count`
     - `shadow_counterexample_primary_parser_error`
     - `shadow_counterexample_primary_parser_error_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the same values as:
     - `sv_generation_counterexample_primary_parser_error`
     - `sv_generation_counterexample_primary_parser_error_count`
     - `sv_shadow_counterexample_primary_parser_error`
     - `sv_shadow_counterexample_primary_parser_error_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -5082,7 +5116,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets and dom
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
   - current parser aggregate values:
     - `generation_counterexample_primary_parser_error=Parser did not consume full input at position 111`
@@ -5098,7 +5132,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets and dom
 The main SV aggregate proof already surfaced dominant replay-gap buckets, but the bounded parser-rejection side of that proof was still only visible through the triage sidecar artifacts themselves. The next clean hardening step was to surface the dominant generation-side and replay-shadow parser-debt buckets directly in aggregate telemetry, so aggregate sign-off shows both uncovered-target debt and parser-rejection debt in the same top-level proof surface.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - now derives and records:
     - `generation_counterexample_primary_stage`
     - `generation_counterexample_primary_stage_count`
@@ -5108,7 +5142,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets, but th
     - `shadow_counterexample_primary_stage_count`
     - `shadow_counterexample_primary_shrunk_sample`
     - `shadow_counterexample_primary_shrunk_sample_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the same values as:
     - `sv_generation_counterexample_primary_stage`
     - `sv_generation_counterexample_primary_stage_count`
@@ -5118,9 +5152,9 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets, but th
     - `sv_shadow_counterexample_primary_stage_count`
     - `sv_shadow_counterexample_primary_shrunk_sample`
     - `sv_shadow_counterexample_primary_shrunk_sample_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -5130,7 +5164,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets, but th
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
   - current parser aggregate values:
     - `generation_counterexample_primary_stage=generate_parseable_stimuli`
@@ -5150,7 +5184,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets, but th
 The main SV aggregate proof already surfaced replay-gap triage artifact paths and uniqueness counts, but the release summary still did not say which replay-gap bucket was actually dominating the remaining debt. The next clean hardening step was to expose the dominant target-type, reason, rule, and dependency buckets directly in aggregate telemetry, so aggregate sign-off makes the main replay-gap shape immediately visible without a separate triage-file read.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - now derives and records:
     - `replay_gap_target_primary_target_type`
     - `replay_gap_target_primary_target_type_count`
@@ -5160,7 +5194,7 @@ The main SV aggregate proof already surfaced replay-gap triage artifact paths an
     - `replay_gap_target_primary_rule_count`
     - `replay_gap_target_primary_dependency`
     - `replay_gap_target_primary_dependency_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the same values as:
     - `sv_replay_gap_target_primary_target_type`
     - `sv_replay_gap_target_primary_target_type_count`
@@ -5170,9 +5204,9 @@ The main SV aggregate proof already surfaced replay-gap triage artifact paths an
     - `sv_replay_gap_target_primary_rule_count`
     - `sv_replay_gap_target_primary_dependency`
     - `sv_replay_gap_target_primary_dependency_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV replay-gap proof surface without changing the status labels
 
 ### Validation
@@ -5182,7 +5216,7 @@ The main SV aggregate proof already surfaced replay-gap triage artifact paths an
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate/work/sota_exit_gate/work/sv_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
   - current parser aggregate values:
     - `replay_gap_target_primary_target_type=branch`
@@ -5202,21 +5236,21 @@ The main SV aggregate proof already surfaced replay-gap triage artifact paths an
 The aggregate SV sign-off already exposed the preprocessor triage sidecar paths and the diversity counts for remaining bounded parser debt, but it still did not say which bucket was actually dominating that debt. The next clean hardening step was to surface the dominant stage bucket and dominant shrunk-sample bucket directly in aggregate telemetry, so release summaries point to the main remaining debt shape without forcing a separate triage-file read.
 
 ### Implementation
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - now derives and records:
     - `counterexample_primary_stage`
     - `counterexample_primary_stage_count`
     - `counterexample_primary_shrunk_sample`
     - `counterexample_primary_shrunk_sample_count`
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces:
     - `sv_preprocessor_counterexample_primary_stage`
     - `sv_preprocessor_counterexample_primary_stage_count`
     - `sv_preprocessor_counterexample_primary_shrunk_sample`
     - `sv_preprocessor_counterexample_primary_shrunk_sample_count`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate debt-shape proof without changing the status labels
 
 ### Validation
@@ -5226,7 +5260,7 @@ The aggregate SV sign-off already exposed the preprocessor triage sidecar paths 
   - passed
 - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - passed
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
   - current standalone aggregate values:
     - `counterexample_primary_stage=generate_parseable_stimuli`
@@ -5246,7 +5280,7 @@ The aggregate SV sign-off already exposed the preprocessor triage sidecar paths 
 The preprocessor side already had deterministic parser-debt triage artifacts inside `sv_preprocessor_aggregate_contract_gate`, but aggregate sign-off still surfaced only reachability/roundtrip/failure-context summaries. The next clean hardening step was to make the bounded parser-rejection debt itself aggregate-visible, so release telemetry shows not just that debt exists, but where its triage artifacts are and how diverse the remaining failure surface currently is.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now surfaces the preprocessor triage sidecar paths:
     - `sv_preprocessor_counterexample_triage_json`
     - `sv_preprocessor_counterexample_triage_txt`
@@ -5255,10 +5289,10 @@ The preprocessor side already had deterministic parser-debt triage artifacts ins
     - `sv_preprocessor_counterexample_unique_failure_locations`
     - `sv_preprocessor_counterexample_unique_failure_line_excerpts`
     - `sv_preprocessor_counterexample_unique_failure_context_excerpts`
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the preprocessor aggregate summary sidecar
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar values
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate preprocessor debt-triage proof surface without changing the status labels
 
 ### Validation
@@ -5279,20 +5313,20 @@ The preprocessor side already had deterministic parser-debt triage artifacts ins
 The main SV side already had objective roundtrip counts, but the unresolved replay-gap debt still lived mostly as a raw target list inside the parser aggregate workdir. The next clean hardening step was to make that debt deterministic and aggregate-visible, so the remaining work is inspectable by rule/reason/dependency rather than only by a single target count.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - emits deterministic replay-gap target triage artifacts:
     - `systemverilog_replay_gap_target_triage.json`
     - `systemverilog_replay_gap_target_triage.txt`
   - groups remaining targets by target type, rule name, reason, and flattened dependency
   - records the current highest-priority remaining targets deterministically
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - surfaces the replay-gap triage sidecar path plus unique rule/reason/dependency counts directly in aggregate telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - requires the main-SV aggregate sidecar summary
   - proves the new aggregate replay-gap triage fields exactly match that sidecar
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added helper target `sv_replay_gap_target_triage`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger debt-triage proof surface without changing the status labels
 
 ### Validation
@@ -5316,13 +5350,13 @@ The main SV side already had objective roundtrip counts, but the unresolved repl
 The preprocessor reachability-closure gate already existed as a good standalone proof surface, but aggregate sign-off still omitted it. The next clean hardening step was to reuse that same sidecar in `sota_exit_gate` and make the aggregate telemetry contract verify the new fields instead of only printing them.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - reuses `sv_preprocessor_reachability_closure_gate` against the produced preprocessor quality state
   - surfaces the summary path plus stage3/stage4 closure metrics and remaining parseability debt directly in aggregate telemetry
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - requires the preprocessor reachability-closure summary sidecar
   - proves the new aggregate `sota_exit_gate` fields exactly match that sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate proof surface without changing the status labels
 
 ### Validation
@@ -5347,17 +5381,17 @@ The preprocessor reachability-closure gate already existed as a good standalone 
 The preprocessor side already had strong aggregate proof, but “zero target debt and full reachable coverage” was still buried inside the broader aggregate contract surface. The next clean step was to give that sub-closure its own explicit gate without overstating full parser closure.
 
 ### Implementation
-- Added [rust/scripts/sv_preprocessor_reachability_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_reachability_closure_gate.sh):
-  - runs or reuses `sv_preprocessor_quality_gate` under checked-in policy [systemverilog_preprocessor_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env)
+- Added [rust/scripts/sv_preprocessor_reachability_closure_gate.sh](rust/scripts/sv_preprocessor_reachability_closure_gate.sh):
+  - runs or reuses `sv_preprocessor_quality_gate` under checked-in policy [systemverilog_preprocessor_lightweight_v0.env](rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env)
   - requires:
     - `stage3_targets=0`
     - `stage4_targets=0`
     - full reachable rule coverage at stage3 and stage4
     - full reachable branch coverage at stage3 and stage4
   - reports parseability totals and parser-rejection debt separately instead of hiding them behind the closure claim
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added `sv_preprocessor_reachability_closure_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that preprocessor reachability closure is now a standalone tracked proof surface.
 
 ### Validation
@@ -5383,13 +5417,13 @@ The preprocessor side already had strong aggregate proof, but “zero target deb
 The new aggregate SV telemetry contract gate was already useful, but its bounded `sota_exit_gate` profile still lived as embedded env in the script. The next clean hardening step was to move that profile into a checked-in policy file, matching the approach already used for the other lightweight SV-family proof gates.
 
 ### Implementation
-- Added [rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env):
+- Added [rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env](rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env):
   - checked-in focused aggregate policy for `sv_combined_telemetry_contract_gate`
   - pins the bounded SV-only `sota_exit_gate` shape used by this proof surface
-- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires and surfaces `sota_policy_env_file`
   - now sources that checked-in policy when running `sota_exit_gate` directly
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that this aggregate proof path is now driven by checked-in policy instead of script-local env.
 
 ### Validation
@@ -5398,7 +5432,7 @@ The new aggregate SV telemetry contract gate was already useful, but its bounded
 - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
   - passed
   - current summary surfaces:
-    - `sota_policy_env_file: /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`
+    - `sota_policy_env_file: rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env`
 
 ### Notes
 - This did not change any status label. It reduced hidden policy and made the proof path more objectively trackable.
@@ -5408,7 +5442,7 @@ The new aggregate SV telemetry contract gate was already useful, but its bounded
 Once aggregate `sota_exit_gate` started surfacing the combined SV proof numbers directly, the next risk was simple but important: those numbers were observable, but not yet independently contract-checked. The next clean increment was to prove the aggregate release summary matches the combined sidecar summaries exactly.
 
 ### Implementation
-- Added [rust/scripts/sv_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh):
+- Added [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - runs a bounded SV-only aggregate `sota_exit_gate` flow, or reuses an existing aggregate state dir
   - validates the four combined summary-path fields in aggregate telemetry
   - validates exact equality between aggregate telemetry and sidecar-summary values for:
@@ -5416,9 +5450,9 @@ Once aggregate `sota_exit_gate` started surfacing the combined SV proof numbers 
     - main SV roundtrip target/rule/branch counts
     - preprocessor failure-context count
     - preprocessor roundtrip staged target/rule/branch counts
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added `sv_combined_telemetry_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate telemetry is now machine-checked against the combined proof sidecars.
 
 ### Validation
@@ -5438,21 +5472,21 @@ Once aggregate `sota_exit_gate` started surfacing the combined SV proof numbers 
 The previous aggregate sign-off increment made the combined SV-family proof gates part of `sota_exit_gate`, but the release summary still required a second hop into sidecar summaries to see the actual counts. The next clean observability step was to promote those proof metrics into aggregate telemetry itself.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - added `summary_value_from_txt()` so aggregate sign-off can parse the combined proof summaries directly
   - when both SV families run, aggregate stdout and final telemetry now surface:
     - main SV failure-context counts: `sv_failure_context_generation_excerpts`, `sv_failure_context_shadow_excerpts`
     - main SV roundtrip counts: `sv_roundtrip_initial_targets`, `sv_roundtrip_replay_targets`, `sv_roundtrip_initial_covered_reachable_rules`, `sv_roundtrip_replay_covered_reachable_rules`, `sv_roundtrip_initial_covered_reachable_branches`, `sv_roundtrip_replay_covered_reachable_branches`
     - preprocessor failure-context count: `sv_preprocessor_failure_context_excerpts`
     - preprocessor roundtrip counts: `sv_preprocessor_roundtrip_stage0_targets`, `sv_preprocessor_roundtrip_stage1_targets`, `sv_preprocessor_roundtrip_final_targets`, `sv_preprocessor_roundtrip_stage4_targets`, plus the three staged reachable-rule and reachable-branch counters
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate sign-off now carries concrete combined proof metrics in addition to the summary paths.
 
 ### Validation
 - `bash -n rust/scripts/sota_exit_gate.sh`
   - passed
 - Focused aggregate run:
-  - `env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_sv_combined_contract PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 PGEN_SV_STIMULI_QUALITY_CONTRACT=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+  - `env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_sv_combined_contract PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 PGEN_SV_STIMULI_QUALITY_CONTRACT=rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
   - passed
   - aggregate telemetry now directly reports:
     - main SV: `failure-context 5/5`, `targets 2366 -> 2207`, `reachable rules 46 -> 155`, `reachable branches 22 -> 72`
@@ -5466,23 +5500,23 @@ The previous aggregate sign-off increment made the combined SV-family proof gate
 The SV-family proof surface had been normalized nicely at the gate level, but aggregate sign-off was still only surfacing the lower-level aggregate contract summaries. Since the combined lightweight failure-context and roundtrip gates are now part of the tracked proof story, the next clean increment was to make `sota_exit_gate` carry those summaries too.
 
 ### Implementation
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - after `sv_preprocessor_quality_gate` and `sv_stimuli_quality_gate` complete, aggregate sign-off now reuses:
-    - [rust/scripts/sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh)
-    - [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh)
+    - [rust/scripts/sv_failure_context_contract_gate.sh](rust/scripts/sv_failure_context_contract_gate.sh)
+    - [rust/scripts/sv_roundtrip_contract_gate.sh](rust/scripts/sv_roundtrip_contract_gate.sh)
   - it now exposes four new aggregate telemetry keys when both SV families run:
     - `sv_failure_context_contract_summary_txt`
     - `sv_roundtrip_contract_summary_txt`
     - `sv_preprocessor_failure_context_contract_summary_txt`
     - `sv_preprocessor_roundtrip_contract_summary_txt`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate sign-off now carries the combined lightweight proof surface, not only the lower-level contract summaries.
 
 ### Validation
 - `bash -n rust/scripts/sota_exit_gate.sh`
   - passed
 - Focused aggregate run:
-  - `env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_sv_combined_contract PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 PGEN_SV_STIMULI_QUALITY_CONTRACT=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+  - `env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_sv_combined_contract PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 PGEN_SV_STIMULI_QUALITY_CONTRACT=rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
   - passed
   - the summary table now includes:
     - `sv_failure_context_contract_gate`
@@ -5502,7 +5536,7 @@ The SV-family proof surface had been normalized nicely at the gate level, but ag
 The lightweight SV-family proof commands were already useful, but the “lightweight” claim was asymmetric: the main SV side used a checked-in tiny contract while the preprocessor side was still narrowing itself through implicit environment defaults. The next clean increment was to make that preprocessor policy explicit and tracked so both halves of the lightweight proof surface are driven by checked-in repository policy.
 
 ### Implementation
-- Added [rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env):
+- Added [rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env](rust/test_data/grammar_quality/systemverilog_preprocessor_lightweight_v0.env):
   - checked-in focused preprocessor policy for lightweight proof gates
   - sets:
     - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1`
@@ -5510,13 +5544,13 @@ The lightweight SV-family proof commands were already useful, but the “lightwe
     - `PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400`
     - `PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1`
     - `PGEN_SV_PREPROCESSOR_DIFF_MODE=0`
-- Updated [rust/scripts/sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh):
+- Updated [rust/scripts/sv_failure_context_contract_gate.sh](rust/scripts/sv_failure_context_contract_gate.sh):
   - now requires and surfaces the checked-in preprocessor policy file
   - now sources it when running `sv_preprocessor_quality_gate` directly
-- Updated [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
+- Updated [rust/scripts/sv_roundtrip_contract_gate.sh](rust/scripts/sv_roundtrip_contract_gate.sh):
   - now requires and surfaces the same checked-in preprocessor policy file
   - now sources it when running `sv_preprocessor_quality_gate` directly
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that lightweight SV-family proof now means checked-in policy on both sides, not only the main SV side.
 
 ### Validation
@@ -5524,7 +5558,7 @@ The lightweight SV-family proof commands were already useful, but the “lightwe
   - passed
 - `bash -n rust/scripts/sv_roundtrip_contract_gate.sh`
   - passed
-- `env PGEN_SV_FAILURE_CONTEXT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_failure_context_contract_gate`
+- `env PGEN_SV_FAILURE_CONTEXT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_failure_context_contract_gate`
   - passed
   - current combined summary still records:
     - `systemverilog_generation_failure_context_excerpts=5`
@@ -5532,7 +5566,7 @@ The lightweight SV-family proof commands were already useful, but the “lightwe
     - `systemverilog_preprocessor_failure_context_excerpts=5`
   - current lightweight preprocessor example:
     - `      \`ifdef           G73nd    \n\`timescale 7565...`
-- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
+- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
   - passed
   - current combined summary still records:
     - main SV: `targets 2366 -> 1290`, `reachable rules 46 -> 697`, `reachable branches 22 -> 447`
@@ -5547,22 +5581,22 @@ The lightweight SV-family proof commands were already useful, but the “lightwe
 The lower-level SV aggregate contract gates were already proving parser/stimuli replay properties, but the proof still lived in two separate commands and two separate summary surfaces. Since roundtrip testing is part of the project doctrine, the next clean increment was to make that replay proof directly replayable as one tracked command across both SV parser families.
 
 ### Implementation
-- Added [rust/scripts/sv_roundtrip_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_roundtrip_contract_gate.sh):
-  - reuses the checked-in tiny contract [rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json) for the main SV side
+- Added [rust/scripts/sv_roundtrip_contract_gate.sh](rust/scripts/sv_roundtrip_contract_gate.sh):
+  - reuses the checked-in tiny contract [rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json](rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json) for the main SV side
   - reuses the existing main-SV aggregate contract gate
   - reuses the existing preprocessor aggregate contract gate
   - supports existing-artifact mode for both quality-state inputs
   - emits one combined roundtrip summary artifact instead of leaving replay proof scattered across the lower-level summaries
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added `sv_roundtrip_contract_gate`
   - added help text for the new gate
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that lightweight parser/stimuli roundtrip proof is now one tracked command.
 
 ### Validation
 - `bash -n rust/scripts/sv_roundtrip_contract_gate.sh`
   - passed
-- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state PGEN_SV_ROUNDTRIP_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
+- `env PGEN_SV_ROUNDTRIP_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state PGEN_SV_ROUNDTRIP_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_roundtrip_contract_gate`
   - passed
   - current combined summary:
     - main SV: `targets 2366 -> 1290`, `reachable rules 46 -> 697`, `reachable branches 22 -> 447`
@@ -5577,7 +5611,7 @@ The lower-level SV aggregate contract gates were already proving parser/stimuli 
 The source-level failure-context work was already objective, but replaying it still required a specific sequence of ad hoc commands and temporary contracts. That was good enough for development, not good enough for a tracked proof surface. The next clean increment was to turn that into one checked-in lightweight gate so the repo itself can re-prove the failure-context contract for both SV parser families without manual setup.
 
 ### Implementation
-- Added [rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json):
+- Added [rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json](rust/test_data/grammar_quality/systemverilog_failure_context_v0_contract.json):
   - checked-in tiny main-SV contract derived from the canonical core contract
   - keeps the proof intentionally narrow:
     - `sample_count=1`
@@ -5585,7 +5619,7 @@ The source-level failure-context work was already objective, but replaying it st
     - `target_max_attempts=20`
     - `replay_sample_count=1`
     - realistic corpus disabled
-- Added [rust/scripts/sv_failure_context_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_failure_context_contract_gate.sh):
+- Added [rust/scripts/sv_failure_context_contract_gate.sh](rust/scripts/sv_failure_context_contract_gate.sh):
   - runs the tiny main-SV quality state
   - reuses the existing main-SV aggregate contract gate
   - runs the preprocessor quality gate
@@ -5595,10 +5629,10 @@ The source-level failure-context work was already objective, but replaying it st
     - main SV replay-shadow
     - SV preprocessor
   - emits one combined summary artifact
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added `sv_failure_context_contract_gate`
   - added help text for the new gate
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that source-level failure-context proof is now one tracked command, not a recipe.
 
 ### Validation
@@ -5622,7 +5656,7 @@ The source-level failure-context work was already objective, but replaying it st
 The SV-family gates were already reconstructing line-level context from stored samples plus failure line/column. That improved observability, but it still meant the proof surface depended on shell-side derivation instead of the Rust parseability reports themselves. The next clean increment was to promote that context into the source-level report schema so downstream gates can require it directly and objective parser-failure evidence no longer depends on ad hoc reconstruction logic.
 
 ### Implementation
-- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+- Updated [rust/src/main.rs](rust/src/main.rs):
   - `ParseabilityCounterexample` now carries:
     - `failure_line_excerpt`
     - `failure_context_excerpt`
@@ -5630,13 +5664,13 @@ The SV-family gates were already reconstructing line-level context from stored s
   - added unit coverage for:
     - excerpt extraction
     - report serialization
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - now requires numeric failure position/line/column and string failure-line/context excerpts
   - now groups triage by `failure_context_excerpt` too
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - now requires the same numeric/string source-level failure detail
   - now groups triage by `failure_context_excerpt` too
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the move from shell-only reconstruction to source-level parser proof,
   - kept status labels unchanged because exhaustive closure remains the actual blocker.
 
@@ -5645,7 +5679,7 @@ The SV-family gates were already reconstructing line-level context from stored s
   - passed (`29/29`)
 - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
   - passed with fresh preprocessor parseability reports
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
   - recorded `counterexample_unique_failure_context_excerpts=5`
 - `env PGEN_SV_STIMULI_QUALITY_CONTRACT=/tmp/systemverilog_failure_context_tiny_contract.json PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_failure_context_tiny2 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
@@ -5665,19 +5699,19 @@ The SV-family gates were already reconstructing line-level context from stored s
 The preprocessor triage artifact was already summarizing bounded parser debt by stage, parser error, shrunk sample, and failure location. That was enough to prove the debt existed and was stable, but not enough to group the debt by what the parser was actually seeing at the failure point. Since the counterexamples already carry full samples plus failure line/column, the next clean increment was to derive deterministic failure-line excerpts directly into the triage surface so the remaining bounded preprocessor debt can be grouped by directive-line context instead of only by coordinates.
 
 ### Implementation
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - the triage artifact now derives and groups `failure_line_excerpt`
   - `sample_previews` now retain `failure_line_excerpt`
   - the aggregate summary now records:
     - `counterexample_unique_failure_line_excerpts`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger parser-context observability,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
 ### Validation
 - `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
   - passed
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
   - current triage surface now shows five unique failure-line excerpts
   - current grouped examples include:
@@ -5694,21 +5728,21 @@ The preprocessor triage artifact was already summarizing bounded parser debt by 
 The main SystemVerilog triage artifacts were already summarizing bounded parser debt by stage, parser error, shrunk sample, and failure location. That was useful, but still left a manual step when trying to understand what the parser was actually seeing at the failure site. Since the counterexamples already carry full samples plus failure line/column, the next clean increment was to extract deterministic failure-line excerpts directly into the triage surface so the remaining debt can be grouped by parser-facing context instead of only by coordinates.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - generation-side triage now derives and groups `failure_line_excerpt`
   - replay-shadow triage now also derives and groups `failure_line_excerpt`
   - both triage JSON artifacts now retain `failure_line_excerpt` in `sample_previews`
   - the aggregate summary now records:
     - `generation_counterexample_unique_failure_line_excerpts`
     - `shadow_counterexample_unique_failure_line_excerpts`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger parser-context observability,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
 ### Validation
 - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
   - current generation-side triage surface now shows:
     - five unique failure-line excerpts
@@ -5730,7 +5764,7 @@ The main SystemVerilog triage artifacts were already summarizing bounded parser 
 The main SystemVerilog aggregate contract gate was already preserving bounded parser counterexamples plus parser-location detail on both the generation-side and replay-shadow report surfaces. But those failures still required manual inspection of the raw report JSON arrays. Since the project doctrine now expects objective, repeatable parser/stimuli proof with measurable gap debt, the next clean increment was to emit deterministic triage artifacts directly from the aggregate contract gate so the remaining bounded main-SV debt is summarized instead of merely stored.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - now derives deterministic generation-side triage artifacts from `systemverilog_parseability_generation_report.json`:
     - `systemverilog_parseability_generation_counterexample_triage.json`
     - `systemverilog_parseability_generation_counterexample_triage.txt`
@@ -5744,14 +5778,14 @@ The main SystemVerilog aggregate contract gate was already preserving bounded pa
     - failure line/column
     - sample preview
   - the aggregate summary now also records the count of unique shrunk samples and unique failure locations for both generation-side and replay-shadow debt.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger bounded-debt observability for the main SV parser family,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
 ### Validation
 - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
   - current generation-side triage surface shows:
     - one stage bucket: `generate_parseable_stimuli`
@@ -5771,7 +5805,7 @@ The main SystemVerilog aggregate contract gate was already preserving bounded pa
 After the roundtrip and staged-coverage contract work, the preprocessor row still had a bounded but real parser-rejection surface: five parser-backed rejections in the aggregate parseability report. Those failures were objectively measured, but still inconvenient to reason about because the only durable artifact was the raw counterexample array. The next clean increment was to emit a deterministic triage artifact from the aggregate contract gate itself so the remaining debt is summarized rather than just recorded.
 
 ### Implementation
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - now derives a deterministic triage JSON artifact from the aggregate parseability report:
     - `systemverilog_preprocessor_parseability_counterexample_triage.json`
   - now derives a matching human-readable text summary:
@@ -5783,7 +5817,7 @@ After the roundtrip and staged-coverage contract work, the preprocessor row stil
     - failure line/column
     - sample preview
   - the aggregate summary now also records the count of unique shrunk samples and unique failure locations.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger bounded-debt observability,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
@@ -5792,7 +5826,7 @@ After the roundtrip and staged-coverage contract work, the preprocessor row stil
   - passed
 - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
   - restored the baseline `38/33/5` parseability surface after a discarded grammar-tightening experiment
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
   - current triage surface shows:
     - one stage bucket: `generate_parseable_stimuli`
@@ -5808,7 +5842,7 @@ After the roundtrip and staged-coverage contract work, the preprocessor row stil
 The preprocessor aggregate contract gate was still proving mostly report shape, parser-location detail, and final-stage closure. But the stored quality-state artifacts already contained stronger evidence: deterministic stage0 replay, deterministic stage4 fuzz replay, and measurable staged gap/coverage movement. Since the project doctrine now says parser claims should be backed by parser/stimuli roundtrip proof plus gap-driven coverage evidence, the next clean increment was to promote those invariants into the tracked preprocessor contract gate too.
 
 ### Implementation
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - added portable deterministic replay checks for stage0 baseline A/B:
     - sample corpus
     - coverage report
@@ -5825,14 +5859,14 @@ The preprocessor aggregate contract gate was still proving mostly report shape, 
   - now requires non-decreasing staged covered reachable rules and branches,
   - now requires stable reachable rule/branch universes across stage0, stage1, stage3, and stage4 artifacts,
   - now requires the stored fuzz replay metadata to satisfy accepted/rejected/minimized/shrunk invariants.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger roundtrip proof surface,
   - kept status labels unchanged because exhaustive grammar-level closure remains the real blocker.
 
 ### Validation
 - `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
   - passed
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
   - current focused reusable proof summary:
     - `stage0_target_count=5`
@@ -5858,7 +5892,7 @@ The preprocessor aggregate contract gate was still proving mostly report shape, 
 The main SV aggregate contract gate was already proving bounded parser-backed counterexample retention and parser-location detail, but it was still underusing the strongest evidence already present in the focused quality-state artifacts: deterministic initial replay, gap-driven target reduction, and roundtrip coverage movement. Since the user explicitly wants generated parsers exercised through stimuli plus coverage/gap, the next clean increment was to promote those invariants into the tracked gate itself.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - added portable JSON equality checks for focused initial replay artifacts,
   - now requires exact match between initial coverage and initial replay coverage,
   - now requires exact match between initial gap and initial replay gap,
@@ -5866,14 +5900,14 @@ The main SV aggregate contract gate was already proving bounded parser-backed co
   - now requires covered reachable rules/branches to stay non-decreasing,
   - now requires reachable rule/branch universes to remain stable across focused replay,
   - now requires replay-shadow aggregate `observed` totals and `target_drive_validation` totals to agree.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger roundtrip proof surface,
   - kept status labels unchanged because exhaustive grammar-level closure is still the remaining blocker.
 
 ### Validation
 - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
   - passed
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed
   - current focused reusable proof summary:
     - `focused_initial_target_count=2366`
@@ -5892,21 +5926,21 @@ The main SV aggregate contract gate was already proving bounded parser-backed co
 The main SV generation-side aggregate report already had parser-location detail, and the replay-shadow artifact already carried that data in practice. The remaining gap was contractual: the tracked wrapper gate still did not require those fields on the shadow side, so the richer evidence was present but not yet enforced.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - replay-shadow aggregate counterexamples must now include:
     - `parser_error`
     - `failure_position`
     - `failure_line`
     - `failure_column`
   - the generation-side richer contract remains enforced too, so both main-SV aggregate report surfaces are now parser-located.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - removed stale “generation-side only” wording,
   - kept status labels unchanged because this improves bounded-debt observability rather than supplying exhaustive grammar-level closure.
 
 ### Validation
 - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
   - passed
-- direct replay-shadow contract assertion against [systemverilog_closed_loop_parseability_shadow_report.json](/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state/work/systemverilog_closed_loop_parseability_shadow_report.json)
+- direct replay-shadow contract assertion against [systemverilog_closed_loop_parseability_shadow_report.json](rust/target/sv_parser_aggregate_contract_gate/work/shadow_state/work/systemverilog_closed_loop_parseability_shadow_report.json)
   - passed
   - current first replay-shadow counterexample:
     - `parser_error="Parser did not consume full input at position 1"`
@@ -5914,7 +5948,7 @@ The main SV generation-side aggregate report already had parser-location detail,
     - `failure_line=1`
     - `failure_column=2`
     - `shrunk_sample="*"`
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed with:
     - `generation_parser_rejections_total=7`
     - `generation_counterexamples_count=5`
@@ -5931,20 +5965,20 @@ The main SV generation-side aggregate report already had parser-location detail,
 The preprocessor side now preserves parser-located counterexamples, but the main SV parser-family row still had generation-side aggregate counterexamples that stopped at sample text plus shrink metadata. Since the focused main-SV generation probe already keeps profile, seed, and sample index, the next clean increment was to require the parser-location fields there too rather than waiting for the slower replay-shadow half.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - generation-side aggregate counterexamples must now include:
     - `parser_error`
     - `failure_position`
     - `failure_line`
     - `failure_column`
   - shadow-side aggregate counterexample requirements are intentionally unchanged in this task because that probe is materially slower and should be upgraded as its own follow-up increment.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the generation-side proof improvement without changing status labels.
 
 ### Validation
 - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
   - passed
-- direct generation-side contract assertion against [systemverilog_parseability_generation_report.json](/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/generation_state/work/systemverilog_parseability_generation_report.json)
+- direct generation-side contract assertion against [systemverilog_parseability_generation_report.json](rust/target/sv_parser_aggregate_contract_gate/work/generation_state/work/systemverilog_parseability_generation_report.json)
   - passed
   - current focused aggregate `observed` block:
     - `requested_total=1`
@@ -5969,16 +6003,16 @@ The preprocessor side now preserves parser-located counterexamples, but the main
 The preprocessor parser-family row is still only `Mostly Done`, and the next useful improvement was to make the remaining bounded rejection debt easier to act on. The aggregate parseability report already retained samples and shrunk samples, but that still required manual repro work to find where the generated parser stopped. I confirmed this by probing one current counterexample: the real parser failure was an orphan top-level `` `elsif `` at byte `187`, line `6`, column `1`, but the existing proof artifact did not preserve that location.
 
 ### Implementation
-- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+- Updated [rust/src/main.rs](rust/src/main.rs):
   - added `parser_error`, `failure_position`, `failure_line`, and `failure_column` to `ParseabilityCounterexample`,
   - added helpers to:
     - recover the generated parser’s actual error string on rejected samples,
     - extract a numeric failure position from standard parse-error messages,
     - map that failure position back to line/column in the sample,
   - reused the same richer builder for direct parseability generation, target-drive output filtering, and coverage-guided fuzz replay counterexamples.
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - the aggregate proof now rejects reports that omit parser-location detail from captured counterexamples.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger counterexample observability surface without changing status labels.
 
 ### Validation
@@ -5998,7 +6032,7 @@ The preprocessor parser-family row is still only `Mostly Done`, and the next use
     - `failure_line=6`
     - `failure_column=1`
     - `shrunk_sample="`"`
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed
 
 ### Notes
@@ -6010,23 +6044,23 @@ The preprocessor parser-family row is still only `Mostly Done`, and the next use
 The two dedicated SV-family aggregate-report contract gates already gave us repeatable proof for the main bounded evidence surfaces, but that proof still lived slightly beside aggregate release sign-off. The next useful step was to make `sota_exit_gate` reuse and surface those exact contract checks over the artifacts it already produces, instead of making operators cross-reference standalone focused runs.
 
 ### Implementation
-- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_parser_aggregate_contract_gate.sh](rust/scripts/sv_parser_aggregate_contract_gate.sh):
   - added `PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR`,
   - gate now skips focused probe reruns when a quality-stage state dir is provided and validates:
     - `systemverilog_parseability_generation_report.json`
     - `systemverilog_closed_loop_parseability_shadow_report.json`
     directly from that state dir.
-- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - added `PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR`,
   - gate now skips rerunning `sv_preprocessor_quality_gate` when a stage dir is provided and validates:
     - `systemverilog_preprocessor_parseability_report.json`
     - `systemverilog_preprocessor_gap_stage3.json`
     directly from that state dir.
-- Updated [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - after `sv_stimuli_quality_gate`, aggregate sign-off now runs `sv_parser_aggregate_contract_gate` in reuse mode,
   - after `sv_preprocessor_quality_gate`, aggregate sign-off now runs `sv_preprocessor_aggregate_contract_gate` in reuse mode,
   - aggregate telemetry now emits both contract-summary paths so sign-off artifacts directly point to the contract-proof files.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate proof integration,
   - kept parser-family status rows unchanged.
 
@@ -6034,14 +6068,14 @@ The two dedicated SV-family aggregate-report contract gates already gave us repe
 - `bash -n rust/scripts/sv_parser_aggregate_contract_gate.sh`
 - `bash -n rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
 - `bash -n rust/scripts/sota_exit_gate.sh`
-- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
+- `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate/work/shadow_state make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_aggregate_contract_gate`
   - passed with reusable summary:
     - `generation_parser_rejections_total=7`
     - `generation_counterexamples_count=5`
     - `shadow_parser_rejections_total=1179`
     - `shadow_counterexamples_count=5`
     - `shadow_counterexamples_captured_total=5`
-- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_aggregate_contract_gate/work/quality_state make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_AGGREGATE_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate/work/quality_state make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
   - passed with reusable summary:
     - `parseability_attempts_total=38`
     - `parseability_accepted_total=33`
@@ -6063,13 +6097,13 @@ The previous task made the remaining preprocessor parseability gap inspectable, 
 - adjacent directive/identifier regex tokens could still merge into invalid combined text unless the existing word-boundary-spacing policy was enabled.
 
 ### Implementation
-- Updated [grammars/systemverilog_preprocessor.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog_preprocessor.ebnf):
+- Updated [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
   - introduced `inline_trivia := (space_or_tab | block_comment)*`,
   - retained broader `trivia` for comment-aware contexts that are not same-line lexical joins,
   - switched directive keywords, identifiers, literals, punctuation, `condition_text`, macro-body/default text atoms, and directive-tail/non-directive text atoms onto `inline_trivia`.
-- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh):
   - enabled `--enforce-word-boundary-spacing` for all parseability-reporting stages.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the improved aggregate proof numbers,
   - kept the parser-family row at `Mostly Done`.
 
@@ -6098,7 +6132,7 @@ The previous task made the remaining preprocessor parseability gap inspectable, 
 The current `systemverilog_preprocessor` row is intentionally only `Mostly Done`, and the next useful step was to make the remaining proof gap more objective rather than arguing from aggregate counts alone. The stage-level parseability reports already knew which generated samples the parser rejected, but the aggregate preprocessor gate report was rebuilding JSON from totals and throwing that evidence away. That made closure triage harder than it needed to be.
 
 ### Implementation
-- Updated [rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+- Updated [rust/src/main.rs](rust/src/main.rs):
   - extended `ParseabilityGenerationReport` with bounded `counterexamples`,
   - captured original + shrunk samples for parser rejections in:
     - parseability-aware generation,
@@ -6106,10 +6140,10 @@ The current `systemverilog_preprocessor` row is intentionally only `Mostly Done`
     - filtered parseability fallback,
     - coverage-guided fuzz replay summaries,
   - added unit coverage for report serialization.
-- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh):
+- Updated [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh):
   - preserved stage-level counterexamples in the aggregate `systemverilog_preprocessor_parseability_report.json`,
   - surfaced `parseability_counterexamples_captured_total` in `summary.csv` / `summary.txt`.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger evidence surface without changing status labels.
 
 ### Validation
@@ -6130,14 +6164,14 @@ The current `systemverilog_preprocessor` row is intentionally only `Mostly Done`
 The user correctly challenged the live tracker on the two SV parser-family rows. On inspection, the repo absolutely does have concrete evidence there: `sv_stimuli_quality_gate`, `sv_preprocessor_quality_gate`, stimuli generation, coverage/gap tracking, target-driven replay, parseability reports, semantic suites, realistic-corpus runs, and differential gates. But the stricter tracker doctrine now says `Done` requires a formally exhaustive proof surface with no plausible grammar-level gap. The current SV gates are high-quality and measurable, but they still prove bounded quality/non-regression rather than full exhaustive closure.
 
 ### Implementation
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - changed `systemverilog` main parser (`Phase P` Nexsim scope) from `Done` to `Mostly Done`,
   - changed `systemverilog_preprocessor` frontend (`Phase Q`) from `Done` to `Mostly Done`,
   - rewrote both evidence cells to name the concrete gate surfaces that really exist today,
   - rewrote both left-to-close cells to name the missing deliverable precisely: exhaustive grammar-level proof, not just strong gate telemetry.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added an explicit interpretation note that a closed parser roadmap phase can still correspond to parser-family `Mostly Done` when the stronger live-tracker proof bar is not yet met.
-- Updated [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [CHANGES.md](CHANGES.md) and [MEMORY.md](MEMORY.md):
   - recorded the correction so future summaries do not collapse “phase complete” into “formal parser-family closure.”
 
 ### Validation
@@ -6156,33 +6190,33 @@ The user correctly challenged the live tracker on the two SV parser-family rows.
 The user-set closure bar for `Done` is now explicit: no plausible proof gap is acceptable when grammar-derived exhaustiveness is possible. The remaining blocker for `return_annotation` was therefore not implementation breadth but proof shape. The curated full-construct suite was useful, but it was still curated. The required next step was to derive closure from the grammar-driven stimuli/gap machinery itself and then audit the generated parser output all the way into typed return AST.
 
 ### Implementation
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added `return_annotation_exhaustiveness_gate`,
   - changed `return_annotation_support_gate` so it now requires:
     - the repo-wide parser-registry return-shaping audit,
     - `return_full_contract_gate`,
     - and the new grammar-driven exhaustiveness gate.
-- Updated [rust/scripts/annotation_stimuli_quality_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh):
+- Updated [rust/scripts/annotation_stimuli_quality_gate.sh](rust/scripts/annotation_stimuli_quality_gate.sh):
   - added `PGEN_ANNOTATION_STIMULI_QUALITY_FILTER=all|return|semantic`,
   - so the return side can be proven independently without weakening the shared gate.
-- Added [rust/scripts/return_annotation_exhaustiveness_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/return_annotation_exhaustiveness_gate.sh):
+- Added [rust/scripts/return_annotation_exhaustiveness_gate.sh](rust/scripts/return_annotation_exhaustiveness_gate.sh):
   - reuses the return side of the annotation stimuli closed loop as the grammar-derived coverage engine,
   - requires stage-3 gap closure (`targets == 0`),
   - requires full reachable rule/branch closure,
   - requires parseability acceptance with zero parser rejections/generation errors/empty generations,
   - requires `return_annotation` in-memory vs generated stimuli-module parity,
   - requires generated parser output from the resulting sample corpus to convert into typed return AST.
-- Added [rust/src/bin/return_annotation_generated_audit.rs](/Users/richarddje/Documents/github/pgen/rust/src/bin/return_annotation_generated_audit.rs):
+- Added [rust/src/bin/return_annotation_generated_audit.rs](rust/src/bin/return_annotation_generated_audit.rs):
   - loads the unique sample corpus emitted by the exhaustiveness flow,
   - parses each sample with `generated/return_annotation_parser.rs`,
   - converts the parse tree through `UnifiedReturnAST::parse_generated_return_annotation(...)`,
   - and asserts that the typed AST is serializable.
-- Updated [rust/src/ast_pipeline/unified_return_ast.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_return_ast.rs):
+- Updated [rust/src/ast_pipeline/unified_return_ast.rs](rust/src/ast_pipeline/unified_return_ast.rs):
   - added generated-text fallbacks for terminal/transformed-terminal nodes,
   - added postfix-text fallbacks for property/index access,
   - relaxed bootstrap spread parsing so valid generated forms like `$2::1**` survive fallback reparsing,
   - added focused regression coverage for that nested-spread shape.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [README.md](/Users/richarddje/Documents/github/pgen/README.md), [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [README.md](README.md), [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md):
   - promoted `return_annotation` full Rust AST-pipeline support from `Mostly Done` to `Done`,
   - documented that the curated full-construct suite is now supplementary rather than the closure dependency.
 
@@ -6211,21 +6245,21 @@ The user-set closure bar for `Done` is now explicit: no plausible proof gap is a
 The new `return_annotation_support_gate` materially improved the proof surface, but the user correctly challenged whether that justified the tracker row being `Done`. On re-analysis, the answer was no under the intended meaning of `Done`: the current proof is strong, repeatable, and executable, but `rust/test_data/return_annotation/full_construct_grammar_contract.json` is still curated rather than auto-derived from `grammars/return_annotation.ebnf`. That leaves a bounded coverage-gap risk, which is incompatible with a strict "formal closure only" definition of `Done`.
 
 ### Implementation
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - changed the status-rule definition of `Done` to require a formally exhaustive, machine-checkable proof surface with no plausible coverage gap,
   - strengthened `Mostly Done` to cover strong-but-not-yet-exhaustive proof states,
   - added an explicit anti-drift rule forbidding `Done` when grammar-derived exhaustiveness is expected but the proof still depends on curated/manual construct lists,
   - demoted `return_annotation` full Rust AST-pipeline support from `Done` to `Mostly Done`,
   - made the remaining closure work explicit: auto-derived construct/proof extraction from `grammars/return_annotation.ebnf` plus parser/stimuli roundtrip/coverage proof.
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md):
   - documented the formal closure rule for return-annotation support,
   - clarified that the current construct suite is useful evidence but not formal closure,
   - recorded the current-state note that this area remains `Mostly Done` until the proof becomes grammar-derived and exhaustiveness-safe.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [README.md](README.md):
   - added a general parser deliverable proof doctrine,
   - made the parser/stimuli pair explicit,
   - made roundtrip, parser coverage, stimuli coverage/gap proof, and machine-checkable evidence part of the project-level closure bar.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - synced the new tracker semantics and the demotion rationale for crash recovery.
 
 ### Validation
@@ -6240,15 +6274,15 @@ The new `return_annotation_support_gate` materially improved the proof surface, 
 The repo already had the ingredients for strong return-annotation confidence, but they were distributed across several separate proof surfaces: `parser_registry` for repo-wide shaping audit, `return_full_contract_gate` for runtime/round-trip/parity, and `annotation_stimuli_quality_gate` for closed-loop generation. That was strong, but still too implicit for a “100% support, no exception” contract. The required next step was to package those proofs into one explicit aggregate gate and then update the live tracker accordingly.
 
 ### Implementation
-- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+- Updated [rust/Makefile](rust/Makefile):
   - added `return_annotation_support_gate`,
   - the new target runs:
     - `cargo test --features generated_parsers --lib parser_registry --quiet`,
     - `make -C rust return_full_contract_gate`,
     - `make -C rust annotation_stimuli_quality_gate`.
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md) and [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+- Updated [README.md](README.md) and [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md):
   - documented the new gate as the focused aggregate proof for return-annotation closure.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - promoted `return_annotation` full Rust AST-pipeline support to `Done`,
   - intentionally kept cross-grammar return-AST shaping adoption at `Mostly Done` because “grammar uses some return shaping” is not the same thing as “every grammar is deeply and deliberately shaped”.
 
@@ -6264,12 +6298,12 @@ The repo already had the ingredients for strong return-annotation confidence, bu
 The project already required live-status updates to be logged before commit when rows changed, but the completion message could still omit the current tracker snapshot on tasks that left status unchanged. That made it harder to tell whether a task truly moved the tracker or simply preserved it. The required refinement was to make live-status display mandatory on every commit closeout.
 
 ### Implementation
-- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+- Updated [COMMIT.md](COMMIT.md):
   - every commit-workflow completion message must now display the current live-status snapshot,
   - completion messages must explicitly say whether the tracker changed or remained unchanged.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - aligned the tracker policy with the new reporting rule so the snapshot is always surfaced during commit closeout.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded the stricter live-status display requirement for future crash recovery.
 
 ### Validation
@@ -6284,35 +6318,35 @@ The project already required live-status updates to be logged before commit when
 The project doctrine was already clear at a high level, but the implementation surface was not yet aligned tightly enough: several tracked grammars still had no explicit return annotations, the distinction between return-vs-semantic annotations was not spelled out in one authoritative place, and Phase S still lacked a first concrete EBNF-backed generated parser path beyond the annotation grammars themselves. The next clean increment was therefore to make the AST-shaping contract explicit across the grammar corpus and to start real EBNF-backed closure for `rtl_const_expr`.
 
 ### Implementation
-- Added [grammars/rtl_const_expr.ebnf](/Users/richarddje/Documents/github/pgen/grammars/rtl_const_expr.ebnf):
+- Added [grammars/rtl_const_expr.ebnf](grammars/rtl_const_expr.ebnf):
   - defined a tracked constant-expression grammar for the current Phase S subset,
   - used return annotations so the generated parser returns a deliberately shaped AST rather than an unstructured parse tree.
-- Generated [generated/rtl_const_expr_parser.rs](/Users/richarddje/Documents/github/pgen/generated/rtl_const_expr_parser.rs) from that grammar and wired it into Rust:
-  - [rust/build.rs](/Users/richarddje/Documents/github/pgen/rust/build.rs) now discovers `generated/rtl_const_expr_parser.rs`,
-  - [rust/src/lib.rs](/Users/richarddje/Documents/github/pgen/rust/src/lib.rs) exposes the generated module,
-  - [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs) now exposes parseability + AST-JSON adapters for `rtl_const_expr`.
+- Generated [generated/rtl_const_expr_parser.rs](generated/rtl_const_expr_parser.rs) from that grammar and wired it into Rust:
+  - [rust/build.rs](rust/build.rs) now discovers `generated/rtl_const_expr_parser.rs`,
+  - [rust/src/lib.rs](rust/src/lib.rs) exposes the generated module,
+  - [rust/src/parser_registry.rs](rust/src/parser_registry.rs) now exposes parseability + AST-JSON adapters for `rtl_const_expr`.
 - Updated the tracked grammar corpus so every `grammars/*.ebnf` file except `return_annotation.ebnf` and `semantic_annotation.ebnf` now includes at least one explicit standalone return annotation line:
   - active grammars (`json`, `regex`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`, `rtl_const_expr`) now all shape their parser-return ASTs explicitly,
   - bootstrap/profiled/extracted grammar artifacts also now reflect the same doctrine consistently.
-- Added explicit regression checks in [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+- Added explicit regression checks in [rust/src/parser_registry.rs](rust/src/parser_registry.rs):
   - repo-wide grammar audit for standalone return annotations,
   - validation that those standalone annotation payloads parse under the generated `return_annotation` grammar,
   - a focused example suite proving representative constructs from `grammars/return_annotation.ebnf`.
-- Added [rust/test_data/return_annotation/full_construct_grammar_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/return_annotation/full_construct_grammar_contract.json):
+- Added [rust/test_data/return_annotation/full_construct_grammar_contract.json](rust/test_data/return_annotation/full_construct_grammar_contract.json):
   - enumerates the tracked return-annotation construct families directly,
   - feeds the existing generated return-corpus test so full-construct generated-pipeline coverage is checked through a tracked artifact rather than an informal list.
 - Clarified the annotation split in tracked docs:
-  - [README.md](/Users/richarddje/Documents/github/pgen/README.md) now states that return annotations shape returned AST and semantic annotations steer parser generation,
-  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) now records the no-compromise return-annotation completeness contract,
-  - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) now carries an explicit supported semantic-directive inventory sourced from `rust/src/ast_pipeline/semantic_directive_registry.rs`,
-  - and [README.md](/Users/richarddje/Documents/github/pgen/README.md) plus [PGEN_ANNOTATION_NORMATIVE_SPEC.md](/Users/richarddje/Documents/github/pgen/PGEN_ANNOTATION_NORMATIVE_SPEC.md) now explicitly record that `grammars/builtin_return_annotation.ebnf` and `grammars/builtin_semantic_annotation.ebnf` are the bootstrap-safe contracts used to generate the annotation parsers without circular self-dependence.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+  - [README.md](README.md) now states that return annotations shape returned AST and semantic annotations steer parser generation,
+  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) now records the no-compromise return-annotation completeness contract,
+  - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) now carries an explicit supported semantic-directive inventory sourced from `rust/src/ast_pipeline/semantic_directive_registry.rs`,
+  - and [README.md](README.md) plus [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) now explicitly record that `grammars/builtin_return_annotation.ebnf` and `grammars/builtin_semantic_annotation.ebnf` are the bootstrap-safe contracts used to generate the annotation parsers without circular self-dependence.
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - added an explicit annotation-status slice for `return_annotation` full support and cross-grammar return-AST shaping adoption,
   - recorded current return closed-loop evidence from the required annotation stimuli gate.
 
 ### Validation
 - Regenerated the tracked parser artifact:
-  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- /Users/richarddje/Documents/github/pgen/grammars/rtl_const_expr.ebnf --generate-parser --output /Users/richarddje/Documents/github/pgen/generated/rtl_const_expr_parser.rs`
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_const_expr.ebnf --generate-parser --output generated/rtl_const_expr_parser.rs`
 - Ran focused generated-parser validation:
   - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib parser_registry --quiet`
   - result: `7` passed, `0` failed
@@ -6335,15 +6369,15 @@ The project doctrine was already clear at a high level, but the implementation s
 The roadmap already showed Phases `A-R` as complete, but that did not answer a more precise operational question: how mature are the concrete parser families themselves? That was causing phase completion to be misread as universal parser closure, even though some phases are readiness kickoffs while others are full product-grade closure programs. The required fix was to track parser-family maturity explicitly with the same four-state model used elsewhere.
 
 ### Implementation
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - added a dedicated parser-family status section,
   - classified `systemverilog` main parser as `Done` within the tracked Phase `P` Nexsim scope,
   - classified `systemverilog_preprocessor` as `Done` within the tracked Phase `Q` scope,
   - classified `vhdl` as `In Progress` because the current roadmap only closes readiness kickoff, not a full production-closure phase,
   - classified `regex` as `In Progress` because it has readiness/parity work but no dedicated professional-grade closure program.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added an interpretation note that phase closure and parser-family maturity are different tracking surfaces.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded the parser-family status split for crash recovery and future handoff.
 
 ### Validation
@@ -6358,12 +6392,12 @@ The roadmap already showed Phases `A-R` as complete, but that did not answer a m
 The project already had a four-state live tracker, but the communication contract was still incomplete: a status row could change in the tracker without the completion message making that change obvious. For a long-running roadmap, that is too easy to lose track of. The required refinement was therefore to bind live-status changes to both tracked documentation and user-facing reporting.
 
 ### Implementation
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - added an explicit update-policy rule that any live-status row change must be logged there before commit,
   - added an explicit rule that no-change tasks should say status is unchanged instead of implying drift.
-- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+- Updated [COMMIT.md](COMMIT.md):
   - made it mandatory to summarize the changed live-status snapshot in the completion message whenever the tracker changes materially.
-- Updated [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [MEMORY.md](MEMORY.md):
   - recorded the new status-display requirement so future crash recovery preserves the policy.
 
 ### Validation
@@ -6377,11 +6411,11 @@ The project already had a four-state live tracker, but the communication contrac
 Phase S had a growing implementation surface and a stricter EBNF-only closure rule, but the docs still did not plainly answer a basic architectural question: why these components exist at all. For a complex project, the roadmap needs to explain not just "what we are building" but "why this layer is required." The required clarification was therefore to document the precise role of Phase S, `rtl_const_expr`, and `rtl_frontend`.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - explained that Phase S exists because RTLSyn needs the minimum trusted parser/evaluator stack for synthesizable RTL, constant-driven elaboration, libraries, and constraints,
   - explained that `rtl_const_expr` exists because RTLSyn cannot trust parameters, widths, or generate structure without a dedicated constant-expression subsystem,
   - explained that `rtl_frontend` exists because RTLSyn needs a synthesis-facing RTL/elaboration boundary before Liberty/SDC and later synthesis logic can bind to real design structure.
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md):
+- Updated [README.md](README.md):
   - added shorter path-level rationale so the explanation is visible from the main entrypoint too.
 
 ### Validation
@@ -6396,13 +6430,13 @@ Phase S had a growing implementation surface and a stricter EBNF-only closure ru
 Phase S had accumulated substantial handwritten bootstrap progress in `rtl_frontend` and `rtl_const_expr`, but the project’s top-level doctrine is that PGEN deliverables are EBNF-backed parsers. That meant the roadmap language was still too permissive: it described parser crates, but did not explicitly forbid handwritten parsers from counting as final Phase S closure. The required correction was to make that rule explicit and realign the live tracker to match it.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added a Phase S closure rule requiring tracked EBNF plus PGEN-generated parser paths for every parser family in the phase,
   - clarified that handwritten parsers are bootstrap/prototyping scaffolding only.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - downgraded `rtl_const_expr` and `rtl_frontend` from `Mostly Done` to `In Progress`,
   - changed the immediate next gap from parser-surface expansion alone to EBNF-backed closure for the current handwritten baselines.
-- Updated [README.md](/Users/richarddje/Documents/github/pgen/README.md) and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [README.md](README.md) and [MEMORY.md](MEMORY.md):
   - recorded the EBNF-only parser doctrine in the project entrypoint and continuity file.
 
 ### Validation
@@ -6417,7 +6451,7 @@ Phase S had accumulated substantial handwritten bootstrap progress in `rtl_front
 The previous assignment-target work broadened what the frontend could represent on the left-hand side, but assignment values still fell back to `rtl_const_expr::Expr`. That left a real dataflow gap: expressions like `{cfg.data[BIT], d}` or `cfgs[IDX].data[BIT]` on the RHS did not have the same structured/frontend-aware representation as port actuals. The next clean increment was therefore structured assignment-value coverage.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - introduced a dedicated structured assignment-value model for continuous and procedural assignments,
   - reused the current port-actual parsing shape so assignment RHS values can preserve signal/member paths, selects, concatenations, and repetition forms,
   - validated structured assignment values through the existing visible-scope/type-aware identifier checks during elaboration.
@@ -6440,14 +6474,14 @@ The previous assignment-target work broadened what the frontend could represent 
 The project had a living roadmap and continuity docs, but it still lacked a single explicit progress surface with stable states that could be updated before each commit. That made it too easy for progress reporting to drift into narrative status instead of precise closure tracking. The next clean operational increment was therefore to add a live four-state achievement tracker and bind it to the commit workflow.
 
 ### Implementation
-- Added [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md):
+- Added [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - defined the only allowed status values as `Done`, `Mostly Done`, `In Progress`, and `Not Started`,
   - documented the meaning of each state,
   - seeded the file with a current major-phase snapshot and a more detailed Phase S breakdown.
-- Updated [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md):
+- Updated [COMMIT.md](COMMIT.md):
   - added `LIVE_ACHIEVEMENT_STATUS.md` to the required tracked files,
   - made its review/update mandatory before every commit whenever closure or remaining scope changes.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [README.md](/Users/richarddje/Documents/github/pgen/README.md), and [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md):
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [README.md](README.md), and [MEMORY.md](MEMORY.md):
   - aligned the roadmap legend to the four-state model,
   - promoted the live tracker into the normal ramp-up and crash-recovery read order.
 
@@ -6463,7 +6497,7 @@ The project had a living roadmap and continuity docs, but it still lacked a sing
 The previous assignment-target increment broadened LHS parsing to typed member/select forms, but it still stopped at a single target. That left a common synthesizable form uncovered: concatenated left-hand sides such as `{cfg.data[BIT], cfg.valid}`. The next clean increment was therefore recursive concatenation support on top of the existing typed LHS machinery.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added `AssignmentTarget::Concat` so continuous and procedural assignments share one recursive LHS model,
   - extended assignment-target parsing to accept brace-wrapped concatenations of typed member/select targets,
   - reused the existing visible-scope/type-aware target validation flow so concatenated LHS elements are checked one-by-one during elaboration.
@@ -6486,7 +6520,7 @@ The previous assignment-target increment broadened LHS parsing to typed member/s
 The previous procedural semantic increment made assignments semantically visible, but both procedural statements and continuous assigns still only parsed bare identifier left-hand sides. That meant the frontend could validate a lot of right-hand-side structure while still dropping common synthesizable LHS forms like `cfg.data[BIT]`. The next clean increment was therefore typed assignment-target coverage.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - introduced a shared typed assignment-target representation for continuous and procedural assignments,
   - broadened assignment parsing so left-hand sides can now preserve signal/member paths, bit-selects, and part-selects,
   - wired typed assignment-target validation through the existing visible-scope/type-aware signal-path checks for both `assign` and procedural statements.
@@ -6509,7 +6543,7 @@ The previous procedural semantic increment made assignments semantically visible
 The previous procedural increment added parser coverage for `always_ff` and `always_latch`, but procedural blocks were still effectively opaque during elaboration. That meant the frontend could retain sequential syntax without checking whether those blocks referenced known identifiers or followed even a minimal sequential assignment policy. The next clean increment was therefore a first procedural semantic pass.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - threaded `ModuleItem::ProceduralBlock` through the elaboration-time validation path instead of leaving it as a no-op,
   - added recursive statement validation for procedural `if` conditions, assignment targets, and assignment values using the existing visible-scope/type metadata,
   - enforced a first `always_ff` semantic rule by rejecting blocking assignments while still validating event-control identifiers such as `posedge clk`.
@@ -6533,7 +6567,7 @@ The previous procedural increment added parser coverage for `always_ff` and `alw
 The current procedural subset had combinational coverage, but it still stopped short of the two synthesizable block forms that usually matter most after `always_comb`: edge-triggered sequential logic and latch blocks. The next clean increment was therefore to add a minimal `always_ff` / `always_latch` slice rather than another isolated type tweak.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added `AlwaysFf` and `AlwaysLatch` to the procedural-kind model,
   - introduced a small event-control representation that preserves `posedge` / `negedge` and the associated event expression for `always_ff`,
   - extended procedural parsing so `always_ff` and `always_latch` now share the current statement/block parser instead of needing a separate ad hoc path.
@@ -6555,7 +6589,7 @@ The current procedural subset had combinational coverage, but it still stopped s
 The previous packed-union validation increment had the width machinery needed for more realistic builtin atom types, but standalone declarations still only recognized a narrow set of declaration starters. The next clean increment was therefore to let builtin integral atom types flow through the same handwritten declaration and validation path.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - broadened declaration-start detection and net-declaration parsing so builtin data types such as `byte`, `shortint`, and `longint` can start standalone declarations,
   - reused the current builtin-width path so `enum byte { ... }` resolves through the same base-type machinery as the existing enum subset,
   - kept these atom types context-sensitive instead of making them newly reserved identifiers, which preserves existing subset examples that still use names like `byte`.
@@ -6578,7 +6612,7 @@ The previous packed-union validation increment had the width machinery needed fo
 The previous union increment added parsing, visibility, and member access, but packed unions still had a major semantic hole: there was no check that their fields were width-compatible. That made packed unions parseable but not trustworthy. The next clean increment was therefore packed-union width validation.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added recursive aggregate-type validation and bit-width helpers over the current type model,
   - validated module header/item data types during elaboration after parameter environments are known,
   - enforced equal field widths for packed unions and surfaced a concrete diagnostic naming the mismatched fields and widths.
@@ -6600,7 +6634,7 @@ The previous union increment added parsing, visibility, and member access, but p
 The current handwritten type surface had reached structs plus enums, but it still lacked the other common aggregate family used in synthesizable RTL declarations: unions. The next clean increment was therefore union coverage instead of jumping into a broader procedural or namespace subsystem.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added `DataType::Union` to the current type model,
   - added parser support for inline union data types with optional `packed`,
   - reused the current typedef/file-scope/package/header-import alias plumbing so union typedefs resolve like the other named types,
@@ -6625,7 +6659,7 @@ The current handwritten type surface had reached structs plus enums, but it stil
 The current handwritten type surface had moved well beyond raw builtins, but it was still overly struct-centric. A common next synthesizable type family was still missing: enums. The next clean increment was therefore enum coverage rather than jumping immediately to a much broader aggregate family.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added `DataType::Enum` and `EnumVariant` to the current type model,
   - added parser support for inline enum data types with optional explicit base type / packed range and optional explicit variant values,
   - reused the existing typedef/file-scope/package/header-import type-alias plumbing so enum typedefs resolve in later declarations and ANSI port lists without a separate visibility mechanism.
@@ -6648,7 +6682,7 @@ The current handwritten type surface had moved well beyond raw builtins, but it 
 The previous `rtl_frontend` increment added unpacked-array declarations, but those declarations still behaved like second-class citizens during member validation. The parser could represent `cfgs [0:1]`, yet elaboration still only understood bare struct roots like `cfg.data`. The next clean increment was therefore indexed array-of-struct member validation.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - replaced the visible-scope type map with declaration-shape metadata so validation can see both base type and unpacked-array depth,
   - added signal-path parsing for `root.member`, `root[index]`, and mixed chains like `cfgs[IDX].data`,
   - extended typed validation to consume unpacked-array indices before struct-member lookup and to reject member access through unindexed unpacked-array roots.
@@ -6671,7 +6705,7 @@ The previous `rtl_frontend` increment added unpacked-array declarations, but tho
 The previous `rtl_frontend` baseline could handle packed ranges on ports and declarations, but it still rejected a common synthesizable shape: unpacked arrays like `logic [7:0] banks [0:DEPTH-1];`. The next clean increment was therefore declaration-shape coverage for unpacked arrays rather than another namespace or expression-only tweak.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added unpacked-dimension metadata plus shape helpers to `PortDecl` and `NetDecl`,
   - updated ANSI port parsing to accept unpacked dimensions after each port declarator name,
   - updated net parsing to emit one `NetDecl` item per declarator so per-name unpacked dimensions are represented directly in the AST instead of being flattened onto a shared statement node.
@@ -6696,11 +6730,11 @@ The previous `rtl_frontend` baseline could handle packed ranges on ports and dec
 The previous `rtl_frontend` package work only handled named-type visibility. That was enough for typedef-backed declarations, but it still left a real elaboration gap: package-backed constants could not flow into parameter defaults, packed ranges, or instance expressions unless they were rewritten by hand. The next clean increment was therefore package constant scope rather than more import syntax alone.
 
 ### Implementation
-- Extended [rtl_const_expr/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_const_expr/src/lib.rs):
+- Extended [rtl_const_expr/src/lib.rs](rtl_const_expr/src/lib.rs):
   - taught identifier lexing to keep `pkg::NAME` as a single identifier token,
   - preserved ternary parsing semantics while adding `::` support,
   - added focused evaluator tests for package-qualified symbol lookup.
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - extended `PackageDecl` to retain `parameter` / `localparam` declarations as package constants alongside typedefs,
   - added design-level package constant evaluation plus flattening into package-qualified symbols for elaboration-time expression evaluation,
   - resolved wildcard and named package constant imports into module elaboration-time seed environments,
@@ -6728,7 +6762,7 @@ The previous `rtl_frontend` package work only handled named-type visibility. Tha
 The previous `rtl_frontend` import work only applied after the module header, which meant package-backed named types still could not be used in ANSI port lists unless they were package-qualified directly. The next clean increment was therefore header imports.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added `header_imports` on `Module`,
   - added parser support for import declarations between the module name/parameter list and the ANSI port list,
   - reused the existing import alias flow so header imports seed ANSI port parsing and remain visible for later body declarations in the same module.
@@ -6750,7 +6784,7 @@ The previous `rtl_frontend` import work only applied after the module header, wh
 The previous `rtl_frontend` package step only supported wildcard imports, which was enough to prove package-backed type scope but still broader than many real uses. The next clean increment was therefore explicit named imports like `import cfg_pkg::cfg_t;`.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - expanded `ImportDecl` so it can represent either a wildcard import or a specific imported type name,
   - updated import parsing to accept both `import pkg::*;` and `import pkg::TypeName;`,
   - resolved named imports into the same type-alias environment already used by typedefs and wildcard imports.
@@ -6773,7 +6807,7 @@ The previous `rtl_frontend` package step only supported wildcard imports, which 
 The previous `rtl_frontend` type-scope work reached file-scope typedefs, but it still lacked the first real namespace step that HDL code actually leans on: top-level packages and package-backed type visibility.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added top-level `package ... endpackage` parsing for typedef-only package contents,
   - added module-body wildcard import parsing (`import pkg::*;`),
   - added package-qualified type resolution for later module headers/declarations,
@@ -6798,7 +6832,7 @@ The previous `rtl_frontend` type-scope work reached file-scope typedefs, but it 
 The previous `rtl_frontend` typedef work stopped at module-local aliases. That was enough for declarations inside one module body, but it still blocked a common next shape: file-scope typedefs used by later module headers and declarations.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added file-scope typedef parsing in `parse_design(...)`,
   - added a persistent global alias table for typedefs that survive across later module parses,
   - reseeded each module parse from the file-scope alias table so later ANSI ports and declarations can resolve named types without leaking module-local aliases globally,
@@ -6822,7 +6856,7 @@ The previous `rtl_frontend` typedef work stopped at module-local aliases. That w
 The previous `rtl_frontend` type work could only validate structure when the aggregate type was written inline on the declaration itself. That left the next obvious synthesizable subset gap: simple module-local typedefs like `typedef struct packed { ... } cfg_t; cfg_t cfg;`.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - added a parser-side typedef alias table scoped to the current module parse,
   - added `TypedefDecl` AST coverage for module-local typedef declarations,
   - taught declaration parsing to recognize typedef-backed named types before falling through to instantiation parsing,
@@ -6846,7 +6880,7 @@ The previous `rtl_frontend` type work could only validate structure when the agg
 The previous `rtl_frontend` increments could preserve member-path actual text, but they still had to validate those paths by declared root only. That meant `cfg.data` and `cfg.missing` were indistinguishable unless the exact dotted path appeared in the symbol table.
 
 ### Implementation
-- Extended [rtl_frontend/src/lib.rs](/Users/richarddje/Documents/github/pgen/rtl_frontend/src/lib.rs):
+- Extended [rtl_frontend/src/lib.rs](rtl_frontend/src/lib.rs):
   - replaced the previous flat `DataType` string with a minimal enum that can represent builtin types plus inline `struct` types,
   - added struct-field parsing for inline `struct` declarations in the handwritten frontend subset,
   - carried declared type metadata through a visibility-scope helper during elaboration,
@@ -7431,7 +7465,7 @@ The raw parseability report and the engine-level contract already split primary-
 The new `target_drive_validation` split made it clear when replay-shadow churn was being spent on alternate non-entry probes rather than entry-shaped outputs. The remaining issue was behavioral: the shared loop still used the same stagnation schedule even after alternate probes had already become dominant and low-yield.
 
 ### Implementation
-- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+- Hardened [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
   - validator-backed replay now keeps explicit dependency probes, but it stops falling back to generic non-entry probes once alternate-entry attempts materially dominate and remain low-yield,
   - validator-backed replay also raises the probe threshold under the same condition, so entry-shaped outputs get more of the remaining replay budget,
   - the rule is generic and derives entirely from target-driven validation history; no grammar-specific heuristics were introduced.
@@ -7447,7 +7481,7 @@ The new `target_drive_validation` split made it clear when replay-shadow churn w
 The report contract already exposed alternate-entry probe churn, but it still left the primary-entry side implicit. Downstream analysis had to subtract alternate-entry totals from the overall parseability summary to estimate true entry-shaped parseability debt.
 
 ### Implementation
-- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+- Hardened [rust/src/main.rs](rust/src/main.rs):
   - `target_drive_validation` now emits both primary-entry and alternate-entry split telemetry, including accepted/rejected counts and acceptance rates.
 - Added Rust regression coverage:
   - explicit mapping test from `TargetDriveValidationSummary`,
@@ -7482,7 +7516,7 @@ After the main gates and aggregate sign-off surfaced alternate-entry probe churn
 After surfacing alternate-entry telemetry inside the individual gates, the remaining visibility gap was top-level sign-off. A reviewer reading `sota_exit_gate` still saw replay-shadow acceptance totals but not whether those retries were dominated by alternate non-entry probes.
 
 ### Implementation
-- Hardened [/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh):
+- Hardened [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
   - now harvests target-drive alternate-entry counters from:
     - `sv_preprocessor_quality_gate` summary CSV,
     - `sv_stimuli_quality_gate` summary log,
@@ -7490,7 +7524,7 @@ After surfacing alternate-entry telemetry inside the individual gates, the remai
   - prints those counters in aggregate `summary.txt` alongside the existing parseability totals.
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - focused aggregate bounded proof with only `differential_baseline_contract`, `sv_preprocessor_quality_gate`, `sv_stimuli_quality_gate`, and `vhdl_stimuli_quality_gate` enabled.
 - observed aggregate evidence:
   - SV preprocessor:
@@ -7548,28 +7582,28 @@ The raw parseability report already had the new `target_drive_validation` block,
 The next shared-engine tuning target after dependency-aware probe escalation was parser-backed replay-shadow acceptance. A few candidate heuristic changes were explored locally, but their bounded HDL evidence was mixed. Before changing behavior again, the missing piece was explicit telemetry showing how much target-driven validator-backed replay was spending on alternate non-entry probe rules.
 
 ### Implementation
-- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+- Hardened [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
   - `TargetDriveValidationSummary` now records:
     - `alternate_entry_attempts`
     - `alternate_entry_accepted_outputs`
     - `alternate_entry_rejected_outputs`
   - these counters are populated only in validator-backed target-driven runs and do not alter target debt, branch guidance, or returned sample semantics.
-- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/main.rs](/Users/richarddje/Documents/github/pgen/rust/src/main.rs):
+- Hardened [rust/src/main.rs](rust/src/main.rs):
   - `ParseabilityGenerationReport` now optionally serializes `target_drive_validation`,
   - plain parseability runs keep the same summary-only contract,
   - `--target-report-input --validate-parseability --parseability-report-json` now emits the alternate-entry block for downstream inspection.
 
 ### Validation
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml restore_branch_selection_state_can_rewind_rejected_probe_history_without_touching_success_restore_contract -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml restore_branch_selection_state_can_rewind_rejected_probe_history_without_touching_success_restore_contract -- --nocapture`
 - direct CLI proof:
-  - `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --count 1 --target-report-input /tmp/pgen_return_gap.json --target-max-attempts 20 --validate-parseability --parseability-report-json /tmp/pgen_return_target_parseability.json --output /tmp/pgen_return_target_sample.txt`
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --count 1 --target-report-input /tmp/pgen_return_gap.json --target-max-attempts 20 --validate-parseability --parseability-report-json /tmp/pgen_return_target_parseability.json --output /tmp/pgen_return_target_sample.txt`
   - emitted report included:
     - `target_drive_validation.alternate_entry_attempts`
     - `target_drive_validation.alternate_entry_accepted_outputs`
     - `target_drive_validation.alternate_entry_rejected_outputs`
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
 
 ### Notes
 - This is intentionally observability-first:
@@ -7582,7 +7616,7 @@ The next shared-engine tuning target after dependency-aware probe escalation was
 After low-yield branch throttling landed, the next open engine gap was what to do with that freed budget. Target-driven replay still used a fixed `probe_threshold = 32` and a simple fallback that only switched to another rule once stagnation was already long-lived, and it did not prioritize unresolved dependency rules over local branch/rule fallbacks. That left real parser-backed replay debt on the table.
 
 ### Implementation
-- Hardened [/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+- Hardened [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
   - `generate_until_targets(...)` and `generate_until_targets_with_filter(...)` now compute probe threshold from pending target state instead of using a fixed `32`,
   - early probe escalation is driven by the same generic low-yield branch signal (`selected_counts` vs `success_counts`) used by the target-branch throttle,
   - strongest early probe is only used when there is an unresolved dependency rule that actually exists in the grammar and still carries target debt,
@@ -7592,19 +7626,19 @@ After low-yield branch throttling landed, the next open engine gap was what to d
   - dependency-rule probing escapes an entry-rule-local stagnation shape that the legacy fallback could not.
 
 ### Validation
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_probe_threshold_escalates_under_low_yield_branch_pressure -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_probe_prefers_unresolved_dependency_rule_over_legacy_branch_fallback -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `cargo test --manifest-path rust/Cargo.toml target_probe_threshold_escalates_under_low_yield_branch_pressure -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml target_probe_prefers_unresolved_dependency_rule_over_legacy_branch_fallback -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
 - bounded SV proof:
-  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - observed:
     - `closed_loop_initial_targets_total=4876`
     - `closed_loop_replay_targets_total=3785`
     - `closed_loop_parseability_shadow_acceptance_rate_percent=27.85`
 - bounded VHDL proof:
-  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
   - observed:
     - `closed_loop_initial_targets=254`
     - `closed_loop_replay_targets=12`
@@ -7622,9 +7656,9 @@ After low-yield branch throttling landed, the next open engine gap was what to d
 `vhdl_stimuli_quality_gate` already had an honest invocation-level replay-budget override, but aggregate `sota_exit_gate` still treated that as an implicit inherited env detail. That meant aggregate runs could use a bounded VHDL replay budget, but the control was not first-class in aggregate policy, not validated there, and not surfaced clearly in aggregate sign-off output.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`:
+- Hardened `rust/config/sota_exit_policy.env`:
   - added `PGEN_SOTA_POLICY_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=5000` as explicit aggregate default.
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+- Hardened `rust/scripts/sota_exit_gate.sh`:
   - added aggregate runtime surface `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS`,
   - validates the effective value as integer `>=1`,
   - forwards the same value into both aggregate `vhdl_stimuli_quality_gate` and inherited `vhdl_strict_promotion_gate` runs,
@@ -7632,11 +7666,11 @@ After low-yield branch throttling landed, the next open engine gap was what to d
   - harvests the effective gate-side `closed_loop_target_max_attempts` and `closed_loop_target_max_attempts_source` from the VHDL quality stage log,
   - surfaces both configured aggregate fields and effective gate-side fields in aggregate `summary.txt`.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - focused aggregate bounded proof:
   - `PGEN_SOTA_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200` with strict aggregate VHDL quality + strict aggregate VHDL promotion enabled and the rest of the aggregate surface reduced to the minimal required footprint,
   - observed:
@@ -7658,18 +7692,18 @@ After low-yield branch throttling landed, the next open engine gap was what to d
 Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only honored `closed_loop.target_max_attempts` from the tracked contract. To shorten local proofs or strict-promotion checks, the only practical path was copying the contract into `/tmp` and editing it, which was unnecessary friction compared with the existing SV bounded-replay override.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`:
+- Hardened `rust/scripts/vhdl_stimuli_quality_gate.sh`:
   - added `PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS` as an invocation-only override for `closed_loop.target_max_attempts`,
   - keeps the same integer validation on the effective value,
   - emits both `closed_loop_target_max_attempts` and `closed_loop_target_max_attempts_source` (`contract` or `env_override`) in startup logs and `summary.txt`.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
 - focused direct bounded proof:
-  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+  - `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
   - observed:
     - `closed_loop_target_max_attempts=200`
     - `closed_loop_target_max_attempts_source=env_override`
@@ -7678,7 +7712,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
     - `parseability_generation_acceptance_rate_percent=66.67`
     - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
 - focused strict-promotion inheritance proof:
-  - `PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+  - `PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
   - observed:
     - `observed_ratio_min=max=avg=100`
     - `parseability_generation_attempts_total=3`
@@ -7693,24 +7727,24 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `vhdl_strict_promotion_gate` was already running strict deterministic `vhdl_stimuli_quality_gate` trials, but it only reported ratio/parity outcomes and blocker attribution. The parser-backed sample-generation effort and replay-shadow acceptance cost inside those trials remained hidden, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`:
+- Hardened `rust/scripts/vhdl_strict_promotion_gate.sh`:
   - harvests parser-backed sample-generation and closed-loop replay-shadow reports from each strict trial,
   - records both surfaces per trial in `vhdl_strict_promotion_report.json`,
   - aggregates attempts / accepted / rejected totals, error buckets, and acceptance rates across all trials,
   - falls back to trial `summary.txt` when replay-shadow report fields such as `enabled` or acceptance rate are omitted and derives the percentage from accepted/attempt counts so per-trial evidence stays consistent,
   - surfaces those totals in standalone `summary.txt`.
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+- Hardened `rust/scripts/sota_exit_gate.sh`:
   - parses the new VHDL strict-promotion parseability totals from the stage report,
   - surfaces them in aggregate VHDL strict-promotion telemetry so sign-off can see parser-backed effort directly.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/vhdl_strict_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - focused promotion proof with bounded temporary contract override:
-  - `PGEN_VHDL_STRICT_PROMOTION_MODE=auto PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE=1000 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE=auto PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY=1 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/vhdl_core_v0_contract_bounded.json PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_strict_promotion_gate`
+  - `PGEN_VHDL_STRICT_PROMOTION_MODE=auto PGEN_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_VHDL_STRICT_PROMOTION_SEED_STRIDE=1000 PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STRICT_PROMOTION_REALISTIC_CORPUS_MODE=auto PGEN_VHDL_STRICT_PROMOTION_REQUIRE_REALISTIC_PARITY=1 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/vhdl_core_v0_contract_bounded.json PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate`
   - observed:
     - `observed_ratio_min=max=avg=100`
     - `parseability_generation_attempts_total=3`
@@ -7722,7 +7756,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
     - `closed_loop_parseability_shadow_rejected_total=26`
     - `closed_loop_parseability_shadow_acceptance_rate_percent=16.13`
 - focused aggregate proof:
-  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_vhdl_strict_promotion_parseability PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_EBNF_STIMULI_QUALITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=1 PGEN_SOTA_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_SOTA_VHDL_STRICT_PROMOTION_SEED_STRIDE=1000 PGEN_SOTA_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/vhdl_core_v0_contract_bounded.json PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_vhdl_strict_promotion_parseability PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_EBNF_STIMULI_QUALITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=1 PGEN_SOTA_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_TRIALS=1 PGEN_SOTA_VHDL_STRICT_PROMOTION_COUNT=2 PGEN_SOTA_VHDL_STRICT_PROMOTION_SEED_STRIDE=1000 PGEN_SOTA_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 PGEN_VHDL_STIMULI_QUALITY_CONTRACT=/tmp/vhdl_core_v0_contract_bounded.json PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX_ATTEMPTS=25 make -C rust SHELL=/bin/bash sota_exit_gate`
   - aggregate summary surfaced the same VHDL strict-promotion parseability totals and acceptance rates with `required_failures=0` and `all_failures=0`.
 
 ### Notes
@@ -7733,23 +7767,23 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `sv_parse_full_ratio_promotion_gate` was already running strict `sv_stimuli_quality_gate` trials at a ratchet threshold, but it only reported ratio outcomes and blocker attribution. The parser-backed generation effort and replay-shadow acceptance cost inside those trials remained invisible, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`:
+- Hardened `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`:
   - harvests parser-backed sample-generation and closed-loop replay-shadow reports from each strict trial,
   - records both surfaces per trial in `systemverilog_parse_full_ratio_promotion_report.json`,
   - aggregates attempts / accepted / rejected totals, error buckets, and acceptance rates across all trials,
   - surfaces those totals in standalone `summary.txt`.
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+- Hardened `rust/scripts/sota_exit_gate.sh`:
   - parses the new parse-full promotion parseability totals from the stage report,
   - surfaces them in aggregate parse-full promotion telemetry so sign-off can see parser-backed effort directly.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - focused promotion proof:
-  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE=auto PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=1000 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
+  - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_MODE=auto PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS=1 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_COUNT=2 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=20 PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEED_STRIDE=1000 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C rust SHELL=/bin/bash sv_parse_full_ratio_promotion_gate`
   - observed:
     - `observed_ratio_min=max=avg=100`
     - `parseability_generation_attempts_total=13`
@@ -7757,7 +7791,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
     - `closed_loop_parseability_shadow_attempts_total=100`
     - `closed_loop_parseability_shadow_accepted_total=26`
 - focused aggregate proof:
-  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_parse_full_promotion_parseability ... PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_parse_full_promotion_parseability ... PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 make -C rust SHELL=/bin/bash sota_exit_gate`
   - aggregate summary surfaced the same parse-full promotion parseability totals and acceptance rates.
 
 ### Notes
@@ -7768,30 +7802,30 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `sv_declared_shadow_promotion_gate` was already running strict `sv_stimuli_quality_gate` trials, but it only reported declared-shadow outcomes and blocker attribution. The parser-backed generation effort and replay-shadow acceptance cost inside those trials remained invisible, which was below the parser-trust bar for a promotion gate used in aggregate sign-off.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`:
+- Hardened `rust/scripts/sv_declared_shadow_promotion_gate.sh`:
   - harvests parser-backed sample-generation and closed-loop replay-shadow reports from each strict trial,
   - records both surfaces per trial in `systemverilog_declared_identifier_promotion_report.json`,
   - aggregates attempts / accepted / rejected totals, error buckets, and acceptance rates across all trials,
   - surfaces those totals in standalone `summary.txt`.
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+- Hardened `rust/scripts/sota_exit_gate.sh`:
   - parses the new declared-shadow promotion parseability totals from the stage report,
   - surfaces them in aggregate declared-shadow promotion telemetry so sign-off can see parser-backed effort directly.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - focused promotion proof:
-  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
+  - `PGEN_SV_DECLARED_SHADOW_PROMOTION_MODE=auto PGEN_SV_DECLARED_SHADOW_PROMOTION_TRIALS=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_COUNT=2 PGEN_SV_DECLARED_SHADOW_PROMOTION_MIN_CHECKED=1 PGEN_SV_DECLARED_SHADOW_PROMOTION_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sv_declared_shadow_promotion_gate`
   - observed:
     - `parseability_generation_attempts_total=13`
     - `parseability_generation_accepted_total=4`
     - `closed_loop_parseability_shadow_attempts_total=100`
     - `closed_loop_parseability_shadow_accepted_total=26`
 - focused aggregate proof:
-  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_declared_shadow_parseability ... PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_declared_shadow_parseability ... PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 make -C rust SHELL=/bin/bash sota_exit_gate`
   - aggregate summary surfaced the same declared-shadow promotion parseability totals and acceptance rates.
 
 ### Notes
@@ -7802,29 +7836,29 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `sv_preprocessor_quality_gate` already had a real generated-parser parseability path, but it still surfaced only `parseability_mode_effective` at both stage and aggregate levels. That meant operators could see that parseability was enabled without seeing how much parser-backed retry effort the preprocessor grammar actually needed.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`:
+- Hardened `rust/scripts/sv_preprocessor_quality_gate.sh`:
   - emits structured parseability reports for the core closed-loop stages when parseability is enabled,
   - validates stage-level parseability report invariants and deterministic stage-0 replay report parity,
   - writes aggregate parseability totals plus `systemverilog_preprocessor_parseability_report.json` into `summary.csv` / `summary.txt`.
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+- Hardened `rust/scripts/sota_exit_gate.sh`:
   - parses the new preprocessor summary rows,
   - surfaces aggregate preprocessor parseability attempts / accepted / rejected totals, acceptance rate, and report path in top-level sign-off output.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - reduced gate proof:
-  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_preprocessor_quality_gate`
+  - `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=0 PGEN_SV_PREPROCESSOR_QUALITY_TARGET_MAX_ATTEMPTS=400 PGEN_SV_PREPROCESSOR_QUALITY_GAP_THRESHOLD=1 make -C rust SHELL=/bin/bash sv_preprocessor_quality_gate`
   - observed:
     - `parseability_attempts_total=140`
     - `parseability_accepted_total=88`
     - `parseability_rejected_total=52`
     - `parseability_acceptance_rate_percent=62.86`
 - focused aggregate proof:
-  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_sv_preproc_parseability ... make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_sv_preproc_parseability ... make -C rust SHELL=/bin/bash sota_exit_gate`
   - aggregate summary now surfaces the same preprocessor parseability totals and report path.
 
 ### Notes
@@ -7835,18 +7869,18 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `annotation_stimuli_quality_gate` was already the strictest annotation stimuli proof in the repo, but its parser-backed stages still hid acceptance effort behind pass/fail. That made the closed-loop target summary visible while leaving parser-backed retry cost invisible, especially on semantic closure where the generator plainly works harder.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh`:
+- Hardened `rust/scripts/annotation_stimuli_quality_gate.sh`:
   - stage0 baseline, stage1 gap-priority, stage2 target-drive, and stage3 final-gap recompute now each emit `--parseability-report-json`,
   - stage-level parseability report invariants are validated explicitly,
   - the gate now writes per-grammar aggregate parseability reports and top-level `summary.csv` / `summary.txt` with both parseability and target-closure metrics,
   - declared `perl` as an explicit required tool because summary-rate formatting depends on it.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_stimuli_quality_gate.sh`
-- `PGEN_ANNOTATION_STIMULI_QUALITY_COUNT=2 PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_stimuli_quality_gate`
+- `bash -n rust/scripts/annotation_stimuli_quality_gate.sh`
+- `PGEN_ANNOTATION_STIMULI_QUALITY_COUNT=2 PGEN_ANNOTATION_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate`
   - observed:
     - `return_annotation`: `parseability_attempts_total=161`, `accepted_total=161`, `acceptance_rate_percent=100.00`, `final_targets=0`
     - `semantic_annotation`: `parseability_attempts_total=205`, `accepted_total=114`, `rejected_total=91`, `acceptance_rate_percent=55.61`, `final_targets=84`
@@ -7859,17 +7893,17 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `annotation_robustness_gate` was already running parser-backed stimuli generation for generated return and semantic annotation grammars, but the gate still reported only pass/fail. That hid real acceptance effort inside a required annotation-contract surface and made semantic retry cost invisible to operators.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_robustness_gate.sh`:
+- Hardened `rust/scripts/annotation_robustness_gate.sh`:
   - emits `--parseability-report-json` for return and semantic generated-parser stimuli runs,
   - validates report grammar identity plus requested/accepted/rejected accounting,
   - writes `summary.csv` / `summary.txt` with parseability telemetry and artifact paths for both parser-backed rows.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_robustness_gate.sh`
-- `PGEN_ANNOTATION_ROBUSTNESS_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_robustness_gate`
+- `bash -n rust/scripts/annotation_robustness_gate.sh`
+- `PGEN_ANNOTATION_ROBUSTNESS_COUNT=2 make -C rust SHELL=/bin/bash annotation_robustness_gate`
   - observed:
     - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
     - `semantic_annotation`: `attempts=3`, `accepted=2`, `rejected=1`, `parser_rejections=1`, `acceptance_rate_percent=66.67`
@@ -7882,18 +7916,18 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `annotation_nonbootstrap_e2e_gate` was already using generated-parser stimuli generation with `--validate-parseability` for return and semantic grammars, but the gate still collapsed that effort into binary success. Operators could tell the gate passed, but not whether it took the requested count exactly, how many retries were needed, or where the parser-backed parseability reports lived. That was below the parser trust bar for a required CI / aggregate check.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/annotation_nonbootstrap_e2e_gate.sh`:
+- Hardened `rust/scripts/annotation_nonbootstrap_e2e_gate.sh`:
   - emits `--parseability-report-json` for return and semantic non-bootstrap stimuli runs,
   - validates report grammar identity plus requested/accepted/rejected accounting,
   - writes `summary.csv` / `summary.txt` covering parser, stimuli, coverage, gap, and parseability telemetry artifacts,
   - leaves `regex` as an explicit non-parseability row so current gate scope stays honest.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/annotation_nonbootstrap_e2e_gate.sh`
-- `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
+- `bash -n rust/scripts/annotation_nonbootstrap_e2e_gate.sh`
+- `PGEN_ANNOTATION_NONBOOTSTRAP_COUNT=2 make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
   - observed:
     - `return_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
     - `semantic_annotation`: `attempts=2`, `accepted=2`, `acceptance_rate_percent=100.00`
@@ -7907,17 +7941,17 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 `stimuli_module_parity_gate` was already proving deterministic parity for sample corpus, coverage JSON, and gap JSON between in-memory generation and generated `*_stimuli.rs` modules. That still left parser-backed acceptance effort implicit: when parseability was required, both paths had to succeed, but the gate was not proving that they took the same number of attempts or rejected the same samples for the same reasons. Under the parser trust doctrine, that was incomplete parity evidence.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/stimuli_module_parity_gate.sh`:
+- Hardened `rust/scripts/stimuli_module_parity_gate.sh`:
   - emits `--parseability-report-json` for both parity paths when the contract marks a grammar as parseability-required,
   - canonicalizes and compares the resulting in-memory vs module parseability reports,
   - extends summary CSV/text with parseability totals and report artifact paths.
 - Updated operator docs/state:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/stimuli_module_parity_gate.sh`
-- `PGEN_STIMULI_MODULE_PARITY_COUNT=4 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash stimuli_module_parity_gate`
+- `bash -n rust/scripts/stimuli_module_parity_gate.sh`
+- `PGEN_STIMULI_MODULE_PARITY_COUNT=4 make -C rust SHELL=/bin/bash stimuli_module_parity_gate`
   - observed:
     - `return_annotation`: `attempts=4`, `accepted=4`, `acceptance_rate_percent=100.00`
     - `semantic_annotation`: `attempts=8`, `accepted=4`, `rejected=4`, `parser_rejections=4`, `acceptance_rate_percent=50.00`
@@ -7930,20 +7964,20 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
 The readiness gates were already producing the right parser-backed telemetry, but aggregate `sota_exit_gate` runs still hid it. At sign-off time, operators could see only that `ebnf_frontend_gate` and `hdl_frontend_gate` passed, not how many attempts were needed to get parseable emitted samples or where the readiness parseability reports lived. That was a visibility gap, not a parser bug, so the fix belonged in aggregate observability.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+- Hardened `rust/scripts/sota_exit_gate.sh`:
   - routed EBNF readiness under:
     - `rust/target/sota_exit_gate/work/ebnf_frontend_readiness`
   - routed HDL readiness under:
     - `rust/target/sota_exit_gate/work/hdl_frontend_readiness`
   - appended both readiness summary tables directly into aggregate `summary.txt`.
 - Updated operator-facing docs:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - focused aggregate readiness replay:
-  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_readiness_summary ... make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_readiness_summary ... make -C rust SHELL=/bin/bash sota_exit_gate`
   - observed readiness table rows in aggregate summary:
     - EBNF:
       - `ebnf` `1/2` accepted (`50.00%`)
@@ -7962,7 +7996,7 @@ The readiness gates were already producing the right parser-backed telemetry, bu
 `sota_exit_gate` was already executing the right closed-loop stages, but the top-level operator artifact still under-reported parser trust evidence. EBNF parseability totals stayed buried in the nested `ebnf_stimuli_quality_gate` state dir, VHDL quality artifacts were not aggregate-scoped, and SV/VHDL parser-backed acceptance telemetry only existed inside stage-local summaries. That made release sign-off weaker than the trust doctrine requires because the aggregate gate was acting like a pass/fail wrapper instead of an observable sign-off surface.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`:
+- Hardened `rust/scripts/sota_exit_gate.sh`:
   - routed `ebnf_stimuli_quality_gate` under aggregate state at:
     - `rust/target/sota_exit_gate/work/ebnf_stimuli_quality_gate`
   - routed `vhdl_stimuli_quality_gate` under aggregate state at:
@@ -7973,13 +8007,13 @@ The readiness gates were already producing the right parser-backed telemetry, bu
     - VHDL closed-loop target debt plus replay-shadow and parser-backed generation metrics,
     - the VHDL realistic-corpus report path for direct drill-down.
 - Updated operator docs:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
 - bounded aggregate replay in isolated state dir:
-  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_gate_summary_validate ... make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sota_exit_gate`
+  - `PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sota_exit_gate_summary_validate ... make -C rust SHELL=/bin/bash sota_exit_gate`
   - used a temporary reduced VHDL contract override only to bound the replay-shadow budget for validation:
     - `.closed_loop.target_max_attempts = 200`
     - `.closed_loop.replay_sample_count = 4`
@@ -8008,7 +8042,7 @@ The readiness gates were already producing the right parser-backed telemetry, bu
 The parser-aware debt rollback made replay-shadow accounting honest, but it also exposed the next generic engine weakness: target guidance was still only clamping branches with zero accepted successes. That was too coarse. A branch that gets selected many times and only rarely produces parser-accepted output should also lose priority, otherwise the engine keeps wasting replay budget on objectively low-yield branches.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`:
+- Hardened `rust/src/ast_pipeline/stimuli_generator.rs`:
   - replaced the zero-success-only target-branch throttle with a ratio-based throttle driven by branch selection history versus accepted successes,
   - kept the behavior EBNF-agnostic by basing it only on shared coverage counters (`selected_counts` / `success_counts`),
   - added focused regression tests for:
@@ -8016,11 +8050,11 @@ The parser-aware debt rollback made replay-shadow accounting honest, but it also
     - multiplier behavior when two branches have the same remaining deficit but very different accepted-yield history.
 
 ### Validation
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_branch_failure_throttle_penalizes_persistently_low_success_ratio -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml coverage_guidance_multiplier_deemphasizes_low_yield_target_branch -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `cargo test --manifest-path rust/Cargo.toml target_branch_failure_throttle_penalizes_persistently_low_success_ratio -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml coverage_guidance_multiplier_deemphasizes_low_yield_target_branch -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - observed:
     - authoritative replay debt remained green but regressed slightly: `4876 -> 3925`
     - replay shadow: `requested_total=491`, `accepted_total=148`, `rejected_total=343`, `acceptance_rate_percent=30.14`
@@ -8030,7 +8064,7 @@ The parser-aware debt rollback made replay-shadow accounting honest, but it also
     - authoritative replay debt: `271 -> 20`
     - replay shadow: `requested_total=31`, `accepted_total=9`, `rejected_total=22`, `acceptance_rate_percent=29.03`
     - previous strict baseline for the same bounded proof: `requested_total=31`, `accepted_total=7`, `rejected_total=24`, `acceptance_rate_percent=22.58`
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
 
 ### Notes
 - This is still measurement-backed, not a trick: the authoritative replay debt contract remains intact and only the generic branch-weight guidance changed.
@@ -8042,20 +8076,20 @@ The parser-aware debt rollback made replay-shadow accounting honest, but it also
 The replay-shadow telemetry exposed a deeper issue in the shared engine path. `ast_pipeline --target-report-input --validate-parseability` was still resolving target debt on raw generator success and only filtering parser-rejected outputs afterward. That meant the target plan could internally “close” on samples the generated parser would never accept. The fix had to be generic and engine-level, not an SV-only shell adjustment.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`:
+- Hardened `rust/src/ast_pipeline/stimuli_generator.rs`:
   - added validator-aware target-driven generation,
   - added success-state snapshot/restore support so parser-rejected outputs roll back:
     - rule success hits,
     - branch success hits,
   - intentionally preserved branch-selection history on rejected outputs so the generic failing-branch throttle still learns from those misses.
-- Updated `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`:
+- Updated `rust/src/main.rs`:
   - `--target-report-input --validate-parseability` now uses the validator-aware target loop directly,
   - target-driven parseability is no longer “generate then filter later”.
 
 ### Validation
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml target_driven_generation -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `cargo test --manifest-path rust/Cargo.toml target_driven_generation -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - observed:
     - authoritative replay debt unchanged: `4876 -> 3894`
     - replay shadow now reports only accepted target-driven hits: `requested_total=474`, `accepted_total=135`, `rejected_total=339`, `acceptance_rate_percent=28.48`
@@ -8063,7 +8097,7 @@ The replay-shadow telemetry exposed a deeper issue in the shared engine path. `a
   - observed:
     - authoritative replay debt: `271 -> 33`
     - replay shadow: `requested_total=31`, `accepted_total=7`, `rejected_total=24`, `acceptance_rate_percent=22.58`
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
 
 ### Notes
 - This is the right direction even though the acceptance percentage did not jump upward: the metric is now stricter and more honest because rejected outputs no longer masquerade as resolved target coverage.
@@ -8074,9 +8108,9 @@ The replay-shadow telemetry exposed a deeper issue in the shared engine path. `a
 The SV scored sample loop already exposed parser-backed retry cost, but the closed-loop replay stage still only told us whether raw replay debt had gone down. That left a blind spot in parser trust: replay could be converging on coverage targets while still producing a large amount of parser-rejected output. We need to see that gap without mutating the replay stage so aggressively that the existing target-debt and preprocess-debt invariants stop meaning what they mean today.
 
 ### Implementation
-- Promoted `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `version: 26`:
+- Promoted `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `version: 26`:
   - added `closed_loop.parseability_shadow_enabled`.
-- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`:
+- Extended `rust/scripts/sv_stimuli_quality_gate.sh`:
   - the gate now runs `profile_<lrm>_closed_loop_replay_parseability_shadow` after each authoritative raw replay stage,
   - the shadow run reuses the same:
     - profile,
@@ -8089,8 +8123,8 @@ The SV scored sample loop already exposed parser-backed retry cost, but the clos
   - authoritative replay debt enforcement still comes only from the raw replay gap/preprocess artifacts, so the invariant is preserved.
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=400 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - observed:
     - authoritative replay debt: `4876 -> 3894`
     - replay shadow: `requested_total=785`, `accepted_total=229`, `rejected_total=556`, `acceptance_rate_percent=29.17`
@@ -8106,9 +8140,9 @@ The SV scored sample loop already exposed parser-backed retry cost, but the clos
 After promoting parser-backed telemetry for the scored VHDL samples, the remaining blind spot was obvious: target-driven replay still only told us that raw replay debt had gone down. That is necessary, but not sufficient. We also need to know how much of that replay output is actually parseable under the generated parser, without changing the replay stage so aggressively that we lose the debt invariant we rely on today.
 
 ### Implementation
-- Promoted `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to `version: 4`:
+- Promoted `rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to `version: 4`:
   - added `closed_loop.parseability_shadow_enabled`.
-- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`:
+- Extended `rust/scripts/vhdl_stimuli_quality_gate.sh`:
   - the gate now runs a `closed_loop_replay_parseability_shadow` stage after the authoritative raw replay stage,
   - the shadow run reuses the same:
     - seed,
@@ -8120,8 +8154,8 @@ After promoting parser-backed telemetry for the scored VHDL samples, the remaini
   - authoritative debt enforcement still comes only from the raw replay gap report, so the invariant is preserved.
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
-- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+- `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
   - observed:
     - authoritative replay debt: `254 -> 0`
     - replay shadow: `requested_total=550`, `accepted_total=109`, `rejected_total=441`, `acceptance_rate_percent=19.82`
@@ -8137,10 +8171,10 @@ After promoting parser-backed telemetry for the scored VHDL samples, the remaini
 `vhdl_stimuli_quality_gate` already had a generated parser and an explicit parse-full probe, but its sampled generation stage was still effectively binary: emit one raw sample, then report whether parse-full happened to accept it. That left the VHDL loop behind the SV and non-annotation EBNF loops on parser-trust observability because retry cost, parser rejection rate, and empty/error generation causes were invisible.
 
 ### Implementation
-- Promoted `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to `version: 3`:
+- Promoted `rust/test_data/grammar_quality/vhdl_core_v0_contract.json` to `version: 3`:
   - added `parseability_generation.enabled`,
   - added `parseability_generation.max_attempts_per_sample`.
-- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`:
+- Extended `rust/scripts/vhdl_stimuli_quality_gate.sh`:
   - after generating the VHDL parser source, the gate now rebuilds both `ast_pipeline` and `parseability_probe` against that parser,
   - scored sample rows now use the shared parser-backed generation path:
     - `--validate-parseability`
@@ -8151,8 +8185,8 @@ After promoting parser-backed telemetry for the scored VHDL samples, the remaini
   - closed-loop replay and realistic-corpus stages were left semantically unchanged.
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
-- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
+- `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=2 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/bin/bash vhdl_stimuli_quality_gate`
   - observed:
     - parseability generation: `requested_total=2`, `attempts_total=3`, `accepted_total=2`, `rejected_total=1`, `acceptance_rate_percent=66.67`
     - parse_full: `2/2`
@@ -8168,11 +8202,11 @@ After promoting parser-backed telemetry for the scored VHDL samples, the remaini
 `hdl_frontend_readiness_gate` was still the odd one out after the EBNF and SV parseability-telemetry work. It had explicit parser replay, but the implementation was still an HDL-specific manifest/retry loop that only surfaced binary `parseability=pass|fail`. That was weaker than the project’s newer parser-trust contract and duplicated behavior the shared CLI already knew how to report.
 
 ### Implementation
-- Generalized `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`:
+- Generalized `rust/src/main.rs`:
   - added `--parseability-max-attempts` so parseability-aware generation can take an explicit total attempt budget instead of only the default `count * 50`,
   - threaded the override through all parseability-aware generation call sites,
   - added focused tests for the default and overridden budget resolution.
-- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/hdl_frontend_readiness_gate.sh` onto the shared path:
+- Promoted `rust/scripts/hdl_frontend_readiness_gate.sh` onto the shared path:
   - the gate now rebuilds `ast_pipeline` and `parseability_probe` with the freshly generated `systemverilog` / `vhdl` parser from the current readiness run,
   - it now measures readiness parseability through `--validate-parseability --parseability-report-json`,
   - summary rows now expose:
@@ -8184,9 +8218,9 @@ After promoting parser-backed telemetry for the scored VHDL samples, the remaini
   - `PGEN_HDL_FRONTEND_PARSEABILITY_MAX_ATTEMPTS` is preserved, but it now maps to the shared total-attempt budget instead of driving an HDL-only retry loop.
 
 ### Validation
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/hdl_frontend_readiness_gate.sh`
-- `PGEN_HDL_FRONTEND_STATE_DIR=/tmp/pgen_hdl_frontend_readiness_parseability PGEN_HDL_FRONTEND_STIMULI_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash hdl_frontend_readiness`
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture`
+- `bash -n rust/scripts/hdl_frontend_readiness_gate.sh`
+- `PGEN_HDL_FRONTEND_STATE_DIR=/tmp/pgen_hdl_frontend_readiness_parseability PGEN_HDL_FRONTEND_STIMULI_COUNT=2 make -C rust SHELL=/bin/bash hdl_frontend_readiness`
   - observed:
     - `systemverilog`: `attempts=16`, `accepted=2`, `rejected=14`, `acceptance_rate_percent=12.50`
     - `vhdl`: `attempts=8`, `accepted=2`, `rejected=6`, `acceptance_rate_percent=25.00`
@@ -8200,7 +8234,7 @@ After promoting parser-backed telemetry for the scored VHDL samples, the remaini
 The `regex.ebnf` helper-rule delta had already been explained: Rust raw-AST export preserves the real trailing helper rules, while the legacy Perl export under-reports them. But that knowledge only lived in narrative notes. The executable dual-run report still reduced everything to parser/full-parse parity, leaving the raw-AST limitation invisible unless someone already knew where to look.
 
 ### Implementation
-- Updated `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`:
+- Updated `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`:
   - `ast_pipeline` is now built with `--features ebnf_dual_run` so the gate can export Rust raw-AST envelopes during the same run,
   - each tracked grammar now emits:
     - Perl raw-AST JSON
@@ -8219,8 +8253,8 @@ The `regex.ebnf` helper-rule delta had already been explained: Rust raw-AST expo
   - unexpected raw-AST divergence (`rust_under_reports` / `divergent`) remains gate-failing.
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+- `bash -n rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+- `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
   - observed:
     - `ebnf`: `raw_ast_status=parity`
     - `json`: `raw_ast_status=parity`
@@ -8238,27 +8272,27 @@ After adding parser-backed readiness telemetry, the next trust gap was obvious: 
 
 ### Implementation
 - Generalized optional generated-parser plumbing:
-  - `/Users/richarddje/Documents/github/pgen/rust/build.rs`
-  - `/Users/richarddje/Documents/github/pgen/rust/src/lib.rs`
-  - `/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs`
+  - `rust/build.rs`
+  - `rust/src/lib.rs`
+  - `rust/src/parser_registry.rs`
     - added optional `json` / `regex` generated-parser support through `PGEN_JSON_PARSER_PATH` and `PGEN_REGEX_PARSER_PATH`,
     - added parseability adapters and registry tests for both grammars.
-- Fixed the real generic generator bug in `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/mod.rs`:
+- Fixed the real generic generator bug in `rust/src/ast_pipeline/mod.rs`:
   - raw-AST transforms now merge duplicate rule heads into one grammar rule with combined alternatives,
   - return and semantic annotations from repeated heads are accumulated instead of overwritten,
   - added regression test `transform_from_raw_ast_merges_duplicate_rule_heads_into_one_rule`.
-- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`:
+- Promoted `rust/scripts/ebnf_frontend_readiness_gate.sh`:
   - the gate now rebuilds parser-backed validation binaries for each tracked grammar (`ebnf`, `json`, `regex`) against that run's freshly generated parser source,
   - both Perl-fronted and Rust-fronted readiness flows now finish with parser-backed parseability rows for all tracked grammars.
 
 ### Validation
 - `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs cargo test --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" parser_registry::tests:: -- --nocapture`
-- `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_json_regex_perl PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+- `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_json_regex_perl PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
   - observed:
     - `ebnf`: `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
     - `json`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
     - `regex`: `attempts=2`, `accepted=2`, `rejected=0`, `acceptance_rate_percent=100.00`
-- `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_json_regex_rust PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 PGEN_EBNF_FRONTEND_IMPL=rust make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+- `PGEN_JSON_PARSER_PATH=/tmp/pgen_next_task/json_parser.rs PGEN_REGEX_PARSER_PATH=/tmp/pgen_next_task/regex_parser.rs PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_json_regex_rust PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
   - observed:
     - same parser-backed readiness shape and all tracked rows passing under the Rust frontend path.
 
@@ -8271,7 +8305,7 @@ After adding parser-backed readiness telemetry, the next trust gap was obvious: 
 After adding shared parseability-effort telemetry to the CLI and to `ebnf_stimuli_quality_gate`, `ebnf_frontend_readiness_gate` was still lagging behind: it could only say that tracked grammars reached `EBNF -> JSON -> parser -> stimuli`, not whether any of those stimuli were parser-backed or how much retry cost parser-backed acceptance required. That left the readiness surface too binary for the project’s parser-trust bar.
 
 ### Implementation
-- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` so readiness rows now expose:
+- Extended `rust/scripts/ebnf_frontend_readiness_gate.sh` so readiness rows now expose:
   - `parser_registry_support`
   - `parseability`
   - `parseability_attempts`
@@ -8287,13 +8321,13 @@ After adding shared parseability-effort telemetry to the CLI and to `ebnf_stimul
   - they still run raw stimuli generation so frontend viability remains measured, but they no longer look equivalent to parser-backed coverage.
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
-- `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_perl PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+- `bash -n rust/scripts/ebnf_frontend_readiness_gate.sh`
+- `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_perl PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
   - observed:
     - `ebnf`: `attempts=4`, `accepted=2`, `rejected=2`, `acceptance_rate_percent=50.00`
     - `json`: `parser_registry_support=unavailable`
     - `regex`: `parser_registry_support=unavailable`
-- `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_rust PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 PGEN_EBNF_FRONTEND_IMPL=rust make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_frontend_readiness`
+- `PGEN_EBNF_FRONTEND_STATE_DIR=/tmp/pgen_ebnf_frontend_readiness_parseability_rust PGEN_EBNF_FRONTEND_STIMULI_COUNT=2 PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
   - observed:
     - same parser-backed readiness telemetry shape under the Rust frontend path.
 
@@ -8306,7 +8340,7 @@ After adding shared parseability-effort telemetry to the CLI and to `ebnf_stimul
 Once the shared `--parseability-report-json` contract existed, leaving `ebnf_stimuli_quality_gate` on plain pass/fail would have kept the non-annotation loop less observable than the SystemVerilog loop. That was the next obvious trust gap: parseability-required grammars in the generic EBNF gate needed the same visibility into retry cost and parser rejection rates. While closing that gap, a second issue surfaced: the gate was regenerating tracked `generated/ebnf.json` and `generated/ebnf.rs` as a side effect, which is wrong for a validation gate.
 
 ### Implementation
-- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh` so parseability-required grammars now request a parseability report for each closed-loop stage:
+- Extended `rust/scripts/ebnf_stimuli_quality_gate.sh` so parseability-required grammars now request a parseability report for each closed-loop stage:
   - `stage0_baseline`
   - `stage1_gap_priority`
   - `stage2_target_drive`
@@ -8324,19 +8358,19 @@ Once the shared `--parseability-report-json` contract existed, leaving `ebnf_sti
   - a per-grammar aggregate JSON artifact:
     - `<label>_parseability_report.json`
 - Added a build-time override for the generated EBNF parser include path:
-  - `/Users/richarddje/Documents/github/pgen/rust/build.rs` now accepts `PGEN_EBNF_PARSER_PATH`,
-  - `/Users/richarddje/Documents/github/pgen/rust/src/lib.rs` and `/Users/richarddje/Documents/github/pgen/rust/src/bin/ebnf_dual_run_diff.rs` now include the generated EBNF parser through build-script-provided env paths,
+  - `rust/build.rs` now accepts `PGEN_EBNF_PARSER_PATH`,
+  - `rust/src/lib.rs` and `rust/src/bin/ebnf_dual_run_diff.rs` now include the generated EBNF parser through build-script-provided env paths,
   - `ebnf_stimuli_quality_gate` now boots `ebnf_dual_run` from work-dir artifacts (`ebnf_bootstrap.rs`) instead of overwriting tracked `generated/ebnf.rs`.
 - Non-parseability grammars keep zeroed totals with `parseability_report_json=n/a`, so the CSV stays structurally stable.
 
 ### Validation
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
-- `PGEN_EBNF_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_ebnf_parseability_gate_fix PGEN_EBNF_STIMULI_QUALITY_COUNT=1 PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ebnf_stimuli_quality_gate`
+- `bash -n rust/scripts/ebnf_stimuli_quality_gate.sh`
+- `PGEN_EBNF_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_ebnf_parseability_gate_fix PGEN_EBNF_STIMULI_QUALITY_COUNT=1 PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 make -C rust SHELL=/bin/bash ebnf_stimuli_quality_gate`
   - observed:
     - `ebnf`: `attempts=33`, `accepted=19`, `rejected=14`, `acceptance_rate_percent=57.58`
     - `builtin_return_annotation`: `attempts=31`, `accepted=20`, `rejected=11`, `acceptance_rate_percent=64.52`
     - `builtin_semantic_annotation`: `attempts=4`, `accepted=4`, `rejected=0`, `acceptance_rate_percent=100.00`
-- `cargo build --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ebnf_dual_run_diff`
+- `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ebnf_dual_run_diff`
 - post-run cleanliness check:
   - `git status --short` no longer reports modifications to tracked `generated/ebnf.json` or `generated/ebnf.rs`
 
@@ -8350,7 +8384,7 @@ Once the shared `--parseability-report-json` contract existed, leaving `ebnf_sti
 After moving scored SystemVerilog sample generation onto the real generated parser, the next gap was observability. We could say that sampled outputs eventually passed `parse_full`, but we still had no machine-readable measure of how many retries that took. That was too weak for a trust-oriented parser/stimuli story because “accepted after many retries” and “accepted easily” are materially different states.
 
 ### Implementation
-- Added a shared `--parseability-report-json PATH` artifact to `/Users/richarddje/Documents/github/pgen/rust/src/main.rs` for parseability-aware stimuli generation.
+- Added a shared `--parseability-report-json PATH` artifact to `rust/src/main.rs` for parseability-aware stimuli generation.
   - The report captures:
     - `requested`
     - `accepted`
@@ -8364,17 +8398,17 @@ After moving scored SystemVerilog sample generation onto the real generated pars
     - direct parseability-retry generation,
     - target-driven parseability filtering,
     - coverage-guided fuzz replay aggregation.
-- Extended `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` to request one report per sampled stimulus and aggregate the results into:
+- Extended `rust/scripts/sv_stimuli_quality_gate.sh` to request one report per sampled stimulus and aggregate the results into:
   - per-sample `summary.csv` columns,
   - gate `summary.txt` totals,
   - `systemverilog_parseability_generation_report.json`.
-- Updated `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md` so the new artifact is part of the documented CLI contract rather than an undiscoverable internal flag.
+- Updated `PGEN_USER_GUIDE.md` so the new artifact is part of the documented CLI contract rather than an undiscoverable internal flag.
 
 ### Validation
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml parseability_ -- --nocapture`
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --validate-parseability --parseability-report-json /tmp/pgen_return_parseability_report.json --count 1 --output /tmp/pgen_return_parseability_samples.txt`
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_report_gate PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `cargo test --manifest-path rust/Cargo.toml parseability_ -- --nocapture`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- generated/return_annotation.json --generate-stimuli --validate-parseability --parseability-report-json /tmp/pgen_return_parseability_report.json --count 1 --output /tmp/pgen_return_parseability_samples.txt`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_parseability_report_gate PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=25 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - observed:
     - `parseability_generation_requested_total=4`
     - `parseability_generation_accepted_total=4`
@@ -8393,36 +8427,36 @@ After moving scored SystemVerilog sample generation onto the real generated pars
 The observed SystemVerilog random-stimuli `parse_full` ratio was too low to be acceptable, and the correct response was not to weaken the bar or add SystemVerilog-specific generator tricks. The requirement is now explicit: shared parser/stimuli fixes must be EBNF-agnostic and defensible as engine behavior. For the active SV quality task, that meant fixing generic candidate validity and then forcing the scored samples through the real generated parser for the active SystemVerilog profile.
 
 ### Implementation
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs` so regex-derived token synthesis now honors the full originating contract:
+- Hardened `rust/src/ast_pipeline/stimuli_generator.rs` so regex-derived token synthesis now honors the full originating contract:
   - semantic hints are only accepted if they satisfy both semantic constraints and the source regex,
   - regex-generated candidates are retried until they satisfy the full contract,
   - regex parse failure is no longer silently converted into the unconstrained fallback `"x"`,
   - final fallback for unsatisfied regex generation is now explicit failure (`String::new()`) rather than pretending success.
 - Strengthened regression tests in the same file so generated samples are checked against the original regex contract rather than only loose substring expectations.
-- Hardened `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh` so the gate:
+- Hardened `rust/scripts/sv_stimuli_quality_gate.sh` so the gate:
   - rebuilds `ast_pipeline` against the freshly generated SystemVerilog parser adapter,
   - passes the active `--grammar-profile` during stimuli generation,
   - enables `--validate-parseability` for the scored sample-generation rows when `parse_full` mode is active,
   - leaves closed-loop debt replay on raw generation for now because parser-in-loop replay increased target debt and would have invalidated that invariant.
 - Recorded the explicit policy that shared parser/stimuli fixes must remain EBNF-agnostic in:
-  - `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `/Users/richarddje/Documents/github/pgen/PGEN_RELEASE_POLICY.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `PGEN_RELEASE_POLICY.md`
 
 ### Validation
 - Shared regex-contract regressions:
-  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml regex_word_boundary_pattern_generates_matchable_sample -- --nocapture`
-  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary -- --nocapture`
-  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml word_spacing_policy_separates_adjacent_word_segments_in_sequences -- --nocapture`
+  - `cargo test --manifest-path rust/Cargo.toml regex_word_boundary_pattern_generates_matchable_sample -- --nocapture`
+  - `cargo test --manifest-path rust/Cargo.toml word_boundary_spacing_policy_appends_separator_for_terminal_boundary -- --nocapture`
+  - `cargo test --manifest-path rust/Cargo.toml word_spacing_policy_separates_adjacent_word_segments_in_sequences -- --nocapture`
 - Gate syntax:
-  - `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
 - Objective SystemVerilog sample-generation evidence:
-  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_file_ratio_with_validate_8 PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=8 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_file_ratio_with_validate_8 PGEN_SV_STIMULI_QUALITY_MODE=sv_file PGEN_SV_STIMULI_QUALITY_COUNT=8 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
     - observed:
       - `parseability_generation_enabled=1`
       - `parse_full_pass_ratio_percent=100`
       - `parse_full_passes=16/16`
       - `semantic_baseline_passes=16/16`
-  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_semantic_with_validate_samples_only PGEN_SV_STIMULI_QUALITY_MODE=sv_semantic_file PGEN_SV_STIMULI_QUALITY_COUNT=4 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_semantic_with_validate_samples_only PGEN_SV_STIMULI_QUALITY_MODE=sv_semantic_file PGEN_SV_STIMULI_QUALITY_COUNT=4 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_SV_STIMULI_DIFF_MODE=0 PGEN_SV_STIMULI_PERF_BUDGET_MODE=0 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
     - observed:
       - `parseability_generation_enabled=1`
       - `parse_full_pass_ratio_percent=100`
@@ -8439,14 +8473,14 @@ The observed SystemVerilog random-stimuli `parse_full` ratio was too low to be a
 The new tracked-export local workflow replay proved its value immediately: the replay did not fail on missing tracked files or absolute `include!(...)` paths, it failed because the aggregate SOTA policy was still overriding `sv_stimuli_quality_gate` to require a hard `100%` `parse_full` pass ratio while the actual tracked evidence for the current `sv_file` random-stimuli slice is only `37%`.
 
 ### Implementation
-- Updated `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env` so aggregate SOTA runs no longer force `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`.
+- Updated `rust/config/sota_exit_policy.env` so aggregate SOTA runs no longer force `PGEN_SOTA_POLICY_SV_STIMULI_ENFORCE_MIN_PARSE_FULL_PASS_RATIO=1`.
 - Kept the rest of the SystemVerilog stimuli strictness intact:
   - `sv_stimuli_quality_gate` still runs as a required strict aggregate check,
   - semantic contract suites and realistic corpus enforcement remain enabled,
   - the separate parse-full promotion ratchet remains enabled in informational mode to keep tracking convergence toward a future stricter threshold.
 
 ### Validation
-- `PGEN_CI_WORKFLOW_LOCAL_FILTER=sota-exit-gate make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ci_workflow_local_gate`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=sota-exit-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - before this policy alignment, the tracked-export replay failed with `sv_stimuli_quality_parse_full_pass_ratio_percent=37` against the aggregate `100%` override.
 
 ### Notes
@@ -8462,26 +8496,26 @@ The project needed a reliable local pre-push proof for the tracked GitHub workfl
   - the generated semantic parser could not parse SC-09 unquoted dotted relational/implication expressions like `lhs.id != rhs.id` and `lhs.ready => rhs.valid`.
 
 ### Implementation
-- Added `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` plus `make -C rust ci_workflow_local_gate`.
+- Added `rust/scripts/ci_workflow_local_gate.sh` plus `make -C rust ci_workflow_local_gate`.
   - It exports only `git ls-files` content into a temporary replay tree.
   - It audits static repo-local `include!(...)` literals for absolute paths.
   - It verifies the tracked workflow/config/script surface used by the required gate workflows.
   - It replays the same top-level `make -C rust SHELL=/bin/bash ...` commands used by the tracked `.github/workflows/*.yml`.
   - Local replay defaults `CARGO_NET_OFFLINE=true` through `PGEN_CI_WORKFLOW_LOCAL_CARGO_OFFLINE` so the check remains usable in offline/restricted environments with cached dependencies.
-- Updated `/Users/richarddje/Documents/github/pgen/rust/build.rs` so generated HDL parser include paths are emitted relative to `rust/src/`, not absolute canonicalized paths.
-- Fixed `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_return_ast.rs` so generated typed-AST conversion falls back to reparsing the root node span when the generated parser collapses `return_annotation` to a terminal/transformed-terminal node.
-- Extended `/Users/richarddje/Documents/github/pgen/grammars/semantic_annotation.ebnf` so expression parsing accepts:
+- Updated `rust/build.rs` so generated HDL parser include paths are emitted relative to `rust/src/`, not absolute canonicalized paths.
+- Fixed `rust/src/ast_pipeline/unified_return_ast.rs` so generated typed-AST conversion falls back to reparsing the root node span when the generated parser collapses `return_annotation` to a terminal/transformed-terminal node.
+- Extended `grammars/semantic_annotation.ebnf` so expression parsing accepts:
   - dotted qualified names in expression operands,
   - `=>` implication forms in unquoted semantic expressions.
-- Regenerated `/Users/richarddje/Documents/github/pgen/generated/semantic_annotation.json` and `/Users/richarddje/Documents/github/pgen/generated/semantic_annotation_parser.rs`.
-- Regenerated `/Users/richarddje/Documents/github/pgen/generated/return_annotation_parser.rs` after the bootstrap helper temporarily replaced it with a placeholder.
-- Fixed `/Users/richarddje/Documents/github/pgen/rust/Makefile` so the bootstrap-parser build recipe no longer overwrites existing tracked annotation parsers with placeholders.
+- Regenerated `generated/semantic_annotation.json` and `generated/semantic_annotation_parser.rs`.
+- Regenerated `generated/return_annotation_parser.rs` after the bootstrap helper temporarily replaced it with a placeholder.
+- Fixed `rust/Makefile` so the bootstrap-parser build recipe no longer overwrites existing tracked annotation parsers with placeholders.
 
 ### Validation
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --lib generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms -- --nocapture`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --lib generated_return_tree_to_typed_ast_matches_bootstrap_for_structural_corpus -- --nocapture`
-- `cargo run --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_sc09_contract`
-- `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash ci_workflow_local_gate`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib generated_return_tree_to_typed_ast_supports_arrow_and_expression_forms -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib generated_return_tree_to_typed_ast_matches_bootstrap_for_structural_corpus -- --nocapture`
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin test_runner -- --parser semantic --suite semantic_annotation_sc09_contract`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
 
 ### Notes
 - The local replay gate is specifically designed to answer: “would the tracked GitHub workflow surface work from a clean checkout with no untracked local help?”
@@ -8493,24 +8527,24 @@ After the `version: 36` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 37`
   - `cases: 284`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetracosa_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetracosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_tetracosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_six_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_six_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetracosa_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetracosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_tetracosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_six_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_six_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_six_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8535,7 +8569,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v37_bounded_20260309 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v37_bounded_20260309 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -8557,24 +8591,24 @@ After the `version: 35` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 36`
   - `cases: 275`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tricosa_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tricosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_tricosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_five_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_five_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tricosa_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tricosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_tricosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_five_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_five_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_five_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8599,7 +8633,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v36_bounded_20260309 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v36_bounded_20260309 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -8621,24 +8655,24 @@ After the `version: 34` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 35`
   - `cases: 266`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_docosa_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_docosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_docosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_four_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_four_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_docosa_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_docosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_docosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_four_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_four_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_four_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8663,7 +8697,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v35_bounded_20260309 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v35_bounded_20260309 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -8685,24 +8719,24 @@ After the `version: 33` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 34`
   - `cases: 257`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heneicosa_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heneicosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_heneicosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_three_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_three_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heneicosa_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heneicosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_heneicosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_three_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_three_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_three_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8727,7 +8761,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v34_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v34_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -8749,24 +8783,24 @@ After the `version: 32` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 33`
   - `cases: 248`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_eicosa_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_eicosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eicosa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_two_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_two_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_eicosa_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_eicosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eicosa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_two_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_two_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_two_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8791,7 +8825,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v33_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v33_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -8813,24 +8847,24 @@ After the `version: 31` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 32`
   - `cases: 239`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_enneadeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_enneadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_one_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_one_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_enneadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_one_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_one_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_one_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_enneadeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_enneadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_one_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_one_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_enneadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_one_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_one_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_one_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_one_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8855,7 +8889,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v32_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v32_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -8877,24 +8911,24 @@ After the `version: 30` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 31`
   - `cases: 230`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octadeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_octadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octadeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twenty_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twenty_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_octadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twenty_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twenty_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twenty_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twenty_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8919,7 +8953,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v31_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v31_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -8941,24 +8975,24 @@ After the `version: 29` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 30`
   - `cases: 221`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heptadeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heptadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_nineteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_nineteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_heptadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_nineteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_nineteen_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_nineteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heptadeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_heptadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_nineteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_nineteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_heptadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_nineteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_nineteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_nineteen_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nineteen_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -8983,7 +9017,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v30_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v30_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9005,24 +9039,24 @@ After the `version: 28` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 29`
   - `cases: 212`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexadeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_eighteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_eighteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hexadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_eighteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_eighteen_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_eighteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexadeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_eighteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_eighteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hexadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_eighteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_eighteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_eighteen_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eighteen_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9047,7 +9081,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v29_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v29_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9069,24 +9103,24 @@ After the `version: 27` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 28`
   - `cases: 203`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentadeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_seventeen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_seventeen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_pentadeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_seventeen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_seventeen_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_seventeen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentadeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_pentadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_seventeen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_seventeen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_pentadeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_seventeen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_seventeen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_seventeen_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seventeen_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9116,7 +9150,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v28_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v28_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9138,24 +9172,24 @@ After the `version: 26` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 27`
   - `cases: 194`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetradeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetradeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_sixteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_sixteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_tetradeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_sixteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_sixteen_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_sixteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetradeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_tetradeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_sixteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_sixteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_tetradeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_sixteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_sixteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_sixteen_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_sixteen_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9185,7 +9219,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v27_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v27_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9207,24 +9241,24 @@ After the `version: 25` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 26`
   - `cases: 185`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_trideca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_trideca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_fifteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_fifteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_trideca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_fifteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_fifteen_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_fifteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_trideca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_trideca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_fifteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_fifteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_trideca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_fifteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_fifteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_fifteen_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fifteen_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9254,7 +9288,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v26_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v26_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9276,24 +9310,24 @@ After the `version: 24` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 25`
   - `cases: 176`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_dodeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_dodeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_fourteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_fourteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_dodeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_fourteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_fourteen_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_fourteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_dodeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_dodeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_fourteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_fourteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_dodeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_fourteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_fourteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_fourteen_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_fourteen_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9323,7 +9357,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v25_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v25_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9345,24 +9379,24 @@ After the `version: 23` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 24`
   - `cases: 167`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_undeca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_undeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_thirteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_thirteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_undeca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_thirteen_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_thirteen_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_thirteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_undeca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_undeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_thirteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_thirteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_undeca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_thirteen_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_thirteen_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_thirteen_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_thirteen_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9392,7 +9426,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v24_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v24_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9414,24 +9448,24 @@ After the `version: 22` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 23`
   - `cases: 158`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_deca_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_deca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twelve_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twelve_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_deca_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twelve_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twelve_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twelve_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_deca_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_deca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_twelve_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_twelve_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_deca_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_twelve_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_twelve_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_twelve_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_twelve_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9461,7 +9495,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v23_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v23_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9483,24 +9517,24 @@ After the `version: 21` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 22`
   - `cases: 149`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_nona_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_nona_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_eleven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_eleven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nona_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_eleven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_eleven_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_eleven_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_nona_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_nona_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_eleven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_eleven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nona_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_eleven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_eleven_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_eleven_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eleven_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9530,7 +9564,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v22_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v22_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9552,24 +9586,24 @@ After the `version: 20` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 21`
   - `cases: 140`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octa_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_ten_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_ten_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_octa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_ten_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_ten_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_ten_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octa_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_octa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_ten_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_ten_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_octa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_ten_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_ten_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_ten_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_ten_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9599,7 +9633,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v21_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v21_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9621,24 +9655,24 @@ After the `version: 19` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 20`
   - `cases: 131`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hepta_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hepta_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_nine_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_nine_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hepta_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_nine_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_nine_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_nine_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hepta_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hepta_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_nine_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_nine_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hepta_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_nine_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_nine_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_nine_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_nine_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9668,7 +9702,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v20_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v20_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9690,24 +9724,24 @@ After the `version: 18` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 19`
   - `cases: 122`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexa_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_eight_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_eight_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hexa_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_eight_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_eight_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_eight_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexa_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_hexa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_eight_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_eight_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_hexa_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_eight_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_eight_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_eight_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_eight_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9737,7 +9771,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v19_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v19_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9759,24 +9793,24 @@ After the `version: 17` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 18`
   - `cases: 113`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_penta_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_penta_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_seven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_seven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_penta_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_seven_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_seven_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_seven_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_penta_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_penta_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_seven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_seven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_penta_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_seven_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_seven_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_seven_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_seven_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9806,7 +9840,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v18_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v18_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9828,24 +9862,24 @@ After the `version: 16` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 17`
   - `cases: 104`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_quad_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_quad_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_quad_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_six_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_six_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_six_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_quad_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_quad_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_quad_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_six_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_six_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_six_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_six_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9875,7 +9909,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v17_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v17_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9897,24 +9931,24 @@ After the `version: 15` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 16`
   - `cases: 95`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_triple_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_triple_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_triple_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_five_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_five_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_five_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_triple_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_triple_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_triple_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_five_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_five_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_five_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_five_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -9944,7 +9978,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v16_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v16_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -9966,24 +10000,24 @@ After the `version: 14` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 15`
   - `cases: 86`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_two_bridge_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_two_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_double_bridge_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_four_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_four_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_four_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_two_bridge_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_two_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_double_bridge_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_four_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_four_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_four_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_four_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - richer imported-width topology:
@@ -10013,7 +10047,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v15_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v15_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10035,24 +10069,24 @@ After the `version: 13` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted nine additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 14`
   - `cases: 77`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_three_stage_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_three_stage_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_stage_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_three_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_three_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_three_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_three_stage_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_three_stage_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_stage_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_three_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_three_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_three_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_three_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - multi-module imported-width depth:
@@ -10082,7 +10116,7 @@ Direct dual-profile replay:
   - `18/18` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v14_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v14_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10104,23 +10138,23 @@ After the `version: 12` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted eight additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 13`
   - `cases: 68`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_chain_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_two_child_pipeline.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_two_child.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_two_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_module_imported_width_chain_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_two_child_pipeline.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_two_child.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_width_two_child.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_two_child_leaf.svh`
 
 This slice extends the realistic corpus in four useful directions:
 - multi-module import/use depth:
@@ -10149,7 +10183,7 @@ Direct dual-profile replay:
   - `16/16` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v13_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v13_bounded_20260308 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10171,25 +10205,25 @@ After the `version: 11` promotion, the next clean Phase P/Q increment was to kee
 
 ### Implementation
 Promoted seven additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 12`
   - `cases: 60`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_named_port_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_wildcard_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_named_port_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_bind.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_internal_packed_multi.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_named_port_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_wildcard_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_named_port_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_width_bind.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_internal_packed_multi.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_leaf.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_wildcard_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_internal_packed_leaf.svh`
 
 This slice extends the realistic corpus in three useful directions:
 - multi-width import/use breadth:
@@ -10216,7 +10250,7 @@ Direct dual-profile replay:
   - `14/14` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v12_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v12_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10238,22 +10272,22 @@ After the `version: 10` promotion, the next useful Phase P/Q increment was to ke
 
 ### Implementation
 Promoted seven additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 11`
   - `cases: 53`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_assign.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_bind_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_assign.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_internal_packed.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_width_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_multi_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_width_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_width_bind_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_width_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_internal_packed.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_width_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_width_multi_port.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_package_width_leaf.svh`
 
 This slice extends the realistic corpus in three useful directions:
 - width-vector import/use breadth:
@@ -10280,7 +10314,7 @@ Direct dual-profile replay:
   - `14/14` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v11_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v11_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10302,7 +10336,7 @@ You clarified that the desired end-state is not just "high quality parsers," but
 
 ### Implementation
 Updated:
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added a `Parser Trust Doctrine` section directly under the mission,
   - encoded the required parser-quality evidence categories:
     - grammar-contract correctness,
@@ -10319,9 +10353,9 @@ Updated:
     - explicit performance budgets,
     - deterministic reproducibility,
     - embedder-facing diagnostics and AST visibility.
-- `/Users/richarddje/Documents/github/pgen/PGEN_RELEASE_POLICY.md`
+- `PGEN_RELEASE_POLICY.md`
   - added matching release-doctrine wording so these qualities are treated as required evidence categories rather than optional aspirations.
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `MEMORY.md`
   - added handoff context for the doctrine so future work resumes with the same interpretation.
 
 ### Validation
@@ -10338,7 +10372,7 @@ You identified a distinct downstream requirement set for the planned RTLSyn flow
 
 ### Implementation
 Updated:
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added a dedicated future-track phase for the RTLSyn parser stack,
   - recorded the mandatory planned families:
     - synthesizable RTL frontend parser,
@@ -10349,7 +10383,7 @@ Updated:
     - gate-level Verilog netlist,
     - pipeline/config parser,
     - optional SDF reader.
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `MEMORY.md`
   - added handoff context that this is roadmap-only and not active implementation work.
 
 ### Validation
@@ -10366,25 +10400,25 @@ After the `version: 9` promotion, the next clean Phase P/Q increment was to wide
 
 ### Implementation
 Promoted seven additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 10`
   - `cases: 46`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_width_vector_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_width_vector_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_width_vector_assign.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_internal_packed.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_width_vector_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_width_vector_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_width_vector_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_internal_packed.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_port_name_multi_port.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_leaf.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_internal_packed_named_port_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_wildcard_leaf.svh`
 
 This slice extends the realistic corpus in three useful directions:
 - width-vector import/use composition:
@@ -10411,7 +10445,7 @@ Direct dual-profile replay:
   - `14/14` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v10_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v10_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10436,22 +10470,22 @@ After the `version: 8` promotion, the next clean Phase P/Q increment was to push
 
 ### Implementation
 Promoted seven additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 9`
   - `cases: 39`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_assign.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_bind_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_actual_multi_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_assign.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_wildcard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/module_local_import_multi_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_multi_bind_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_actual_multi_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_import_multi_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_multi_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_module_name_wildcard.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_mid.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_mid.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_deep_include_leaf.svh`
 
 This slice extends the realistic corpus in three useful directions at once:
 - deeper include topology:
@@ -10478,7 +10512,7 @@ Direct dual-profile replay:
   - `14/14` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v9_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v9_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10499,18 +10533,18 @@ After the packed-declaration / `foreach` closure, the next clean Phase P/Q step 
 
 ### Implementation
 Promoted four additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 8`
   - `cases: 32`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_package_import.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_named_port_instantiation.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_actual_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_package_import.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_named_port_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_actual_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_named_port.sv`
 - support include files:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_defs.svh`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_leaf.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_defs.svh`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_include_leaf.svh`
 
 This slice extends the realistic corpus in two directions:
 - preprocess composition:
@@ -10533,7 +10567,7 @@ Direct dual-profile replay:
   - `8/8` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v8_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v8_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10554,7 +10588,7 @@ The active Phase P/Q blocker was no longer just “`foreach` is unsupported.” 
 
 ### Implementation
 Updated:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+- `grammars/systemverilog.ebnf`
   - removed stray extracted numeric terminals from:
     - `data_declaration_sv_2017`
     - `data_declaration_sv_2023`
@@ -10564,14 +10598,14 @@ Updated:
   - both sites now use the bracketed iterator-slot form required by the LRM:
     - `foreach (ps_or_hierarchical_array_identifier[loop_variables])`
 - Promoted the checked-in realistic corpus:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
     - `version: 7`
     - `cases: 28`
 - Added new required-pass fixtures:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/foreach_array_assign.sv`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/for_loop_internal_packed_assign.sv`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/internal_packed_named_port_instantiation.sv`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/internal_packed_wildcard_instantiation.sv`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/foreach_array_assign.sv`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/for_loop_internal_packed_assign.sv`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/internal_packed_named_port_instantiation.sv`
+  - `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/internal_packed_wildcard_instantiation.sv`
 
 This promotion widens the realistic corpus in two useful directions:
 - previously blocked syntax closure:
@@ -10596,7 +10630,7 @@ Promoted-slice direct replay:
   - `8/8` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v7_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v7_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `closed_loop_initial_targets_total=5484`
@@ -10622,9 +10656,9 @@ After `sv_stimuli_quality_gate` gained the ad hoc replay-budget override `PGEN_S
 
 ### Implementation
 Updated:
-- `/Users/richarddje/Documents/github/pgen/README.md`
+- `README.md`
   - added a bounded rerun example under standard commands.
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `PGEN_USER_GUIDE.md`
   - added the environment variable to optional SV quality-gate tuning,
   - clarified that it overrides `closed_loop.target_max_attempts` only for the current invocation,
   - documented summary telemetry:
@@ -10643,15 +10677,15 @@ After the `version: 5` corpus promotion, the next useful Phase P/Q increment was
 
 ### Implementation
 Promoted four additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 6`
   - `cases: 24`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_always_comb.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/comment_noise_package_assign.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_named_port.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/macro_qualified_package_reference.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_always_comb.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/comment_noise_package_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/directive_noise_named_port.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/macro_qualified_package_reference.sv`
 
 This slice extends the realistic corpus in two directions:
 - semantic-noise pass families:
@@ -10674,7 +10708,7 @@ Direct dual-profile replay:
   - `8/8` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v6_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v6_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `realistic_corpus_cases_declared=24`
@@ -10698,15 +10732,15 @@ With the bounded rerun path in place, the next concrete Phase P/Q increment was 
 
 ### Implementation
 Promoted four additional required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 5`
   - `cases: 20`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_conditionals.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_token_paste.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_imported_packages.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multiple_genvar_declarations.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_nested_conditionals.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_token_paste.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multi_imported_packages.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/multiple_genvar_declarations.sv`
 
 The promoted families intentionally extend two active dimensions:
 - preprocess-shaped realistic files:
@@ -10729,7 +10763,7 @@ Direct dual-profile replay:
   - `8/8` `parse_full` passes.
 
 Bounded full-gate refresh on the promoted manifest:
-- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v5_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v5_bounded_20260307 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
 - observed summary:
   - `closed_loop_profiles_passed=2/2`
   - `realistic_corpus_cases_declared=20`
@@ -10748,7 +10782,7 @@ The immediate follow-up after expanding the Nexsim realistic corpus to `version:
 
 ### Implementation
 Updated:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
 
 Two targeted changes landed:
 - bounded replay control:
@@ -10762,17 +10796,17 @@ Two targeted changes landed:
 
 ### Validation
 - script syntax:
-  - `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+  - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
 - direct reproduction of the previously failing include case:
   - copied `preprocess_include_localparam.sv` into `/tmp`,
   - replayed:
     - `rust/target/debug/ast_pipeline --preprocess-systemverilog`
-    - with `--sv-include-dir /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus`
+    - with `--sv-include-dir rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus`
   - observed:
     - preprocess succeeded,
     - `diagnostics=0`, `errors=0`.
 - bounded full rerun:
-  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v4_bounded_20260307_r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/bin/bash sv_stimuli_quality_gate`
+  - `PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_stimuli_quality_v4_bounded_20260307_r2 PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=100 make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - observed summary:
     - `closed_loop_target_max_attempts_source=env_override`
     - `closed_loop_profiles_passed=2/2`
@@ -10794,17 +10828,17 @@ The next highest-priority Phase P/Q task after the `regex.ebnf` parity audit was
 
 ### Implementation
 Promoted five more required-pass cases into:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - `version: 4`
   - `cases: 16`
 
 New fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_localparam.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_payload.svh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_conditional_branch.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_function_args.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_define_undef_guard.sv`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_localparam_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_localparam.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_include_payload.svh`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_conditional_branch.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_function_args.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/preprocess_macro_define_undef_guard.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_import_localparam_assign.sv`
 
 The new slice intentionally targets:
 - preprocess-local include expansion,
@@ -10836,7 +10870,7 @@ The Rust-native EBNF migration had one remaining parity nuance: `grammars/regex.
 
 ### Implementation
 Reproduced the comparison from a clean committed snapshot instead of the dirty local worktree, then added a regression check in:
-- `/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs`
+- `rust/src/ebnf_frontend.rs`
 
 The new test asserts that the Rust raw-AST export retains the trailing helper rules that still exist as real top-level definitions in `grammars/regex.ebnf`.
 
@@ -10869,14 +10903,14 @@ After the `rg` failure in the branch protection gate, the next sanity check was 
 
 ### Implementation
 Updated all tracked gate workflows to provision `jq` explicitly before running the gate:
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/annotation-contract-gate.yml`
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/branch-protection-contract-gate.yml`
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/differential-regression-gate.yml`
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/ebnf-frontend-dual-run-diff.yml`
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/fixed-point-gate.yml`
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/performance-gate.yml`
-- `/Users/richarddje/Documents/github/pgen/.github/workflows/sota-exit-gate.yml`
+- `.github/workflows/annotation-contract-gate.yml`
+- `.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
+- `.github/workflows/branch-protection-contract-gate.yml`
+- `.github/workflows/differential-regression-gate.yml`
+- `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+- `.github/workflows/fixed-point-gate.yml`
+- `.github/workflows/performance-gate.yml`
+- `.github/workflows/sota-exit-gate.yml`
 
 Each now runs:
 - `jq --version` when `jq` already exists,
@@ -10898,7 +10932,7 @@ Audit results:
 The GitHub Actions `branch_protection_contract_gate` run failed before real policy evaluation because `rust/scripts/branch_protection_contract_gate.sh` used `rg` (`ripgrep`) directly to detect `pull_request:` triggers in workflow files. GitHub-hosted runners do not guarantee `rg`, so the script reported false missing-trigger failures even though the workflows were correctly configured.
 
 ### Implementation
-Updated `/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh`:
+Updated `rust/scripts/branch_protection_contract_gate.sh`:
 - added `workflow_declares_pull_request_trigger()`,
 - uses `rg` when present for local convenience,
 - falls back to `grep -E` when `rg` is unavailable.
@@ -10918,21 +10952,21 @@ The selective tracking policy fixed the first clean-checkout failure (`include!(
 
 ### Implementation
 Updated repository policy and ignore behavior so `generated/` is no longer treated as an ignored tree with narrow exceptions:
-- `/Users/richarddje/Documents/github/pgen/.gitignore`
+- `.gitignore`
   - removed the selective `generated/*.rs` exception model,
   - added a final `!generated/` / `!generated/**` override so all current and future files in the tree are visible to git.
 - cleaned the tree so only canonical generated assets remain in it:
-  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - `rust/Makefile`
     - debug/parser logs now go to `rust/target/generated_logs/`
-  - `/Users/richarddje/Documents/github/pgen/tests/bootstrap_tests/run_simple_tests.sh`
+  - `tests/bootstrap_tests/run_simple_tests.sh`
     - bootstrap test scratch JSON/parser/log files now go to `rust/target/bootstrap_tests/`
 - promoted current canonical `generated/` contents to tracked repository artifacts, including:
   - grammar JSONs,
   - generated Rust parser sources,
 - synchronized repository contract docs:
-  - `/Users/richarddje/Documents/github/pgen/README.md`
-  - `/Users/richarddje/Documents/github/pgen/COMMIT.md`
-  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+  - `README.md`
+  - `COMMIT.md`
+  - `MEMORY.md`
 
 ### Validation
 Confirmed the failing clean-checkout gate path is now satisfied by tracked repository content:
@@ -10950,16 +10984,16 @@ The failing GitHub gate runs were not caused by broken relative include paths. T
 ### Implementation
 Promoted the compile-time included generated Rust sources to selective tracked artifacts:
 - ignore-policy change:
-  - `/Users/richarddje/Documents/github/pgen/.gitignore`
+  - `.gitignore`
     - still ignores `generated/` broadly,
     - explicitly unignores only:
       - `generated/ebnf.rs`
       - `generated/return_annotation_parser.rs`
       - `generated/semantic_annotation_parser.rs`
 - repository contract update:
-  - `/Users/richarddje/Documents/github/pgen/README.md`
-  - `/Users/richarddje/Documents/github/pgen/COMMIT.md`
-  - `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+  - `README.md`
+  - `COMMIT.md`
+  - `MEMORY.md`
     - all now state that these three files are the deliberate exception to the normal “generated artifacts are not authoritative/tracked” rule.
 
 ### Validation
@@ -10985,18 +11019,18 @@ The next Rust-native EBNF migration step was to make the tracked EBNF gates runn
 ### Implementation
 Completed the increment in three pieces:
 - standalone Rust `raw_ast` export:
-  - `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`
+  - `rust/src/main.rs`
     - new mode:
       - `ast_pipeline INPUT.ebnf --emit-raw-ast-json RAW.json`
     - this lets gate scripts use the Rust frontend directly without forcing parser/stimuli generation in the same command.
 - gate-path selector wiring:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
+  - `rust/scripts/ebnf_frontend_readiness_gate.sh`
+  - `rust/scripts/ebnf_stimuli_quality_gate.sh`
     - both now accept `PGEN_EBNF_FRONTEND_IMPL=perl|rust`,
     - both route frontend JSON generation through a common helper,
     - the stimuli gate still preserves the Perl bootstrap flow when `generated/ebnf.rs` regeneration is required for parseability contracts.
 - raw-AST extraction hardening:
-  - `/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs`
+  - `rust/src/ebnf_frontend.rs`
     - dropped parse-tree-derived rule extraction for the emitted raw-AST path,
     - replaced it with a top-level text scanner that:
       - groups rule headers plus continuation lines,
@@ -11045,12 +11079,12 @@ The release policy already documented the minimum pre-merge checks we expected G
 ### Implementation
 Added a small contract-and-validator layer:
 - tracked branch-protection policy:
-  - `/Users/richarddje/Documents/github/pgen/rust/config/branch_protection_policy.json`
+  - `rust/config/branch_protection_policy.json`
     - carries the default branch,
     - `require_up_to_date_before_merge`,
     - required status checks.
 - validator gate:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh`
+  - `rust/scripts/branch_protection_contract_gate.sh`
     - validates JSON shape with `JSON::PP`,
     - enforces the roadmap/release minimum set:
       - `sota-exit-gate`
@@ -11063,9 +11097,9 @@ Added a small contract-and-validator layer:
     - fails if the mapped workflow does not trigger on `pull_request`,
     - writes machine-readable/text summaries under `rust/target/branch_protection_contract_gate`.
 - local/CI wiring:
-  - `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+  - `rust/Makefile`
     - new target: `branch_protection_contract_gate`
-  - `/Users/richarddje/Documents/github/pgen/.github/workflows/branch-protection-contract-gate.yml`
+  - `.github/workflows/branch-protection-contract-gate.yml`
     - lightweight policy-validation workflow with artifact upload.
 
 ### Validation
@@ -11093,14 +11127,14 @@ The staged dual-LRM grammar work had reached an awkward midpoint: the extracted/
 ### Implementation
 Promotion work completed in three parts:
 - made the extractor produce a reproducible active grammar:
-  - `/Users/richarddje/Documents/github/pgen/tools/extract_systemverilog_lrm_profiles.py`
+  - `tools/extract_systemverilog_lrm_profiles.py`
     - now accepts `--output-active-ebnf`,
     - writes the stable active preamble (`systemverilog_file`, `systemverilog_parseable_file`, `parseable_source_item`) plus the flattened dual-profile grammar body into one file.
 - fixed the remaining parser-facing translation holes:
   - restored `assignment_operator` as a shared rule so `genvar_iteration` accepts `i = i + 1` in both `sv_2017` and `sv_2023`,
   - rewrote `generate_block` to prefer `kw_begin ...` directly and keep the explicit `label : begin ...` form separate, preventing `begin : g` from being misread as a pre-`begin` label.
 - promoted the active grammar:
-  - `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+  - `grammars/systemverilog.ebnf`
     - is now the flattened active dual-profile grammar instead of the old seed grammar.
 
 ### Validation
@@ -11134,10 +11168,10 @@ Focused regressions that now pass in both profiles:
 The repository already had versioned IEEE 1800-2017 and IEEE 1800-2023 markdown workspaces plus raw extracted grammar artifacts, but the active `systemverilog` profile surface was still effectively metadata-only: both `sv_2017` and `sv_2023` routed through the same seed grammar. The next step was to see whether we could actually derive a single profile-aware grammar from the two LRM markdown sources and drive it through the existing `EBNF -> JSON -> parser` toolchain.
 
 ### Implementation
-Added `/Users/richarddje/Documents/github/pgen/tools/extract_systemverilog_lrm_profiles.py` with three responsibilities:
+Added `tools/extract_systemverilog_lrm_profiles.py` with three responsibilities:
 - extract the Annex-A rule inventories directly from:
-  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2017/md/section-41-data-read-api.md`
-  - `/Users/richarddje/Documents/github/pgen/docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md`
+  - `docs/systemverilog/2017/md/section-41-data-read-api.md`
+  - `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md`
 - normalize the PDF/markdown conversion artifacts that prevent direct use:
   - footnote-suffixed rule heads (`timeunits_declaration3`, `dpi_function_proto26,27`, ...),
   - literal-token drift from markdown conversion,
@@ -11148,12 +11182,12 @@ Added `/Users/richarddje/Documents/github/pgen/tools/extract_systemverilog_lrm_p
   - generated literal-token rules and a machine-readable report.
 
 Staged artifacts added:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_generated.ebnf`
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_lrm_profiled_wrapper.ebnf`
-- `/Users/richarddje/Documents/github/pgen/docs/systemverilog/profiled_generation_report.json`
+- `grammars/systemverilog_lrm_profiled_generated.ebnf`
+- `grammars/systemverilog_lrm_profiled_wrapper.ebnf`
+- `docs/systemverilog/profiled_generation_report.json`
 
 Important operational decision:
-- I did **not** leave `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf` on the new wrapper.
+- I did **not** leave `grammars/systemverilog.ebnf` on the new wrapper.
 - After validating the staged path, the active file was restored to the prior seed grammar because the staged full-profile parser still failed direct parse probes on minimal legal SystemVerilog.
 
 ### Validation
@@ -11200,14 +11234,14 @@ Root-cause isolation with generated-parser probes showed two concrete grammar ga
 - primaries/lvalues accepted bare hierarchical identifiers but not indexed element references like `a[i]` and `y[i]`.
 
 Grammar hardening:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+- `grammars/systemverilog.ebnf`
   - changed `event_expression` to consume `event_primary` items with optional edge qualifiers,
   - added `edge_identifier := kw_posedge | kw_negedge | kw_edge`,
   - added `select` / `bit_select` support,
   - promoted indexed selects into both `primary` and `variable_lvalue`.
 
 Corpus expectation promotion:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - bumped `version` from `2` to `3`,
   - promoted:
     - `always_ff_sequential_block`
@@ -11217,10 +11251,10 @@ Corpus expectation promotion:
     - `0` expected parse-full failures.
 
 Documentation updates:
-- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `CHANGES.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+- `MEMORY.md`
 
 ### Validation
 Focused contract-level validation:
@@ -11255,7 +11289,7 @@ The realistic-corpus stage in `sv_stimuli_quality_gate` was already wired and co
 
 ### Implementation
 Primary manifest:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
   - bumped `version` from `1` to `2`.
   - expanded declared cases from `6` to `11`.
   - retained dual-profile execution (`2017`, `2023`) for every case.
@@ -11264,15 +11298,15 @@ Primary manifest:
     - `2` expected parse-full failures (`always_ff`, `generate_for`) kept as known-gap minimums.
 
 New checked-in realistic fixtures:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_constant_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_constant_assign.sv`
   - validates package-qualified scalar constant reference in a module assignment.
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/two_module_multi_port_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/two_module_multi_port_instantiation.sv`
   - validates named multi-port binding across a child/top module pair.
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/wildcard_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/wildcard_instantiation.sv`
   - validates wildcard port connection (`.*`) on a simple module instantiation.
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/timeunit_assign.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/timeunit_assign.sv`
   - validates file-level `timeunit` declaration preceding a module definition.
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_vector_instantiation.sv`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/package_vector_instantiation.sv`
   - validates package-qualified width references in port declarations and instantiation wiring.
 
 Why these cases:
@@ -11281,10 +11315,10 @@ Why these cases:
 - they broaden semantic evidence without smuggling grammar-specific logic into the Rust pipeline.
 
 Documentation updates:
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+- `CHANGES.md`
+- `MEMORY.md`
 
 ### Validation
 Primary gate run:
@@ -11321,7 +11355,7 @@ The SV LRM conversion workspace had partial/non-versioned expectations and no gu
 
 ### Implementation
 Primary conversion hardening:
-- `/Users/richarddje/Documents/github/pgen/tools/split_sections.py`
+- `tools/split_sections.py`
   - added `heading_from_page_text(...)` to detect clause headings directly from page text.
   - added `collect_sections_without_toc(...)` fallback path when PDF TOC is absent.
   - updated main flow to select:
@@ -11331,27 +11365,27 @@ Primary conversion hardening:
     - `detection_mode`.
 
 Workspace/documentation updates:
-- `/Users/richarddje/Documents/github/pgen/docs/systemverilog/README.md`
+- `docs/systemverilog/README.md`
   - switched to versioned workspace contract:
     - `docs/systemverilog/2017/*`
     - `docs/systemverilog/2023/*`.
-- `/Users/richarddje/Documents/github/pgen/docs/vhdl/README.md`
+- `docs/vhdl/README.md`
   - aligned to versioned `docs/vhdl/2019/*`.
-- `/Users/richarddje/Documents/github/pgen/tools/LRM_CONVERSION_WORKFLOW.md`
+- `tools/LRM_CONVERSION_WORKFLOW.md`
   - documented both SV versions and fallback extraction behavior.
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `PGEN_USER_GUIDE.md`
   - updated artifact map and quick commands to the versioned paths.
-- `/Users/richarddje/Documents/github/pgen/README.md`
+- `README.md`
   - updated key paths to versioned LRM workspaces and canonical extracted SV EBNF artifacts.
 
 Canonical extracted EBNF promotion:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_2017_lrm_extracted.ebnf`
+- `grammars/systemverilog_2017_lrm_extracted.ebnf`
   - sourced from `docs/systemverilog/2017/grammar_clean.ebnf`.
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog_2023_lrm_extracted.ebnf`
+- `grammars/systemverilog_2023_lrm_extracted.ebnf`
   - sourced from `docs/systemverilog/2023/grammar_clean.ebnf`.
 
 Roadmap synchronization:
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added explicit 2026-03-06 progress for full dual-SV extraction closure and canonical snapshot promotion.
 
 ### Validation
@@ -11381,17 +11415,17 @@ After promoting `vhdl_strict_promotion_gate` to required strict, the next roadma
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Policy update:
 - switched aggregate VHDL stimuli stage strictness:
   - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1` (previously `0`).
 
 Documentation synchronization:
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+- `CHANGES.md`
+- `MEMORY.md`
 
 ### Validation
 Executed focused aggregate strict-path check:
@@ -11407,17 +11441,17 @@ The VHDL strict-promotion mechanism was implemented and already returning determ
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Policy update:
 - switched aggregate strictness for VHDL promotion stage:
   - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` (previously `0`).
 
 Documentation synchronization:
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/CHANGES.md`
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+- `CHANGES.md`
+- `MEMORY.md`
 
 ### Validation
 Executed focused aggregate strict-path check:
@@ -11433,10 +11467,10 @@ VHDL quality gate and realistic corpus were already in place, but we lacked an e
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_strict_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `rust/scripts/vhdl_strict_promotion_gate.sh`
+- `rust/Makefile`
+- `rust/config/sota_exit_policy.env`
+- `rust/scripts/sota_exit_gate.sh`
 
 New gate behavior (`vhdl_strict_promotion_gate`):
 - deterministic trial matrix over `vhdl_stimuli_quality_gate` with configurable shape:
@@ -11493,8 +11527,8 @@ README was promoted to the project single entrypoint, but synchronization expect
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/COMMIT.md`
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `COMMIT.md`
+- `MEMORY.md`
 
 Policy changes:
 - `COMMIT.md` now includes `README.md` in workflow-involved files and requires README review/update when:
@@ -11513,8 +11547,8 @@ After adding the initial realistic-corpus stage, the next roadmap priority was t
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
+- `rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
 
 Manifest expansion:
 - promoted corpus manifest to `version: 2`.
@@ -11566,10 +11600,10 @@ Next-priority roadmap work after Phase P closure was expanding contractized SV/V
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
+- `rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+- `rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/vhdl_realistic_corpus/*.vhd`
 
 Contract/control surface:
 - promoted `vhdl_core_v0_contract.json` to `version: 2`.
@@ -11622,10 +11656,10 @@ Phase P had one remaining open item: Nexsim differential/integration hardening n
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/*.sv`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json`
+- `rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus/*.sv`
 
 Contract and control surface:
 - promoted `systemverilog_core_v0_contract.json` to `version: 25`.
@@ -11689,8 +11723,8 @@ Phase P still had one open item: close SV stimuli mode-level semantic steering w
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `grammars/systemverilog.ebnf`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Grammar steering changes:
 - `module_header_ports`
@@ -11734,7 +11768,7 @@ Semantic-closure mode (`sv_semantic_file`) exposed a declaration-before-use fals
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
 
 Change:
 - In `check_declared_identifiers_before_use`:
@@ -11767,8 +11801,8 @@ To broaden Phase P deterministic semantic-corpus coverage, we added indexed-assi
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
 
 Changes:
 - Contract suite:
@@ -11803,9 +11837,9 @@ Promotion trials previously used a hardcoded per-trial seed offset in the standa
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - `sv_parse_full_ratio_promotion_gate`:
@@ -11846,7 +11880,7 @@ Promotion and strict-quality gates had already proven stability under `8`-sample
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 Changes:
 - Promoted contract density baseline:
@@ -11879,7 +11913,7 @@ After ratcheting aggregate parse-full minimum to `100`, promotion evidence remai
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Increased parse-full promotion trial density:
@@ -11908,7 +11942,7 @@ After the prior `90 -> 95` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -11935,7 +11969,7 @@ After the prior `85 -> 90` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -11962,7 +11996,7 @@ After the prior `80 -> 85` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -11989,7 +12023,7 @@ After the prior `75 -> 80` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12016,7 +12050,7 @@ After the prior `70 -> 75` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12043,7 +12077,7 @@ After the prior `65 -> 70` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12070,7 +12104,7 @@ After the prior `60 -> 65` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12097,7 +12131,7 @@ After the prior `55 -> 60` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12124,7 +12158,7 @@ After the prior `50 -> 55` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12151,7 +12185,7 @@ After the prior `45 -> 50` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12178,7 +12212,7 @@ After the prior `40 -> 45` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12205,7 +12239,7 @@ After the prior `35 -> 40` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12232,7 +12266,7 @@ After the prior `30 -> 35` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12259,7 +12293,7 @@ After the prior `25 -> 30` ratchet, strict deterministic `sv_file` acceptance re
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12286,7 +12320,7 @@ After the prior `20 -> 25` ratchet, strict deterministic `sv_file` evidence stil
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12313,7 +12347,7 @@ After the prior `15 -> 20` ratchet, strict deterministic `sv_file` evidence rema
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12340,7 +12374,7 @@ After segment-boundary spacing and mode-cap hardening, deterministic `sv_file` p
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
+- `rust/config/sota_exit_policy.env`
 
 Changes:
 - Ratcheted required aggregate parse-full minimum:
@@ -12369,9 +12403,9 @@ After terminal-`\b` spacing hardening, `sv_file` parse-full debt remained due to
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 Changes:
 - `StimuliGenerator` concatenation hardening:
@@ -12427,9 +12461,9 @@ Observed:
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs`
-- `/Users/richarddje/Documents/github/pgen/rust/src/main.rs`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/src/ast_pipeline/stimuli_generator.rs`
+- `rust/src/main.rs`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
 
 Changes:
 - Added generic config switch:
@@ -12464,8 +12498,8 @@ Parse-full telemetry on broad `sv_file` stimuli remained volatile and often low 
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `grammars/systemverilog.ebnf`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 Changes:
 - Added parseable-subset grammar entry path:
@@ -12511,7 +12545,7 @@ After the initial SV steering baseline, branch/value steering coverage was still
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+- `grammars/systemverilog.ebnf`
 
 Changes:
 - Added branch steering (`@branch_policy`, `@priority`) to additional item/declaration/procedural fanout rules:
@@ -12543,7 +12577,7 @@ Phase P still had an open gap for annotation-driven SV stimuli steering beyond m
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf`
+- `grammars/systemverilog.ebnf`
 
 Changes:
 - Added initial semantic steering directives on high-impact SV rules:
@@ -12583,11 +12617,11 @@ Phase P semantic closure required stronger deterministic corpus evidence for pre
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
+- `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json`
+- `rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json`
+- `rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json`
+- `rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json`
 
 Changes:
 - Bumped all five enforced SV semantic suite manifests to `version: 2`.
@@ -12618,8 +12652,8 @@ After tightening stable curated directive families to strict `match`, the next h
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
+- `rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+- `rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
 
 Changes:
 - Advanced curated corpus manifest to `version: 4`.
@@ -12654,8 +12688,8 @@ After establishing offline curated differential gating, the next requirement was
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
+- `rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+- `rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
 
 Changes:
 - Expanded curated corpus manifest to `version: 3`.
@@ -12689,7 +12723,7 @@ After introducing the dynamic template-based offline oracle gate, the next harde
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `rust/scripts/sv_preprocessor_template_differential_gate.sh`
 
 Changes:
 - Expanded deterministic template families:
@@ -12726,10 +12760,10 @@ Curated static corpora are necessary for fixed contract anchors, but not suffici
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_template_differential_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_preprocessor_template_differential_gate.sh`
+- `rust/Makefile`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added dynamic template differential gate with deterministic seed-driven case synthesis:
@@ -12768,10 +12802,10 @@ We needed curated differential evidence/classification for SV preprocessor behav
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_curated_differential_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `rust/scripts/sv_preprocessor_curated_differential_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_preprocessor_curated_differential_corpus.json`
+- `rust/test_data/grammar_quality/systemverilog_preprocessor_curated/*`
+- `rust/Makefile`
 
 Changes:
 - Added dedicated curated differential gate with offline oracle model:
@@ -12811,9 +12845,9 @@ Aggregate `sota_exit_gate` executed `sv_preprocessor_quality_gate` without stage
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added aggregate-scoped stage directory for `sv_preprocessor_quality_gate`:
@@ -12856,9 +12890,9 @@ Aggregate `sota_exit_gate` executed `sv_stimuli_quality_gate` without stage-spec
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added aggregate-scoped stage directory for `sv_stimuli_quality_gate`:
@@ -12896,9 +12930,9 @@ Aggregate parse-full promotion telemetry exposed only observed ratio average, wh
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parsing for:
@@ -12928,9 +12962,9 @@ Aggregate parse-full promotion telemetry surfaced recommendation, primary blocke
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parsing for:
@@ -12960,9 +12994,9 @@ Aggregate declared-shadow promotion telemetry already exposed recommendation, to
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parsing for:
@@ -12992,9 +13026,9 @@ Aggregate gate printed declared-shadow promotion configuration (`sv_declared_sha
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parse for:
@@ -13022,11 +13056,11 @@ Declared-shadow promotion gate hardcoded `PGEN_SV_STIMULI_QUALITY_DECLARED_SHADO
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added standalone promotion gate knob:
@@ -13064,10 +13098,10 @@ Declared-shadow promotion produced recommendation and totals telemetry, but did 
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Declared-shadow promotion gate changes:
 - Added trial blocker classifier with deterministic keys for:
@@ -13116,10 +13150,10 @@ Aggregate gate had rich control/telemetry for parse-full promotion stage, but de
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Aggregate policy/runtime controls added for declared-shadow promotion stage:
 - `TRIALS`
@@ -13158,7 +13192,7 @@ Aggregate gate printed promotion telemetry on stdout, but the persisted summary 
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `rust/scripts/sota_exit_gate.sh`
 
 Changes:
 - added aggregate-level telemetry variables for parse-full promotion stage.
@@ -13184,9 +13218,9 @@ Promotion-stage recommendations were visible only by reading stage-local logs or
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - aggregate now forces promotion stage state dir to:
@@ -13218,10 +13252,10 @@ Aggregate parse-full promotion stage already accepted policy-driven target thres
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Added aggregate policy/runtime controls:
 - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS`
@@ -13261,10 +13295,10 @@ Promotion trials were policy-enabled in aggregate runs, but target threshold rem
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Added policy/runtime controls:
 - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
@@ -13299,9 +13333,9 @@ Promotion recommendations (`raise` vs `hold`) needed explicit blocker attributio
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Key changes:
 - Added per-trial blocker metadata:
@@ -13353,9 +13387,9 @@ Initial parse-full promotion trial defaults used semantic-closure profile (`sv_s
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Default alignment changes:
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE: 1 -> 0`
@@ -13382,12 +13416,12 @@ Aggregate SV parse-full strictness is now enforced at `15%`, but ratcheting furt
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
+- `rust/Makefile`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added deterministic parse-full ratio promotion gate
 `sv_parse_full_ratio_promotion_gate.sh`:
@@ -13448,9 +13482,9 @@ Aggregate policy enforcement for SV parse-full ratio was in place at `10%`. With
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Policy change:
 - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO: 10 -> 15`
@@ -13476,10 +13510,10 @@ Observed:
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added aggregate policy/runtime knobs for SV parse-full ratio strictness
 `sota_exit_gate.sh`:
@@ -13516,10 +13550,10 @@ Semantic-closure runtime declaration checks are now enabled with parseability gu
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added parse-full quality contract surface (v21)
 `systemverilog_core_v0_contract.json`:
@@ -13567,10 +13601,10 @@ Declared-shadow promotion evidence and aggregate strict promotion-gate policy we
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Contract promotion to runtime enforcement (v20)
 `systemverilog_core_v0_contract.json`:
@@ -13613,9 +13647,9 @@ Declared-shadow promotion trials had converged to stable green recommendations (
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Policy flip:
 - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT: 0 -> 1`
@@ -13639,9 +13673,9 @@ Parseability-scoped strict-shadow logic was in place, but promotion evidence sti
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Increased promotion-trial evidence density
 `sv_declared_shadow_promotion_gate` default sample count changed:
@@ -13698,10 +13732,10 @@ For promotion decisions, that coupling produced false-positive semantic noise.
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added parseability-scoped shadow control
 New `sv_stimuli_quality_gate` env control:
@@ -13753,12 +13787,12 @@ This gap made promotion decisions manual and non-repeatable across sessions.
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_declared_shadow_promotion_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_declared_shadow_promotion_gate.sh`
+- `rust/Makefile`
+- `rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added standalone promotion-trial gate
 New script:
@@ -13828,8 +13862,8 @@ The remaining gap was user-facing operational guidance: a new user still had to 
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added concrete AST debug playbook section
 `PGEN_USER_GUIDE.md` now includes `AST Debug Playbooks (SV/VHDL/Regex)` with explicit command-level steps.
@@ -13870,10 +13904,10 @@ Phase R already had parser-executable AST dump support (`parseability_probe`) pl
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs`
-- `/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/src/embedding_api.rs`
+- `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added stable AST dump API types and outcomes
 New public types in `pgen::embedding_api`:
@@ -13931,8 +13965,8 @@ Behavioral alignment:
 
 ### Validation
 Executed:
-- `cd /Users/richarddje/Documents/github/pgen/rust && cargo test --lib embedding_api`
-- `cd /Users/richarddje/Documents/github/pgen/rust && cargo test --features generated_parsers --lib embedding_api`
+- `cd rust && cargo test --lib embedding_api`
+- `cd rust && cargo test --features generated_parsers --lib embedding_api`
 
 Observed:
 - all `embedding_api` tests passed in both bootstrap-only and generated-parsers build paths,
@@ -13944,11 +13978,11 @@ Clippy execution existed but was ad hoc. The workflow needed an explicit, repeat
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/clippy_on_rust_change.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
-- `/Users/richarddje/Documents/github/pgen/COMMIT.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/MEMORY.md`
+- `rust/scripts/clippy_on_rust_change.sh`
+- `rust/Makefile`
+- `COMMIT.md`
+- `PGEN_USER_GUIDE.md`
+- `MEMORY.md`
 
 #### 1) Added executable clippy workflow driver
 `clippy_on_rust_change.sh` behavior:
@@ -13980,7 +14014,7 @@ This target is now the standard operational command to apply clippy workflow pol
 
 ### Validation
 Executed:
-- `PGEN_CLIPPY_FORCE=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+- `PGEN_CLIPPY_FORCE=1 make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
 
 Observed:
 - strict source clippy pass is enforced.
@@ -13992,11 +14026,11 @@ Observed:
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 #### 1) Added deterministic semantic contract corpus
 New corpus:
@@ -14048,11 +14082,11 @@ Fix:
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `jq empty rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - deterministic suite passes `12/12` in both baseline and semantic-closure runs,
@@ -14065,10 +14099,10 @@ Even after lexical cleanups, declaration-before-use still produced noise when sc
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 #### 1) Reworked declaration-before-use to structured use extraction
 `check_declared_identifiers_before_use` now collects candidate uses only from:
@@ -14096,8 +14130,8 @@ Reason:
 
 ### Validation
 Executed:
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - both baseline and semantic-closure mode runs pass,
@@ -14109,10 +14143,10 @@ After introducing `sv_semantic_file`, enabling both `require_declared_identifier
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 #### 1) Hardened declaration-before-use checker
 `check_declared_identifiers_before_use` now:
@@ -14147,10 +14181,10 @@ Rationale:
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - baseline mode remains passing,
@@ -14163,10 +14197,10 @@ Phase P semantic-closure validators were already wired but mostly default-disabl
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 #### 1) Added dedicated semantic-closure stimuli mode
 Contract update (`v11 -> v12`) introduces:
@@ -14202,10 +14236,10 @@ Also updated fallback mode/eligibility mappings to include `sv_semantic_file`.
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_SEMANTIC_CLOSURE_MODE=1 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - baseline mode remains stable/passing,
@@ -14217,12 +14251,12 @@ Phase P still had an open roadmap item for publishing a Nexsim-facing parser emb
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/nexsim_parser_embedding_contract_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
-- `/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/src/embedding_api.rs`
+- `rust/scripts/nexsim_parser_embedding_contract_gate.sh`
+- `rust/Makefile`
+- `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added dedicated parser-profile contract gate
 Created:
@@ -14269,8 +14303,8 @@ Also added progress note under Nexsim differential/integration hardening that pa
 
 ### Validation
 Executed:
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash nexsim_parser_embedding_contract_gate`
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
+- `make -C rust SHELL=/opt/homebrew/bin/bash nexsim_parser_embedding_contract_gate`
+- `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
 
 Observed:
 - bootstrap parser-profile contract tests pass,
@@ -14283,9 +14317,9 @@ Observed:
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 Policy change:
 - `PGEN_SOTA_POLICY_REQUIRE_SV_STIMULI_QUALITY_STRICT=0 -> 1`
@@ -14295,7 +14329,7 @@ Effect:
 
 ### Validation
 Executed focused aggregate run:
-- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_SV_STIMULI_QUALITY_STRICT=1 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
 
 Observed:
 - aggregate summary reports `sv_stimuli_quality_gate` as required and passing.
@@ -14308,9 +14342,9 @@ To close the convergence contract, we needed an explicit deterministic replay as
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 #### 1) Added explicit initial replay stage per profile
 For each LRM profile, gate now runs:
@@ -14336,8 +14370,8 @@ This reports deterministic replay pass count across active profiles.
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - both `2017` and `2023` profiles pass deterministic initial replay checks,
@@ -14352,9 +14386,9 @@ Gate implementation had equivalent stages but executed semantic validation befor
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 #### 1) Reordered sample-stage execution
 Within each sample loop:
@@ -14373,8 +14407,8 @@ With preprocess-aware modes, parse/full integration, and dual parser+preprocess 
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - gate runs green on both LRM profiles,
@@ -14388,9 +14422,9 @@ To align with Phase Q parser/stimuli integration goals, closed-loop convergence 
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 #### 1) Added per-profile preprocess replay passes for closed-loop corpora
 For each LRM profile, gate now preprocesses:
@@ -14417,8 +14451,8 @@ This keeps closed-loop convergence checks aligned across parser and preprocess d
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - new preprocess closed-loop stages run for both `2017` and `2023`,
@@ -14431,9 +14465,9 @@ Observed:
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
+- `rust/config/sota_exit_policy.env`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `PGEN_USER_GUIDE.md`
 
 Policy change:
 - `PGEN_SOTA_POLICY_REQUIRE_SV_PREPROCESSOR_QUALITY_STRICT=0 -> 1`
@@ -14443,7 +14477,7 @@ Effect:
 
 ### Validation
 Executed focused aggregate run:
-- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
 
 Observed:
 - required `sv_preprocessor_quality_gate` executed and passed in aggregate summary.
@@ -14454,9 +14488,9 @@ Phase Q required differential hardening against trusted references and publicati
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/scripts/sv_preprocessor_quality_gate.sh`
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added trusted-reference differential controls
 `sv_preprocessor_quality_gate.sh` now supports:
@@ -14498,11 +14532,11 @@ Strict mode (`DIFF_MODE=1`) fails the gate on any non-`match` category.
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_quality_gate.sh`
-- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+- `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
   - expected behavior in this environment:
     - differential effective mode becomes `unsupported_reference_runner` in `auto` mode.
-- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/tmp/pgen_svpp_reference_runner.sh make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+- `PGEN_SV_PREPROCESSOR_QUALITY_COUNT=1 PGEN_SV_PREPROCESSOR_QUALITY_FUZZ_ROUNDS=1 PGEN_SV_PREPROCESSOR_DIFF_MODE=1 PGEN_SV_PREPROCESSOR_DIFF_MAX_SAMPLES=1 PGEN_SV_PREPROCESSOR_REFERENCE_RUNNER=/tmp/pgen_svpp_reference_runner.sh make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
   - validated strict mode path with local adapter runner; taxonomy remained `match` for checked sample.
 
 ### Notes
@@ -14517,8 +14551,8 @@ Existing mode set (`sv_file`, `sv_snippet`) worked, but did not explicitly encod
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
 
 #### 1) Contract mode expansion (`v10 -> v11`)
 Added preprocess-aware modes under `stimuli_modes`:
@@ -14550,10 +14584,10 @@ This keeps mode behavior deterministic and explicit for both contractized and fa
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_file PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_file PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_pp_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - both preprocess-aware modes execute successfully,
@@ -14568,8 +14602,8 @@ To keep Nexsim SV/VHDL hardening in one release flow, aggregate `sota_exit_gate`
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/config/sota_exit_policy.env`
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
+- `rust/config/sota_exit_policy.env`
+- `rust/scripts/sota_exit_gate.sh`
 
 #### 1) Added aggregate policy defaults
 In `sota_exit_policy.env`:
@@ -14596,8 +14630,8 @@ Mode behavior:
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0 PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- `PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_REQUIRE_EBNF_STRICT=0 PGEN_SOTA_RUN_ANNOTATION_ROBUSTNESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN=0 PGEN_SOTA_RUN_STIMULI_MODULE_PARITY=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=0 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=1 PGEN_SOTA_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=0 PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sota_exit_gate`
 
 Observed:
 - aggregate summary prints effective VHDL gate mode,
@@ -14612,9 +14646,9 @@ SV had a dedicated contractized stimuli quality gate; VHDL only had aggregate HD
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile`
+- `rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+- `rust/Makefile`
 
 #### 1) New gate script
 `vhdl_stimuli_quality_gate.sh` implements deterministic flow:
@@ -14649,10 +14683,10 @@ Help section updated so the gate is discoverable alongside SV gates.
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
-- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
-- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+- `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/vhdl_core_v0_contract.json`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+- `PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
 
 Observed:
 - deterministic closed-loop progression is functional,
@@ -14668,8 +14702,8 @@ The next step for mode-driven steering was to wire per-mode recovery stimuli str
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 #### 1) Added per-mode recovery steering key
 Gate now resolves:
@@ -14698,10 +14732,10 @@ This yields deterministic mode-specific stimuli strategy without changing genera
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - `sv_file` reports `stimuli_mode_recovery_stimuli_mode: baseline`,
@@ -14716,8 +14750,8 @@ To progress semantic-steered modes, we needed per-mode semantic baseline overrid
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 #### 1) Added mode-level semantic override resolution
 `sv_stimuli_quality_gate` now resolves effective semantic toggles with precedence:
@@ -14735,10 +14769,10 @@ Result: mode-selected semantic strictness from one contract without duplicating 
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - `sv_file` reports `semantic_require_port_binding_legality_basic: 1`,
@@ -14751,7 +14785,7 @@ Phase P context-legality coverage included `always_ff`/`always_comb`, but genera
 
 ### Implementation
 Primary file:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
 
 Updated `check_context_legality_basic(...)`:
 - now parses declared `genvar` identifiers,
@@ -14763,9 +14797,9 @@ This extends the existing `semantic_baseline.require_context_legality_basic` tog
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - no regression in default contract runs,
@@ -14779,8 +14813,8 @@ One missing baseline item was basic named-port legality: validating that instanc
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 #### 1) Added named-port legality checker
 Implemented `check_port_binding_legality_basic(...)`:
@@ -14805,10 +14839,10 @@ Default remains `false` while corpus hardening/false-positive burn-down continue
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `jq empty /Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `jq empty rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - no regression in default gate behavior,
@@ -14823,8 +14857,8 @@ Before this increment, `sv_stimuli_quality_gate` reported failures but did not e
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 #### 1) Contractized failure replay policy surface
 `systemverilog_core_v0_contract.json` bumped to version `7` and now defines:
@@ -14868,9 +14902,9 @@ CSV notes are sanitized for deterministic single-line reporting.
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - no regression in `sv_file` and `sv_snippet` mode behavior,
@@ -14887,8 +14921,8 @@ Before this increment, `sv_stimuli_quality_gate` always generated from the defau
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 #### 1) Added stimuli mode control in gate
 Gate now resolves mode via:
@@ -14923,9 +14957,9 @@ Initial profiles:
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
-- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `PGEN_SV_STIMULI_QUALITY_MODE=sv_snippet PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - both modes execute deterministically under contract control,
@@ -14944,8 +14978,8 @@ Phase P semantic closure still needed executable validator hooks for the target 
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 #### 1) Added semantic validator functions in gate script
 New optional checks:
@@ -14972,8 +15006,8 @@ All are currently defaulted to `false` for stability on the existing random corp
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=1 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=0 make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - gate and closed-loop stages remain stable with defaults,
@@ -14988,8 +15022,8 @@ Before this increment:
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_syntax_closure_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`
+- `rust/scripts/sv_syntax_closure_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`
 
 #### 1) Added dedicated syntax-closure gate script
 New gate executes deterministic syntax viability stages:
@@ -15024,8 +15058,8 @@ This turns syntax closure from implicit/manual expectations into executable cont
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_syntax_closure_gate.sh`
-- `make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_syntax_closure_gate`
+- `bash -n rust/scripts/sv_syntax_closure_gate.sh`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_syntax_closure_gate`
 
 Observed:
 - gate passes on current grammar baseline,
@@ -15042,8 +15076,8 @@ It did not enforce profile-level target-debt replay behavior.
 
 ### Implementation
 Primary files:
-- `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
+- `rust/scripts/sv_stimuli_quality_gate.sh`
+- `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 
 #### 1) Added profile-level closed-loop stages
 For each active LRM profile (`2017`, `2023`):
@@ -15080,17 +15114,17 @@ Summary text includes:
 
 #### 4) Documentation alignment
 Updated:
-- `/Users/richarddje/Documents/github/pgen/rust/Makefile` help text
-- `/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md`
-- `/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `rust/Makefile` help text
+- `PGEN_USER_GUIDE.md`
+- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Roadmap Phase P item:
 - `Freeze systemverilog_core_v0 contract corpus and add sv_stimuli_quality_gate` is now marked complete.
 
 ### Validation
 Executed:
-- `bash -n /Users/richarddje/Documents/github/pgen/rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C /Users/richarddje/Documents/github/pgen/rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
 
 Observed:
 - gate runs both profile-level closed-loop stages and per-sample checks,
@@ -22621,7 +22655,7 @@ Unit tests added directly in `stimuli_generator.rs`:
 4. recursive-rule termination behavior under depth constraints.
 
 Validation run:
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+- `cargo test --manifest-path rust/Cargo.toml stimuli_generator`
   - result: 4 passed, 0 failed.
 
 CLI smoke validation run:
@@ -22660,7 +22694,7 @@ This preserves weighted semantics while making repeated regressions increasingly
 
 ### Validation Snapshot
 - Targeted unit tests:
-  - `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
+  - `cargo test --manifest-path rust/Cargo.toml stimuli_generator`
   - Result: `13 passed, 0 failed`
 - Semantic coverage (merged across seeds `17,29,43,71,89`, parseability-validated, count=200 each):
   - Rules: `76/112 (67.86%)` (unchanged)
@@ -22799,9 +22833,9 @@ This materially improved post-run debugging and made deadlocks obvious without o
 
 #### 1) Compilation and unit tests
 Commands:
-- `cargo fmt --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml`
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml stimuli_generator`
-- `cargo build --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml --bin ast_pipeline`
+- `cargo fmt --manifest-path rust/Cargo.toml`
+- `cargo test --manifest-path rust/Cargo.toml stimuli_generator`
+- `cargo build --manifest-path rust/Cargo.toml --bin ast_pipeline`
 
 Results:
 - tests passed (`15/15`)
@@ -22900,7 +22934,7 @@ No behavioral parser change was made in this increment; this was a spec-accuracy
 
 ### Validation Run
 Command:
-- `cargo test --manifest-path /Users/richarddje/Documents/github/pgen/rust/Cargo.toml unified_`
+- `cargo test --manifest-path rust/Cargo.toml unified_`
 
 Result:
 - `15 passed, 0 failed`
@@ -24638,11 +24672,11 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
 The repository had just gained a meaningful real-world HDL corpus base through new VHDL and SystemVerilog submodules plus vendored UVM source, but those assets were still passive. The immediate next hardening step was not to pretend they were already status-bearing proof; it was to make them executable, deterministic, and inspectable as first-pass triage surfaces.
 
 - Added checked-in manifests:
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
-  - `/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`
+  - `rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json`
+  - `rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json`
 - Added source-side triage gates:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_external_corpus_triage_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_external_corpus_triage_gate.sh`
+  - `rust/scripts/sv_external_corpus_triage_gate.sh`
+  - `rust/scripts/vhdl_external_corpus_triage_gate.sh`
 - Added make targets:
   - `make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`
@@ -25436,7 +25470,7 @@ Architectural north star:
     - `return_annotation`: `frontend_raw_ast_export=pass`, parity `pass`, parseability attempts `1`, accepted `1`
     - `semantic_annotation`: `frontend_raw_ast_export=pass`, parity `pass`, parseability attempts `2`, accepted `1`, rejected `1`
 - `ebnf_frontend_readiness_gate` had already supported `PGEN_EBNF_FRONTEND_IMPL=perl|rust`, but the live report/aggregate path was still defaulting to Perl even after the Rust path had proven green on the tracked roster. That left the default operator surface behind the intended migration direction.
-- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` to Rust-by-default:
+- Promoted `rust/scripts/ebnf_frontend_readiness_gate.sh` to Rust-by-default:
   - `FRONTEND_IMPL` now defaults to `rust`
   - explicit fallback remains available through:
     - `PGEN_EBNF_FRONTEND_IMPL=perl`
@@ -25449,7 +25483,7 @@ Architectural north star:
     - `regex`: `pass`
   - so aggregate/report-mode EBNF readiness now exercises the Rust frontend path by default instead of only on opt-in runs
 - `ebnf_stimuli_quality_gate` had the same policy lag: it already supported `PGEN_EBNF_FRONTEND_IMPL=perl|rust`, but the live default still pointed at Perl even after the Rust path had proven green for tracked grammars.
-- Promoted `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh` to Rust-by-default:
+- Promoted `rust/scripts/ebnf_stimuli_quality_gate.sh` to Rust-by-default:
   - `FRONTEND_IMPL` now defaults to `rust`
   - explicit fallback remains available through:
     - `PGEN_EBNF_FRONTEND_IMPL=perl`
@@ -25468,11 +25502,11 @@ Architectural north star:
     - `builtin_semantic_annotation`: `pass`
 - The next operator-surface cleanup there was naming honesty rather than another frontend-behavior change. After the Rust-default flip, `ebnf_frontend_readiness_gate` was still labeling the tracked conversion column `ebnf_to_json`, which made the readiness CSV look Perl-authoritative even when `frontend_impl: rust`.
 - Tightened that readiness/regex-family contract surface:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh` now exports `frontend_to_json`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh` now reads/reports `frontend_regex_frontend_to_json`
+  - `rust/scripts/ebnf_frontend_readiness_gate.sh` now exports `frontend_to_json`
+  - `rust/scripts/regex_parser_family_contract_gate.sh` now reads/reports `frontend_regex_frontend_to_json`
   - the intentionally comparative dual-run field stays `perl_ebnf_to_json`, because that gate is still measuring Perl-vs-Rust behavior rather than generic frontend success
-- The next regex-family blocker turned out to be a real generated-parser bug, not stale telemetry. `ebnf_frontend_dual_run_gate` was red because the Rust EBNF parser stopped partway through [regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf) in the quantifier section, but the real cutoff was not the `#` text itself; it was the multiline continuation after an inline `# ...` comment. The generated EBNF parser helpers in `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/ast_based_generator.rs` had drifted behind the newer tracked generated parsers: `consume_layout_for_terminal`, `consume_layout_for_regex`, and `looks_like_rule_definition_boundary` no longer skipped `#` line comments.
-- Fixed that generator seam and mirrored it into tracked `/Users/richarddje/Documents/github/pgen/generated/ebnf.rs`. Fresh direct proof via `rust/target/debug/ebnf_dual_run_diff --input grammars/regex.ebnf` now shows both `parse.ok=true` and `parse_full.ok=true`, and a full rerun of `bash rust/scripts/ebnf_frontend_dual_run_diff_gate.sh` is green again with the expected regex row:
+- The next regex-family blocker turned out to be a real generated-parser bug, not stale telemetry. `ebnf_frontend_dual_run_gate` was red because the Rust EBNF parser stopped partway through [regex.ebnf](grammars/regex.ebnf) in the quantifier section, but the real cutoff was not the `#` text itself; it was the multiline continuation after an inline `# ...` comment. The generated EBNF parser helpers in `rust/src/ast_pipeline/ast_based_generator.rs` had drifted behind the newer tracked generated parsers: `consume_layout_for_terminal`, `consume_layout_for_regex`, and `looks_like_rule_definition_boundary` no longer skipped `#` line comments.
+- Fixed that generator seam and mirrored it into tracked `generated/ebnf.rs`. Fresh direct proof via `rust/target/debug/ebnf_dual_run_diff --input grammars/regex.ebnf` now shows both `parse.ok=true` and `parse_full.ok=true`, and a full rerun of `bash rust/scripts/ebnf_frontend_dual_run_diff_gate.sh` is green again with the expected regex row:
   - `rust_parse_full=pass`
   - `overall=pass`
   - `raw_ast_status=perl_under_reports`
@@ -25483,11 +25517,11 @@ Architectural north star:
   The downstream `regex_parser_family_contract_gate` is green again on top of that refreshed sidecar.
 - The next regex proof-normalization seam was aggregate reuse, not parser behavior. `sota_exit_gate` still rebuilt regex family sidecars unconditionally under nested `work/...`, and `regex_combined_telemetry_contract_gate` still hardcoded those nested paths instead of trusting the authoritative paths exported by `sota_exit_gate/summary.txt`. That made reuse-backed regex aggregate proofs weaker than the already-fixed SV/VHDL ones.
 - Tightened that aggregate seam:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` now accepts:
+  - `rust/scripts/sota_exit_gate.sh` now accepts:
     - `PGEN_SOTA_EXISTING_REGEX_FAMILY_CONTRACT_STATE_DIR`
     - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_STATE_DIR`
     - `PGEN_SOTA_EXISTING_REGEX_FAMILY_STATUS_CONTRACT_STATE_DIR`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh` now resolves the regex family sidecar paths from `sota_exit_gate/summary.txt` before validating them
+  - `rust/scripts/regex_combined_telemetry_contract_gate.sh` now resolves the regex family sidecar paths from `sota_exit_gate/summary.txt` before validating them
   so reuse-backed regex aggregate proofs no longer depend on those sidecars being rebuilt inside the current nested SOTA work tree.
 - The regex-family steering docs had drifted behind the repaired dual-run/canonical sidecar state. After refreshing `regex_parser_family_contract_gate`, `regex_parser_family_status_gate`, `regex_parser_family_status_contract_gate`, and the reuse-backed aggregate parity surface, the authoritative regex figures are now:
   - family contract: `frontend_overall=pass`, `dual_run_overall=pass`, `raw_ast_status=perl_under_reports`, `perl_rule_count=78`, `rust_rule_count=87`, `raw_ast_missing_on_perl_count=9`, `raw_ast_missing_on_rust_count=0`, and stimuli debt `366 -> 157`
@@ -25498,7 +25532,7 @@ Architectural north star:
   - Rust frontend `ast_pipeline --features ebnf_dual_run` handles `semantic_annotation.ebnf` / `return_annotation.ebnf` -> JSON
   - `ast_pipeline_bootstrap --bootstrap-mode` still handles JSON -> parser.rs
 - This keeps the fixed-point proof centered on bootstrap code generation while removing the incidental Perl dependency from the annotation EBNF input phase.
-- The remaining active Perl seam in the main build path was [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile): annotation and regex JSON generation still called `ebnf_to_json.pl` even though the active gates had already moved to the Rust frontend. That has now been normalized too.
+- The remaining active Perl seam in the main build path was [rust/Makefile](rust/Makefile): annotation and regex JSON generation still called `ebnf_to_json.pl` even though the active gates had already moved to the Rust frontend. That has now been normalized too.
 - The important implementation detail is the separate frontend target dir:
   - `rust/target/ebnf_frontend_build/debug/ast_pipeline`
   - This avoids feature-set aliasing against the normal/generated-parsers `rust/target/debug/ast_pipeline` binary while still letting Make use the Rust frontend for `.ebnf -> JSON`.
@@ -25507,36 +25541,36 @@ Architectural north star:
   - annotation bootstrap path: bootstrap binary `JSON -> parser.rs`
   - normal regex path: generated-parsers binary `JSON -> parser.rs`
 - The `fixed-point-gate` workflow had one stale dependency left after the gate migration: it still ran a Perl `JSON::PP` smoke check even though the fixed-point path no longer depends on Perl. That CI-only seam is gone now, so the workflow dependency story matches the gate's actual runtime requirements.
-- The branch-protection contract workflow had a stale Perl runtime smoke step even though [branch_protection_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/branch_protection_contract_gate.sh) only validates tracked JSON/workflow policy. That workflow is now aligned with the gate’s actual runtime requirements.
+- The branch-protection contract workflow had a stale Perl runtime smoke step even though [branch_protection_contract_gate.sh](rust/scripts/branch_protection_contract_gate.sh) only validates tracked JSON/workflow policy. That workflow is now aligned with the gate’s actual runtime requirements.
 - The non-bootstrap annotation E2E workflow had the same stale CI dependency pattern as the recent fixed-point and branch-protection slices: it still smoke-checked Perl even though the gate now uses generated annotation JSON plus the Rust frontend for the regex row. That workflow is now aligned with the gate's actual runtime dependencies.
 - The remaining workflow-level Perl runtime checks are intentional, not stale:
   - `.github/workflows/ebnf-frontend-dual-run-diff.yml` still needs Perl because the job explicitly runs the Perl-vs-Rust differential surface.
   - `.github/workflows/sota-exit-gate.yml` still needs Perl because the active SOTA policy keeps `ebnf_frontend_dual_run_diff` / `ebnf_frontend_dual_run_gate` in play.
   - keep those checks, but label them accordingly so the CI surface itself explains why Perl is still present.
 - Tighten the local CI parity surface to enforce that policy, not just describe it:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` should assert that only the two intentional workflows carry a `Verify Perl runtime` step,
+  - `rust/scripts/ci_workflow_local_gate.sh` should assert that only the two intentional workflows carry a `Verify Perl runtime` step,
   - and that those two steps keep their explicit reason-bearing labels.
 - Tighten that same local CI surface around `ebnf_to_json.pl` too:
   - migrated live `.ebnf -> JSON` paths should fail the local audit if they reintroduce `ebnf_to_json.pl`,
   - the allowed references are now explicit and narrow:
-    - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
-    - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_frontend_readiness_gate.sh`
-    - `/Users/richarddje/Documents/github/pgen/rust/scripts/ebnf_stimuli_quality_gate.sh`
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+    - `rust/scripts/ebnf_frontend_readiness_gate.sh`
+    - `rust/scripts/ebnf_stimuli_quality_gate.sh`
   - and those allowed references correspond only to:
     - Perl-vs-Rust differential comparison,
     - explicit Perl fallback mode,
     - or the current `ebnf` bootstrap parseability seam.
 - The next VHDL proof-normalization seam was schema parity, not parser behavior. `regex_parser_family_contract_gate` already carried a machine-readable `summary.json`, but the VHDL family-contract/status/aggregate chain was still effectively TXT-only at the family-contract layer. That asymmetry made VHDL aggregate proofs weaker than regex/SV: `sota_exit_gate` and `vhdl_combined_telemetry_contract_gate` could only surface the TXT proof path, so there was no end-to-end contract that the family-contract JSON sidecar existed and matched the rest of the stack.
 - Tightened that VHDL proof surface:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh` now writes `summary.json` alongside `summary.txt`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh` now requires and exports both `family_contract_summary_txt` and `family_contract_summary_json` in its summary sidecars
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh` now treats both proof-surface keys as required schema
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` and `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now surface and parity-check the new JSON path too
+  - `rust/scripts/vhdl_parser_family_contract_gate.sh` now writes `summary.json` alongside `summary.txt`
+  - `rust/scripts/vhdl_parser_family_status_gate.sh` now requires and exports both `family_contract_summary_txt` and `family_contract_summary_json` in its summary sidecars
+  - `rust/scripts/vhdl_parser_family_status_contract_gate.sh` now treats both proof-surface keys as required schema
+  - `rust/scripts/sota_exit_gate.sh` and `rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now surface and parity-check the new JSON path too
 - One small implementation bug showed up while doing that: `quality_parse_full_passes` in the family-contract summary is a literal string like `8/8`, not JSON numeric content, so the JSON writer in `vhdl_parser_family_contract_gate.sh` must pass it with `--arg`, not `--argjson`.
-- Important evidence rule discovered during validation: the top-level `/Users/richarddje/Documents/github/pgen/rust/target/vhdl_stimuli_quality_gate` can currently hold a lightweight one-case run (`realistic_corpus_cases_executed: 1`) and therefore is not always a valid family-contract evidence source. For VHDL family/aggregate proof slices, prefer a canonical full-quality state with `realistic_corpus_cases_executed: 14` or regenerate one explicitly before treating it as family-proof input.
+- Important evidence rule discovered during validation: the top-level `rust/target/vhdl_stimuli_quality_gate` can currently hold a lightweight one-case run (`realistic_corpus_cases_executed: 1`) and therefore is not always a valid family-contract evidence source. For VHDL family/aggregate proof slices, prefer a canonical full-quality state with `realistic_corpus_cases_executed: 14` or regenerate one explicitly before treating it as family-proof input.
 - The next normalization step after that JSON path was provenance visibility. Once the VHDL family contract could legally point at a full-quality state that differs from the current top-level `vhdl_stimuli_quality_gate`, aggregate summaries needed to surface that fact explicitly instead of only showing derived family metrics.
 - Tightened that aggregate provenance seam:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` now extracts the VHDL family contract’s proof-surface inputs directly from `vhdl_parser_family_contract_gate/summary.json`
+  - `rust/scripts/sota_exit_gate.sh` now extracts the VHDL family contract’s proof-surface inputs directly from `vhdl_parser_family_contract_gate/summary.json`
   - it now exports:
     - `vhdl_family_quality_state_dir`
     - `vhdl_family_quality_summary_txt`
@@ -25545,7 +25579,7 @@ Architectural north star:
     - `vhdl_family_strict_promotion_state_dir`
     - `vhdl_family_strict_promotion_summary_txt`
     - `vhdl_family_strict_promotion_report_json`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now parity-checks those fields against the family-contract JSON sidecar and re-emits them in its own summary
+  - `rust/scripts/vhdl_combined_telemetry_contract_gate.sh` now parity-checks those fields against the family-contract JSON sidecar and re-emits them in its own summary
 - That gives the aggregate layer a direct answer to “which evidence did the VHDL family proof actually use?” rather than forcing operators to infer it from nested workdir conventions.
 - The next aggregate-proof normalization seam is the top-level SOTA sidecar itself. `sota_exit_gate.sh` already forwards family proof paths and writes a machine-readable `summary.csv`, so it should also emit a focused `summary.json` that preserves:
   - gate/policy metadata,
@@ -25559,37 +25593,37 @@ Architectural north star:
   so `sota_exit_gate` JSON becomes a real contract surface rather than a write-only artifact.
 - That same rule applies to the sibling family aggregates too. Regex combined telemetry should not stop at consuming the regex family sidecars themselves; it should also consume the top-level SOTA JSON sidecar, parity-check the regex proof-surface paths and blocker payloads there against the family sidecars, and re-emit the SOTA JSON provenance in its own aggregate output.
 - VHDL combined telemetry needs the same normalization. Once the VHDL family contract, family status, and family-status contract all have JSON sidecars, the aggregate gate should require top-level SOTA JSON too, parity-check the VHDL blocker payloads there against the VHDL family sidecars it already consumes, and re-emit the SOTA JSON provenance in its own outputs.
-- Once those three aggregate lanes are SOTA-JSON consumers, the regression guard belongs in local CI policy too. `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` should assert that the shipped combined telemetry gates:
+- Once those three aggregate lanes are SOTA-JSON consumers, the regression guard belongs in local CI policy too. `rust/scripts/ci_workflow_local_gate.sh` should assert that the shipped combined telemetry gates:
   - bind `sota_summary_json="$sota_state_dir/summary.json"`,
   - extract `.proof_surfaces.summary_json`,
   - extract `.counts.required_failures`,
   - and keep their family-specific `primary_unmet_closure_criterion` reads from the top-level SOTA JSON sidecar
   so aggregate sign-off cannot silently drift back to TXT-only SOTA consumption.
-- The sibling regression guard is emission, not just consumption. `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` should also assert that:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
+- The sibling regression guard is emission, not just consumption. `rust/scripts/ci_workflow_local_gate.sh` should also assert that:
+  - `rust/scripts/sota_exit_gate.sh`
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - `rust/scripts/regex_combined_telemetry_contract_gate.sh`
+  - `rust/scripts/vhdl_combined_telemetry_contract_gate.sh`
   keep their `SUMMARY_JSON="$STATE_DIR/summary.json"` contract, echo both `generated_at_utc` and `summary_json` into `summary.txt`, and pass both fields through the JSON writer path too, so the machine-readable proof sidecar cannot silently regress back to a write-only or missing artifact.
 - One small implementation detail matters for these local CI audits: the generic `grep -F` wrappers need `--` so patterns like `--arg generated_at_utc "$generated_at_utc"` are treated as literals rather than mistaken for grep options.
 - The same self-description rule now needs to hold one layer lower too. The shipped family-status contract gates:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh`
+  - `rust/scripts/sv_parser_family_status_contract_gate.sh`
+  - `rust/scripts/regex_parser_family_status_contract_gate.sh`
+  - `rust/scripts/vhdl_parser_family_status_contract_gate.sh`
   already emitted `summary.json`, but they were still only naming the upstream family-status artifacts they validate. They now need to surface their own `summary_json` in `summary.txt` and carry both `summary_txt` and `summary_json` at the top level of their JSON sidecars too, so the family-level proof surfaces stay structurally aligned with the higher aggregate layers.
 - The sibling layer below that is family-status itself. The shipped family-status gates:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh`
+  - `rust/scripts/sv_parser_family_status_gate.sh`
+  - `rust/scripts/regex_parser_family_status_gate.sh`
+  - `rust/scripts/vhdl_parser_family_status_gate.sh`
   already emitted `summary.json`, but they still leaned too heavily on upstream proof-surface paths and did not identify their own sidecars consistently. They now need to carry `state_dir`, `summary_txt`, and `summary_json` at the top level of their JSON sidecars too, and the SV TXT header should also surface `generated_at_utc` so the three sibling gates line up cleanly.
 - The sibling layer below that is family-contract itself. The shipped regex and VHDL family-contract gates:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh`
+  - `rust/scripts/regex_parser_family_contract_gate.sh`
+  - `rust/scripts/vhdl_parser_family_contract_gate.sh`
   already emitted `summary.json`, but they still only named the upstream frontend/dual-run/stimuli or quality/strict-promotion proof surfaces. They now need to carry their own `summary_txt` and `summary_json` at the top level of their JSON sidecars too, and the VHDL TXT header should also surface `generated_at_utc` / `summary_json` so the family-contract layer follows the same self-description rule as the layers above it.
 - The next low-level provenance gap after that was the practical SV family-contract producer layer. Regex and VHDL already had local-CI guards on their family-contract proof-surface fields, but SV still depended on higher layers to notice drift in:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_aggregate_contract_gate.sh`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
-- Tightened that producer seam in `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh`:
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- Tightened that producer seam in `rust/scripts/ci_workflow_local_gate.sh`:
   - the family-sidecar identity audit now also covers both SV aggregate-contract gates, so their `SUMMARY_JSON`, `summary_json`, and top-level `state_dir` / `summary_txt` / `summary_json` shape stay locked
   - a new SV aggregate-contract proof-surface audit now locks the main-SV producer fields:
     - `generation_report_json`
@@ -25602,22 +25636,22 @@ Architectural north star:
     - `parseability_report_json`
     - `counterexample_triage_json`
     - `gap_stage3_json`
-- The next direct proof-chain gap after that was in `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh` itself. The gate already read and parity-checked the main parser's semantic-scope proof paths from `sv_parser_family_status_gate`, but it still dropped those validated paths from its own `summary.txt` / `summary.json`, so the contract layer regressed back to aggregate-only provenance.
+- The next direct proof-chain gap after that was in `rust/scripts/sv_parser_family_status_contract_gate.sh` itself. The gate already read and parity-checked the main parser's semantic-scope proof paths from `sv_parser_family_status_gate`, but it still dropped those validated paths from its own `summary.txt` / `summary.json`, so the contract layer regressed back to aggregate-only provenance.
 - Tightened that SV status-contract seam:
   - `summary.txt` now preserves:
     - `systemverilog_semantic_scope_contract_state_dir`
     - `systemverilog_semantic_scope_contract_summary_txt`
     - `systemverilog_semantic_scope_contract_summary_json`
   - `summary.json` now preserves the same three fields under the `systemverilog` family's `proof_surfaces`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` now locks both the family-status and family-status-contract `semantic_scope_contract_summary_json` fields as part of the shipped SV family-layer provenance surface
-- The next proof-chain follow-through after that is the aggregate layer. Once `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_parser_family_status_contract_gate.sh` preserves the semantic-scope proof it validates, the higher shipped SV readers should not regress back to aggregate-only contract provenance.
+  - `rust/scripts/ci_workflow_local_gate.sh` now locks both the family-status and family-status-contract `semantic_scope_contract_summary_json` fields as part of the shipped SV family-layer provenance surface
+- The next proof-chain follow-through after that is the aggregate layer. Once `rust/scripts/sv_parser_family_status_contract_gate.sh` preserves the semantic-scope proof it validates, the higher shipped SV readers should not regress back to aggregate-only contract provenance.
 - Tightened that aggregate seam:
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh` now re-emits the main-SV contract-side semantic-scope paths in both `summary.txt` and `summary.json`
+  - `rust/scripts/sota_exit_gate.sh` now re-emits the main-SV contract-side semantic-scope paths in both `summary.txt` and `summary.json`
   - the SOTA JSON now carries those fields both:
     - as top-level proof-surface mirrors
     - and inside `family_status_contract.systemverilog.proof_surfaces`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/sv_combined_telemetry_contract_gate.sh` now consumes those contract-side semantic-scope paths from SOTA, parity-checks them against the local status-contract sidecar, and re-emits them in its own `family_status_contract.systemverilog.proof_surfaces`
-  - `/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh` now locks this exact seam on both the SOTA producer side and the SV combined-telemetry consumer/output side
+  - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now consumes those contract-side semantic-scope paths from SOTA, parity-checks them against the local status-contract sidecar, and re-emits them in its own `family_status_contract.systemverilog.proof_surfaces`
+  - `rust/scripts/ci_workflow_local_gate.sh` now locks this exact seam on both the SOTA producer side and the SV combined-telemetry consumer/output side
 - 2026-03-26: Annotation-doc alignment audit:
   - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` had real implementation drift in both bootstrap sections.
   - Fixed stale return-parser claims that still described the older pre-`trim_start()` arrow handling and permissive trailing-text/comma quirks.

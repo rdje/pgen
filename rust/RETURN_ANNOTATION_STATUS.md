@@ -53,16 +53,16 @@ json_obj[r#"value"#] = serde_json::json!(
 3. Test that the generated parser correctly transforms parse results according to return annotations
 
 ## Files Modified
-- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline.rs` - Added Or wrapping preservation in `eliminate_left_recursion`
-- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/high_performance_generator.rs` - Fixed `captured_vars` generation for sequence branches
-- `/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/unified_return_ast.rs` - Fixed `generate_code` method to properly extract runtime values
+- `rust/src/ast_pipeline.rs` - Added Or wrapping preservation in `eliminate_left_recursion`
+- `rust/src/ast_pipeline/high_performance_generator.rs` - Fixed `captured_vars` generation for sequence branches
+- `rust/src/ast_pipeline/unified_return_ast.rs` - Fixed `generate_code` method to properly extract runtime values
 
 ## Remaining Issue (Not Related to Return Annotations)
 There are string escaping issues in the generated debug messages where regex patterns need to be in raw strings. This is a separate issue from return annotations that needs to be addressed in the code generator's debug message generation.
 
 ## Test Command
 ```bash
-cd /Users/richarddje/Documents/github/pgen/rust
+cd rust
 make return_parser
 # Then check the generated file:
 grep -A20 "fn parse_simple_object" ../generated/return_annotation_parser.rs

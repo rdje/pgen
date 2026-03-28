@@ -1,6 +1,6 @@
 # COMMIT.md
 
-Last updated: 2026-03-25
+Last updated: 2026-03-28
 
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
@@ -45,6 +45,9 @@ Run this workflow after each completed task/activity.
     - stage only the files intended for the task,
     - do not revert unrelated generated changes you did not make,
     - keep scratch logs and test-only temporary outputs out of `generated/`.
+- Markdown path policy
+  - Repo-internal paths mentioned in tracked `.md` files must be relative paths, never checkout-specific absolute paths.
+  - This applies to links, prose path references, and command examples when they point into the PGEN repository.
 
 ## Required Commit Workflow (Exact Order)
 1. Ensure task is complete and tested.
@@ -87,6 +90,9 @@ Run this workflow after each completed task/activity.
      - canonical generation flow changes,
      - key project paths or standard commands change,
      - markdown documentation map/ramp-up order changes.
+   - While reviewing/updating markdown docs:
+     - convert any repo-internal absolute checkout path to a relative path before commit,
+     - do not leave checkout-specific absolute repo paths in tracked `.md` files.
 4. Write concise commit message to `git_message_brief.txt`.
 5. Stage only intended tracked files (`git add <files>`).
 6. Commit with:

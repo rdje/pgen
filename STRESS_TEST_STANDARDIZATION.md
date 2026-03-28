@@ -29,13 +29,13 @@ The old terminology was misleading because:
 ## Files Updated
 
 ### Return Annotation Parser
-- ✅ `/Users/richarddje/Documents/github/pgen/rust/src/return_annotation_stress_test.rs`
+- ✅ `rust/src/return_annotation_stress_test.rs`
 
 ### Semantic Annotation Parser  
-- ✅ `/Users/richarddje/Documents/github/pgen/rust/src/semantic_annotation_stress_test.rs`
+- ✅ `rust/src/semantic_annotation_stress_test.rs`
 
 ### Regex Parser
-- ✅ `/Users/richarddje/Documents/github/pgen/rust/src/regex_stress_test.rs`
+- ✅ `rust/src/regex_stress_test.rs`
 
 ## Reporting Format
 
@@ -63,7 +63,7 @@ The old terminology was misleading because:
 All parsers continue to build and run correctly with the new terminology:
 
 ```bash
-cd /Users/richarddje/Documents/github/pgen/rust
+cd rust
 make return_parser          # ✅ Verified working
 make semantic_parser        # ✅ Ready to test
 make regex_parser          # ✅ Ready to test  

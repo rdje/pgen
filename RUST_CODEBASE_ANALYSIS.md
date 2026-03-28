@@ -1193,7 +1193,7 @@ Generated parser env/cfg map:
 - `PGEN_REGEX_PARSER_PATH`
   - drives `has_generated_regex_parser`
   - controls `generated_parsers::regex`, related parser-registry exposure, and regex generated-backend availability inside `embedding_api.rs`
-  - the repo now also carries the default tracked artifact at [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs), so a normal checkout no longer needs an ad hoc env override just to make regex’s generated backend exist
+  - the repo now also carries the default tracked artifact at [generated/regex_parser.rs](generated/regex_parser.rs), so a normal checkout no longer needs an ad hoc env override just to make regex’s generated backend exist
 - `PGEN_SYSTEMVERILOG_PARSER_PATH`
   - drives `has_generated_systemverilog_parser`
   - controls generated SystemVerilog registry, embedding, and parseability paths
