@@ -25585,3 +25585,11 @@ Architectural north star:
   - Aggregate follow-through:
     - `regex_combined_telemetry_contract_gate` exposed a real closed-state edge case: SOTA JSON emits `null` for absent regex blocker fields when the family is fully green, while the source-side sidecars still use `"<none>"`
     - the combined gate now normalizes those SOTA JSON reads with `// "<none>"`, and local CI locks that expectation so aggregate regex parity stays green when the family has no blockers left
+- 2026-03-28: Added an explicit session bootstrap entrypoint.
+  - `README.md` now ends with the literal line `Read SESSION_BOOTSTRAP.md and start from there.`
+  - new top-level file `SESSION_BOOTSTRAP.md` now captures the intended first-step workflow for a new session:
+    - read `README.md` and all referenced Markdown files
+    - thoroughly analyze the Rust codebase
+    - update `RUST_CODEBASE_ANALYSIS.md` if needed
+    - then continue with roadmap objectives
+  - this is intentionally lightweight and direct so future sessions have one unambiguous starting instruction before any other task.

@@ -254,3 +254,4 @@ The list below is the complete set of tracked markdown files and is intended to 
 - `tools/LRM_CONVERSION_WORKFLOW.md`
 - `WARP.md`
 - `zig/zig-0.15.1-arraylist-changes.md`
+Read SESSION_BOOTSTRAP.md and start from there.

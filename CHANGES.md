@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-28 - Add explicit session bootstrap entrypoint
+### ✅ Achievement Summary
+PGEN now has an explicit first-step session bootstrap instruction path: the root README ends with a direct pointer to a dedicated bootstrap file, and that file captures the required session-start reading and Rust-analysis workflow.
+
+### Scope of Changes
+- Added:
+  - [SESSION_BOOTSTRAP.md](/Users/richarddje/Documents/github/pgen/SESSION_BOOTSTRAP.md)
+- Updated:
+  - [README.md](/Users/richarddje/Documents/github/pgen/README.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- [README.md](/Users/richarddje/Documents/github/pgen/README.md) now ends with the literal line:
+  - `Read SESSION_BOOTSTRAP.md and start from there.`
+- [SESSION_BOOTSTRAP.md](/Users/richarddje/Documents/github/pgen/SESSION_BOOTSTRAP.md) now captures the intended session-start sequence:
+  - read `README.md` and all referenced Markdown docs
+  - analyze the Rust codebase thoroughly
+  - refresh `RUST_CODEBASE_ANALYSIS.md` if needed
+  - then continue with roadmap objectives
+
+### Why This Matters
+- Future sessions now have one explicit first instruction instead of relying on remembered chat conventions.
+- The bootstrap path is lightweight, repo-local, and easy to keep current as the project evolves.
+
 ## 2026-03-28 - Close regex family target debt at the stimuli-engine seam
 ### ✅ Achievement Summary
 PGEN's canonical `regex` family is now closed on the current proof stack: parser-backed family stimuli target debt fell from `122` to `0`, the family-status row computes `Done`, and the aggregate-visible regex surfaces now converge on `1554/1554/0` parseability and `355 -> 0` target debt.

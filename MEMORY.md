@@ -7160,3 +7160,10 @@ Use this file to resume work without replaying full chat history.
   - Aggregate edge case:
     - fully-green SOTA JSON uses `null` for absent regex blocker fields, while source-side family/status sidecars still use `"<none>"`
     - `rust/scripts/regex_combined_telemetry_contract_gate.sh` must normalize those SOTA JSON reads with `// "<none>"` or aggregate parity will fail spuriously exactly when regex becomes blocker-free
+- 2026-03-28: Added a dedicated session bootstrap doc.
+  - `README.md` now ends with `Read SESSION_BOOTSTRAP.md and start from there.`
+  - `SESSION_BOOTSTRAP.md` is the intended new-session first step:
+    - read `README.md` and all referenced `.md` files
+    - analyze the Rust codebase thoroughly
+    - update `RUST_CODEBASE_ANALYSIS.md` if necessary
+    - then proceed with roadmap objectives
