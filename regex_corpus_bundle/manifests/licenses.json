@@ -1,0 +1,18 @@
+{
+  "licenses": {
+    "pcre2": {
+      "source": "PCRE2Project/pcre2",
+      "summary": "PCRE2 software and documentation are BSD-style licensed; the project states that data in the testdata directory is not copyrighted and is in the public domain.",
+      "tracked_files": [
+        "third_party/upstream/pcre2/PCRE2-10.46/LICENCE.md"
+      ]
+    },
+    "php": {
+      "source": "php/php-src",
+      "summary": "PHP source is distributed under the PHP License.",
+      "tracked_files": [
+        "third_party/upstream/php-src/php-8.4.19/LICENSE"
+      ]
+    }
+  }
+}

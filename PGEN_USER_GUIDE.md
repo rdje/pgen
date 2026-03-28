@@ -3855,6 +3855,38 @@ Downstream operational recommendation:
   - `regex_ast_dump_schema_version`
 - if something misbehaves, collect the structured outcome, AST dump when relevant, and trace bundle described in `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 
+### Regex External Corpus Hardening
+
+Current role:
+- the checked-in regex family row is still `Done`
+- future external hardening should now use `regex_corpus_bundle/` as the maintained acquisition/inventory starter rather than ad hoc corpus hunting
+- this lane does not reopen the closed regex family row unless normalized/oracle-backed evidence is intentionally promoted into the tracked regex closure contract
+
+Corpus doctrine:
+- canonical syntax source:
+  - PCRE2 upstream `testdata/testinput*` and related files
+- secondary PCRE2-relevant source:
+  - PHP `ext/pcre/tests`
+- quarantine only:
+  - non-PCRE2 engines or random regex collections
+
+Operational entrypoints:
+- preflight bundle contract:
+  - `make -C rust regex_corpus_bundle_contract_gate`
+- bundle overview:
+  - `regex_corpus_bundle/README.md`
+- detailed acquisition/normalization plan:
+  - `regex_corpus_bundle/docs/regex_corpus_plan.md`
+- fetch pinned upstream inventories:
+  - `python3 regex_corpus_bundle/scripts/fetch_regex_corpora.py --all`
+
+Important interpretation:
+- PCRE2 upstream is raw syntax truth for this lane
+- PHP corpus is useful because it is PCRE2-backed, but it must be wrapper-normalized before it counts as raw parser truth
+- future normalizer work should stay split by source family:
+  - `normalize_pcre2_testdata.py`
+  - `normalize_php_pcre_tests.py`
+
 ## 12) File and Artifact Map
 
 Sources:

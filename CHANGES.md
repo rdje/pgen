@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-29 - Wire regex corpus bundle into maintained workflow
+### ✅ Achievement Summary
+PGEN now treats `regex_corpus_bundle/` as a maintained regex hardening surface instead of a loose side directory: the roadmap/docs now point at it explicitly, the bundle files are tracked, and a dedicated contract gate validates its PCRE2-first acquisition shape without reopening the already closed regex family row.
+
+### Scope of Changes
+- Added and tracked the bundle files under [regex_corpus_bundle/README.md](regex_corpus_bundle/README.md), [regex_corpus_bundle/docs/regex_corpus_plan.md](regex_corpus_bundle/docs/regex_corpus_plan.md), [regex_corpus_bundle/manifests/upstreams.lock.json](regex_corpus_bundle/manifests/upstreams.lock.json), [regex_corpus_bundle/manifests/licenses.json](regex_corpus_bundle/manifests/licenses.json), [regex_corpus_bundle/schemas/regex_case.schema.json](regex_corpus_bundle/schemas/regex_case.schema.json), [regex_corpus_bundle/scripts/fetch_regex_corpora.py](regex_corpus_bundle/scripts/fetch_regex_corpora.py), and the bundle README stubs under `corpus/` / `oracle/`.
+- Added [rust/scripts/regex_corpus_bundle_contract_gate.sh](rust/scripts/regex_corpus_bundle_contract_gate.sh) and wired it through [rust/Makefile](rust/Makefile):
+  - validates the bundle lockfile/schema/license/fetch-plan shape
+  - checks the pinned upstream doctrine:
+    - PCRE2 canonical
+    - PHP secondary
+  - reports whether upstream snapshots and inventory artifacts are present yet
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md), and [README.md](README.md):
+  - `regex_corpus_bundle/` is now the canonical PCRE2-first acquisition/inventory starter for future regex hardening
+  - this lane does not reopen `regex: Done` unless normalized/oracle-backed evidence is intentionally promoted into tracked regex proof surfaces
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now audits the regex corpus bundle surface alongside the other maintained regex support surfaces
+
+### Validation
+- `bash -n rust/scripts/regex_corpus_bundle_contract_gate.sh`
+- `make -C rust regex_corpus_bundle_contract_gate`
+  - current summary:
+    - `pcre2_ref=PCRE2-10.46`
+    - `php_ref=php-8.4.19`
+    - `pcre2_snapshot_present=false`
+    - `php_snapshot_present=false`
+    - `pcre2_inventory_json_present=false`
+    - `php_inventory_json_present=false`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
+### Why This Matters
+- PGEN now has a maintained path toward broader regex external hardening without conflating that work with the already closed regex family-status contract.
+- The corpus bundle can now evolve under the same tracked, machine-checked discipline as other regex support surfaces.
+
 ## 2026-03-28 - Add regex embedded code-block structural contract gate
 ### ✅ Achievement Summary
 PGEN's regex downstream hardening now has an explicit parser-layer proof seam for embedded code blocks: the published contract is tightened to the structural forms the generated parser can really preserve today, backed by a compact synthetic corpus and a dedicated gate instead of waiting on a large external Lua/JS dataset.

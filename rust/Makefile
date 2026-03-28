@@ -311,6 +311,7 @@ help:
 	@echo "  nexsim_parser_embedding_contract_gate - Validate Nexsim parser-profile embedding contract (SV/VHDL profiles + diagnostics)"
 	@echo "  regex_parser_integration_contract_gate - Validate regex parser integration contract (consumer-facing convenience API + diagnostics)"
 	@echo "  regex_embedded_code_block_contract_gate - Validate regex embedded code-block structural contract over the checked-in synthetic corpus"
+	@echo "  regex_corpus_bundle_contract_gate - Validate the tracked PCRE2-first regex corpus acquisition bundle contract"
 	@echo "  performance_gate - Run benchmark thresholds for bootstrap vs generated parsers"
 	@echo "  differential_report - Compare generated vs bootstrap parser behavior and emit JSON reports"
 	@echo "  differential_refresh_baseline - Refresh tracked differential mismatch baselines"
@@ -1099,6 +1100,12 @@ regex_embedded_code_block_contract_gate:
 	@echo "🧪 Running regex embedded code-block contract gate..."
 	cd $(RUST_DIR) && ./scripts/regex_embedded_code_block_contract_gate.sh
 	@echo "✅ Regex embedded code-block contract gate passed."
+
+.PHONY: regex_corpus_bundle_contract_gate
+regex_corpus_bundle_contract_gate:
+	@echo "🧪 Running regex corpus bundle contract gate..."
+	cd $(RUST_DIR) && ./scripts/regex_corpus_bundle_contract_gate.sh
+	@echo "✅ Regex corpus bundle contract gate passed."
 
 # Convenience aliases for *-with-log targets
 .PHONY: return-parser-with-log

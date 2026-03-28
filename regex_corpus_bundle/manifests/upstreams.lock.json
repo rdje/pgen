@@ -1,0 +1,56 @@
+{
+  "lock_version": 1,
+  "created_for": "PCRE2-flavor regex corpus acquisition",
+  "notes": [
+    "This lockfile pins source-level upstreams for repeatable corpus acquisition.",
+    "Tag pins are used in v1. Add sha256 digests and signature verification when you operationalize this in CI."
+  ],
+  "upstreams": [
+    {
+      "name": "pcre2",
+      "tier": "canonical",
+      "repo": "PCRE2Project/pcre2",
+      "ref": "PCRE2-10.46",
+      "archive_url": "https://codeload.github.com/PCRE2Project/pcre2/tar.gz/refs/tags/PCRE2-10.46",
+      "archive_type": "tar.gz",
+      "extract_root": "pcre2-PCRE2-10.46",
+      "destination": "third_party/upstream/pcre2/PCRE2-10.46",
+      "extract_subpaths": [
+        "README",
+        "LICENCE.md",
+        "testdata",
+        "doc/html/pcre2.html",
+        "doc/html/pcre2test.html",
+        "doc/html/pcre2syntax.html",
+        "doc/html/pcre2pattern.html"
+      ],
+      "inventory": {
+        "kind": "pcre2-testdata",
+        "output_json": "corpus/pcre2/canonical/pcre2_inventory.json",
+        "output_jsonl": "corpus/pcre2/canonical/pcre2_testfiles.jsonl"
+      },
+      "license_key": "pcre2"
+    },
+    {
+      "name": "php-src",
+      "tier": "secondary",
+      "repo": "php/php-src",
+      "ref": "php-8.4.19",
+      "archive_url": "https://codeload.github.com/php/php-src/tar.gz/refs/tags/php-8.4.19",
+      "archive_type": "tar.gz",
+      "extract_root": "php-src-php-8.4.19",
+      "destination": "third_party/upstream/php-src/php-8.4.19",
+      "extract_subpaths": [
+        "README.md",
+        "LICENSE",
+        "ext/pcre/tests"
+      ],
+      "inventory": {
+        "kind": "php-phpt",
+        "output_json": "corpus/pcre2/php/php_inventory.json",
+        "output_jsonl": "corpus/pcre2/php/php_phpt_inventory.jsonl"
+      },
+      "license_key": "php"
+    }
+  ]
+}

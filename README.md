@@ -83,6 +83,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `rust/scripts/`: executable quality gates and policy runners
 - `rust/test_data/grammar_quality/`: gate contracts, corpora, deterministic case manifests
 - `rust/docs/`: Rust-specific architecture/API/test docs
+- `regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening; keeps immutable upstream snapshots separate from normalized corpus/oracle outputs
 - `tools/`: conversion/extraction and support workflows
 - `perl/`: legacy/frontend EBNF-to-JSON path (`ebnf_to_json.pl`) still used in hybrid flow
 - `docs/systemverilog/2017`, `docs/systemverilog/2023`: SV LRM conversion workspaces
@@ -158,6 +159,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Downstream parser integration contracts:
   - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+- Regex corpus acquisition and hardening:
+  - `regex_corpus_bundle/README.md`, `regex_corpus_bundle/docs/regex_corpus_plan.md`, `regex_corpus_bundle/corpus/pcre2/invalid/README.md`, `regex_corpus_bundle/corpus/pcre2/quarantine/README.md`, `regex_corpus_bundle/oracle/pcre2/README.md`
 - Operational continuity:
   - `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `COMMIT.md`
 - User/developer onboarding:
@@ -173,6 +176,11 @@ The list below is the complete set of tracked markdown files and is intended to 
 - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
 - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 - `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+- `regex_corpus_bundle/README.md`
+- `regex_corpus_bundle/docs/regex_corpus_plan.md`
+- `regex_corpus_bundle/corpus/pcre2/invalid/README.md`
+- `regex_corpus_bundle/corpus/pcre2/quarantine/README.md`
+- `regex_corpus_bundle/oracle/pcre2/README.md`
 - `docs/api_interfaces.md`
 - `docs/AST_BASED_GENERATOR.md`
 - `docs/AST_GENERATOR_ARCHITECTURE.md`

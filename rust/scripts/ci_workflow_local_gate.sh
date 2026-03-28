@@ -1616,6 +1616,88 @@ audit_family_contract_proof_surface() {
     'strict_promotion_report_json: $strict_promotion_report_json'
 }
 
+audit_regex_corpus_bundle_surface() {
+  note "auditing regex corpus bundle surface"
+
+  assert_tracked "regex_corpus_bundle/README.md"
+  assert_tracked "regex_corpus_bundle/docs/regex_corpus_plan.md"
+  assert_tracked "regex_corpus_bundle/manifests/upstreams.lock.json"
+  assert_tracked "regex_corpus_bundle/manifests/licenses.json"
+  assert_tracked "regex_corpus_bundle/schemas/regex_case.schema.json"
+  assert_tracked "regex_corpus_bundle/scripts/fetch_regex_corpora.py"
+  assert_tracked "regex_corpus_bundle/corpus/pcre2/invalid/README.md"
+  assert_tracked "regex_corpus_bundle/corpus/pcre2/quarantine/README.md"
+  assert_tracked "regex_corpus_bundle/oracle/pcre2/README.md"
+  assert_tracked "rust/scripts/regex_corpus_bundle_contract_gate.sh"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'regex_corpus_bundle_contract_gate - Validate the tracked PCRE2-first regex corpus acquisition bundle contract'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/regex_corpus_bundle_contract_gate.sh'
+
+  assert_file_contains \
+    "rust/scripts/regex_corpus_bundle_contract_gate.sh" \
+    'BUNDLE_DIR="$ROOT_DIR/regex_corpus_bundle"'
+  assert_file_contains \
+    "rust/scripts/regex_corpus_bundle_contract_gate.sh" \
+    'LOCKFILE="$BUNDLE_DIR/manifests/upstreams.lock.json"'
+  assert_file_contains \
+    "rust/scripts/regex_corpus_bundle_contract_gate.sh" \
+    'SCHEMA_FILE="$BUNDLE_DIR/schemas/regex_case.schema.json"'
+  assert_file_contains \
+    "rust/scripts/regex_corpus_bundle_contract_gate.sh" \
+    'run_logged "fetch_regex_corpora_help" python3 "$FETCH_SCRIPT" --help'
+  assert_file_contains \
+    "rust/scripts/regex_corpus_bundle_contract_gate.sh" \
+    'status_effect: does_not_reopen_closed_regex_family_row'
+  assert_file_contains \
+    "rust/scripts/regex_corpus_bundle_contract_gate.sh" \
+    'maintained PCRE2-first acquisition/inventory starter for future regex hardening'
+
+  assert_file_contains \
+    "regex_corpus_bundle/README.md" \
+    'Repo-ready starter bundle for a **PCRE2-first** regex corpus pipeline.'
+  assert_file_contains \
+    "regex_corpus_bundle/README.md" \
+    'make -C rust regex_corpus_bundle_contract_gate'
+  assert_file_contains \
+    "regex_corpus_bundle/docs/regex_corpus_plan.md" \
+    '1. **Canonical syntax and behavior source:** PCRE2 upstream `testdata/testinput*` and related files.'
+  assert_file_contains \
+    "regex_corpus_bundle/docs/regex_corpus_plan.md" \
+    '2. **Secondary PCRE2-relevant source:** PHP `ext/pcre/tests`, because PHP uses PCRE2 but wraps patterns in PHP-specific delimiters and modifiers.'
+  assert_file_contains \
+    "regex_corpus_bundle/docs/regex_corpus_plan.md" \
+    '3. **Non-goal for phase 1:** treating non-PCRE2 engines as syntax ground truth.'
+  assert_file_contains \
+    "regex_corpus_bundle/docs/regex_corpus_plan.md" \
+    'make -C rust regex_corpus_bundle_contract_gate'
+
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '### Regex External Corpus Hardening'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`regex_corpus_bundle/`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'make -C rust regex_corpus_bundle_contract_gate'
+  assert_file_contains \
+    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    '`regex_corpus_bundle/` is the canonical PCRE2-first starter for widening regex evidence'
+  assert_file_contains \
+    "LIVE_ACHIEVEMENT_STATUS.md" \
+    'future regex hardening now also has a maintained external-corpus acquisition lane under `regex_corpus_bundle/`'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '`regex_corpus_bundle/`'
+  assert_file_contains \
+    "README.md" \
+    '`regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening'
+}
+
 audit_regex_formal_exhaustive_closure_surface() {
   note "auditing regex formal exhaustive-closure surface"
 
@@ -1860,6 +1942,7 @@ main() {
   audit_family_layer_provenance_surface
   audit_family_summary_identity_surface
   audit_family_contract_proof_surface
+  audit_regex_corpus_bundle_surface
   audit_regex_formal_exhaustive_closure_surface
   audit_vhdl_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface

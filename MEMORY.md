@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: regex-embedded-code-block-structural-contract)
+Last updated: 2026-03-29 (+0100, task: regex-corpus-bundle-workflow-adoption)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- `regex_corpus_bundle/` is now a tracked PGEN surface rather than a loose local side directory.
+- Added and adopted:
+  - [regex_corpus_bundle/README.md](regex_corpus_bundle/README.md)
+  - [regex_corpus_bundle/docs/regex_corpus_plan.md](regex_corpus_bundle/docs/regex_corpus_plan.md)
+  - [regex_corpus_bundle/manifests/upstreams.lock.json](regex_corpus_bundle/manifests/upstreams.lock.json)
+  - [regex_corpus_bundle/manifests/licenses.json](regex_corpus_bundle/manifests/licenses.json)
+  - [regex_corpus_bundle/schemas/regex_case.schema.json](regex_corpus_bundle/schemas/regex_case.schema.json)
+  - [regex_corpus_bundle/scripts/fetch_regex_corpora.py](regex_corpus_bundle/scripts/fetch_regex_corpora.py)
+  - bundle README stubs under `corpus/pcre2/*` and `oracle/pcre2/`
+- Added [rust/scripts/regex_corpus_bundle_contract_gate.sh](rust/scripts/regex_corpus_bundle_contract_gate.sh) and wired it through [rust/Makefile](rust/Makefile).
+  - role:
+    - validates the PCRE2-first bundle lock/schema/license/fetch-plan contract
+    - reports whether pinned upstream snapshots and inventories are already present
+    - does **not** treat missing fetched state as a hard failure
+- Current validated bundle contract summary:
+  - `pcre2_ref=PCRE2-10.46`
+  - `php_ref=php-8.4.19`
+  - `pcre2_snapshot_present=false`
+  - `php_snapshot_present=false`
+  - `pcre2_inventory_json_present=false`
+  - `php_inventory_json_present=false`
+- [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md), and [README.md](README.md) now all reflect the same role:
+  - `regex_corpus_bundle/` is the maintained PCRE2-first acquisition/inventory starter for future regex hardening
+  - PCRE2 upstream is canonical syntax truth
+  - PHP `ext/pcre/tests` is secondary wrapper-normalized input
+  - non-PCRE2 engines stay quarantine-only
+  - this lane does not reopen the closed `regex` family row unless normalized/oracle-backed evidence is intentionally promoted into tracked proof surfaces
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now audits the regex corpus bundle surface under the same export-based branch-protection local-CI pass as the other regex proof-adjacent surfaces.
+- Validation completed for this slice:
+  - `bash -n rust/scripts/regex_corpus_bundle_contract_gate.sh`
+  - `make -C rust regex_corpus_bundle_contract_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
 - Regex downstream embedded-code-block hardening now has a dedicated parser-layer proof seam and no longer depends on finding a large external Lua/JS dataset first.
 - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) now all record the same posture:
   - regex family closure remains `Done`

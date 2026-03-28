@@ -1,0 +1,250 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/regex_case.schema.json",
+  "title": "Normalized PCRE2 regex test case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "flavor",
+    "tier",
+    "pattern",
+    "source",
+    "expected",
+    "tags"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "flavor": {
+      "type": "string",
+      "const": "pcre2"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "canonical",
+        "secondary",
+        "derived-invalid",
+        "quarantine"
+      ]
+    },
+    "pattern": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repo",
+        "ref",
+        "file"
+      ],
+      "properties": {
+        "repo": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "case_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "line_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "parent_case_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "wrapper": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "php-preg",
+            "pcre2test",
+            "none"
+          ]
+        },
+        "delimiter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 8
+        },
+        "modifiers": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "callsite": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "compile": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "newline": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bsr": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "jit": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parse"
+      ],
+      "properties": {
+        "parse": {
+          "type": "string",
+          "enum": [
+            "ok",
+            "error",
+            "unknown"
+          ]
+        },
+        "error_layer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "php-wrapper",
+            "pcre2-compile",
+            "runtime",
+            null
+          ]
+        },
+        "error_code": {
+          "type": [
+            "string",
+            "integer",
+            "null"
+          ]
+        },
+        "error_message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "expect_match": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "expect_spans": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "expect_captures": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {}
+          }
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
