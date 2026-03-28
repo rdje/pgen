@@ -194,6 +194,17 @@ audit_embedding_api_surface() {
   assert_tracked "generated/regex_parser.rs"
   assert_tracked "rust/src/embedding_api.rs"
   assert_tracked "rust/docs/EMBEDDING_API_CONTRACT.md"
+  assert_tracked "PGEN_PARSER_INTEGRATION_CONTRACTS.md"
+  assert_tracked "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md"
+  assert_tracked "PGEN_RELEASED_PARSER_BUG_LEDGER.md"
+  assert_tracked "PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "rust/scripts/regex_parser_integration_contract_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json"
 
   assert_file_contains \
     "rust/src/embedding_api.rs" \
@@ -219,6 +230,28 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'fn regex_generated_backend_enabled() -> bool {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_metadata_is_stable() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_accepts_declared_success_samples() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_rejects_declared_failure_samples() {'
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'regex_parser_integration_contract_gate - Validate regex parser integration contract (consumer-facing convenience API + diagnostics)'
+  assert_file_contains \
+    "rust/Makefile" \
+    '@$(MAKE) -C $(RUST_DIR) regex_parser_integration_contract_gate'
+  assert_file_contains \
+    "rust/scripts/regex_parser_integration_contract_gate.sh" \
+    'cargo test --lib regex_parser_integration_contract_'
+  assert_file_contains \
+    "rust/scripts/regex_parser_integration_contract_gate.sh" \
+    'cargo test --features generated_parsers --lib regex_parser_integration_contract_'
 
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
@@ -229,6 +262,9 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
     '`parse_regex_default_ast_dump(...)`'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`make -C rust regex_parser_integration_contract_gate`'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
     '`GrammarFamily`: `systemverilog | vhdl | regex`'
@@ -251,6 +287,67 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     'the public embedding API now exposes regex through `regex_default`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`'
+
+  assert_file_contains \
+    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    'Every current and future parser family that PGEN publishes for downstream consumption must have a tracked integration-contract document.'
+  assert_file_contains \
+    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers. |'
+  assert_file_contains \
+    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
+  assert_file_contains \
+    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    'Accepted reports should then be logged in:'
+  assert_file_contains \
+    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    'If one or more downstream consumer repos also track the same issue locally'
+  assert_file_contains \
+    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    'The parser family/profile is the primary tracking axis for released-parser support.'
+  assert_file_contains \
+    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    'Every downstream bug report against a released parser family must receive a stable report ID.'
+  assert_file_contains \
+    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    '`Downstream Tracking Refs`'
+  assert_file_contains \
+    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    'The primary index for this ledger is `Parser Family/Profile`.'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'This is the document downstream projects such as RGX should read first when deciding how to embed the PGEN regex parser.'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
+  assert_file_contains \
+    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    'local git-tracked records in PGEN plus zero-or-more downstream consumer repos are sufficient'
+  assert_file_contains \
+    "README.md" \
+    '`PGEN_PARSER_INTEGRATION_CONTRACTS.md`'
+  assert_file_contains \
+    "README.md" \
+    '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
+  assert_file_contains \
+    "README.md" \
+    '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
+  assert_file_contains \
+    "COMMIT.md" \
+    '`PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `PGEN_*_PARSER_INTEGRATION_CONTRACT.md`'
+  assert_file_contains \
+    "COMMIT.md" \
+    '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and `PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
 
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
@@ -258,6 +355,9 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
     'It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    'dedicated downstream integration contract doc plus a regex-specific host contract gate'
 }
 
 audit_annotation_aggregate_contract_surface() {

@@ -61,6 +61,21 @@ Operational rule:
     - user-facing workflow framing
     - understanding which operational surfaces are meant to be consumed externally
     - operator-facing map of aggregate annotation / semantic / return local gates
+- `PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `PGEN_*_PARSER_INTEGRATION_CONTRACT.md`
+  - Use for:
+    - downstream parser handoff
+    - family-specific integration promises and caveats
+    - build/availability checks a host project should perform before relying on a parser family
+- `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+  - Use for:
+    - downstream parser bug-report bundles
+    - exact repro artifacts PGEN expects back from host projects
+    - trace / AST-dump / structured-outcome capture procedure for integration bugs
+- `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  - Use for:
+    - release-support continuity
+    - tracking accepted downstream parser bugs through fix and release
+    - linking real integration bugs back to proof and regression artifacts
 - `LIVE_ACHIEVEMENT_STATUS.md`
   - Use for:
     - current closure/status truth
@@ -1260,6 +1275,7 @@ Operational rule:
   - Recent real-world regex follow-ups showed why this family is so frontend-coupled: fixing quoted-terminal escape decoding in `ebnf_frontend.rs`, widening `literal_char` just enough for `:` and `/`, deliberately allowing an empty top-level regex, and then disabling implicit layout skipping in generated regex parsers were enough to turn the checked-in `url_pattern`, `empty_regex`, and leading-whitespace quantifier false negatives green without changing the higher-level proof architecture
   - The final regex blocker turned out to be in the stimuli engine rather than the parser itself: alternate-entry helper probes inside `generate_until_targets_with_filter` now retain helper-rule coverage progress even when those helper outputs fail the primary-entry parseability filter, so regex target driving no longer spins by rolling back legitimate helper coverage
   - It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself
+  - It now also has a dedicated downstream integration contract doc plus a regex-specific host contract gate layered on top of the generic embedding API gate, so downstream consumers no longer have to reconstruct the regex host promise from the generic embedding contract alone
 - `ebnf`
   - Not just another generated runtime parser family
   - It sits at the ingestion/frontend edge, uses build-script-resolved include paths, and has its own dual-run diagnostic shape rather than the standard `has_generated_*` family contract

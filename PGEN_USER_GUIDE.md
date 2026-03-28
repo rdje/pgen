@@ -3585,12 +3585,16 @@ Stable module:
 
 Contract docs:
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+- `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+- `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 
 Local check:
 ```bash
 make -C rust SHELL=/bin/bash embedding_api_gate
 make -C rust SHELL=/bin/bash nexsim_parser_embedding_contract_gate
+make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate
 ```
 
 Design goal:
@@ -3648,6 +3652,10 @@ Host-oriented convenience AST dump entry points:
 
 Operator note:
 - the public embedding API now exposes regex through `regex_default`, even though `nexsim_parser_embedding_contract_gate` remains SV/VHDL-specific.
+- downstream projects should start from the root parser-family integration docs rather than only the generic embedding contract:
+  - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+  - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+  - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 
 Deterministic integration behavior:
 - grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.

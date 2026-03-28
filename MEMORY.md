@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: vhdl-formal-closure-proof-stack)
+Last updated: 2026-03-28 (+0100, task: parser-integration-contracts-and-release-bug-protocol)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,57 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- PGEN now has a first-class downstream parser handoff and release-support layer instead of only generic embedding docs.
+- Added:
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](/Users/richarddje/Documents/github/pgen/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](/Users/richarddje/Documents/github/pgen/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](/Users/richarddje/Documents/github/pgen/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [rust/scripts/regex_parser_integration_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_integration_contract_gate.sh)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json)
+- Regex now has a dedicated consumer-facing host proof slice:
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - embedded contract tests now cover:
+    - metadata stability
+    - alias/named-surface handling
+    - limit enforcement
+    - backend-unavailable behavior
+    - generated success/failure sample corpus
+    - AST-dump success on a contract sample
+- The downstream support loop is now explicit:
+  - bug reports should arrive via [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](/Users/richarddje/Documents/github/pgen/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - accepted released-parser bugs should be tracked through [PGEN_RELEASED_PARSER_BUG_LEDGER.md](/Users/richarddje/Documents/github/pgen/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - GitHub is optional; local git-tracked tracking is now explicitly supported with:
+    - PGEN as the canonical parser-side bug ledger
+    - parser-family/profile as the primary support-tracking axis
+    - and zero-or-more downstream consumer repos as optional local tracking refs
+- Updated docs/workflow surfaces:
+  - [README.md](/Users/richarddje/Documents/github/pgen/README.md)
+  - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+- Validation already completed:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - source-target stage passed
+    - generated-target stage still reports pre-existing non-strict generated-parser clippy debt
+- Live-status snapshot is unchanged by this slice:
+  - `systemverilog`: `Mostly Done`
+  - `systemverilog_preprocessor`: `Mostly Done`
+  - `vhdl`: `In Progress`
+  - `regex`: `Done`
+  - `return_annotation`: `Done`
+  - `rtl_frontend`: `In Progress`
 - The VHDL proof stack now has a real formal exhaustive-closure sidecar instead of the old hardcoded `formal_exhaustive_closure_surface=missing` blocker.
 - Added:
   - [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_formal_exhaustive_closure_gate.sh)

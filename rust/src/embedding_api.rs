@@ -1488,6 +1488,29 @@ fn regex_generated_backend_enabled() -> bool {
 mod tests {
     use super::*;
 
+    #[derive(Debug, Deserialize)]
+    struct RegexParserIntegrationContractCase {
+        name: String,
+        input: String,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct RegexParserIntegrationContractManifest {
+        version: u32,
+        grammar: String,
+        profile: String,
+        required_generated_backend_flag: String,
+        success_samples: Vec<RegexParserIntegrationContractCase>,
+        failure_samples: Vec<RegexParserIntegrationContractCase>,
+    }
+
+    fn regex_parser_integration_contract_manifest() -> RegexParserIntegrationContractManifest {
+        serde_json::from_str(include_str!(
+            "../test_data/grammar_quality/regex_parser_integration_contract_v0.json"
+        ))
+        .expect("valid regex parser integration contract manifest")
+    }
+
     #[test]
     fn embedding_api_contract_versions_are_stable() {
         let contract = embedding_api_contract();
@@ -1697,6 +1720,49 @@ mod tests {
                 .supported_profiles
                 .contains(&GrammarProfile::RegexDefault)
         );
+    }
+
+    #[test]
+    fn regex_parser_integration_contract_metadata_is_stable() {
+        let manifest = regex_parser_integration_contract_manifest();
+        let contract = parser_embedding_api_contract();
+
+        assert_eq!(manifest.version, 0);
+        assert_eq!(manifest.grammar, "regex");
+        assert_eq!(manifest.profile, "regex_default");
+        assert_eq!(
+            manifest.required_generated_backend_flag,
+            "supports_regex_generated_backend"
+        );
+        assert_eq!(manifest.success_samples.len(), 4);
+        assert_eq!(manifest.failure_samples.len(), 2);
+        assert_eq!(manifest.success_samples[0].name, "empty_regex");
+        assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
+        assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
+        assert!(
+            contract
+                .supported_profiles
+                .contains(&GrammarProfile::RegexDefault)
+        );
+    }
+
+    #[test]
+    fn regex_parser_integration_contract_named_surface_accepts_regex_aliases() {
+        let outcome = parse_grammar_profile_named("regex", "regex", "a|b");
+        let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
+
+        assert_eq!(outcome.grammar, "regex");
+        assert_eq!(outcome.profile, "regex");
+        assert_ne!(maybe_code, Some("E_INVALID_ARGUMENT"));
+        assert_ne!(maybe_code, Some("E_UNSUPPORTED_PROFILE"));
+    }
+
+    #[test]
+    fn regex_parser_integration_contract_enforces_limits_before_backend_availability() {
+        let result =
+            parse_regex_default_with_limits_result("a|b", &ParseLimits { max_input_bytes: 1 });
+        let diagnostic = result.expect_err("expected input limit failure");
+        assert_eq!(diagnostic.code, "E_INPUT_TOO_LARGE");
     }
 
     #[test]
@@ -1919,6 +1985,15 @@ mod tests {
         assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
     }
 
+    #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
+    #[test]
+    fn regex_parser_integration_contract_reports_backend_unavailable_without_generated_backend() {
+        let manifest = regex_parser_integration_contract_manifest();
+        let diagnostic = parse_regex_default_result(&manifest.success_samples[0].input)
+            .expect_err("expected backend-unavailable diagnostic");
+        assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+    }
+
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_uses_systemverilog_generated_backend_when_available() {
@@ -1950,6 +2025,37 @@ mod tests {
             parse_grammar_profile(GrammarFamily::Regex, GrammarProfile::RegexDefault, "a|b");
         let maybe_code = outcome.diagnostic.as_ref().map(|diag| diag.code.as_str());
         assert_ne!(maybe_code, Some("E_BACKEND_UNAVAILABLE"));
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_declared_success_samples() {
+        let manifest = regex_parser_integration_contract_manifest();
+
+        for sample in &manifest.success_samples {
+            if let Err(diagnostic) = parse_regex_default_result(&sample.input) {
+                panic!(
+                    "expected regex success sample '{}' to parse, got {}: {}",
+                    sample.name, diagnostic.code, diagnostic.message
+                );
+            }
+        }
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_rejects_declared_failure_samples() {
+        let manifest = regex_parser_integration_contract_manifest();
+
+        for sample in &manifest.failure_samples {
+            let diagnostic = parse_regex_default_result(&sample.input)
+                .expect_err("expected regex failure sample to fail");
+            assert_eq!(
+                diagnostic.code, "E_PARSE_FAILURE",
+                "expected failure sample '{}' to produce parse failure",
+                sample.name
+            );
+        }
     }
 
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
@@ -2003,6 +2109,22 @@ mod tests {
             .as_ref()
             .expect("expected backend-unavailable diagnostic");
         assert_eq!(diagnostic.code, "E_BACKEND_UNAVAILABLE");
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_ast_dump_succeeds_for_contract_sample() {
+        let manifest = regex_parser_integration_contract_manifest();
+        let outcome = parse_regex_default_ast_dump(
+            &manifest.success_samples[1].input,
+            &AstDumpOptions::default(),
+        );
+
+        assert_eq!(outcome.status, ParseStatus::Success);
+        let ast_dump = outcome.ast_dump.expect("ast dump payload");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&ast_dump.dump_json).expect("dump json");
+        assert!(parsed.is_object());
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]

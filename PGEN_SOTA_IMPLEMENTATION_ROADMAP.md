@@ -2422,6 +2422,7 @@ Toolbox baseline to leverage end-to-end:
     - `parse_session_model=stateless_per_call`,
     - `zero_copy_input_boundary=true`,
     - stable parser diagnostic code set publication.
+  - Progress (2026-03-28): downstream parser-family handoff docs now live at the repo root (`PGEN_PARSER_INTEGRATION_CONTRACTS.md` plus `PGEN_*_PARSER_INTEGRATION_CONTRACT.md`), and regex now also has a dedicated consumer-facing gate `make -C rust regex_parser_integration_contract_gate` layered under `embedding_api_gate`; RGX-facing consumers should start from `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`.
 - [x] Promote SV gates into SOTA aggregate policy:
   - informational first,
   - required strict once syntax+semantic closure thresholds are green and stable.

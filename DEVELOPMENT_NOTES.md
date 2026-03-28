@@ -1,4 +1,87 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-28 - Add parser integration contracts, issue-reporting protocol, and released-bug ledger
+### Context
+Regex had a real public embedding surface and a real closed-family proof stack, but downstream integration still relied on generic docs plus oral context. That was enough for internal understanding, not enough for painless RGX-style adoption. The next missing layer was not parser behavior; it was the downstream contract and support loop around that behavior:
+- one stable family document a consumer can start from,
+- one executable gate proving that contract stays true,
+- one precise issue-reporting protocol,
+- and one live ledger so released-parser bugs do not disappear into chat history.
+
+### Implementation
+- Added a root parser-family contract index:
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](/Users/richarddje/Documents/github/pgen/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - establishes the rule that every published parser family needs a tracked integration-contract document
+  - lists the current family-doc set for:
+    - `systemverilog`
+    - `systemverilog_preprocessor`
+    - `vhdl`
+    - `regex`
+    - `return_annotation`
+    - `semantic_annotation`
+- Added family-specific docs:
+  - [PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](/Users/richarddje/Documents/github/pgen/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+- Added a dedicated regex host-contract gate:
+  - [rust/scripts/regex_parser_integration_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_integration_contract_gate.sh)
+  - wired into [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile) and therefore also into `embedding_api_gate`
+  - exercises a focused new embedding-test prefix in [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs):
+    - `regex_parser_integration_contract_*`
+- Added a checked-in regex integration manifest:
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json)
+  - captures representative success/failure samples for the downstream contract gate
+- Added release-support docs:
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](/Users/richarddje/Documents/github/pgen/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+    - defines the exact bundle a downstream project should return:
+      - parser identity
+      - host identity
+      - exact input file
+      - expected vs actual behavior
+      - structured contract/outcome/AST artifacts
+      - `parseability_probe --trace` bundle when available
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](/Users/richarddje/Documents/github/pgen/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - live ledger for accepted released-parser bugs
+    - defines stable bug states from `Reported` through `Released`
+  - the release-support loop is now explicitly GitHub-optional:
+    - PGEN may keep the canonical parser-side bug ledger locally in git
+    - reports are indexed there per parser family/profile
+    - any number of downstream consumer repos may keep their own tracking refs and adoption notes in their own git histories
+- Updated the maintained doc map and workflow docs:
+  - [README.md](/Users/richarddje/Documents/github/pgen/README.md)
+  - [PGEN_USER_GUIDE.md](/Users/richarddje/Documents/github/pgen/PGEN_USER_GUIDE.md)
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](/Users/richarddje/Documents/github/pgen/rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [COMMIT.md](/Users/richarddje/Documents/github/pgen/COMMIT.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - local CI now locks:
+    - the new regex integration gate
+    - the parser-contract index/family docs
+    - the downstream issue-reporting protocol
+    - the released-bug ledger references
+
+### Validation
+- Shell syntax:
+  - `bash -n rust/scripts/regex_parser_integration_contract_gate.sh`
+  - `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- Formatting:
+  - `git diff --check`
+- Executable proof:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- Rust lint flow:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - source-target stage passed
+  - generated-target stage still reports pre-existing non-strict generated-parser clippy debt; the wrapper completed successfully
+
+### Why This Matters
+- Downstream parser adoption is now less person-dependent.
+- Reported bugs can now be both reproducible and trackable through fix/release instead of vanishing into transient chat context.
+
 ## 2026-03-28 - Add VHDL formal exhaustive-closure gate and refresh the VHDL proof stack
 ### Context
 The VHDL family row was still carrying one fake blocker even after its real quality/status plumbing existed: `vhdl_parser_family_status_gate` had to report `formal_exhaustive_closure_surface=missing` because there was no first-class proof object for that question. That left the VHDL roadmap story weaker than regex and the newer family-sidecar doctrine, and it also obscured the fact that the remaining VHDL debt was already mostly parser behavior rather than missing gate wiring.

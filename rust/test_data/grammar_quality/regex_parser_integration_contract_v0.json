@@ -1,0 +1,34 @@
+{
+  "version": 0,
+  "grammar": "regex",
+  "profile": "regex_default",
+  "required_generated_backend_flag": "supports_regex_generated_backend",
+  "success_samples": [
+    {
+      "name": "empty_regex",
+      "input": ""
+    },
+    {
+      "name": "alternation",
+      "input": "a|b"
+    },
+    {
+      "name": "word_boundary",
+      "input": "\\bword\\b"
+    },
+    {
+      "name": "url_pattern",
+      "input": "https?://[^\\s]+"
+    }
+  ],
+  "failure_samples": [
+    {
+      "name": "unbalanced_group",
+      "input": "("
+    },
+    {
+      "name": "unclosed_char_class",
+      "input": "[a-"
+    }
+  ]
+}

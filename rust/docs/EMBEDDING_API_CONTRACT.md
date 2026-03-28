@@ -3,6 +3,8 @@
 ## Purpose
 Provide a stable, versioned surface for external projects embedding PGEN annotation parsing and selected grammar parsing (for example, HDL frontends and regex tooling) without depending on internal parser/AST implementation details.
 
+Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) layer family-specific integration guidance on top of this general API contract.
+
 ## Stable Module
 - Rust module: `pgen::embedding_api`
 - Contract metadata API:
@@ -138,6 +140,7 @@ Grammar parser API:
 - Local/CI gate command:
   - `make -C rust embedding_api_gate`
   - `make -C rust nexsim_parser_embedding_contract_gate`
+  - `make -C rust regex_parser_integration_contract_gate`
 - Gate runs:
   - bootstrap build tests: `cargo test --lib embedding_api`
   - generated build tests: `cargo test --features generated_parsers --lib embedding_api`
@@ -147,6 +150,7 @@ Grammar parser API:
 - Scope note:
   - `embedding_api_gate` now covers the public regex parser/profile surface too.
   - `nexsim_parser_embedding_contract_gate` remains the stricter SV/VHDL host-profile contract slice.
+  - `regex_parser_integration_contract_gate` is the downstream-facing regex consumer slice layered on top of the generic embedding API contract.
 
 ## Scope Note
 - This contract intentionally returns structured parse outcomes instead of exposing internal AST node types. Internal AST representations may evolve as long as contract behavior, versions, and diagnostic codes remain stable.
