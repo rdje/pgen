@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-03-28T01:13:41.010391+00:00",
+    "generated_at": "2026-03-28T01:43:08.111812+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -267,6 +267,14 @@
       ],
       [
         "rule_reference",
+        "whitespace_literal"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "dot"
       ],
       [
@@ -370,6 +378,16 @@
       [
         "operator",
         "+"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "whitespace_literal"
+      ],
+      [
+        "rule_reference",
+        "whitespace"
       ]
     ],
     [
@@ -875,7 +893,7 @@
       ],
       [
         "quoted_string",
-        " "
+        "!"
       ],
       [
         "operator",
@@ -883,7 +901,7 @@
       ],
       [
         "quoted_string",
-        "!"
+        "\""
       ],
       [
         "operator",
@@ -908,6 +926,14 @@
       [
         "quoted_string",
         "&"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "'"
       ],
       [
         "operator",
@@ -1004,30 +1030,6 @@
       [
         "quoted_string",
         "~"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "\t"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "\n"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "quoted_string",
-        "\r"
       ]
     ],
     [

@@ -25472,3 +25472,36 @@ Architectural north star:
     - valid/invalid `@profiles` payload validation
     - valid runtime-directive payload validation for `open_scope`, `close_scope`, and `predicate`
     - generated-parser `@profiles` extraction/guard emission
+- 2026-03-28: Fixed generated-regex layout handling and remeasured regex parser-backed stimuli debt.
+  - Root cause:
+    - generated regex parsers were still auto-consuming layout before terminals/regex atoms because `AstBasedGenerator` stores a Pascalized grammar stem such as `Regex`, so the original layout guard compared the wrong case and compiled to `if true`.
+  - Source fixes:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+      - regex layout guards now use case-insensitive grammar-name checks
+      - generated `regex` parsers no longer consume layout before terminals, before regex atoms, or before `<EOF>` completeness checks
+    - `grammars/regex.ebnf`
+      - added `whitespace_literal = whitespace` so whitespace can be quantified as a real regex atom
+      - widened `literal_char` to include bare `"` and `'`
+      - removed whitespace characters from the generic `literal_char+` run so quantified whitespace binds as its own atom instead of being swallowed into multi-char literals
+    - `rust/src/parser_registry.rs`
+      - extended the regex parseability adapter regression test with `"`, `" *"`, and `"\t*"`
+  - Focused generated-backend probes now pass for:
+    - `"`
+    - `" *"`
+    - `"\t*"`
+    - `"  *"`
+  - Fresh regex-only parser-backed quality rerun:
+    - command shape:
+      - `PGEN_EBNF_STIMULI_QUALITY_CONTRACT=/tmp/regex_only_stimuli_contract.json bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+    - measured summary:
+      - `parseability_attempts_total=197`
+      - `parseability_accepted_total=197`
+      - `parseability_rejected_total=0`
+      - `parseability_parser_rejections_total=0`
+      - `parseability_acceptance_rate_percent=100.00`
+      - `initial_targets=355`
+      - `resolved_targets=233`
+      - `final_targets=122`
+  - Net result:
+    - the direct regex parser-rejection blocker is cleared on the fresh stimuli surface
+    - the remaining regex blocker is now target debt, and the family-status / aggregate regex sidecars need a fresh rerun to publish that new baseline end to end

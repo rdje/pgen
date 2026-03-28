@@ -7121,3 +7121,27 @@ Use this file to resume work without replaying full chat history.
     - `@profiles` validator acceptance/rejection
     - valid runtime-directive payload validation for scope/predicate directives
     - generated parser rule-profile extraction/guard emission
+- 2026-03-28: Regex parser-family work advanced from parser-rejection debt to pure target-debt on the fresh direct stimuli surface.
+  - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - regex layout guards must use case-insensitive grammar-name checks because the generator stores parser stems like `Regex`, not raw grammar names
+    - generated `regex` parsers should keep layout significant; auto-skipping layout before terminals/regex atoms or before `<EOF>` creates false negatives for real regex literals
+  - `grammars/regex.ebnf`
+    - whitespace now needs its own quantifiable literal atom (`whitespace_literal = whitespace`)
+    - bare quote literals (`"` and `'`) are valid regex literals and should stay accepted
+    - whitespace should not stay inside the generic `literal_char+` bucket, or quantifiers bind incorrectly on leading whitespace samples
+  - Focused generated-backend repros now pass:
+    - `"`
+    - `" *"`
+    - `"\t*"`
+    - `"  *"`
+  - Fresh regex-only `ebnf_stimuli_quality_gate` baseline:
+    - `parseability_attempts_total=197`
+    - `parseability_accepted_total=197`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `initial_targets=355`
+    - `resolved_targets=233`
+    - `final_targets=122`
+  - Important steering note:
+    - the published regex family/status/aggregate sidecars still reflect the older `742/738/4` + `final_targets=35` baseline
+    - next regex roadmap slice should refresh those sidecars from the new parser-backed stimuli baseline, then focus on reducing the remaining `final_targets=122`

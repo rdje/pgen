@@ -560,6 +560,7 @@ impl AstBasedGenerator {
     fn generate_parse_method(&self, entry_rule: &str) -> TokenStream {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
+        let allow_trailing_layout = !self.grammar_name.eq_ignore_ascii_case("regex");
 
         quote! {
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -579,8 +580,10 @@ impl AstBasedGenerator {
 
             pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
                 let parsed = self.parse()?;
-                // Allow trailing layout/comments so parse_full reports structural completeness.
-                self.consume_layout_for_terminal("<EOF>");
+                if #allow_trailing_layout {
+                    // Allow trailing layout/comments so parse_full reports structural completeness.
+                    self.consume_layout_for_terminal("<EOF>");
+                }
                 if self.position == self.input.len() {
                     Ok(parsed)
                 } else {
@@ -2419,6 +2422,8 @@ impl AstBasedGenerator {
     // }
 
     fn generate_helper_methods(&self, filename: &str) -> TokenStream {
+        let allow_layout_skip_for_terminals = !self.grammar_name.eq_ignore_ascii_case("regex");
+        let allow_layout_skip_for_regexes = !self.grammar_name.eq_ignore_ascii_case("regex");
         quote! {
             fn byte_window_lossy(&self, start: usize, end: usize) -> String {
                 if start >= end || start >= self.input.len() {
@@ -3599,7 +3604,9 @@ impl AstBasedGenerator {
                     || (i + 1 <= len && bytes[i] == b'=')
             }
             fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
-                self.consume_layout_for_terminal(expected);
+                if #allow_layout_skip_for_terminals {
+                    self.consume_layout_for_terminal(expected);
+                }
                 let start = self.position;
                 let expected_bytes = expected.as_bytes();
                 let end = start + expected_bytes.len();
@@ -3649,7 +3656,7 @@ impl AstBasedGenerator {
                         pattern, e
                     )))?;
 
-                if skip_leading_whitespace {
+                if skip_leading_whitespace && #allow_layout_skip_for_regexes {
                     // Regexes that can match empty should not consume newlines first.
                     // Otherwise optional branches can silently jump into the next rule/line.
                     let can_match_empty = re
