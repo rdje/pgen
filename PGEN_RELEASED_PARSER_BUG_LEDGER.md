@@ -28,6 +28,8 @@ GitHub is optional. This ledger should be the canonical parser-side tracker insi
 ## Required Fields
 - `Report ID`
 - `Parser Family/Profile`
+- `Reported Against Parser Release`
+- `Reported Against Contract Version`
 - `Downstream Consumer(s)`
 - `First Reported`
 - `Current State`
@@ -59,11 +61,11 @@ GitHub is optional. This ledger should be the canonical parser-side tracker insi
 ## Closure Rule
 Each `Released` row should point at:
 - the reproducer artifact bundle
-- the commit or released version containing the fix
+- the commit and/or parser release version containing the fix
 - the regression test or gate proving the bug stays closed
 
 ## Live Ledger
 
-| Report ID | Parser Family/Profile | Downstream Consumer(s) | First Reported | Current State | Downstream Tracking Refs | Reproducer Bundle | Root Cause | Fix Proof | Fixed In | Notes |
-|---|---|---|---|---|---|---|---|---|---|---|
-| _none yet_ | | | | | | | | | | No released-parser bug reports have been logged in this ledger yet. |
+| Report ID | Parser Family/Profile | Reported Against Parser Release | Reported Against Contract Version | Downstream Consumer(s) | First Reported | Current State | Downstream Tracking Refs | Reproducer Bundle | Root Cause | Fix Proof | Fixed In | Notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| _none yet_ | | | | | | | | | | | | No released-parser bug reports have been logged in this ledger yet. |

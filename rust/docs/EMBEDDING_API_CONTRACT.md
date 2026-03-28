@@ -53,8 +53,8 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.1.0"`
-- Schema version constant: `EMBEDDING_API_SCHEMA_VERSION = 1`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.2.0"`
+- Schema version constant: `EMBEDDING_API_SCHEMA_VERSION = 2`
 - Compatibility rules:
   - Major version bump: breaking API or behavioral contract change.
   - Minor/Patch bump: backward-compatible additions/fixes.
@@ -65,7 +65,10 @@ Annotation API:
 - `ParserBackend`: `bootstrap | generated`
 - `ParseStatus`: `success | failure`
 - `ParseOutcome`: includes API version, parser family, backend, status, optional diagnostic.
-- `ParseDiagnostic`: stable `code` + human-readable `message`.
+- `ParseDiagnostic`: stable `code` + human-readable `message` + optional `location`.
+  - `location.byte_offset`
+  - `location.line`
+  - `location.column`
 
 Grammar parser API:
 - `GrammarFamily`: `systemverilog | vhdl | regex`
@@ -84,11 +87,21 @@ Grammar parser API:
   - `emitted_bytes`
 - `ParserEmbeddingApiContract`: stable profile matrix + backend availability flags + integration invariants.
   - includes `profile_matrix` for per-grammar profile lookup.
+  - includes stable machine-localizable diagnostic field names via `stable_diagnostic_location_fields`.
   - includes zero-copy/session invariants:
     - `input_ownership_model=borrowed_str`
     - `parse_session_model=stateless_per_call`
     - `zero_copy_input_boundary=true`
   - publishes stable parser diagnostic code set via `stable_diagnostic_codes`.
+  - publishes regex downstream contract metadata:
+    - `regex_integration_contract_version`
+    - `regex_parser_release_version`
+    - `regex_ast_dump_schema_version`
+    - `regex_generated_backend_required_feature`
+    - `regex_generated_backend_required_artifact`
+    - `regex_generated_backend_env_override`
+    - `regex_frontend_json_artifact`
+    - `regex_frontend_json_role`
 
 ## Diagnostic Code Contract
 - `E_BACKEND_UNAVAILABLE`: generated backend requested without `generated_parsers` feature.
@@ -97,6 +110,8 @@ Grammar parser API:
 - `E_INVALID_LIMITS`: invalid limit configuration (for example `max_input_bytes == 0`).
 - `E_INVALID_ARGUMENT`: unknown family/backend/grammar/profile value in named string APIs.
 - `E_UNSUPPORTED_PROFILE`: grammar/profile mismatch (for example `vhdl_1076_2019` used with `systemverilog` grammar entry point).
+- When the selected backend can localize a parse failure precisely, `ParseDiagnostic.location` is part of the stable diagnostic payload.
+- Generated regex parse failures are expected to populate that location object.
 
 ## Determinism Contract
 - `embedding_api_contract().deterministic_by_default` is `true`.
@@ -123,6 +138,10 @@ Grammar parser API:
   - `full_bytes`
   - `reason`
 - If `max_ast_bytes` is too small to fit truncation diagnostics envelope itself, API returns `E_INVALID_LIMITS`.
+- Family-specific AST schema promises are defined in the matching family integration contract.
+  - For regex specifically:
+    - schema version is exposed as `parser_embedding_api_contract().regex_ast_dump_schema_version`
+    - the stable schema definition lives in `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 
 ## Grammar Profile Contract (Host-Oriented)
 - Stable profile-aware parser entry points exist for host integration:
@@ -130,6 +149,11 @@ Grammar parser API:
   - VHDL: `vhdl_1076_2019`
   - regex: `regex_default`
 - The API enforces grammar/profile compatibility deterministically (`E_UNSUPPORTED_PROFILE` on mismatch).
+- Published downstream regex integrations should also use `parser_embedding_api_contract()` to discover:
+  - generated-backend availability
+  - regex parser release version
+  - regex integration contract version
+  - regex generated-backend requirements
 - Input is accepted as `&str` and consumed without ownership transfer (zero-copy call boundary).
 - Session model is intentionally stateless per-call for deterministic embedding behavior:
   - one input payload per call,

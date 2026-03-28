@@ -3592,9 +3592,9 @@ Contract docs:
 
 Local check:
 ```bash
-make -C rust SHELL=/bin/bash embedding_api_gate
-make -C rust SHELL=/bin/bash nexsim_parser_embedding_contract_gate
-make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate
+make -C rust embedding_api_gate
+make -C rust nexsim_parser_embedding_contract_gate
+make -C rust regex_parser_integration_contract_gate
 ```
 
 Design goal:

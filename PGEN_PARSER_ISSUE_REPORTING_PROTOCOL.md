@@ -14,6 +14,8 @@ GitHub is optional. The required property is that both the report bundle and the
 
 ### 1. Parser Identity
 - PGEN commit ID or released crate version.
+- Parser release version, if the family publishes one.
+- Integration contract version, if the family publishes one.
 - Parser family:
   - `systemverilog`
   - `vhdl`
@@ -57,6 +59,10 @@ GitHub is optional. The required property is that both the report bundle and the
   - `parser_embedding_api_contract()` JSON for grammar-family integrations
 - Parse outcome:
   - structured `parse_*` or `parse_grammar_profile_*` outcome JSON
+  - if present, keep `ParseDiagnostic.location` intact:
+    - `byte_offset`
+    - `line`
+    - `column`
 - AST dump:
   - include when parse succeeds but the structure or semantics are wrong
 - Trace log:
@@ -167,6 +173,8 @@ Also include:
 ## Minimal Acceptable Report
 A report is minimally actionable if it contains:
 - exact PGEN version/commit
+- parser release version, if published
+- integration contract version, if published
 - exact parser family/profile
 - exact input file
 - expected vs actual behavior
@@ -191,4 +199,4 @@ It becomes high-quality and fast-to-fix if it also contains:
 - A fix should not be treated as complete until the ledger row records:
   - the root cause
   - the validating regression/gate proof
-  - and the commit or release carrying the fix
+  - and the commit or parser release carrying the fix

@@ -211,11 +211,20 @@ audit_embedding_api_surface() {
   assert_tracked "PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
   assert_tracked "PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
   assert_tracked "rust/scripts/regex_parser_integration_contract_gate.sh"
-  assert_tracked "rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json"
+  assert_tracked "rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json"
 
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const EMBEDDING_API_VERSION: &str = "1.1.0";'
+    'pub const EMBEDDING_API_VERSION: &str = "1.2.0";'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.0.0";'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.0.0";'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     '#[serde(rename = "regex")]'
@@ -224,7 +233,16 @@ audit_embedding_api_surface() {
     '#[serde(rename = "regex_default")]'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
+    'pub struct ParseDiagnosticLocation {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
     'pub supports_regex_generated_backend: bool,'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub stable_diagnostic_location_fields: Vec<String>,'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'pub regex_parser_release_version: String,'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub fn parse_regex_default(input: &str) -> GrammarParseOutcome {'
@@ -242,7 +260,13 @@ audit_embedding_api_surface() {
     'fn regex_parser_integration_contract_metadata_is_stable() {'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_failures_are_machine_localizable() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
     'fn regex_parser_integration_contract_accepts_declared_success_samples() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn parse_diagnostic_location_is_one_based_and_clamped_to_utf8_boundaries() {'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'fn regex_parser_integration_contract_rejects_declared_failure_samples() {'
@@ -280,6 +304,15 @@ audit_embedding_api_surface() {
     '`GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019 | regex_default`'
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`ParseDiagnostic`: stable `code` + human-readable `message` + optional `location`.'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`regex_parser_release_version`'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
+    '`regex_generated_backend_required_feature`'
+  assert_file_contains \
+    "rust/docs/EMBEDDING_API_CONTRACT.md" \
     '`embedding_api_gate` now covers the public regex parser/profile surface too.'
 
   assert_file_contains \
@@ -296,7 +329,7 @@ audit_embedding_api_surface() {
     'the public embedding API now exposes regex through `regex_default`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
-    'make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate'
+    'make -C rust regex_parser_integration_contract_gate'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '`PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`'
@@ -304,6 +337,9 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     'Every current and future parser family that PGEN publishes for downstream consumption must have a tracked integration-contract document.'
+  assert_file_contains \
+    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    '- `Contract Identity`'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers. |'
@@ -320,11 +356,20 @@ audit_embedding_api_surface() {
     "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
     'The parser family/profile is the primary tracking axis for released-parser support.'
   assert_file_contains \
+    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    '- Parser release version, if the family publishes one.'
+  assert_file_contains \
+    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    '- Integration contract version, if the family publishes one.'
+  assert_file_contains \
     "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     'Every downstream bug report against a released parser family must receive a stable report ID.'
   assert_file_contains \
     "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     '`Downstream Tracking Refs`'
+  assert_file_contains \
+    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    '`Reported Against Parser Release`'
   assert_file_contains \
     "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     'The primary index for this ledger is `Parser Family/Profile`.'
@@ -333,7 +378,31 @@ audit_embedding_api_surface() {
     'This is the document downstream projects such as RGX should read first when deciding how to embed the PGEN regex parser.'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    'make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate'
+    '- Contract version:'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '- Parser release version:'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'regex_generated_backend_required_feature'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'make -C rust regex_parser_integration_contract_gate'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'Issue Reporting Quick Path'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'PGEN_TRACE_VERBOSITY=debug'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'generated/regex.json'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'Regex AST-dump schema version:'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'stable optional machine-localizable location object'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'

@@ -1,4 +1,4 @@
-use crate::ast_pipeline::{UnifiedReturnAST, UnifiedSemanticAST, runtime_logger};
+use crate::ast_pipeline::{ParseError, UnifiedReturnAST, UnifiedSemanticAST, runtime_logger};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fmt;
@@ -9,10 +9,19 @@ use std::str::FromStr;
 /// Compatibility policy:
 /// - major version changes signal breaking API/behavioral contract changes
 /// - minor/patch changes are backward compatible for existing callers
-pub const EMBEDDING_API_VERSION: &str = "1.1.0";
+pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 
 /// Stable schema version for serialized embedding API metadata.
-pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 1;
+pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
+
+/// Stable downstream contract version for the published regex parser handoff.
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.0.0";
+
+/// Stable release version for the published regex parser.
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.0.0";
+
+/// Stable schema version for regex AST-dump JSON payloads.
+pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
 
 /// Default hard limit for embedding API input payload size (in bytes).
 ///
@@ -54,9 +63,40 @@ pub enum ParseSessionModel {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ParseDiagnosticLocation {
+    pub byte_offset: usize,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ParseDiagnostic {
     pub code: String,
     pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location: Option<ParseDiagnosticLocation>,
+}
+
+impl ParseDiagnostic {
+    fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            location: None,
+        }
+    }
+
+    fn with_location(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        location: ParseDiagnosticLocation,
+    ) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            location: Some(location),
+        }
+    }
 }
 
 impl fmt::Display for ParseDiagnostic {
@@ -303,12 +343,21 @@ pub struct ParserEmbeddingApiContract {
     pub parse_session_model: ParseSessionModel,
     pub zero_copy_input_boundary: bool,
     pub stable_diagnostic_codes: Vec<String>,
+    pub stable_diagnostic_location_fields: Vec<String>,
     pub supported_grammars: Vec<GrammarFamily>,
     pub supported_profiles: Vec<GrammarProfile>,
     pub profile_matrix: Vec<GrammarProfileBinding>,
     pub supports_systemverilog_generated_backend: bool,
     pub supports_vhdl_generated_backend: bool,
     pub supports_regex_generated_backend: bool,
+    pub regex_integration_contract_version: String,
+    pub regex_parser_release_version: String,
+    pub regex_ast_dump_schema_version: u32,
+    pub regex_generated_backend_required_feature: String,
+    pub regex_generated_backend_required_artifact: String,
+    pub regex_generated_backend_env_override: String,
+    pub regex_frontend_json_artifact: String,
+    pub regex_frontend_json_role: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -351,6 +400,11 @@ pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
             "E_PARSE_FAILURE".to_string(),
             "E_UNSUPPORTED_PROFILE".to_string(),
         ],
+        stable_diagnostic_location_fields: vec![
+            "byte_offset".to_string(),
+            "line".to_string(),
+            "column".to_string(),
+        ],
         supported_grammars: vec![
             GrammarFamily::SystemVerilog,
             GrammarFamily::Vhdl,
@@ -379,14 +433,97 @@ pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
         supports_systemverilog_generated_backend: systemverilog_generated_backend_enabled(),
         supports_vhdl_generated_backend: vhdl_generated_backend_enabled(),
         supports_regex_generated_backend: regex_generated_backend_enabled(),
+        regex_integration_contract_version: REGEX_PARSER_INTEGRATION_CONTRACT_VERSION.to_string(),
+        regex_parser_release_version: REGEX_PARSER_RELEASE_VERSION.to_string(),
+        regex_ast_dump_schema_version: REGEX_AST_DUMP_SCHEMA_VERSION,
+        regex_generated_backend_required_feature: "generated_parsers".to_string(),
+        regex_generated_backend_required_artifact: "generated/regex_parser.rs".to_string(),
+        regex_generated_backend_env_override: "PGEN_REGEX_PARSER_PATH".to_string(),
+        regex_frontend_json_artifact: "generated/regex.json".to_string(),
+        regex_frontend_json_role:
+            "PGEN-generated frontend normalization and provenance artifact; not a stable downstream runtime input or AST contract"
+                .to_string(),
     }
 }
 
 fn invalid_argument_diagnostic(message: String) -> ParseDiagnostic {
-    ParseDiagnostic {
-        code: "E_INVALID_ARGUMENT".to_string(),
-        message,
+    ParseDiagnostic::new("E_INVALID_ARGUMENT", message)
+}
+
+fn invalid_limits_diagnostic(message: impl Into<String>) -> ParseDiagnostic {
+    ParseDiagnostic::new("E_INVALID_LIMITS", message)
+}
+
+fn input_too_large_diagnostic(message: impl Into<String>) -> ParseDiagnostic {
+    ParseDiagnostic::new("E_INPUT_TOO_LARGE", message)
+}
+
+fn backend_unavailable_diagnostic(message: impl Into<String>) -> ParseDiagnostic {
+    ParseDiagnostic::new("E_BACKEND_UNAVAILABLE", message)
+}
+
+fn parse_failure_diagnostic(message: impl Into<String>) -> ParseDiagnostic {
+    ParseDiagnostic::new("E_PARSE_FAILURE", message)
+}
+
+fn unsupported_profile_diagnostic(grammar: GrammarFamily, profile: GrammarProfile) -> ParseDiagnostic {
+    ParseDiagnostic::new(
+        "E_UNSUPPORTED_PROFILE",
+        format!(
+            "profile {:?} is not supported for grammar {:?}",
+            profile, grammar
+        ),
+    )
+}
+
+fn parse_error_position(error: &ParseError) -> usize {
+    match error {
+        ParseError::UnexpectedEof { position }
+        | ParseError::UnexpectedToken { position, .. }
+        | ParseError::InvalidSyntax { position, .. }
+        | ParseError::Backtrack { position }
+        | ParseError::RecursionDepthExceeded { position, .. }
+        | ParseError::ContextualError { position, .. } => *position,
     }
+}
+
+fn clamp_to_char_boundary(input: &str, byte_offset: usize) -> usize {
+    let mut clamped = byte_offset.min(input.len());
+    while clamped > 0 && !input.is_char_boundary(clamped) {
+        clamped -= 1;
+    }
+    clamped
+}
+
+fn parse_diagnostic_location(input: &str, byte_offset: usize) -> ParseDiagnosticLocation {
+    let byte_offset = clamp_to_char_boundary(input, byte_offset);
+    let mut line = 1usize;
+    let mut column = 1usize;
+    for ch in input[..byte_offset].chars() {
+        if ch == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+    ParseDiagnosticLocation {
+        byte_offset,
+        line,
+        column,
+    }
+}
+
+fn generated_parse_failure_diagnostic(
+    parser_label: &str,
+    input: &str,
+    error: ParseError,
+) -> ParseDiagnostic {
+    ParseDiagnostic::with_location(
+        "E_PARSE_FAILURE",
+        format!("generated {} parse failed: {}", parser_label, error),
+        parse_diagnostic_location(input, parse_error_position(&error)),
+    )
 }
 
 /// Parses a single annotation payload using the selected parser family/backend.
@@ -1047,10 +1184,9 @@ fn run_grammar_parse_ast_dump(
 
 fn validate_ast_dump_options(options: &AstDumpOptions) -> Result<(), ParseDiagnostic> {
     if matches!(options.max_ast_bytes, Some(0)) {
-        return Err(ParseDiagnostic {
-            code: "E_INVALID_LIMITS".to_string(),
-            message: "max_ast_bytes must be greater than 0".to_string(),
-        });
+        return Err(invalid_limits_diagnostic(
+            "max_ast_bytes must be greater than 0",
+        ));
     }
     Ok(())
 }
@@ -1077,20 +1213,21 @@ fn serialize_canonical_json<T: Serialize>(
     value: &T,
     pretty: bool,
 ) -> Result<String, ParseDiagnostic> {
-    let normalized =
-        canonicalize_json_value(serde_json::to_value(value).map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("failed to serialize parser AST payload: {}", err),
-        })?);
+    let normalized = canonicalize_json_value(
+        serde_json::to_value(value).map_err(|err| {
+            parse_failure_diagnostic(format!(
+                "failed to serialize parser AST payload: {}",
+                err
+            ))
+        })?,
+    );
     if pretty {
-        serde_json::to_string_pretty(&normalized).map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("failed to encode parser AST payload: {}", err),
+        serde_json::to_string_pretty(&normalized).map_err(|err| {
+            parse_failure_diagnostic(format!("failed to encode parser AST payload: {}", err))
         })
     } else {
-        serde_json::to_string(&normalized).map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("failed to encode parser AST payload: {}", err),
+        serde_json::to_string(&normalized).map_err(|err| {
+            parse_failure_diagnostic(format!("failed to encode parser AST payload: {}", err))
         })
     }
 }
@@ -1116,13 +1253,10 @@ fn encode_ast_dump_payload(
             let encoded_diagnostic = serialize_canonical_json(&diagnostic, options.pretty)?;
             let emitted_bytes = encoded_diagnostic.len();
             if emitted_bytes > max_bytes {
-                return Err(ParseDiagnostic {
-                    code: "E_INVALID_LIMITS".to_string(),
-                    message: format!(
+                return Err(invalid_limits_diagnostic(format!(
                         "max_ast_bytes {} is too small to fit truncation diagnostics (requires at least {} bytes)",
                         max_bytes, emitted_bytes
-                    ),
-                });
+                    )));
             }
             return Ok(AstDumpPayload {
                 dump_json: encoded_diagnostic,
@@ -1156,32 +1290,22 @@ fn validate_profile_match(
         return Ok(());
     }
 
-    Err(ParseDiagnostic {
-        code: "E_UNSUPPORTED_PROFILE".to_string(),
-        message: format!(
-            "profile {:?} is not supported for grammar {:?}",
-            profile, grammar
-        ),
-    })
+    Err(unsupported_profile_diagnostic(grammar, profile))
 }
 
 fn validate_input_limits(input: &str, limits: &ParseLimits) -> Result<(), ParseDiagnostic> {
     if limits.max_input_bytes == 0 {
-        return Err(ParseDiagnostic {
-            code: "E_INVALID_LIMITS".to_string(),
-            message: "max_input_bytes must be greater than 0".to_string(),
-        });
+        return Err(invalid_limits_diagnostic(
+            "max_input_bytes must be greater than 0",
+        ));
     }
 
     let input_len = input.len();
     if input_len > limits.max_input_bytes {
-        return Err(ParseDiagnostic {
-            code: "E_INPUT_TOO_LARGE".to_string(),
-            message: format!(
-                "input size {} bytes exceeds max_input_bytes {}",
-                input_len, limits.max_input_bytes
-            ),
-        });
+        return Err(input_too_large_diagnostic(format!(
+            "input size {} bytes exceeds max_input_bytes {}",
+            input_len, limits.max_input_bytes
+        )));
     }
 
     Ok(())
@@ -1191,19 +1315,15 @@ fn parse_bootstrap_return(input: &str) -> Result<(), ParseDiagnostic> {
     let logger = runtime_logger("embedding.bootstrap.return_annotation");
     UnifiedReturnAST::parse_bootstrap(input, &logger)
         .map(|_| ())
-        .map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("bootstrap return parse failed: {}", err),
-        })
+        .map_err(|err| parse_failure_diagnostic(format!("bootstrap return parse failed: {}", err)))
 }
 
 fn parse_bootstrap_semantic(input: &str) -> Result<(), ParseDiagnostic> {
     let logger = runtime_logger("embedding.bootstrap.semantic_annotation");
     UnifiedSemanticAST::parse_bootstrap(input, &logger)
         .map(|_| ())
-        .map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("bootstrap semantic parse failed: {}", err),
+        .map_err(|err| {
+            parse_failure_diagnostic(format!("bootstrap semantic parse failed: {}", err))
         })
 }
 
@@ -1218,18 +1338,14 @@ fn parse_generated_return(input: &str) -> Result<(), ParseDiagnostic> {
         return parser
             .parse_full_return_annotation()
             .map(|_| ())
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated return parse failed: {}", err),
-            });
+            .map_err(|err| generated_parse_failure_diagnostic("return", input, err));
     }
     #[cfg(not(feature = "generated_parsers"))]
     {
         let _ = input;
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message: "generated parser backend requires feature `generated_parsers`".to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "generated parser backend requires feature `generated_parsers`",
+        ))
     }
 }
 
@@ -1244,18 +1360,14 @@ fn parse_generated_semantic(input: &str) -> Result<(), ParseDiagnostic> {
         return parser
             .parse_full_semantic_annotation()
             .map(|_| ())
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated semantic parse failed: {}", err),
-            });
+            .map_err(|err| generated_parse_failure_diagnostic("semantic", input, err));
     }
     #[cfg(not(feature = "generated_parsers"))]
     {
         let _ = input;
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message: "generated parser backend requires feature `generated_parsers`".to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "generated parser backend requires feature `generated_parsers`",
+        ))
     }
 }
 
@@ -1274,20 +1386,14 @@ fn parse_generated_systemverilog(
         return parser
             .parse_full_systemverilog_file()
             .map(|_| ())
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated systemverilog parse failed: {}", err),
-            });
+            .map_err(|err| generated_parse_failure_diagnostic("systemverilog", input, err));
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     {
         let _ = (input, grammar_profile);
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message:
-                "systemverilog parser backend requires `generated_parsers` and generated/systemverilog_parser.rs"
-                    .to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "systemverilog parser backend requires `generated_parsers` and generated/systemverilog_parser.rs",
+        ))
     }
 }
 
@@ -1305,24 +1411,20 @@ fn parse_generated_systemverilog_ast_json(
         parser.set_grammar_profile(grammar_profile);
         let parsed = parser
             .parse_full_systemverilog_file()
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated systemverilog parse failed: {}", err),
-            })?;
-        return serde_json::to_value(parsed).map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("generated systemverilog AST serialization failed: {}", err),
+            .map_err(|err| generated_parse_failure_diagnostic("systemverilog", input, err))?;
+        return serde_json::to_value(parsed).map_err(|err| {
+            parse_failure_diagnostic(format!(
+                "generated systemverilog AST serialization failed: {}",
+                err
+            ))
         });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     {
         let _ = (input, grammar_profile);
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message:
-                "systemverilog parser backend requires `generated_parsers` and generated/systemverilog_parser.rs"
-                    .to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "systemverilog parser backend requires `generated_parsers` and generated/systemverilog_parser.rs",
+        ))
     }
 }
 
@@ -1337,20 +1439,14 @@ fn parse_generated_vhdl(input: &str) -> Result<(), ParseDiagnostic> {
         return parser
             .parse_full_vhdl_file()
             .map(|_| ())
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated vhdl parse failed: {}", err),
-            });
+            .map_err(|err| generated_parse_failure_diagnostic("vhdl", input, err));
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
     {
         let _ = input;
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message:
-                "vhdl parser backend requires `generated_parsers` and generated/vhdl_parser.rs"
-                    .to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "vhdl parser backend requires `generated_parsers` and generated/vhdl_parser.rs",
+        ))
     }
 }
 
@@ -1364,24 +1460,17 @@ fn parse_generated_vhdl_ast_json(input: &str) -> Result<JsonValue, ParseDiagnost
         );
         let parsed = parser
             .parse_full_vhdl_file()
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated vhdl parse failed: {}", err),
-            })?;
-        return serde_json::to_value(parsed).map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("generated vhdl AST serialization failed: {}", err),
+            .map_err(|err| generated_parse_failure_diagnostic("vhdl", input, err))?;
+        return serde_json::to_value(parsed).map_err(|err| {
+            parse_failure_diagnostic(format!("generated vhdl AST serialization failed: {}", err))
         });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_vhdl_parser)))]
     {
         let _ = input;
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message:
-                "vhdl parser backend requires `generated_parsers` and generated/vhdl_parser.rs"
-                    .to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "vhdl parser backend requires `generated_parsers` and generated/vhdl_parser.rs",
+        ))
     }
 }
 
@@ -1396,20 +1485,14 @@ fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
         return parser
             .parse_full_regex()
             .map(|_| ())
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated regex parse failed: {}", err),
-            });
+            .map_err(|err| generated_parse_failure_diagnostic("regex", input, err));
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     {
         let _ = input;
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message:
-                "regex parser backend requires `generated_parsers` and generated/regex_parser.rs"
-                    .to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "regex parser backend requires `generated_parsers` and generated/regex_parser.rs",
+        ))
     }
 }
 
@@ -1423,24 +1506,17 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
         );
         let parsed = parser
             .parse_full_regex()
-            .map_err(|err| ParseDiagnostic {
-                code: "E_PARSE_FAILURE".to_string(),
-                message: format!("generated regex parse failed: {}", err),
-            })?;
-        return serde_json::to_value(parsed).map_err(|err| ParseDiagnostic {
-            code: "E_PARSE_FAILURE".to_string(),
-            message: format!("generated regex AST serialization failed: {}", err),
+            .map_err(|err| generated_parse_failure_diagnostic("regex", input, err))?;
+        return serde_json::to_value(parsed).map_err(|err| {
+            parse_failure_diagnostic(format!("generated regex AST serialization failed: {}", err))
         });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     {
         let _ = input;
-        Err(ParseDiagnostic {
-            code: "E_BACKEND_UNAVAILABLE".to_string(),
-            message:
-                "regex parser backend requires `generated_parsers` and generated/regex_parser.rs"
-                    .to_string(),
-        })
+        Err(backend_unavailable_diagnostic(
+            "regex parser backend requires `generated_parsers` and generated/regex_parser.rs",
+        ))
     }
 }
 
@@ -1497,18 +1573,102 @@ mod tests {
     #[derive(Debug, Deserialize)]
     struct RegexParserIntegrationContractManifest {
         version: u32,
+        integration_contract_version: String,
+        parser_release_version: String,
         grammar: String,
         profile: String,
         required_generated_backend_flag: String,
+        required_generated_backend_feature: String,
+        required_generated_backend_artifact: String,
+        generated_backend_env_override: String,
+        ast_dump_schema_version: u32,
+        frontend_json_artifact: String,
+        frontend_json_role: String,
+        stable_diagnostic_location_fields: Vec<String>,
         success_samples: Vec<RegexParserIntegrationContractCase>,
         failure_samples: Vec<RegexParserIntegrationContractCase>,
     }
 
     fn regex_parser_integration_contract_manifest() -> RegexParserIntegrationContractManifest {
         serde_json::from_str(include_str!(
-            "../test_data/grammar_quality/regex_parser_integration_contract_v0.json"
+            "../test_data/grammar_quality/regex_parser_integration_contract_v1.json"
         ))
         .expect("valid regex parser integration contract manifest")
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    fn assert_regex_ast_dump_node_schema(node: &serde_json::Value) {
+        let object = node
+            .as_object()
+            .expect("regex AST dump node must be a JSON object");
+        let rule_name = object
+            .get("rule_name")
+            .and_then(serde_json::Value::as_str)
+            .expect("regex AST dump node must have rule_name");
+        assert!(
+            !rule_name.is_empty(),
+            "regex AST dump node rule_name must be non-empty"
+        );
+        let span = object
+            .get("span")
+            .and_then(serde_json::Value::as_object)
+            .expect("regex AST dump node must have span");
+        let start = span
+            .get("start")
+            .and_then(serde_json::Value::as_u64)
+            .expect("regex AST dump node span.start must be numeric");
+        let end = span
+            .get("end")
+            .and_then(serde_json::Value::as_u64)
+            .expect("regex AST dump node span.end must be numeric");
+        assert!(end >= start, "regex AST dump node span must be ordered");
+
+        let content = object
+            .get("content")
+            .and_then(serde_json::Value::as_object)
+            .expect("regex AST dump node must have externally tagged content");
+        assert_eq!(
+            content.len(),
+            1,
+            "regex AST dump node content must have exactly one active variant"
+        );
+        let (variant, payload) = content.iter().next().expect("content variant");
+        match variant.as_str() {
+            "Terminal" | "TransformedTerminal" => {
+                payload
+                    .as_str()
+                    .expect("terminal payload must be encoded as a string");
+            }
+            "Sequence" => {
+                for child in payload
+                    .as_array()
+                    .expect("sequence payload must be an array")
+                {
+                    assert_regex_ast_dump_node_schema(child);
+                }
+            }
+            "Alternative" => assert_regex_ast_dump_node_schema(payload),
+            "Quantified" => {
+                let quantified = payload
+                    .as_array()
+                    .expect("quantified payload must be an array");
+                assert_eq!(
+                    quantified.len(),
+                    2,
+                    "quantified payload must contain node array and quantifier marker"
+                );
+                for child in quantified[0]
+                    .as_array()
+                    .expect("quantified payload first element must be an array")
+                {
+                    assert_regex_ast_dump_node_schema(child);
+                }
+                quantified[1]
+                    .as_str()
+                    .expect("quantified payload second element must be a quantifier string");
+            }
+            other => panic!("unexpected regex AST dump content variant {}", other),
+        }
     }
 
     #[test]
@@ -1582,6 +1742,36 @@ mod tests {
             .as_ref()
             .expect("expected invalid limits diagnostic");
         assert_eq!(diagnostic.code, "E_INVALID_LIMITS");
+    }
+
+    #[test]
+    fn parse_diagnostic_location_is_one_based_and_clamped_to_utf8_boundaries() {
+        let location = parse_diagnostic_location("a\néz", 4);
+        assert_eq!(location.byte_offset, 4);
+        assert_eq!(location.line, 2);
+        assert_eq!(location.column, 2);
+
+        let clamped = parse_diagnostic_location("a\néz", 3);
+        assert_eq!(clamped.byte_offset, 2);
+        assert_eq!(clamped.line, 2);
+        assert_eq!(clamped.column, 1);
+    }
+
+    #[test]
+    fn generated_parse_failure_diagnostic_builds_machine_localizable_payload() {
+        let diagnostic = generated_parse_failure_diagnostic(
+            "regex",
+            "a\n(",
+            ParseError::Backtrack { position: 2 },
+        );
+        assert_eq!(diagnostic.code, "E_PARSE_FAILURE");
+        let location = diagnostic
+            .location
+            .as_ref()
+            .expect("generated parse failure should carry location");
+        assert_eq!(location.byte_offset, 2);
+        assert_eq!(location.line, 2);
+        assert_eq!(location.column, 1);
     }
 
     #[test]
@@ -1693,6 +1883,14 @@ mod tests {
                 "E_UNSUPPORTED_PROFILE".to_string(),
             ]
         );
+        assert_eq!(
+            contract.stable_diagnostic_location_fields,
+            vec![
+                "byte_offset".to_string(),
+                "line".to_string(),
+                "column".to_string(),
+            ]
+        );
         assert!(
             contract
                 .supported_grammars
@@ -1720,6 +1918,28 @@ mod tests {
                 .supported_profiles
                 .contains(&GrammarProfile::RegexDefault)
         );
+        assert_eq!(
+            contract.regex_integration_contract_version,
+            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION
+        );
+        assert_eq!(contract.regex_parser_release_version, REGEX_PARSER_RELEASE_VERSION);
+        assert_eq!(
+            contract.regex_ast_dump_schema_version,
+            REGEX_AST_DUMP_SCHEMA_VERSION
+        );
+        assert_eq!(
+            contract.regex_generated_backend_required_feature,
+            "generated_parsers"
+        );
+        assert_eq!(
+            contract.regex_generated_backend_required_artifact,
+            "generated/regex_parser.rs"
+        );
+        assert_eq!(
+            contract.regex_generated_backend_env_override,
+            "PGEN_REGEX_PARSER_PATH"
+        );
+        assert_eq!(contract.regex_frontend_json_artifact, "generated/regex.json");
     }
 
     #[test]
@@ -1727,12 +1947,39 @@ mod tests {
         let manifest = regex_parser_integration_contract_manifest();
         let contract = parser_embedding_api_contract();
 
-        assert_eq!(manifest.version, 0);
+        assert_eq!(manifest.version, 1);
+        assert_eq!(
+            manifest.integration_contract_version,
+            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION
+        );
+        assert_eq!(manifest.parser_release_version, REGEX_PARSER_RELEASE_VERSION);
         assert_eq!(manifest.grammar, "regex");
         assert_eq!(manifest.profile, "regex_default");
         assert_eq!(
             manifest.required_generated_backend_flag,
             "supports_regex_generated_backend"
+        );
+        assert_eq!(manifest.required_generated_backend_feature, "generated_parsers");
+        assert_eq!(
+            manifest.required_generated_backend_artifact,
+            "generated/regex_parser.rs"
+        );
+        assert_eq!(manifest.generated_backend_env_override, "PGEN_REGEX_PARSER_PATH");
+        assert_eq!(manifest.ast_dump_schema_version, REGEX_AST_DUMP_SCHEMA_VERSION);
+        assert_eq!(manifest.frontend_json_artifact, "generated/regex.json");
+        assert!(
+            manifest
+                .frontend_json_role
+                .contains("not a stable downstream runtime input"),
+            "frontend JSON role should explain non-contractual downstream status"
+        );
+        assert_eq!(
+            manifest.stable_diagnostic_location_fields,
+            vec![
+                "byte_offset".to_string(),
+                "line".to_string(),
+                "column".to_string(),
+            ]
         );
         assert_eq!(manifest.success_samples.len(), 4);
         assert_eq!(manifest.failure_samples.len(), 2);
@@ -1743,6 +1990,39 @@ mod tests {
             contract
                 .supported_profiles
                 .contains(&GrammarProfile::RegexDefault)
+        );
+        assert_eq!(
+            contract.regex_integration_contract_version,
+            manifest.integration_contract_version
+        );
+        assert_eq!(
+            contract.regex_parser_release_version,
+            manifest.parser_release_version
+        );
+        assert_eq!(
+            contract.regex_generated_backend_required_feature,
+            manifest.required_generated_backend_feature
+        );
+        assert_eq!(
+            contract.regex_generated_backend_required_artifact,
+            manifest.required_generated_backend_artifact
+        );
+        assert_eq!(
+            contract.regex_generated_backend_env_override,
+            manifest.generated_backend_env_override
+        );
+        assert_eq!(
+            contract.regex_ast_dump_schema_version,
+            manifest.ast_dump_schema_version
+        );
+        assert_eq!(
+            contract.regex_frontend_json_artifact,
+            manifest.frontend_json_artifact
+        );
+        assert_eq!(contract.regex_frontend_json_role, manifest.frontend_json_role);
+        assert_eq!(
+            contract.stable_diagnostic_location_fields,
+            manifest.stable_diagnostic_location_fields
         );
     }
 
@@ -2058,6 +2338,27 @@ mod tests {
         }
     }
 
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_failures_are_machine_localizable() {
+        let manifest = regex_parser_integration_contract_manifest();
+
+        for sample in &manifest.failure_samples {
+            let diagnostic = parse_regex_default_result(&sample.input)
+                .expect_err("expected regex failure sample to fail");
+            let location = diagnostic
+                .location
+                .as_ref()
+                .expect("generated regex failures should expose structured location");
+            assert!(location.line >= 1, "line must be one-based");
+            assert!(location.column >= 1, "column must be one-based");
+            assert!(
+                location.byte_offset <= sample.input.len(),
+                "byte_offset must not point past the original input"
+            );
+        }
+    }
+
     #[cfg(not(all(feature = "generated_parsers", has_generated_systemverilog_parser)))]
     #[test]
     fn parser_embedding_ast_dump_reports_missing_systemverilog_backend() {
@@ -2125,6 +2426,7 @@ mod tests {
         let parsed: serde_json::Value =
             serde_json::from_str(&ast_dump.dump_json).expect("dump json");
         assert!(parsed.is_object());
+        assert_regex_ast_dump_node_schema(&parsed);
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]

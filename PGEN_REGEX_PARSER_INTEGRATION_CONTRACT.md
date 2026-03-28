@@ -5,15 +5,28 @@ Define the downstream integration contract for PGEN's `regex` parser family.
 
 This is the document downstream projects such as RGX should read first when deciding how to embed the PGEN regex parser.
 
-## Current Contract Status
+## Contract Identity
+- Contract version:
+  - `1.0.0`
+- Parser release version:
+  - `1.0.0`
+- Embedding API contract baseline:
+  - `1.2.0`
+- Regex AST-dump schema version:
+  - `1`
+- Last updated:
+  - `2026-03-28`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
   - `regex_default`
 - Current live status:
   - `Done` for the currently tracked grammar contract in `LIVE_ACHIEVEMENT_STATUS.md`
-- Practical meaning:
-  - PGEN currently treats the tracked `grammars/regex.ebnf` language and its public host surface as closure-grade and fit for downstream parser consumption.
+
+## Current Trust Statement
+- PGEN currently treats the language in `grammars/regex.ebnf`, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
+- That statement applies to the tracked grammar contract PGEN currently publishes.
+- It does not automatically cover every regex dialect or every future contract widening.
 
 ## Source Of Truth
 - Grammar source:
@@ -22,6 +35,10 @@ This is the document downstream projects such as RGX should read first when deci
   - `generated/regex_parser.rs`
 - Tracked frontend JSON artifact:
   - `generated/regex.json`
+  - role:
+    - build-time frontend normalization and provenance artifact
+    - not a stable downstream runtime input contract
+    - not a stable downstream AST schema contract
 - Build-time discovery and cfg emission:
   - `rust/build.rs`
   - `PGEN_REGEX_PARSER_PATH`
@@ -29,6 +46,10 @@ This is the document downstream projects such as RGX should read first when deci
   - `rust/src/embedding_api.rs`
 - Public API contract:
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
+- Shared issue-reporting protocol:
+  - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+- Canonical released-parser bug ledger:
+  - `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - Family proof/status surfaces:
   - `LIVE_ACHIEVEMENT_STATUS.md`
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
@@ -38,29 +59,44 @@ This is the document downstream projects such as RGX should read first when deci
   - `regex`
 - Stable host profile:
   - `regex_default`
-- Stable convenience parse entry points:
+- Stable metadata calls:
+  - `embedding_api_contract()`
+  - `parser_embedding_api_contract()`
+- Stable regex convenience parse entry points:
   - `parse_regex_default(...)`
   - `parse_regex_default_with_limits(...)`
   - `parse_regex_default_result(...)`
   - `parse_regex_default_with_limits_result(...)`
-- Stable convenience AST-dump entry points:
+- Stable regex convenience AST-dump entry points:
   - `parse_regex_default_ast_dump(...)`
   - `parse_regex_default_ast_dump_with_limits(...)`
-- Stable generic entry points:
+- Stable generic grammar parse entry points:
   - `parse_grammar_profile(...)`
+  - `parse_grammar_profile_with_limits(...)`
   - `parse_grammar_profile_result(...)`
+  - `parse_grammar_profile_with_limits_result(...)`
+- Stable generic grammar AST-dump entry points:
   - `parse_grammar_profile_ast_dump(...)`
-- Stable metadata call:
-  - `parser_embedding_api_contract()`
-  - required startup field:
-    - `supports_regex_generated_backend`
-- Stable diagnostics:
-  - `E_BACKEND_UNAVAILABLE`
-  - `E_PARSE_FAILURE`
-  - `E_INPUT_TOO_LARGE`
-  - `E_INVALID_LIMITS`
-  - `E_INVALID_ARGUMENT`
-  - `E_UNSUPPORTED_PROFILE`
+  - `parse_grammar_profile_ast_dump_with_limits(...)`
+  - `parse_grammar_profile_ast_dump_result(...)`
+  - `parse_grammar_profile_ast_dump_with_limits_result(...)`
+- Stable named-string entry points for bindings and adapters:
+  - `parse_grammar_profile_named(...)`
+  - `parse_grammar_profile_named_with_limits(...)`
+  - `parse_grammar_profile_named_with_limits_result(...)`
+  - `parse_grammar_profile_ast_dump_named(...)`
+  - `parse_grammar_profile_ast_dump_named_with_limits(...)`
+  - `parse_grammar_profile_ast_dump_named_with_limits_result(...)`
+- Stable regex contract metadata available through `parser_embedding_api_contract()`:
+  - `supports_regex_generated_backend`
+  - `regex_integration_contract_version`
+  - `regex_parser_release_version`
+  - `regex_ast_dump_schema_version`
+  - `regex_generated_backend_required_feature`
+  - `regex_generated_backend_required_artifact`
+  - `regex_generated_backend_env_override`
+  - `regex_frontend_json_artifact`
+  - `regex_frontend_json_role`
 - Stable integration invariants:
   - `input_ownership_model=borrowed_str`
   - `parse_session_model=stateless_per_call`
@@ -69,79 +105,175 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Build / Availability Requirements
 - Real downstream use should require the generated regex backend.
-- Startup should inspect `parser_embedding_api_contract().supports_regex_generated_backend`.
-- If the generated backend is unavailable, the stable failure mode is `E_BACKEND_UNAVAILABLE`.
-- The backend is discovered through `rust/build.rs`:
-  - default tracked artifact: `generated/regex_parser.rs`
-  - override hook: `PGEN_REGEX_PARSER_PATH`
+- The required Cargo feature is:
+  - `generated_parsers`
+- The required tracked generated backend artifact is:
+  - `generated/regex_parser.rs`
+- The supported environment override is:
+  - `PGEN_REGEX_PARSER_PATH`
+- Startup or build validation should inspect:
+  - `parser_embedding_api_contract().supports_regex_generated_backend`
+- If the generated backend is unavailable, the stable failure mode is:
+  - `E_BACKEND_UNAVAILABLE`
+- Downstream projects should treat `generated/regex.json` as a PGEN-owned build/provenance artifact, not as a stable runtime dependency or a substitute for the generated parser backend.
 
-## What A Downstream Project May Rely On
-- The host-oriented embedding surface in `pgen::embedding_api` is the downstream contract.
-- Bounded input behavior is stable:
-  - default `max_input_bytes=1_048_576`
-  - overridable via `ParseLimits`
-- The AST dump surface is stable as a JSON payload contract:
-  - canonicalized JSON string
-  - stable truncation envelope if `max_ast_bytes` is exceeded
-- Grammar/profile mismatch is stable and deterministic:
-  - `regex` only supports `regex_default`
-  - mismatched profiles return `E_UNSUPPORTED_PROFILE`
+## Stable Diagnostics Contract
+- Stable diagnostic codes:
+  - `E_BACKEND_UNAVAILABLE`
+  - `E_PARSE_FAILURE`
+  - `E_INPUT_TOO_LARGE`
+  - `E_INVALID_LIMITS`
+  - `E_INVALID_ARGUMENT`
+  - `E_UNSUPPORTED_PROFILE`
+- Parse diagnostics now expose a stable optional machine-localizable location object:
+  - `location.byte_offset`
+  - `location.line`
+  - `location.column`
+- The location object is emitted when the selected parser backend can localize the parse failure precisely.
+- Regex parse failures through the generated regex backend are expected to populate this location object.
 
-## What This Does Not Promise
-- It does not promise that internal generated parser types are stable.
-- It does not promise a stable internal Rust AST node schema for direct type-level consumption.
-- It does not promise that every regex dialect on earth is covered. The tracked promise is the language defined by `grammars/regex.ebnf`.
-- It does not define execution semantics for embedded code blocks such as `(?{...})`; the parser contract is about acceptance, diagnostics, and AST-dump transport, not runtime execution of embedded code.
+## Stable AST-Dump Schema Contract
+- Regex AST-dump JSON is transport-stable and schema-stable at schema version `1`.
+- Schema version `1` stabilizes the recursive node envelope and variant encoding:
+  - top-level node object fields:
+    - `rule_name`
+    - `span`
+    - `content`
+  - `span` fields:
+    - `start`
+    - `end`
+  - `content` is an externally tagged JSON object with exactly one active variant:
+    - `Terminal`
+    - `TransformedTerminal`
+    - `Sequence`
+    - `Alternative`
+    - `Quantified`
+- Representative shape:
 
-## Current Grammar Scope Notes
+```json
+{
+  "rule_name": "regex",
+  "span": {
+    "start": 0,
+    "end": 3
+  },
+  "content": {
+    "Sequence": [
+      {
+        "rule_name": "atom",
+        "span": {
+          "start": 0,
+          "end": 1
+        },
+        "content": {
+          "Terminal": "a"
+        }
+      }
+    ]
+  }
+}
+```
+
+- This schema contract is about JSON shape, field names, and variant encoding.
+- Downstream consumers that interpret specific `rule_name` values should pin to a parser release version and rerun their own AST compatibility suite on upgrade.
+- This document does not promise stable internal Rust AST node types.
+
+## Current Grammar Scope Summary
 - `grammars/regex.ebnf` is the tracked language contract.
-- It currently includes the major families expected by RGX-style consumers:
-  - alternation
-  - concatenation
-  - groups
-  - char classes
-  - quantifiers
-  - anchors
-  - lookarounds
-  - named groups
-  - inline modifiers
-  - conditionals
-  - embedded code-block syntax
-- If RGX needs a wider or intentionally different dialect, that should be treated as an explicit contract-widening task rather than assumed to already be covered by the current `Done` label.
+- The currently published grammar includes:
+  - empty regex
+  - alternation and concatenation
+  - capturing, noncapturing, named, and atomic groups
+  - lookahead and lookbehind assertions
+  - greedy, lazy, and possessive quantifiers
+  - char classes, negated char classes, ranges, and POSIX classes
+  - anchors including `^`, `$`, `\A`, `\Z`, `\z`, `\b`, `\B`, and `\G`
+  - backreferences
+  - inline modifiers and scoped modifiers
+  - conditional regex forms
+  - embedded code-block syntax such as `(?{...})` and language-tagged variants
+- The current parser contract does not promise:
+  - runtime execution semantics for embedded code blocks
+  - semantic equivalence with every regex engine on earth
+  - a stable typed Rust AST API beyond the JSON schema described above
 
 ## Downstream Integration Checklist
 1. Depend on the stable host module `pgen::embedding_api`.
 2. Use profile `regex_default`.
 3. Check `parser_embedding_api_contract().supports_regex_generated_backend` at startup or build validation time.
-4. Use `parse_regex_default_result(...)` for accept/reject + diagnostics flows.
-5. Use `parse_regex_default_ast_dump(...)` only if JSON AST transport is genuinely needed.
-6. Treat `E_BACKEND_UNAVAILABLE`, `E_PARSE_FAILURE`, and `E_INPUT_TOO_LARGE` as first-class expected error modes.
-7. Keep a downstream-owned regex acceptance/rejection corpus and run it alongside PGEN’s own gate stack.
-8. When reporting a bug, follow `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` so the issue arrives with a reproducible input, structured outcome, AST dump, and trace bundle.
-9. Once a real bug is confirmed, expect it to be tracked under the regex family/profile in `PGEN_RELEASED_PARSER_BUG_LEDGER.md` until the fix is released.
-10. If RGX or any other downstream consumer also tracks the same bug locally, treat the PGEN ledger as canonical for parser root cause, fix proof, and parser-release state.
+4. Record both:
+   - `parser_embedding_api_contract().regex_parser_release_version`
+   - `parser_embedding_api_contract().regex_integration_contract_version`
+5. Use `parse_regex_default_result(...)` for accept/reject + diagnostics flows.
+6. Use `parse_regex_default_ast_dump(...)` only if JSON AST transport is genuinely needed.
+7. Treat `E_BACKEND_UNAVAILABLE`, `E_PARSE_FAILURE`, and `E_INPUT_TOO_LARGE` as first-class expected error modes.
+8. Keep a downstream-owned regex acceptance/rejection corpus and run it alongside PGEN's own gate stack.
+9. When reporting a bug, follow the quick path below and the full protocol in `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
+10. Once a real bug is confirmed, expect it to be tracked under the regex family/profile in `PGEN_RELEASED_PARSER_BUG_LEDGER.md` until the fix is released.
+
+## Issue Reporting Quick Path
+- Every actionable regex parser bug report should include:
+  - PGEN commit ID or released crate version
+  - regex parser release version
+  - regex integration contract version
+  - parser family/profile:
+    - `regex`
+    - `regex_default`
+  - exact failing input file
+  - expected vs actual behavior
+  - pretty-printed `parser_embedding_api_contract()` JSON
+  - pretty-printed parse outcome JSON
+  - pretty-printed AST dump JSON when the parse succeeds but the structure is wrong
+- If the downstream project can run a PGEN checkout, also capture parser trace artifacts:
+
+```bash
+export PGEN_TRACE_VERBOSITY=debug
+
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+  --parse regex repro_input.txt \
+  --profile regex_default \
+  --trace \
+  --trace-log-file pgen_trace.log
+
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- \
+  --parse-dump-ast-pretty regex repro_input.txt pgen_ast_dump.json \
+  --profile regex_default \
+  --trace \
+  --trace-log-file pgen_trace.log
+```
+
+- If the downstream project only has the Rust embedding API, capture:
+  - `parser_embedding_api_contract()`
+  - `parse_regex_default(...)` or `parse_regex_default_result(...)`
+  - `parse_regex_default_ast_dump(...)` when AST structure is relevant
+- Full reporting procedure:
+  - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 
 ## Minimal Rust Example
 ```rust
 use pgen::embedding_api::{
-    parser_embedding_api_contract, parse_regex_default_result,
+    parse_regex_default_result, parser_embedding_api_contract,
 };
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
+assert_eq!(contract.regex_parser_release_version, "1.0.0");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```
 
 ## Validation / Release Gates
 - Public host API stability:
-  - `make -C rust SHELL=/bin/bash embedding_api_gate`
-  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust embedding_api_gate`
+  - `make -C rust regex_parser_integration_contract_gate`
 - Family proof/closure:
-  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_gate`
-  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_family_status_contract_gate`
-  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_combined_telemetry_contract_gate`
+  - `make -C rust regex_parser_family_status_gate`
+  - `make -C rust regex_parser_family_status_contract_gate`
+  - `make -C rust regex_combined_telemetry_contract_gate`
 
-## Current Trust Statement
-- For the currently tracked regex grammar contract, PGEN’s public position is that downstream projects may rely on this parser through the `embedding_api` host surface.
-- If RGX needs a wider dialect or a stable typed AST schema beyond JSON AST-dump transport, that should be treated as new contract work and explicitly versioned here.
+## What This Does Not Promise
+- It does not promise stable internal generated parser types.
+- It does not promise that `generated/regex.json` is a downstream runtime dependency.
+- It does not promise runtime execution semantics for embedded code blocks such as `(?{...})`.
+- It does not promise every regex dialect already supported elsewhere in the ecosystem.
+- It does not promise that downstream consumers can ignore parser release versioning when depending on AST details.

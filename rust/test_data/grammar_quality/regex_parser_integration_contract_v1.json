@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "integration_contract_version": "1.0.0",
+  "parser_release_version": "1.0.0",
+  "grammar": "regex",
+  "profile": "regex_default",
+  "required_generated_backend_flag": "supports_regex_generated_backend",
+  "required_generated_backend_feature": "generated_parsers",
+  "required_generated_backend_artifact": "generated/regex_parser.rs",
+  "generated_backend_env_override": "PGEN_REGEX_PARSER_PATH",
+  "ast_dump_schema_version": 1,
+  "frontend_json_artifact": "generated/regex.json",
+  "frontend_json_role": "PGEN-generated frontend normalization and provenance artifact; not a stable downstream runtime input or AST contract",
+  "stable_diagnostic_location_fields": [
+    "byte_offset",
+    "line",
+    "column"
+  ],
+  "success_samples": [
+    {
+      "name": "empty_regex",
+      "input": ""
+    },
+    {
+      "name": "alternation",
+      "input": "a|b"
+    },
+    {
+      "name": "word_boundary",
+      "input": "\\bword\\b"
+    },
+    {
+      "name": "url_pattern",
+      "input": "https?://[^\\s]+"
+    }
+  ],
+  "failure_samples": [
+    {
+      "name": "unbalanced_group",
+      "input": "("
+    },
+    {
+      "name": "unclosed_char_class",
+      "input": "[a-"
+    }
+  ]
+}

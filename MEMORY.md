@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: markdown-repo-path-policy)
+Last updated: 2026-03-28 (+0100, task: regex-integration-contract-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,45 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- RGX's regex integration complaints were addressed as real contract gaps, not dismissed as documentation nitpicks.
+- [rust/src/embedding_api.rs](rust/src/embedding_api.rs) now publishes a stronger downstream regex contract:
+  - `EMBEDDING_API_VERSION = "1.2.0"`
+  - `EMBEDDING_API_SCHEMA_VERSION = 2`
+  - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.0.0"`
+  - `REGEX_PARSER_RELEASE_VERSION = "1.0.0"`
+  - `REGEX_AST_DUMP_SCHEMA_VERSION = 1`
+  - `ParseDiagnostic` now includes optional structured `location { byte_offset, line, column }`
+  - generated regex parse failures now populate that location object
+  - `ParserEmbeddingApiContract` now publishes:
+    - regex parser release version
+    - regex integration contract version
+    - regex generated-backend requirement metadata
+    - regex AST schema version
+    - `generated/regex.json` role
+- The regex integration manifest is now [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json).
+- [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) is now a real versioned downstream handoff doc:
+  - has `Contract Identity`
+  - documents the complete stable regex embedding surface
+  - explicitly documents generated-backend enablement
+  - defines the regex AST-dump schema contract
+  - includes an issue-reporting quick path with trace / AST capture commands
+  - uses portable regex gate commands (`make -C rust ...`)
+- Shared downstream support docs now capture release-versioned support state:
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+    - now asks for parser release version and integration contract version when available
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - now tracks `Reported Against Parser Release`
+    - now tracks `Reported Against Contract Version`
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - now treats `Contract Identity` as part of the expected family-doc shape
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now locks the new regex release/version/schema/reporting surface.
+- Validation completed for this slice:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - source-target stage passed
+    - generated-target stage still reports the pre-existing non-strict generated-parser clippy issue in tracked `rtl_const_expr` generated code; the wrapper completed successfully
 - PGEN's tracked Markdown docs now enforce repo-relative paths instead of checkout-specific absolute paths.
 - The remaining tracked `.md` occurrences of checkout-specific absolute repo paths were normalized across:
   - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
@@ -41,7 +80,7 @@ Use this file to resume work without replaying full chat history.
   - [PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
   - [PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
   - [rust/scripts/regex_parser_integration_contract_gate.sh](rust/scripts/regex_parser_integration_contract_gate.sh)
-  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
 - Regex now has a dedicated consumer-facing host proof slice:
   - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
   - embedded contract tests now cover:

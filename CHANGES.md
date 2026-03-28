@@ -1,4 +1,63 @@
 # CHANGES.md
+## 2026-03-28 - Harden regex downstream integration contract
+### ✅ Achievement Summary
+PGEN's regex parser handoff is now a versioned downstream contract instead of a mostly narrative guide: the public embedding API exposes regex release metadata and machine-localizable parse failures, the regex integration doc now defines a real release/build/schema/reporting contract, and the released-parser support loop now records parser release and contract versions explicitly.
+
+### Scope of Changes
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - bumped `EMBEDDING_API_VERSION` to `1.2.0`
+  - bumped `EMBEDDING_API_SCHEMA_VERSION` to `2`
+  - added:
+    - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.0.0"`
+    - `REGEX_PARSER_RELEASE_VERSION = "1.0.0"`
+    - `REGEX_AST_DUMP_SCHEMA_VERSION = 1`
+  - `ParseDiagnostic` now carries optional structured location metadata:
+    - `byte_offset`
+    - `line`
+    - `column`
+  - `ParserEmbeddingApiContract` now publishes regex downstream metadata:
+    - integration contract version
+    - parser release version
+    - AST-dump schema version
+    - required Cargo feature / generated artifact / env override
+    - `generated/regex.json` role
+- Replaced the regex integration manifest with [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json).
+- Updated [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+  - added contract identity and release versioning
+  - documented complete stable regex API surface
+  - documented explicit generated-backend enablement requirements
+  - defined the stable regex AST-dump schema contract
+  - documented the exact issue-reporting quick path including trace capture
+  - replaced the non-portable regex gate command examples with `make -C rust ...`
+- Updated shared release-support docs:
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+- Updated companion docs:
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Local CI now locks the new regex contract shape so we do not regress on:
+  - contract version / parser release version
+  - stable diagnostic locations
+  - regex AST schema version metadata
+  - parser release / contract version intake fields in the reporting protocol and released-bug ledger
+
+### Validation
+- `git diff --check -- rust/src/embedding_api.rs rust/docs/EMBEDDING_API_CONTRACT.md PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md PGEN_RELEASED_PARSER_BUG_LEDGER.md PGEN_PARSER_INTEGRATION_CONTRACTS.md PGEN_USER_GUIDE.md RUST_CODEBASE_ANALYSIS.md rust/scripts/ci_workflow_local_gate.sh rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+- `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
+- `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - source-target stage passed
+  - generated-target stage still reports the pre-existing non-strict generated-parser clippy issue in tracked `rtl_const_expr` generated code; the wrapper completed successfully
+
+### Why This Matters
+- RGX and future downstream consumers can now pin and report against a real regex parser release version and a real integration contract version.
+- Regex parse failures now arrive with structured location data instead of only human text.
+- The regex AST-dump contract is now explicitly schema-versioned rather than only transport-stable.
+
 ## 2026-03-28 - Enforce relative repo paths in Markdown docs
 ### ✅ Achievement Summary
 PGEN's tracked Markdown docs no longer embed checkout-specific absolute paths into this repository, and local CI now enforces that repo-internal Markdown paths stay relative.
@@ -48,7 +107,7 @@ PGEN now has a first-class downstream parser handoff surface instead of relying 
   - [PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
   - [PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
   - [rust/scripts/regex_parser_integration_contract_gate.sh](rust/scripts/regex_parser_integration_contract_gate.sh)
-  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v0.json)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
 - Updated:
   - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
   - [rust/Makefile](rust/Makefile)

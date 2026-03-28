@@ -27,6 +27,7 @@ Issue-reporting protocol for any integrated parser:
 
 ## Required Shape For Each Family Document
 - `Purpose`
+- `Contract Identity`
 - `Source Of Truth`
 - `Stable Integration Surface`
 - `Build / Availability Requirements`
@@ -34,6 +35,9 @@ Issue-reporting protocol for any integrated parser:
 - `Scope / Non-Goals`
 
 Recommended additions when a family is actively consumed by another project:
+- contract version
+- parser release version
+- last updated stamp
 - a downstream-specific checklist
 - representative pass/fail examples
 - explicit startup checks
