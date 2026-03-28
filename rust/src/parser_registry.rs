@@ -670,6 +670,11 @@ mod tests {
     #[test]
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {
         assert_eq!(parse_sample("regex", "(foo|bar)+"), Some(true));
+        assert_eq!(parse_sample("regex", r"\d"), Some(true));
+        assert_eq!(parse_sample("regex", r"\bword\b"), Some(true));
+        assert_eq!(parse_sample("regex", r"\\"), Some(true));
+        assert_eq!(parse_sample("regex", r"^\+?[1-9]\d{1,14}$"), Some(true));
+        assert_eq!(parse_sample("regex", r"^https?://[^\s/$.?#].[^\s]*$"), Some(true));
         assert_eq!(parse_sample("regex", "("), Some(false));
     }
 

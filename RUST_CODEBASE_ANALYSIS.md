@@ -1253,7 +1253,8 @@ Operational rule:
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
   - It now also has real parser-backed quality evidence in the shared non-annotation stimuli contract, but that surface still carries bounded parser-rejection debt and bounded target debt
   - It now also has deterministic parser-rejection triage sidecars in its family-contract and aggregate proof stack, so regex closure work can talk about dominant failing sample/error/location buckets instead of only total rejection counts
-  - It now also has a checked-in broader-corpus proof gate over the regex stress corpus (`44` executed, `31` pass, `13` fail in the current measured slice), and the formal-exhaustive-closure gate is now green because that broader-corpus proof surface exists
+  - It now also has a checked-in broader-corpus proof gate over the regex stress corpus (`44` executed, `43` pass, `1` fail in the current measured slice), and the formal-exhaustive-closure gate is now green because that broader-corpus proof surface exists
+  - A recent real-world regex follow-up showed why this family is so frontend-coupled: fixing quoted-terminal escape decoding in `ebnf_frontend.rs` and widening `literal_char` just enough for `:` and `/` was enough to turn the checked-in `url_pattern` broader-corpus case green without changing the higher-level proof architecture
   - It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself
 - `ebnf`
   - Not just another generated runtime parser family

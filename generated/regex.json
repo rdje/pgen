@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-03-27T20:13:16.249481+00:00",
+    "generated_at": "2026-03-28T00:58:55.147717+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -927,6 +927,22 @@
       ],
       [
         "quoted_string",
+        "/"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        ":"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
         ";"
       ],
       [
@@ -991,7 +1007,7 @@
       ],
       [
         "quoted_string",
-        "\\t"
+        "\t"
       ],
       [
         "operator",
@@ -999,7 +1015,7 @@
       ],
       [
         "quoted_string",
-        "\\n"
+        "\n"
       ],
       [
         "operator",
@@ -1007,7 +1023,7 @@
       ],
       [
         "quoted_string",
-        "\\r"
+        "\r"
       ]
     ],
     [
@@ -1043,7 +1059,7 @@
       ],
       [
         "quoted_string",
-        "\\\\A"
+        "\\A"
       ],
       [
         "operator",
@@ -1051,7 +1067,7 @@
       ],
       [
         "quoted_string",
-        "\\\\Z"
+        "\\Z"
       ],
       [
         "operator",
@@ -1059,7 +1075,7 @@
       ],
       [
         "quoted_string",
-        "\\\\z"
+        "\\z"
       ],
       [
         "operator",
@@ -1067,7 +1083,7 @@
       ],
       [
         "quoted_string",
-        "\\\\b"
+        "\\b"
       ],
       [
         "operator",
@@ -1075,7 +1091,7 @@
       ],
       [
         "quoted_string",
-        "\\\\B"
+        "\\B"
       ],
       [
         "operator",
@@ -1083,7 +1099,7 @@
       ],
       [
         "quoted_string",
-        "\\\\G"
+        "\\G"
       ]
     ],
     [
@@ -1093,7 +1109,7 @@
       ],
       [
         "quoted_string",
-        "\\\\"
+        "\\"
       ],
       [
         "rule_reference",
@@ -1105,7 +1121,7 @@
       ],
       [
         "quoted_string",
-        "\\\\k"
+        "\\k"
       ],
       [
         "rule_reference",
@@ -1947,7 +1963,7 @@
       ],
       [
         "quoted_string",
-        "\\\\"
+        "\\"
       ],
       [
         "rule_reference",
@@ -3150,7 +3166,7 @@
       ],
       [
         "quoted_string",
-        "\\\\"
+        "\\"
       ],
       [
         "rule_reference",
@@ -3182,7 +3198,7 @@
       ],
       [
         "quoted_string",
-        "\\\\"
+        "\\"
       ],
       [
         "rule_reference",
@@ -3262,7 +3278,7 @@
       ],
       [
         "quoted_string",
-        "\\'"
+        "'"
       ],
       [
         "operator",
@@ -4244,7 +4260,7 @@
       ],
       [
         "quoted_string",
-        "\\t"
+        "\t"
       ],
       [
         "operator",
@@ -4252,7 +4268,7 @@
       ],
       [
         "quoted_string",
-        "\\n"
+        "\n"
       ],
       [
         "operator",
@@ -4260,7 +4276,7 @@
       ],
       [
         "quoted_string",
-        "\\r"
+        "\r"
       ],
       [
         "operator",
@@ -4268,7 +4284,7 @@
       ],
       [
         "quoted_string",
-        "\\f"
+        "f"
       ],
       [
         "operator",
@@ -4276,7 +4292,7 @@
       ],
       [
         "quoted_string",
-        "\\v"
+        "v"
       ]
     ],
     [
@@ -4464,7 +4480,7 @@
       ],
       [
         "quoted_string",
-        "\\\\"
+        "\\"
       ],
       [
         "operator",
@@ -4496,7 +4512,7 @@
       ],
       [
         "quoted_string",
-        "\\'"
+        "'"
       ],
       [
         "operator",

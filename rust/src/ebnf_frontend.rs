@@ -681,12 +681,34 @@ fn parse_quoted_literal(input: &str, start: usize) -> Option<(String, usize)> {
             continue;
         }
         if ch == quote {
-            let literal = input.get(start + 1..idx)?.to_string();
+            let literal = decode_quoted_literal_body(input.get(start + 1..idx)?);
             return Some((literal, idx + 1));
         }
         idx += 1;
     }
     None
+}
+
+fn decode_quoted_literal_body(body: &str) -> String {
+    let mut output = String::with_capacity(body.len());
+    let mut chars = body.chars();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            match chars.next() {
+                Some('n') => output.push('\n'),
+                Some('r') => output.push('\r'),
+                Some('t') => output.push('\t'),
+                Some('\\') => output.push('\\'),
+                Some('\'') => output.push('\''),
+                Some('"') => output.push('"'),
+                Some(other) => output.push(other),
+                None => output.push('\\'),
+            }
+        } else {
+            output.push(ch);
+        }
+    }
+    output
 }
 
 fn parse_raw_string_literal(input: &str, start: usize) -> Option<(String, usize)> {
@@ -925,6 +947,16 @@ mod tests {
     }
 
     #[test]
+    fn tokenizes_quoted_literals_with_decoded_escape_sequences() {
+        let tokens = tokenize_rule_expression(r#""\\d" "\\b" "\\""#)
+            .expect("quoted literal tokenization should decode escapes");
+        let rendered = serde_json::to_string(&tokens).expect("json");
+        assert!(rendered.contains("[\"quoted_string\",\"\\\\d\"]"));
+        assert!(rendered.contains("[\"quoted_string\",\"\\\\b\"]"));
+        assert!(rendered.contains("[\"quoted_string\",\"\\\\\"]"));
+    }
+
+    #[test]
     fn tokenizes_optional_brackets_as_group_plus_optional_operator() {
         let tokens =
             tokenize_rule_expression("[foo]").expect("optional bracket tokenization should work");
@@ -1010,6 +1042,36 @@ entry := "a" -> {type: "node"}
         assert!(
             first_rule.contains("[\"return_object\",\"{type: \\\"node\\\"}\"]"),
             "expected return annotation token in raw_ast, got: {}",
+            first_rule
+        );
+    }
+
+    #[test]
+    fn parses_ebnf_text_into_raw_ast_with_decoded_terminal_escapes() {
+        let input = r#"
+entry := "\\d" "\\b" "\\"
+"#;
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "escaped", None)
+            .expect("frontend parse should succeed");
+        let raw_ast = envelope
+            .get("raw_ast")
+            .and_then(serde_json::Value::as_array)
+            .expect("raw_ast array should exist");
+        let first_rule =
+            serde_json::to_string(raw_ast[0].as_array().expect("rule array")).expect("rule json");
+        assert!(
+            first_rule.contains("[\"quoted_string\",\"\\\\d\"]"),
+            "expected decoded \\\\d terminal in raw_ast, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"quoted_string\",\"\\\\b\"]"),
+            "expected decoded \\\\b terminal in raw_ast, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"quoted_string\",\"\\\\\"]"),
+            "expected decoded backslash terminal in raw_ast, got: {}",
             first_rule
         );
     }

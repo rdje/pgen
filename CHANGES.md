@@ -36,6 +36,38 @@ PGEN's `regex` family now has a real machine-checkable formal-closure sidecar in
 - Regex closure work now has a real machine-checkable formal-closure seam instead of a documentation-only “missing closure surface” marker.
 - The remaining regex roadmap gap is now narrower and more explicit: land the broader corpus-backed proof surface the new gate is waiting for, while separately burning down parser rejection debt and target debt.
 
+## 2026-03-28 - Fix regex quoted escapes and URL literal coverage
+### ✅ Achievement Summary
+PGEN's generated `regex` backend now handles quoted terminal escapes correctly through the Rust EBNF frontend, and the tracked broader regex corpus improved again: the checked-in `url_pattern` case is now green and the current broader-corpus floor is `43/44` instead of `31/44`.
+
+### Scope of Changes
+- Updated:
+  - [rust/src/ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs)
+  - [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf)
+  - [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs)
+  - [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json)
+  - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The Rust EBNF frontend now decodes quoted-literal escape sequences before emitting raw-AST `quoted_string` nodes, so generated parser terminals now match regex escapes like `\\d`, `\\b`, and `\\\\` correctly instead of requiring doubled backslashes in the input language.
+- The regex grammar's `literal_char` surface now includes unescaped `:` and `/`, which closes the ordinary URL-prefix gap exposed by the checked-in broader regex corpus.
+- The broader regex corpus proof gate now records the stronger current measured slice:
+  - `cases_declared=44`
+  - `cases_executed=44`
+  - `parse_pass_total=43`
+  - `parse_fail_total=1`
+  - `primary_parse_failure_case=empty_regex`
+  - `primary_parse_failure_parser_error=Backtrack at position 0`
+- The checked-in `url_pattern` case now passes under the generated regex backend, so the broader-corpus soft-fail set no longer includes that real-world pattern.
+
+### Why This Matters
+- This is a real parser-behavior improvement, not just another proof-plumbing change.
+- Regex broader-corpus evidence is now stronger and more honest: the only remaining checked-in broader-corpus soft-fail is the empty-regex case, while the broader family still remains blocked on parser-rejection debt and target debt in the family-quality surface.
+
 ## 2026-03-28 - Add regex broader corpus proof gate
 ### ✅ Achievement Summary
 PGEN's `regex` family now has a checked-in broader-corpus proof surface backed by the regex stress corpus, and that new sidecar turns the regex formal-closure gate green while leaving the honest remaining blockers on parser rejections and target debt.

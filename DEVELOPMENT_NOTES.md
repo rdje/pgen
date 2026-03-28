@@ -45,6 +45,42 @@ After the parser-backed regex family-quality promotion and the follow-on debt-tr
 - Regex now has a real machine-checkable formal-closure seam rather than a static missing-closure placeholder.
 - The next regex roadmap move is clearer: add the broader corpus-backed proof surface the new closure gate is explicitly waiting for.
 
+## 2026-03-28 - Fix regex quoted escapes and URL literal coverage
+### Context
+Once the broader regex corpus was in place, the next useful move was no longer more proof plumbing. The checked-in corpus and direct parseability probes exposed a real backend bug: quoted EBNF terminals like `"\\d"` and `"\\b"` were being preserved with their escape spellings rather than decoded into literal terminal text, so the generated regex parser was matching doubled backslashes. That same follow-up also exposed a second, narrower grammar gap: ordinary URL literals still rejected unescaped `:` and `/`.
+
+### Implementation
+- Updated [rust/src/ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs):
+  - quoted EBNF terminal bodies are now decoded before the Rust frontend emits `quoted_string` raw-AST tokens
+  - the frontend now preserves the intended literal terminal values for escapes like `\\d`, `\\b`, `\\\\`, `\\n`, `\\r`, and `\\t`
+- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf):
+  - `literal_char` now includes unescaped `:` and `/`
+  - this closes the practical URL-prefix gap without widening the regex literal surface indiscriminately
+- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+  - extended the focused regex parseability adapter test coverage to include the checked-in URL-style sample `^https?://[^\\s/$.?#].[^\\s]*$`
+- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs) from the fixed frontend/grammar pair
+- Validated the generated backend directly with [parseability_probe](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs):
+  - `\\d`
+  - `\\bword\\b`
+  - `\\\\`
+  - `^\\+?[1-9]\\d{1,14}$`
+  - `^https?://[^\\s/$.?#].[^\\s]*$`
+- Re-ran [regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh):
+  - the checked-in broader-corpus floor improved from `31/44` to `43/44`
+  - `url_pattern` is now `pass`
+  - the only remaining soft-fail in that checked-in corpus is `empty_regex`
+  - the current measured summary is:
+    - `cases_declared=44`
+    - `cases_executed=44`
+    - `parse_pass_total=43`
+    - `parse_fail_total=1`
+    - `primary_parse_failure_case=empty_regex`
+    - `primary_parse_failure_parser_error=Backtrack at position 0`
+
+### Notes
+- I did not refresh the regex family-status numbers in docs beyond the broader-corpus slice because the broader-corpus follow-up was the validated seam here; the conservative live blocker set remains the current family-quality debt until a fresh family-status rerun is promoted.
+- This slice matters because it advances the roadmap with actual parser behavior, not only contract plumbing: the generated regex backend now accepts more realistic escaped and URL-shaped patterns from the checked-in corpus.
+
 ## 2026-03-28 - Add regex broader corpus proof gate
 ### Context
 Once the regex formal-closure gate existed, the next missing seam was no longer ambiguous: `regex` needed a checked-in broader-corpus proof surface rather than another placeholder or one-off shell override. The repository already carried a meaningful checked-in regex source corpus in [stress_tests.json](/Users/richarddje/Documents/github/pgen/rust/test_data/regex/stress_tests.json), so the clean next step was to turn that corpus into a deterministic proof gate and let the formal-closure sidecar consume it directly.

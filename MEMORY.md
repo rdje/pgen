@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: add-regex-broader-corpus-proof-gate)
+Last updated: 2026-03-28 (+0100, task: fix-regex-quoted-escapes-and-url-literal-coverage)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,22 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- The next regex roadmap seam after the formal-closure sidecar landed was the missing broader-corpus proof surface itself.
-- Added [rust/scripts/regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh) plus checked-in manifest [rust/test_data/grammar_quality/regex_broader_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_broader_corpus_v0.json).
-- The new broader-corpus gate now replays the checked-in regex stress corpus through the generated regex parser and records:
+- The latest regex follow-up was a real backend fix, not just more proof wiring.
+- Updated [rust/src/ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs) so quoted EBNF terminals are decoded before becoming raw-AST `quoted_string` tokens.
+- That fix removed a concrete regex backend bug where terminals like `"\\d"` and `"\\b"` were turning into doubled-backslash parser matches instead of true regex escape terminals.
+- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf) so `literal_char` now includes unescaped `:` and `/`, which closes the checked-in URL-prefix literal gap.
+- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs), and direct generated-backend probes now pass for:
+  - `\\d`
+  - `\\bword\\b`
+  - `\\\\`
+  - `^\\+?[1-9]\\d{1,14}$`
+  - `^https?://[^\\s/$.?#].[^\\s]*$`
+- The checked-in broader regex corpus now measures:
   - `cases_declared=44`
   - `cases_executed=44`
-  - `parse_pass_total=31`
-  - `parse_fail_total=13`
-  - `primary_parse_failure_case=word_boundary`
+  - `parse_pass_total=43`
+  - `parse_fail_total=1`
+  - `primary_parse_failure_case=empty_regex`
   - `primary_parse_failure_parser_error=Backtrack at position 0`
-- [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh) now consumes that broader-corpus sidecar directly instead of waiting for a missing-proof placeholder.
-- Current measured regex closure-gate values are now:
-  - `required_surface_key=broader_corpus_backed_proof_surface`
-  - `regex_formal_exhaustive_closure_surface_green=true`
-  - `regex_primary_unmet_closure_criterion=<none>`
-  - closure counts `1/1/0`
-- The current regex live status is still `In Progress`, but the blocker set is now narrower, with closure counts `6/8/2` and only:
+- The checked-in `url_pattern` case is now green; the only remaining broader-corpus soft-fail is `empty_regex`.
+- Conservative live regex blocker status is otherwise unchanged until a fresh family-status rerun is promoted:
   - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
   - `stimuli_regex_final_targets=35 > 0`
 - The next regex roadmap seam after parser-backed quality promotion and debt triage was the missing explicit formal-closure contract itself.
