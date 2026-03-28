@@ -975,6 +975,9 @@ audit_sota_json_consumption_surface() {
     '.family_status.regex.primary_unmet_closure_criterion'
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status.regex.primary_unmet_closure_criterion // "<none>"'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     '.family_status.regex.proof_surfaces.stimuli_parseability_report_json'
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
@@ -985,6 +988,9 @@ audit_sota_json_consumption_surface() {
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     '.family_status_contract.regex.proof_surfaces.family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.regex.primary_unmet_detail_criterion // "<none>"'
   assert_file_contains \
     "rust/scripts/regex_combined_telemetry_contract_gate.sh" \
     '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_summary_json'

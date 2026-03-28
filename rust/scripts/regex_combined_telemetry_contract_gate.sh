@@ -140,10 +140,10 @@ sota_exit_regex_contract_family_contract_summary_json="$(jq -r '.family_status_c
 sota_exit_regex_contract_formal_exhaustive_closure_state_dir="$(jq -r '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_state_dir' "$sota_summary_json")"
 sota_exit_regex_contract_formal_exhaustive_closure_summary_txt="$(jq -r '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_summary_txt' "$sota_summary_json")"
 sota_exit_regex_contract_formal_exhaustive_closure_summary_json="$(jq -r '.family_status_contract.regex.proof_surfaces.formal_exhaustive_closure_summary_json' "$sota_summary_json")"
-sota_exit_regex_primary_unmet="$(jq -r '.family_status.regex.primary_unmet_closure_criterion' "$sota_summary_json")"
+sota_exit_regex_primary_unmet="$(jq -r '.family_status.regex.primary_unmet_closure_criterion // "<none>"' "$sota_summary_json")"
 sota_exit_regex_unmet_json="$(jq -cer '.family_status.regex.unmet_closure_criteria' "$sota_summary_json")"
 sota_exit_regex_unmet_details_json="$(jq -cer '.family_status.regex.unmet_closure_criteria_details' "$sota_summary_json")"
-sota_exit_regex_primary_unmet_detail="$(jq -r '.family_status_contract.regex.primary_unmet_detail_criterion' "$sota_summary_json")"
+sota_exit_regex_primary_unmet_detail="$(jq -r '.family_status_contract.regex.primary_unmet_detail_criterion // "<none>"' "$sota_summary_json")"
 sota_exit_regex_unmet_detail_json="$(jq -cer '.family_status_contract.regex.unmet_closure_criteria' "$sota_summary_json")"
 sota_exit_regex_unmet_detail_details_json="$(jq -cer '.family_status_contract.regex.unmet_closure_criteria_details' "$sota_summary_json")"
 

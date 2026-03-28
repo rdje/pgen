@@ -21,7 +21,7 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It is not a claim that every parser family is closed.
 - It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
 - It should be read alongside the roadmap priority rule:
-  - active parser-family closure work for `systemverilog`, `vhdl`, and `regex` outranks deferred maintainability refactors until those families reach their intended closure bar.
+  - active parser-family closure work for `systemverilog` and `vhdl` now outranks deferred maintainability refactors, while `regex` has reached its current closure bar and should be treated as a no-regression proof baseline unless its contract is intentionally widened.
 
 ## Rust-Adjacent Cargo Surface
 - Main product crate
@@ -1252,10 +1252,11 @@ Operational rule:
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
   - It now also has a dedicated regex-only family stimuli contract (`rust/test_data/grammar_quality/regex_family_stimuli_contract.json`), so the canonical regex family/status/aggregate sidecars refresh from a family-local parser-backed baseline instead of piggybacking on the broader shared non-annotation stimuli contract
-  - The current published regex family proof stack is now on the parser-clean baseline (`197` attempts, `197` accepted, `0` parser rejections, `355 -> 122` targets), and the machine-checked regex family status is down to one blocker (`stimuli_regex_final_targets=122 > 0`) with `7/8` closure criteria satisfied
+  - The current published regex family proof stack is now on the closure baseline (`1554` attempts, `1554` accepted, `0` parser rejections, `355 -> 0` targets), and the machine-checked regex family status computes `Done` with `8/8` closure criteria satisfied
   - It now also has deterministic parser-rejection triage sidecars in its family-contract and aggregate proof stack, so regex closure work can talk about dominant failing sample/error/location buckets instead of only total rejection counts
   - It now also has a checked-in broader-corpus proof gate over the regex stress corpus (`44` executed, `44` pass, `0` fail in the current measured slice), and the formal-exhaustive-closure gate is now green because that broader-corpus proof surface exists
   - Recent real-world regex follow-ups showed why this family is so frontend-coupled: fixing quoted-terminal escape decoding in `ebnf_frontend.rs`, widening `literal_char` just enough for `:` and `/`, deliberately allowing an empty top-level regex, and then disabling implicit layout skipping in generated regex parsers were enough to turn the checked-in `url_pattern`, `empty_regex`, and leading-whitespace quantifier false negatives green without changing the higher-level proof architecture
+  - The final regex blocker turned out to be in the stimuli engine rather than the parser itself: alternate-entry helper probes inside `generate_until_targets_with_filter` now retain helper-rule coverage progress even when those helper outputs fail the primary-entry parseability filter, so regex target driving no longer spins by rolling back legitimate helper coverage
   - It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself
 - `ebnf`
   - Not just another generated runtime parser family
@@ -1288,6 +1289,9 @@ Operational rule:
 - “A successful compile is enough validation for a Rust change.”
   - Usually false here.
   - In this repo, the next real consumer of the artifact is often the meaningful validation seam.
+- “If `parseability_rejected_total=0`, the parseability counterexample sidecar must be empty.”
+  - False here.
+  - Counterexample triage can still retain target-drive filter evidence from rejected alternate-entry helper probes even when the canonical primary-entry parseability totals are fully green.
 - “If an annotation leaf suite or one SC gate passes, the repo-level annotation proof claim is done.”
   - False here.
   - Aggregate annotation claims usually live one layer higher in `annotation_contract_gate`, `semantic_full_contract_gate`, `return_annotation_support_gate`, or `annotation_stimuli_quality_gate`.

@@ -7137,3 +7137,26 @@ Use this file to resume work without replaying full chat history.
   - Important steering note:
     - the published regex family/status/aggregate sidecars still reflect the older `742/738/4` + `final_targets=35` baseline
     - next regex roadmap slice should refresh those sidecars from the new parser-backed stimuli baseline, then focus on reducing the remaining `final_targets=122`
+- 2026-03-28: The remaining regex blocker turned out to be target-drive rollback policy, not parser behavior.
+  - `rust/src/ast_pipeline/stimuli_generator.rs`
+    - `generate_until_targets_with_filter` must distinguish between:
+      - primary-entry outputs rejected by the final filter
+      - alternate-entry helper probes rejected only because helper outputs are not valid top-level samples
+    - helper-probe rejection should not erase legitimate helper-rule coverage progress
+  - Added focused regression coverage:
+    - `target_driven_generation_filter_keeps_alternate_probe_helper_coverage`
+  - Fresh regex family-contract proof after the fix:
+    - `parseability_attempts_total=1554`
+    - `parseability_accepted_total=1554`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `initial_targets=355`
+    - `resolved_targets=355`
+    - `final_targets=0`
+  - Steering impact:
+    - regex now computes `Done` at the family-status layer (`8/8/0`)
+    - roadmap closure focus should move back to `systemverilog` and `vhdl`
+    - regex should now be treated as a no-regression proof baseline unless its contract is intentionally widened
+  - Aggregate edge case:
+    - fully-green SOTA JSON uses `null` for absent regex blocker fields, while source-side family/status sidecars still use `"<none>"`
+    - `rust/scripts/regex_combined_telemetry_contract_gate.sh` must normalize those SOTA JSON reads with `// "<none>"` or aggregate parity will fail spuriously exactly when regex becomes blocker-free

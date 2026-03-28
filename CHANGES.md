@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-03-28 - Close regex family target debt at the stimuli-engine seam
+### ✅ Achievement Summary
+PGEN's canonical `regex` family is now closed on the current proof stack: parser-backed family stimuli target debt fell from `122` to `0`, the family-status row computes `Done`, and the aggregate-visible regex surfaces now converge on `1554/1554/0` parseability and `355 -> 0` target debt.
+
+### Scope of Changes
+- Updated:
+  - [rust/src/ast_pipeline/stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs)
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- `StimuliGenerator::generate_until_targets_with_filter` now preserves helper-rule coverage progress from alternate-entry probes even when those helper outputs fail the primary-entry parseability filter.
+- Added a focused regression test proving that helper-only alternate probes can retire helper debt without pretending those helper outputs became valid primary-entry samples.
+- Fresh regex-family measurements on that behavior change are now:
+  - `parseability_attempts_total=1554`
+  - `parseability_accepted_total=1554`
+  - `parseability_rejected_total=0`
+  - `parseability_parser_rejections_total=0`
+  - `initial_targets=355`
+  - `resolved_targets=355`
+  - `final_targets=0`
+- The regex proof stack is now objectively green:
+  - family status computes `regex=Done` with `8/8/0`
+  - status-contract counts are `family_count=1`, `regex_false_criteria_count=0`, `regex_unmet_details_count=0`
+  - aggregate-visible regex telemetry is expected to preserve the same `1554/1554/0` and `355 -> 0` baseline
+  - the combined telemetry gate now also normalizes fully-green SOTA JSON blocker fields from `null` to the source-side sentinel `"<none>"`, so aggregate parity does not fail spuriously when regex has no remaining blockers
+
+### Why This Matters
+- The remaining regex blocker was not hidden parser debt; it was target-drive bookkeeping at the stimuli-engine seam.
+- Regex now moves out of “active closure” and into “preserve the closed proof baseline” territory, which changes roadmap prioritization across the Rust codebase.
+
 ## 2026-03-28 - Refresh regex family proof stack from parser-clean baseline
 ### ✅ Achievement Summary
 PGEN's canonical regex family/status/aggregate proof stack now matches the current parser-clean regex baseline instead of lagging behind the older `742/738/4` family snapshot.

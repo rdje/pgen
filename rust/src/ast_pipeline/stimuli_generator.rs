@@ -1292,11 +1292,17 @@ impl<'a> StimuliGenerator<'a> {
                             validation_summary.validated_outputs.saturating_add(1);
                     }
                     if !accepted {
-                        self.coverage.restore_success_state(&success_snapshot);
                         if generation_entry == resolved_entry {
+                            // Primary-entry outputs are candidate final samples, so failed
+                            // validation must not pay target debt for the canonical entry rule.
+                            self.coverage.restore_success_state(&success_snapshot);
                             validation_summary.rejected_outputs =
                                 validation_summary.rejected_outputs.saturating_add(1);
                         } else {
+                            // Alternate-entry probes exist only to exercise helper-rule debt.
+                            // Even when those helper outputs are not valid full-entry samples,
+                            // keep the local coverage progress so target driving can retire
+                            // subrule debt instead of spinning on rolled-back helper probes.
                             validation_summary.alternate_entry_rejected_outputs =
                                 validation_summary
                                     .alternate_entry_rejected_outputs
@@ -5777,6 +5783,82 @@ mod tests {
         assert!(
             group.selected_counts.get(1).copied().unwrap_or(0) > 0,
             "rejected branch should still accumulate selection history for throttling"
+        );
+    }
+
+    #[test]
+    fn target_driven_generation_filter_keeps_alternate_probe_helper_coverage() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "helper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "H"), token("quoted_string", "I")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 990);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        let helper_targets: Vec<_> = report
+            .targets
+            .into_iter()
+            .filter(|target| target.rule_name == "helper")
+            .collect();
+        assert!(
+            !helper_targets.is_empty(),
+            "expected helper targets to drive alternate-entry probing"
+        );
+
+        let (samples, summary, validation) = generator
+            .generate_until_targets_with_filter(Some("start"), &helper_targets, 400, |sample| {
+                Ok(sample == "S")
+            })
+            .expect("target-driven generation with helper-only filter should succeed");
+
+        assert!(
+            samples.iter().all(|sample| sample == "S"),
+            "only primary-entry outputs should pass the strict filter"
+        );
+        assert!(
+            validation.alternate_entry_attempts > 0,
+            "helper-only targets should force alternate-entry probing"
+        );
+        assert_eq!(
+            validation.alternate_entry_accepted_outputs, 0,
+            "helper probe outputs should never pass the primary-entry filter in this setup"
+        );
+        assert!(
+            validation.alternate_entry_rejected_outputs > 0,
+            "helper probe outputs should be rejected by the primary-entry filter in this setup"
+        );
+        assert_eq!(
+            summary.resolved_targets, summary.total_targets,
+            "alternate-entry helper probes should still retire helper-only target debt"
+        );
+        assert!(
+            summary.unresolved_targets.is_empty(),
+            "helper-only targets should resolve even when helper outputs fail the primary-entry filter"
+        );
+
+        let helper_group = generator
+            .coverage_metrics()
+            .branch_groups
+            .get("helper::root")
+            .expect("helper branch group should exist");
+        assert!(
+            helper_group.success_counts.iter().all(|count| *count > 0),
+            "helper branch successes should be retained after rejected alternate-entry probes"
         );
     }
 

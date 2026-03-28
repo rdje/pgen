@@ -25555,3 +25555,33 @@ Architectural north star:
   - Net result:
     - the direct regex parser-rejection blocker is cleared on the fresh stimuli surface
     - the remaining regex blocker is now target debt, and the family-status / aggregate regex sidecars need a fresh rerun to publish that new baseline end to end
+- 2026-03-28: Closed the remaining regex family target debt by fixing target-drive bookkeeping in the stimuli engine.
+  - Root cause:
+    - `StimuliGenerator::generate_until_targets_with_filter` used one rollback rule for both:
+      - primary-entry outputs that fail the final parseability filter
+      - alternate-entry helper probes that only exist to exercise helper-rule debt
+    - that meant helper probes could legitimately hit helper branches, then lose that progress immediately because their non-entry outputs were rejected by the primary-entry filter.
+  - Source fix:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+      - primary-entry rejected outputs still restore success state
+      - alternate-entry rejected outputs now keep the local success-state progress so helper-rule debt can retire
+      - added focused regression test `target_driven_generation_filter_keeps_alternate_probe_helper_coverage`
+  - Fresh measured regex-family contract baseline after the fix:
+    - `parseability_attempts_total=1554`
+    - `parseability_accepted_total=1554`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `parseability_acceptance_rate_percent=100.00`
+    - `counterexamples_captured_total=5`
+    - `primary_stage=target_drive_output_filter`
+    - `primary_parser_error=Parser did not consume full input at position 0`
+    - `initial_targets=355`
+    - `resolved_targets=355`
+    - `final_targets=0`
+  - Status impact:
+    - `regex_parser_family_status_gate` now computes `regex=Done`
+    - closure counts move from `7/8/1` to `8/8/0`
+    - the remaining regex work is now no-regression maintenance of the closed proof stack, not open closure debt
+  - Aggregate follow-through:
+    - `regex_combined_telemetry_contract_gate` exposed a real closed-state edge case: SOTA JSON emits `null` for absent regex blocker fields when the family is fully green, while the source-side sidecars still use `"<none>"`
+    - the combined gate now normalizes those SOTA JSON reads with `// "<none>"`, and local CI locks that expectation so aggregate regex parity stays green when the family has no blockers left
