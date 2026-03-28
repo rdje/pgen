@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: fix-regex-quoted-escapes-and-url-literal-coverage)
+Last updated: 2026-03-28 (+0100, task: support-empty-regex-broader-corpus)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,24 +8,20 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- The latest regex follow-up was a real backend fix, not just more proof wiring.
-- Updated [rust/src/ebnf_frontend.rs](/Users/richarddje/Documents/github/pgen/rust/src/ebnf_frontend.rs) so quoted EBNF terminals are decoded before becoming raw-AST `quoted_string` tokens.
-- That fix removed a concrete regex backend bug where terminals like `"\\d"` and `"\\b"` were turning into doubled-backslash parser matches instead of true regex escape terminals.
-- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf) so `literal_char` now includes unescaped `:` and `/`, which closes the checked-in URL-prefix literal gap.
-- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs), and direct generated-backend probes now pass for:
-  - `\\d`
-  - `\\bword\\b`
-  - `\\\\`
-  - `^\\+?[1-9]\\d{1,14}$`
-  - `^https?://[^\\s/$.?#].[^\\s]*$`
-- The checked-in broader regex corpus now measures:
+- The latest regex follow-up closed the last checked-in broader-corpus soft-fail.
+- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf) so the entry rule now accepts `pattern?`, making the empty string a valid top-level regex.
+- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs) so the focused generated-backend adapter test now treats `""` as valid.
+- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs).
+- Direct generated-backend probe now passes for empty input:
+  - `parse_full passed for grammar 'regex' on '/tmp/regex_empty.regex'`
+- The checked-in broader regex corpus is now fully green:
   - `cases_declared=44`
   - `cases_executed=44`
-  - `parse_pass_total=43`
-  - `parse_fail_total=1`
-  - `primary_parse_failure_case=empty_regex`
-  - `primary_parse_failure_parser_error=Backtrack at position 0`
-- The checked-in `url_pattern` case is now green; the only remaining broader-corpus soft-fail is `empty_regex`.
+  - `parse_pass_total=44`
+  - `parse_fail_total=0`
+  - `primary_parse_failure_case=<none>`
+  - `primary_parse_failure_parser_error=<none>`
+- The broader-corpus regex proof surface no longer has any checked-in parse failures.
 - Conservative live regex blocker status is otherwise unchanged until a fresh family-status rerun is promoted:
   - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
   - `stimuli_regex_final_targets=35 > 0`

@@ -45,6 +45,33 @@ After the parser-backed regex family-quality promotion and the follow-on debt-tr
 - Regex now has a real machine-checkable formal-closure seam rather than a static missing-closure placeholder.
 - The next regex roadmap move is clearer: add the broader corpus-backed proof surface the new closure gate is explicitly waiting for.
 
+## 2026-03-28 - Support empty regex in broader corpus
+### Context
+Once the broader regex corpus had been improved to `43/44`, the remaining checked-in soft-fail was no longer ambiguous: the empty-regex case itself. Because that corpus case was already part of the checked-in proof surface, the clean next step was to accept an empty top-level regex deliberately rather than leave broader-corpus realism one case short.
+
+### Implementation
+- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf):
+  - the entry rule now accepts `pattern?` instead of requiring a non-empty `pattern`
+  - this makes the empty string a valid top-level regex without changing the deeper `alternation` / `concatenation` structure yet
+- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs):
+  - the focused regex parseability adapter test now explicitly treats `""` as valid
+- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
+- Validated the generated backend directly with [parseability_probe](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs):
+  - empty input now passes for `regex`
+- Re-ran [regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh):
+  - the checked-in broader corpus is now fully green
+  - current measured summary:
+    - `cases_declared=44`
+    - `cases_executed=44`
+    - `parse_pass_total=44`
+    - `parse_fail_total=0`
+    - `primary_parse_failure_case=<none>`
+    - `primary_parse_failure_parser_error=<none>`
+
+### Notes
+- This is intentionally narrower than “support all empty alternatives everywhere”; it closes the checked-in top-level empty-regex gap without claiming deeper nullable-regex semantics are finished work.
+- The remaining regex blockers are still the family-quality parser-rejection and target-debt surfaces, not the broader-corpus source set.
+
 ## 2026-03-28 - Fix regex quoted escapes and URL literal coverage
 ### Context
 Once the broader regex corpus was in place, the next useful move was no longer more proof plumbing. The checked-in corpus and direct parseability probes exposed a real backend bug: quoted EBNF terminals like `"\\d"` and `"\\b"` were being preserved with their escape spellings rather than decoded into literal terminal text, so the generated regex parser was matching doubled backslashes. That same follow-up also exposed a second, narrower grammar gap: ordinary URL literals still rejected unescaped `:` and `/`.

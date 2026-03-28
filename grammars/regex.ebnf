@@ -3,7 +3,7 @@
 # Properly handles balanced braces and string literals in code blocks
 
 # Entry point
-regex          = pattern
+regex          = pattern?
 -> {type: "regex", pattern: $1}
 
 # Alternation and concatenation

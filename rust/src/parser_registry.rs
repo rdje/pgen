@@ -669,6 +669,7 @@ mod tests {
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage() {
+        assert_eq!(parse_sample("regex", ""), Some(true));
         assert_eq!(parse_sample("regex", "(foo|bar)+"), Some(true));
         assert_eq!(parse_sample("regex", r"\d"), Some(true));
         assert_eq!(parse_sample("regex", r"\bword\b"), Some(true));

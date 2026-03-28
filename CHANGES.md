@@ -36,6 +36,36 @@ PGEN's `regex` family now has a real machine-checkable formal-closure sidecar in
 - Regex closure work now has a real machine-checkable formal-closure seam instead of a documentation-only “missing closure surface” marker.
 - The remaining regex roadmap gap is now narrower and more explicit: land the broader corpus-backed proof surface the new gate is waiting for, while separately burning down parser rejection debt and target debt.
 
+## 2026-03-28 - Support empty regex in broader corpus
+### ✅ Achievement Summary
+PGEN's generated `regex` backend now accepts the checked-in empty-regex case, which closes the last remaining soft-fail in the broader regex stress corpus and brings that source-side proof surface to `44/44` passing.
+
+### Scope of Changes
+- Updated:
+  - [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf)
+  - [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs)
+  - [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json)
+  - [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The regex grammar entry rule now accepts an optional top-level pattern, which makes the empty string a valid regex input without widening the deeper concatenation/alternation semantics yet.
+- The focused generated-backend adapter test now explicitly treats `""` as a valid regex sample.
+- The checked-in broader-corpus proof surface now records:
+  - `cases_declared=44`
+  - `cases_executed=44`
+  - `parse_pass_total=44`
+  - `parse_fail_total=0`
+  - `primary_parse_failure_case=<none>`
+  - `primary_parse_failure_parser_error=<none>`
+
+### Why This Matters
+- The broader-corpus regex proof surface is now fully green instead of merely “almost green.”
+- Regex still remains `In Progress`, but the remaining blockers are now clearly the family-quality parser-rejection and target-debt surfaces rather than any checked-in broader-corpus parse failure.
+
 ## 2026-03-28 - Fix regex quoted escapes and URL literal coverage
 ### ✅ Achievement Summary
 PGEN's generated `regex` backend now handles quoted terminal escapes correctly through the Rust EBNF frontend, and the tracked broader regex corpus improved again: the checked-in `url_pattern` case is now green and the current broader-corpus floor is `43/44` instead of `31/44`.
