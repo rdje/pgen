@@ -12,6 +12,7 @@ SUMMARY_JSON="$STATE_DIR/summary.json"
 
 CONTRACT_FILE="${PGEN_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json}"
 REGEX_FAMILY_CONTRACT_GATE="$RUST_DIR/scripts/regex_parser_family_contract_gate.sh"
+REGEX_BROADER_CORPUS_PROOF_GATE="$RUST_DIR/scripts/regex_broader_corpus_proof_gate.sh"
 
 EXISTING_FAMILY_CONTRACT_STATE_DIR="${PGEN_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_CONTRACT_STATE_DIR:-}"
 EXISTING_FRONTEND_STATE_DIR="${PGEN_REGEX_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FRONTEND_STATE_DIR:-}"
@@ -84,6 +85,7 @@ run_logged() {
 require_tool jq
 require_file "$CONTRACT_FILE"
 require_file "$REGEX_FAMILY_CONTRACT_GATE"
+require_file "$REGEX_BROADER_CORPUS_PROOF_GATE"
 
 jq -e '
     .family == "regex"
@@ -187,25 +189,82 @@ regex_stimuli_parseability_acceptance_rate_percent="$(summary_value_from_txt "st
 regex_stimuli_parseability_counterexample_primary_parser_error="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_parser_error" "$family_contract_summary_txt")"
 regex_stimuli_parseability_counterexample_primary_failure_location="$(summary_value_from_txt "stimuli_regex_parseability_counterexample_primary_failure_location" "$family_contract_summary_txt")"
 
-broader_corpus_backed_proof_surface_present=false
-broader_corpus_backed_proof_state_dir_txt="<missing>"
-broader_corpus_backed_proof_summary_txt="<missing>"
-broader_corpus_backed_proof_summary_json="<missing>"
-broader_corpus_backed_proof_state_dir_json=""
-broader_corpus_backed_proof_summary_txt_json=""
-broader_corpus_backed_proof_summary_json_json=""
-
-if [[ -n "$EXISTING_BROADER_CORPUS_PROOF_STATE_DIR" ]]; then
-    broader_corpus_backed_proof_state_dir_txt="$EXISTING_BROADER_CORPUS_PROOF_STATE_DIR"
-    broader_corpus_backed_proof_summary_txt="$EXISTING_BROADER_CORPUS_PROOF_STATE_DIR/summary.txt"
-    broader_corpus_backed_proof_summary_json="$EXISTING_BROADER_CORPUS_PROOF_STATE_DIR/summary.json"
-    require_nonempty_file "$broader_corpus_backed_proof_summary_txt"
-    require_nonempty_file "$broader_corpus_backed_proof_summary_json"
-    broader_corpus_backed_proof_state_dir_json="$broader_corpus_backed_proof_state_dir_txt"
-    broader_corpus_backed_proof_summary_txt_json="$broader_corpus_backed_proof_summary_txt"
-    broader_corpus_backed_proof_summary_json_json="$broader_corpus_backed_proof_summary_json"
-    broader_corpus_backed_proof_surface_present=true
+broader_corpus_backed_proof_state_dir="${EXISTING_BROADER_CORPUS_PROOF_STATE_DIR:-$WORK_DIR/regex_broader_corpus_proof_gate}"
+if [[ -z "$EXISTING_BROADER_CORPUS_PROOF_STATE_DIR" ]]; then
+    regex_broader_corpus_proof_cmd=(
+        env
+        PGEN_REGEX_BROADER_CORPUS_PROOF_STATE_DIR="$broader_corpus_backed_proof_state_dir"
+    )
+    regex_broader_corpus_proof_cmd+=("$REGEX_BROADER_CORPUS_PROOF_GATE")
+    run_logged "regex_broader_corpus_proof_gate" "${regex_broader_corpus_proof_cmd[@]}"
 fi
+
+broader_corpus_backed_proof_summary_txt="$broader_corpus_backed_proof_state_dir/summary.txt"
+broader_corpus_backed_proof_summary_json="$broader_corpus_backed_proof_state_dir/summary.json"
+
+require_nonempty_file "$broader_corpus_backed_proof_summary_txt"
+require_nonempty_file "$broader_corpus_backed_proof_summary_json"
+
+broader_corpus_backed_proof_gate_name="$(jq -r '.gate' "$broader_corpus_backed_proof_summary_json")"
+broader_corpus_backed_proof_gate_version="$(jq -r '.version' "$broader_corpus_backed_proof_summary_json")"
+broader_corpus_backed_proof_generated_at_utc="$(jq -r '.generated_at_utc' "$broader_corpus_backed_proof_summary_json")"
+broader_corpus_backed_proof_state_dir_from_json="$(jq -r '.state_dir' "$broader_corpus_backed_proof_summary_json")"
+broader_corpus_backed_proof_summary_txt_from_json="$(jq -r '.summary_txt' "$broader_corpus_backed_proof_summary_json")"
+broader_corpus_backed_proof_summary_json_from_json="$(jq -r '.summary_json' "$broader_corpus_backed_proof_summary_json")"
+
+summary_broader_corpus_backed_proof_state_dir="$(top_level_summary_value_from_txt "state_dir" "$broader_corpus_backed_proof_summary_txt")"
+summary_broader_corpus_backed_proof_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$broader_corpus_backed_proof_summary_txt")"
+summary_broader_corpus_backed_proof_summary_json="$(top_level_summary_value_from_txt "summary_json" "$broader_corpus_backed_proof_summary_txt")"
+
+if [[ "$broader_corpus_backed_proof_gate_name" != "regex_broader_corpus_proof_gate" ]]; then
+    echo "error: unexpected regex broader-corpus gate identity '$broader_corpus_backed_proof_gate_name'" >&2
+    exit 1
+fi
+if [[ ! "$broader_corpus_backed_proof_gate_version" =~ ^[0-9]+$ ]]; then
+    echo "error: regex broader-corpus gate version is not numeric: '$broader_corpus_backed_proof_gate_version'" >&2
+    exit 1
+fi
+if [[ -z "$broader_corpus_backed_proof_generated_at_utc" ]]; then
+    echo "error: regex broader-corpus generated_at_utc is empty" >&2
+    exit 1
+fi
+if [[ "$summary_broader_corpus_backed_proof_state_dir" != "$broader_corpus_backed_proof_state_dir" ]]; then
+    echo "error: regex broader-corpus state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$broader_corpus_backed_proof_state_dir_from_json" != "$broader_corpus_backed_proof_state_dir" ]]; then
+    echo "error: regex broader-corpus state_dir mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$broader_corpus_backed_proof_summary_txt_from_json" != "$broader_corpus_backed_proof_summary_txt" ]]; then
+    echo "error: regex broader-corpus summary_txt mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_broader_corpus_backed_proof_summary_json" != "$broader_corpus_backed_proof_summary_json" ]]; then
+    echo "error: regex broader-corpus summary_json mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$broader_corpus_backed_proof_summary_json_from_json" != "$broader_corpus_backed_proof_summary_json" ]]; then
+    echo "error: regex broader-corpus summary_json mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_broader_corpus_backed_proof_generated_at_utc" != "$broader_corpus_backed_proof_generated_at_utc" ]]; then
+    echo "error: regex broader-corpus generated_at_utc mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+
+broader_corpus_backed_proof_cases_declared="$(summary_value_from_txt "cases_declared" "$broader_corpus_backed_proof_summary_txt")"
+broader_corpus_backed_proof_cases_executed="$(summary_value_from_txt "cases_executed" "$broader_corpus_backed_proof_summary_txt")"
+broader_corpus_backed_proof_parse_pass_total="$(summary_value_from_txt "parse_pass_total" "$broader_corpus_backed_proof_summary_txt")"
+broader_corpus_backed_proof_parse_fail_total="$(summary_value_from_txt "parse_fail_total" "$broader_corpus_backed_proof_summary_txt")"
+broader_corpus_backed_proof_primary_parse_failure_case="$(summary_value_from_txt "primary_parse_failure_case" "$broader_corpus_backed_proof_summary_txt")"
+broader_corpus_backed_proof_primary_parse_failure_parser_error="$(summary_value_from_txt "primary_parse_failure_parser_error" "$broader_corpus_backed_proof_summary_txt")"
+
+broader_corpus_backed_proof_surface_present=true
+broader_corpus_backed_proof_state_dir_txt="$broader_corpus_backed_proof_state_dir"
+broader_corpus_backed_proof_state_dir_json="$broader_corpus_backed_proof_state_dir"
+broader_corpus_backed_proof_summary_txt_json="$broader_corpus_backed_proof_summary_txt"
+broader_corpus_backed_proof_summary_json_json="$broader_corpus_backed_proof_summary_json"
 
 regex_formal_exhaustive_closure_surface_green=false
 regex_closure_criteria_total_count=1
@@ -266,6 +325,15 @@ regex_unmet_details_json="$(printf '%s\n' "${regex_unmet_details[@]:-}" | jq -R 
     echo "regex_broader_corpus_backed_proof_state_dir: $broader_corpus_backed_proof_state_dir_txt"
     echo "regex_broader_corpus_backed_proof_summary_txt: $broader_corpus_backed_proof_summary_txt"
     echo "regex_broader_corpus_backed_proof_summary_json: $broader_corpus_backed_proof_summary_json"
+    echo "regex_broader_corpus_backed_proof_gate: $broader_corpus_backed_proof_gate_name"
+    echo "regex_broader_corpus_backed_proof_gate_version: $broader_corpus_backed_proof_gate_version"
+    echo "regex_broader_corpus_backed_proof_generated_at_utc: $broader_corpus_backed_proof_generated_at_utc"
+    echo "regex_broader_corpus_backed_proof_cases_declared: $broader_corpus_backed_proof_cases_declared"
+    echo "regex_broader_corpus_backed_proof_cases_executed: $broader_corpus_backed_proof_cases_executed"
+    echo "regex_broader_corpus_backed_proof_parse_pass_total: $broader_corpus_backed_proof_parse_pass_total"
+    echo "regex_broader_corpus_backed_proof_parse_fail_total: $broader_corpus_backed_proof_parse_fail_total"
+    echo "regex_broader_corpus_backed_proof_primary_parse_failure_case: $broader_corpus_backed_proof_primary_parse_failure_case"
+    echo "regex_broader_corpus_backed_proof_primary_parse_failure_parser_error: $broader_corpus_backed_proof_primary_parse_failure_parser_error"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
@@ -302,6 +370,15 @@ jq -n \
     --arg regex_broader_corpus_backed_proof_state_dir "$broader_corpus_backed_proof_state_dir_json" \
     --arg regex_broader_corpus_backed_proof_summary_txt "$broader_corpus_backed_proof_summary_txt_json" \
     --arg regex_broader_corpus_backed_proof_summary_json "$broader_corpus_backed_proof_summary_json_json" \
+    --arg regex_broader_corpus_backed_proof_gate "$broader_corpus_backed_proof_gate_name" \
+    --argjson regex_broader_corpus_backed_proof_gate_version "$broader_corpus_backed_proof_gate_version" \
+    --arg regex_broader_corpus_backed_proof_generated_at_utc "$broader_corpus_backed_proof_generated_at_utc" \
+    --argjson regex_broader_corpus_backed_proof_cases_declared "$broader_corpus_backed_proof_cases_declared" \
+    --argjson regex_broader_corpus_backed_proof_cases_executed "$broader_corpus_backed_proof_cases_executed" \
+    --argjson regex_broader_corpus_backed_proof_parse_pass_total "$broader_corpus_backed_proof_parse_pass_total" \
+    --argjson regex_broader_corpus_backed_proof_parse_fail_total "$broader_corpus_backed_proof_parse_fail_total" \
+    --arg regex_broader_corpus_backed_proof_primary_parse_failure_case "$broader_corpus_backed_proof_primary_parse_failure_case" \
+    --arg regex_broader_corpus_backed_proof_primary_parse_failure_parser_error "$broader_corpus_backed_proof_primary_parse_failure_parser_error" \
     '{
       gate: $gate,
       version: $version,
@@ -335,7 +412,16 @@ jq -n \
             stimuli_parseability_counterexample_primary_failure_location: $regex_stimuli_parseability_counterexample_primary_failure_location,
             family_contract_gate: $regex_family_contract_gate,
             family_contract_gate_version: $regex_family_contract_gate_version,
-            family_contract_generated_at_utc: $regex_family_contract_generated_at_utc
+            family_contract_generated_at_utc: $regex_family_contract_generated_at_utc,
+            broader_corpus_backed_proof_gate: $regex_broader_corpus_backed_proof_gate,
+            broader_corpus_backed_proof_gate_version: $regex_broader_corpus_backed_proof_gate_version,
+            broader_corpus_backed_proof_generated_at_utc: $regex_broader_corpus_backed_proof_generated_at_utc,
+            broader_corpus_backed_proof_cases_declared: $regex_broader_corpus_backed_proof_cases_declared,
+            broader_corpus_backed_proof_cases_executed: $regex_broader_corpus_backed_proof_cases_executed,
+            broader_corpus_backed_proof_parse_pass_total: $regex_broader_corpus_backed_proof_parse_pass_total,
+            broader_corpus_backed_proof_parse_fail_total: $regex_broader_corpus_backed_proof_parse_fail_total,
+            broader_corpus_backed_proof_primary_parse_failure_case: $regex_broader_corpus_backed_proof_primary_parse_failure_case,
+            broader_corpus_backed_proof_primary_parse_failure_parser_error: $regex_broader_corpus_backed_proof_primary_parse_failure_parser_error
           },
           proof_surfaces: {
             family_contract_state_dir: $regex_family_contract_state_dir,

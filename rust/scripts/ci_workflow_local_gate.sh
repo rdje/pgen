@@ -1278,6 +1278,7 @@ audit_family_summary_identity_surface() {
     rust/scripts/sv_parser_aggregate_contract_gate.sh \
     rust/scripts/sv_preprocessor_aggregate_contract_gate.sh \
     rust/scripts/regex_parser_family_contract_gate.sh \
+    rust/scripts/regex_broader_corpus_proof_gate.sh \
     rust/scripts/regex_formal_exhaustive_closure_gate.sh \
     rust/scripts/vhdl_parser_family_contract_gate.sh \
     rust/scripts/sv_parser_family_status_gate.sh \
@@ -1336,8 +1337,16 @@ audit_regex_formal_exhaustive_closure_surface() {
   note "auditing regex formal exhaustive-closure surface"
 
   assert_tracked "rust/scripts/regex_formal_exhaustive_closure_gate.sh"
+  assert_tracked "rust/scripts/regex_broader_corpus_proof_gate.sh"
   assert_tracked "rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json"
+  assert_tracked "rust/test_data/grammar_quality/regex_broader_corpus_v0.json"
 
+  assert_file_contains \
+    "rust/Makefile" \
+    'regex_broader_corpus_proof_gate - Run deterministic broader regex corpus proof over the checked-in regex stress corpus'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/regex_broader_corpus_proof_gate.sh'
   assert_file_contains \
     "rust/Makefile" \
     'regex_formal_exhaustive_closure_gate - Compute the explicit regex exhaustive-closure proof surface status from the family sidecar'
@@ -1346,12 +1355,46 @@ audit_regex_formal_exhaustive_closure_surface() {
     'cd $(RUST_DIR) && ./scripts/regex_formal_exhaustive_closure_gate.sh'
 
   assert_file_contains \
+    "rust/test_data/grammar_quality/regex_broader_corpus_v0.json" \
+    '"source_file": "rust/test_data/regex/stress_tests.json"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/regex_broader_corpus_v0.json" \
+    '"expected_case_count": 44'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/regex_broader_corpus_v0.json" \
+    '"expected_parser_type": "regex"'
+
+  assert_file_contains \
     "rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json" \
     '"required_surface_key": "broader_corpus_backed_proof_surface"'
   assert_file_contains \
     "rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json" \
     '"required_surface_missing_detail": "Regex still lacks a checked-in broader corpus-backed proof surface'
 
+  assert_file_contains \
+    "rust/scripts/regex_broader_corpus_proof_gate.sh" \
+    'MANIFEST_FILE="${PGEN_REGEX_BROADER_CORPUS_PROOF_MANIFEST:-$RUST_DIR/test_data/grammar_quality/regex_broader_corpus_v0.json}"'
+  assert_file_contains \
+    "rust/scripts/regex_broader_corpus_proof_gate.sh" \
+    'cargo build --features generated_parsers --bin parseability_probe'
+  assert_file_contains \
+    "rust/scripts/regex_broader_corpus_proof_gate.sh" \
+    '"$PARSE_PROBE_BIN" --supports regex'
+  assert_file_contains \
+    "rust/scripts/regex_broader_corpus_proof_gate.sh" \
+    'parse_fail_total'
+  assert_file_contains \
+    "rust/scripts/regex_broader_corpus_proof_gate.sh" \
+    'primary_parse_failure_case'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'REGEX_BROADER_CORPUS_PROOF_GATE="$RUST_DIR/scripts/regex_broader_corpus_proof_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'run_logged "regex_broader_corpus_proof_gate"'
+  assert_file_contains \
+    "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
+    'regex_broader_corpus_backed_proof_parse_fail_total'
   assert_file_contains \
     "rust/scripts/regex_formal_exhaustive_closure_gate.sh" \
     'REGEX_FAMILY_CONTRACT_GATE="$RUST_DIR/scripts/regex_parser_family_contract_gate.sh"'

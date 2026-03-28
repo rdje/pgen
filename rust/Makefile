@@ -253,6 +253,7 @@ help:
 	@echo "  sv_parser_family_status_contract_gate - Enforce schema/consistency contract for the SV-family status sidecar"
 	@echo "  sv_external_corpus_triage_gate - Run deterministic external SystemVerilog corpus preprocess/parse triage over tracked SV/UVM sources"
 	@echo "  regex_parser_family_contract_gate - Enforce combined contract for the current regex family proof surfaces"
+	@echo "  regex_broader_corpus_proof_gate - Run deterministic broader regex corpus proof over the checked-in regex stress corpus"
 	@echo "  regex_formal_exhaustive_closure_gate - Compute the explicit regex exhaustive-closure proof surface status from the family sidecar"
 	@echo "  regex_parser_family_status_gate - Compute machine-checkable regex family status rationale and verify live-tracker alignment"
 	@echo "  regex_parser_family_status_contract_gate - Enforce schema/consistency contract for the regex family-status sidecar"
@@ -612,6 +613,12 @@ regex_formal_exhaustive_closure_gate:
 	@echo "🧪 Running regex formal exhaustive closure gate..."
 	cd $(RUST_DIR) && ./scripts/regex_formal_exhaustive_closure_gate.sh
 	@echo "✅ Regex formal exhaustive closure gate passed."
+
+.PHONY: regex_broader_corpus_proof_gate
+regex_broader_corpus_proof_gate:
+	@echo "🧪 Running regex broader corpus proof gate..."
+	cd $(RUST_DIR) && ./scripts/regex_broader_corpus_proof_gate.sh
+	@echo "✅ Regex broader corpus proof gate passed."
 
 .PHONY: regex_parser_family_status_contract_gate
 regex_parser_family_status_contract_gate:

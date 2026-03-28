@@ -45,6 +45,56 @@ After the parser-backed regex family-quality promotion and the follow-on debt-tr
 - Regex now has a real machine-checkable formal-closure seam rather than a static missing-closure placeholder.
 - The next regex roadmap move is clearer: add the broader corpus-backed proof surface the new closure gate is explicitly waiting for.
 
+## 2026-03-28 - Add regex broader corpus proof gate
+### Context
+Once the regex formal-closure gate existed, the next missing seam was no longer ambiguous: `regex` needed a checked-in broader-corpus proof surface rather than another placeholder or one-off shell override. The repository already carried a meaningful checked-in regex source corpus in [stress_tests.json](/Users/richarddje/Documents/github/pgen/rust/test_data/regex/stress_tests.json), so the clean next step was to turn that corpus into a deterministic proof gate and let the formal-closure sidecar consume it directly.
+
+### Implementation
+- Added [rust/test_data/grammar_quality/regex_broader_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_broader_corpus_v0.json):
+  - declares the checked-in regex stress corpus as the current broader-corpus proof source
+  - fixes the expected case count at `44`
+  - locks the expected parser type `regex` and normalizer `text`
+- Added [rust/scripts/regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh):
+  - builds the generated-parser-backed [parseability_probe](/Users/richarddje/Documents/github/pgen/rust/src/bin/parseability_probe.rs)
+  - verifies generated regex parser support
+  - replays all checked-in broader-corpus cases deterministically through the generated regex parser
+  - emits machine-readable `summary.txt` / `summary.json` with broader-corpus counts and case-level observations
+  - the current measured surface is:
+    - `cases_declared=44`
+    - `cases_executed=44`
+    - `parse_pass_total=31`
+    - `parse_fail_total=13`
+    - `primary_parse_failure_case=word_boundary`
+    - `primary_parse_failure_parser_error=Backtrack at position 0`
+- Updated [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh):
+  - it now runs or reuses the broader-corpus proof gate directly instead of waiting for a manually injected proof state dir
+  - it now preserves broader-corpus gate metadata and measured pass/fail totals in the closure sidecar
+  - the regex formal-closure sidecar is now green:
+    - `regex_formal_exhaustive_closure_surface_green=true`
+    - `regex_primary_unmet_closure_criterion=<none>`
+    - closure counts `1/1/0`
+- Updated [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile):
+  - added the new `regex_broader_corpus_proof_gate` help and target surface
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - regex is now described from the stronger baseline:
+    - parser-backed quality
+    - deterministic parser-rejection triage
+    - landed broader-corpus proof
+    - green formal-closure sidecar
+  - the current regex live status stays `In Progress`, but now with only two blockers:
+    - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
+    - `stimuli_regex_final_targets=35 > 0`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - local CI now locks:
+    - tracked presence of the broader-corpus gate and manifest
+    - the new Makefile help/target surface
+    - closure-gate consumption of the broader-corpus sidecar
+    - family-sidecar identity discipline for the new broader-corpus summary surface
+
+### Why This Matters
+- Regex no longer lacks a broader-corpus proof seam.
+- The remaining regex work is now cleanly focused on real parser-quality debt instead of missing proof-plumbing.
+
 ## 2026-03-27 - Add regex parseability debt triage surface
 ### Context
 After promoting `regex` onto the parser-backed shared stimuli contract, the family proof was still materially weaker than the SV-family aggregate debt surfaces in one specific way: the remaining regex parser rejection debt was visible only as totals (`rejected_total=4`, `parser_rejections_total=4`) plus the raw parseability report. That was enough to keep the family honest, but not enough to make the remaining debt easy to localize or to propagate a stable machine-checkable triage story through SOTA and combined telemetry.

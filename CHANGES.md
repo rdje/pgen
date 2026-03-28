@@ -36,6 +36,45 @@ PGEN's `regex` family now has a real machine-checkable formal-closure sidecar in
 - Regex closure work now has a real machine-checkable formal-closure seam instead of a documentation-only “missing closure surface” marker.
 - The remaining regex roadmap gap is now narrower and more explicit: land the broader corpus-backed proof surface the new gate is waiting for, while separately burning down parser rejection debt and target debt.
 
+## 2026-03-28 - Add regex broader corpus proof gate
+### ✅ Achievement Summary
+PGEN's `regex` family now has a checked-in broader-corpus proof surface backed by the regex stress corpus, and that new sidecar turns the regex formal-closure gate green while leaving the honest remaining blockers on parser rejections and target debt.
+
+### Scope of Changes
+- Added:
+  - [rust/scripts/regex_broader_corpus_proof_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_broader_corpus_proof_gate.sh)
+  - [rust/test_data/grammar_quality/regex_broader_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_broader_corpus_v0.json)
+- Updated:
+  - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile)
+  - [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The new broader-corpus regex proof surface now:
+  - consumes checked-in source corpus [stress_tests.json](/Users/richarddje/Documents/github/pgen/rust/test_data/regex/stress_tests.json) through manifest [regex_broader_corpus_v0.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_broader_corpus_v0.json)
+  - builds and verifies the generated regex parseability probe
+  - records current measured broader-corpus totals:
+    - `cases_declared=44`
+    - `cases_executed=44`
+    - `parse_pass_total=31`
+    - `parse_fail_total=13`
+    - `primary_parse_failure_case=word_boundary`
+    - `primary_parse_failure_parser_error=Backtrack at position 0`
+- [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh) now automatically runs or reuses that broader-corpus proof sidecar instead of waiting on an injected missing-proof placeholder.
+- The regex closure stack now updates objectively:
+  - formal-closure counts move from `0/1/1` to `1/1/0`
+  - regex family-status counts move from `5/8/3` to `6/8/2`
+  - regex blocker arrays drop the old `broader_corpus_backed_proof_surface=missing` entry
+  - remaining blockers are now only parser-backed rejection debt and target debt
+
+### Why This Matters
+- The regex roadmap no longer has a missing proof seam at the broader-corpus layer.
+- The next regex hardening work is now narrower and more honest: reduce the remaining `4` parser rejections and `35` final targets instead of first having to invent another status-bearing proof surface.
+
 ## 2026-03-27 - Add regex parseability debt triage surface
 ### ✅ Achievement Summary
 PGEN's parser-backed regex family proof now carries deterministic debt-triage artifacts instead of leaving the remaining regex rejection debt as totals-only telemetry, and that triage surface is preserved through SOTA and combined telemetry.

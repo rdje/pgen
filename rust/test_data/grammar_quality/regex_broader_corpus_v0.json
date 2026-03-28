@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "description": "Deterministic broader regex corpus proof slice backed by the checked-in regex stress corpus.",
+  "source_file": "rust/test_data/regex/stress_tests.json",
+  "selection": "all_cases",
+  "expected_case_count": 44,
+  "expected_parser_type": "regex",
+  "expected_normalizer": "text"
+}
