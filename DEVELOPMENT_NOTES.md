@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-28 - Refresh regex family/status/aggregate sidecars from parser-clean baseline
+### Context
+After the regex layout/literal fixes landed, the direct regex-only `ebnf_stimuli_quality_gate` slice was already better than the published regex proof stack: the live parser-clean measurements were `197/197/0` with remaining target debt `122`, but the canonical regex family/status/aggregate sidecars were still stuck on the older `742/738/4` and `final_targets=35` snapshot. That meant the roadmap truth and the shipped sidecar truth were diverging even though the parser behavior had already improved.
+
+### Implementation
+- Added [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_family_stimuli_contract.json):
+  - checked-in regex-only parser/stimuli contract for the canonical regex family proof lane
+  - removes the need for the regex family gate to depend on the broader shared non-annotation stimuli contract just to compute regex status
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh):
+  - now defaults to that regex-only family stimuli contract
+  - still emits the same contract sidecars and extracted proof fields
+- Revalidated the regex proof ladder on the refreshed baseline:
+  - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh)
+    - current summary:
+      - dual run `perl_rule_count=65`
+      - dual run `rust_rule_count=88`
+      - `raw_ast_missing_on_perl_count=23`
+      - `parseability_attempts_total=197`
+      - `parseability_accepted_total=197`
+      - `parseability_rejected_total=0`
+      - `parseability_parser_rejections_total=0`
+      - `initial_targets=355`
+      - `resolved_targets=233`
+      - `final_targets=122`
+  - [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh)
+    - stayed green with closure counts `1/1/0`
+  - [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh)
+    - current summary:
+      - `regex=In Progress`
+      - closure counts `7/8/1`
+      - sole blocker `stimuli_regex_final_targets=122 > 0`
+  - [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh)
+    - current summary:
+      - `family_count=1`
+      - `regex_false_criteria_count=1`
+      - `regex_unmet_details_count=1`
+      - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+    - reuse-backed aggregate run now surfaces the refreshed regex family metrics and `7/8/1` status counts
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh)
+    - now parity-checks and re-emits the refreshed aggregate regex surface (`197/197/0`, `355 -> 122`, `7/8/1`)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh):
+  - local CI now locks the checked-in regex-family stimuli contract file and the family gate's explicit use of it
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md):
+  - the regex row now reflects the refreshed family/status/aggregate proof stack instead of warning that those sidecars are stale
+
+### Why This Matters
+- Regex no longer has a proof-plumbing lag between “current parser behavior” and “current published family truth”.
+- The next regex task is now straightforward and measurable: reduce `final_targets=122` without regressing the refreshed parser-clean family baseline.
+
 ## 2026-03-27 - Add regex formal exhaustive closure gate
 ### Context
 After the parser-backed regex family-quality promotion and the follow-on debt-triage work, the remaining regex blocker story was still weaker than the SV/VHDL proof stacks in one important way: `regex_parser_family_status_gate` was still carrying a literal placeholder blocker, `formal_exhaustive_closure_surface=missing`, rather than consuming a real machine-checkable closure sidecar. That kept the family honest, but it meant regex still lacked a first-class proof object for the “what would it take to promote this family beyond bounded evidence?” question.

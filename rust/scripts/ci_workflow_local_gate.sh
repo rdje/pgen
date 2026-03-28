@@ -1302,10 +1302,30 @@ audit_family_contract_proof_surface() {
 
   assert_tracked "rust/scripts/regex_parser_family_contract_gate.sh"
   assert_tracked "rust/scripts/vhdl_parser_family_contract_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/regex_family_stimuli_contract.json"
+
+  assert_file_contains \
+    "rust/test_data/grammar_quality/regex_family_stimuli_contract.json" \
+    '"grammar_name": "regex"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/regex_family_stimuli_contract.json" \
+    '"require_parseability": true'
 
   assert_file_contains \
     "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'STIMULI_CONTRACT_FILE="${PGEN_REGEX_FAMILY_CONTRACT_STIMULI_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/regex_family_stimuli_contract.json}"'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'require_file "$STIMULI_CONTRACT_FILE"'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'PGEN_EBNF_STIMULI_QUALITY_CONTRACT="$STIMULI_CONTRACT_FILE"'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
     'frontend_state_dir: $frontend_state_dir'
+  assert_file_contains \
+    "rust/scripts/regex_parser_family_contract_gate.sh" \
+    'stimuli_contract_file: $stimuli_contract_file'
   assert_file_contains \
     "rust/scripts/regex_parser_family_contract_gate.sh" \
     'dual_run_summary_json: $dual_run_summary_json'

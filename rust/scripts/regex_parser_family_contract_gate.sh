@@ -13,6 +13,7 @@ SUMMARY_JSON="$STATE_DIR/summary.json"
 FRONTEND_GATE="$RUST_DIR/scripts/ebnf_frontend_readiness_gate.sh"
 DUAL_RUN_GATE="$RUST_DIR/scripts/ebnf_frontend_dual_run_diff_gate.sh"
 STIMULI_GATE="$RUST_DIR/scripts/ebnf_stimuli_quality_gate.sh"
+STIMULI_CONTRACT_FILE="${PGEN_REGEX_FAMILY_CONTRACT_STIMULI_CONTRACT_FILE:-$RUST_DIR/test_data/grammar_quality/regex_family_stimuli_contract.json}"
 
 EXISTING_FRONTEND_STATE_DIR="${PGEN_REGEX_FAMILY_CONTRACT_EXISTING_FRONTEND_STATE_DIR:-}"
 EXISTING_DUAL_RUN_STATE_DIR="${PGEN_REGEX_FAMILY_CONTRACT_EXISTING_DUAL_RUN_STATE_DIR:-}"
@@ -116,6 +117,7 @@ require_tool python3
 require_file "$FRONTEND_GATE"
 require_file "$DUAL_RUN_GATE"
 require_file "$STIMULI_GATE"
+require_file "$STIMULI_CONTRACT_FILE"
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -141,6 +143,7 @@ fi
 if [[ -z "$EXISTING_STIMULI_STATE_DIR" ]]; then
     run_logged "ebnf_stimuli_quality_gate" env \
         PGEN_EBNF_STIMULI_QUALITY_STATE_DIR="$stimuli_state_dir" \
+        PGEN_EBNF_STIMULI_QUALITY_CONTRACT="$STIMULI_CONTRACT_FILE" \
         "$STIMULI_GATE"
 fi
 

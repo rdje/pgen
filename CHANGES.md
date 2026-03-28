@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-28 - Refresh regex family proof stack from parser-clean baseline
+### ✅ Achievement Summary
+PGEN's canonical regex family/status/aggregate proof stack now matches the current parser-clean regex baseline instead of lagging behind the older `742/738/4` family snapshot.
+
+### Scope of Changes
+- Added:
+  - [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_family_stimuli_contract.json)
+- Updated:
+  - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The regex family contract gate now:
+  - defaults to the checked-in regex-only stimuli contract instead of the broader shared multi-grammar contract
+  - refreshes the canonical regex family sidecar from the current parser-clean baseline:
+    - `parseability_attempts_total=197`
+    - `parseability_accepted_total=197`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `final_targets=122`
+  - preserves the current refreshed dual-run evidence too:
+    - `perl_rule_count=65`
+    - `rust_rule_count=88`
+    - `raw_ast_missing_on_perl_count=23`
+- The regex family-status proof stack is now refreshed on that same baseline:
+  - `regex_parser_family_status_gate` now reports `regex=In Progress` with closure counts `7/8/1`
+  - the only remaining blocker is `stimuli_regex_final_targets=122 > 0`
+  - `regex_parser_family_status_contract_gate` now records `regex_false_criteria_count=1`
+- The aggregate regex proof lane is now refreshed too:
+  - reuse-backed `sota_exit_gate` and `regex_combined_telemetry_contract_gate` now surface and parity-check the same `197/197/0` family metrics, `355 -> 122` target debt, and `7/8/1` status counts
+- Local CI now locks the dedicated regex-family stimuli contract path so the regex family proof lane cannot silently drift back to the older shared contract.
+
+### Why This Matters
+- The regex roadmap no longer has a “published sidecars lag real parser behavior” gap.
+- The remaining regex closure work is now simpler and more honest: reduce `final_targets=122` while preserving the refreshed parser-clean family proof baseline.
+
 ## 2026-03-27 - Add regex formal exhaustive closure gate
 ### ✅ Achievement Summary
 PGEN's `regex` family now has a real machine-checkable formal-closure sidecar instead of a hardcoded missing-closure placeholder, and that new proof surface is preserved through the regex status, SOTA, and combined-telemetry layers.

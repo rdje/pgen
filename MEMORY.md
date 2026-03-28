@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: support-empty-regex-broader-corpus)
+Last updated: 2026-03-28 (+0100, task: refresh-regex-family-proof-stack)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,36 +8,41 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- The latest regex follow-up closed the last checked-in broader-corpus soft-fail.
-- Updated [grammars/regex.ebnf](/Users/richarddje/Documents/github/pgen/grammars/regex.ebnf) so the entry rule now accepts `pattern?`, making the empty string a valid top-level regex.
-- Updated [rust/src/parser_registry.rs](/Users/richarddje/Documents/github/pgen/rust/src/parser_registry.rs) so the focused generated-backend adapter test now treats `""` as valid.
-- Regenerated [generated/regex.json](/Users/richarddje/Documents/github/pgen/generated/regex.json) and [generated/regex_parser.rs](/Users/richarddje/Documents/github/pgen/generated/regex_parser.rs).
-- Direct generated-backend probe now passes for empty input:
-  - `parse_full passed for grammar 'regex' on '/tmp/regex_empty.regex'`
-- The checked-in broader regex corpus is now fully green:
-  - `cases_declared=44`
-  - `cases_executed=44`
-  - `parse_pass_total=44`
-  - `parse_fail_total=0`
-  - `primary_parse_failure_case=<none>`
-  - `primary_parse_failure_parser_error=<none>`
-- The broader-corpus regex proof surface no longer has any checked-in parse failures.
-- Conservative live regex blocker status is otherwise unchanged until a fresh family-status rerun is promoted:
-  - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
-  - `stimuli_regex_final_targets=35 > 0`
-- The next regex roadmap seam after parser-backed quality promotion and debt triage was the missing explicit formal-closure contract itself.
-- Added [rust/scripts/regex_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_formal_exhaustive_closure_gate.sh) plus checked-in contract [rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_formal_exhaustive_closure_contract.json).
-- The new closure gate now turns regex exhaustive closure into a real sidecar instead of a placeholder blocker string.
-- Current measured regex closure-gate values are:
-  - `required_surface_key=broader_corpus_backed_proof_surface`
-  - `regex_formal_exhaustive_closure_surface_green=false`
-  - `regex_primary_unmet_closure_criterion=broader_corpus_backed_proof_surface=missing`
-  - closure counts `0/1/1`
-- [rust/scripts/regex_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_gate.sh) now consumes that closure sidecar and uses its blocker directly instead of hardcoding `formal_exhaustive_closure_surface=missing`.
-- [rust/scripts/regex_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_status_contract_gate.sh), [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh), and [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now preserve and parity-check the same regex formal-closure provenance.
-- The current regex live status is still `In Progress`, with closure counts `5/8/3`, but the third blocker is now the more precise:
-  - `broader_corpus_backed_proof_surface=missing`
-- The next regex roadmap seam after the parser-backed family-quality promotion was deterministic debt triage rather than another status-label change.
+- The regex family proof stack is now refreshed end to end from the current parser-clean baseline instead of lagging behind the older `742/738/4` family snapshot.
+- Added [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_family_stimuli_contract.json).
+- Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh) so the canonical regex family sidecar now defaults to that dedicated regex-only stimuli contract.
+- Fresh family-contract summary is now:
+  - dual run:
+    - `perl_rule_count=65`
+    - `rust_rule_count=88`
+    - `raw_ast_missing_on_perl_count=23`
+    - `raw_ast_missing_on_rust_count=0`
+  - parser-backed stimuli:
+    - `parseability_attempts_total=197`
+    - `parseability_accepted_total=197`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `initial_targets=355`
+    - `resolved_targets=233`
+    - `final_targets=122`
+- Fresh regex family-status summary is now:
+  - `regex=In Progress`
+  - closure counts `7/8/1`
+  - sole blocker `stimuli_regex_final_targets=122 > 0`
+- Fresh regex family-status contract summary is now:
+  - `family_count=1`
+  - `regex_false_criteria_count=1`
+  - `regex_unmet_details_count=1`
+  - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
+- Reuse-backed aggregate proofs are refreshed too:
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now surfaces the refreshed regex family/status/status-contract values under the lightweight regex policy run
+  - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now parity-checks and re-emits the refreshed `197/197/0`, `355 -> 122`, and `7/8/1` regex surface
+- The broader-corpus and formal-closure surfaces remain green:
+  - broader corpus: `44/44` pass
+  - formal closure: `1/1/0`
+- The next regex roadmap step is now simple and narrow:
+  - reduce `final_targets=122`
+  - preserve the refreshed parser-clean family/status/aggregate baseline while doing it
 - [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh) now derives and emits deterministic regex parser-rejection triage sidecars:
   - `regex_parseability_counterexample_triage.json`
   - `regex_parseability_counterexample_triage.txt`
@@ -81,20 +86,7 @@ Use this file to resume work without replaying full chat history.
 - The aggregate regex proof stack now preserves the same parser-backed quality evidence:
   - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now re-emits the regex parseability report path, parseability totals, and `regex_family_status_regex_stimuli_parseability_parser_rejections_zero`
   - [rust/scripts/regex_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_combined_telemetry_contract_gate.sh) now consumes and preserves those parser-backed regex family/status fields
-- Fresh measured regex family values under the shared parser-backed contract are now:
-  - `parseability_required=1`
-  - `attempts=742`
-  - `accepted=738`
-  - `rejected=4`
-  - `parser_rejections_total=4`
-  - `acceptance_rate_percent=99.46`
-  - target debt `236 -> 35`
-- The current regex live status is still `In Progress`, but it is now computed from parser-backed family proof with closure counts `5/8/3` and explicit blockers:
-  - `stimuli_regex_parseability_parser_rejections_total=4 > 0`
-  - `stimuli_regex_final_targets=35 > 0`
-  - `broader_corpus_backed_proof_surface=missing`
-- [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md) now describe regex from that parser-backed baseline.
-- [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now guards the tracked regex parser artifact and the new parser-backed regex family proof fields across family, SOTA, and combined-telemetry layers.
+- That earlier shared multi-grammar parser-backed regex milestone is now historical only; the current canonical regex family/status/aggregate baseline is the refreshed dedicated regex-family contract captured at the top of this file (`197/197/0`, `355 -> 122`, `7/8/1` with the sole blocker `stimuli_regex_final_targets=122 > 0`).
 - `pgen::embedding_api` now exposes regex as a first-class public grammar/profile surface.
 - [rust/src/embedding_api.rs](/Users/richarddje/Documents/github/pgen/rust/src/embedding_api.rs) now includes:
   - `GrammarFamily::Regex`

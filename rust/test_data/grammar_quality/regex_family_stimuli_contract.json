@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "description": "Regex-only EBNF parser/stimuli quality contract used by the regex family proof stack.",
+  "grammars": [
+    {
+      "id": "regex",
+      "grammar_name": "regex",
+      "ebnf_path": "grammars/regex.ebnf",
+      "seed_base": 9301,
+      "require_parseability": true
+    }
+  ]
+}
