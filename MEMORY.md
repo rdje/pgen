@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: regex-integration-contract-hardening)
+Last updated: 2026-03-28 (+0100, task: regex-downstream-doc-refocus)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,26 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The regex downstream docs were further refocused after the initial hardening pass:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) no longer talks to RGX about:
+    - `generated/regex.json`
+    - `grammars/regex.ebnf`
+  - it now stays focused on the public parser contract, parser release version, contract version, diagnostics, AST schema, and issue reporting
+- [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) now carries a dedicated `Regex Parser Flavor` section that documents the published regex flavor and the current measured proof baseline in one downstream-readable place.
+  - current recorded baseline in that section:
+    - family `Done`
+    - parser-backed family proof `1554/1554/0`
+    - target debt `355 -> 0`
+    - broader corpus `44/44`
+    - formal closure green
+    - closure counts `8/8/0`
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now locks both:
+  - the new user-guide regex flavor section
+  - and the absence of `generated/regex.json` / `grammars/regex.ebnf` from the downstream regex integration contract
+- Validation completed for this refinement slice:
+  - `bash -n rust/scripts/ci_workflow_local_gate.sh`
+  - `git diff --check -- PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md PGEN_USER_GUIDE.md rust/scripts/ci_workflow_local_gate.sh CHANGES.md DEVELOPMENT_NOTES.md MEMORY.md`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
 - RGX's regex integration complaints were addressed as real contract gaps, not dismissed as documentation nitpicks.
 - [rust/src/embedding_api.rs](rust/src/embedding_api.rs) now publishes a stronger downstream regex contract:
   - `EMBEDDING_API_VERSION = "1.2.0"`

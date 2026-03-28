@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-28 - Refocus regex docs on downstream needs
+### ✅ Achievement Summary
+PGEN's regex downstream docs are now more consumer-shaped: the RGX-facing integration contract no longer leads with internal grammar/frontend artifact details, and the user guide now carries a substantial regex-flavor section with concrete supported syntax families and current measured proof data.
+
+### Scope of Changes
+- Updated [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+  - removed downstream-facing mentions of `grammars/regex.ebnf`
+  - removed downstream-facing mentions of `generated/regex.json`
+  - reframed the published flavor summary around the public regex parser contract instead of internal source artifacts
+  - clarified that the parser accepts raw regex bodies rather than host-language wrapper forms such as `/pattern/flags`
+- Expanded [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
+  - added a dedicated `Regex Parser Flavor` section
+  - documented the current published regex contract identity:
+    - parser family
+    - stable profile
+    - parser release version
+    - integration contract version
+    - embedding API baseline
+    - AST-dump schema version
+  - documented current measured operational data:
+    - family `Done`
+    - `1554/1554/0` parser-backed family baseline
+    - `355 -> 0` target-debt closure
+    - `44/44` broader-corpus proof
+    - formal closure green
+    - family closure counts `8/8/0`
+  - documented the published accepted regex syntax families and boundaries in one downstream-readable place
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now locks the new user-guide regex flavor section
+  - now asserts the regex integration contract does not reintroduce `generated/regex.json` or `grammars/regex.ebnf`
+
+### Validation
+- `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check -- PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md PGEN_USER_GUIDE.md rust/scripts/ci_workflow_local_gate.sh CHANGES.md DEVELOPMENT_NOTES.md MEMORY.md`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
+### Why This Matters
+- RGX and future downstream consumers now get the information they actually need first.
+- Internal PGEN provenance artifacts remain available to maintainers without cluttering the main downstream handoff doc.
+
 ## 2026-03-28 - Harden regex downstream integration contract
 ### ✅ Achievement Summary
 PGEN's regex parser handoff is now a versioned downstream contract instead of a mostly narrative guide: the public embedding API exposes regex release metadata and machine-localizable parse failures, the regex integration doc now defines a real release/build/schema/reporting contract, and the released-parser support loop now records parser release and contract versions explicitly.

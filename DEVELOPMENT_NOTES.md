@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-28 - Refocus regex downstream docs on actual consumer needs
+### Context
+After the first regex contract hardening pass, the RGX-facing doc still mixed downstream concerns with PGEN-internal provenance details. In particular, RGX does not need the integration handoff doc to talk about `generated/regex.json` or `grammars/regex.ebnf`; what RGX does need is a precise description of the published regex flavor and the measured operational baseline of the released parser.
+
+### Implementation
+- Tightened [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+  - removed downstream-facing references to `generated/regex.json`
+  - removed downstream-facing references to `grammars/regex.ebnf`
+  - kept the contract centered on:
+    - stable public API
+    - diagnostics
+    - AST schema
+    - parser release version
+    - contract version
+    - issue-reporting procedure
+- Expanded [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) with a dedicated `Regex Parser Flavor` section that now acts as the detailed published-flavor companion document.
+  - It now captures:
+    - public regex contract identity
+    - current measured proof baseline (`1554/1554/0`, `355 -> 0`, `44/44`, `8/8/0`)
+    - supported syntax families
+    - representative accepted examples
+    - diagnostics and AST behavior
+    - current non-promises and operational boundaries
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - local CI now locks that regex flavor section in the guide
+  - local CI now explicitly fails if the regex integration contract reintroduces `generated/regex.json` or `grammars/regex.ebnf`
+
+### Validation
+- `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check -- PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md PGEN_USER_GUIDE.md rust/scripts/ci_workflow_local_gate.sh CHANGES.md DEVELOPMENT_NOTES.md MEMORY.md`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
+### Why This Matters
+- The regex downstream handoff is now cleaner and less maintainer-centric.
+- The detailed regex flavor description now lives where operators and integrators are more likely to look for it.
+
 ## 2026-03-28 - Harden the regex downstream contract against RGX complaints
 ### Context
 RGX's complaint pass was accurate: the first regex handoff doc was useful, but still incomplete as a downstream product contract. The main gaps were real:

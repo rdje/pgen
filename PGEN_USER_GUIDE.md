@@ -3677,6 +3677,175 @@ AST dump integration behavior:
   - `emitted_bytes`
 - when bounded payload exceeds `max_ast_bytes`, deterministic truncation envelope is returned in `dump_json` (`kind=pgen_ast_dump_truncation`, `dump_kind=parser_return_ast`).
 
+### Regex Parser Flavor
+
+Public contract identity:
+- parser family:
+  - `regex`
+- stable profile:
+  - `regex_default`
+- parser release version:
+  - `1.0.0`
+- integration contract version:
+  - `1.0.0`
+- embedding API baseline:
+  - `1.2.0`
+- AST-dump schema version:
+  - `1`
+
+Current measured operational baseline:
+- family status:
+  - `Done`
+- parser-backed family proof:
+  - `parseability_attempts_total=1554`
+  - `parseability_accepted_total=1554`
+  - `parseability_rejected_total=0`
+  - `parseability_parser_rejections_total=0`
+  - `initial_targets=355`
+  - `resolved_targets=355`
+  - `final_targets=0`
+- broader checked-in corpus proof:
+  - `cases_executed=44`
+  - `parse_pass_total=44`
+  - `parse_fail_total=0`
+- formal closure:
+  - green
+- family closure counts:
+  - `8/8/0`
+
+Accepted syntax families in the current published flavor:
+- empty regex
+- raw regex bodies rather than host-language delimiter wrappers
+- literal concatenation
+- alternation with `|`
+- dot atom `.`
+- whitespace as a literal atom
+- bare literal punctuation outside char classes includes:
+  - `!`
+  - `"`
+  - `#`
+  - `%`
+  - `&`
+  - `'`
+  - `,`
+  - `-`
+  - `/`
+  - `:`
+  - `;`
+  - `<`
+  - `=`
+  - `>`
+  - `@`
+  - `_`
+  - backtick
+  - `~`
+- anchors:
+  - `^`
+  - `$`
+  - `\A`
+  - `\Z`
+  - `\z`
+  - `\b`
+  - `\B`
+  - `\G`
+- quantifiers:
+  - `*`
+  - `+`
+  - `?`
+  - counted forms such as `{3}`, `{2,}`, `{2,4}`
+  - lazy suffix `?`
+  - possessive suffix `+`
+- escapes:
+  - simple escaped characters such as `\n`, `\t`, `\\`
+  - hexadecimal forms such as `\xFF` and `\x{FFFF}`
+  - Unicode forms such as `\u{FFFF}`
+  - octal escapes
+  - control escapes such as `\cA`
+  - Unicode property escapes `\p{...}` and `\P{...}`
+- backreferences:
+  - numeric forms such as `\1`
+  - named forms such as `\k<name>` and `\k'name'`
+- character classes:
+  - simple classes such as `[abc]`
+  - negated classes such as `[^abc]`
+  - ranges such as `[a-z]`
+  - mixed ranges such as `[a-zA-Z0-9]`
+  - class escapes
+  - POSIX classes such as `[[:digit:]]`
+- groups:
+  - capturing groups `(abc)`
+  - noncapturing groups `(?:abc)`
+  - named groups `(?<name>abc)` and `(?'name'abc)`
+  - atomic groups `(?>abc)`
+- lookarounds:
+  - positive lookahead
+  - negative lookahead
+  - positive lookbehind
+  - negative lookbehind
+- inline modifier forms
+- scoped inline modifier forms
+- conditional forms:
+  - condition may be a lookaround, a named reference, or digits
+- embedded code-block forms:
+  - plain `(?{...})`
+  - language-tagged `(?{lua: ...})`
+  - language-tagged `(?{js: ...})`
+
+Representative accepted examples:
+- ``
+- `a|b`
+- `https?://[^\\s]+`
+- `^abc$`
+- `\\bword\\b`
+- `(foo|bar)+`
+- `(?<name>[a-z]+)`
+- `(?>ab|cd)`
+- `(?=abc)abc`
+- `(?{lua: return x + 1})`
+
+Regex code-block handling:
+- embedded code blocks are parsed structurally
+- balanced braces inside code blocks are handled explicitly
+- double-quoted and single-quoted strings inside code blocks are handled explicitly
+- escaped characters inside code blocks are handled explicitly
+- this parser contract is about acceptance, AST transport, and diagnostics
+- it is not a promise about runtime execution semantics for those code blocks
+
+Diagnostics and AST behavior:
+- stable diagnostic codes:
+  - `E_BACKEND_UNAVAILABLE`
+  - `E_PARSE_FAILURE`
+  - `E_INPUT_TOO_LARGE`
+  - `E_INVALID_LIMITS`
+  - `E_INVALID_ARGUMENT`
+  - `E_UNSUPPORTED_PROFILE`
+- generated regex parse failures are expected to expose:
+  - `location.byte_offset`
+  - `location.line`
+  - `location.column`
+- regex AST dumps are stable as JSON transport plus schema version `1`
+- the stable AST node envelope is:
+  - `rule_name`
+  - `span.start`
+  - `span.end`
+  - `content`
+
+Current non-promises and boundaries:
+- this is not a blanket claim of compatibility with every PCRE, PCRE2, RE2, Oniguruma, JavaScript, .NET, or Rust-regex dialect feature
+- this is not a host-language regex literal parser for wrapper forms such as `/pattern/flags`
+- this is not a runtime contract for executing embedded code blocks
+- this is not a promise of stable internal Rust parser or AST node types
+- downstream AST consumers should pin parser release version and rerun their own AST compatibility corpus on upgrade
+
+Downstream operational recommendation:
+- if another project needs the regex parser, start with `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+- use `parser_embedding_api_contract()` at startup to record:
+  - `supports_regex_generated_backend`
+  - `regex_parser_release_version`
+  - `regex_integration_contract_version`
+  - `regex_ast_dump_schema_version`
+- if something misbehaves, collect the structured outcome, AST dump when relevant, and trace bundle described in `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+
 ## 12) File and Artifact Map
 
 Sources:

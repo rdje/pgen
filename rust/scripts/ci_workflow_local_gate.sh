@@ -333,6 +333,21 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '`PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '### Regex Parser Flavor'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`parseability_attempts_total=1554`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`(?<name>[a-z]+)`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`(?{lua: return x + 1})`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'this is not a host-language regex literal parser for wrapper forms such as `/pattern/flags`'
 
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
@@ -384,9 +399,6 @@ audit_embedding_api_surface() {
     '- Parser release version:'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    'regex_generated_backend_required_feature'
-  assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'make -C rust regex_parser_integration_contract_gate'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
@@ -396,16 +408,25 @@ audit_embedding_api_surface() {
     'PGEN_TRACE_VERBOSITY=debug'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    'generated/regex.json'
-  assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'Regex AST-dump schema version:'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'stable optional machine-localizable location object'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'Published Regex Flavor Summary'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'raw regex bodies, not host-language delimiter wrappers'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
+  assert_file_not_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'generated/regex.json'
+  assert_file_not_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'grammars/regex.ebnf'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     'local git-tracked records in PGEN plus zero-or-more downstream consumer repos are sufficient'
