@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-03-28 - Add regex embedded code-block structural contract gate
+### ✅ Achievement Summary
+PGEN's regex downstream hardening now has an explicit parser-layer proof seam for embedded code blocks: the published contract is tightened to the structural forms the generated parser can really preserve today, backed by a compact synthetic corpus and a dedicated gate instead of waiting on a large external Lua/JS dataset.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - regex embedded-code-block follow-up is now explicitly a parser-layer structural-hardening track
+  - this follow-up no longer depends on finding a large external Lua/JS corpus
+  - this work does not reopen the `regex` family row unless the published regex syntax contract is intentionally widened
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md) and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - recorded the same downstream-hardening posture for regex
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - kept embedded-code-block work inline in the main regex grammar rather than splitting into included EBNF fragments
+  - added the `javascript` language-tag alias
+  - tightened the grammar comments to the currently provable parser-layer contract:
+    - plain `(?{...})` is opaque generic payload
+    - `lua` / `js` / `javascript` payloads are opaque source-body payloads
+    - balanced braces, quoted strings, and escaped characters are structurally handled
+- Added [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json):
+  - compact checked-in structural corpus
+  - `8` cases total:
+    - `6` expected parse passes
+    - `2` expected parse failures
+- Added [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh) and wired it through [rust/Makefile](rust/Makefile):
+  - builds `parseability_probe`
+  - executes the structural corpus against the generated regex parser
+  - emits `summary.txt`, `summary.json`, and per-case logs
+- Updated [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
+  - documented the published embedded-code-block structural guarantees
+  - documented the current non-promises:
+    - no current promise for JavaScript comment/template shielding
+    - no current promise for Lua long-bracket shielding
+    - no current promise for `native` / `wasm` tags
+- Updated [rust/src/parser_registry.rs](rust/src/parser_registry.rs):
+  - added focused generated-regex coverage for the published structural cases
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - refreshed the regex integration manifest test expectation after adding the new regex success sample
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now locks the new regex embedded-code-block gate, corpus, and downstream doc claims
+
+### Validation
+- `make -C rust regex_embedded_code_block_contract_gate`
+  - result:
+    - `cases_declared=8`
+    - `cases_executed=8`
+    - `observed_pass_total=6`
+    - `observed_fail_total=2`
+    - `mismatched_cases_total=0`
+- `make -C rust regex_parser_integration_contract_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
+### Why This Matters
+- Regex downstream hardening can progress without blocking on a large external embedded-Lua/JS corpus.
+- The published regex contract is now tighter and more honest: it says only what the parser can actually prove today.
+
 ## 2026-03-28 - Refocus regex docs on downstream needs
 ### ✅ Achievement Summary
 PGEN's regex downstream docs are now more consumer-shaped: the RGX-facing integration contract no longer leads with internal grammar/frontend artifact details, and the user guide now carries a substantial regex-flavor section with concrete supported syntax families and current measured proof data.

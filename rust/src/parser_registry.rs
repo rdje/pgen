@@ -682,6 +682,31 @@ mod tests {
         assert_eq!(parse_sample("regex", "("), Some(false));
     }
 
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_parseability_adapter_accepts_embedded_code_block_structural_forms() {
+        assert_eq!(parse_sample("regex", "(?{payload})"), Some(true));
+        assert_eq!(parse_sample("regex", "(?{lua:return x + 1})"), Some(true));
+        assert_eq!(
+            parse_sample("regex", "(?{javascript:return x + 1;})"),
+            Some(true)
+        );
+        assert_eq!(
+            parse_sample("regex", "(?{{ nested { braces } }})"),
+            Some(true)
+        );
+        assert_eq!(
+            parse_sample("regex", "(?{\"} close brace inside double quotes\"})"),
+            Some(true)
+        );
+        assert_eq!(
+            parse_sample("regex", "(?{'} close brace inside single quotes'})"),
+            Some(true)
+        );
+        assert_eq!(parse_sample("regex", "(?{{ unterminated })"), Some(false));
+        assert_eq!(parse_sample("regex", "(?{\"unterminated})"), Some(false));
+    }
+
     #[test]
     fn tracked_grammars_expose_parseable_standalone_return_annotations() {
         let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

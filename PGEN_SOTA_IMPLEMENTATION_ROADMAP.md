@@ -24,6 +24,8 @@ Execution preference for this roadmap:
 - deterministic reproducibility,
 - embedder-facing diagnostics and AST visibility,
 - checked-in external corpora only count toward closure after they are consumed by repeatable gates or reports rather than merely present in the tree.
+- when a parser family is already `Done` on its published closure bar, downstream-hardening follow-up should not reopen that family automatically unless the published syntax/contract is intentionally widened.
+- for regex specifically, the remaining embedded-code-block follow-up should proceed through parser-layer structural guarantees plus compact synthetic contract corpora/gates rather than waiting for a large external Lua/JS dataset.
 - external-corpus grammar debugging should prefer systematic keyword-vs-identifier discrimination and precise branch-shape fixes over corpus-specific hacks, even when the first landed step is a narrow surgical patch.
 - if repeated keyword-vs-identifier debt keeps surfacing in a family such as SystemVerilog, promote that into one shared systematic grammar/annotation mechanism instead of accumulating ad hoc local exclusions indefinitely.
 - if repeated parser ambiguity depends on names, declaration categories, or earlier matched constructs, prefer annotation-driven semantic steering over repeated local branch reorderings.

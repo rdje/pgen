@@ -170,9 +170,20 @@ This is the document downstream projects such as RGX should read first when deci
   - inline modifiers and scoped modifiers
   - conditional regex forms
   - embedded code-block syntax such as `(?{...})` and language-tagged variants
+- Embedded code-block parser-layer contract:
+  - plain `(?{...})` is preserved as opaque generic payload
+  - `lua`, `js`, and `javascript` payloads are preserved as opaque source-body payloads
+  - parser-layer structural handling currently guarantees:
+    - balanced braces
+    - single-quoted strings
+    - double-quoted strings
+    - escaped characters
 - The current detailed flavor description and measured operational baseline live in `PGEN_USER_GUIDE.md`.
 - The current parser contract does not promise:
   - slash-delimited host literal parsing such as `/pattern/flags` as a dedicated wrapper syntax
+  - arbitrary valid Lua or JavaScript source acceptance beyond the structural forms listed above
+  - JavaScript comment/template-literal shielding or Lua long-bracket shielding as part of the current published parser contract
+  - `native` or `wasm` tagged code blocks as part of the current published parser contract
   - runtime execution semantics for embedded code blocks
   - semantic equivalence with every regex engine on earth
   - a stable typed Rust AST API beyond the JSON schema described above
@@ -247,6 +258,8 @@ parse_regex_default_result(r"https?://[^\s]+")?;
 - Public host API stability:
   - `make -C rust embedding_api_gate`
   - `make -C rust regex_parser_integration_contract_gate`
+- Embedded code-block structural contract:
+  - `make -C rust regex_embedded_code_block_contract_gate`
 - Family proof/closure:
   - `make -C rust regex_parser_family_status_gate`
   - `make -C rust regex_parser_family_status_contract_gate`
@@ -255,5 +268,7 @@ parse_regex_default_result(r"https?://[^\s]+")?;
 ## What This Does Not Promise
 - It does not promise stable internal generated parser types.
 - It does not promise runtime execution semantics for embedded code blocks such as `(?{...})`.
+- It does not promise arbitrary valid Lua/JavaScript payload acceptance beyond the explicitly published structural forms.
+- It does not promise `native` or `wasm` tagged embedded code blocks as part of the current published syntax.
 - It does not promise every regex dialect already supported elsewhere in the ecosystem.
 - It does not promise that downstream consumers can ignore parser release versioning when depending on AST details.

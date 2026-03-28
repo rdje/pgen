@@ -22,6 +22,7 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work for `systemverilog` and `vhdl` now outranks deferred maintainability refactors, while `regex` has reached its current closure bar and should be treated as a no-regression proof baseline unless its contract is intentionally widened.
+  - downstream regex hardening on embedded code blocks should now be treated as parser-layer contract precision work backed by compact synthetic corpora/gates, not as a reason to reopen the `regex` family row by default.
 
 ## Rust-Adjacent Cargo Surface
 - Main product crate

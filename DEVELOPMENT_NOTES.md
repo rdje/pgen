@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-28 - Narrow regex embedded code-block work to the provable parser-layer slice
+### Context
+Regex family closure is already `Done`, but RGX-facing downstream hardening still needed a clearer embedded-code-block story. The key constraint is that we should not wait for a large external Lua/JS corpus before tightening the contract; instead, we should publish and prove the structural subset the generated regex parser can already preserve reliably.
+
+### Implementation
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - regex embedded-code-block follow-up is now explicitly parser-layer structural hardening
+  - compact synthetic corpora/gates are the current proof mechanism
+  - this work does not reopen the regex family row unless we intentionally widen the published syntax contract
+- Kept the grammar changes inline in [grammars/regex.ebnf](grammars/regex.ebnf) rather than splitting into included files.
+  - That keeps the regex embedded-code-block rules close to the published regex syntax contract.
+  - It also avoids introducing include-layer indirection for a still-compact rule cluster.
+- Tightened the actual published parser-layer contract to:
+  - plain `(?{...})` as opaque generic payload
+  - `lua`, `js`, and `javascript` as opaque source-body payloads
+  - balanced-brace handling
+  - single-quoted string shielding
+  - double-quoted string shielding
+  - escaped-character shielding
+- Explicitly did **not** publish stronger claims yet for:
+  - JavaScript comment shielding
+  - JavaScript template-literal shielding
+  - Lua long-bracket shielding
+  - `native` / `wasm` tags
+- Added a dedicated checked-in proof seam:
+  - [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json)
+  - [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh)
+- While validating the new gate, fixed two real shell-gate bugs:
+  - expected-fail manifest booleans were incorrectly read through `jq -e`
+  - failure-log extraction was fragile under `set -euo pipefail`
+- Refreshed the downstream docs:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - both now match the actually provable structural slice
+
+### Validation
+- `make -C rust regex_embedded_code_block_contract_gate`
+  - `8/8` cases executed with `0` mismatches
+- `make -C rust regex_parser_integration_contract_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
+### Why This Matters
+- Regex downstream hardening now advances by publishing truthful parser-layer guarantees instead of waiting for a perfect corpus.
+- The next regex embedded-code-block widening step is clearer: add a new structural guarantee only after adding proof cases and making them pass end to end.
+
 ## 2026-03-28 - Refocus regex downstream docs on actual consumer needs
 ### Context
 After the first regex contract hardening pass, the RGX-facing doc still mixed downstream concerns with PGEN-internal provenance details. In particular, RGX does not need the integration handoff doc to talk about `generated/regex.json` or `grammars/regex.ebnf`; what RGX does need is a precise description of the published regex flavor and the measured operational baseline of the released parser.

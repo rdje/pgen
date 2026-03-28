@@ -1981,7 +1981,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 4);
+        assert_eq!(manifest.success_samples.len(), 5);
         assert_eq!(manifest.failure_samples.len(), 2);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");

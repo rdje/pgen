@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: regex-downstream-doc-refocus)
+Last updated: 2026-03-28 (+0100, task: regex-embedded-code-block-structural-contract)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,41 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Regex downstream embedded-code-block hardening now has a dedicated parser-layer proof seam and no longer depends on finding a large external Lua/JS dataset first.
+- [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) now all record the same posture:
+  - regex family closure remains `Done`
+  - embedded-code-block follow-up is downstream contract hardening
+  - compact synthetic corpora/gates are the current proof path
+  - regex is not reopened unless the published syntax contract is intentionally widened
+- [grammars/regex.ebnf](grammars/regex.ebnf) now keeps the embedded-code-block evolution inline in the main regex grammar.
+  - published parser-layer contract currently covers:
+    - plain `(?{...})` opaque generic payload
+    - `lua` / `js` / `javascript` opaque source-body payloads
+    - balanced braces
+    - single-quoted string shielding
+    - double-quoted string shielding
+    - escaped-character shielding
+  - published non-promises remain:
+    - JavaScript comment shielding
+    - JavaScript template-literal shielding
+    - Lua long-bracket shielding
+    - `native` / `wasm` tags
+- Added:
+  - [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json)
+  - [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh)
+- [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) now match that tighter structural contract instead of overreaching toward unproved Lua/JS language-level claims.
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now locks the new embedded-code-block gate/corpus/doc surface.
+- [rust/src/parser_registry.rs](rust/src/parser_registry.rs) now has focused generated-regex coverage for the published structural forms.
+- [rust/src/embedding_api.rs](rust/src/embedding_api.rs) had one regex integration manifest expectation refreshed after adding the new regex success sample to the contract manifest.
+- Validation completed for this slice:
+  - `make -C rust regex_embedded_code_block_contract_gate`
+    - `cases_declared=8`
+    - `cases_executed=8`
+    - `observed_pass_total=6`
+    - `observed_fail_total=2`
+    - `mismatched_cases_total=0`
+  - `make -C rust regex_parser_integration_contract_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
 - The regex downstream docs were further refocused after the initial hardening pass:
   - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md) no longer talks to RGX about:
     - `generated/regex.json`

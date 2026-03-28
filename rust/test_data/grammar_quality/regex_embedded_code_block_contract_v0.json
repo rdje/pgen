@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "description": "Deterministic parser-layer contract corpus for regex embedded code blocks. This corpus proves opaque payload capture, balanced-brace handling, and quoted-string shielding without claiming language-runtime validation.",
+  "expected_parser_type": "regex",
+  "expected_profile": "regex_default",
+  "cases": [
+    {
+      "name": "plain_opaque_generic_payload",
+      "description": "Untagged code block is accepted as opaque generic payload.",
+      "input": "(?{payload})",
+      "expect_parse": true,
+      "tags": ["plain", "opaque-generic", "success"]
+    },
+    {
+      "name": "lua_source_body_payload",
+      "description": "Lua-tagged code block is accepted as opaque source-body payload.",
+      "input": "(?{lua:return x + 1})",
+      "expect_parse": true,
+      "tags": ["lua", "opaque-source-body", "success"]
+    },
+    {
+      "name": "javascript_alias_source_body_payload",
+      "description": "The javascript alias is accepted alongside js.",
+      "input": "(?{javascript:return x + 1;})",
+      "expect_parse": true,
+      "tags": ["javascript", "alias", "opaque-source-body", "success"]
+    },
+    {
+      "name": "balanced_braces_inside_opaque_payload",
+      "description": "Balanced nested braces are preserved structurally inside opaque payloads.",
+      "input": "(?{{ nested { braces } }})",
+      "expect_parse": true,
+      "tags": ["plain", "balanced-braces", "success"]
+    },
+    {
+      "name": "double_quoted_string_shields_braces",
+      "description": "Double-quoted strings shield close braces structurally inside opaque payloads.",
+      "input": "(?{\"} close brace inside double quotes\"})",
+      "expect_parse": true,
+      "tags": ["plain", "double-quoted-string", "brace-shielding", "success"]
+    },
+    {
+      "name": "single_quoted_string_shields_braces",
+      "description": "Single-quoted strings shield close braces structurally inside opaque payloads.",
+      "input": "(?{'} close brace inside single quotes'})",
+      "expect_parse": true,
+      "tags": ["plain", "single-quoted-string", "brace-shielding", "success"]
+    },
+    {
+      "name": "unterminated_balanced_brace_payload",
+      "description": "Malformed balanced-brace payloads are rejected.",
+      "input": "(?{{ unterminated })",
+      "expect_parse": false,
+      "tags": ["plain", "balanced-braces", "failure"]
+    },
+    {
+      "name": "unterminated_double_quoted_payload",
+      "description": "Malformed quoted payloads are rejected.",
+      "input": "(?{\"unterminated})",
+      "expect_parse": false,
+      "tags": ["plain", "double-quoted-string", "failure"]
+    }
+  ]
+}

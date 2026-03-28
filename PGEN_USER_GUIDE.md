@@ -3790,6 +3790,7 @@ Accepted syntax families in the current published flavor:
   - plain `(?{...})`
   - language-tagged `(?{lua: ...})`
   - language-tagged `(?{js: ...})`
+  - language-tagged `(?{javascript: ...})`
 
 Representative accepted examples:
 - ``
@@ -3802,14 +3803,22 @@ Representative accepted examples:
 - `(?>ab|cd)`
 - `(?=abc)abc`
 - `(?{lua: return x + 1})`
+- `(?{javascript:return x + 1;})`
 
 Regex code-block handling:
 - embedded code blocks are parsed structurally
+- plain `(?{...})` is preserved as opaque generic payload
+- language tags `lua`, `js`, and `javascript` are preserved as opaque source-body payloads
 - balanced braces inside code blocks are handled explicitly
 - double-quoted and single-quoted strings inside code blocks are handled explicitly
 - escaped characters inside code blocks are handled explicitly
 - this parser contract is about acceptance, AST transport, and diagnostics
+- this parser contract does not yet claim arbitrary valid Lua or JavaScript payload acceptance beyond those published structural forms
+- JavaScript comment/template-literal shielding and Lua long-bracket shielding are the next explicit parser-layer follow-up, not a current published guarantee
+- this parser contract does not yet publish `native` or `wasm` tagged code blocks
 - it is not a promise about runtime execution semantics for those code blocks
+- dedicated structural proof for this slice lives at:
+  - `make -C rust regex_embedded_code_block_contract_gate`
 
 Diagnostics and AST behavior:
 - stable diagnostic codes:

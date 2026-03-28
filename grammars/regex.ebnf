@@ -220,14 +220,17 @@ yes_branch        = pattern
 no_branch         = pattern
 condition         = lookaround | name_ref | digits
 
-# Embedded code blocks for rgx hooks (Lua/JS)
-# Properly handles balanced braces and string literals
+# Embedded code blocks for rgx hooks
+# Parser-layer contract:
+# - plain (?{...}) is preserved as opaque generic payload
+# - lua/js/javascript payloads are preserved structurally, not language-validated
+# - runtime execution semantics remain out of scope
 code_block     = code_block_plain | code_block_lang
 code_block_plain = "(?{" code_content "})"
 code_block_lang  = "(?{" code_lang ":" ws? code_content "})"
-code_lang      = "lua" | "js"
+code_lang      = "lua" | "js" | "javascript"
 
-# Code content with proper brace balancing and string handling
+# Code content with proper brace balancing and quoted string handling
 code_content   = code_element*
 code_element   = code_string_double
                | code_string_single  

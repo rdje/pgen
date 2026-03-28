@@ -211,7 +211,9 @@ audit_embedding_api_surface() {
   assert_tracked "PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
   assert_tracked "PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
   assert_tracked "rust/scripts/regex_parser_integration_contract_gate.sh"
+  assert_tracked "rust/scripts/regex_embedded_code_block_contract_gate.sh"
   assert_tracked "rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json"
+  assert_tracked "rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json"
 
   assert_file_contains \
     "rust/src/embedding_api.rs" \
@@ -276,13 +278,25 @@ audit_embedding_api_surface() {
     'regex_parser_integration_contract_gate - Validate regex parser integration contract (consumer-facing convenience API + diagnostics)'
   assert_file_contains \
     "rust/Makefile" \
+    'regex_embedded_code_block_contract_gate - Validate regex embedded code-block structural contract over the checked-in synthetic corpus'
+  assert_file_contains \
+    "rust/Makefile" \
     '@$(MAKE) -C $(RUST_DIR) regex_parser_integration_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/regex_embedded_code_block_contract_gate.sh'
   assert_file_contains \
     "rust/scripts/regex_parser_integration_contract_gate.sh" \
     'cargo test --lib regex_parser_integration_contract_'
   assert_file_contains \
     "rust/scripts/regex_parser_integration_contract_gate.sh" \
     'cargo test --features generated_parsers --lib regex_parser_integration_contract_'
+  assert_file_contains \
+    "rust/scripts/regex_embedded_code_block_contract_gate.sh" \
+    'regex_embedded_code_block_contract_v0.json'
+  assert_file_contains \
+    "rust/scripts/regex_embedded_code_block_contract_gate.sh" \
+    '--parse "$expected_parser_type" "$case_input_file" --profile "$expected_profile"'
 
   assert_file_contains \
     "rust/docs/EMBEDDING_API_CONTRACT.md" \
@@ -345,6 +359,18 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '`(?{lua: return x + 1})`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`(?{javascript:return x + 1;})`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'plain `(?{...})` is preserved as opaque generic payload'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'language tags `lua`, `js`, and `javascript` are preserved as opaque source-body payloads'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'make -C rust regex_embedded_code_block_contract_gate'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     'this is not a host-language regex literal parser for wrapper forms such as `/pattern/flags`'
@@ -418,6 +444,15 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'raw regex bodies, not host-language delimiter wrappers'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'plain `(?{...})` is preserved as opaque generic payload'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '`lua`, `js`, and `javascript` payloads are preserved as opaque source-body payloads'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'make -C rust regex_embedded_code_block_contract_gate'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
