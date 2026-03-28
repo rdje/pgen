@@ -2558,6 +2558,14 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_STATE_DIR="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GATE="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GATE_VERSION="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GENERATED_AT_UTC="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_PRIMARY_UNMET_CLOSURE_CRITERION="<missing>"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_UNMET_CLOSURE_CRITERIA_COUNT="<missing>"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN="<missing>"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_INITIAL_STATUS_PASS="<missing>"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_REPLAY_STATUS_PASS="<missing>"
@@ -2587,6 +2595,14 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_STATE_DIR="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_state_dir' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_summary_txt' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.family_contract_summary_json' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$(summary_value_from_txt "vhdl_formal_exhaustive_closure_gate" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GATE_VERSION="$(summary_value_from_txt "vhdl_formal_exhaustive_closure_gate_version" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GENERATED_AT_UTC="$(summary_value_from_txt "vhdl_formal_exhaustive_closure_generated_at_utc" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.formal_exhaustive_closure_state_dir' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.formal_exhaustive_closure_summary_txt' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="vhdl") | .proof_surfaces.formal_exhaustive_closure_summary_json' "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_PRIMARY_UNMET_CLOSURE_CRITERION="$(summary_value_from_txt "vhdl_formal_exhaustive_closure_primary_unmet_closure_criterion" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
+        VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_UNMET_CLOSURE_CRITERIA_COUNT="$(summary_value_from_txt "vhdl_formal_exhaustive_closure_unmet_closure_criteria_count" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN="$(summary_value_from_txt "vhdl_family_contract_green" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_INITIAL_STATUS_PASS="$(summary_value_from_txt "vhdl_quality_closed_loop_initial_status_pass" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
         VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_REPLAY_STATUS_PASS="$(summary_value_from_txt "vhdl_quality_closed_loop_replay_status_pass" "$VHDL_PARSER_FAMILY_STATUS_SUMMARY_TXT")"
@@ -2634,6 +2650,9 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_STATE_DIR="<missing>"
         VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="<missing>"
         VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="<missing>"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="<missing>"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="<missing>"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK="<missing>"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT="<missing>"
@@ -2651,6 +2670,9 @@ if [[ "$RUN_VHDL_STIMULI_QUALITY" -eq 1 && "$RUN_VHDL_STRICT_PROMOTION" -eq 1 ]]
         VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_STATE_DIR="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.state_dir' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.summary_txt' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="vhdl") | .family_contract.summary_json' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$(jq -r '.families[] | select(.family=="vhdl") | .formal_exhaustive_closure.state_dir' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT="$(jq -r '.families[] | select(.family=="vhdl") | .formal_exhaustive_closure.summary_txt' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
+        VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON="$(jq -r '.families[] | select(.family=="vhdl") | .formal_exhaustive_closure.summary_json' "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_JSON")"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_FAMILY_COUNT="$(summary_value_from_txt "family_count" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_TRACKER_ALIGNMENT_OK="$(summary_value_from_txt "vhdl_tracker_alignment_ok" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
         VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_FALSE_CRITERIA_COUNT="$(summary_value_from_txt "vhdl_false_criteria_count" "$VHDL_PARSER_FAMILY_STATUS_CONTRACT_SUMMARY_TXT")"
@@ -3499,6 +3521,14 @@ informational_failures=$((all_failures - required_failures))
         echo "vhdl_family_status_vhdl_closure_criteria_unsatisfied_count: $VHDL_FAMILY_STATUS_VHDL_CLOSURE_CRITERIA_UNSATISFIED_COUNT"
         echo "vhdl_family_status_vhdl_family_contract_summary_txt: $VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_TXT"
         echo "vhdl_family_status_vhdl_family_contract_summary_json: $VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_SUMMARY_JSON"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_gate: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_gate_version: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GATE_VERSION"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_generated_at_utc: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_GENERATED_AT_UTC"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_state_dir: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_summary_txt: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_summary_json: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_primary_unmet_closure_criterion: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_PRIMARY_UNMET_CLOSURE_CRITERION"
+        echo "vhdl_family_status_vhdl_formal_exhaustive_closure_unmet_closure_criteria_count: $VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_UNMET_CLOSURE_CRITERIA_COUNT"
         echo "vhdl_family_status_vhdl_family_contract_green: $VHDL_FAMILY_STATUS_VHDL_FAMILY_CONTRACT_GREEN"
         echo "vhdl_family_status_vhdl_quality_closed_loop_initial_status_pass: $VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_INITIAL_STATUS_PASS"
         echo "vhdl_family_status_vhdl_quality_closed_loop_replay_status_pass: $VHDL_FAMILY_STATUS_VHDL_QUALITY_CLOSED_LOOP_REPLAY_STATUS_PASS"
@@ -3524,6 +3554,9 @@ informational_failures=$((all_failures - required_failures))
         echo "vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_PRIMARY_UNMET_DETAIL_CRITERION"
         echo "vhdl_family_status_contract_vhdl_unmet_closure_criteria_json: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_JSON"
         echo "vhdl_family_status_contract_vhdl_unmet_closure_criteria_details_json: $VHDL_PARSER_FAMILY_STATUS_CONTRACT_VHDL_UNMET_CLOSURE_CRITERIA_DETAILS_JSON"
+        echo "vhdl_family_status_contract_vhdl_formal_exhaustive_closure_state_dir: $VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR"
+        echo "vhdl_family_status_contract_vhdl_formal_exhaustive_closure_summary_txt: $VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT"
+        echo "vhdl_family_status_contract_vhdl_formal_exhaustive_closure_summary_json: $VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON"
     fi
     if [[ -f "$REGEX_PARSER_FAMILY_CONTRACT_SUMMARY_TXT" ]]; then
         echo
@@ -3732,6 +3765,12 @@ jq -n \
     --arg vhdl_family_status_contract_vhdl_family_contract_state_dir "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_STATE_DIR:-<not-run>}" \
     --arg vhdl_family_status_contract_vhdl_family_contract_summary_txt "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_TXT:-<not-run>}" \
     --arg vhdl_family_status_contract_vhdl_family_contract_summary_json "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
+    --arg vhdl_family_status_vhdl_formal_exhaustive_closure_state_dir "${VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-<not-run>}" \
+    --arg vhdl_family_status_vhdl_formal_exhaustive_closure_summary_txt "${VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT:-<not-run>}" \
+    --arg vhdl_family_status_vhdl_formal_exhaustive_closure_summary_json "${VHDL_FAMILY_STATUS_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON:-<not-run>}" \
+    --arg vhdl_family_status_contract_vhdl_formal_exhaustive_closure_state_dir "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-<not-run>}" \
+    --arg vhdl_family_status_contract_vhdl_formal_exhaustive_closure_summary_txt "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_TXT:-<not-run>}" \
+    --arg vhdl_family_status_contract_vhdl_formal_exhaustive_closure_summary_json "${VHDL_FAMILY_STATUS_CONTRACT_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_SUMMARY_JSON:-<not-run>}" \
     --arg regex_family_status_regex_family_contract_state_dir "${REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_STATE_DIR:-<not-run>}" \
     --arg regex_family_status_regex_family_contract_summary_txt "${REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_TXT:-<not-run>}" \
     --arg regex_family_status_regex_family_contract_summary_json "${REGEX_FAMILY_STATUS_REGEX_FAMILY_CONTRACT_SUMMARY_JSON:-<not-run>}" \
@@ -3868,6 +3907,9 @@ jq -n \
             sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt),
             sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json: maybe_path($sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json),
             vhdl_parser_family_contract_summary_json: maybe_path($vhdl_parser_family_contract_summary_json),
+            vhdl_formal_exhaustive_closure_state_dir: maybe_path($vhdl_family_status_vhdl_formal_exhaustive_closure_state_dir),
+            vhdl_formal_exhaustive_closure_summary_txt: maybe_path($vhdl_family_status_vhdl_formal_exhaustive_closure_summary_txt),
+            vhdl_formal_exhaustive_closure_summary_json: maybe_path($vhdl_family_status_vhdl_formal_exhaustive_closure_summary_json),
             vhdl_parser_family_status_summary_json: maybe_path($vhdl_parser_family_status_summary_json),
             vhdl_parser_family_status_contract_summary_json: maybe_path($vhdl_parser_family_status_contract_summary_json),
             regex_parser_family_contract_summary_json: maybe_path($regex_parser_family_contract_summary_json),
@@ -3904,6 +3946,9 @@ jq -n \
                 family_contract_state_dir: maybe_path($vhdl_family_status_vhdl_family_contract_state_dir),
                 family_contract_summary_txt: maybe_path($vhdl_family_status_vhdl_family_contract_summary_txt),
                 family_contract_summary_json: maybe_path($vhdl_family_status_vhdl_family_contract_summary_json),
+                formal_exhaustive_closure_state_dir: maybe_path($vhdl_family_status_vhdl_formal_exhaustive_closure_state_dir),
+                formal_exhaustive_closure_summary_txt: maybe_path($vhdl_family_status_vhdl_formal_exhaustive_closure_summary_txt),
+                formal_exhaustive_closure_summary_json: maybe_path($vhdl_family_status_vhdl_formal_exhaustive_closure_summary_json),
                 quality_state_dir: maybe_path($vhdl_family_quality_state_dir),
                 quality_summary_txt: maybe_path($vhdl_family_quality_summary_txt),
                 quality_realistic_report_json: maybe_path($vhdl_family_quality_realistic_report_json),
@@ -3966,7 +4011,10 @@ jq -n \
                 family_status_summary_json: maybe_path($vhdl_family_status_contract_family_status_summary_json),
                 family_contract_state_dir: maybe_path($vhdl_family_status_contract_vhdl_family_contract_state_dir),
                 family_contract_summary_txt: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_txt),
-                family_contract_summary_json: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_json)
+                family_contract_summary_json: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_json),
+                formal_exhaustive_closure_state_dir: maybe_path($vhdl_family_status_contract_vhdl_formal_exhaustive_closure_state_dir),
+                formal_exhaustive_closure_summary_txt: maybe_path($vhdl_family_status_contract_vhdl_formal_exhaustive_closure_summary_txt),
+                formal_exhaustive_closure_summary_json: maybe_path($vhdl_family_status_contract_vhdl_formal_exhaustive_closure_summary_json)
             } | tojson)),
             regex: family_status_contract_entry($regex_parser_family_status_contract_summary_json; $regex_contract_tracker_alignment_ok; $regex_contract_primary_unmet_detail; $regex_contract_unmet_json; $regex_contract_unmet_details_json; ({
                 family_status_state_dir: maybe_path($regex_family_status_contract_family_status_state_dir),

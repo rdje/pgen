@@ -1247,7 +1247,9 @@ Operational rule:
   - Its runtime semantics include macro expansion, include handling, conditional policy, source mapping, diagnostics, and strict-promotion-adjacent behavior
 - `vhdl`
   - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
-  - In practice it is strongly coupled to quality/parseability and strict-promotion proof surfaces
+  - In practice it is strongly coupled to quality/parseability, strict-promotion, and now a dedicated formal-exhaustive-closure proof surface
+  - The current machine-checked family-status row is still `In Progress`, but the blocker set is now narrower and cleaner than before: `8/10` closure criteria satisfied, with remaining debt concentrated in generation parser rejections (`14`) and replay-shadow parser rejections (`5`) rather than missing proof plumbing
+  - The new VHDL formal-closure gate is now green off the checked-in external-corpus-backed proof surface, and the family-status / family-status-contract / SOTA / combined-telemetry stack preserves that provenance end to end
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling

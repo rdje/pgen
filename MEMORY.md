@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-28 (+0100, task: refresh-regex-family-proof-stack)
+Last updated: 2026-03-28 (+0100, task: vhdl-formal-closure-proof-stack)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,39 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- The VHDL proof stack now has a real formal exhaustive-closure sidecar instead of the old hardcoded `formal_exhaustive_closure_surface=missing` blocker.
+- Added:
+  - [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_formal_exhaustive_closure_gate.sh)
+  - [rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json)
+- The new formal-closure gate currently validates green on:
+  - `required_surface_key=external_corpus_backed_proof_surface`
+  - `vhdl_formal_exhaustive_closure_surface_green=true`
+  - closure counts `1/1/0`
+- The refreshed VHDL family/status baseline is now:
+  - family contract:
+    - `quality_closed_loop_initial_targets=147`
+    - `quality_closed_loop_replay_targets=0`
+    - `quality_parseability_generation_attempts_total=22`
+    - `quality_parseability_generation_rejected_total=14`
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=5`
+  - family status:
+    - `vhdl=In Progress`
+    - closure counts `8/10/2`
+    - remaining blockers:
+      - `quality_parseability_generation_parser_rejections_total=14 > 0`
+      - `quality_closed_loop_parseability_shadow_parser_rejections_total=5 > 0`
+  - family-status contract:
+    - `family_count=1`
+    - `vhdl_false_criteria_count=2`
+    - `vhdl_unmet_details_count=2`
+- [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) and [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) now preserve and parity-check the VHDL formal-closure state/TXT/JSON paths end to end.
+- Validation exposed and fixed one real aggregate bug:
+  - [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) originally referenced the new VHDL formal-closure status variables before loading them, which tripped `set -u`
+  - the formal-closure parity asserts are now moved to the correct point in the script
+- Immediate next VHDL roadmap work is now narrower:
+  - reduce generation parser rejections from `14`
+  - reduce replay-shadow parser rejections from `5`
+  - preserve the now-green VHDL formal-closure provenance and the `8/10/2` family-status baseline while doing it
 - The regex family proof stack is now refreshed end to end from the current parser-clean baseline instead of lagging behind the older `742/738/4` family snapshot.
 - Added [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/regex_family_stimuli_contract.json).
 - Updated [rust/scripts/regex_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/regex_parser_family_contract_gate.sh) so the canonical regex family sidecar now defaults to that dedicated regex-only stimuli contract.

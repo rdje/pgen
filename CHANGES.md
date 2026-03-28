@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-03-28 - Add VHDL formal exhaustive-closure proof seam
+### ✅ Achievement Summary
+PGEN's VHDL proof stack now has a real machine-checkable formal-closure sidecar instead of a placeholder missing-surface blocker, and the published VHDL family/status/aggregate story has been refreshed to the new measured state.
+
+### Scope of Changes
+- Added:
+  - [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_formal_exhaustive_closure_gate.sh)
+  - [rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json)
+- Updated:
+  - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile)
+  - [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh)
+  - [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh)
+  - [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh)
+  - [LIVE_ACHIEVEMENT_STATUS.md](/Users/richarddje/Documents/github/pgen/LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](/Users/richarddje/Documents/github/pgen/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](/Users/richarddje/Documents/github/pgen/RUST_CODEBASE_ANALYSIS.md)
+  - [CHANGES.md](/Users/richarddje/Documents/github/pgen/CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](/Users/richarddje/Documents/github/pgen/DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](/Users/richarddje/Documents/github/pgen/MEMORY.md)
+- The new VHDL formal-closure gate now consumes the canonical VHDL family-contract sidecar plus the checked-in VHDL external-corpus triage sidecar and emits a dedicated `summary.txt` / `summary.json` proof surface.
+- The VHDL family-status, family-status-contract, SOTA, and combined-telemetry layers now preserve and parity-check that formal-closure provenance end to end.
+- The current measured VHDL family-status baseline is now:
+  - `closure_criteria_satisfied_count=8`
+  - `closure_criteria_total_count=10`
+  - `closure_criteria_unsatisfied_count=2`
+  - blockers:
+    - `quality_parseability_generation_parser_rejections_total=14 > 0`
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=5 > 0`
+- The new formal-closure seam itself is green:
+  - `required_surface_key=external_corpus_backed_proof_surface`
+  - `vhdl_formal_exhaustive_closure_surface_green=true`
+  - closure counts `1/1/0`
+- While validating the aggregate path, this slice also fixed a real `nounset` bug in [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh): the new formal-closure parity checks were moved to the point where the corresponding VHDL status variables are actually loaded.
+
+### Why This Matters
+- VHDL no longer carries a fake proof-plumbing blocker in its live status.
+- The remaining VHDL debt is now honestly reduced to parser behavior, which makes the next roadmap steps narrower and easier to measure.
+
 ## 2026-03-28 - Add explicit session bootstrap entrypoint
 ### ✅ Achievement Summary
 PGEN now has an explicit first-step session bootstrap instruction path: the root README ends with a direct pointer to a dedicated bootstrap file, and that file captures the required session-start reading and Rust-analysis workflow.

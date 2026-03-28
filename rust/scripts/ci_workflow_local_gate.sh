@@ -1013,6 +1013,12 @@ audit_sota_json_consumption_surface() {
   assert_file_contains \
     "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
     '.family_status_contract.vhdl.proof_surfaces.family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    '.family_status.vhdl.proof_surfaces.formal_exhaustive_closure_summary_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_combined_telemetry_contract_gate.sh" \
+    '.family_status_contract.vhdl.proof_surfaces.formal_exhaustive_closure_summary_json'
 }
 
 audit_sota_nested_family_emission_surface() {
@@ -1087,10 +1093,16 @@ audit_sota_nested_family_emission_surface() {
     'quality_parseability_report_json: maybe_path($vhdl_family_quality_parseability_report_json)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_summary_json: maybe_path($vhdl_family_status_vhdl_formal_exhaustive_closure_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
     'vhdl: family_status_contract_entry('
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
     'family_contract_summary_json: maybe_path($vhdl_family_status_contract_vhdl_family_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_summary_json: maybe_path($vhdl_family_status_contract_vhdl_formal_exhaustive_closure_summary_json)'
 }
 
 audit_combined_telemetry_nested_provenance_surface() {
@@ -1270,11 +1282,23 @@ audit_family_layer_provenance_surface() {
     "rust/scripts/vhdl_parser_family_status_gate.sh" \
     'family_contract_summary_json: $vhdl_family_contract_summary_json'
   assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_gate.sh" \
+    'formal_exhaustive_closure_state_dir: $vhdl_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_gate.sh" \
+    'formal_exhaustive_closure_summary_json: $vhdl_formal_exhaustive_closure_summary_json'
+  assert_file_contains \
     "rust/scripts/vhdl_parser_family_status_contract_gate.sh" \
     'state_dir: $vhdl_family_contract_state_dir'
   assert_file_contains \
     "rust/scripts/vhdl_parser_family_status_contract_gate.sh" \
     'summary_json: $vhdl_family_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_contract_gate.sh" \
+    'state_dir: $vhdl_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/vhdl_parser_family_status_contract_gate.sh" \
+    'summary_json: $vhdl_formal_exhaustive_closure_summary_json'
 }
 
 audit_family_summary_identity_surface() {
@@ -1287,6 +1311,7 @@ audit_family_summary_identity_surface() {
     rust/scripts/regex_broader_corpus_proof_gate.sh \
     rust/scripts/regex_formal_exhaustive_closure_gate.sh \
     rust/scripts/vhdl_parser_family_contract_gate.sh \
+    rust/scripts/vhdl_formal_exhaustive_closure_gate.sh \
     rust/scripts/sv_parser_family_status_gate.sh \
     rust/scripts/regex_parser_family_status_gate.sh \
     rust/scripts/vhdl_parser_family_status_gate.sh \
@@ -1441,6 +1466,48 @@ audit_regex_formal_exhaustive_closure_surface() {
     'broader_corpus_backed_proof_summary_json'
 }
 
+audit_vhdl_formal_exhaustive_closure_surface() {
+  note "auditing VHDL formal exhaustive-closure surface"
+
+  assert_tracked "rust/scripts/vhdl_formal_exhaustive_closure_gate.sh"
+  assert_tracked "rust/scripts/vhdl_external_corpus_triage_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json"
+  assert_tracked "rust/test_data/grammar_quality/vhdl_external_corpus_triage_v0.json"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'vhdl_formal_exhaustive_closure_gate - Compute the explicit VHDL exhaustive-closure proof surface status from family and external-corpus sidecars'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/vhdl_formal_exhaustive_closure_gate.sh'
+
+  assert_file_contains \
+    "rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json" \
+    '"required_surface_key": "external_corpus_backed_proof_surface"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json" \
+    '"required_surface_missing_detail": "VHDL still lacks a checked-in external corpus-backed proof surface'
+
+  assert_file_contains \
+    "rust/scripts/vhdl_formal_exhaustive_closure_gate.sh" \
+    'VHDL_EXTERNAL_CORPUS_TRIAGE_GATE="$RUST_DIR/scripts/vhdl_external_corpus_triage_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/vhdl_formal_exhaustive_closure_gate.sh" \
+    'run_logged "vhdl_external_corpus_triage_gate"'
+  assert_file_contains \
+    "rust/scripts/vhdl_formal_exhaustive_closure_gate.sh" \
+    'EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR="${PGEN_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR:-}"'
+  assert_file_contains \
+    "rust/scripts/vhdl_formal_exhaustive_closure_gate.sh" \
+    'vhdl_external_corpus_backed_proof_parse_fail_total'
+  assert_file_contains \
+    "rust/scripts/vhdl_formal_exhaustive_closure_gate.sh" \
+    'vhdl_formal_exhaustive_closure_surface_green'
+  assert_file_contains \
+    "rust/scripts/vhdl_formal_exhaustive_closure_gate.sh" \
+    'external_corpus_backed_proof_summary_json'
+}
+
 audit_sv_aggregate_contract_proof_surface() {
   note "auditing SV aggregate-contract proof-surface emission surface"
 
@@ -1561,6 +1628,7 @@ main() {
   audit_family_summary_identity_surface
   audit_family_contract_proof_surface
   audit_regex_formal_exhaustive_closure_surface
+  audit_vhdl_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface
   audit_summary_json_emission_surface
 

@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-28 - Add VHDL formal exhaustive-closure gate and refresh the VHDL proof stack
+### Context
+The VHDL family row was still carrying one fake blocker even after its real quality/status plumbing existed: `vhdl_parser_family_status_gate` had to report `formal_exhaustive_closure_surface=missing` because there was no first-class proof object for that question. That left the VHDL roadmap story weaker than regex and the newer family-sidecar doctrine, and it also obscured the fact that the remaining VHDL debt was already mostly parser behavior rather than missing gate wiring.
+
+### Implementation
+- Added [rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json](/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/vhdl_formal_exhaustive_closure_contract.json):
+  - declares the current VHDL closure rule as a checked-in contract
+  - names the required proof key `external_corpus_backed_proof_surface`
+  - makes the former missing-surface explanation explicit and machine-readable
+- Added [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_formal_exhaustive_closure_gate.sh):
+  - consumes or reuses [rust/scripts/vhdl_parser_family_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_contract_gate.sh)
+  - consumes or reuses [rust/scripts/vhdl_external_corpus_triage_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_external_corpus_triage_gate.sh)
+  - emits dedicated `summary.txt` / `summary.json` sidecars
+  - current validated closure result is green on `external_corpus_backed_proof_surface`
+- Updated the VHDL proof spine:
+  - [rust/Makefile](/Users/richarddje/Documents/github/pgen/rust/Makefile) now exposes `vhdl_formal_exhaustive_closure_gate`
+  - [rust/scripts/vhdl_parser_family_status_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_gate.sh) now consumes the new formal-closure sidecar instead of hardcoding a missing-surface blocker
+  - [rust/scripts/vhdl_parser_family_status_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_parser_family_status_contract_gate.sh) now preserves the formal-closure provenance too
+  - [rust/scripts/sota_exit_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/sota_exit_gate.sh) now carries the VHDL formal-closure state/TXT/JSON paths through both top-level and nested VHDL proof surfaces
+  - [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) now parity-checks and re-emits that same formal-closure provenance
+  - [rust/scripts/ci_workflow_local_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/ci_workflow_local_gate.sh) now locks the new VHDL formal-closure producer/consumer seam
+- Validation exposed one real aggregate bug:
+  - the new formal-closure parity checks in [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](/Users/richarddje/Documents/github/pgen/rust/scripts/vhdl_combined_telemetry_contract_gate.sh) were originally placed before the corresponding VHDL status variables were loaded
+  - with `set -u`, that crashed the gate
+  - the fix was to move those asserts to the point where the VHDL status formal-closure fields are actually extracted
+- Fresh validated VHDL family/status state is now:
+  - family contract:
+    - `quality_closed_loop_initial_targets=147`
+    - `quality_closed_loop_replay_targets=0`
+    - `quality_parseability_generation_attempts_total=22`
+    - `quality_parseability_generation_rejected_total=14`
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=5`
+  - formal closure:
+    - `vhdl_formal_exhaustive_closure_surface_green=true`
+    - closure counts `1/1/0`
+  - family status:
+    - `vhdl=In Progress`
+    - closure counts `8/10/2`
+    - remaining blockers:
+      - `quality_parseability_generation_parser_rejections_total=14 > 0`
+      - `quality_closed_loop_parseability_shadow_parser_rejections_total=5 > 0`
+
+### Why This Matters
+- The VHDL row is now blocked by real parser debt instead of a proof-plumbing hole.
+- The aggregate proof chain is also stronger: family status, family-status contract, SOTA, and combined telemetry all preserve the same formal-closure provenance instead of silently dropping it.
+
 ## 2026-03-28 - Refresh regex family/status/aggregate sidecars from parser-clean baseline
 ### Context
 After the regex layout/literal fixes landed, the direct regex-only `ebnf_stimuli_quality_gate` slice was already better than the published regex proof stack: the live parser-clean measurements were `197/197/0` with remaining target debt `122`, but the canonical regex family/status/aggregate sidecars were still stuck on the older `742/738/4` and `final_targets=35` snapshot. That meant the roadmap truth and the shipped sidecar truth were diverging even though the parser behavior had already improved.
