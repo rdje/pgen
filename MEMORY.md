@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: regex-corpus-bundle-workflow-adoption)
+Last updated: 2026-03-29 (+0100, task: regex-corpus-bundle-pin-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -23,12 +23,20 @@ Use this file to resume work without replaying full chat history.
     - reports whether pinned upstream snapshots and inventories are already present
     - does **not** treat missing fetched state as a hard failure
 - Current validated bundle contract summary:
-  - `pcre2_ref=PCRE2-10.46`
+  - `pcre2_ref=pcre2-10.47`
   - `php_ref=php-8.4.19`
-  - `pcre2_snapshot_present=false`
-  - `php_snapshot_present=false`
-  - `pcre2_inventory_json_present=false`
-  - `php_inventory_json_present=false`
+  - `pcre2_snapshot_present=true`
+  - `php_snapshot_present=true`
+  - `pcre2_inventory_json_present=true`
+  - `php_inventory_json_present=true`
+  - `pcre2_files_indexed=113`
+  - `php_files_indexed=162`
+- The original `PCRE2-10.46` pin was wrong for GitHub release acquisition and caused the fetcher to 404.
+  - corrected lockfile/gate/doc shape now uses the real latest lowercase tag `pcre2-10.47`
+  - snapshot/license paths were normalized to the matching lowercase directory name `third_party/upstream/pcre2/pcre2-10.47`
+- Added [/.gitattributes](.gitattributes):
+  - `regex_corpus_bundle/third_party/** -text -whitespace`
+  - this keeps the tracked upstream snapshots byte-faithful while preventing `git diff --check` from treating upstream trailing spaces / blank-EOF markers as local formatting regressions
 - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md), and [README.md](README.md) now all reflect the same role:
   - `regex_corpus_bundle/` is the maintained PCRE2-first acquisition/inventory starter for future regex hardening
   - PCRE2 upstream is canonical syntax truth

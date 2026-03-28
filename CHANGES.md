@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-03-29 - Correct regex corpus bundle to latest PCRE2 tag
+### ✅ Achievement Summary
+The regex corpus bundle now pins the latest official PCRE2 release tag correctly: the bundle, lockfile, gate expectations, and supporting docs all use the lowercase `pcre2-10.47` tag and matching snapshot path instead of the broken `PCRE2-10.46` pin that produced a fetch-time 404.
+
+### Scope of Changes
+- Updated [regex_corpus_bundle/manifests/upstreams.lock.json](regex_corpus_bundle/manifests/upstreams.lock.json):
+  - `pcre2` ref now uses `pcre2-10.47`
+  - archive URL now targets the real lowercase GitHub release tag
+  - extracted snapshot root/path now use `third_party/upstream/pcre2/pcre2-10.47`
+- Updated [regex_corpus_bundle/manifests/licenses.json](regex_corpus_bundle/manifests/licenses.json) and [rust/scripts/regex_corpus_bundle_contract_gate.sh](rust/scripts/regex_corpus_bundle_contract_gate.sh):
+  - tracked license path and gate expectations now match the corrected snapshot location
+- Updated [regex_corpus_bundle/docs/regex_corpus_plan.md](regex_corpus_bundle/docs/regex_corpus_plan.md):
+  - repo-layout examples
+  - initial pin documentation
+  - sample source provenance
+  - all now reflect `pcre2-10.47`
+- Added [/.gitattributes](.gitattributes):
+  - disables Git whitespace-error checking only for `regex_corpus_bundle/third_party/**`
+  - preserves the immutable upstream snapshots byte-faithfully instead of “fixing” upstream trailing spaces or blank-EOF markers
+- Fetched and tracked the current bundle state:
+  - canonical PCRE2 snapshot under `regex_corpus_bundle/third_party/upstream/pcre2/pcre2-10.47/`
+  - secondary PHP snapshot under `regex_corpus_bundle/third_party/upstream/php-src/php-8.4.19/`
+  - fresh inventories under `regex_corpus_bundle/corpus/pcre2/canonical/` and `regex_corpus_bundle/corpus/pcre2/php/`
+
+### Validation
+- reran `python3 regex_corpus_bundle/scripts/fetch_regex_corpora.py --all` from the project root after correcting the tag
+- `make -C rust regex_corpus_bundle_contract_gate`
+  - current summary:
+    - `pcre2_ref=pcre2-10.47`
+    - `php_ref=php-8.4.19`
+    - `pcre2_snapshot_present=true`
+    - `php_snapshot_present=true`
+    - `pcre2_inventory_json_present=true`
+    - `php_inventory_json_present=true`
+    - `pcre2_files_indexed=113`
+    - `php_files_indexed=162`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
+### Why This Matters
+- The bundle can now actually fetch the canonical PCRE2 upstream snapshot instead of failing on a dead archive URL.
+- The maintained PCRE2-first acquisition lane now tracks the latest upstream release rather than an older, mis-cased pin.
+
 ## 2026-03-29 - Wire regex corpus bundle into maintained workflow
 ### ✅ Achievement Summary
 PGEN now treats `regex_corpus_bundle/` as a maintained regex hardening surface instead of a loose side directory: the roadmap/docs now point at it explicitly, the bundle files are tracked, and a dedicated contract gate validates its PCRE2-first acquisition shape without reopening the already closed regex family row.
@@ -21,7 +63,7 @@ PGEN now treats `regex_corpus_bundle/` as a maintained regex hardening surface i
 - `bash -n rust/scripts/regex_corpus_bundle_contract_gate.sh`
 - `make -C rust regex_corpus_bundle_contract_gate`
   - current summary:
-    - `pcre2_ref=PCRE2-10.46`
+    - `pcre2_ref=pcre2-10.47`
     - `php_ref=php-8.4.19`
     - `pcre2_snapshot_present=false`
     - `php_snapshot_present=false`

@@ -94,7 +94,7 @@ jq -e '
         .name == "pcre2"
         and .tier == "canonical"
         and .repo == "PCRE2Project/pcre2"
-        and .ref == "PCRE2-10.46"
+        and .ref == "pcre2-10.47"
         and .inventory.kind == "pcre2-testdata"
         and .inventory.output_json == "corpus/pcre2/canonical/pcre2_inventory.json"
         and .inventory.output_jsonl == "corpus/pcre2/canonical/pcre2_testfiles.jsonl"
@@ -116,7 +116,7 @@ jq -e '
 jq -e '
     .licenses.pcre2.source == "PCRE2Project/pcre2"
     and (.licenses.pcre2.summary | contains("testdata"))
-    and (.licenses.pcre2.tracked_files | index("third_party/upstream/pcre2/PCRE2-10.46/LICENCE.md"))
+    and (.licenses.pcre2.tracked_files | index("third_party/upstream/pcre2/pcre2-10.47/LICENCE.md"))
     and .licenses.php.source == "php/php-src"
     and (.licenses.php.summary | contains("PHP License"))
     and (.licenses.php.tracked_files | index("third_party/upstream/php-src/php-8.4.19/LICENSE"))

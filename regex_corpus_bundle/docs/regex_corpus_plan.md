@@ -60,7 +60,7 @@ They are not PCRE2 syntax truth.
 third_party/
   upstream/
     pcre2/
-      PCRE2-10.46/
+      pcre2-10.47/
         ...
     php-src/
       php-8.4.19/
@@ -121,7 +121,7 @@ That is reproducible enough to start, and easier for an AI agent than tracking m
 
 Initial pins:
 
-- PCRE2: `PCRE2-10.46`
+- PCRE2: `pcre2-10.47`
 - PHP: `php-8.4.19`
 
 Later, you can tighten this by adding SHA-256 checksums and signature verification.
@@ -134,7 +134,7 @@ These remain byte-for-byte faithful to upstream.
 
 Examples:
 
-- `third_party/upstream/pcre2/PCRE2-10.46/testdata/testinput2`
+- `third_party/upstream/pcre2/pcre2-10.47/testdata/testinput2`
 - `third_party/upstream/php-src/php-8.4.19/ext/pcre/tests/preg_split_error1.phpt`
 
 ### B. File inventories
@@ -173,7 +173,7 @@ Minimal example:
   "pattern": "(?<=foo)bar",
   "source": {
     "repo": "PCRE2Project/pcre2",
-    "ref": "PCRE2-10.46",
+    "ref": "pcre2-10.47",
     "file": "testdata/testinput2",
     "case_ref": "41"
   },

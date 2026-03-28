@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Correct regex corpus bundle to current PCRE2 release tag
+### Context
+The first tracked corpus-bundle lockfile used `PCRE2-10.46` as both the tag and destination naming convention. That looked plausible, but the actual GitHub release tag is lowercase and the user explicitly asked to move to the latest release, `pcre2-10.47`. Until corrected, the fetcher failed immediately with a 404 and could not produce any upstream snapshots or inventories.
+
+### Implementation
+- Updated [regex_corpus_bundle/manifests/upstreams.lock.json](regex_corpus_bundle/manifests/upstreams.lock.json):
+  - pinned `pcre2` ref now uses the real lowercase tag `pcre2-10.47`
+  - archive URL now points at the corresponding codeload release archive
+  - snapshot extraction/destination paths now consistently use lowercase `pcre2-10.47`
+- Updated [regex_corpus_bundle/manifests/licenses.json](regex_corpus_bundle/manifests/licenses.json) and [rust/scripts/regex_corpus_bundle_contract_gate.sh](rust/scripts/regex_corpus_bundle_contract_gate.sh) so the maintained gate and tracked-license expectations align with the new snapshot path.
+- Updated [regex_corpus_bundle/docs/regex_corpus_plan.md](regex_corpus_bundle/docs/regex_corpus_plan.md) so the documented repo layout, example provenance, and source pin section all match the live lockfile.
+- Added [/.gitattributes](.gitattributes) with a narrow upstream-snapshot rule:
+  - `regex_corpus_bundle/third_party/** -text -whitespace`
+  - rationale:
+    - the upstream snapshots are intentionally byte-faithful
+    - `git diff --check` was correctly flagging upstream trailing spaces and blank-EOF markers as whitespace errors
+    - those are upstream corpus bytes, not local formatting defects to rewrite
+- Reran the fetcher and now track the resulting bundle state:
+  - canonical PCRE2 snapshot
+  - secondary PHP snapshot
+  - both inventory JSON and JSONL outputs
+
+### Follow-up
+- Reran the fetcher from the repo root and confirmed the canonical PCRE2 and secondary PHP snapshots now materialize under `regex_corpus_bundle/third_party/upstream/`.
+  - resulting validated inventory baseline:
+    - `pcre2_ref=pcre2-10.47`
+    - `php_ref=php-8.4.19`
+    - `pcre2_snapshot_present=true`
+    - `php_snapshot_present=true`
+    - `pcre2_inventory_json_present=true`
+    - `php_inventory_json_present=true`
+    - `pcre2_files_indexed=113`
+    - `php_files_indexed=162`
+- Keep the bundle docs and gate keyed to the actual release tag format used upstream rather than normalizing it back to a local uppercase convention.
+
 ## 2026-03-29 - Adopt regex corpus bundle as maintained PCRE2-first hardening lane
 ### Context
 PGEN already had a closed regex family row and a checked-in broader-corpus proof slice over `rust/test_data/regex/stress_tests.json`, but the newly surfaced `regex_corpus_bundle/` starter made it clear we also had the beginnings of a more serious external hardening lane. That bundle should not sit outside the repo's usual proof discipline, and it should not be confused with the already-closed regex family-status contract either.
@@ -15,7 +50,7 @@ PGEN already had a closed regex family row and a checked-in broader-corpus proof
 - Added [rust/scripts/regex_corpus_bundle_contract_gate.sh](rust/scripts/regex_corpus_bundle_contract_gate.sh) and wired it through [rust/Makefile](rust/Makefile).
   - The new gate deliberately validates bundle contract shape rather than fetched-state completeness.
   - It checks:
-    - pinned PCRE2 canonical source (`PCRE2-10.46`)
+    - pinned PCRE2 canonical source (`pcre2-10.47`)
     - pinned PHP secondary source (`php-8.4.19`)
     - license/provenance metadata
     - normalized regex-case schema basics

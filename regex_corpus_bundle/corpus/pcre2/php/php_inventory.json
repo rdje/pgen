@@ -1,0 +1,10 @@
+{
+  "source": "php-src",
+  "repo": "php/php-src",
+  "ref": "php-8.4.19",
+  "destination": "third_party/upstream/php-src/php-8.4.19",
+  "files_indexed": 162,
+  "counts_by_kind": {
+    "php-phpt": 162
+  }
+}

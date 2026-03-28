@@ -4,7 +4,7 @@
       "source": "PCRE2Project/pcre2",
       "summary": "PCRE2 software and documentation are BSD-style licensed; the project states that data in the testdata directory is not copyrighted and is in the public domain.",
       "tracked_files": [
-        "third_party/upstream/pcre2/PCRE2-10.46/LICENCE.md"
+        "third_party/upstream/pcre2/pcre2-10.47/LICENCE.md"
       ]
     },
     "php": {

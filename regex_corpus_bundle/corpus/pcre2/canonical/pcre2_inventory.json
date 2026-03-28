@@ -1,0 +1,14 @@
+{
+  "source": "pcre2",
+  "repo": "PCRE2Project/pcre2",
+  "ref": "pcre2-10.47",
+  "destination": "third_party/upstream/pcre2/pcre2-10.47",
+  "files_indexed": 113,
+  "readme_present": true,
+  "counts_by_kind": {
+    "pcre2grep-test": 27,
+    "pcre2test-input": 30,
+    "pcre2test-output": 46,
+    "supporting": 10
+  }
+}
