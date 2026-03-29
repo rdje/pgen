@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: regex-rgx-handoff-signoff-capture)
+Last updated: 2026-03-29 (+0100, task: regex-rgx-bugfix-release-1.1.1)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Analyzed the RGX issue intake tree under `../rgx/pgen-issues/`.
+  - current concrete downstream regex bug bundles:
+    - `PGEN-RGX-0001`
+    - `PGEN-RGX-0002`
+    - `PGEN-RGX-0003`
+    - `PGEN-RGX-0004`
+  - all four were successful generated-backend parses with wrong accepted-tree transport, not backend-availability failures
+- Landed regex downstream maintenance release `1.1.1`.
+  - fixed:
+    - `(?R)` misclassified as `inline_modifiers`
+    - `\1` misclassified as generic `escape`
+    - `(?(1)a|b)` collapsing the false branch into `yes_branch`
+    - `ab+` binding `+` to the whole literal run instead of only `b`
+- Parser-side fix shape:
+  - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - `atom` now prefers `subroutine_call` before `inline_modifiers`
+    - `atom` now prefers `backreference` before generic `escape`
+    - numeric backreferences now use explicit nonzero-digit splitting
+    - conditionals now transport branches through `piece*`
+    - `literal` now transports one literal atom at a time
+  - regenerated:
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated downstream release/handoff surfaces:
+  - [rust/Cargo.toml](rust/Cargo.toml)
+    - `regex_corpus_probe` is now explicitly marked as a `generated_parsers`-only binary so source-target clippy does not try to build it in an unsupported no-generated configuration
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.1.1"`
+    - `REGEX_PARSER_RELEASE_VERSION = "1.1.1"`
+    - added focused regression tests for the four RGX cases
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Operational takeaway:
+  - regex handoff remains integration-ready for RGX, now on release `1.1.1`
+  - the four RGX reports are now fixed-release maintenance items, not open blockers
+
 - Read the updated RGX notes:
   - `/Users/richarddje/Documents/github/rgx/PGEN_REGEX_PARSER_INTEGRATION_COMPLAINT.md`
   - `/Users/richarddje/Documents/github/rgx/PGEN_REGEX_EMBEDDED_CODE_BLOCK_CONTRACT_PROPOSAL.md`

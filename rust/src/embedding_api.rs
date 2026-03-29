@@ -18,10 +18,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.0";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.1";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.0";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.1";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -1609,6 +1609,72 @@ mod tests {
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    fn regex_ast_dump_json(input: &str) -> serde_json::Value {
+        let outcome = parse_regex_default_ast_dump(input, &AstDumpOptions::default());
+        assert_eq!(
+            outcome.status,
+            ParseStatus::Success,
+            "expected '{}' to parse successfully",
+            input
+        );
+        let ast_dump = outcome.ast_dump.expect("ast dump payload");
+        serde_json::from_str(&ast_dump.dump_json).expect("dump json")
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    fn collect_rule_spans(
+        node: &serde_json::Value,
+        rule_name: &str,
+        spans: &mut Vec<(u64, u64)>,
+    ) {
+        match node {
+            serde_json::Value::Array(values) => {
+                for value in values {
+                    collect_rule_spans(value, rule_name, spans);
+                }
+            }
+            serde_json::Value::Object(object) => {
+                if object
+                    .get("rule_name")
+                    .and_then(serde_json::Value::as_str)
+                    == Some(rule_name)
+                {
+                    let span = object
+                        .get("span")
+                        .and_then(serde_json::Value::as_object)
+                        .expect("regex AST dump node must have span");
+                    let start = span
+                        .get("start")
+                        .and_then(serde_json::Value::as_u64)
+                        .expect("regex AST dump node span.start must be numeric");
+                    let end = span
+                        .get("end")
+                        .and_then(serde_json::Value::as_u64)
+                        .expect("regex AST dump node span.end must be numeric");
+                    spans.push((start, end));
+                }
+
+                if let Some(content) = object
+                    .get("content")
+                    .and_then(serde_json::Value::as_object)
+                {
+                    for payload in content.values() {
+                        collect_rule_spans(payload, rule_name, spans);
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    fn regex_rule_spans(node: &serde_json::Value, rule_name: &str) -> Vec<(u64, u64)> {
+        let mut spans = Vec::new();
+        collect_rule_spans(node, rule_name, &mut spans);
+        spans
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn assert_regex_ast_dump_node_schema(node: &serde_json::Value) {
         let object = node
             .as_object()
@@ -2011,7 +2077,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 9);
+        assert_eq!(manifest.success_samples.len(), 13);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
@@ -2460,6 +2526,54 @@ mod tests {
             serde_json::from_str(&ast_dump.dump_json).expect("dump json");
         assert!(parsed.is_object());
         assert_regex_ast_dump_node_schema(&parsed);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_classifies_whole_pattern_recursion_as_subroutine_call() {
+        let parsed = regex_ast_dump_json("(?R)");
+
+        assert_eq!(regex_rule_spans(&parsed, "subroutine_call"), vec![(0, 4)]);
+        assert_eq!(regex_rule_spans(&parsed, "subroutine_target"), vec![(2, 3)]);
+        assert!(
+            regex_rule_spans(&parsed, "inline_modifiers").is_empty(),
+            "whole-pattern recursion must not be misclassified as inline modifiers"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_classifies_numeric_backreferences() {
+        let parsed = regex_ast_dump_json("(a)\\1");
+
+        assert_eq!(regex_rule_spans(&parsed, "backreference"), vec![(3, 5)]);
+        assert!(
+            regex_rule_spans(&parsed, "escape").is_empty(),
+            "numeric backreference must not be reported as a generic escape"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_preserves_conditional_false_branch() {
+        let parsed = regex_ast_dump_json("(?(1)a|b)");
+
+        assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(0, 9)]);
+        assert_eq!(regex_rule_spans(&parsed, "yes_branch"), vec![(5, 6)]);
+        assert_eq!(regex_rule_spans(&parsed, "no_branch"), vec![(7, 8)]);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_binds_quantifier_to_final_literal_atom() {
+        let parsed = regex_ast_dump_json("ab+");
+
+        assert_eq!(regex_rule_spans(&parsed, "piece"), vec![(0, 1), (1, 3)]);
+        assert_eq!(regex_rule_spans(&parsed, "literal"), vec![(0, 1), (1, 2)]);
+        assert!(
+            !regex_rule_spans(&parsed, "literal").contains(&(0, 2)),
+            "multi-character literal runs must not absorb the quantified suffix"
+        );
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]

@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-03-29 - Fix RGX-reported regex accepted-tree transport bugs
+### ✅ Achievement Summary
+Regex parser release `1.1.1` is now the maintained downstream handoff baseline. It closes four real RGX-reported accepted-tree transport bugs in the published generated backend without widening the regex JSON schema contract.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - `atom` now prefers `subroutine_call` before `inline_modifiers`, so `(?R)` no longer misclassifies as modifier syntax
+  - `atom` now prefers `backreference` before generic `escape`, and numeric backreferences now use an explicit nonzero-digit split so `\1` classifies as `backreference` while `\0`-style octal handling stays distinct
+  - conditional branches now use explicit `piece*` transport instead of `pattern?`, so `(?(1)a|b)` preserves separate `yes_branch` and `no_branch` spans
+  - `literal` now transports one literal atom at a time, so `ab+` binds the quantifier only to `b`
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs) from the updated grammar.
+- Updated exported downstream metadata and fixtures:
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - regex parser release and integration contract now both publish `1.1.1`
+  - added focused regression tests for:
+    - whole-pattern recursion `(?R)`
+    - numeric backreference `\1`
+    - conditional false-branch transport
+    - final-atom quantifier binding
+- Updated downstream handoff/support docs:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - they now treat these four RGX reports as fixed in regex release `1.1.1`
+- Updated [rust/Cargo.toml](rust/Cargo.toml):
+  - `regex_corpus_probe` is now explicitly declared as a `generated_parsers`-only binary so the repo's source-target clippy lane no longer tries to build it without the backend it depends on
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - locks the `1.1.1` release/contract values
+  - locks the new regression tests
+  - locks the new downstream contract wording for the fixed RGX cases
+
+### Validation
+- `make -C rust regex_parser_integration_contract_gate`
+- `make -C rust embedding_api_gate`
+- `make -C rust regex_pcre2_compile_oracle_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
 ## 2026-03-29 - Capture RGX regex handoff signoff
 ### ✅ Achievement Summary
 PGEN's live roadmap/status/analysis docs now record the first downstream consumer review saying regex handoff `1.1.0` is good enough to start integration. The remaining regex caveats are now captured as contract-widening questions rather than blocker-level objections.

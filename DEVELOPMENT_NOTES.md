@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Ship regex downstream maintenance release 1.1.1 for RGX bug reports
+### Context
+RGX provided four precise generated-backend bug bundles under `../rgx/pgen-issues/`. All four were successful parses with wrong accepted-tree transport rather than outright parse failures, which made them especially important to fix before downstream AST consumers started building on top of the `1.1.0` regex handoff.
+
+### Implementation
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - `atom` now prefers `subroutine_call` before `inline_modifiers`
+  - `atom` now prefers `backreference` before generic `escape`
+  - numeric backreferences now use `backreference_digits = nonzero_digit digit*`
+  - conditional branch transport now uses explicit `conditional_branch = piece*`
+  - `literal` now transports one literal atom at a time
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs).
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.1.1"`
+  - `REGEX_PARSER_RELEASE_VERSION = "1.1.1"`
+  - added focused regression tests for the four RGX reports
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json) so the declared downstream contract surface includes those corrected success cases.
+- Updated [rust/Cargo.toml](rust/Cargo.toml):
+  - `regex_corpus_probe` is now an explicit `required-features = ["generated_parsers"]` binary, which matches how the probe is actually used and keeps the source-target clippy lane honest
+- Updated downstream handoff and support docs:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) so local CI locks the `1.1.1` handoff and the four new regression hooks.
+
+### Why This Matters
+- RGX can now pin a real downstream maintenance release that fixes accepted-tree semantics, not just broader syntax acceptance.
+- PGEN now has a cleaner released-parser support story: concrete RGX issue bundles, concrete upstream fixes, concrete regression tests, and a concrete parser release/version bump tied together.
+
 ## 2026-03-29 - Capture RGX signoff on regex handoff 1.1.0
 ### Context
 After the regex handoff bump to `1.1.0`, RGX re-reviewed the published downstream docs and no longer treated the remaining caveats as integration blockers.

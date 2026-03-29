@@ -3685,9 +3685,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.0`
+  - `1.1.1`
 - integration contract version:
-  - `1.1.0`
+  - `1.1.1`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3717,6 +3717,7 @@ Accepted syntax families in the current published flavor:
 - empty regex
 - raw regex bodies rather than host-language delimiter wrappers
 - literal concatenation
+- whole-pattern recursion via `(?R)`
 - alternation with `|`
 - dot atom `.`
 - whitespace as a literal atom
@@ -3755,6 +3756,7 @@ Accepted syntax families in the current published flavor:
   - counted forms such as `{3}`, `{2,}`, `{2,4}`, `{,4}`, and `{,}`
   - lazy suffix `?`
   - possessive suffix `+`
+  - final-atom binding across literal runs, so `ab+` is transported as literal `a` followed by quantified `b`
 - escapes:
   - simple escaped characters such as `\n`, `\t`, `\\`
   - hexadecimal forms such as `\xFF` and `\x{FFFF}`
@@ -3765,6 +3767,7 @@ Accepted syntax families in the current published flavor:
 - backreferences:
   - numeric forms such as `\1`
   - named forms such as `\k<name>`, `\k'name'`, and `\k{name}`
+  - numeric forms are preserved as `backreference` constructs rather than generic escapes in the AST dump
 - character classes:
   - simple classes such as `[abc]`
   - negated classes such as `[^abc]`
@@ -3787,6 +3790,7 @@ Accepted syntax families in the current published flavor:
 - scoped inline modifier forms
 - conditional forms:
   - condition may be a lookaround, a bare name, an explicit name reference, digits, signed digits, or a recursion condition
+  - explicit false branches are preserved separately, so `(?(1)a|b)` transports `a` and `b` as distinct yes/no branches
 - embedded code-block forms:
   - plain `(?{...})`
   - language-tagged `(?{lua: ...})`
@@ -3796,12 +3800,16 @@ Accepted syntax families in the current published flavor:
 Representative accepted examples:
 - ``
 - `a|b`
+- `ab+`
 - `https?://[^\\s]+`
 - `^abc$`
 - `\\bword\\b`
+- `(?R)`
 - `(foo|bar)+`
 - `(?<name>[a-z]+)`
 - `[[:^alnum:]]+`
+- `(a)\\1`
+- `(?(1)a|b)`
 - `(?<A>foo)-\\k{A}`
 - `(?<A>a)?(?(A)b|c)`
 - `a{,4}`
@@ -3843,6 +3851,11 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
+- parser release `1.1.1` specifically fixes several accepted-tree semantic transport bugs while keeping that JSON schema version stable:
+  - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`
+  - `\1` now appears as `backreference`, not `escape`
+  - `(?(1)a|b)` now emits separate `yes_branch` and `no_branch`
+  - `ab+` now emits separate pieces for `a` and `b+` instead of a single `(ab)+`-style piece
 - the generated regex host path now also applies a compile-style validation layer after parse success, so several obvious compile-invalid forms are rejected deterministically instead of surfacing as false accepts:
   - unsupported `\i`
   - counted-quantifier inversions such as `{5,4}`
@@ -3912,8 +3925,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.0`
-  - integration contract version `1.1.0`
+  - parser release version `1.1.1`
+  - integration contract version `1.1.1`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

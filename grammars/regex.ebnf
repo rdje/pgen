@@ -31,9 +31,10 @@ atom           = literal
                | whitespace_literal
                | dot
                | anchor
-               | escape
                | backreference
+               | escape
                | char_class
+               | subroutine_call
                | inline_modifiers
                | scoped_inline_modifiers
                | branch_reset_group
@@ -45,12 +46,11 @@ atom           = literal
                | atomic_group
                | comment_group
                | lookaround
-               | subroutine_call
                | python_named_backreference
                | group
 
 # Literals and escapes
-literal        = literal_char+
+literal        = literal_char
 whitespace_literal = whitespace
 literal_char   = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
                | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
@@ -64,10 +64,11 @@ dot            = "."
 anchor         = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G"
 
 # Backreferences
-backreference  = "\\" digits
+backreference  = "\\" backreference_digits
                | "\\k" name_ref
                | "\\k{" name "}"
                | "\\g" subroutine_ref
+backreference_digits = nonzero_digit digit*
 name_ref       = "<" name ">" | "'" name "'"
 subroutine_ref = "{" signed_digits_or_name "}"
               | "<" name ">"
@@ -256,8 +257,9 @@ modifier_char              = "i" | "m" | "s" | "x" | "U" | "J" | "u" | "a" | "d"
 
 # Conditionals: (?(cond)yes|no)
 conditional       = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
-yes_branch        = pattern?
-no_branch         = pattern?
+yes_branch        = conditional_branch
+no_branch         = conditional_branch
+conditional_branch = piece*
 condition         = define_condition | condition_assertion | name_ref | name | signed_digits | digits | recursion_condition
 define_condition  = "DEFINE"
 condition_assertion = "?=" pattern
@@ -337,6 +339,7 @@ letter         = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K'
                | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
 
 digit          = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+nonzero_digit  = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 
 hex_digit      = digit | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
 

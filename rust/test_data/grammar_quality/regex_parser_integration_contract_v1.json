@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.0",
-  "parser_release_version": "1.1.0",
+  "integration_contract_version": "1.1.1",
+  "parser_release_version": "1.1.1",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -42,12 +42,28 @@
       "input": "(?<A>foo)-\\k{A}"
     },
     {
+      "name": "numeric_backreference",
+      "input": "(a)\\1"
+    },
+    {
       "name": "named_conditional",
       "input": "(?<A>a)?(?(A)b|c)"
     },
     {
+      "name": "numeric_conditional",
+      "input": "(?(1)a|b)"
+    },
+    {
+      "name": "whole_pattern_recursion",
+      "input": "(?R)"
+    },
+    {
       "name": "left_open_counted_quantifier",
       "input": "a{,4}"
+    },
+    {
+      "name": "literal_quantifier_binding",
+      "input": "ab+"
     },
     {
       "name": "javascript_embedded_code_block",

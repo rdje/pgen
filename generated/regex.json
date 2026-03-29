@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-03-29T01:34:05.618974+00:00",
+    "generated_at": "2026-03-29T15:02:39.565215+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -343,14 +343,6 @@
       ],
       [
         "rule_reference",
-        "escape"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "rule_reference",
         "backreference"
       ],
       [
@@ -359,7 +351,23 @@
       ],
       [
         "rule_reference",
+        "escape"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "char_class"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "subroutine_call"
       ],
       [
         "operator",
@@ -455,14 +463,6 @@
       ],
       [
         "rule_reference",
-        "subroutine_call"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "rule_reference",
         "python_named_backreference"
       ],
       [
@@ -482,10 +482,6 @@
       [
         "rule_reference",
         "literal_char"
-      ],
-      [
-        "operator",
-        "+"
       ]
     ],
     [
@@ -1235,7 +1231,7 @@
       ],
       [
         "rule_reference",
-        "digits"
+        "backreference_digits"
       ],
       [
         "operator",
@@ -1276,6 +1272,24 @@
       [
         "rule_reference",
         "subroutine_ref"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "backreference_digits"
+      ],
+      [
+        "rule_reference",
+        "nonzero_digit"
+      ],
+      [
+        "rule_reference",
+        "digit"
+      ],
+      [
+        "operator",
+        "*"
       ]
     ],
     [
@@ -3788,11 +3802,7 @@
       ],
       [
         "rule_reference",
-        "pattern"
-      ],
-      [
-        "operator",
-        "?"
+        "conditional_branch"
       ]
     ],
     [
@@ -3802,11 +3812,21 @@
       ],
       [
         "rule_reference",
-        "pattern"
+        "conditional_branch"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "conditional_branch"
+      ],
+      [
+        "rule_reference",
+        "piece"
       ],
       [
         "operator",
-        "?"
+        "*"
       ]
     ],
     [
@@ -5807,6 +5827,80 @@
       [
         "operator",
         "|"
+      ],
+      [
+        "quoted_string",
+        "1"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "2"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "3"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "4"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "5"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "6"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "7"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "8"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "9"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "nonzero_digit"
       ],
       [
         "quoted_string",

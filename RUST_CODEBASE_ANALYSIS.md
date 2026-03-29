@@ -23,7 +23,7 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work for `systemverilog` and `vhdl` now outranks deferred maintainability refactors, while `regex` has reached its current closure bar and should be treated as a no-regression proof baseline unless its contract is intentionally widened.
   - downstream regex hardening on embedded code blocks should now be treated as parser-layer contract precision work backed by compact synthetic corpora/gates, not as a reason to reopen the `regex` family row by default.
-  - RGX's 2026-03-29 downstream re-review now treats regex handoff `1.1.0` as integration-ready for starting adoption; the remaining regex caveats are scope-widening questions around stronger AST semantic stability, stronger JS/Lua shielding, optional `native` / `wasm` tags, and host-language wrapper parsing.
+  - RGX's 2026-03-29 downstream maintenance review now treats regex handoff `1.1.1` as integration-ready for starting adoption; the `1.1.1` maintenance release specifically fixed four real accepted-tree transport bugs (`(?R)`, `\1`, conditional false-branch transport, and final-atom quantifier binding), and the remaining regex caveats are now scope-widening questions around stronger AST semantic stability, stronger JS/Lua shielding, optional `native` / `wasm` tags, and host-language wrapper parsing.
   - downstream regex hardening under `regex_corpus_bundle/` now also has two distinct external-corpus roles:
     - `regex_pcre2_textsafe_corpus_gate` for accepted-syntax widening
     - `regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth

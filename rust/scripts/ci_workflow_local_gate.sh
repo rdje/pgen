@@ -220,10 +220,10 @@ audit_embedding_api_surface() {
     'pub const EMBEDDING_API_VERSION: &str = "1.2.0";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.0";'
+    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.1";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.0";'
+    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.1";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
@@ -266,6 +266,18 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'fn regex_parser_integration_contract_accepts_declared_success_samples() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_classifies_whole_pattern_recursion_as_subroutine_call() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_classifies_numeric_backreferences() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_preserves_conditional_false_branch() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_binds_quantifier_to_final_literal_atom() {'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'fn parse_diagnostic_location_is_one_based_and_clamped_to_utf8_boundaries() {'
@@ -383,6 +395,15 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     'this is not a host-language regex literal parser for wrapper forms such as `/pattern/flags`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '- whole-pattern recursion via `(?R)`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '- explicit false branches are preserved separately, so `(?(1)a|b)` transports `a` and `b` as distinct yes/no branches'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '  - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`'
 
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
@@ -395,7 +416,7 @@ audit_embedding_api_surface() {
     '- `Contract Identity`'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.0`. |'
+    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.1`. |'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
@@ -458,7 +479,7 @@ audit_embedding_api_surface() {
     'Published Regex Flavor Summary'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    '## Release 1.1.0 Highlights'
+    '## Release 1.1.1 Highlights'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'raw regex bodies, not host-language delimiter wrappers'
@@ -467,7 +488,16 @@ audit_embedding_api_surface() {
     'braced named backreferences such as `\k{name}`'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'whole-pattern recursion `(?R)` now classifies as `subroutine_call` / `subroutine_target`'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'numeric backreferences such as `\1` now classify as `backreference` instead of generic `escape`'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'negated POSIX classes such as `[[:^alnum:]]`'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'explicit conditional false branches such as `(?(1)a|b)` now preserve separate `yes_branch` and `no_branch` spans'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'plain `(?{...})` is preserved as opaque generic payload'
