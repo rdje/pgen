@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: vhdl-body-end-tightening)
+Last updated: 2026-03-30 (+0200, task: vhdl-replay-target-triage)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,37 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Restored the clean retained VHDL baseline after rejecting two plausible-but-wrong closure directions.
+- Revalidated:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `parseability_generation_attempts_total=8`
+    - `parseability_generation_accepted_total=8`
+    - `parseability_generation_rejected_total=0`
+- Exact remaining VHDL replay-target debt on the retained baseline:
+  - `trivia` branch `1` (`line_comment`) — `never_selected`
+  - `actual_parameter_element` branch `1` (`range_expression`) — `selected_but_failed`
+  - `actual_part` branch `0` (`expression`) — `selected_but_failed`
+  - `aggregate` branch `1` — `selected_but_failed`
+  - `concurrent_statement` branch `0` (`concurrent_signal_assignment_statement`) — `selected_but_failed`
+  - `constraint` branch `0` (`range_constraint`) — `selected_but_failed`
+  - `discrete_range` branch `3` (`subtype_indication kw_range range_expression`) — `selected_but_failed`
+  - `package_body_declarative_item` branch `4` (`file_declaration`) — `selected_but_failed`
+  - `range_expression` branch `1` (`downto`) — `selected_but_failed`
+  - `sequential_statement` branch `0` (`signal_assignment_statement`) — `selected_but_failed`
+  - `type_definition` branch `2` (`record_type_definition`) — `selected_but_failed`
+- Explicitly rejected in this session:
+  - shared `stimuli_generator.rs` direct-probe reordering
+    - worsened `closed_loop_replay_targets` from `11` to `30`
+  - broader VHDL branch-steering experiments
+    - one broadened slice worsened replay debt from `11` to `17`
+    - a narrower declarative-item steering slice made replay substantially more expensive and was not retained
+- Future-session steering rule from this pass:
+  - do not reopen shared probe-selection or broad branch-steering by default
+  - the next VHDL closure attempt should be narrower and justified against the exact `11` target list above
+
 - Fresh PCRE2 syntax check completed as a planning-only pass; no code or grammar changes were made from it.
 - Verified current official PCRE2 release/docs and recorded the result in roadmap/analysis docs:
   - real future regex widening targets exist:

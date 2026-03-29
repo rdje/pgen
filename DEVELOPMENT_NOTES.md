@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - VHDL replay-target triage: restore clean baseline and reject two unsafe directions
+### Context
+After the retained VHDL body-end tightening, the family proof stack was on a clean `9/10` closure baseline with only one remaining blocker:
+- `quality_closed_loop_replay_targets=11 > 0`
+
+The next closure attempt needed to respect the explicit repo-wide EBNF rule:
+- classify each change as parser-only, stimuli-only, or shared parser+stimuli
+- do not keep a change that improves one seam while regressing the shared family-quality/status surface
+
+### Investigation
+- Revalidated the retained baseline first:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - parseability-generation totals remained `8/8/0`
+- Extracted the exact remaining replay-target debt from `rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json`:
+  - `trivia` branch `1` (`line_comment`) — `never_selected`
+  - `actual_parameter_element` branch `1` (`range_expression`) — `selected_but_failed`
+  - `actual_part` branch `0` (`expression`) — `selected_but_failed`
+  - `aggregate` branch `1` — `selected_but_failed`
+  - `concurrent_statement` branch `0` (`concurrent_signal_assignment_statement`) — `selected_but_failed`
+  - `constraint` branch `0` (`range_constraint`) — `selected_but_failed`
+  - `discrete_range` branch `3` (`subtype_indication kw_range range_expression`) — `selected_but_failed`
+  - `package_body_declarative_item` branch `4` (`file_declaration`) — `selected_but_failed`
+  - `range_expression` branch `1` (`downto`) — `selected_but_failed`
+  - `sequential_statement` branch `0` (`signal_assignment_statement`) — `selected_but_failed`
+  - `type_definition` branch `2` (`record_type_definition`) — `selected_but_failed`
+
+### Rejected Direction 1: shared stimuli-engine direct-probe rebias
+- Tried a Rust-side change in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) so direct helper probes would prefer less-thrashed unresolved branch rules instead of the first pending direct target.
+- This was not kept.
+- Real proof result:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+    - `closed_loop_replay_targets` worsened from `11` to `30`
+    - replay-shadow parser rejections stayed `0`, but the shared family-quality surface clearly regressed
+- Operational conclusion:
+  - do not reopen this shared-engine direction casually
+  - any future revisit needs narrower proof than “underexplored direct helper should be better”
+
+### Rejected Direction 2: broader VHDL branch-steering experiments
+- Tried broader `@branch_policy: priority_first` / `@priority: [...]` steering in VHDL rules beyond the retained lexical/body-end slice.
+- Two variants were explored and both were rejected:
+  - a wider safe-looking branch-steering pass worsened replay debt from `11` to `17`
+  - a still narrower keyword-distinct declarative-item steering pass made the replay run substantially more expensive and did not finish quickly enough to justify keeping it
+- Operational conclusion:
+  - do not reopen broad VHDL branch-steering as a default tactic
+  - future grammar steering should be much narrower and justified rule-by-rule against the exact `11` target list
+
+### Retained State
+- No source changes were kept from this triage pass.
+- The working tree was restored to the retained VHDL baseline before ending the task.
+- Canonical current VHDL blocker remains:
+  - `quality_closed_loop_replay_targets=11 > 0`
+
 ## 2026-03-29 - Tighten VHDL body-end grammar transport and clear replay-shadow parser debt
 ### Context
 The retained VHDL slice was already the shared parser+stimuli-safe one, but the live blocker shape still showed that replay-shadow generation could produce parser-invalid bare-end bodies even while focused hand-written parser repros passed.

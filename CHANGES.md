@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-03-30 - Capture VHDL replay-target triage baseline and rejected directions
+### ✅ Achievement Summary
+The retained VHDL state is unchanged, but the continuity surface is now more precise. The canonical VHDL replay-target blocker set is explicitly recorded, and two plausible-but-wrong closure directions are now documented as rejected so future sessions do not burn time rediscovering them.
+
+### Scope of Changes
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
+  - kept the `vhdl` row unchanged at `In Progress`
+  - added a tracker note capturing the exact current replay-target debt set behind `quality_closed_loop_replay_targets=11 > 0`
+  - recorded two explicitly rejected directions:
+    - a shared stimuli-engine direct-probe selection patch that worsened replay debt from `11` to `30`
+    - broader VHDL branch-steering experiments that either worsened replay debt (`11 -> 17`) or made replay excessively expensive without yielding a keepable result
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the exact remaining VHDL replay-target cluster for future closure work
+  - recorded the current caution not to reopen the rejected broad branch-steering / shared-engine directions without narrower proof
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - refined the VHDL steering section with the exact remaining `11` replay targets
+  - recorded the two rejected approaches so future sessions keep trying narrower parser+stimuli-safe moves
+- Updated continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - restored canonical retained baseline:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `parseability_generation_attempts_total=8`
+    - `parseability_generation_accepted_total=8`
+    - `parseability_generation_rejected_total=0`
+- extracted the exact remaining replay-target debt from `rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json`
+- `git diff --check`
+
 ## 2026-03-29 - Defer new PCRE2 regex syntax widening behind active family-closure work
 ### ✅ Achievement Summary
 The roadmap now explicitly records that the newly identified current-PCRE2 regex syntax gaps are future contract-widening work, not urgent closure work. `regex` remains a closed no-regression baseline while `vhdl`, `systemverilog`, and the other active families keep priority.

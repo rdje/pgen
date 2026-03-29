@@ -1,6 +1,6 @@
 # RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-03-29
+Last updated: 2026-03-30
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -1279,9 +1279,24 @@ Operational rule:
   - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
   - In practice it is strongly coupled to quality/parseability, strict-promotion, and now a dedicated formal-exhaustive-closure proof surface
   - The current machine-checked family-status row is still `In Progress`, but the blocker set is now narrower and cleaner than before: `9/10` closure criteria are satisfied, replay-shadow parser rejection debt is gone, and the only remaining tracked blocker is replay target debt (`11`) rather than missing proof plumbing
+  - The exact current replay-target debt set is now known and should drive the next closure slice directly:
+    - `trivia#line_comment`
+    - `actual_parameter_element#range_expression`
+    - `actual_part#expression`
+    - `aggregate#1`
+    - `concurrent_statement#concurrent_signal_assignment_statement`
+    - `constraint#range_constraint`
+    - `discrete_range#subtype_indication kw_range range_expression`
+    - `package_body_declarative_item#file_declaration`
+    - `range_expression#downto`
+    - `sequential_statement#signal_assignment_statement`
+    - `type_definition#record_type_definition`
   - The parser-backed generation side of the current canonical family-quality surface is now green (`attempts=8`, `accepted=8`, `rejected=0`), realistic-corpus parity is now `13` expected pass / `1` expected fail with matching observed totals, and strict promotion is still green (`trial_passed=3`, `primary_blocker=none`)
   - The new VHDL formal-closure gate is now green off the checked-in external-corpus-backed proof surface, and the family-status / family-status-contract / SOTA / combined-telemetry stack preserves that provenance end to end
   - Recent VHDL work also reinforced the general EBNF steering rule: grammar changes must be classified as parser-only, stimuli-only, or shared parser+stimuli changes before they are kept. The retained VHDL slice (`--enforce-word-boundary-spacing`, `trivia` priority bias, newline-terminated line comments, and explicit `end process` / `end procedure` / `end function` body endings) improved the shared family-quality surface; a temporary `wait until` grammar broadening was intentionally reverted because it improved one parser-facing case while worsening replay-shadow parser debt
+  - Two additional directions are now explicitly rejected rather than merely “not yet landed”:
+    - a shared `stimuli_generator.rs` direct-probe rebias worsened replay debt from `11` to `30`
+    - broader VHDL branch-steering experiments either worsened replay debt (`11 -> 17`) or made replay materially more expensive without yielding a keepable result
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
