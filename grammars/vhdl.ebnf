@@ -127,8 +127,8 @@ configuration_item := kw_for selected_name kw_end kw_for semi
 subprogram_declaration := procedure_specification semi
                         | function_specification semi
 
-subprogram_body := procedure_specification kw_is subprogram_declarative_item* kw_begin sequential_statement* kw_end kw_procedure? identifier? semi
-                 | function_specification kw_is subprogram_declarative_item* kw_begin sequential_statement* kw_end kw_function? identifier? semi
+subprogram_body := procedure_specification kw_is subprogram_declarative_item* kw_begin sequential_statement* kw_end kw_procedure identifier? semi
+                 | function_specification kw_is subprogram_declarative_item* kw_begin sequential_statement* kw_end kw_function identifier? semi
 
 procedure_specification := kw_procedure identifier parameter_list?
 function_specification := kw_impure? kw_function identifier parameter_list? kw_return subtype_indication
@@ -220,7 +220,7 @@ block_statement := identifier colon kw_block (kw_is architecture_declarative_ite
 # Process and sequential statements
 # ---------------------------------------------------------------------------
 
-process_statement := process_label? kw_process sensitivity_clause? kw_is? process_declarative_item* kw_begin sequential_statement* kw_end kw_process? identifier? semi
+process_statement := process_label? kw_process sensitivity_clause? kw_is? process_declarative_item* kw_begin sequential_statement* kw_end kw_process identifier? semi
 process_label := identifier colon
 sensitivity_clause := lparen sensitivity_list rparen
 sensitivity_list := selected_name (comma selected_name)*

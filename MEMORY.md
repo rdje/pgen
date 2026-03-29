@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: regex-future-syntax-deferral)
+Last updated: 2026-03-29 (+0100, task: vhdl-body-end-tightening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -30,7 +30,7 @@ Use this file to resume work without replaying full chat history.
   - keep current work focused on `vhdl`, `systemverilog`, and the other live closure tracks
   - treat those regex additions as deliberate future contract widening after the active parser-family closure work is materially complete
 
-- Active parser-family closure work returned to `vhdl`.
+- Active parser-family closure work remains on `vhdl`.
 - Retained only the shared parser+stimuli-safe VHDL slice; explicitly did **not** keep a broader parser-only `wait until` grammar experiment because it worsened replay-shadow parser debt.
 - Current retained VHDL changes:
   - [grammars/vhdl.ebnf](grammars/vhdl.ebnf)
@@ -38,6 +38,8 @@ Use this file to resume work without replaying full chat history.
       - `@branch_policy: priority_first`
       - `@priority: [32, 1]`
     - `line_comment := /--[^\\n]*(\\n|$)/`
+    - `process_statement` now requires explicit `end process`
+    - `subprogram_body` now requires explicit `end procedure` and `end function`
   - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
     - all VHDL stimuli-generation invocations now use `--enforce-word-boundary-spacing`
   - [rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json](rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json)
@@ -51,9 +53,9 @@ Use this file to resume work without replaying full chat history.
     - executable bit restored; callers invoke it directly
 - Current retained measured VHDL baseline:
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
-    - `closed_loop_initial_targets=233`
-    - `closed_loop_replay_targets=13`
-    - `closed_loop_parseability_shadow_parser_rejections_total=44`
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
     - `parseability_generation_attempts_total=8`
     - `parseability_generation_accepted_total=8`
     - `parseability_generation_rejected_total=0`
@@ -64,10 +66,13 @@ Use this file to resume work without replaying full chat history.
       - `observed_parse_fail_total=1`
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
     - `vhdl_status=In Progress`
-    - `vhdl_closure_criteria_satisfied_count=8`
-    - remaining blockers:
-      - `quality_closed_loop_parseability_shadow_parser_rejections_total=44 > 0`
-      - `quality_closed_loop_replay_targets=13 > 0`
+    - `vhdl_closure_criteria_satisfied_count=9`
+    - remaining blocker:
+      - `quality_closed_loop_replay_targets=11 > 0`
+  - `env PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=rust/target/vhdl_parser_family_status_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_contract_gate`
+    - `vhdl_false_criteria_count=1`
+    - `vhdl_unmet_details_count=1`
+    - `vhdl_primary_unmet_detail_criterion=quality_closed_loop_replay_target_debt_zero`
   - external-corpus-backed formal closure source state now reflects:
     - `cases_declared=8`
     - `cases_executed=8`
@@ -80,6 +85,7 @@ Use this file to resume work without replaying full chat history.
     - shared parser+stimuli
   - validate at the matching seams before keeping it
   - do not keep a parser-only win if it regresses the shared family-quality/status surface
+  - the current VHDL example is concrete: bare-end process/subprogram bodies were invalid on the parser side, so the right retained fix was to tighten the grammar and keep replay-shadow generation aligned with explicit `end process` / `end procedure` / `end function`
 
 - Analyzed the RGX issue intake tree under `../rgx/pgen-issues/`.
   - current concrete downstream regex bug bundles:

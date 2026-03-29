@@ -20,6 +20,49 @@ The roadmap now explicitly records that the newly identified current-PCRE2 regex
 - verified current official PCRE2 release/docs against the local regex grammar and downstream docs
 - `git diff --check`
 
+## 2026-03-29 - Tighten VHDL body-end transport to the shared parser+stimuli-safe form
+### ✅ Achievement Summary
+The active VHDL closure slice is now narrower and cleaner again. Replay-shadow parser rejection debt fell from `44` to `0`, the machine-checked family-status row improved from `8/10/2` to `9/10/1`, and the only remaining tracked VHDL blocker is replay target debt `11`.
+
+### Scope of Changes
+- Updated [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
+  - `process_statement` now requires explicit `kw_end kw_process ...`
+  - `subprogram_body` now requires explicit `kw_end kw_procedure ...` and `kw_end kw_function ...`
+- Important retained-slice decision:
+  - these were kept as shared parser+stimuli fixes because replay-shadow generation had been drifting into parser-invalid bare-end bodies such as:
+    - `process begin ... end;`
+    - `procedure ... begin ... end;`
+    - `function ... begin ... end;`
+  - the already-rejected broader `wait until` experiment remained rejected; this slice only keeps the part that improves the shared family-proof surface
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - retained summary:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `parseability_generation_attempts_total=8`
+    - `parseability_generation_accepted_total=8`
+    - `parseability_generation_rejected_total=0`
+    - `realistic_corpus_expected_pass_total=13`
+    - `realistic_corpus_expected_fail_total=1`
+    - `realistic_corpus_observed_parse_pass_total=13`
+    - `realistic_corpus_observed_parse_fail_total=1`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+  - retained summary:
+    - `vhdl_status=In Progress`
+    - `vhdl_closure_criteria_satisfied_count=9`
+    - `vhdl_closure_criteria_total_count=10`
+    - blocker:
+      - `quality_closed_loop_replay_targets=11 > 0`
+- `env PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=rust/target/vhdl_parser_family_status_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_contract_gate`
+  - retained summary:
+    - `vhdl_false_criteria_count=1`
+    - `vhdl_unmet_details_count=1`
+    - `vhdl_primary_unmet_detail_criterion=quality_closed_loop_replay_target_debt_zero`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
+  - aggregate-visible VHDL proof now matches the new `9/10/1` source-side state exactly
+
 ## 2026-03-29 - Tighten VHDL shared grammar/stimuli quality slice without regressing parser-family proof
 ### ✅ Achievement Summary
 The retained VHDL closure slice now reflects the shared parser+stimuli-safe changes only. Parser-backed generation rejections on the canonical VHDL family-quality surface are now down to zero, realistic-corpus parity improved from `8/6` to `13/1`, and the external-corpus-backed formal-closure lane widened from `1/1` to `8/8` pass. The family still stays `In Progress` because replay-shadow parser debt and replay target debt remain real.

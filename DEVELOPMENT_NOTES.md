@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Tighten VHDL body-end grammar transport and clear replay-shadow parser debt
+### Context
+The retained VHDL slice was already the shared parser+stimuli-safe one, but the live blocker shape still showed that replay-shadow generation could produce parser-invalid bare-end bodies even while focused hand-written parser repros passed.
+
+### Implementation
+- Updated [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
+  - `process_statement` now requires explicit `end process`
+  - `subprogram_body` now requires explicit `end procedure` and `end function`
+- This change was kept because it improved the shared proof surface rather than only one anecdotal parser case.
+  - replay-shadow generation had been drifting into looser shapes like `process begin ... end;` and bare-ended subprogram bodies
+  - the generated parser already treated those as invalid
+  - tightening the grammar brought the stimuli side back into line with the parser side
+
+### Measured Result
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - `closed_loop_initial_targets=247`
+  - `closed_loop_replay_targets=11`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+  - `vhdl_status=In Progress`
+  - `vhdl_closure_criteria_satisfied_count=9`
+  - only remaining blocker:
+    - `quality_closed_loop_replay_targets=11 > 0`
+
+### Why This Matters
+- This is the clearest recent example of the repo-wide EBNF steering rule:
+  - a grammar change may affect the parser only, the stimuli generator only, or both
+  - VHDL closure work must keep the shared parser+stimuli proof surface authoritative
+  - parser-invalid replay-shadow output is real closure debt even when narrower parser-only repros look good
+
 ## 2026-03-29 - Record deferred regex syntax widening from fresh PCRE2 check
 ### Context
 After the recent regex downstream handoff work, a fresh PCRE2-version check was requested specifically to see whether the latest official syntax implied urgent regex grammar changes in PGEN.
