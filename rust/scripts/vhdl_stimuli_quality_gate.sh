@@ -401,6 +401,7 @@ if [[ "$closed_loop_enabled" -eq 1 ]]; then
     run_logged "closed_loop_initial" \
         "$AST_PIPELINE_BIN" "$grammar_json" \
         --generate-stimuli \
+        --enforce-word-boundary-spacing \
         --count "$sample_count" \
         --seed "$seed_base" \
         --entry-rule "$entry_rule" \
@@ -419,6 +420,7 @@ if [[ "$closed_loop_enabled" -eq 1 ]]; then
     run_logged "closed_loop_replay" \
         "$AST_PIPELINE_BIN" "$grammar_json" \
         --generate-stimuli \
+        --enforce-word-boundary-spacing \
         --count "$replay_sample_count" \
         --seed "$closed_loop_replay_seed" \
         --entry-rule "$entry_rule" \
@@ -447,6 +449,7 @@ if [[ "$closed_loop_enabled" -eq 1 ]]; then
         run_logged "closed_loop_replay_parseability_shadow" \
             "$AST_PIPELINE_BIN" "$grammar_json" \
             --generate-stimuli \
+            --enforce-word-boundary-spacing \
             --count "$replay_sample_count" \
             --seed "$closed_loop_replay_seed" \
             --entry-rule "$entry_rule" \
@@ -527,6 +530,7 @@ for ((idx = 0; idx < sample_count; idx++)); do
     run_logged "sample_${idx}_generate_stimulus" \
         "$AST_PIPELINE_BIN" "$grammar_json" \
         --generate-stimuli \
+        --enforce-word-boundary-spacing \
         --count 1 \
         --seed "$seed" \
         --entry-rule "$entry_rule" \

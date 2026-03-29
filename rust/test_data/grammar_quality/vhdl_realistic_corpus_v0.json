@@ -50,27 +50,27 @@
     {
       "name": "use_package_vector_width",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/use_package_vector_width.vhd",
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     },
     {
       "name": "direct_entity_instantiation",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/direct_entity_instantiation.vhd",
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     },
     {
       "name": "generate_for_label",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/generate_for_label.vhd",
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     },
     {
       "name": "wait_for_time",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/wait_for_time.vhd",
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     },
     {
       "name": "assert_report_statement",
       "path": "rust/test_data/grammar_quality/vhdl_realistic_corpus/assert_report_statement.vhd",
-      "expect_parse_full_pass": false
+      "expect_parse_full_pass": true
     }
   ]
 }

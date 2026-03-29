@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: regex-rgx-bugfix-release-1.1.1)
+Last updated: 2026-03-29 (+0100, task: vhdl-shared-quality-slice)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,57 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Active parser-family closure work returned to `vhdl`.
+- Retained only the shared parser+stimuli-safe VHDL slice; explicitly did **not** keep a broader parser-only `wait until` grammar experiment because it worsened replay-shadow parser debt.
+- Current retained VHDL changes:
+  - [grammars/vhdl.ebnf](grammars/vhdl.ebnf)
+    - `trivia` now carries:
+      - `@branch_policy: priority_first`
+      - `@priority: [32, 1]`
+    - `line_comment := /--[^\\n]*(\\n|$)/`
+  - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
+    - all VHDL stimuli-generation invocations now use `--enforce-word-boundary-spacing`
+  - [rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json](rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json)
+    - promoted from expected-fail to expected-pass:
+      - `use_package_vector_width`
+      - `direct_entity_instantiation`
+      - `generate_for_label`
+      - `wait_for_time`
+      - `assert_report_statement`
+  - [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](rust/scripts/vhdl_formal_exhaustive_closure_gate.sh)
+    - executable bit restored; callers invoke it directly
+- Current retained measured VHDL baseline:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+    - `closed_loop_initial_targets=233`
+    - `closed_loop_replay_targets=13`
+    - `closed_loop_parseability_shadow_parser_rejections_total=44`
+    - `parseability_generation_attempts_total=8`
+    - `parseability_generation_accepted_total=8`
+    - `parseability_generation_rejected_total=0`
+    - realistic corpus parity:
+      - `expected_pass_total=13`
+      - `expected_fail_total=1`
+      - `observed_parse_pass_total=13`
+      - `observed_parse_fail_total=1`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+    - `vhdl_status=In Progress`
+    - `vhdl_closure_criteria_satisfied_count=8`
+    - remaining blockers:
+      - `quality_closed_loop_parseability_shadow_parser_rejections_total=44 > 0`
+      - `quality_closed_loop_replay_targets=13 > 0`
+  - external-corpus-backed formal closure source state now reflects:
+    - `cases_declared=8`
+    - `cases_executed=8`
+    - `parse_pass_total=8`
+    - `parse_fail_total=0`
+- Operational takeaway for future sessions:
+  - treat every EBNF change as one of:
+    - parser-only
+    - stimuli-only
+    - shared parser+stimuli
+  - validate at the matching seams before keeping it
+  - do not keep a parser-only win if it regresses the shared family-quality/status surface
+
 - Analyzed the RGX issue intake tree under `../rgx/pgen-issues/`.
   - current concrete downstream regex bug bundles:
     - `PGEN-RGX-0001`

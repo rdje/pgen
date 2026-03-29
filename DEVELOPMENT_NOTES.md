@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Retain the parser+stimuli-safe VHDL closure slice
+### Context
+The active VHDL closure work had two competing pressures:
+- improve real generated-parser behavior on broader realistic-corpus cases
+- avoid accidentally regressing the shared parser-family proof stack, especially the replay-shadow parser-debt surface consumed by `vhdl_parser_family_status_gate`
+
+The user also clarified an important repo-wide rule that applies to every EBNF file: a semantic annotation or grammar-shape change may affect the stimuli generator only, the parser generator only, or both. VHDL was a live example of why that distinction matters operationally.
+
+### Implementation
+- Updated [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
+  - `trivia` now explicitly biases whitespace ahead of line comments through:
+    - `@branch_policy: priority_first`
+    - `@priority: [32, 1]`
+  - `line_comment` now requires newline-or-EOF termination:
+    - `/--[^\\n]*(\\n|$)/`
+- Updated [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh):
+  - added `--enforce-word-boundary-spacing` to every VHDL stimuli-generation call path so the closed-loop and parseability-generation surfaces share the same token-boundary discipline
+- Updated [rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json](rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json):
+  - promoted these cases from expected-fail to expected-pass because the retained shared slice now supports them end to end:
+    - `use_package_vector_width`
+    - `direct_entity_instantiation`
+    - `generate_for_label`
+    - `wait_for_time`
+    - `assert_report_statement`
+- Fixed [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](rust/scripts/vhdl_formal_exhaustive_closure_gate.sh) operationally by restoring its executable bit.
+  - this was a real proof-plumbing bug exposed by `vhdl_parser_family_status_gate`
+  - callers already invoked the script directly under `env`, so a fresh checkout without the executable bit could fail the status stack even when content was correct
+
+### Deliberately Rejected Change
+- I temporarily widened [grammars/vhdl.ebnf](grammars/vhdl.ebnf) to parse `wait until ...;`
+- That broader parser slice improved one realistic-corpus case, but it also worsened replay-shadow parser debt materially
+- I intentionally reverted it instead of shipping a “parser-only improvement” that made the shared family-quality/status surface worse
+
+### Measured Result
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - `closed_loop_initial_targets=233`
+  - `closed_loop_replay_targets=13`
+  - `closed_loop_parseability_shadow_parser_rejections_total=44`
+  - `parseability_generation_attempts_total=8`
+  - `parseability_generation_accepted_total=8`
+  - `parseability_generation_rejected_total=0`
+  - realistic corpus parity:
+    - `expected_pass_total=13`
+    - `expected_fail_total=1`
+    - `observed_parse_pass_total=13`
+    - `observed_parse_fail_total=1`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+  - `vhdl_status=In Progress`
+  - `vhdl_closure_criteria_satisfied_count=8`
+  - remaining blockers:
+    - `quality_closed_loop_parseability_shadow_parser_rejections_total=44 > 0`
+    - `quality_closed_loop_replay_targets=13 > 0`
+- external-corpus-backed formal-closure evidence now reflects:
+  - `cases_declared=8`
+  - `cases_executed=8`
+  - `parse_pass_total=8`
+  - `parse_fail_total=0`
+
+### Why This Matters
+- This slice improves VHDL on the shared parser-family proof surface instead of only on a narrow parser-only anecdote.
+- It also establishes an important steering rule future sessions should keep applying across all EBNF work:
+  - classify each grammar change as parser-only, stimuli-only, or shared parser+stimuli
+  - keep only the changes that improve the intended proof surface without silently regressing the sibling one
+
 ## 2026-03-29 - Ship regex downstream maintenance release 1.1.1 for RGX bug reports
 ### Context
 RGX provided four precise generated-backend bug bundles under `../rgx/pgen-issues/`. All four were successful parses with wrong accepted-tree transport rather than outright parse failures, which made them especially important to fix before downstream AST consumers started building on top of the `1.1.0` regex handoff.

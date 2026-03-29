@@ -1,4 +1,63 @@
 # CHANGES.md
+## 2026-03-29 - Tighten VHDL shared grammar/stimuli quality slice without regressing parser-family proof
+### ✅ Achievement Summary
+The retained VHDL closure slice now reflects the shared parser+stimuli-safe changes only. Parser-backed generation rejections on the canonical VHDL family-quality surface are now down to zero, realistic-corpus parity improved from `8/6` to `13/1`, and the external-corpus-backed formal-closure lane widened from `1/1` to `8/8` pass. The family still stays `In Progress` because replay-shadow parser debt and replay target debt remain real.
+
+### Scope of Changes
+- Updated [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
+  - `trivia` now carries:
+    - `@branch_policy: priority_first`
+    - `@priority: [32, 1]`
+  - `line_comment` now requires newline-or-EOF termination via `/--[^\\n]*(\\n|$)/`
+- Updated [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh):
+  - all VHDL stimuli-generation invocations now use `--enforce-word-boundary-spacing`
+  - applied consistently to:
+    - closed-loop initial generation
+    - replay generation
+    - replay parseability shadow generation
+    - per-sample parseability generation
+- Updated [rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json](rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json):
+  - promoted five realistic VHDL cases from expected-fail to expected-pass:
+    - `use_package_vector_width`
+    - `direct_entity_instantiation`
+    - `generate_for_label`
+    - `wait_for_time`
+    - `assert_report_statement`
+- Updated [rust/scripts/vhdl_formal_exhaustive_closure_gate.sh](rust/scripts/vhdl_formal_exhaustive_closure_gate.sh):
+  - fixed a real operational bug by making the script executable, which matches how caller gates already invoke it directly
+- Important retained-slice decision:
+  - a temporary `wait until` grammar broadening was tested in `grammars/vhdl.ebnf`
+  - it improved one realistic-corpus parser case
+  - but it worsened replay-shadow parser debt
+  - it was intentionally reverted rather than shipped as a parser-only win that regressed the shared family-proof surface
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - retained summary:
+    - `closed_loop_initial_targets=233`
+    - `closed_loop_replay_targets=13`
+    - `closed_loop_parseability_shadow_parser_rejections_total=44`
+    - `parseability_generation_attempts_total=8`
+    - `parseability_generation_accepted_total=8`
+    - `parseability_generation_rejected_total=0`
+    - `realistic_corpus_expected_pass_total=13`
+    - `realistic_corpus_expected_fail_total=1`
+    - `realistic_corpus_observed_parse_pass_total=13`
+    - `realistic_corpus_observed_parse_fail_total=1`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+  - retained summary:
+    - `vhdl_status=In Progress`
+    - `vhdl_closure_criteria_satisfied_count=8`
+    - `vhdl_closure_criteria_total_count=10`
+    - blockers:
+      - `quality_closed_loop_parseability_shadow_parser_rejections_total=44 > 0`
+      - `quality_closed_loop_replay_targets=13 > 0`
+- external-corpus-backed formal-closure source state now reflects:
+  - `cases_declared=8`
+  - `cases_executed=8`
+  - `parse_pass_total=8`
+  - `parse_fail_total=0`
+
 ## 2026-03-29 - Fix RGX-reported regex accepted-tree transport bugs
 ### ✅ Achievement Summary
 Regex parser release `1.1.1` is now the maintained downstream handoff baseline. It closes four real RGX-reported accepted-tree transport bugs in the published generated backend without widening the regex JSON schema contract.

@@ -344,9 +344,11 @@ unsigned_number := trivia /[0-9]+/
 string_literal := trivia /"(?:[^"\\]|\\.)*"/
 character_literal := trivia /'(?:[^'\\]|\\.)'/
 
+@branch_policy: priority_first
+@priority: [32, 1]
 trivia := (white_space | line_comment)*
 white_space := /[ \t\r\n]+/
-line_comment := /--[^\n]*/
+line_comment := /--[^\n]*(\n|$)/
 
 semi := trivia /;/
 comma := trivia /,/
