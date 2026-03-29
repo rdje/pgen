@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: regex-rgx-handoff-release-1-1-0)
+Last updated: 2026-03-29 (+0100, task: regex-rgx-handoff-signoff-capture)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,23 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Read the updated RGX notes:
+  - `/Users/richarddje/Documents/github/rgx/PGEN_REGEX_PARSER_INTEGRATION_COMPLAINT.md`
+  - `/Users/richarddje/Documents/github/rgx/PGEN_REGEX_EMBEDDED_CODE_BLOCK_CONTRACT_PROPOSAL.md`
+- Captured the downstream result in PGEN docs:
+  - RGX now treats regex handoff `1.1.0` as good enough to begin integration
+  - remaining regex caveats are now explicitly scope-widening rather than blocker-level:
+    - stronger AST semantic stability beyond the current JSON envelope/schema contract
+    - stronger JS/Lua shielding guarantees
+    - optional published `native` / `wasm` tags
+    - optional host-language wrapper parsing such as `/pattern/flags`
+- Updated:
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+- Operational takeaway:
+  - regex is now a downstream-integration-ready baseline for RGX
+  - future regex work should treat those remaining items as deliberate contract-widening/product choices, not as urgent baseline trust repairs
 - Updated the RGX-facing regex handoff surface to release `1.1.0`.
   - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
     - contract version `1.1.0`

@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Capture RGX signoff on regex handoff 1.1.0
+### Context
+After the regex handoff bump to `1.1.0`, RGX re-reviewed the published downstream docs and no longer treated the remaining caveats as integration blockers.
+
+### Implementation
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) so the live steering story now reflects the downstream review outcome directly.
+- The recorded remaining regex caveats are now framed as contract-widening follow-up:
+  - stronger AST semantic stability beyond the current shape/schema contract
+  - stronger JS/Lua code-body shielding guarantees
+  - optional published `native` / `wasm` tags
+  - optional wrapper parsing such as `/pattern/flags`
+
+### Why This Matters
+- Future sessions should stop treating those regex items as “can RGX integrate at all?” blockers.
+- The next regex decisions are now scope/contract product choices, not emergency trust fixes.
+
 ## 2026-03-29 - Roll regex downstream contract and release version to 1.1.0
 ### Context
 The regex parser just picked up a real hardening slice driven by the PCRE2 compile-oracle lane, but the RGX-facing handoff surface was still publishing `1.0.0`. That mismatch would have made downstream adoption and bug reporting fuzzier than it needed to be.

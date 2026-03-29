@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-03-29 - Capture RGX regex handoff signoff
+### ✅ Achievement Summary
+PGEN's live roadmap/status/analysis docs now record the first downstream consumer review saying regex handoff `1.1.0` is good enough to start integration. The remaining regex caveats are now captured as contract-widening questions rather than blocker-level objections.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - roadmap doctrine now explicitly says the remaining regex follow-up is scope widening, not baseline downstream readiness
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
+  - added a tracker note summarizing RGX's current posture toward regex handoff `1.1.0`
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - session-start steering now records that regex `1.1.0` is an integration-ready baseline from RGX's perspective
+
 ## 2026-03-29 - Roll regex downstream handoff to release 1.1.0
 ### ✅ Achievement Summary
 The RGX-facing regex handoff surface now matches the hardened parser instead of the older `1.0.0` release identity. The published regex contract, shared reporting docs, exported metadata, and contract manifest all now agree on regex release `1.1.0`.
