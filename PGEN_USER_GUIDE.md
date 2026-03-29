@@ -3873,6 +3873,10 @@ Corpus doctrine:
 Operational entrypoints:
 - preflight bundle contract:
   - `make -C rust regex_corpus_bundle_contract_gate`
+- text-safe acceptance slice:
+  - `make -C rust regex_pcre2_textsafe_corpus_gate`
+- compile-oracle slice:
+  - `make -C rust regex_pcre2_compile_oracle_gate`
 - bundle overview:
   - `regex_corpus_bundle/README.md`
 - detailed acquisition/normalization plan:
@@ -3883,8 +3887,23 @@ Operational entrypoints:
 Important interpretation:
 - PCRE2 upstream is raw syntax truth for this lane
 - PHP corpus is useful because it is PCRE2-backed, but it must be wrapper-normalized before it counts as raw parser truth
+- the text-safe gate is useful for widening accepted-syntax evidence, but it is not a correctness oracle because PCRE2 testdata contains both valid and intentionally invalid patterns
+- the compile-oracle gate is the first external-corpus lane that actually measures expected compile outcomes against PCRE2 source truth
+- the latest hardening slice is not just more measurement: the generated regex host path now also enforces a small compile-style validation layer for obvious invalid constructs that the raw grammar would otherwise over-accept
+- current tracked compile-oracle baseline:
+  - `cases_executed=2195`
+  - `expected_parse_ok_total=1613`
+  - `expected_parse_fail_total=582`
+  - `parse_expectation_match_total=1668`
+  - `parse_expectation_mismatch_total=527`
+  - `false_accept_total=325`
+  - `false_reject_total=202`
+- the current improvement came from two complementary changes:
+  - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, `\k{name}`, and `{,}` counted-quantifier forms
+  - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind
 - future normalizer work should stay split by source family:
   - `normalize_pcre2_testdata.py`
+  - `normalize_pcre2_compile_oracle.py`
   - `normalize_php_pcre_tests.py`
 
 ## 12) File and Artifact Map

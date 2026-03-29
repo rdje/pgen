@@ -1,4 +1,7 @@
 use crate::ast_pipeline::{ParseError, UnifiedReturnAST, UnifiedSemanticAST, runtime_logger};
+use crate::regex_compile_validation::{
+    RegexCompileValidationError, validate_regex_compile_contract,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fmt;
@@ -466,7 +469,10 @@ fn parse_failure_diagnostic(message: impl Into<String>) -> ParseDiagnostic {
     ParseDiagnostic::new("E_PARSE_FAILURE", message)
 }
 
-fn unsupported_profile_diagnostic(grammar: GrammarFamily, profile: GrammarProfile) -> ParseDiagnostic {
+fn unsupported_profile_diagnostic(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+) -> ParseDiagnostic {
     ParseDiagnostic::new(
         "E_UNSUPPORTED_PROFILE",
         format!(
@@ -523,6 +529,17 @@ fn generated_parse_failure_diagnostic(
         "E_PARSE_FAILURE",
         format!("generated {} parse failed: {}", parser_label, error),
         parse_diagnostic_location(input, parse_error_position(&error)),
+    )
+}
+
+fn regex_compile_contract_diagnostic(
+    input: &str,
+    error: RegexCompileValidationError,
+) -> ParseDiagnostic {
+    ParseDiagnostic::with_location(
+        "E_PARSE_FAILURE",
+        error.message,
+        parse_diagnostic_location(input, error.byte_offset),
     )
 }
 
@@ -726,10 +743,7 @@ pub fn parse_vhdl_1076_2019_with_limits(input: &str, limits: &ParseLimits) -> Gr
 }
 
 /// Convenience entry point with explicit limits for `regex_default`.
-pub fn parse_regex_default_with_limits(
-    input: &str,
-    limits: &ParseLimits,
-) -> GrammarParseOutcome {
+pub fn parse_regex_default_with_limits(input: &str, limits: &ParseLimits) -> GrammarParseOutcome {
     parse_grammar_profile_with_limits(
         GrammarFamily::Regex,
         GrammarProfile::RegexDefault,
@@ -1213,14 +1227,9 @@ fn serialize_canonical_json<T: Serialize>(
     value: &T,
     pretty: bool,
 ) -> Result<String, ParseDiagnostic> {
-    let normalized = canonicalize_json_value(
-        serde_json::to_value(value).map_err(|err| {
-            parse_failure_diagnostic(format!(
-                "failed to serialize parser AST payload: {}",
-                err
-            ))
-        })?,
-    );
+    let normalized = canonicalize_json_value(serde_json::to_value(value).map_err(|err| {
+        parse_failure_diagnostic(format!("failed to serialize parser AST payload: {}", err))
+    })?);
     if pretty {
         serde_json::to_string_pretty(&normalized).map_err(|err| {
             parse_failure_diagnostic(format!("failed to encode parser AST payload: {}", err))
@@ -1254,9 +1263,9 @@ fn encode_ast_dump_payload(
             let emitted_bytes = encoded_diagnostic.len();
             if emitted_bytes > max_bytes {
                 return Err(invalid_limits_diagnostic(format!(
-                        "max_ast_bytes {} is too small to fit truncation diagnostics (requires at least {} bytes)",
-                        max_bytes, emitted_bytes
-                    )));
+                    "max_ast_bytes {} is too small to fit truncation diagnostics (requires at least {} bytes)",
+                    max_bytes, emitted_bytes
+                )));
             }
             return Ok(AstDumpPayload {
                 dump_json: encoded_diagnostic,
@@ -1482,10 +1491,11 @@ fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
             input,
             crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
         );
-        return parser
+        parser
             .parse_full_regex()
-            .map(|_| ())
-            .map_err(|err| generated_parse_failure_diagnostic("regex", input, err));
+            .map_err(|err| generated_parse_failure_diagnostic("regex", input, err))?;
+        return validate_regex_compile_contract(input)
+            .map_err(|err| regex_compile_contract_diagnostic(input, err));
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     {
@@ -1507,6 +1517,8 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
         let parsed = parser
             .parse_full_regex()
             .map_err(|err| generated_parse_failure_diagnostic("regex", input, err))?;
+        validate_regex_compile_contract(input)
+            .map_err(|err| regex_compile_contract_diagnostic(input, err))?;
         return serde_json::to_value(parsed).map_err(|err| {
             parse_failure_diagnostic(format!("generated regex AST serialization failed: {}", err))
         });
@@ -1922,7 +1934,10 @@ mod tests {
             contract.regex_integration_contract_version,
             REGEX_PARSER_INTEGRATION_CONTRACT_VERSION
         );
-        assert_eq!(contract.regex_parser_release_version, REGEX_PARSER_RELEASE_VERSION);
+        assert_eq!(
+            contract.regex_parser_release_version,
+            REGEX_PARSER_RELEASE_VERSION
+        );
         assert_eq!(
             contract.regex_ast_dump_schema_version,
             REGEX_AST_DUMP_SCHEMA_VERSION
@@ -1939,7 +1954,10 @@ mod tests {
             contract.regex_generated_backend_env_override,
             "PGEN_REGEX_PARSER_PATH"
         );
-        assert_eq!(contract.regex_frontend_json_artifact, "generated/regex.json");
+        assert_eq!(
+            contract.regex_frontend_json_artifact,
+            "generated/regex.json"
+        );
     }
 
     #[test]
@@ -1952,20 +1970,32 @@ mod tests {
             manifest.integration_contract_version,
             REGEX_PARSER_INTEGRATION_CONTRACT_VERSION
         );
-        assert_eq!(manifest.parser_release_version, REGEX_PARSER_RELEASE_VERSION);
+        assert_eq!(
+            manifest.parser_release_version,
+            REGEX_PARSER_RELEASE_VERSION
+        );
         assert_eq!(manifest.grammar, "regex");
         assert_eq!(manifest.profile, "regex_default");
         assert_eq!(
             manifest.required_generated_backend_flag,
             "supports_regex_generated_backend"
         );
-        assert_eq!(manifest.required_generated_backend_feature, "generated_parsers");
+        assert_eq!(
+            manifest.required_generated_backend_feature,
+            "generated_parsers"
+        );
         assert_eq!(
             manifest.required_generated_backend_artifact,
             "generated/regex_parser.rs"
         );
-        assert_eq!(manifest.generated_backend_env_override, "PGEN_REGEX_PARSER_PATH");
-        assert_eq!(manifest.ast_dump_schema_version, REGEX_AST_DUMP_SCHEMA_VERSION);
+        assert_eq!(
+            manifest.generated_backend_env_override,
+            "PGEN_REGEX_PARSER_PATH"
+        );
+        assert_eq!(
+            manifest.ast_dump_schema_version,
+            REGEX_AST_DUMP_SCHEMA_VERSION
+        );
         assert_eq!(manifest.frontend_json_artifact, "generated/regex.json");
         assert!(
             manifest
@@ -2019,7 +2049,10 @@ mod tests {
             contract.regex_frontend_json_artifact,
             manifest.frontend_json_artifact
         );
-        assert_eq!(contract.regex_frontend_json_role, manifest.frontend_json_role);
+        assert_eq!(
+            contract.regex_frontend_json_role,
+            manifest.frontend_json_role
+        );
         assert_eq!(
             contract.stable_diagnostic_location_fields,
             manifest.stable_diagnostic_location_fields

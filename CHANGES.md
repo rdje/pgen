@@ -1,4 +1,85 @@
 # CHANGES.md
+## 2026-03-29 - Harden regex compile-oracle baseline
+### ✅ Achievement Summary
+PGEN's regex compile-oracle lane now closes a real chunk of downstream-trust debt instead of only measuring it. The generated regex host path now rejects a class of obvious compile-invalid patterns after parse success, and the grammar now accepts several real PCRE2 forms it previously missed.
+
+### Scope of Changes
+- Added [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - enforces a small compile-contract layer over successful generated regex parses
+  - currently rejects:
+    - unsupported `\i`
+    - invalid counted quantifier bounds like `{5,4}` and `{65536}`
+    - forbidden class escapes like `[\B]`, `[\R]`, and `[\X]`
+    - descending class ranges like `[z-a]`
+    - quantified anchors like `^*`
+    - variable-length lookbehind forms like `(?<=a+)`
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - now accepts:
+    - negated POSIX classes like `[[:^alnum:]]`
+    - bare-name and signed conditional references
+    - `\k{name}` backreferences
+    - `{,}` counted-quantifier forms
+- Updated [rust/src/parser_registry.rs](rust/src/parser_registry.rs) and [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - the generated regex parse surface now applies the compile-contract validation layer
+- Tightened [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env) to the improved measured baseline.
+
+### Validation
+- Focused generated-backend probes now confirm:
+  - `^[[:^alnum:]]` passes
+  - `^(?P<A>a)?(?(A)a|b)` passes
+  - `x{5,4}` rejects with a counted-quantifier diagnostic
+  - `[\B]` rejects with a character-class diagnostic
+- `make -C rust regex_pcre2_compile_oracle_gate`
+  - improved baseline:
+    - `parse_expectation_match_total=1668`
+    - `parse_expectation_mismatch_total=527`
+    - `false_accept_total=325`
+    - `false_reject_total=202`
+
+## 2026-03-29 - Add regex PCRE2 compile-oracle hardening lane
+### ✅ Achievement Summary
+PGEN's regex external hardening lane now has its first maintained compile-truth surface. The repository can now normalize a checked-in PCRE2 compile-oracle slice from `testinput2` / `testoutput2`, run it through the generated regex parser, and track mismatch ceilings in a dedicated gate instead of only reporting raw acceptance over a text-safe corpus slice.
+
+### Scope of Changes
+- Added [regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py](regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py):
+  - pairs PCRE2 `testinput2` and `testoutput2`
+  - emits compile-oracle JSONL with `expected.parse = ok|fail`
+  - preserves compile-error metadata for rejected cases when available
+- Extended [rust/src/bin/regex_corpus_probe.rs](rust/src/bin/regex_corpus_probe.rs):
+  - now records expectation-aware metrics in addition to raw pass/fail totals
+  - surfaces:
+    - `parse_expectation_match_total`
+    - `parse_expectation_mismatch_total`
+    - `false_accept_total`
+    - `false_reject_total`
+    - primary mismatch metadata
+- Added [rust/scripts/regex_pcre2_compile_oracle_gate.sh](rust/scripts/regex_pcre2_compile_oracle_gate.sh) and [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - the gate normalizes the compile-oracle slice
+  - rebuilds `regex_corpus_probe`
+  - enforces the tracked mismatch ceilings against the current measured baseline
+- Updated [rust/Makefile](rust/Makefile), [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh), [regex_corpus_bundle/README.md](regex_corpus_bundle/README.md), [regex_corpus_bundle/docs/regex_corpus_plan.md](regex_corpus_bundle/docs/regex_corpus_plan.md), [README.md](README.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - the bundle now documents the implemented compile-oracle normalizer
+  - the user/status/roadmap docs now point at the compile-oracle gate as the primary downstream-trust widening lane
+  - local CI now locks that surface
+
+### Validation
+- `python3 regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py`
+  - current normalization summary:
+    - `cases_emitted=2195`
+    - `expected_parse_ok_total=1613`
+    - `expected_parse_fail_total=582`
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin regex_corpus_probe`
+- `rust/target/debug/regex_corpus_probe regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl rust/target/regex_pcre2_compile_oracle_gate/summary.json rust/target/regex_pcre2_compile_oracle_gate/observations.jsonl`
+  - current measured baseline:
+    - `parse_expectation_match_total=1617`
+    - `parse_expectation_mismatch_total=578`
+    - `false_accept_total=362`
+    - `false_reject_total=216`
+
+### Why This Matters
+- PGEN now has a more honest external regex hardening signal than raw acceptance-rate growth alone.
+- Future regex robustness work for RGX can be driven by real PCRE2 compile-truth mismatches instead of by guesswork.
+
 ## 2026-03-29 - Correct regex corpus bundle to latest PCRE2 tag
 ### ✅ Achievement Summary
 The regex corpus bundle now pins the latest official PCRE2 release tag correctly: the bundle, lockfile, gate expectations, and supporting docs all use the lowercase `pcre2-10.47` tag and matching snapshot path instead of the broken `PCRE2-10.46` pin that produced a fetch-time 404.

@@ -9,7 +9,8 @@ regex          = pattern?
 # Alternation and concatenation
 pattern        = alternation
 -> $1
-alternation    = concatenation ("|" concatenation)*
+alternation    = alternative ("|" alternative)*
+alternative    = concatenation?
 concatenation  = piece+
 
 piece          = atom quantifier?
@@ -18,7 +19,10 @@ piece          = atom quantifier?
 # Quantifiers (with lazy and possessive variants)
 quantifier     = quant_base quant_suffix?
 quant_base     = "*" | "+" | "?" | counted_quantifier
-counted_quantifier = "{" ws? digits ws? ("," ws? digits?)? ws? "}"
+counted_quantifier = "{" ws? counted_quantifier_body ws? "}"
+counted_quantifier_body = digits ws? ("," ws? digits?)?
+                      | "," ws? digits
+                      | ","
 quant_suffix   = "?"     # lazy (non-greedy)
                | "+"     # possessive
 
@@ -30,13 +34,20 @@ atom           = literal
                | escape
                | backreference
                | char_class
-               | group
-               | atomic_group
-               | lookaround
                | inline_modifiers
                | scoped_inline_modifiers
+               | branch_reset_group
+               | callout
                | conditional
+               | directive_verb
+               | extended_class
                | code_block
+               | atomic_group
+               | comment_group
+               | lookaround
+               | subroutine_call
+               | python_named_backreference
+               | group
 
 # Literals and escapes
 literal        = literal_char+
@@ -44,7 +55,7 @@ whitespace_literal = whitespace
 literal_char   = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
                | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
                | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-               | '!' | '"' | '#' | '%' | '&' | '\'' | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | '_' | '`' | '~'
+               | '!' | '"' | '#' | '%' | '&' | '\'' | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | ']' | '_' | '`' | '~'
 
 # Dot
 dot            = "."
@@ -55,7 +66,16 @@ anchor         = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G"
 # Backreferences
 backreference  = "\\" digits
                | "\\k" name_ref
+               | "\\k{" name "}"
+               | "\\g" subroutine_ref
 name_ref       = "<" name ">" | "'" name "'"
+subroutine_ref = "{" signed_digits_or_name "}"
+              | "<" name ">"
+              | "'" name "'"
+              | signed_digits
+signed_digits_or_name = signed_digits | name
+signed_digits = sign? digits
+sign           = "+" | "-"
 name           = name_start name_continue*
 name_start     = letter | '_'
 name_continue  = name_start | digit
@@ -64,7 +84,8 @@ name_continue  = name_start | digit
 @generate: generate_char_class_matcher(has_negation($2), collect_class_items($2))
 @optimize: count(flatten($2)) > 8 ? "lookup_table" : "linear_checks"
 @validate: all(extract_ranges($2), r => valid_range(r.start, r.end))
-char_class     = "[" negation? class_body "]"
+char_class     = "[" negation? class_initial_close? class_body "]"
+class_initial_close = "]"
 
 @generate: "^" if $1 else ""
 @semantic_value: $1 != null
@@ -110,9 +131,12 @@ class_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' |
 }
 class_escape   = escape
 
-@generate: generate_posix_class_check($2)
-@semantic_value: {type: "posix", name: $2}
-posix_class    = "[:" posix_name ":]"
+@generate: generate_posix_class_check($3)
+@semantic_value: {type: "posix", name: $3, negated: $2 != null}
+posix_class    = "[:" posix_negation? posix_name ":]"
+-> $1
+
+posix_negation = "^"
 
 @generate: extract_char_value($1)
 @semantic_value: {type: "atom", value: $1}
@@ -189,36 +213,81 @@ property_escape= "p{" prop_name "}" | "P{" prop_name "}"
 @description: "Unicode property name"
 prop_name      = prop_name_chars+
 
-prop_name_chars = letter | digit | '_' | ':' | '-'
+prop_name_chars = letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^'
 
 # Groups
-group          = capturing_group | noncapturing_group | named_group
+group          = capturing_group | noncapturing_group | named_group | python_named_group
 
-capturing_group      = "(" pattern ")"
-noncapturing_group   = "(?:" pattern ")"
-named_group          = "(?<" name ">" pattern ")"
-                     | "(?'" name "'" pattern ")"
+capturing_group      = "(" pattern? ")"
+noncapturing_group   = "(?:" pattern? ")"
+named_group          = "(?<" name ">" pattern? ")"
+                     | "(?'" name "'" pattern? ")"
+python_named_group   = "(?P<" name ">" pattern? ")"
 
-atomic_group         = "(?>" pattern ")"
+atomic_group         = "(?>" pattern? ")"
+comment_group        = "(?#" comment_text? ")"
+comment_text         = comment_char*
+comment_char         = letter | digit | whitespace | comment_special
+comment_special      = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
 lookaround           = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg
 lookahead_pos        = "(?=" pattern ")"
 lookahead_neg        = "(?!" pattern ")"
 lookbehind_pos       = "(?<=" pattern ")"
 lookbehind_neg       = "(?<!" pattern ")"
+subroutine_call      = "(?" subroutine_target ")"
+subroutine_target    = "&" name
+                    | "P>" name
+                    | "R" digits?
+                    | signed_digits
+python_named_backreference = "(?P=" name ")"
 
 # Inline modifier changes: global and scoped
-inline_modifiers           = "(?(" modifier_seq ")"                  # e.g., (?i-mx)
-scoped_inline_modifiers    = "(?(" modifier_seq ":" pattern ")"      # e.g., (?x: ...)
+inline_modifiers           = "(?" modifier_spec? ")"                 # e.g., (?i-mx), (?^i), (?)
+scoped_inline_modifiers    = "(?" modifier_spec ":" pattern? ")"     # e.g., (?x: ...), (?^x: ...)
+branch_reset_group         = "(?|" pattern? ")"
+callout                    = "(?C" digits? ")"
+modifier_spec              = "^" modifier_seq?
+                           | modifier_seq
 modifier_seq               = modifier_group ("-" modifier_group)?
+                           | "-" modifier_group
 modifier_group             = modifier_char+
-modifier_char              = "i" | "m" | "s" | "x" | "U" | "J" | "u" | "a" | "d" | "S" | "A" | "X" | "R" | "n"
+modifier_char              = "i" | "m" | "s" | "x" | "U" | "J" | "u" | "a" | "d" | "S" | "A" | "X" | "R" | "n" | "r"
 
 # Conditionals: (?(cond)yes|no)
-conditional       = "(" "?(" condition ")" yes_branch ("|" no_branch)? ")"
-yes_branch        = pattern
-no_branch         = pattern
-condition         = lookaround | name_ref | digits
+conditional       = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
+yes_branch        = pattern?
+no_branch         = pattern?
+condition         = define_condition | condition_assertion | name_ref | name | signed_digits | digits | recursion_condition
+define_condition  = "DEFINE"
+condition_assertion = "?=" pattern
+                    | "?!" pattern
+                    | "?<=" pattern
+                    | "?<!" pattern
+recursion_condition = "R" digits?
+
+# PCRE2 verbs and start-of-pattern directives
+directive_verb    = "(*" directive_body ")"
+directive_body    = directive_named | directive_mark_shorthand
+directive_named   = directive_name directive_payload_suffix?
+directive_mark_shorthand = ":" directive_payload_simple?
+directive_payload_suffix = ":" directive_payload_simple? | "=" directive_payload_simple?
+directive_payload_simple = directive_payload_char*
+directive_payload_char = letter | digit | whitespace | directive_special
+directive_name    = directive_name_start directive_name_continue*
+directive_name_start = letter
+directive_name_continue = directive_name_start | digit | '_' | '-'
+directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '^' | '_' | '{' | '|' | '}' | '~'
+
+# PCRE2 extended character class syntax (?[ ... ])
+extended_class = "(?[" extended_class_content "])"
+extended_class_content = extended_class_element*
+extended_class_element = extended_class_nested
+                       | escape
+                       | extended_class_regular
+extended_class_nested = "[" extended_class_content "]"
+extended_class_regular = letter | digit | whitespace | extended_class_special
+extended_class_special = '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '^' | '_' | '`' | '{' | '|' | '}' | '~'
 
 # Embedded code blocks for rgx hooks
 # Parser-layer contract:

@@ -154,9 +154,18 @@ The inventory records should answer:
 After inventories are stable, implement dedicated normalizers:
 
 - `normalize_pcre2_testdata.py`
+- `normalize_pcre2_compile_oracle.py`
 - `normalize_php_pcre_tests.py`
 
 Do **not** try to use one parser for both source families.
+
+Current PGEN progress:
+
+- `normalize_pcre2_testdata.py` now emits a conservative text-safe JSONL slice for generated-parser acceptance measurements.
+- `normalize_pcre2_compile_oracle.py` now emits a compile-oracle JSONL slice by pairing `testinput2` with `testoutput2`.
+- maintained gate entrypoints:
+  - `make -C rust regex_pcre2_textsafe_corpus_gate`
+  - `make -C rust regex_pcre2_compile_oracle_gate`
 
 ## Canonical normalized schema
 

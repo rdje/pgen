@@ -20,6 +20,7 @@ use crate::generated_parsers::vhdl::VhdlParser;
 use crate::generated_parsers::{
     return_annotation::Return_annotationParser, semantic_annotation::Semantic_annotationParser,
 };
+use crate::regex_compile_validation::validate_regex_compile_contract;
 use serde_json::Value as JsonValue;
 
 type ParseSampleFn = fn(&str) -> bool;
@@ -187,23 +188,21 @@ fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
 
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex(sample: &str) -> bool {
-    let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
-    parser.parse_full_regex().is_ok()
+    parse_with_regex_detail(sample).is_ok()
 }
 
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex_detail(sample: &str) -> Result<(), String> {
     let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
-    parser
-        .parse_full_regex()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    parser.parse_full_regex().map_err(|err| err.to_string())?;
+    validate_regex_compile_contract(sample).map_err(|err| err.message)
 }
 
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
     let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
+    validate_regex_compile_contract(sample).map_err(|err| err.message)?;
     parse_node_to_json(&parsed)
 }
 
@@ -674,11 +673,64 @@ mod tests {
         assert_eq!(parse_sample("regex", " *"), Some(true));
         assert_eq!(parse_sample("regex", "\t*"), Some(true));
         assert_eq!(parse_sample("regex", "(foo|bar)+"), Some(true));
+        assert_eq!(parse_sample("regex", "(a|)\\1*b"), Some(true));
+        assert_eq!(parse_sample("regex", "()2(3)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?#)"), Some(true));
+        assert_eq!(parse_sample("regex", "a(?)b"), Some(true));
+        assert_eq!(parse_sample("regex", "(?s)a.b"), Some(true));
+        assert_eq!(parse_sample("regex", "a(?-i)b"), Some(true));
+        assert_eq!(parse_sample("regex", "(?^)AB"), Some(true));
+        assert_eq!(parse_sample("regex", "(?^-i)AB"), Some(true));
+        assert_eq!(parse_sample("regex", "(?^x:C D)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?:(?-i)a)b"), Some(true));
+        assert_eq!(
+            parse_sample(
+                "regex",
+                "(?x)   ^    a   (?# begins with a)  b\\sc (?# then b c) $ (?# then end)"
+            ),
+            Some(true)
+        );
+        assert_eq!(
+            parse_sample("regex", "^(?(?=abc)\\w{3}:|\\d\\d)"),
+            Some(true)
+        );
+        assert_eq!(parse_sample("regex", "(?(DEFINE)(a))"), Some(true));
+        assert_eq!(parse_sample("regex", "x{,2}(x|b)"), Some(true));
+        assert_eq!(parse_sample("regex", "([ab]{,}c|xy)"), Some(true));
+        assert_eq!(parse_sample("regex", "^\\p{sc=Latin}"), Some(true));
+        assert_eq!(parse_sample("regex", "^\\p{L&}X"), Some(true));
+        assert_eq!(parse_sample("regex", "^[[:^alnum:]]"), Some(true));
+        assert_eq!(parse_sample("regex", "a]"), Some(true));
+        assert_eq!(parse_sample("regex", "(?|a|b)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?P<name>a)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?P=name)"), Some(true));
+        assert_eq!(parse_sample("regex", "^(?P<A>a)?(?(A)a|b)"), Some(true));
+        assert_eq!(parse_sample("regex", "^(?(+1)X|Y)(.)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?<A>tom|bon)-\\k{A}"), Some(true));
+        assert_eq!(parse_sample("regex", "(?&name)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?R)"), Some(true));
+        assert_eq!(parse_sample("regex", "\\g{1}"), Some(true));
+        assert_eq!(parse_sample("regex", "(?C1)"), Some(true));
+        assert_eq!(parse_sample("regex", "(*UTF)abc"), Some(true));
+        assert_eq!(parse_sample("regex", "(*MARK:A)(*SKIP:B)(C|X)"), Some(true));
+        assert_eq!(parse_sample("regex", "(?[\\p{L} - \\p{Lu}])"), Some(true));
+        assert_eq!(parse_sample("regex", "^[]cde]"), Some(true));
+        assert_eq!(parse_sample("regex", "^[^]cde]"), Some(true));
         assert_eq!(parse_sample("regex", r"\d"), Some(true));
         assert_eq!(parse_sample("regex", r"\bword\b"), Some(true));
         assert_eq!(parse_sample("regex", r"\\"), Some(true));
         assert_eq!(parse_sample("regex", r"^\+?[1-9]\d{1,14}$"), Some(true));
-        assert_eq!(parse_sample("regex", r"^https?://[^\s/$.?#].[^\s]*$"), Some(true));
+        assert_eq!(
+            parse_sample("regex", r"^https?://[^\s/$.?#].[^\s]*$"),
+            Some(true)
+        );
+        assert_eq!(parse_sample("regex", r"ab\idef"), Some(false));
+        assert_eq!(parse_sample("regex", r"x{5,4}"), Some(false));
+        assert_eq!(parse_sample("regex", r"z{65536}"), Some(false));
+        assert_eq!(parse_sample("regex", r"[\B]"), Some(false));
+        assert_eq!(parse_sample("regex", r"[z-a]"), Some(false));
+        assert_eq!(parse_sample("regex", r"^*"), Some(false));
+        assert_eq!(parse_sample("regex", r"(?<=a+)b"), Some(false));
         assert_eq!(parse_sample("regex", "("), Some(false));
     }
 

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: regex-corpus-bundle-pin-fix)
+Last updated: 2026-03-29 (+0100, task: regex-pcre2-compile-oracle-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,56 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs).
+  - role:
+    - applies a lightweight compile-contract layer after generated regex parse success
+    - currently rejects:
+      - unsupported `\i`
+      - invalid counted quantifier bounds
+      - forbidden class escapes in character classes
+      - descending class ranges
+      - quantified anchors
+      - variable-length lookbehind
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf).
+  - new accepted PCRE2-facing forms:
+    - negated POSIX classes like `[[:^alnum:]]`
+    - bare-name and signed conditional references
+    - `\k{name}` backreferences
+    - `{,}` counted-quantifier forms
+- The compile-oracle baseline improved materially:
+  - `parse_expectation_match_total: 1617 -> 1668`
+  - `parse_expectation_mismatch_total: 578 -> 527`
+  - `false_accept_total: 362 -> 325`
+  - `false_reject_total: 216 -> 202`
+- Added [regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py](regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py).
+  - role:
+    - pairs PCRE2 `testinput2` and `testoutput2`
+    - emits canonical compile-oracle JSONL with expected `ok` / `fail` outcomes
+    - preserves compile-error metadata where upstream `Failed:` diagnostics are present
+- Extended [rust/src/bin/regex_corpus_probe.rs](rust/src/bin/regex_corpus_probe.rs).
+  - now records:
+    - `parse_expectation_match_total`
+    - `parse_expectation_mismatch_total`
+    - `false_accept_total`
+    - `false_reject_total`
+    - primary mismatch metadata
+- Added [rust/scripts/regex_pcre2_compile_oracle_gate.sh](rust/scripts/regex_pcre2_compile_oracle_gate.sh) and [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env).
+  - this is now the primary maintained downstream-trust widening lane for regex under `regex_corpus_bundle/`
+  - current tracked baseline:
+    - `cases_executed=2195`
+    - `expected_parse_ok_total=1613`
+    - `expected_parse_fail_total=582`
+    - `parse_expectation_match_total=1668`
+    - `parse_expectation_mismatch_total=527`
+    - `false_accept_total=325`
+    - `false_reject_total=202`
+- Regex external-corpus doctrine is now explicit in docs:
+  - `regex_pcre2_textsafe_corpus_gate`
+    - widening accepted-syntax evidence
+    - not a correctness oracle by itself
+  - `regex_pcre2_compile_oracle_gate`
+    - compile-truth comparison against PCRE2 source truth
+    - better downstream-trust surface for RGX-oriented hardening
 - `regex_corpus_bundle/` is now a tracked PGEN surface rather than a loose local side directory.
 - Added and adopted:
   - [regex_corpus_bundle/README.md](regex_corpus_bundle/README.md)

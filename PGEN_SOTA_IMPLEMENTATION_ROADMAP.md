@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-03-28
+Last updated: 2026-03-29
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -571,6 +571,22 @@ Interpretation note:
   - raw PCRE2 upstream is canonical syntax truth
   - PHP `ext/pcre/tests` is secondary wrapper-normalized input, not raw parser truth
   - this lane does not reopen the closed `regex` family row until normalized/oracle-backed evidence is intentionally promoted into tracked regex proof surfaces
+- Progress (2026-03-29): that external regex lane now has a first maintained compile-truth surface too. `make -C rust regex_pcre2_compile_oracle_gate` consumes the new normalizer `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py`, which pairs PCRE2 `testinput2` with `testoutput2` and emits a checked-in compile-oracle JSONL slice. The current measured baseline is explicit rather than aspirational:
+  - `cases_executed=2195`
+  - `expected_parse_ok_total=1613`
+  - `expected_parse_fail_total=582`
+  - `parse_expectation_match_total=1668`
+  - `parse_expectation_mismatch_total=527`
+  - `false_accept_total=325`
+  - `false_reject_total=202`
+- Progress (2026-03-29): the compile-oracle lane is now also driving concrete regex robustness fixes rather than only widening measurement. `grammars/regex.ebnf` now accepts more real PCRE2 surface (`[[:^name:]]`, bare-name and signed conditional references, `\k{name}`, `{,}`), while the generated host path now runs `rust/src/regex_compile_validation.rs` after parse success to reject obvious compile-invalid forms that the raw grammar alone would otherwise over-accept (`\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind).
+- Roadmap consequence (2026-03-29): regex now has two distinct external hardening roles under the corpus bundle:
+  - `regex_pcre2_textsafe_corpus_gate`
+    - broad accepted-syntax widening lane
+    - not a correctness oracle by itself
+  - `regex_pcre2_compile_oracle_gate`
+    - compile-truth comparison lane against PCRE2 source truth
+    - primary downstream-trust hardening surface for future regex compatibility work
 - Aggregate sign-off must now also reuse that source-side family-status contract gate over the produced sidecar and surface its summary path plus its key contract counts (`family_count`, tracker-alignment booleans, false-criteria counts, unmet-detail counts, and primary unmet-detail criteria for both shipped SV families). `sv_combined_telemetry_contract_gate` must prove exact parity for those contract-summary fields too.
 - That status-alignment proof now includes both grammar-level no-regression surfaces (`sv_syntax_closure_gate` and `sv_preprocessor_syntax_closure_gate`) in addition to the parser/stimuli aggregate surfaces.
 - Aggregate sign-off must surface that computed SV-family status proof too: `sota_exit_gate` now records the family-status sidecar path, both parser-family labels, their unmet-closure counts, and their syntax-closure statuses, and `sv_combined_telemetry_contract_gate` must prove exact parity against `sv_parser_family_status_gate`.

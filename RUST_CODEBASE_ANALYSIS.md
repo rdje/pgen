@@ -1,6 +1,6 @@
 # RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-03-28
+Last updated: 2026-03-29
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -23,6 +23,9 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work for `systemverilog` and `vhdl` now outranks deferred maintainability refactors, while `regex` has reached its current closure bar and should be treated as a no-regression proof baseline unless its contract is intentionally widened.
   - downstream regex hardening on embedded code blocks should now be treated as parser-layer contract precision work backed by compact synthetic corpora/gates, not as a reason to reopen the `regex` family row by default.
+  - downstream regex hardening under `regex_corpus_bundle/` now also has two distinct external-corpus roles:
+    - `regex_pcre2_textsafe_corpus_gate` for accepted-syntax widening
+    - `regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth
 
 ## Rust-Adjacent Cargo Surface
 - Main product crate
@@ -104,6 +107,11 @@ Operational rule:
     - short-term continuity
     - recent implementation history
     - crash/handoff recovery
+- `regex_corpus_bundle/README.md` and `regex_corpus_bundle/docs/regex_corpus_plan.md`
+  - Use for:
+    - PCRE2-first external regex hardening doctrine
+    - corpus acquisition / normalization layout
+    - the maintained difference between text-safe widening and compile-oracle measurement lanes
 
 Operational rule:
 - If a Rust task raises a question about doctrine, status, semantics, or workflow, reach for the matching repo doc instead of trying to infer everything from code alone.
@@ -120,6 +128,7 @@ Operational rule:
 - The generated parser path, stimuli/coverage closure path, semantic-steering path, and proof/gate path are deeply integrated rather than loosely bolted together.
 - The strongest quality of the Rust codebase is coherence around determinism, observability, and machine-checkable proof.
 - The main architectural risk is concentration of complexity in a few very large modules and a few repeated adapter seams.
+- The newest downstream-trust expansion for `regex` is no longer just synthetic or narrative: `regex_corpus_bundle/` now feeds a maintained compile-oracle lane through `normalize_pcre2_compile_oracle.py`, `regex_corpus_probe`, `regex_pcre2_compile_oracle_gate.sh`, and a dedicated post-parse compile-contract layer in `rust/src/regex_compile_validation.rs`.
 
 ## Snapshot Metrics
 - Rust maintained source surface inspected in this pass: about `44k` lines.

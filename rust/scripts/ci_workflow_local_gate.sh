@@ -1698,6 +1698,80 @@ audit_regex_corpus_bundle_surface() {
     '`regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening'
 }
 
+audit_regex_pcre2_compile_oracle_surface() {
+  note "auditing regex PCRE2 compile-oracle surface"
+
+  assert_tracked "regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py"
+  assert_tracked "rust/scripts/regex_pcre2_compile_oracle_gate.sh"
+  assert_tracked "rust/src/bin/regex_corpus_probe.rs"
+  assert_tracked "rust/src/regex_compile_validation.rs"
+  assert_tracked "rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'regex_pcre2_compile_oracle_gate - Normalize canonical PCRE2 compile-oracle cases from testinput2/testoutput2 and enforce tracked mismatch ceilings'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/regex_pcre2_compile_oracle_gate.sh'
+
+  assert_file_contains \
+    "regex_corpus_bundle/README.md" \
+    'scripts/normalize_pcre2_compile_oracle.py'
+  assert_file_contains \
+    "regex_corpus_bundle/README.md" \
+    'make -C rust regex_pcre2_compile_oracle_gate'
+  assert_file_contains \
+    "regex_corpus_bundle/docs/regex_corpus_plan.md" \
+    '`normalize_pcre2_compile_oracle.py`'
+  assert_file_contains \
+    "regex_corpus_bundle/docs/regex_corpus_plan.md" \
+    'make -C rust regex_pcre2_compile_oracle_gate'
+
+  assert_file_contains \
+    "rust/scripts/regex_pcre2_compile_oracle_gate.sh" \
+    'NORMALIZER="$BUNDLE_DIR/scripts/normalize_pcre2_compile_oracle.py"'
+  assert_file_contains \
+    "rust/scripts/regex_pcre2_compile_oracle_gate.sh" \
+    'BASELINE_ENV="${PGEN_REGEX_PCRE2_COMPILE_ORACLE_BASELINE_ENV:-$RUST_DIR/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env}"'
+  assert_file_contains \
+    "rust/scripts/regex_pcre2_compile_oracle_gate.sh" \
+    'expected_parse_ok_total: $expected_parse_ok_total'
+  assert_file_contains \
+    "rust/scripts/regex_pcre2_compile_oracle_gate.sh" \
+    'false_accept_total: $false_accept_total'
+  assert_file_contains \
+    "rust/src/regex_compile_validation.rs" \
+    'pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileValidationError> {'
+  assert_file_contains \
+    "rust/src/parser_registry.rs" \
+    'validate_regex_compile_contract(sample).map_err(|err| err.message)'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'validate_regex_compile_contract(input)'
+
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`make -C rust regex_pcre2_compile_oracle_gate`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'the compile-oracle gate is the first external-corpus lane that actually measures expected compile outcomes against PCRE2 source truth'
+  assert_file_contains \
+    "LIVE_ACHIEVEMENT_STATUS.md" \
+    '`make -C rust regex_pcre2_compile_oracle_gate` pairs PCRE2 `testinput2` with `testoutput2`'
+  assert_file_contains \
+    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    '`make -C rust regex_pcre2_compile_oracle_gate` consumes the new normalizer `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py`'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '`regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '`rust/src/regex_compile_validation.rs`'
+  assert_file_contains \
+    "README.md" \
+    '`make -C rust regex_pcre2_compile_oracle_gate`'
+}
+
 audit_regex_formal_exhaustive_closure_surface() {
   note "auditing regex formal exhaustive-closure surface"
 
@@ -1943,6 +2017,7 @@ main() {
   audit_family_summary_identity_surface
   audit_family_contract_proof_surface
   audit_regex_corpus_bundle_surface
+  audit_regex_pcre2_compile_oracle_surface
   audit_regex_formal_exhaustive_closure_surface
   audit_vhdl_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface

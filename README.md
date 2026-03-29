@@ -83,7 +83,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `rust/scripts/`: executable quality gates and policy runners
 - `rust/test_data/grammar_quality/`: gate contracts, corpora, deterministic case manifests
 - `rust/docs/`: Rust-specific architecture/API/test docs
-- `regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening; keeps immutable upstream snapshots separate from normalized corpus/oracle outputs
+- `regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening; keeps immutable upstream snapshots separate from normalized corpus/oracle outputs, with maintained gates `make -C rust regex_corpus_bundle_contract_gate`, `make -C rust regex_pcre2_textsafe_corpus_gate`, and `make -C rust regex_pcre2_compile_oracle_gate`
 - `tools/`: conversion/extraction and support workflows
 - `perl/`: legacy/frontend EBNF-to-JSON path (`ebnf_to_json.pl`) still used in hybrid flow
 - `docs/systemverilog/2017`, `docs/systemverilog/2023`: SV LRM conversion workspaces
@@ -123,6 +123,10 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `PGEN_EBNF_FRONTEND_IMPL=rust make -C rust SHELL=/bin/bash ebnf_frontend_readiness`
 - EBNF closed-loop quality (Rust path):
   - `PGEN_EBNF_FRONTEND_IMPL=rust PGEN_EBNF_STIMULI_QUALITY_COUNT=3 bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+- Regex external hardening lanes:
+  - `make -C rust regex_corpus_bundle_contract_gate`
+  - `make -C rust regex_pcre2_textsafe_corpus_gate`
+  - `make -C rust regex_pcre2_compile_oracle_gate`
 
 ## Documentation Status
 - Current authoritative docs for the active Rust-first platform:

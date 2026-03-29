@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Harden regex compile-oracle baseline with real parser fixes
+### Context
+The first compile-oracle lane gave us honest PCRE2 mismatch counts, but too much of that gap was still “known debt” rather than active parser hardening. The next useful slice was to use the oracle to remove obvious false accepts and easy false rejects that are part of downstream trust, not just internal completeness vanity.
+
+### Implementation
+- Added [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs).
+  - this is a lightweight post-parse compile-contract layer for generated regex parsing
+  - it currently rejects:
+    - unsupported `\i`
+    - invalid counted-quantifier bounds
+    - forbidden class escapes `[\B]`, `[\R]`, `[\X]`
+    - descending class ranges
+    - quantified anchors
+    - variable-length lookbehind
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf) so the generated parser now accepts several real PCRE2 forms the oracle flagged as false rejects:
+  - negated POSIX classes
+  - bare-name and signed conditional references
+  - `\k{name}`
+  - `{,}`
+- Wired the same validation into both [rust/src/parser_registry.rs](rust/src/parser_registry.rs) and [rust/src/embedding_api.rs](rust/src/embedding_api.rs) so local probes and downstream host integrations see the same contract behavior.
+
+### Measured Result
+- `make -C rust regex_pcre2_compile_oracle_gate`
+  - `parse_expectation_match_total: 1617 -> 1668`
+  - `parse_expectation_mismatch_total: 578 -> 527`
+  - `false_accept_total: 362 -> 325`
+  - `false_reject_total: 216 -> 202`
+
+## 2026-03-29 - Add regex PCRE2 compile-oracle lane
+### Context
+The fetched `regex_corpus_bundle/` snapshots gave us a much better downstream-trust opportunity than a simple accepted-pattern count. PCRE2 `testdata/testinput2` and `testdata/testoutput2` already encode compile truth, so the next serious regex hardening step was to normalize that pair into a maintained oracle surface instead of continuing to treat all upstream patterns as undifferentiated syntax fodder.
+
+### Implementation
+- Added [regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py](regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py):
+  - parses `testinput2` and `testoutput2` in lockstep
+  - carries forward UTF-8/suffix filtering discipline
+  - emits canonical JSONL with expected compile outcomes and compile-error metadata
+- Extended [rust/src/bin/regex_corpus_probe.rs](rust/src/bin/regex_corpus_probe.rs):
+  - the probe now supports oracle-aware accounting rather than only raw pass/fail totals
+  - it records expectation matches/mismatches and false-accept / false-reject counts
+  - it now emits mismatch rows when the parser accepts a case PCRE2 rejects
+- Added [rust/scripts/regex_pcre2_compile_oracle_gate.sh](rust/scripts/regex_pcre2_compile_oracle_gate.sh) plus baseline policy [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env).
+- Updated the regex bundle docs and the repo-level roadmap/status/analysis docs so the split is explicit:
+  - `regex_pcre2_textsafe_corpus_gate`
+    - accepted-syntax widening lane
+    - not a correctness oracle
+  - `regex_pcre2_compile_oracle_gate`
+    - compile-truth comparison lane
+    - primary downstream-trust widening surface for regex
+
+### Current Measured Baseline
+- Normalized compile-oracle cases:
+  - `2195`
+- Expected compile outcomes:
+  - `ok=1613`
+  - `fail=582`
+- Current generated-parser comparison:
+  - `parse_expectation_match_total=1617`
+  - `parse_expectation_mismatch_total=578`
+  - `false_accept_total=362`
+  - `false_reject_total=216`
+
 ## 2026-03-29 - Correct regex corpus bundle to current PCRE2 release tag
 ### Context
 The first tracked corpus-bundle lockfile used `PCRE2-10.46` as both the tag and destination naming convention. That looked plausible, but the actual GitHub release tag is lowercase and the user explicitly asked to move to the latest release, `pcre2-10.47`. Until corrected, the fetcher failed immediately with a 404 and could not produce any upstream snapshots or inventories.
