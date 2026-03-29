@@ -13,6 +13,14 @@ Issue-reporting protocol for any integrated parser:
 - Every current and future parser family that PGEN publishes for downstream consumption must have a tracked integration-contract document.
 - If a parser family does not yet have a stable downstream host API, its family document must say that explicitly instead of implying readiness.
 - A parser family should not claim painless downstream integration unless its family document, its stable API surface, and at least one executable gate agree.
+- If a parser family is actively published for downstream consumption, its family document must publish:
+  - a contract version
+  - a parser release version
+  - a last-updated stamp
+- Parser release versions are not just git provenance aliases:
+  - downstream bug reports should cite them
+  - fixes should land in them
+  - contract-changing or capability-widening releases should bump them intentionally
 
 ## Current Family Documents
 
@@ -21,7 +29,7 @@ Issue-reporting protocol for any integrated parser:
 | `systemverilog` | `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Nexsim-facing host profile contract. |
 | `systemverilog_preprocessor` | `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` | `rust/src/sv_preprocessor.rs` runtime stage | Explicitly documents that a generic public embedding API is not published yet. |
 | `vhdl` | `PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Nexsim-facing host profile contract. |
-| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers. |
+| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.0`. |
 | `return_annotation` | `PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` annotation parse API | Family-specific contract layered on top of the aggregate annotation proof spine. |
 | `semantic_annotation` | `PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` annotation parse API | Family-specific contract layered on top of the aggregate annotation proof spine. |
 
@@ -35,9 +43,6 @@ Issue-reporting protocol for any integrated parser:
 - `Scope / Non-Goals`
 
 Recommended additions when a family is actively consumed by another project:
-- contract version
-- parser release version
-- last updated stamp
 - a downstream-specific checklist
 - representative pass/fail examples
 - explicit startup checks

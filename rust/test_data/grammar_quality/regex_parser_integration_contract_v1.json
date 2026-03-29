@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.0.0",
-  "parser_release_version": "1.0.0",
+  "integration_contract_version": "1.1.0",
+  "parser_release_version": "1.1.0",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -34,6 +34,22 @@
       "input": "https?://[^\\s]+"
     },
     {
+      "name": "negated_posix_class",
+      "input": "[[:^alnum:]]+"
+    },
+    {
+      "name": "braced_named_backreference",
+      "input": "(?<A>foo)-\\k{A}"
+    },
+    {
+      "name": "named_conditional",
+      "input": "(?<A>a)?(?(A)b|c)"
+    },
+    {
+      "name": "left_open_counted_quantifier",
+      "input": "a{,4}"
+    },
+    {
       "name": "javascript_embedded_code_block",
       "input": "(?{javascript:return x + 1;})"
     }
@@ -46,6 +62,30 @@
     {
       "name": "unclosed_char_class",
       "input": "[a-"
+    },
+    {
+      "name": "invalid_counted_quantifier_bounds",
+      "input": "x{5,4}"
+    },
+    {
+      "name": "invalid_char_class_escape",
+      "input": "[\\B]"
+    },
+    {
+      "name": "descending_char_class_range",
+      "input": "[z-a]"
+    },
+    {
+      "name": "quantified_anchor",
+      "input": "^+"
+    },
+    {
+      "name": "variable_length_lookbehind",
+      "input": "(?<=a+)b"
+    },
+    {
+      "name": "unsupported_escape_i",
+      "input": "ab\\idef"
     }
   ]
 }

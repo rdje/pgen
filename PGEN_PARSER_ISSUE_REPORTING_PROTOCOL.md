@@ -12,10 +12,14 @@ GitHub is optional. The required property is that both the report bundle and the
 
 ## What A Good Report Must Contain
 
+Version fields should be copied from the family's published handoff surface or stable metadata API, not guessed from memory or inferred from an old checkout note.
+
 ### 1. Parser Identity
 - PGEN commit ID or released crate version.
 - Parser release version, if the family publishes one.
+  - for regex, copy `parser_embedding_api_contract().regex_parser_release_version`
 - Integration contract version, if the family publishes one.
+  - for regex, copy `parser_embedding_api_contract().regex_integration_contract_version`
 - Parser family:
   - `systemverilog`
   - `vhdl`
@@ -199,4 +203,4 @@ It becomes high-quality and fast-to-fix if it also contains:
 - A fix should not be treated as complete until the ledger row records:
   - the root cause
   - the validating regression/gate proof
-  - and the commit or parser release carrying the fix
+  - and the parser release carrying the fix, plus the commit when useful

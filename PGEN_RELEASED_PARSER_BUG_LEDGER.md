@@ -61,7 +61,8 @@ GitHub is optional. This ledger should be the canonical parser-side tracker insi
 ## Closure Rule
 Each `Released` row should point at:
 - the reproducer artifact bundle
-- the commit and/or parser release version containing the fix
+- the parser release version containing the fix
+- and the commit containing the fix when that extra provenance helps downstream consumers map local adoption timing
 - the regression test or gate proving the bug stays closed
 
 ## Live Ledger

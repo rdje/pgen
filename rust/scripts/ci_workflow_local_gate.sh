@@ -220,10 +220,10 @@ audit_embedding_api_surface() {
     'pub const EMBEDDING_API_VERSION: &str = "1.2.0";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.0.0";'
+    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.0";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.0.0";'
+    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.0";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
@@ -358,6 +358,15 @@ audit_embedding_api_surface() {
     '`(?<name>[a-z]+)`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
+    '`[[:^alnum:]]+`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`(?<A>foo)-\\k{A}`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    '`a{,4}`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
     '`(?{lua: return x + 1})`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
@@ -380,10 +389,13 @@ audit_embedding_api_surface() {
     'Every current and future parser family that PGEN publishes for downstream consumption must have a tracked integration-contract document.'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    'its family document must publish:'
+  assert_file_contains \
+    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '- `Contract Identity`'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers. |'
+    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.0`. |'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
@@ -398,10 +410,10 @@ audit_embedding_api_surface() {
     'The parser family/profile is the primary tracking axis for released-parser support.'
   assert_file_contains \
     "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
-    '- Parser release version, if the family publishes one.'
+    'for regex, copy `parser_embedding_api_contract().regex_parser_release_version`'
   assert_file_contains \
     "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
-    '- Integration contract version, if the family publishes one.'
+    'for regex, copy `parser_embedding_api_contract().regex_integration_contract_version`'
   assert_file_contains \
     "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     'Every downstream bug report against a released parser family must receive a stable report ID.'
@@ -414,6 +426,9 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     'The primary index for this ledger is `Parser Family/Profile`.'
+  assert_file_contains \
+    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    'the parser release version containing the fix'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'This is the document downstream projects such as RGX should read first when deciding how to embed the PGEN regex parser.'
@@ -443,7 +458,16 @@ audit_embedding_api_surface() {
     'Published Regex Flavor Summary'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '## Release 1.1.0 Highlights'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'raw regex bodies, not host-language delimiter wrappers'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'braced named backreferences such as `\k{name}`'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'negated POSIX classes such as `[[:^alnum:]]`'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'plain `(?{...})` is preserved as opaque generic payload'
@@ -453,6 +477,9 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'make -C rust regex_embedded_code_block_contract_gate'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'make -C rust regex_pcre2_compile_oracle_gate'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'

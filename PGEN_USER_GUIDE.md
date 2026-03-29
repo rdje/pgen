@@ -3685,9 +3685,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.0.0`
+  - `1.1.0`
 - integration contract version:
-  - `1.0.0`
+  - `1.1.0`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3752,7 +3752,7 @@ Accepted syntax families in the current published flavor:
   - `*`
   - `+`
   - `?`
-  - counted forms such as `{3}`, `{2,}`, `{2,4}`
+  - counted forms such as `{3}`, `{2,}`, `{2,4}`, `{,4}`, and `{,}`
   - lazy suffix `?`
   - possessive suffix `+`
 - escapes:
@@ -3764,7 +3764,7 @@ Accepted syntax families in the current published flavor:
   - Unicode property escapes `\p{...}` and `\P{...}`
 - backreferences:
   - numeric forms such as `\1`
-  - named forms such as `\k<name>` and `\k'name'`
+  - named forms such as `\k<name>`, `\k'name'`, and `\k{name}`
 - character classes:
   - simple classes such as `[abc]`
   - negated classes such as `[^abc]`
@@ -3772,6 +3772,7 @@ Accepted syntax families in the current published flavor:
   - mixed ranges such as `[a-zA-Z0-9]`
   - class escapes
   - POSIX classes such as `[[:digit:]]`
+  - negated POSIX classes such as `[[:^alnum:]]`
 - groups:
   - capturing groups `(abc)`
   - noncapturing groups `(?:abc)`
@@ -3785,7 +3786,7 @@ Accepted syntax families in the current published flavor:
 - inline modifier forms
 - scoped inline modifier forms
 - conditional forms:
-  - condition may be a lookaround, a named reference, or digits
+  - condition may be a lookaround, a bare name, an explicit name reference, digits, signed digits, or a recursion condition
 - embedded code-block forms:
   - plain `(?{...})`
   - language-tagged `(?{lua: ...})`
@@ -3800,6 +3801,10 @@ Representative accepted examples:
 - `\\bword\\b`
 - `(foo|bar)+`
 - `(?<name>[a-z]+)`
+- `[[:^alnum:]]+`
+- `(?<A>foo)-\\k{A}`
+- `(?<A>a)?(?(A)b|c)`
+- `a{,4}`
 - `(?>ab|cd)`
 - `(?=abc)abc`
 - `(?{lua: return x + 1})`
@@ -3838,6 +3843,14 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
+- the generated regex host path now also applies a compile-style validation layer after parse success, so several obvious compile-invalid forms are rejected deterministically instead of surfacing as false accepts:
+  - unsupported `\i`
+  - counted-quantifier inversions such as `{5,4}`
+  - counted-quantifier bounds above `65535`
+  - forbidden character-class escapes such as `[\B]`, `[\R]`, `[\X]`
+  - descending character-class ranges such as `[z-a]`
+  - quantified anchors such as `^+`
+  - variable-length lookbehind such as `(?<=a+)b`
 
 Current non-promises and boundaries:
 - this is not a blanket claim of compatibility with every PCRE, PCRE2, RE2, Oniguruma, JavaScript, .NET, or Rust-regex dialect feature
@@ -3898,6 +3911,9 @@ Important interpretation:
   - `parse_expectation_mismatch_total=527`
   - `false_accept_total=325`
   - `false_reject_total=202`
+- the current downstream regex release aligned with that hardening slice is:
+  - parser release version `1.1.0`
+  - integration contract version `1.1.0`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

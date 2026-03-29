@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-29 - Roll regex downstream handoff to release 1.1.0
+### ✅ Achievement Summary
+The RGX-facing regex handoff surface now matches the hardened parser instead of the older `1.0.0` release identity. The published regex contract, shared reporting docs, exported metadata, and contract manifest all now agree on regex release `1.1.0`.
+
+### Scope of Changes
+- Updated [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+  - bumped contract version to `1.1.0`
+  - bumped parser release version to `1.1.0`
+  - documented the new published syntax coverage:
+    - negated POSIX classes
+    - braced named backreferences
+    - wider conditional references
+    - left-open counted quantifiers
+  - documented the generated-host compile-contract rejection layer
+  - added the maintained external hardening baseline and compile-oracle gate to the release story
+- Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
+  - regex flavor section now reflects release `1.1.0`
+  - added the newly accepted syntax examples and compile-contract rejection examples
+- Updated the shared handoff/support docs:
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - they now treat parser release versions as first-class downstream support data rather than optional narrative garnish
+- Updated exported metadata and contract fixtures:
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+
+### Validation
+- `make -C rust regex_parser_integration_contract_gate`
+- `make -C rust embedding_api_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
 ## 2026-03-29 - Harden regex compile-oracle baseline
 ### ✅ Achievement Summary
 PGEN's regex compile-oracle lane now closes a real chunk of downstream-trust debt instead of only measuring it. The generated regex host path now rejects a class of obvious compile-invalid patterns after parse success, and the grammar now accepts several real PCRE2 forms it previously missed.

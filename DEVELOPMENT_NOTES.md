@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Roll regex downstream contract and release version to 1.1.0
+### Context
+The regex parser just picked up a real hardening slice driven by the PCRE2 compile-oracle lane, but the RGX-facing handoff surface was still publishing `1.0.0`. That mismatch would have made downstream adoption and bug reporting fuzzier than it needed to be.
+
+### Implementation
+- Updated [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+  - contract version `1.0.0 -> 1.1.0`
+  - parser release version `1.0.0 -> 1.1.0`
+  - added explicit `1.1.0` release highlights tied to the recent regex hardening slice
+  - expanded the published flavor summary so RGX sees the newly supported syntax and the generated-host compile-contract rejection layer in one place
+- Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) so the regex flavor section matches the new release identity and the currently published feature set.
+- Updated the shared parser handoff/support docs so parser release versions are treated as mandatory first-class downstream data for published families:
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+- Updated exported metadata and fixtures:
+  - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.1.0"`
+  - `REGEX_PARSER_RELEASE_VERSION = "1.1.0"`
+  - refreshed regex integration manifest success/failure corpus in [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+
+### Why This Matters
+- RGX can now record a concrete parser release version that actually corresponds to the hardened parser behavior it will consume.
+- Future downstream bug reports can cite exact release/contract values straight from `parser_embedding_api_contract()` instead of relying on stale docs or commit memory.
+
 ## 2026-03-29 - Harden regex compile-oracle baseline with real parser fixes
 ### Context
 The first compile-oracle lane gave us honest PCRE2 mismatch counts, but too much of that gap was still “known debt” rather than active parser hardening. The next useful slice was to use the oracle to remove obvious false accepts and easy false rejects that are part of downstream trust, not just internal completeness vanity.

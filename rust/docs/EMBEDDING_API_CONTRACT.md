@@ -154,6 +154,7 @@ Grammar parser API:
   - regex parser release version
   - regex integration contract version
   - regex generated-backend requirements
+- Downstream bug reports should copy those exact version values from `parser_embedding_api_contract()` rather than inferring them from stale docs or memory.
 - Input is accepted as `&str` and consumed without ownership transfer (zero-copy call boundary).
 - Session model is intentionally stateless per-call for deterministic embedding behavior:
   - one input payload per call,

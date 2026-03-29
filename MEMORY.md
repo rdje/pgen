@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: regex-pcre2-compile-oracle-hardening)
+Last updated: 2026-03-29 (+0100, task: regex-rgx-handoff-release-1-1-0)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Updated the RGX-facing regex handoff surface to release `1.1.0`.
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - contract version `1.1.0`
+    - parser release version `1.1.0`
+    - explicit `1.1.0` release-highlights section
+    - expanded published flavor summary for:
+      - negated POSIX classes
+      - braced named backreferences
+      - wider conditional references
+      - left-open counted quantifiers
+      - generated-host compile-contract rejection layer
+    - external hardening baseline now included directly in the downstream contract
+- Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md).
+  - regex flavor section now matches regex release `1.1.0`
+  - new representative accepted examples include:
+    - `[[:^alnum:]]+`
+    - `(?<A>foo)-\\k{A}`
+    - `(?<A>a)?(?(A)b|c)`
+    - `a{,4}`
+  - generated-host compile-contract rejection examples are now documented too
+- Updated the shared parser handoff/support docs:
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - release versions are now treated as first-class downstream support data for published parser families
+- Updated exported regex metadata in [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.1.0"`
+  - `REGEX_PARSER_RELEASE_VERSION = "1.1.0"`
+- Refreshed [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json).
+  - expanded declared success samples to cover newly published syntax
+  - expanded declared failure samples to cover newly published compile-contract rejections
+- [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now locks the `1.1.0` regex handoff/version surface and the expanded User Guide / contract content.
 - Added [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs).
   - role:
     - applies a lightweight compile-contract layer after generated regex parse success
