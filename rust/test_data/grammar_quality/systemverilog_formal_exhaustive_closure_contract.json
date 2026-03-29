@@ -1,0 +1,7 @@
+{
+  "family": "systemverilog",
+  "version": 1,
+  "done_rule": "Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.",
+  "required_surface_key": "external_corpus_backed_proof_surface",
+  "required_surface_missing_detail": "SystemVerilog still lacks an explicit checked-in external corpus-backed proof surface sidecar that can promote the current bounded family evidence into a formal exhaustive closure claim."
+}

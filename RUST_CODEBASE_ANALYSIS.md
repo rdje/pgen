@@ -937,6 +937,12 @@ Start here:
 - `rust/src/parser_registry.rs`
 - `rust/src/embedding_api.rs`
 
+For SystemVerilog external-corpus proof normalization, narrow quickly to:
+- `rust/scripts/sv_external_corpus_triage_gate.sh`
+- `sv_formal_exhaustive_closure_gate` when the task is SystemVerilog external-corpus proof normalization
+- `rust/scripts/sv_formal_exhaustive_closure_gate.sh` when the task is SystemVerilog external-corpus proof normalization
+- `rust/scripts/sv_parser_family_status_gate.sh`
+
 For annotation-specific proof plumbing, narrow quickly to:
 - `annotation_contract_gate`
 - `semantic_full_contract_gate`

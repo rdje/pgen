@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-03-30 - Add SystemVerilog formal exhaustive-closure sidecar
+### ✅ Achievement Summary
+SystemVerilog now has an explicit formal exhaustive-closure proof surface, similar in shape to the existing regex and VHDL lanes. This does not promote the `systemverilog` row yet; it makes the presence of the checked-in external-corpus-backed proof surface machine-checkable and keeps that proof-plumbing concern separate from the remaining parser-debt blockers.
+
+### Scope of Changes
+- Added [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh):
+  - computes a dedicated `systemverilog` formal-closure sidecar from:
+    - `sv_parser_family_status_gate`
+    - `sv_external_corpus_triage_gate`
+  - supports reuse of existing sidecars through:
+    - `PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_STATUS_STATE_DIR`
+    - `PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR`
+- Added [rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json):
+  - `required_surface_key = external_corpus_backed_proof_surface`
+  - records the current “missing sidecar vs present sidecar” closure rule for `systemverilog`
+- Updated [rust/Makefile](rust/Makefile):
+  - added `sv_formal_exhaustive_closure_gate` help/entrypoint
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - added tracked-surface auditing for the new SV formal-closure gate and its docs
+- Updated operator/docs surface:
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+- Updated continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `bash -n rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+- `env PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR=rust/target/sv_external_corpus_triage_gate bash rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+  - retained summary:
+    - `systemverilog_formal_exhaustive_closure_surface_green=true`
+    - `systemverilog_family_status=Mostly Done`
+    - `systemverilog_family_status_primary_unmet_closure_criterion=syntax_closure_gate_status=fail failure_count=2`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+
 ## 2026-03-30 - Capture VHDL replay-target triage baseline and rejected directions
 ### ✅ Achievement Summary
 The retained VHDL state is unchanged, but the continuity surface is now more precise. The canonical VHDL replay-target blocker set is explicitly recorded, and two plausible-but-wrong closure directions are now documented as rejected so future sessions do not burn time rediscovering them.

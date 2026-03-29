@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog formal closure: add explicit proof sidecar without reopening grammar work
+### Context
+After revalidating the retained VHDL baseline, the next clean roadmap slice was not another speculative `.ebnf` tweak. SystemVerilog already had:
+- `sv_parser_family_status_gate`
+- `sv_external_corpus_triage_gate`
+
+But it did not yet have the explicit “formal exhaustive closure surface present or missing” sidecar that regex and VHDL already expose.
+
+### Implementation
+- Added [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh):
+  - builds a formal-closure summary for `systemverilog` from:
+    - the existing family-status sidecar
+    - the existing external-corpus triage sidecar
+  - does not claim that external-corpus parse debt is solved
+  - only makes the proof-surface presence itself explicit and machine-checkable
+- Added [rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json)
+- Added the corresponding Makefile/help entry and local-CI audit coverage
+- Updated operator and continuity docs so future sessions can discover the new gate quickly instead of rediscovering the missing proof-normalization gap
+
+### Validation
+- `bash -n rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+- reuse-backed validation:
+  - `env PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR=rust/target/sv_external_corpus_triage_gate bash rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+  - measured:
+    - `systemverilog_formal_exhaustive_closure_surface_green=true`
+    - `systemverilog_family_status=Mostly Done`
+    - current reused external-corpus sidecar snapshot:
+      - `cases_declared=7`
+      - `cases_executed=2`
+      - `parse_pass_total=0`
+      - `parse_fail_total=2`
+      - `primary_parse_failure_case=uvm_pkg`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
 ## 2026-03-30 - VHDL replay-target triage: restore clean baseline and reject two unsafe directions
 ### Context
 After the retained VHDL body-end tightening, the family proof stack was on a clean `9/10` closure baseline with only one remaining blocker:

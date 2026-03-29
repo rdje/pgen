@@ -3520,6 +3520,13 @@ Why `rtl_frontend` exists:
     - `systemverilog`: remains `Mostly Done`
     - `systemverilog_preprocessor`: remains `Mostly Done`
     - `vhdl`: remains `In Progress`
+- 2026-03-30: `sv_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog external-corpus proof surface explicit.
+  - command:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_formal_exhaustive_closure_gate`
+  - effect:
+    - this is proof normalization, not a grammar or parser-quality promotion
+    - the new sidecar reuses the existing `sv_parser_family_status_gate` plus `sv_external_corpus_triage_gate` evidence and turns the external-corpus-backed formal-closure surface into a first-class machine-checkable artifact
+    - the main `systemverilog` row still remains `Mostly Done`; the active blockers are still parser-debt items, not absence of an explicit external-corpus proof sidecar
 - 2026-03-19: The refreshed live VHDL external-corpus triage gate is now fully green (`8/8` parse-pass).
   - command:
     - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`

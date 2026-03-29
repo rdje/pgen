@@ -2424,6 +2424,11 @@ SV syntax-closure burn-down no-regression command:
 make -C rust SHELL=/bin/bash sv_syntax_closure_gate
 ```
 
+SV formal exhaustive-closure surface command:
+```bash
+make -C rust SHELL=/bin/bash sv_formal_exhaustive_closure_gate
+```
+
 Stimuli-module parity command:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate

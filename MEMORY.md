@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: vhdl-replay-target-triage)
+Last updated: 2026-03-30 (+0200, task: sv-formal-closure-sidecar)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added a new explicit SystemVerilog formal exhaustive-closure sidecar:
+  - [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh)
+  - [rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json)
+- Purpose of this slice:
+  - make the checked-in external-corpus-backed proof surface for `systemverilog` explicit and machine-checkable
+  - do this without reopening risky `.ebnf` work
+- Reuse-backed validation passed:
+  - `bash -n rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+  - `env PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR=rust/target/sv_external_corpus_triage_gate bash rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+    - `systemverilog_formal_exhaustive_closure_surface_green=true`
+    - `systemverilog_family_status=Mostly Done`
+    - `systemverilog_family_status_primary_unmet_closure_criterion=syntax_closure_gate_status=fail failure_count=2`
+    - reused external-corpus sidecar snapshot:
+      - `cases_declared=7`
+      - `cases_executed=2`
+      - `parse_pass_total=0`
+      - `parse_fail_total=2`
+      - `primary_parse_failure_case=uvm_pkg`
+- Local CI lock passed:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- Future-session steering from this slice:
+  - `systemverilog` now has an explicit formal-closure proof sidecar, like regex and VHDL
+  - this does **not** promote the live `systemverilog` row by itself
+  - the next SystemVerilog push should stay on parser-debt reduction or broader proof normalization, not rediscover “do we have an explicit external-corpus proof sidecar?”
+
 - Restored the clean retained VHDL baseline after rejecting two plausible-but-wrong closure directions.
 - Revalidated:
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`

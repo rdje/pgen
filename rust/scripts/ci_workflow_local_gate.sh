@@ -1596,6 +1596,7 @@ audit_family_summary_identity_surface() {
   for repo_file in \
     rust/scripts/sv_parser_aggregate_contract_gate.sh \
     rust/scripts/sv_preprocessor_aggregate_contract_gate.sh \
+    rust/scripts/sv_formal_exhaustive_closure_gate.sh \
     rust/scripts/regex_parser_family_contract_gate.sh \
     rust/scripts/regex_broader_corpus_proof_gate.sh \
     rust/scripts/regex_formal_exhaustive_closure_gate.sh \
@@ -1953,6 +1954,63 @@ audit_vhdl_formal_exhaustive_closure_surface() {
     'external_corpus_backed_proof_summary_json'
 }
 
+audit_sv_formal_exhaustive_closure_surface() {
+  note "auditing SV formal exhaustive-closure surface"
+
+  assert_tracked "rust/scripts/sv_formal_exhaustive_closure_gate.sh"
+  assert_tracked "rust/scripts/sv_external_corpus_triage_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'sv_formal_exhaustive_closure_gate - Compute the explicit SV exhaustive-closure proof surface status from family-status and external-corpus sidecars'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/sv_formal_exhaustive_closure_gate.sh'
+
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json" \
+    '"required_surface_key": "external_corpus_backed_proof_surface"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json" \
+    '"required_surface_missing_detail": "SystemVerilog still lacks an explicit checked-in external corpus-backed proof surface sidecar'
+
+  assert_file_contains \
+    "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \
+    'SV_EXTERNAL_CORPUS_TRIAGE_GATE="$RUST_DIR/scripts/sv_external_corpus_triage_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \
+    'SV_FAMILY_STATUS_GATE="$RUST_DIR/scripts/sv_parser_family_status_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \
+    'run_logged "sv_external_corpus_triage_gate"'
+  assert_file_contains \
+    "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \
+    'EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR="${PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR:-}"'
+  assert_file_contains \
+    "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \
+    'systemverilog_external_corpus_backed_proof_parse_fail_total'
+  assert_file_contains \
+    "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \
+    'systemverilog_formal_exhaustive_closure_surface_green'
+  assert_file_contains \
+    "rust/scripts/sv_formal_exhaustive_closure_gate.sh" \
+    'systemverilog_external_corpus_backed_proof_summary_json'
+
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'make -C rust SHELL=/bin/bash sv_formal_exhaustive_closure_gate'
+  assert_file_contains \
+    "LIVE_ACHIEVEMENT_STATUS.md" \
+    '`make -C rust SHELL=/opt/homebrew/bin/bash sv_formal_exhaustive_closure_gate` now computes an explicit external-corpus-backed formal-closure sidecar'
+  assert_file_contains \
+    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    '`sv_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog external-corpus proof surface explicit'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '`sv_formal_exhaustive_closure_gate` when the task is SystemVerilog external-corpus proof normalization'
+}
+
 audit_sv_aggregate_contract_proof_surface() {
   note "auditing SV aggregate-contract proof-surface emission surface"
 
@@ -2076,6 +2134,7 @@ main() {
   audit_regex_corpus_bundle_surface
   audit_regex_pcre2_compile_oracle_surface
   audit_regex_formal_exhaustive_closure_surface
+  audit_sv_formal_exhaustive_closure_surface
   audit_vhdl_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface
   audit_summary_json_emission_surface
