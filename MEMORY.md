@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-29 (+0100, task: vhdl-shared-quality-slice)
+Last updated: 2026-03-29 (+0100, task: regex-future-syntax-deferral)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,28 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Fresh PCRE2 syntax check completed as a planning-only pass; no code or grammar changes were made from it.
+- Verified current official PCRE2 release/docs and recorded the result in roadmap/analysis docs:
+  - real future regex widening targets exist:
+    - returned-capture subroutine forms:
+      - `(?R(grouplist))`
+      - `(?n(grouplist))`
+      - `(?+n(grouplist))`
+      - `(?-n(grouplist))`
+      - `(?&name(grouplist))`
+      - `(?P>name(grouplist))`
+    - conditional forms:
+      - `(?(R&name)...)`
+      - `(?(VERSION[...])...)`
+  - local cross-check also showed the gap is narrower than it first looked:
+    - plain subroutine calls are already represented more broadly in [grammars/regex.ebnf](grammars/regex.ebnf)
+    - the likely real future gap is the returned-capture `grouplist` variants plus the extra conditional forms above
+    - extended character classes `(?[...])` are already present
+- Operational decision recorded for future sessions:
+  - do **not** widen `regex.ebnf` for those PCRE2 additions yet
+  - keep current work focused on `vhdl`, `systemverilog`, and the other live closure tracks
+  - treat those regex additions as deliberate future contract widening after the active parser-family closure work is materially complete
+
 - Active parser-family closure work returned to `vhdl`.
 - Retained only the shared parser+stimuli-safe VHDL slice; explicitly did **not** keep a broader parser-only `wait until` grammar experiment because it worsened replay-shadow parser debt.
 - Current retained VHDL changes:

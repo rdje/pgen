@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-29 - Record deferred regex syntax widening from fresh PCRE2 check
+### Context
+After the recent regex downstream handoff work, a fresh PCRE2-version check was requested specifically to see whether the latest official syntax implied urgent regex grammar changes in PGEN.
+
+The key outcome is a prioritization one, not an implementation one:
+- yes, there are current-PCRE2 syntax areas PGEN does not yet publish
+- no, they should not displace the active `vhdl` / `systemverilog` closure work right now
+
+### Findings
+- Official current PCRE2 sources confirmed real future regex widening targets:
+  - returned-capture subroutine forms:
+    - `(?R(grouplist))`
+    - `(?n(grouplist))`
+    - `(?+n(grouplist))`
+    - `(?-n(grouplist))`
+    - `(?&name(grouplist))`
+    - `(?P>name(grouplist))`
+  - additional conditionals:
+    - `(?(R&name)...)`
+    - `(?(VERSION[...])...)`
+- Local PGEN cross-check showed a narrower actual gap than the first impression:
+  - plain subroutine-call forms are already represented more broadly in [grammars/regex.ebnf](grammars/regex.ebnf)
+  - the likely real parser-side gap is the returned-capture `grouplist` variants plus the extra conditional forms above
+  - Perl extended character classes `(?[...])` are already present
+
+### Decision
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) so future sessions do not misprioritize this:
+  - these regex syntax additions are future work
+  - they are explicitly deferred until the active closure work for `vhdl`, `systemverilog`, and the other live parser families is materially complete
+  - they should be treated as deliberate future regex contract widening, not as urgent current blockers
+
+### Why This Matters
+- PGEN now has a recorded answer to “should we widen `regex.ebnf` right now?”:
+  - not yet
+  - keep the current regex release stable
+  - return to these PCRE2 syntax additions later, intentionally
+
 ## 2026-03-29 - Retain the parser+stimuli-safe VHDL closure slice
 ### Context
 The active VHDL closure work had two competing pressures:

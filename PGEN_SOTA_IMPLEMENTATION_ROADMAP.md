@@ -31,6 +31,19 @@ Execution preference for this roadmap:
   - published `native` / `wasm` tag support
   - stronger semantic AST stability beyond the current shape/schema guarantee
   - host-language wrapper parsing such as `/pattern/flags`
+- a fresh PCRE2 latest-syntax check also identified real future regex widening targets:
+  - returned-capture subroutine forms such as:
+    - `(?R(grouplist))`
+    - `(?n(grouplist))`
+    - `(?+n(grouplist))`
+    - `(?-n(grouplist))`
+    - `(?&name(grouplist))`
+    - `(?P>name(grouplist))`
+  - additional conditional forms:
+    - `(?(R&name)...)`
+    - `(?(VERSION[...])...)`
+  - these are intentionally deferred until the active closure work for `systemverilog`, `vhdl`, and the other live parser families is materially complete
+  - do not reopen the closed `regex` family row for these syntax-widening targets until the project deliberately chooses to widen the published regex contract
 - external-corpus grammar debugging should prefer systematic keyword-vs-identifier discrimination and precise branch-shape fixes over corpus-specific hacks, even when the first landed step is a narrow surgical patch.
 - if repeated keyword-vs-identifier debt keeps surfacing in a family such as SystemVerilog, promote that into one shared systematic grammar/annotation mechanism instead of accumulating ad hoc local exclusions indefinitely.
 - if repeated parser ambiguity depends on names, declaration categories, or earlier matched constructs, prefer annotation-driven semantic steering over repeated local branch reorderings.

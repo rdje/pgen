@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-29 - Defer new PCRE2 regex syntax widening behind active family-closure work
+### ✅ Achievement Summary
+The roadmap now explicitly records that the newly identified current-PCRE2 regex syntax gaps are future contract-widening work, not urgent closure work. `regex` remains a closed no-regression baseline while `vhdl`, `systemverilog`, and the other active families keep priority.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - recorded the newly identified future regex widening targets:
+    - returned-capture subroutine forms such as `(?R(grouplist))`, `(?n(grouplist))`, `(?+n(grouplist))`, `(?-n(grouplist))`, `(?&name(grouplist))`, and `(?P>name(grouplist))`
+    - conditional forms `(?(R&name)...)` and `(?(VERSION[...])...)`
+  - explicitly deferred those additions until the active `systemverilog` / `vhdl` closure work is materially complete
+  - explicitly states that these should not reopen the closed `regex` family row by default
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - the session-start steering section now mirrors the same priority rule so future sessions do not incorrectly jump from an external PCRE2 syntax check into premature regex grammar widening
+- Updated continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- verified current official PCRE2 release/docs against the local regex grammar and downstream docs
+- `git diff --check`
+
 ## 2026-03-29 - Tighten VHDL shared grammar/stimuli quality slice without regressing parser-family proof
 ### ✅ Achievement Summary
 The retained VHDL closure slice now reflects the shared parser+stimuli-safe changes only. Parser-backed generation rejections on the canonical VHDL family-quality surface are now down to zero, realistic-corpus parity improved from `8/6` to `13/1`, and the external-corpus-backed formal-closure lane widened from `1/1` to `8/8` pass. The family still stays `In Progress` because replay-shadow parser debt and replay target debt remain real.
