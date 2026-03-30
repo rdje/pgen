@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog preprocessor parseability: refine retained tail hint to whitespace-only
+### Context
+The first retained stimuli-only fix on `directive_tail` used `@sample: " tail"` and reduced the focused rejection surface from `10` to `6`. The remaining counterexamples were still all baseline-generation artifacts clustered around directive-leading lines, so the next safe refinement was to keep the parser-neutral hint but make it whitespace-only.
+
+### Implementation
+- Updated [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
+  - changed `directive_tail` from `@sample: " tail"` to `@sample: " "`
+  - left `directive_tail := inline_trivia /[^\r\n]+/` unchanged
+- Why this retained shape is better:
+  - parser acceptance still stays broad
+  - baseline generation is less likely to strand fake same-line directive-looking text in tails
+  - the focused quality and aggregate seams both improved again without reopening parser-surface risk
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - retained quality result:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `stage0_target_count=22`
+    - `final_targets=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - retained aggregate result:
+    - `parseability_counterexamples_captured_total=5`
+    - `counterexample_primary_shrunk_sample=/*\``
+    - `counterexample_primary_shrunk_sample_count=3`
+
 ## 2026-03-30 - SystemVerilog preprocessor parseability: keep stimuli-only tail steering, reject parser narrowing
 ### Context
 The retained `systemverilog_preprocessor` blocker is parser-rejection debt, but the first obvious grammar experiment was not safe as a shared parser+stimuli change. Narrowing `directive_tail` to exclude backticks caused the focused quality gate to worsen materially (`19` parser rejections), because same-line directive-looking tails became hard parse failures instead of remaining accepted tail text.

@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-30 - Reduce SV-preprocessor parseability debt further with whitespace-only tail hint
+### ✅ Achievement Summary
+The retained SystemVerilog-preprocessor stimuli-only tail steering is now narrower and better. `directive_tail` now samples as whitespace-only instead of `" tail"`, which drops the focused preprocessor rejection surface from `6` to `5` without narrowing the parser grammar.
+
+### Scope of Changes
+- Updated [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
+  - changed `directive_tail` sample hint from `@sample: " tail"` to `@sample: " "`
+  - kept the parser regex itself unchanged
+- Updated live continuity/status docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - fresh retained quality snapshot:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `final_targets=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - fresh retained aggregate snapshot:
+    - `parseability_parser_rejections_total=5`
+    - `parseability_counterexamples_captured_total=5`
+    - `counterexample_primary_shrunk_sample=/*\``
+    - `counterexample_primary_shrunk_sample_count=3`
+    - `stage0_target_count=22`
+    - `final_targets=0`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+
 ## 2026-03-30 - Reduce SV-preprocessor parseability debt with stimuli-only tail hint
 ### ✅ Achievement Summary
 The retained SystemVerilog-preprocessor improvement is now a stimuli-only semantic hint rather than a shared parser grammar narrowing. This keeps parser acceptance broad while reducing fake same-line directive debt in the preprocessor quality lane.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: reduce-sv-preprocessor-parseability-debt-with-stimuli-only-tail-hint)
+Last updated: 2026-03-30 (+0200, task: reduce-sv-preprocessor-parseability-debt-with-whitespace-only-tail-hint)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened the retained `systemverilog_preprocessor` stimuli-only tail hint again:
+  - [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf)
+  - landed shape now:
+    - `@sample: " "` on `directive_tail`
+    - parser regex still unchanged
+- Why this supersedes the earlier retained `" tail"` hint:
+  - it reduced the focused rejection surface further from `6` to `5`
+  - it kept the same parser-neutral classification
+- Current retained focused proof:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `stage0_target_count=22`
+    - `final_targets=0`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+    - `parseability_counterexamples_captured_total=5`
+    - `counterexample_primary_shrunk_sample=/*\``
+    - `counterexample_primary_shrunk_sample_count=3`
+- Validation completed for this refinement:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- Important steering for the next session:
+  - this whitespace-only tail hint is now the retained baseline
+  - the earlier `" tail"` note is historical context, not the current shape
+
 - Reduced the retained `systemverilog_preprocessor` parser-rejection surface with a stimuli-only grammar annotation:
   - [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf)
   - landed shape:

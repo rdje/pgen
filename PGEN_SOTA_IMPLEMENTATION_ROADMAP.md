@@ -55,6 +55,8 @@ Tracker note (2026-03-30): the next retained `systemverilog_preprocessor` reduct
 - keep stimuli-only steering fixes like this one in the grammar/annotation layer when they improve the quality lane without narrowing the parser surface
 - do not blindly retry the broader `directive_tail` parser narrowing that excluded backticks; that shared grammar change materially worsened the measured rejection surface and was intentionally rejected
 
+Tracker note (2026-03-30): the retained `directive_tail` hint was then tightened further from `" tail"` to whitespace-only. [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) now uses `@sample: " "`, and the focused preprocessor seam improved again to `parseability_attempts_total=38`, `parseability_accepted_total=33`, `parseability_rejected_total=5`, `parseability_parser_rejections_total=5`, and `parseability_counterexamples_captured_total=5` with the aggregate sidecar still holding `stage0_target_count=22` and `final_targets=0`. This is the new retained baseline for future preprocessor work.
+
 Interpretation rule:
 - if a claimed parser quality does not have a machine-checkable artifact, gate, contract, or invariant behind it, treat that quality as not yet closed.
 - aggregate-family sign-off should surface not only closure metrics but also the exact upstream proof artifacts those metrics came from:
