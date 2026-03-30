@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: reduce-sv-preprocessor-parseability-debt-with-whitespace-only-tail-hint)
+Last updated: 2026-03-30 (+0200, task: record-rejected-sv-main-parser-comment-steering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tried and rejected two main `systemverilog` comment-steering shortcuts in [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
+  - direct lexical sample hint on `line_comment`:
+    - `@sample: "//\n"`
+  - equivalent-language weighted helper-rule rewrite:
+    - `trivia_item := white_space | line_comment | block_comment`
+    - `@branch_policy: priority_first`
+    - `@priority: [24, 3, 2]`
+- Why they were rejected:
+  - both regressed the retained `sv_stimuli_quality_gate` replay-shadow lane catastrophically instead of improving it
+  - failed replay-shadow surface under both experiments:
+    - `attempts_total=316`
+    - `accepted_total=88`
+    - `rejected_total=228`
+    - `parser_rejections_total=228`
+    - `alternate_entry_attempts_total=484`
+    - `alternate_entry_rejected_outputs_total=455`
+  - the direct `line_comment` sample hint also triggered a deterministic performance-budget miss:
+    - `stimuli_generate_ms_per_sample=15376 > 10000`
+- Steering:
+  - both experiments were reverted; [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) is back on the retained baseline
+  - do not retry these lexical comment-steering directions unless the underlying SV stimuli-generator behavior changes materially first
+  - current retained main-SV blockers remain:
+    - `syntax_closure_gate_status=fail failure_count=2`
+    - `shadow_parser_rejections_total=3 > 0`
+    - `focused_replay_target_count=2550 > 0`
+
 - Follow-up no-op experiments were tried and explicitly rejected on the fresh `systemverilog_preprocessor` `5`-rejection baseline:
   - `directive_tail` `@sample: ""`
   - canonical whole-rule samples for:

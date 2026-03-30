@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog main parser: reject lexical comment-steering shortcuts
+### Context
+The current active `systemverilog` closure blockers are still:
+- `syntax_closure_gate_status=fail failure_count=2`
+- `shadow_parser_rejections_total=3 > 0`
+- `focused_replay_target_count=2550 > 0`
+
+Because the replay-shadow counterexamples were clustered around comment-heavy `program` / `package` / `timeunit` samples, I tried two parser-neutral-looking steering ideas to reduce destructive comment placement without widening the accepted language.
+
+### Rejected Directions
+- Direct lexical hint on `line_comment`:
+  - `@sample: "//\n"`
+- Equivalent-language helper-rule rewrite:
+  - `trivia_item := white_space | line_comment | block_comment`
+  - `@branch_policy: priority_first`
+  - `@priority: [24, 3, 2]`
+  - `trivia := trivia_item*`
+
+### Why They Were Rejected
+- Both directions catastrophically regressed the retained main-SV quality lane instead of improving it.
+- The fresh failed replay-shadow surface was identical across both experiments:
+  - `attempts_total=316`
+  - `accepted_total=88`
+  - `rejected_total=228`
+  - `parser_rejections_total=228`
+  - `alternate_entry_attempts_total=484`
+  - `alternate_entry_rejected_outputs_total=455`
+- The direct `line_comment` hint also tripped the deterministic per-sample performance budget:
+  - `stimuli_generate_ms_per_sample=15376 > 10000`
+
+### Steering
+- Both experiments were reverted from [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf).
+- Do not retry either of these lexical comment-steering shortcuts unless the SV stimuli generator’s comment-placement behavior changes more fundamentally.
+- The retained main-SV baseline is still the pre-existing one from before this slice; no live status or roadmap row changed here.
+
 ## 2026-03-30 - SystemVerilog preprocessor parseability: record no-op sample-hint follow-ups
 ### Context
 After landing the whitespace-only `directive_tail` hint, I tried two more parser-neutral sample-hint refinements against the fresh `5`-rejection baseline:

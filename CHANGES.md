@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-30 - Record rejected SV main-parser comment-steering experiments
+### ✅ Achievement Summary
+No main SystemVerilog grammar change was retained in this slice. Two comment-steering experiments were tried against the active `systemverilog` closure lane, both regressed `sv_stimuli_quality_gate` catastrophically, and both were reverted. The retained outcome is continuity only: future sessions now know not to retry these directions blindly.
+
+### Scope of Changes
+- Updated continuity docs only:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Explicitly recorded the rejected directions:
+  - `line_comment` sample hint `@sample: "//\n"`
+  - extracted weighted helper rule:
+    - `trivia_item := white_space | line_comment | block_comment`
+    - `@branch_policy: priority_first`
+    - `@priority: [24, 3, 2]`
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
+  - both experiments regressed the retained main-SV lane to the same failed replay-shadow surface before the run was abandoned/reverted:
+    - `closed_loop_parseability_shadow_attempts_total=316`
+    - `closed_loop_parseability_shadow_accepted_total=88`
+    - `closed_loop_parseability_shadow_rejected_total=228`
+    - `closed_loop_parseability_shadow_parser_rejections_total=228`
+    - `closed_loop_parseability_shadow_alternate_entry_attempts_total=484`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=455`
+  - the direct `line_comment` hint also pushed a deterministic performance budget failure:
+    - `stimuli_generate_ms_per_sample=15376 > 10000`
+- `git diff --check`
+
 ## 2026-03-30 - Record no-op SV-preprocessor sample-hint experiments
 ### ✅ Achievement Summary
 No new grammar shape was retained in this slice. Two additional stimuli-only sample-hint experiments were tried against the fresh `5`-rejection preprocessor baseline and both proved to be no-ops, so they were reverted and recorded for continuity instead of being kept.
