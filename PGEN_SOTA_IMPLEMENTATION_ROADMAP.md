@@ -3528,6 +3528,24 @@ Why `rtl_frontend` exists:
     - this is proof normalization, not a grammar or parser-quality promotion
     - the new sidecar reuses the existing `sv_parser_family_status_gate` plus `sv_external_corpus_triage_gate` evidence and turns the external-corpus-backed formal-closure surface into a first-class machine-checkable artifact
     - the main `systemverilog` row still remains `Mostly Done`; the active blockers are still parser-debt items, not absence of an explicit external-corpus proof sidecar
+- 2026-03-30: the new SystemVerilog formal-closure sidecar is now preserved end to end through family-status, family-status-contract, aggregate SOTA telemetry, and combined telemetry.
+  - retained proof stack:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+  - retained current SystemVerilog family snapshot:
+    - `status=Mostly Done`
+    - `closure_criteria_total_count=7`
+    - `closure_criteria_satisfied_count=4`
+    - `closure_criteria_unsatisfied_count=3`
+    - `formal_exhaustive_closure_surface_green=true`
+    - active blockers:
+      - `syntax_closure_gate_status=fail failure_count=2`
+      - `shadow_parser_rejections_total=3 > 0`
+      - `focused_replay_target_count=2550 > 0`
+  - roadmap implication:
+    - this proof-plumbing normalization is now done
+    - the next SystemVerilog closure slice should go back to parser-debt reduction rather than revisiting formal-closure provenance wiring
 - 2026-03-19: The refreshed live VHDL external-corpus triage gate is now fully green (`8/8` parse-pass).
   - command:
     - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_external_corpus_triage_gate`

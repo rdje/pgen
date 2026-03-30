@@ -942,6 +942,9 @@ For SystemVerilog external-corpus proof normalization, narrow quickly to:
 - `sv_formal_exhaustive_closure_gate` when the task is SystemVerilog external-corpus proof normalization
 - `rust/scripts/sv_formal_exhaustive_closure_gate.sh` when the task is SystemVerilog external-corpus proof normalization
 - `rust/scripts/sv_parser_family_status_gate.sh`
+- `rust/scripts/sv_parser_family_status_contract_gate.sh`
+- `rust/scripts/sota_exit_gate.sh` when the task is aggregate proof-surface propagation
+- `rust/scripts/sv_combined_telemetry_contract_gate.sh` when the task is aggregate parity over retained SystemVerilog sidecars
 
 For annotation-specific proof plumbing, narrow quickly to:
 - `annotation_contract_gate`
@@ -1278,6 +1281,12 @@ Operational rule:
 - `systemverilog`
   - A major env-driven generated-parser family
   - It also carries unusually heavy surrounding proof surface through aggregate, status, semantic-scope, roundtrip, and failure-context consumers
+  - It now also has a dedicated formal-exhaustive-closure proof sidecar whose provenance is preserved end to end through family-status, family-status-contract, aggregate SOTA telemetry, and combined telemetry
+  - The current machine-checked family-status row remains `Mostly Done` with `7` total closure criteria, `4` satisfied, `3` unsatisfied
+  - The current retained blockers are now explicit and should drive the next SystemVerilog slice directly:
+    - `syntax_closure_gate_status=fail failure_count=2`
+    - `shadow_parser_rejections_total=3 > 0`
+    - `focused_replay_target_count=2550 > 0`
 - `systemverilog_preprocessor`
   - Also env-driven, but not just a smaller copy of parser-only families
   - Its runtime semantics include macro expansion, include handling, conditional policy, source mapping, diagnostics, and strict-promotion-adjacent behavior

@@ -1,4 +1,58 @@
 # CHANGES.md
+## 2026-03-30 - Fold SystemVerilog formal closure into status and aggregate proof surfaces
+### ✅ Achievement Summary
+The new SystemVerilog formal exhaustive-closure sidecar is no longer an isolated proof object. The current retained script stack now preserves that provenance through the SystemVerilog family-status sidecar, the family-status contract sidecar, aggregate `sota_exit_gate` telemetry, and `sv_combined_telemetry_contract_gate`.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh):
+  - added a reuse-safe skip mode so `sv_parser_family_status_gate` can consume the formal-closure sidecar without recursive self-invocation
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
+  - now runs or reuses the formal-closure sidecar explicitly
+  - now records the formal-closure proof paths and gate metadata in both `summary.txt` and `summary.json`
+  - now raises the main `systemverilog` closure-criteria total from `6` to `7`
+- Updated [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - now validates the propagated formal-closure proof-surface fields and includes them in the source-side contract sidecar
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
+  - now surfaces the retained SystemVerilog formal-closure proof paths and gate metadata directly in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now parity-checks the new SystemVerilog formal-closure provenance between `sota_exit_gate`, the family-status sidecar, and the family-status-contract sidecar
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now locks the new nested formal-closure emission points in both aggregate scripts
+- Updated operator/continuity docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `bash -n rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+- `bash -n rust/scripts/sv_parser_family_status_gate.sh`
+- `bash -n rust/scripts/sv_parser_family_status_contract_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- reuse-backed family status:
+  - `env PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR=rust/target/sv_semantic_scope_contract_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_formal_exhaustive_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR=rust/target/sv_external_corpus_triage_gate bash rust/scripts/sv_parser_family_status_gate.sh`
+  - retained summary:
+    - `systemverilog_status=Mostly Done`
+    - `systemverilog_closure_criteria_total_count=7`
+    - `systemverilog_closure_criteria_satisfied_count=4`
+    - `systemverilog_closure_criteria_unsatisfied_count=3`
+    - `systemverilog_formal_exhaustive_closure_surface_green=true`
+    - blockers remain:
+      - `syntax_closure_gate_status=fail failure_count=2`
+      - `shadow_parser_rejections_total=3 > 0`
+      - `focused_replay_target_count=2550 > 0`
+- reuse-backed family-status contract:
+  - `env PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=rust/target/sv_parser_family_status_gate bash rust/scripts/sv_parser_family_status_contract_gate.sh`
+- reuse-backed aggregate proof:
+  - `env PGEN_SOTA_POLICY_FILE=/tmp/pgen_sv_sota_reuse.env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sv_sota_reuse_state PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=rust/target/sv_failure_context_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=rust/target/sv_roundtrip_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=rust/target/sv_parser_family_status_contract_gate bash rust/scripts/sota_exit_gate.sh`
+- reuse-backed combined telemetry:
+  - `env PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/tmp/pgen_sv_sota_reuse_state bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+
 ## 2026-03-30 - Add deferred Rhai embedded-code support to future regex widening list
 ### ✅ Achievement Summary
 Recorded RGX's new `rhai` embedded-code request as planned future regex contract widening, without reopening the closed `regex` family row or interrupting the active `systemverilog` / `vhdl` closure work.

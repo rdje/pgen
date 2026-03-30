@@ -1323,6 +1323,9 @@ audit_sota_nested_family_emission_surface() {
     'parser_aggregate_summary_json: maybe_path($sv_family_status_systemverilog_parser_aggregate_summary_json)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_summary_json: maybe_path($sv_family_status_systemverilog_formal_exhaustive_closure_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
     'failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
@@ -1336,6 +1339,9 @@ audit_sota_nested_family_emission_surface() {
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
     'semantic_scope_contract_summary_json: maybe_path($sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json)'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'formal_exhaustive_closure_summary_json: maybe_path($sv_family_status_contract_systemverilog_formal_exhaustive_closure_summary_json)'
   assert_file_contains \
     "rust/scripts/sota_exit_gate.sh" \
     'failure_context_contract_summary_json: maybe_path($sv_failure_context_contract_summary_json)'
@@ -1412,6 +1418,9 @@ audit_combined_telemetry_nested_provenance_surface() {
     'parser_aggregate_summary_json: $sv_family_status_systemverilog_parser_aggregate_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'formal_exhaustive_closure_summary_json: $sv_family_status_systemverilog_formal_exhaustive_closure_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'roundtrip_contract_summary_json: $sv_roundtrip_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
@@ -1419,6 +1428,9 @@ audit_combined_telemetry_nested_provenance_surface() {
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'semantic_scope_contract_summary_json: $sv_family_status_contract_systemverilog_semantic_scope_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'formal_exhaustive_closure_summary_json: $sv_family_status_contract_systemverilog_formal_exhaustive_closure_summary_json'
   assert_file_contains \
     "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
     'state_dir: $sv_roundtrip_contract_state_dir'
@@ -1528,6 +1540,12 @@ audit_family_layer_provenance_surface() {
     'semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json'
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_gate.sh" \
+    'PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_SKIP_FAMILY_STATUS=1'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
+    'formal_exhaustive_closure_summary_json: $sv_formal_exhaustive_closure_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
     'aggregate_summary_json: $svpp_aggregate_summary_json'
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_contract_gate.sh" \
@@ -1535,6 +1553,9 @@ audit_family_layer_provenance_surface() {
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_contract_gate.sh" \
     'semantic_scope_contract_summary_json: $systemverilog_semantic_scope_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_contract_gate.sh" \
+    'formal_exhaustive_closure_summary_json: $systemverilog_formal_exhaustive_closure_summary_json'
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_contract_gate.sh" \
     'aggregate_summary_json: $systemverilog_preprocessor_aggregate_summary_json'

@@ -17,6 +17,7 @@ SV_PARSER_AGGREGATE_GATE="$RUST_DIR/scripts/sv_parser_aggregate_contract_gate.sh
 SV_PREPROCESSOR_AGGREGATE_GATE="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate.sh"
 SV_PREPROCESSOR_REACHABILITY_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"
 SV_SEMANTIC_SCOPE_CONTRACT_GATE="$RUST_DIR/scripts/sv_semantic_scope_contract_gate.sh"
+SV_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$RUST_DIR/scripts/sv_formal_exhaustive_closure_gate.sh"
 
 EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR:-}"
@@ -26,6 +27,8 @@ EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_S
 EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR:-}"
 EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR:-}"
+EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR:-}"
+EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -58,6 +61,18 @@ summary_value_from_txt() {
     line="$(grep -E "^${key}: " "$path" | tail -n 1 || true)"
     if [[ -z "$line" ]]; then
         echo "error: missing key '${key}' in summary '$path'" >&2
+        exit 1
+    fi
+    printf '%s\n' "${line#${key}: }"
+}
+
+top_level_summary_value_from_txt() {
+    local key="$1"
+    local path="$2"
+    local line
+    line="$(awk -v key="$key" 'index($0, key ": ") == 1 { print; exit }' "$path")"
+    if [[ -z "$line" ]]; then
+        echo "error: missing top-level key '${key}' in summary '$path'" >&2
         exit 1
     fi
     printf '%s\n' "${line#${key}: }"
@@ -106,6 +121,7 @@ require_file "$SV_PARSER_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_AGGREGATE_GATE"
 require_file "$SV_PREPROCESSOR_REACHABILITY_GATE"
 require_file "$SV_SEMANTIC_SCOPE_CONTRACT_GATE"
+require_file "$SV_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -116,6 +132,7 @@ sv_parser_gate_state_dir="$WORK_DIR/sv_parser_aggregate_contract_gate"
 sv_preprocessor_aggregate_state_dir="$WORK_DIR/sv_preprocessor_aggregate_contract_gate"
 sv_preprocessor_reachability_state_dir="$WORK_DIR/sv_preprocessor_reachability_closure_gate"
 sv_semantic_scope_contract_state_dir="$WORK_DIR/sv_semantic_scope_contract_gate"
+sv_formal_exhaustive_closure_state_dir="$WORK_DIR/sv_formal_exhaustive_closure_gate"
 
 if [[ -n "$EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR" ]]; then
     sv_syntax_closure_state_dir="$EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR"
@@ -186,6 +203,23 @@ else
             "$SV_SEMANTIC_SCOPE_CONTRACT_GATE"
 fi
 
+if [[ -n "$EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR" ]]; then
+    sv_formal_exhaustive_closure_state_dir="$EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR"
+else
+    sv_formal_exhaustive_closure_cmd=(
+        env
+        PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR="$sv_formal_exhaustive_closure_state_dir"
+        PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_SKIP_FAMILY_STATUS=1
+    )
+    if [[ -n "$EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR" ]]; then
+        sv_formal_exhaustive_closure_cmd+=(
+            PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR="$EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR"
+        )
+    fi
+    sv_formal_exhaustive_closure_cmd+=("$SV_FORMAL_EXHAUSTIVE_CLOSURE_GATE")
+    run_logged "sv_formal_exhaustive_closure_gate" "${sv_formal_exhaustive_closure_cmd[@]}"
+fi
+
 sv_parser_summary_txt="$sv_parser_gate_state_dir/summary.txt"
 sv_parser_summary_json="$sv_parser_gate_state_dir/summary.json"
 sv_preprocessor_aggregate_summary_txt="$sv_preprocessor_aggregate_state_dir/summary.txt"
@@ -195,6 +229,8 @@ sv_syntax_summary_txt="$sv_syntax_closure_state_dir/summary.txt"
 sv_semantic_scope_contract_summary_txt="$sv_semantic_scope_contract_state_dir/summary.txt"
 svpp_syntax_summary_txt="$sv_preprocessor_syntax_closure_state_dir/summary.txt"
 sv_semantic_scope_contract_summary_json="$sv_semantic_scope_contract_state_dir/summary.json"
+sv_formal_exhaustive_closure_summary_txt="$sv_formal_exhaustive_closure_state_dir/summary.txt"
+sv_formal_exhaustive_closure_summary_json="$sv_formal_exhaustive_closure_state_dir/summary.json"
 
 require_nonempty_file "$sv_parser_summary_txt"
 require_nonempty_file "$sv_parser_summary_json"
@@ -205,6 +241,8 @@ require_nonempty_file "$sv_syntax_summary_txt"
 require_nonempty_file "$sv_semantic_scope_contract_summary_txt"
 require_nonempty_file "$svpp_syntax_summary_txt"
 require_nonempty_file "$sv_semantic_scope_contract_summary_json"
+require_nonempty_file "$sv_formal_exhaustive_closure_summary_txt"
+require_nonempty_file "$sv_formal_exhaustive_closure_summary_json"
 
 sv_syntax_summary_json="$sv_syntax_closure_state_dir/summary.json"
 require_nonempty_file "$sv_syntax_summary_json"
@@ -237,6 +275,68 @@ sv_focused_replay_covered_reachable_rules="$(summary_value_from_txt "focused_rep
 sv_focused_replay_covered_reachable_branches="$(summary_value_from_txt "focused_replay_covered_reachable_branches" "$sv_parser_summary_txt")"
 sv_replay_gap_target_primary_rule="$(summary_value_from_txt "replay_gap_target_primary_rule" "$sv_parser_summary_txt")"
 
+sv_formal_exhaustive_closure_gate_name="$(jq -r '.gate' "$sv_formal_exhaustive_closure_summary_json")"
+sv_formal_exhaustive_closure_gate_version="$(jq -r '.version' "$sv_formal_exhaustive_closure_summary_json")"
+sv_formal_exhaustive_closure_generated_at_utc="$(jq -r '.generated_at_utc' "$sv_formal_exhaustive_closure_summary_json")"
+sv_formal_exhaustive_closure_state_dir_from_json="$(jq -r '.state_dir' "$sv_formal_exhaustive_closure_summary_json")"
+sv_formal_exhaustive_closure_summary_txt_from_json="$(jq -r '.summary_txt' "$sv_formal_exhaustive_closure_summary_json")"
+sv_formal_exhaustive_closure_summary_json_from_json="$(jq -r '.summary_json' "$sv_formal_exhaustive_closure_summary_json")"
+sv_formal_exhaustive_closure_surface_green_raw="$(summary_value_from_txt "systemverilog_formal_exhaustive_closure_surface_green" "$sv_formal_exhaustive_closure_summary_txt")"
+sv_formal_exhaustive_closure_primary_unmet_closure_criterion="$(summary_value_from_txt "systemverilog_primary_unmet_closure_criterion" "$sv_formal_exhaustive_closure_summary_txt")"
+sv_formal_exhaustive_closure_unmet_closure_criteria_count="$(summary_value_from_txt "systemverilog_unmet_closure_criteria_count" "$sv_formal_exhaustive_closure_summary_txt")"
+sv_formal_exhaustive_closure_primary_unmet_detail_json_raw="$(jq -cer '.families[0].unmet_closure_criteria_details[0] // {"criterion":"<none>","evidence_key":"<none>","observed":"<none>","expected":"<none>","detail":"<none>"}' "$sv_formal_exhaustive_closure_summary_json")"
+sv_formal_exhaustive_closure_primary_unmet_detail_json="$(jq -cn \
+    --argjson raw "$sv_formal_exhaustive_closure_primary_unmet_detail_json_raw" \
+    '{
+        criterion: "formal_exhaustive_closure_surface_green",
+        evidence_key: $raw.evidence_key,
+        observed: $raw.observed,
+        expected: $raw.expected,
+        detail: $raw.detail
+    }'
+)"
+
+summary_sv_formal_exhaustive_closure_state_dir="$(top_level_summary_value_from_txt "state_dir" "$sv_formal_exhaustive_closure_summary_txt")"
+summary_sv_formal_exhaustive_closure_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$sv_formal_exhaustive_closure_summary_txt")"
+summary_sv_formal_exhaustive_closure_summary_json="$(top_level_summary_value_from_txt "summary_json" "$sv_formal_exhaustive_closure_summary_txt")"
+
+if [[ "$sv_formal_exhaustive_closure_gate_name" != "sv_formal_exhaustive_closure_gate" ]]; then
+    echo "error: unexpected SV formal-closure gate identity '$sv_formal_exhaustive_closure_gate_name'" >&2
+    exit 1
+fi
+if [[ ! "$sv_formal_exhaustive_closure_gate_version" =~ ^[0-9]+$ ]]; then
+    echo "error: SV formal-closure gate version is not numeric: '$sv_formal_exhaustive_closure_gate_version'" >&2
+    exit 1
+fi
+if [[ -z "$sv_formal_exhaustive_closure_generated_at_utc" ]]; then
+    echo "error: SV formal-closure generated_at_utc is empty" >&2
+    exit 1
+fi
+if [[ "$summary_sv_formal_exhaustive_closure_state_dir" != "$sv_formal_exhaustive_closure_state_dir" ]]; then
+    echo "error: SV formal-closure state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$sv_formal_exhaustive_closure_state_dir_from_json" != "$sv_formal_exhaustive_closure_state_dir" ]]; then
+    echo "error: SV formal-closure state_dir mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$sv_formal_exhaustive_closure_summary_txt_from_json" != "$sv_formal_exhaustive_closure_summary_txt" ]]; then
+    echo "error: SV formal-closure summary_txt mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_sv_formal_exhaustive_closure_summary_json" != "$sv_formal_exhaustive_closure_summary_json" ]]; then
+    echo "error: SV formal-closure summary_json mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$sv_formal_exhaustive_closure_summary_json_from_json" != "$sv_formal_exhaustive_closure_summary_json" ]]; then
+    echo "error: SV formal-closure summary_json mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$summary_sv_formal_exhaustive_closure_generated_at_utc" != "$sv_formal_exhaustive_closure_generated_at_utc" ]]; then
+    echo "error: SV formal-closure generated_at_utc mismatch between summary.txt and summary.json" >&2
+    exit 1
+fi
+
 svpp_parseability_parser_rejections_total="$(summary_value_from_txt "parseability_parser_rejections_total" "$sv_preprocessor_aggregate_summary_txt")"
 svpp_parseability_rejected_total="$(summary_value_from_txt "parseability_rejected_total" "$sv_preprocessor_aggregate_summary_txt")"
 svpp_final_targets="$(summary_value_from_txt "final_targets" "$sv_preprocessor_aggregate_summary_txt")"
@@ -257,6 +357,7 @@ sv_generation_parser_rejections_zero=false
 sv_shadow_parser_rejections_zero=false
 sv_focused_replay_target_debt_zero=false
 sv_semantic_scope_contract_green=false
+sv_formal_exhaustive_closure_surface_green=false
 
 if [[ "$sv_syntax_status" == "pass" && "$sv_syntax_failure_count" == "0" ]]; then
     sv_syntax_closure_gate_green=true
@@ -273,8 +374,11 @@ fi
 if [[ "$sv_semantic_scope_failed_count" == "0" ]]; then
     sv_semantic_scope_contract_green=true
 fi
+if [[ "$sv_formal_exhaustive_closure_surface_green_raw" == "true" ]]; then
+    sv_formal_exhaustive_closure_surface_green=true
+fi
 
-sv_closure_criteria_total_count=6
+sv_closure_criteria_total_count=7
 sv_closure_criteria_satisfied_count=0
 if [[ "$sv_syntax_closure_gate_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
@@ -294,25 +398,38 @@ fi
 if [[ "$sv_semantic_scope_contract_green" == true ]]; then
     ((sv_closure_criteria_satisfied_count += 1))
 fi
+if [[ "$sv_formal_exhaustive_closure_surface_green" == true ]]; then
+    ((sv_closure_criteria_satisfied_count += 1))
+fi
 
 declare -a sv_unmet=()
+declare -a sv_unmet_details=()
 if [[ "$sv_syntax_closure_gate_green" != true ]]; then
     sv_unmet+=("syntax_closure_gate_status=${sv_syntax_status} failure_count=${sv_syntax_failure_count}")
+    sv_unmet_details+=("{\"criterion\":\"syntax_closure_gate_green\",\"evidence_key\":\"syntax_closure_status\",\"observed\":\"status=${sv_syntax_status} failure_count=${sv_syntax_failure_count}\",\"expected\":\"status=pass failure_count=0\",\"detail\":\"syntax_closure_gate_status=${sv_syntax_status} failure_count=${sv_syntax_failure_count}\"}")
 fi
 if [[ "$sv_generation_parser_rejections_zero" != true ]]; then
     sv_unmet+=("generation_parser_rejections_total=${sv_generation_parser_rejections_total} > 0")
+    sv_unmet_details+=("{\"criterion\":\"generation_parser_rejections_zero\",\"evidence_key\":\"generation_parser_rejections_total\",\"observed\":\"${sv_generation_parser_rejections_total}\",\"expected\":\"0\",\"detail\":\"generation_parser_rejections_total=${sv_generation_parser_rejections_total} > 0\"}")
 fi
 if [[ "$sv_shadow_parser_rejections_zero" != true ]]; then
     sv_unmet+=("shadow_parser_rejections_total=${sv_shadow_parser_rejections_total} > 0")
+    sv_unmet_details+=("{\"criterion\":\"replay_shadow_parser_rejections_zero\",\"evidence_key\":\"replay_shadow_parser_rejections_total\",\"observed\":\"${sv_shadow_parser_rejections_total}\",\"expected\":\"0\",\"detail\":\"shadow_parser_rejections_total=${sv_shadow_parser_rejections_total} > 0\"}")
 fi
 if [[ "$sv_focused_replay_target_debt_zero" != true ]]; then
     sv_unmet+=("focused_replay_target_count=${sv_focused_replay_target_count} > 0")
+    sv_unmet_details+=("{\"criterion\":\"focused_replay_target_debt_zero\",\"evidence_key\":\"focused_replay_target_count\",\"observed\":\"${sv_focused_replay_target_count}\",\"expected\":\"0\",\"detail\":\"focused_replay_target_count=${sv_focused_replay_target_count} > 0\"}")
 fi
 if [[ "$sv_semantic_scope_contract_green" != true ]]; then
     sv_unmet+=("semantic_scope_failed_count=${sv_semantic_scope_failed_count} > 0")
+    sv_unmet_details+=("{\"criterion\":\"semantic_scope_contract_green\",\"evidence_key\":\"semantic_scope_failed_count\",\"observed\":\"${sv_semantic_scope_failed_count}\",\"expected\":\"0\",\"detail\":\"semantic_scope_failed_count=${sv_semantic_scope_failed_count} > 0\"}")
+fi
+if [[ "$sv_formal_exhaustive_closure_surface_green" != true ]]; then
+    sv_unmet+=("formal_exhaustive_closure_surface=not_green")
+    sv_unmet_details+=("$sv_formal_exhaustive_closure_primary_unmet_detail_json")
 fi
 
-if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true ]]; then
+if [[ "$sv_syntax_closure_gate_green" == true && "$sv_generation_parser_rejections_zero" == true && "$sv_shadow_parser_rejections_zero" == true && "$sv_focused_replay_target_debt_zero" == true && "$sv_semantic_scope_contract_green" == true && "$sv_formal_exhaustive_closure_surface_green" == true ]]; then
     sv_status="Done"
 else
     sv_status="Mostly Done"
@@ -461,6 +578,7 @@ if [[ "${#svpp_unmet[@]}" -gt 0 ]]; then
     svpp_primary_unmet_closure_criterion="${svpp_unmet[0]}"
 fi
 sv_unmet_json="$(jq -cn '$ARGS.positional' --args "${sv_unmet[@]}")"
+sv_unmet_details_json="$(printf '%s\n' "${sv_unmet_details[@]:-}" | jq -R . | jq -sc 'map(select(length > 0) | fromjson)')"
 svpp_unmet_json="$(jq -cn '$ARGS.positional' --args "${svpp_unmet[@]}")"
 generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
@@ -503,7 +621,17 @@ jq -n \
     --argjson sv_shadow_parser_rejections_zero "$sv_shadow_parser_rejections_zero" \
     --argjson sv_focused_replay_target_debt_zero "$sv_focused_replay_target_debt_zero" \
     --argjson sv_semantic_scope_contract_green "$sv_semantic_scope_contract_green" \
+    --argjson sv_formal_exhaustive_closure_surface_green "$sv_formal_exhaustive_closure_surface_green" \
+    --arg sv_formal_exhaustive_closure_gate "$sv_formal_exhaustive_closure_gate_name" \
+    --argjson sv_formal_exhaustive_closure_gate_version "$sv_formal_exhaustive_closure_gate_version" \
+    --arg sv_formal_exhaustive_closure_generated_at_utc "$sv_formal_exhaustive_closure_generated_at_utc" \
+    --arg sv_formal_exhaustive_closure_state_dir "$sv_formal_exhaustive_closure_state_dir" \
+    --arg sv_formal_exhaustive_closure_summary_txt "$sv_formal_exhaustive_closure_summary_txt" \
+    --arg sv_formal_exhaustive_closure_summary_json "$sv_formal_exhaustive_closure_summary_json" \
+    --arg sv_formal_exhaustive_closure_primary_unmet_closure_criterion "$sv_formal_exhaustive_closure_primary_unmet_closure_criterion" \
+    --argjson sv_formal_exhaustive_closure_unmet_closure_criteria_count "$sv_formal_exhaustive_closure_unmet_closure_criteria_count" \
     --argjson sv_unmet "$sv_unmet_json" \
+    --argjson sv_unmet_details "$sv_unmet_details_json" \
     --arg svpp_status "$svpp_status" \
     --arg svpp_tracker_status "$live_tracker_svpp_status" \
     --argjson svpp_tracker_alignment_ok "$svpp_tracker_alignment_ok" \
@@ -555,7 +683,7 @@ jq -n \
     '
     {
       gate: "sv_parser_family_status_gate",
-      version: 4,
+      version: 5,
       generated_at_utc: $generated_at_utc,
       state_dir: $state_dir,
       summary_txt: $summary_txt,
@@ -577,7 +705,10 @@ jq -n \
             parser_aggregate_summary_json: $sv_parser_summary_json,
             semantic_scope_contract_state_dir: $sv_semantic_scope_contract_state_dir,
             semantic_scope_contract_summary_txt: $sv_semantic_scope_contract_summary_txt,
-            semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json
+            semantic_scope_contract_summary_json: $sv_semantic_scope_contract_summary_json,
+            formal_exhaustive_closure_state_dir: $sv_formal_exhaustive_closure_state_dir,
+            formal_exhaustive_closure_summary_txt: $sv_formal_exhaustive_closure_summary_txt,
+            formal_exhaustive_closure_summary_json: $sv_formal_exhaustive_closure_summary_json
           },
           closure_criteria_total_count: ($sv_closure_criteria_total_count | tonumber),
           closure_criteria_satisfied_count: ($sv_closure_criteria_satisfied_count | tonumber),
@@ -589,7 +720,8 @@ jq -n \
             generation_parser_rejections_zero: $sv_generation_parser_rejections_zero,
             replay_shadow_parser_rejections_zero: $sv_shadow_parser_rejections_zero,
             focused_replay_target_debt_zero: $sv_focused_replay_target_debt_zero,
-            semantic_scope_contract_green: $sv_semantic_scope_contract_green
+            semantic_scope_contract_green: $sv_semantic_scope_contract_green,
+            formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green
           },
           metrics: {
             syntax_closure_status: $sv_syntax_status,
@@ -606,47 +738,15 @@ jq -n \
             focused_replay_target_count: ($sv_focused_replay_target_count | tonumber),
             focused_replay_covered_reachable_rules: ($sv_focused_replay_covered_reachable_rules | tonumber),
             focused_replay_covered_reachable_branches: ($sv_focused_replay_covered_reachable_branches | tonumber),
-            replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule
+            replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule,
+            formal_exhaustive_closure_gate: $sv_formal_exhaustive_closure_gate,
+            formal_exhaustive_closure_gate_version: $sv_formal_exhaustive_closure_gate_version,
+            formal_exhaustive_closure_generated_at_utc: $sv_formal_exhaustive_closure_generated_at_utc,
+            formal_exhaustive_closure_primary_unmet_closure_criterion: $sv_formal_exhaustive_closure_primary_unmet_closure_criterion,
+            formal_exhaustive_closure_unmet_closure_criteria_count: $sv_formal_exhaustive_closure_unmet_closure_criteria_count
           },
           unmet_closure_criteria: $sv_unmet,
-          unmet_closure_criteria_details: (
-            []
-            + (if $sv_syntax_closure_gate_green then [] else [{
-                criterion: "syntax_closure_gate_green",
-                evidence_key: "syntax_closure_status",
-                observed: ("status=" + $sv_syntax_status + " failure_count=" + $sv_syntax_failure_count),
-                expected: "status=pass failure_count=0",
-                detail: ("syntax_closure_gate_status=" + $sv_syntax_status + " failure_count=" + $sv_syntax_failure_count)
-              }] end)
-            + (if $sv_generation_parser_rejections_zero then [] else [{
-                criterion: "generation_parser_rejections_zero",
-                evidence_key: "generation_parser_rejections_total",
-                observed: $sv_generation_parser_rejections_total,
-                expected: "0",
-                detail: ("generation_parser_rejections_total=" + $sv_generation_parser_rejections_total + " > 0")
-              }] end)
-            + (if $sv_shadow_parser_rejections_zero then [] else [{
-                criterion: "replay_shadow_parser_rejections_zero",
-                evidence_key: "replay_shadow_parser_rejections_total",
-                observed: $sv_shadow_parser_rejections_total,
-                expected: "0",
-                detail: ("shadow_parser_rejections_total=" + $sv_shadow_parser_rejections_total + " > 0")
-              }] end)
-            + (if $sv_focused_replay_target_debt_zero then [] else [{
-                criterion: "focused_replay_target_debt_zero",
-                evidence_key: "focused_replay_target_count",
-                observed: $sv_focused_replay_target_count,
-                expected: "0",
-                detail: ("focused_replay_target_count=" + $sv_focused_replay_target_count + " > 0")
-              }] end)
-            + (if $sv_semantic_scope_contract_green then [] else [{
-                criterion: "semantic_scope_contract_green",
-                evidence_key: "semantic_scope_failed_count",
-                observed: $sv_semantic_scope_failed_count,
-                expected: "0",
-                detail: ("semantic_scope_failed_count=" + $sv_semantic_scope_failed_count + " > 0")
-              }] end)
-          )
+          unmet_closure_criteria_details: $sv_unmet_details
         },
         {
           family: "systemverilog_preprocessor",
@@ -808,6 +908,15 @@ svpp_unmet_details_json="$(jq -cer '.families[] | select(.family=="systemverilog
     echo "systemverilog_replay_shadow_parser_rejections_total: $sv_shadow_parser_rejections_total"
     echo "systemverilog_focused_replay_target_count: $sv_focused_replay_target_count"
     echo "systemverilog_replay_gap_target_primary_rule: $sv_replay_gap_target_primary_rule"
+    echo "systemverilog_formal_exhaustive_closure_surface_green: $sv_formal_exhaustive_closure_surface_green"
+    echo "systemverilog_formal_exhaustive_closure_gate: $sv_formal_exhaustive_closure_gate_name"
+    echo "systemverilog_formal_exhaustive_closure_gate_version: $sv_formal_exhaustive_closure_gate_version"
+    echo "systemverilog_formal_exhaustive_closure_generated_at_utc: $sv_formal_exhaustive_closure_generated_at_utc"
+    echo "systemverilog_formal_exhaustive_closure_state_dir: $sv_formal_exhaustive_closure_state_dir"
+    echo "systemverilog_formal_exhaustive_closure_summary_txt: $sv_formal_exhaustive_closure_summary_txt"
+    echo "systemverilog_formal_exhaustive_closure_summary_json: $sv_formal_exhaustive_closure_summary_json"
+    echo "systemverilog_formal_exhaustive_closure_primary_unmet_closure_criterion: $sv_formal_exhaustive_closure_primary_unmet_closure_criterion"
+    echo "systemverilog_formal_exhaustive_closure_unmet_closure_criteria_count: $sv_formal_exhaustive_closure_unmet_closure_criteria_count"
     echo "systemverilog_closure_criteria_total_count: $sv_closure_criteria_total_count"
     echo "systemverilog_closure_criteria_satisfied_count: $sv_closure_criteria_satisfied_count"
     echo "systemverilog_closure_criteria_unsatisfied_count: ${#sv_unmet[@]}"

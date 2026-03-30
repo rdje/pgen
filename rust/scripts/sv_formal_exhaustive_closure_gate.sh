@@ -16,6 +16,7 @@ SV_EXTERNAL_CORPUS_TRIAGE_GATE="$RUST_DIR/scripts/sv_external_corpus_triage_gate
 
 EXISTING_FAMILY_STATUS_STATE_DIR="${PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_STATUS_STATE_DIR:-}"
 EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR="${PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR:-}"
+SKIP_FAMILY_STATUS="${PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_SKIP_FAMILY_STATUS:-0}"
 
 require_tool() {
     local tool="$1"
@@ -95,75 +96,90 @@ jq -e '
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
 
-family_status_state_dir="${EXISTING_FAMILY_STATUS_STATE_DIR:-$WORK_DIR/sv_parser_family_status_gate}"
-if [[ -z "$EXISTING_FAMILY_STATUS_STATE_DIR" ]]; then
-    run_logged "sv_parser_family_status_gate" \
-        env \
-            PGEN_SV_FAMILY_STATUS_STATE_DIR="$family_status_state_dir" \
-            "$SV_FAMILY_STATUS_GATE"
-else
-    family_status_state_dir="$(cd "$family_status_state_dir" && pwd)"
-fi
+family_status_gate_name="sv_parser_family_status_gate"
+family_status_gate_version=0
+family_status_generated_at_utc="<skipped>"
+family_status_state_dir="<skipped>"
+family_status_summary_txt="<skipped>"
+family_status_summary_json="<skipped>"
+systemverilog_family_status="<skipped>"
+systemverilog_family_status_tracker_alignment_ok=false
+systemverilog_family_status_primary_unmet_closure_criterion="<skipped>"
+systemverilog_family_status_closure_criteria_total_count=0
+systemverilog_family_status_closure_criteria_satisfied_count=0
+systemverilog_family_status_closure_criteria_unsatisfied_count=0
 
-family_status_summary_txt="$family_status_state_dir/summary.txt"
-family_status_summary_json="$family_status_state_dir/summary.json"
-require_nonempty_file "$family_status_summary_txt"
-require_nonempty_file "$family_status_summary_json"
+if [[ "$SKIP_FAMILY_STATUS" != "1" ]]; then
+    family_status_state_dir="${EXISTING_FAMILY_STATUS_STATE_DIR:-$WORK_DIR/sv_parser_family_status_gate}"
+    if [[ -z "$EXISTING_FAMILY_STATUS_STATE_DIR" ]]; then
+        run_logged "sv_parser_family_status_gate" \
+            env \
+                PGEN_SV_FAMILY_STATUS_STATE_DIR="$family_status_state_dir" \
+                "$SV_FAMILY_STATUS_GATE"
+    else
+        family_status_state_dir="$(cd "$family_status_state_dir" && pwd)"
+    fi
 
-family_status_gate_name="$(jq -r '.gate' "$family_status_summary_json")"
-family_status_gate_version="$(jq -r '.version' "$family_status_summary_json")"
-family_status_generated_at_utc="$(jq -r '.generated_at_utc' "$family_status_summary_json")"
-family_status_state_dir_from_json="$(jq -r '.state_dir' "$family_status_summary_json")"
-family_status_summary_txt_from_json="$(jq -r '.summary_txt' "$family_status_summary_json")"
-family_status_summary_json_from_json="$(jq -r '.summary_json' "$family_status_summary_json")"
+    family_status_summary_txt="$family_status_state_dir/summary.txt"
+    family_status_summary_json="$family_status_state_dir/summary.json"
+    require_nonempty_file "$family_status_summary_txt"
+    require_nonempty_file "$family_status_summary_json"
 
-summary_family_status_state_dir="$(top_level_summary_value_from_txt "state_dir" "$family_status_summary_txt")"
-summary_family_status_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$family_status_summary_txt")"
-summary_family_status_summary_json="$(top_level_summary_value_from_txt "summary_json" "$family_status_summary_txt")"
+    family_status_gate_name="$(jq -r '.gate' "$family_status_summary_json")"
+    family_status_gate_version="$(jq -r '.version' "$family_status_summary_json")"
+    family_status_generated_at_utc="$(jq -r '.generated_at_utc' "$family_status_summary_json")"
+    family_status_state_dir_from_json="$(jq -r '.state_dir' "$family_status_summary_json")"
+    family_status_summary_txt_from_json="$(jq -r '.summary_txt' "$family_status_summary_json")"
+    family_status_summary_json_from_json="$(jq -r '.summary_json' "$family_status_summary_json")"
 
-if [[ "$family_status_gate_name" != "sv_parser_family_status_gate" ]]; then
-    echo "error: unexpected SV family-status gate identity '$family_status_gate_name'" >&2
-    exit 1
-fi
-if [[ ! "$family_status_gate_version" =~ ^[0-9]+$ ]]; then
-    echo "error: SV family-status gate version is not numeric: '$family_status_gate_version'" >&2
-    exit 1
-fi
-if [[ -z "$family_status_generated_at_utc" ]]; then
-    echo "error: SV family-status generated_at_utc is empty" >&2
-    exit 1
-fi
-if [[ "$summary_family_status_state_dir" != "$family_status_state_dir" ]]; then
-    echo "error: SV family-status state_dir mismatch in summary.txt" >&2
-    exit 1
-fi
-if [[ "$family_status_state_dir_from_json" != "$family_status_state_dir" ]]; then
-    echo "error: SV family-status state_dir mismatch in summary.json" >&2
-    exit 1
-fi
-if [[ "$family_status_summary_txt_from_json" != "$family_status_summary_txt" ]]; then
-    echo "error: SV family-status summary_txt mismatch in summary.json" >&2
-    exit 1
-fi
-if [[ "$summary_family_status_summary_json" != "$family_status_summary_json" ]]; then
-    echo "error: SV family-status summary_json mismatch in summary.txt" >&2
-    exit 1
-fi
-if [[ "$family_status_summary_json_from_json" != "$family_status_summary_json" ]]; then
-    echo "error: SV family-status summary_json mismatch in summary.json" >&2
-    exit 1
-fi
-if [[ "$summary_family_status_generated_at_utc" != "$family_status_generated_at_utc" ]]; then
-    echo "error: SV family-status generated_at_utc mismatch between summary.txt and summary.json" >&2
-    exit 1
-fi
+    summary_family_status_state_dir="$(top_level_summary_value_from_txt "state_dir" "$family_status_summary_txt")"
+    summary_family_status_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$family_status_summary_txt")"
+    summary_family_status_summary_json="$(top_level_summary_value_from_txt "summary_json" "$family_status_summary_txt")"
 
-systemverilog_family_status="$(summary_value_from_txt "systemverilog_status" "$family_status_summary_txt")"
-systemverilog_family_status_tracker_alignment_ok="$(summary_value_from_txt "systemverilog_tracker_alignment_ok" "$family_status_summary_txt")"
-systemverilog_family_status_primary_unmet_closure_criterion="$(summary_value_from_txt "systemverilog_primary_unmet_closure_criterion" "$family_status_summary_txt")"
-systemverilog_family_status_closure_criteria_total_count="$(summary_value_from_txt "systemverilog_closure_criteria_total_count" "$family_status_summary_txt")"
-systemverilog_family_status_closure_criteria_satisfied_count="$(summary_value_from_txt "systemverilog_closure_criteria_satisfied_count" "$family_status_summary_txt")"
-systemverilog_family_status_closure_criteria_unsatisfied_count="$(summary_value_from_txt "systemverilog_closure_criteria_unsatisfied_count" "$family_status_summary_txt")"
+    if [[ "$family_status_gate_name" != "sv_parser_family_status_gate" ]]; then
+        echo "error: unexpected SV family-status gate identity '$family_status_gate_name'" >&2
+        exit 1
+    fi
+    if [[ ! "$family_status_gate_version" =~ ^[0-9]+$ ]]; then
+        echo "error: SV family-status gate version is not numeric: '$family_status_gate_version'" >&2
+        exit 1
+    fi
+    if [[ -z "$family_status_generated_at_utc" ]]; then
+        echo "error: SV family-status generated_at_utc is empty" >&2
+        exit 1
+    fi
+    if [[ "$summary_family_status_state_dir" != "$family_status_state_dir" ]]; then
+        echo "error: SV family-status state_dir mismatch in summary.txt" >&2
+        exit 1
+    fi
+    if [[ "$family_status_state_dir_from_json" != "$family_status_state_dir" ]]; then
+        echo "error: SV family-status state_dir mismatch in summary.json" >&2
+        exit 1
+    fi
+    if [[ "$family_status_summary_txt_from_json" != "$family_status_summary_txt" ]]; then
+        echo "error: SV family-status summary_txt mismatch in summary.json" >&2
+        exit 1
+    fi
+    if [[ "$summary_family_status_summary_json" != "$family_status_summary_json" ]]; then
+        echo "error: SV family-status summary_json mismatch in summary.txt" >&2
+        exit 1
+    fi
+    if [[ "$family_status_summary_json_from_json" != "$family_status_summary_json" ]]; then
+        echo "error: SV family-status summary_json mismatch in summary.json" >&2
+        exit 1
+    fi
+    if [[ "$summary_family_status_generated_at_utc" != "$family_status_generated_at_utc" ]]; then
+        echo "error: SV family-status generated_at_utc mismatch between summary.txt and summary.json" >&2
+        exit 1
+    fi
+
+    systemverilog_family_status="$(summary_value_from_txt "systemverilog_status" "$family_status_summary_txt")"
+    systemverilog_family_status_tracker_alignment_ok="$(summary_value_from_txt "systemverilog_tracker_alignment_ok" "$family_status_summary_txt")"
+    systemverilog_family_status_primary_unmet_closure_criterion="$(summary_value_from_txt "systemverilog_primary_unmet_closure_criterion" "$family_status_summary_txt")"
+    systemverilog_family_status_closure_criteria_total_count="$(summary_value_from_txt "systemverilog_closure_criteria_total_count" "$family_status_summary_txt")"
+    systemverilog_family_status_closure_criteria_satisfied_count="$(summary_value_from_txt "systemverilog_closure_criteria_satisfied_count" "$family_status_summary_txt")"
+    systemverilog_family_status_closure_criteria_unsatisfied_count="$(summary_value_from_txt "systemverilog_closure_criteria_unsatisfied_count" "$family_status_summary_txt")"
+fi
 
 external_corpus_backed_proof_state_dir="${EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR:-$WORK_DIR/sv_external_corpus_triage_gate}"
 if [[ -z "$EXISTING_EXTERNAL_CORPUS_TRIAGE_STATE_DIR" ]]; then

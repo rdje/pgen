@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: defer-rhai-regex-widening)
+Last updated: 2026-03-30 (+0200, task: fold-sv-formal-closure-into-aggregate-proof-stack)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Folded the new SystemVerilog formal-closure sidecar through the retained proof stack:
+  - [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh)
+  - [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh)
+  - [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh)
+  - [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- This is proof-plumbing normalization, not a grammar or status promotion.
+- Current retained SystemVerilog family snapshot:
+  - `systemverilog=Mostly Done`
+  - `closure_criteria_total_count=7`
+  - `closure_criteria_satisfied_count=4`
+  - `closure_criteria_unsatisfied_count=3`
+  - `formal_exhaustive_closure_surface_green=true`
+  - active blockers:
+    - `syntax_closure_gate_status=fail failure_count=2`
+    - `shadow_parser_rejections_total=3 > 0`
+    - `focused_replay_target_count=2550 > 0`
+- Current retained `systemverilog_preprocessor` snapshot is unchanged:
+  - `Mostly Done`
+  - active blockers:
+    - `parseability_parser_rejections_total=10 > 0`
+    - `parseability_rejected_total=10 > 0`
+- Reuse-backed validation passed:
+  - `bash -n rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+  - `bash -n rust/scripts/sv_parser_family_status_gate.sh`
+  - `bash -n rust/scripts/sv_parser_family_status_contract_gate.sh`
+  - `bash -n rust/scripts/sota_exit_gate.sh`
+  - `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - `bash -n rust/scripts/ci_workflow_local_gate.sh`
+  - reuse-backed `sv_parser_family_status_gate`
+  - reuse-backed `sv_parser_family_status_contract_gate`
+  - reuse-backed `sota_exit_gate` using `/tmp/pgen_sv_sota_reuse.env` and `/tmp/pgen_sv_sota_reuse_state`
+  - `env PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/tmp/pgen_sv_sota_reuse_state bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- Future-session steering from this slice:
+  - do not treat `sv_formal_exhaustive_closure_gate` as a standalone proof seam anymore
+  - the current retained SystemVerilog proof stack now preserves that provenance through family-status, family-status-contract, aggregate SOTA telemetry, and combined telemetry
+  - the next real `systemverilog` closure work should return to parser debt reduction, not re-open this proof-plumbing normalization
+
 - Added RGX's `rhai` embedded-code request to the deferred future regex widening list.
 - This is intentionally planning-only:
   - `regex` remains closed on its current published contract

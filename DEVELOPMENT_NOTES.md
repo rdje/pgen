@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog formal closure: thread the new sidecar through family status and aggregate telemetry
+### Context
+The standalone SystemVerilog formal-closure gate was landed, but the proof stack was still asymmetric:
+- `sv_formal_exhaustive_closure_gate` existed
+- `sv_parser_family_status_gate`, `sv_parser_family_status_contract_gate`, `sota_exit_gate`, and `sv_combined_telemetry_contract_gate` did not yet preserve that provenance end to end
+
+That meant the sidecar was real, but the shipped family/aggregate summaries still under-described the current SystemVerilog proof stack.
+
+### Implementation
+- Updated [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh):
+  - added `PGEN_SV_FORMAL_EXHAUSTIVE_CLOSURE_SKIP_FAMILY_STATUS`
+  - this lets the family-status gate reuse the formal-closure sidecar without recursive self-invocation
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
+  - now reuses or runs the formal-closure sidecar directly
+  - now records formal-closure gate metadata and proof-surface paths in both `summary.txt` and `summary.json`
+  - now treats `formal_exhaustive_closure_surface_green` as a first-class SystemVerilog closure criterion
+- Updated [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - now validates the propagated formal-closure proof-surface fields and emits them in the contract sidecar
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
+  - now surfaces the SystemVerilog formal-closure proof paths and metadata in aggregate telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now parity-checks those formal-closure fields across family-status, family-status-contract, and aggregate SOTA output
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now locks the new nested formal-closure emission points so the aggregate/family plumbing cannot silently regress
+
+### Validation
+- `bash -n rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+- `bash -n rust/scripts/sv_parser_family_status_gate.sh`
+- `bash -n rust/scripts/sv_parser_family_status_contract_gate.sh`
+- `bash -n rust/scripts/sota_exit_gate.sh`
+- `bash -n rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- reuse-backed family status:
+  - `env PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR=rust/target/sv_semantic_scope_contract_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_formal_exhaustive_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR=rust/target/sv_external_corpus_triage_gate bash rust/scripts/sv_parser_family_status_gate.sh`
+  - current retained SystemVerilog family snapshot:
+    - `status=Mostly Done`
+    - `closure_criteria_total_count=7`
+    - `closure_criteria_satisfied_count=4`
+    - `closure_criteria_unsatisfied_count=3`
+    - `formal_exhaustive_closure_surface_green=true`
+    - remaining blockers:
+      - `syntax_closure_gate_status=fail failure_count=2`
+      - `shadow_parser_rejections_total=3 > 0`
+      - `focused_replay_target_count=2550 > 0`
+- reuse-backed family-status contract:
+  - `env PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=rust/target/sv_parser_family_status_gate bash rust/scripts/sv_parser_family_status_contract_gate.sh`
+- reuse-backed aggregate proof:
+  - `env PGEN_SOTA_POLICY_FILE=/tmp/pgen_sv_sota_reuse.env PGEN_SOTA_EXIT_STATE_DIR=/tmp/pgen_sv_sota_reuse_state PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=rust/target/sv_failure_context_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=rust/target/sv_roundtrip_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=rust/target/sv_parser_family_status_contract_gate bash rust/scripts/sota_exit_gate.sh`
+- reuse-backed combined telemetry:
+  - `env PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/tmp/pgen_sv_sota_reuse_state bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
 ## 2026-03-30 - SystemVerilog formal closure: add explicit proof sidecar without reopening grammar work
 ### Context
 After revalidating the retained VHDL baseline, the next clean roadmap slice was not another speculative `.ebnf` tweak. SystemVerilog already had:
