@@ -8001,3 +8001,19 @@ Use this file to resume work without replaying full chat history.
     - analyze the Rust codebase thoroughly
     - update `RUST_CODEBASE_ANALYSIS.md` if necessary
     - then proceed with roadmap objectives
+- 2026-03-31: SystemVerilog-preprocessor directive-boundary refactor was a dead end.
+  - attempted grammar change:
+    - move leading `inline_trivia` from the `kw_*` directive tokens to the outer `pp_*` directive productions in `grammars/systemverilog_preprocessor.ebnf`
+  - reason it looked plausible:
+    - retained counterexamples are comment-heavy directive lines
+    - minimal reproducer `/*a*/\`ifdef A` fails exactly at the backtick boundary
+  - why it must stay rejected:
+    - focused gate worsened from `38/33/5/5` to `43/33/10/10`
+    - `sv_preprocessor_quality_gate` introduced a new final-coverage failure on `pp_if_branch`
+    - direct repros still failed even with the freshly generated gate parser:
+      - `/*a*/\`ifdef A` at position `5`
+      - `/*a*//*b*/\`ifdef A` at position `10`
+      - `/*a*/ /*b*/\`ifdef A` at position `11`
+  - steering consequence:
+    - the real remaining seam is not fixed by relocating `inline_trivia`
+    - future work should start from the retained baseline and target a narrower parser or generation issue instead of repeating this refactor

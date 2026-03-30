@@ -26762,3 +26762,20 @@ Architectural north star:
     - update `RUST_CODEBASE_ANALYSIS.md` if needed
     - then continue with roadmap objectives
   - this is intentionally lightweight and direct so future sessions have one unambiguous starting instruction before any other task.
+- 2026-03-31: Rejected a `systemverilog_preprocessor.ebnf` directive-keyword refactor.
+  - attempted shape:
+    - move leading `inline_trivia` off the directive keyword tokens (`kw_ifdef`, `kw_else`, `kw_define`, etc.) and onto the outer directive productions (`pp_if_branch`, `pp_else_branch`, `pp_define`, ...)
+  - reason for the experiment:
+    - retained preprocessor counterexamples are still comment-to-directive shaped
+    - direct repros like `/*a*/\`ifdef A` were failing at the directive boundary, so this looked like a plausible parser+stimuli-neutral normalization
+  - evidence collected:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - regressed from the retained `38/33/5/5` baseline to `43/33/10/10`
+      - failed with `pp_if_branch conditional family not fully exercised in final coverage`
+    - direct repros still failed unchanged even with the freshly generated parser from `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs`:
+      - `/*a*/\`ifdef A` -> full-parse failure at position `5`
+      - `/*a*//*b*/\`ifdef A` -> full-parse failure at position `10`
+      - `/*a*/ /*b*/\`ifdef A` -> full-parse failure at position `11`
+  - conclusion:
+    - this was not the right seam; it neither fixed the real parser failure nor preserved the focused quality lane
+    - keep the committed keyword-level `inline_trivia` shape and do not retry this refactor blindly

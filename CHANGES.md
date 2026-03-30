@@ -26077,3 +26077,15 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
 - 2026-03-26: Added a dedicated SC-13 semantic contract seam for profile gating plus semantic runtime scaffold directives. The repo now has `rust/test_data/semantic_annotation/sc13_contract.json`, `rust/scripts/sc13_contract_gate.sh`, `make -C rust sc13_contract_gate`, and annotation-contract integration for `@profiles`, `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate`, backed by focused validator/runtime/codegen tests and bootstrap/generated differential parity checks.
 - Fixed a real generated-regex parseability false negative instead of only tightening regex proof plumbing. `rust/src/ast_pipeline/ast_based_generator.rs` now keeps layout significant for generated `regex` parsers, and `grammars/regex.ebnf` now models whitespace as its own quantifiable literal atom while also accepting bare quote literals. The focused generated-backend repros for `"`, `" *"`, `"\t*"`, and `"  *"` now pass.
 - Refreshed the measured regex parser-backed quality baseline after that fix using a regex-only `ebnf_stimuli_quality_gate` contract slice. The fresh direct summary records `parseability_attempts_total=197`, `parseability_accepted_total=197`, `parseability_rejected_total=0`, `parseability_parser_rejections_total=0`, `parseability_acceptance_rate_percent=100.00`, and remaining target debt `initial_targets=355`, `resolved_targets=233`, `final_targets=122`, so regex closure is now blocked by target debt rather than parser rejections on the current direct stimuli surface.
+- 2026-03-31: Rejected a SystemVerilog-preprocessor directive-keyword refactor that moved leading `inline_trivia` from the `kw_*` tokens onto the surrounding `pp_*` directive productions in `grammars/systemverilog_preprocessor.ebnf`.
+  - Reason for trying it:
+    - the retained preprocessor counterexamples are still comment-to-directive shaped, and direct repros such as `/*a*/\`ifdef A` were failing at the directive boundary
+  - Why it was rejected:
+    - the focused gate regressed from the retained `38/33/5/5` baseline to `43/33/10/10`
+    - `sv_preprocessor_quality_gate` failed with `pp_if_branch conditional family not fully exercised in final coverage`
+    - the exact minimal repros still failed unchanged:
+      - `/*a*/\`ifdef A` at position `5`
+      - `/*a*//*b*/\`ifdef A` at position `10`
+      - `/*a*/ /*b*/\`ifdef A` at position `11`
+  - Net result:
+    - this refactor did not solve the real parser seam and also made the focused proof lane worse, so it was reverted immediately
