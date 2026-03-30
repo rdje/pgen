@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: thread-sv-preprocessor-formal-closure-through-proof-stack)
+Last updated: 2026-03-30 (+0200, task: reduce-sv-preprocessor-parseability-debt-with-stimuli-only-tail-hint)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,34 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Reduced the retained `systemverilog_preprocessor` parser-rejection surface with a stimuli-only grammar annotation:
+  - [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf)
+  - landed shape:
+    - `@sample: " tail"` on `directive_tail`
+    - parser regex kept unchanged
+- Why this shape was kept:
+  - a broader shared parser narrowing that excluded backticks from `directive_tail` regressed the focused quality gate to `19` parser rejections and was intentionally reverted
+  - the retained sample hint keeps parser acceptance broad while steering generation away from fake same-line directive-looking tails
+- Current retained focused proof:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+    - `parseability_attempts_total=39`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=6`
+    - `parseability_parser_rejections_total=6`
+    - `stage0_target_count=22`
+    - `final_targets=0`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+    - `parseability_counterexamples_captured_total=6`
+    - `counterexample_primary_shrunk_sample=/*\``
+    - `counterexample_primary_shrunk_sample_count=3`
+- Validation completed for this slice:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- Important steering for the next session:
+  - treat this as a stimuli-only fix, not a parser-surface narrowing
+  - do not blindly retry the `directive_tail` backtick exclusion experiment
+  - if preprocessor work continues next, start from the fresh `6`-rejection aggregate lane, not the older `10`-rejection note
+
 - Threaded the retained SystemVerilog-preprocessor formal exhaustive-closure sidecar through the aggregate proof stack:
   - [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh)
   - [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh)

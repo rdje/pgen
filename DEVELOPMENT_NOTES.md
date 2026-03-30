@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog preprocessor parseability: keep stimuli-only tail steering, reject parser narrowing
+### Context
+The retained `systemverilog_preprocessor` blocker is parser-rejection debt, but the first obvious grammar experiment was not safe as a shared parser+stimuli change. Narrowing `directive_tail` to exclude backticks caused the focused quality gate to worsen materially (`19` parser rejections), because same-line directive-looking tails became hard parse failures instead of remaining accepted tail text.
+
+### Implementation
+- Updated [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
+  - added `@sample: " tail"` on `directive_tail`
+  - left `directive_tail := inline_trivia /[^\r\n]+/` unchanged
+- Why this is the retained shape:
+  - parser acceptance stays broad
+  - stimuli generation stops preferentially inventing fake same-line backtick directives inside directive tails
+  - this follows the repo rule that grammar changes must be classified as parser-only, stimuli-only, or shared before they are kept
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - retained quality result:
+    - `parseability_attempts_total=39`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=6`
+    - `parseability_parser_rejections_total=6`
+    - `stage0_target_count=22`
+    - `final_targets=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - retained aggregate result:
+    - `parseability_counterexamples_captured_total=6`
+    - `counterexample_primary_shrunk_sample=/*\``
+    - `counterexample_primary_shrunk_sample_count=3`
+- Rejected direction explicitly recorded for future sessions:
+  - excluding backticks from `directive_tail` is not keepable on the shared grammar surface
+  - it worsened the measured rejection surface and should not be retried blindly
+
 ## 2026-03-30 - SystemVerilog preprocessor formal closure: thread sidecar through retained aggregate proof stack
 ### Context
 The new `sv_preprocessor_formal_exhaustive_closure_gate` existed, but the retained proof stack above it still behaved as if the sidecar were local-only. `sv_parser_family_status_gate`, its contract sidecar, aggregate `sota_exit_gate` telemetry, and `sv_combined_telemetry_contract_gate` were not yet preserving the preprocessor formal-closure provenance end to end.

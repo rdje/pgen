@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-03-30 - Reduce SV-preprocessor parseability debt with stimuli-only tail hint
+### ✅ Achievement Summary
+The retained SystemVerilog-preprocessor improvement is now a stimuli-only semantic hint rather than a shared parser grammar narrowing. This keeps parser acceptance broad while reducing fake same-line directive debt in the preprocessor quality lane.
+
+### Scope of Changes
+- Updated [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
+  - added `@sample: " tail"` on `directive_tail`
+  - kept the parser regex itself unchanged, so accepted syntax is not narrowed
+- Updated live continuity/status docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - fresh retained quality snapshot:
+    - `parseability_attempts_total=39`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=6`
+    - `parseability_parser_rejections_total=6`
+    - `final_targets=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - fresh retained aggregate snapshot:
+    - `parseability_parser_rejections_total=6`
+    - `parseability_counterexamples_captured_total=6`
+    - `counterexample_primary_shrunk_sample=/*\``
+    - `counterexample_primary_shrunk_sample_count=3`
+    - `stage0_target_count=22`
+    - `final_targets=0`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+
 ## 2026-03-30 - Thread SV-preprocessor formal closure through aggregate proof stack
 ### ✅ Achievement Summary
 The new SystemVerilog-preprocessor formal exhaustive-closure sidecar is now preserved through the retained aggregate proof stack instead of living only as a standalone gate artifact.

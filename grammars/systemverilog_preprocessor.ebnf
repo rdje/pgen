@@ -115,6 +115,7 @@ macro_stringize := inline_trivia /`"/
 pp_non_directive_line := non_directive_text newline?
 pp_blank_line := newline
 non_directive_text := inline_trivia /[^`\r\n][^\r\n]*/
+@sample: " tail"
 directive_tail := inline_trivia /[^\r\n]+/
 
 # ---------------------------------------------------------------------------

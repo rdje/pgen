@@ -1301,6 +1301,9 @@ Operational rule:
 - `systemverilog_preprocessor`
   - Also env-driven, but not just a smaller copy of parser-only families
   - Its runtime semantics include macro expansion, include handling, conditional policy, source mapping, diagnostics, and strict-promotion-adjacent behavior
+  - The latest retained closure reduction was intentionally stimuli-only: [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) now gives `directive_tail` the sample hint `@sample: " tail"` so generation stops preferring fake same-line backtick directives inside tail text while the parser still accepts the broader tail surface
+  - Fresh focused proof on that retained shape now records `parseability_attempts_total=39`, `parseability_accepted_total=33`, `parseability_rejected_total=6`, `parseability_parser_rejections_total=6`, `parseability_counterexamples_captured_total=6`, `stage0_target_count=22`, and `final_targets=0` in the preprocessor aggregate contract lane
+  - A tempting shared parser+stimuli change was explicitly rejected during this slice: excluding backticks from `directive_tail` made the measured rejection surface worse, so future work should not retry that narrowing blindly
 - `vhdl`
   - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
   - In practice it is strongly coupled to quality/parseability, strict-promotion, and now a dedicated formal-exhaustive-closure proof surface
