@@ -3543,6 +3543,13 @@ Why `rtl_frontend` exists:
       - `syntax_closure_gate_status=fail failure_count=2`
       - `shadow_parser_rejections_total=3 > 0`
       - `focused_replay_target_count=2550 > 0`
+- 2026-03-30: `sv_preprocessor_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog-preprocessor grammar-level proof surface explicit.
+  - command:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`
+  - effect:
+    - this is proof normalization, not a grammar or parser-quality promotion
+    - the new sidecar reuses the existing `sv_preprocessor_syntax_closure_gate`, `sv_preprocessor_aggregate_contract_gate`, and `sv_preprocessor_reachability_closure_gate` evidence and turns the grammar-level missing-proof placeholder into a first-class machine-checkable artifact
+    - the `systemverilog_preprocessor` row still remains `Mostly Done`; the active blocker is now explicitly the absence of a zero-plausible-gap grammar-level closure proof, not the absence of any formal-closure sidecar at all
   - roadmap implication:
     - this proof-plumbing normalization is now done
     - the next SystemVerilog closure slice should go back to parser-debt reduction rather than revisiting formal-closure provenance wiring

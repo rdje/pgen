@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: fold-sv-formal-closure-into-aggregate-proof-stack)
+Last updated: 2026-03-30 (+0200, task: add-sv-preprocessor-formal-closure-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added the explicit SystemVerilog-preprocessor formal exhaustive-closure sidecar:
+  - [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh)
+  - [rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json)
+- This is proof normalization, not a grammar or status promotion.
+- Current retained `systemverilog_preprocessor` formal-closure snapshot:
+  - `syntax_closure_surface_green=true`
+  - `aggregate_contract_surface_green=true`
+  - `reachability_closure_surface_green=true`
+  - `zero_plausible_grammar_level_gap_proof_surface=false`
+  - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=false`
+  - `primary_unmet_closure_criterion=SystemVerilog preprocessor still lacks an explicit grammar-level exhaustive proof surface that can turn the current bounded syntax, aggregate, and reachability evidence into a zero-plausible-gap closure claim.`
+- Updated:
+  - [rust/Makefile](rust/Makefile)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+- Reuse-backed validation passed:
+  - `bash -n rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh`
+  - reuse-backed `sv_preprocessor_formal_exhaustive_closure_gate`
+  - `bash -n rust/scripts/ci_workflow_local_gate.sh`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- Future-session steering from this slice:
+  - do not describe `systemverilog_preprocessor` as missing any formal-closure sidecar now
+  - the missing piece is narrower: promote the new sidecar from explicit missing-proof placeholder to a real zero-plausible-gap grammar-level proof surface
+
 - Folded the new SystemVerilog formal-closure sidecar through the retained proof stack:
   - [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh)
   - [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh)

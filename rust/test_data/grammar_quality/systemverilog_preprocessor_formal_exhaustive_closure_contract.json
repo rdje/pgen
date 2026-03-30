@@ -1,0 +1,7 @@
+{
+  "family": "systemverilog_preprocessor",
+  "version": 1,
+  "done_rule": "Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt, no remaining staged coverage/gap debt, and no plausible grammar-level gap remaining for the family claim.",
+  "required_surface_key": "zero_plausible_grammar_level_gap_proof_surface",
+  "required_surface_missing_detail": "SystemVerilog preprocessor still lacks an explicit grammar-level exhaustive proof surface that can turn the current bounded syntax, aggregate, and reachability evidence into a zero-plausible-gap closure claim."
+}

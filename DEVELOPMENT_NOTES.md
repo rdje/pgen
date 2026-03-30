@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog preprocessor formal closure: add explicit grammar-level missing-proof sidecar
+### Context
+The `systemverilog_preprocessor` row already had strong bounded evidence:
+- `sv_preprocessor_syntax_closure_gate`
+- `sv_preprocessor_aggregate_contract_gate`
+- `sv_preprocessor_reachability_closure_gate`
+
+But unlike regex, VHDL, and now main SystemVerilog, it still lacked the explicit “formal exhaustive closure surface present or missing” sidecar. That made the remaining gap real but under-specified.
+
+### Implementation
+- Added [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh):
+  - reuses or runs the retained preprocessor syntax, aggregate, and reachability sidecars
+  - validates the checked-in contract file
+  - emits both `summary.txt` and `summary.json`
+  - intentionally keeps `zero_plausible_grammar_level_gap_proof_surface=false`
+- Added [rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json):
+  - the required proof key is `zero_plausible_grammar_level_gap_proof_surface`
+  - the missing-detail string makes the current blocker explicit and machine-readable
+- Updated [rust/Makefile](rust/Makefile):
+  - added the user-facing target/help wiring
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now locks the new preprocessor formal-closure gate, contract, Makefile help line, and doc references
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - the row now reflects that the sidecar exists
+  - the remaining blocker is now described as promotion of that sidecar into a genuine zero-plausible-gap proof, not absence of any formal-closure gate
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh`
+- reuse-backed preprocessor formal closure:
+  - `env PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_syntax_closure_gate PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_REACHABILITY_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate bash rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh`
+  - current retained summary:
+    - `syntax_closure_surface_green=true`
+    - `aggregate_contract_surface_green=true`
+    - `reachability_closure_surface_green=true`
+    - `zero_plausible_grammar_level_gap_proof_surface=false`
+    - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=false`
+    - `primary_unmet_closure_criterion=SystemVerilog preprocessor still lacks an explicit grammar-level exhaustive proof surface that can turn the current bounded syntax, aggregate, and reachability evidence into a zero-plausible-gap closure claim.`
+- `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+
 ## 2026-03-30 - SystemVerilog formal closure: thread the new sidecar through family status and aggregate telemetry
 ### Context
 The standalone SystemVerilog formal-closure gate was landed, but the proof stack was still asymmetric:

@@ -2032,6 +2032,74 @@ audit_sv_formal_exhaustive_closure_surface() {
     '`sv_formal_exhaustive_closure_gate` when the task is SystemVerilog external-corpus proof normalization'
 }
 
+audit_sv_preprocessor_formal_exhaustive_closure_surface() {
+  note "auditing SV preprocessor formal exhaustive-closure surface"
+
+  assert_tracked "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh"
+  assert_tracked "rust/scripts/sv_preprocessor_syntax_closure_gate.sh"
+  assert_tracked "rust/scripts/sv_preprocessor_aggregate_contract_gate.sh"
+  assert_tracked "rust/scripts/sv_preprocessor_reachability_closure_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json"
+
+  assert_file_contains \
+    "rust/Makefile" \
+    'sv_preprocessor_formal_exhaustive_closure_gate - Compute the explicit SV-preprocessor exhaustive-closure proof surface status from syntax, aggregate, and reachability sidecars'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh'
+
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json" \
+    '"required_surface_key": "zero_plausible_grammar_level_gap_proof_surface"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json" \
+    '"required_surface_missing_detail": "SystemVerilog preprocessor still lacks an explicit grammar-level exhaustive proof surface'
+
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_syntax_closure_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'AGGREGATE_CONTRACT_GATE="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'REACHABILITY_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'EXISTING_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_SYNTAX_CLOSURE_STATE_DIR:-}"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'EXISTING_AGGREGATE_CONTRACT_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_AGGREGATE_CONTRACT_STATE_DIR:-}"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'EXISTING_REACHABILITY_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_REACHABILITY_CLOSURE_STATE_DIR:-}"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'aggregate_contract_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'reachability_closure_summary_txt'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'zero_plausible_grammar_level_gap_proof_surface'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'systemverilog_preprocessor_formal_exhaustive_closure_surface_green'
+
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
+    'make -C rust SHELL=/bin/bash sv_preprocessor_formal_exhaustive_closure_gate'
+  assert_file_contains \
+    "LIVE_ACHIEVEMENT_STATUS.md" \
+    '`make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`'
+  assert_file_contains \
+    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    '`sv_preprocessor_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog-preprocessor grammar-level proof surface explicit'
+  assert_file_contains \
+    "RUST_CODEBASE_ANALYSIS.md" \
+    '`sv_preprocessor_formal_exhaustive_closure_gate` when the task is SystemVerilog-preprocessor formal-closure proof normalization'
+}
+
 audit_sv_aggregate_contract_proof_surface() {
   note "auditing SV aggregate-contract proof-surface emission surface"
 
@@ -2156,6 +2224,7 @@ main() {
   audit_regex_pcre2_compile_oracle_surface
   audit_regex_formal_exhaustive_closure_surface
   audit_sv_formal_exhaustive_closure_surface
+  audit_sv_preprocessor_formal_exhaustive_closure_surface
   audit_vhdl_formal_exhaustive_closure_surface
   audit_sv_aggregate_contract_proof_surface
   audit_summary_json_emission_surface

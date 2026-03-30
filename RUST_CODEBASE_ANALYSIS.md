@@ -946,6 +946,13 @@ For SystemVerilog external-corpus proof normalization, narrow quickly to:
 - `rust/scripts/sota_exit_gate.sh` when the task is aggregate proof-surface propagation
 - `rust/scripts/sv_combined_telemetry_contract_gate.sh` when the task is aggregate parity over retained SystemVerilog sidecars
 
+For SystemVerilog-preprocessor formal-closure proof normalization, narrow quickly to:
+- `sv_preprocessor_formal_exhaustive_closure_gate` when the task is SystemVerilog-preprocessor formal-closure proof normalization
+- `rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh` when the task is SystemVerilog-preprocessor formal-closure proof normalization
+- `rust/scripts/sv_preprocessor_syntax_closure_gate.sh`
+- `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
+- `rust/scripts/sv_preprocessor_reachability_closure_gate.sh`
+
 For annotation-specific proof plumbing, narrow quickly to:
 - `annotation_contract_gate`
 - `semantic_full_contract_gate`

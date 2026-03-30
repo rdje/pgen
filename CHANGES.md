@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-03-30 - Add SystemVerilog-preprocessor formal closure gate
+### ✅ Achievement Summary
+The SystemVerilog-preprocessor proof stack now has an explicit formal exhaustive-closure sidecar. This does not promote the row; it makes the remaining grammar-level missing-proof surface machine-checkable instead of implicit.
+
+### Scope of Changes
+- Added [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh):
+  - reuses or runs the retained `sv_preprocessor_syntax_closure_gate`, `sv_preprocessor_aggregate_contract_gate`, and `sv_preprocessor_reachability_closure_gate`
+  - emits `summary.txt` / `summary.json` for the current explicit missing-proof placeholder state
+- Added [rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json):
+  - formalizes required proof key `zero_plausible_grammar_level_gap_proof_surface`
+- Updated [rust/Makefile](rust/Makefile):
+  - added `sv_preprocessor_formal_exhaustive_closure_gate` help text and target wiring
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now locks the new preprocessor formal-closure gate, contract, and doc references
+- Updated operator/continuity docs:
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh`
+- reuse-backed preprocessor formal closure:
+  - `env PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_syntax_closure_gate PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_REACHABILITY_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate bash rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh`
+- `bash -n rust/scripts/ci_workflow_local_gate.sh`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+
 ## 2026-03-30 - Fold SystemVerilog formal closure into status and aggregate proof surfaces
 ### ✅ Achievement Summary
 The new SystemVerilog formal exhaustive-closure sidecar is no longer an isolated proof object. The current retained script stack now preserves that provenance through the SystemVerilog family-status sidecar, the family-status contract sidecar, aggregate `sota_exit_gate` telemetry, and `sv_combined_telemetry_contract_gate`.
