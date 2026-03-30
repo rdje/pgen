@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - VHDL replay-target closure: reject exact-rule critical-path steering
+### Context
+The retained `vhdl` family state is already down to one blocker:
+- `quality_closed_loop_replay_targets=11 > 0`
+
+I tried a deliberately narrow grammar-side steering pass aimed only at those unresolved replay targets, without widening the accepted language:
+- `@coverage_target: 2`
+- `@critical_path: true`
+- narrow `@branch_policy: priority_first` / `@priority` only on:
+  - `type_definition`
+  - `range_expression`
+  - `actual_parameter_element`
+  - `aggregate`
+
+### Why It Was Rejected
+- It did not reduce the retained replay-target debt at all.
+- The replay gap remained exactly:
+  - `closed_loop_replay_targets=11`
+  - `Rules: covered 215/215`
+  - `Branches: covered 176/187`
+- The run was also materially slower than the retained baseline, spending several minutes in replay generation with no debt reduction.
+
+### Steering
+- The experiment was reverted from [grammars/vhdl.ebnf](grammars/vhdl.ebnf).
+- Do not retry this exact-rule `@coverage_target` / `@critical_path` blanket on the remaining VHDL replay-debt rules unless generator behavior changes materially first.
+- Current retained VHDL baseline is still the one already documented:
+  - whitespace-biased `trivia`
+  - newline/EOF-terminated `line_comment`
+  - `--enforce-word-boundary-spacing`
+  - explicit `end process` / `end procedure` / `end function`
+- The unresolved replay-target set is still the same known list from the retained baseline, so the next keepable move likely needs a more targeted generator-side intervention rather than broad grammar-side “critical path” marking.
+
 ## 2026-03-30 - SystemVerilog main parser: reject lexical comment-steering shortcuts
 ### Context
 The current active `systemverilog` closure blockers are still:

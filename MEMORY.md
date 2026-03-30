@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: record-rejected-sv-main-parser-comment-steering)
+Last updated: 2026-03-30 (+0200, task: record-rejected-vhdl-critical-path-steering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,26 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tried and rejected a narrow VHDL replay-target steering pass in [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
+  - added `@coverage_target: 2` / `@critical_path: true` across the remaining unresolved replay-debt rules
+  - added narrow priority steering on:
+    - `type_definition`
+    - `range_expression`
+    - `actual_parameter_element`
+    - `aggregate`
+- Why it was rejected:
+  - it did not improve the retained VHDL replay debt at all
+  - replay stayed at:
+    - `closed_loop_replay_targets=11`
+    - `Rules: covered 215/215`
+    - `Branches: covered 176/187`
+  - the run was materially slower than the retained baseline and spent several minutes in replay generation with no target reduction
+- Steering:
+  - the experiment was reverted; [grammars/vhdl.ebnf](grammars/vhdl.ebnf) is back on the retained baseline
+  - do not retry this blanket exact-rule `@coverage_target` / `@critical_path` pattern on the remaining VHDL replay-debt rules unless generator behavior changes first
+  - current retained VHDL blocker is still only:
+    - `quality_closed_loop_replay_targets=11 > 0`
+
 - Tried and rejected two main `systemverilog` comment-steering shortcuts in [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf):
   - direct lexical sample hint on `line_comment`:
     - `@sample: "//\n"`

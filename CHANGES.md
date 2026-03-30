@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-03-30 - Record rejected VHDL exact-rule critical-path steering experiment
+### ✅ Achievement Summary
+No VHDL grammar change was retained in this slice. A narrow exact-rule steering experiment was tried against the remaining `vhdl` replay-target debt, but it neither reduced the `11` unresolved replay targets nor stayed runtime-competitive with the retained baseline, so it was reverted and recorded for continuity only.
+
+### Scope of Changes
+- Updated continuity docs only:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Explicitly recorded the rejected direction:
+  - added `@coverage_target: 2` / `@critical_path: true` across the remaining unresolved VHDL structural rules, plus narrow priority steering on:
+    - `type_definition`
+    - `range_expression`
+    - `actual_parameter_element`
+    - `aggregate`
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - replay remained stuck at the same retained debt surface:
+    - `closed_loop_replay_targets=11`
+    - `Rules: covered 215/215`
+    - `Branches: covered 176/187`
+  - the replay run was materially slower than the retained baseline and was abandoned after confirming there was no target reduction
+- `git diff --check`
+
 ## 2026-03-30 - Record rejected SV main-parser comment-steering experiments
 ### ✅ Achievement Summary
 No main SystemVerilog grammar change was retained in this slice. Two comment-steering experiments were tried against the active `systemverilog` closure lane, both regressed `sv_stimuli_quality_gate` catastrophically, and both were reverted. The retained outcome is continuity only: future sessions now know not to retry these directions blindly.
