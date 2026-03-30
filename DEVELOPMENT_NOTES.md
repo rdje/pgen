@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - VHDL replay-target closure: reject lexical simplification and trivia rebias
+### Context
+After rejecting blanket exact-rule `@coverage_target` / `@critical_path` steering, I tried two even narrower stimuli-only lexical directions against the same retained VHDL blocker:
+- broad lexical simplification via `@sample` hints on:
+  - `identifier`
+  - `unsigned_number`
+  - `string_literal`
+  - `character_literal`
+- a targeted trivia comment rebias by changing:
+  - `@priority: [32, 1]`
+  - to `@priority: [8, 1]`
+
+### Why They Were Rejected
+- The lexical simplification pass was not keepable:
+  - it improved some operational counters, but replay debt regressed badly from `11` to `20`
+  - fresh regressed surface:
+    - `closed_loop_initial_targets=229`
+    - `closed_loop_replay_targets=20`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=33`
+  - the unresolved target set also widened materially, including new debt on `architecture_declarative_item`, `package_declarative_item`, `process_declarative_item`, `subprogram_declarative_item`, additional `sequential_statement` branches, and `primary::aggregate`
+- The trivia rebias was a true no-op on the measured retained lane:
+  - `closed_loop_initial_targets=247`
+  - `closed_loop_replay_targets=11`
+  - `closed_loop_parseability_shadow_attempts_total=482`
+  - `closed_loop_parseability_shadow_accepted_total=482`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - the stubborn `trivia::line_comment` debt still remained `selected=0 success=0`
+
+### Steering
+- Both experiments were reverted from [grammars/vhdl.ebnf](grammars/vhdl.ebnf).
+- Do not retry either of these VHDL lexical directions blindly:
+  - broad `@sample` simplification on the core lexical/value rules
+  - simple `trivia` priority rebias toward comments
+- The retained VHDL baseline is still unchanged:
+  - `trivia` priority `[32, 1]`
+  - newline/EOF-terminated `line_comment`
+  - `--enforce-word-boundary-spacing`
+  - explicit `end process` / `end procedure` / `end function`
+- The next keepable direction likely needs either:
+  - more targeted generator-side handling for selected-but-failed branch assembly, or
+  - a much narrower grammar-side intervention tied to one concrete unresolved branch family rather than global lexical steering
+
 ## 2026-03-30 - VHDL replay-target closure: reject exact-rule critical-path steering
 ### Context
 The retained `vhdl` family state is already down to one blocker:

@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-03-30 - Record rejected VHDL lexical steering follow-ups
+### ✅ Achievement Summary
+No VHDL grammar change was retained in this slice. Two stimuli-only lexical steering experiments were tried against the last remaining VHDL replay-target blocker, and neither was keepable:
+- a broad lexical simplification pass made replay debt materially worse
+- a narrower trivia comment-rebias pass was a measured no-op
+
+### Scope of Changes
+- Updated continuity docs only:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Explicitly recorded the rejected directions:
+  - lexical sample hints on `identifier`, `unsigned_number`, `string_literal`, and `character_literal`
+  - `trivia` comment rebias from `@priority: [32, 1]` to `@priority: [8, 1]`
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - lexical simplification regression:
+    - `closed_loop_initial_targets=229`
+    - `closed_loop_replay_targets=20`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=33`
+  - trivia rebias no-op:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - `closed_loop_parseability_shadow_attempts_total=482`
+    - `closed_loop_parseability_shadow_accepted_total=482`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `git diff --check`
+
 ## 2026-03-30 - Record rejected VHDL exact-rule critical-path steering experiment
 ### ✅ Achievement Summary
 No VHDL grammar change was retained in this slice. A narrow exact-rule steering experiment was tried against the remaining `vhdl` replay-target debt, but it neither reduced the `11` unresolved replay targets nor stayed runtime-competitive with the retained baseline, so it was reverted and recorded for continuity only.

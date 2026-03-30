@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: record-rejected-vhdl-critical-path-steering)
+Last updated: 2026-03-30 (+0200, task: record-rejected-vhdl-lexical-steering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tried and rejected two more stimuli-only VHDL lexical steering follow-ups in [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
+  - broad lexical simplification via `@sample` hints on:
+    - `identifier`
+    - `unsigned_number`
+    - `string_literal`
+    - `character_literal`
+  - trivia comment rebias:
+    - `@priority: [32, 1] -> [8, 1]`
+- Why they were rejected:
+  - lexical simplification regressed replay debt badly:
+    - `closed_loop_initial_targets=229`
+    - `closed_loop_replay_targets=20`
+    - `closed_loop_parseability_shadow_alternate_entry_rejected_outputs_total=33`
+    - unresolved debt widened into additional declarative/sequential/aggregate branches
+  - trivia rebias was a true no-op on the retained lane:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - `closed_loop_parseability_shadow_attempts_total=482`
+    - `closed_loop_parseability_shadow_accepted_total=482`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `trivia::line_comment` still remained `selected=0 success=0`
+- Steering:
+  - both experiments were reverted; [grammars/vhdl.ebnf](grammars/vhdl.ebnf) is back on the retained baseline
+  - do not retry either of these lexical directions blindly
+  - current retained VHDL blocker is still only:
+    - `quality_closed_loop_replay_targets=11 > 0`
+
 - Tried and rejected a narrow VHDL replay-target steering pass in [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
   - added `@coverage_target: 2` / `@critical_path: true` across the remaining unresolved replay-debt rules
   - added narrow priority steering on:
