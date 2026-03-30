@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: record-rejected-vhdl-lexical-steering)
+Last updated: 2026-03-30 (+0200, task: record-rejected-vhdl-target-throttle-relaxation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,29 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tried and rejected a narrow Rust-side VHDL target-drive change in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - capped the zero-success branch failure throttle inside `coverage_guidance_multiplier(...)` so unresolved targets would stay more probeable
+  - added a temporary focused unit test alongside the existing `coverage_guidance_multiplier` test
+- Why it was rejected:
+  - focused Rust tests passed, but the real VHDL lane regressed:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=12`
+    - `closed_loop_parseability_shadow_attempts_total=421`
+    - `closed_loop_parseability_shadow_accepted_total=421`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - it also widened the wrong surface:
+    - new rule debt:
+      - `parameter_interface_element`
+      - `parameter_list`
+    - new/replaced branch debt included:
+      - `discrete_range::root#0`
+      - `sequential_statement::root#3` (`case_statement`)
+- Steering:
+  - the generator patch and temporary test were both reverted
+  - do not retry this simple zero-success throttle cap blindly
+  - current retained VHDL blocker is still only:
+    - `quality_closed_loop_replay_targets=11 > 0`
+
 - Tried and rejected two more stimuli-only VHDL lexical steering follow-ups in [grammars/vhdl.ebnf](grammars/vhdl.ebnf):
   - broad lexical simplification via `@sample` hints on:
     - `identifier`

@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-03-30 - Record rejected VHDL target-throttle relaxation
+### ✅ Achievement Summary
+No code change was retained in this slice. I tried a narrow Rust-side target-drive relaxation in [stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) so unresolved zero-success branches would remain more probeable, but the real VHDL lane regressed from `11` replay targets to `12` total actionable targets and introduced new rule debt, so the patch was reverted and recorded for continuity only.
+
+### Scope of Changes
+- Updated continuity docs only:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Explicitly recorded the rejected direction:
+  - capping target-drive failure throttle for zero-success unresolved branches inside `coverage_guidance_multiplier(...)`
+
+### Validation
+- `cargo test --lib coverage_guidance_multiplier -- --nocapture`
+  - focused generator tests passed during the experiment, including the temporary new zero-success-probeability test
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - regressed retained VHDL closure shape:
+    - `closed_loop_replay_targets=12`
+    - new rule debt:
+      - `parameter_interface_element`
+      - `parameter_list`
+    - new/replaced branch debt included:
+      - `sequential_statement#case_statement`
+      - `discrete_range#range_expression`
+- `git diff --check`
+
 ## 2026-03-30 - Record rejected VHDL lexical steering follow-ups
 ### ✅ Achievement Summary
 No VHDL grammar change was retained in this slice. Two stimuli-only lexical steering experiments were tried against the last remaining VHDL replay-target blocker, and neither was keepable:

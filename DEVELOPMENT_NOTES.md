@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - VHDL replay-target closure: reject target-throttle relaxation in generator
+### Context
+After multiple grammar-side dead ends, I tried a much narrower Rust-side generator change in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+- when a branch still had real target deficit but zero successes, cap the failure throttle inside `coverage_guidance_multiplier(...)` so it would stay more probeable instead of collapsing to effective weight `1`
+
+This matched the retained VHDL failure shape pretty well on paper: many unresolved replay targets were `selected_but_failed` with very large `selected` counts and `success=0`.
+
+### Why It Was Rejected
+- The focused generator tests passed, but the real VHDL closure lane got worse instead of better.
+- Fresh regressed VHDL quality result:
+  - `closed_loop_initial_targets=247`
+  - `closed_loop_replay_targets=12`
+  - `closed_loop_parseability_shadow_attempts_total=421`
+  - `closed_loop_parseability_shadow_accepted_total=421`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+- More importantly, the unresolved debt shape widened in the wrong direction:
+  - new rule debt:
+    - `parameter_interface_element`
+    - `parameter_list`
+  - new/replaced branch debt included:
+    - `discrete_range::root#0`
+    - `sequential_statement::root#3` (`case_statement`)
+- So the patch did not simply “trade one branch for another” inside the same retained surface; it changed the overall replay search enough to lose the previously clean no-rule-debt baseline.
+
+### Steering
+- The generator patch and its temporary unit test were both reverted.
+- Do not retry this simple zero-success throttle cap blindly.
+- The retained doctrine still stands:
+  - VHDL remains one blocker away on the checked-in baseline (`quality_closed_loop_replay_targets=11 > 0`)
+  - but the next keepable move must preserve the no-rule-debt shape and not widen the replay surface just to reshuffle unresolved targets
+
 ## 2026-03-30 - VHDL replay-target closure: reject lexical simplification and trivia rebias
 ### Context
 After rejecting blanket exact-rule `@coverage_target` / `@critical_path` steering, I tried two even narrower stimuli-only lexical directions against the same retained VHDL blocker:
