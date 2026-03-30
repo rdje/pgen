@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-03-30 - Refresh SV-preprocessor proof stack to retained 5-reject baseline
+### ✅ Achievement Summary
+No grammar or Rust source change was retained in this slice. I refreshed the higher-level SystemVerilog preprocessor proof stack so it now consumes the same retained aggregate baseline already documented elsewhere: `parseability_attempts_total=38`, `parseability_accepted_total=33`, `parseability_rejected_total=5`, `parseability_parser_rejections_total=5`, and `final_targets=0`.
+
+### Scope of Changes
+- Updated live/analysis/continuity docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Refreshed machine-checked proof readers so they all agree on the retained preprocessor baseline:
+  - `sv_preprocessor_formal_exhaustive_closure_gate`
+  - `sv_parser_family_status_gate`
+  - `sv_parser_family_status_contract_gate`
+  - lightweight `sota_exit_gate`
+  - `sv_combined_telemetry_contract_gate`
+- Recorded the important reuse rules for future sessions:
+  - use `rust/target/sv_parser_aggregate_contract_gate_json_proof` for main-SV aggregate reuse, not the plain `sv_parser_aggregate_contract_gate` directory whose `summary.txt` is empty
+  - use `rust/target/sv_failure_context_contract_gate_json_proof` and `rust/target/sv_roundtrip_contract_gate_json_proof` for lightweight SOTA reuse, not the plain directories, or the SOTA summary degrades to `passed_with_informational_failures`
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+- `env PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`
+- `env PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_formal_exhaustive_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR=rust/target/sv_semantic_scope_contract_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_formal_exhaustive_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR=rust/target/sv_external_corpus_triage_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_gate`
+- `env PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=rust/target/sv_parser_family_status_gate make -C rust SHELL=/opt/homebrew/bin/bash sv_parser_family_status_contract_gate`
+- `env PGEN_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_svpp_5reject_lightweight_refresh PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_formal_exhaustive_closure_gate PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=rust/target/sv_failure_context_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=rust/target/sv_roundtrip_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=rust/target/sv_parser_family_status_contract_gate bash rust/scripts/sota_exit_gate.sh`
+- `env PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_svpp_5reject_lightweight_refresh make -C rust SHELL=/opt/homebrew/bin/bash sv_combined_telemetry_contract_gate`
+
 ## 2026-03-30 - Record rejected SV-preprocessor inline-trivia comment rebias
 ### ✅ Achievement Summary
 No preprocessor grammar change was retained in this slice. I tried a very narrow stimuli-side rebias on `inline_trivia` to prefer spaces over block comments around directive lines, but the focused preprocessor quality lane regressed badly, so the grammar was reverted and the result was recorded for continuity only.

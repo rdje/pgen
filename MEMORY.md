@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: record-rejected-svpp-inline-trivia-rebias)
+Last updated: 2026-03-30 (+0200, task: refresh-svpp-proof-stack-to-5-reject-baseline)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Refreshed the higher-level `systemverilog_preprocessor` proof stack so it now matches the retained aggregate baseline instead of the older stale `10`-reject snapshot:
+  - aggregate retained truth is still:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+    - `final_targets=0`
+  - refreshed proof readers now agree on that same baseline:
+    - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_contract_gate`
+    - lightweight `sota_exit_gate`
+    - `sv_combined_telemetry_contract_gate`
+- Important reuse rules discovered in this slice:
+  - use `rust/target/sv_parser_aggregate_contract_gate_json_proof` for main-SV aggregate reuse
+  - do not use `rust/target/sv_parser_aggregate_contract_gate`; its `summary.txt` is empty
+  - use `rust/target/sv_failure_context_contract_gate_json_proof` and `rust/target/sv_roundtrip_contract_gate_json_proof` for lightweight SOTA reuse
+  - do not use the plain failure-context / roundtrip dirs if you want `sota_exit_status=passed`; those plain dirs degrade the lightweight SOTA run to `passed_with_informational_failures`
+- Fresh retained higher-level state:
+  - formal closure now reads `aggregate_parseability_parser_rejections_total=5`
+  - family status now reports the real remaining preprocessor blockers:
+    - `parseability_parser_rejections_total=5 > 0`
+    - `parseability_rejected_total=5 > 0`
+    - missing zero-plausible-gap grammar-level exhaustive proof
+  - lightweight SOTA path [rust/target/sota_exit_gate_svpp_5reject_lightweight_refresh](rust/target/sota_exit_gate_svpp_5reject_lightweight_refresh) is green again with `informational_failures=0`
+
 - Tried and rejected a narrow `systemverilog_preprocessor` lexical steering pass in [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
   - `inline_trivia`:
     - `@branch_policy: priority_first`

@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SV preprocessor proof refresh: align higher-level readers on retained 5-reject aggregate
+### Context
+By the start of this slice, the retained `systemverilog_preprocessor` aggregate proof was already:
+- `parseability_attempts_total=38`
+- `parseability_accepted_total=33`
+- `parseability_rejected_total=5`
+- `parseability_parser_rejections_total=5`
+- `final_targets=0`
+
+But the higher-level proof readers were partially stale:
+- `sv_preprocessor_formal_exhaustive_closure_gate` still read an older aggregate state with `10` rejects
+- downstream family-status, lightweight SOTA, and combined-telemetry paths still echoed that older proof shape in some places
+
+### What Was Refreshed
+- reran `sv_preprocessor_aggregate_contract_gate`
+- reran `sv_preprocessor_formal_exhaustive_closure_gate` with the retained aggregate state dir wired explicitly
+- reran `sv_parser_family_status_gate`
+- reran `sv_parser_family_status_contract_gate`
+- reran the lightweight reused `sota_exit_gate`
+- reran `sv_combined_telemetry_contract_gate`
+
+### Important Reuse Rules
+- Use `rust/target/sv_parser_aggregate_contract_gate_json_proof` for main-SV aggregate reuse in family-status/SOTA refreshes.
+- Do not use `rust/target/sv_parser_aggregate_contract_gate` for that purpose; its `summary.txt` is empty.
+- Use `rust/target/sv_failure_context_contract_gate_json_proof` and `rust/target/sv_roundtrip_contract_gate_json_proof` for lightweight SOTA reuse.
+- Do not use the plain failure-context / roundtrip dirs if you need `sota_exit_status=passed`; those plain dirs degrade the lightweight SOTA summary to `passed_with_informational_failures`.
+
+### Result
+- Formal closure now reads:
+  - `aggregate_parseability_parser_rejections_total: 5`
+  - `aggregate_parseability_rejected_total: 5`
+- Family status now reports the preprocessor unmet list as:
+  - `parseability_parser_rejections_total=5 > 0`
+  - `parseability_rejected_total=5 > 0`
+  - missing zero-plausible-gap grammar-level exhaustive proof
+- Lightweight SOTA is green again with:
+  - `sota_exit_status=passed`
+  - `informational_failures=0`
+- Combined telemetry now passes while mirroring the same retained preprocessor baseline end to end.
+
 ## 2026-03-30 - SV preprocessor parseability: reject inline-trivia comment rebias
 ### Context
 The retained `systemverilog_preprocessor` lane already had:
