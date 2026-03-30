@@ -28,6 +28,7 @@ Execution preference for this roadmap:
 - for regex specifically, the remaining embedded-code-block follow-up should proceed through parser-layer structural guarantees plus compact synthetic contract corpora/gates rather than waiting for a large external Lua/JS dataset.
 - RGX's 2026-03-29 downstream maintenance review now treats regex handoff `1.1.1` as integration-ready for starting downstream adoption; the remaining regex caveats are now scope-widening questions rather than baseline contract blockers:
   - stronger JS/Lua shielding guarantees
+  - published `rhai` source-body tag support
   - published `native` / `wasm` tag support
   - stronger semantic AST stability beyond the current shape/schema guarantee
   - host-language wrapper parsing such as `/pattern/flags`

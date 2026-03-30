@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-03-30 - Add deferred Rhai embedded-code support to future regex widening list
+### ✅ Achievement Summary
+Recorded RGX's new `rhai` embedded-code request as planned future regex contract widening, without reopening the closed `regex` family row or interrupting the active `systemverilog` / `vhdl` closure work.
+
+### Scope of Changes
+- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - the deferred regex embedded-code follow-up list now explicitly includes published `rhai` source-body tag support alongside the already planned `native` / `wasm` tag work
+- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+  - session-start steering now reflects the same deferred `rhai` widening target
+- Updated continuity docs:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- reviewed RGX proposal:
+  - `/Users/richarddje/Documents/github/rgx/PGEN_REGEX_EMBEDDED_CODE_BLOCK_CONTRACT_PROPOSAL.md`
+- `git diff --check`
+
 ## 2026-03-30 - Add SystemVerilog formal exhaustive-closure sidecar
 ### ✅ Achievement Summary
 SystemVerilog now has an explicit formal exhaustive-closure proof surface, similar in shape to the existing regex and VHDL lanes. This does not promote the `systemverilog` row yet; it makes the presence of the checked-in external-corpus-backed proof surface machine-checkable and keeps that proof-plumbing concern separate from the remaining parser-debt blockers.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: sv-formal-closure-sidecar)
+Last updated: 2026-03-30 (+0200, task: defer-rhai-regex-widening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,16 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Added RGX's `rhai` embedded-code request to the deferred future regex widening list.
+- This is intentionally planning-only:
+  - `regex` remains closed on its current published contract
+  - `rhai` joins the already deferred embedded-code widening items rather than reopening active grammar work now
+- Updated:
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [CHANGES.md](CHANGES.md)
+
 - Added a new explicit SystemVerilog formal exhaustive-closure sidecar:
   - [rust/scripts/sv_formal_exhaustive_closure_gate.sh](rust/scripts/sv_formal_exhaustive_closure_gate.sh)
   - [rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json)
@@ -191,6 +201,7 @@ Use this file to resume work without replaying full chat history.
   - remaining regex caveats are now explicitly scope-widening rather than blocker-level:
     - stronger AST semantic stability beyond the current JSON envelope/schema contract
     - stronger JS/Lua shielding guarantees
+    - optional published `rhai` source-body tag support
     - optional published `native` / `wasm` tags
     - optional host-language wrapper parsing such as `/pattern/flags`
 - Updated:

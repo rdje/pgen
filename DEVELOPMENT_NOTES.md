@@ -258,6 +258,7 @@ After the regex handoff bump to `1.1.0`, RGX re-reviewed the published downstrea
 - The recorded remaining regex caveats are now framed as contract-widening follow-up:
   - stronger AST semantic stability beyond the current shape/schema contract
   - stronger JS/Lua code-body shielding guarantees
+  - optional published `rhai` source-body tag support
   - optional published `native` / `wasm` tags
   - optional wrapper parsing such as `/pattern/flags`
 
