@@ -26089,3 +26089,21 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `/*a*/ /*b*/\`ifdef A` at position `11`
   - Net result:
     - this refactor did not solve the real parser seam and also made the focused proof lane worse, so it was reverted immediately
+- 2026-03-31: Landed a generator-side SystemVerilog-preprocessor parser fix instead of another grammar tweak.
+  - [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) now disables regex-token auto layout skipping for the normalized `systemverilogpreprocessor` family id, matching the line-oriented preprocessor grammar's explicit same-line trivia model.
+  - The key implementation nuance is now explicit too: parser generation passes the PascalCase family name into `AstBasedGenerator`, so family-specific generator guards must compare against a normalized alphanumeric lowercase id rather than assuming the raw underscore EBNF stem.
+  - Fresh retained proof on the focused preprocessor seam improved from `38/33/5/5` to `37/33/4/4`, with aggregate target debt still `22 -> 0`.
+  - The refreshed preprocessor aggregate triage surface now records:
+    - `counterexample_primary_shrunk_sample=/**/\``
+    - `counterexample_primary_shrunk_sample_count=2`
+  - Rebuilt direct parser repros now pass for:
+    - `/*a*/\`ifdef A`
+    - `/*a*//*b*/\`ifdef A`
+    - `/*a*/ /*b*/\`ifdef A`
+  - The higher-level retained SV preprocessor proof readers were refreshed on that same baseline:
+    - `sv_preprocessor_aggregate_contract_gate`
+    - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_contract_gate`
+    - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_4reject_lightweight_refresh`
+    - `sv_combined_telemetry_contract_gate`

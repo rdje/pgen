@@ -1301,9 +1301,16 @@ Operational rule:
 - `systemverilog_preprocessor`
   - Also env-driven, but not just a smaller copy of parser-only families
   - Its runtime semantics include macro expansion, include handling, conditional policy, source mapping, diagnostics, and strict-promotion-adjacent behavior
-  - The latest retained closure reduction was intentionally stimuli-only: [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) now gives `directive_tail` the whitespace-only sample hint `@sample: " "` so generation stops preferring fake same-line backtick directives inside tail text while the parser still accepts the broader tail surface
-  - Fresh focused proof on that retained shape now records `parseability_attempts_total=38`, `parseability_accepted_total=33`, `parseability_rejected_total=5`, `parseability_parser_rejections_total=5`, `parseability_counterexamples_captured_total=5`, `stage0_target_count=22`, and `final_targets=0` in the preprocessor aggregate contract lane
-  - The higher-level proof readers are now aligned on that same retained aggregate: formal closure, family status, lightweight SOTA telemetry, and combined telemetry all now mirror the `5`-reject / `final_targets=0` baseline instead of the older stale `10`-reject snapshot
+  - The latest retained closure reduction is parser-side, not another grammar-steering tweak: [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) now disables auto layout skipping for regex tokens in the `systemverilog_preprocessor` generated parser family, using the generator's normalized PascalCase grammar identifier instead of only the raw underscore file stem
+  - Root cause:
+    - preprocessor directive rules already encode same-line trivia explicitly via `inline_trivia`
+    - the generated parser was still auto-skipping layout before regex tokens, so line-oriented regex rules like `directive_tail` could hop across a newline and swallow the following directive line
+  - Fresh focused proof on the retained fix now records `parseability_attempts_total=37`, `parseability_accepted_total=33`, `parseability_rejected_total=4`, `parseability_parser_rejections_total=4`, `parseability_counterexamples_captured_total=4`, `stage0_target_count=22`, and `final_targets=0` in the preprocessor aggregate contract lane
+  - The higher-level proof readers are now aligned on that same retained aggregate: formal closure, family status, lightweight SOTA telemetry, and combined telemetry all now mirror the `4`-reject / `final_targets=0` baseline instead of the older stale `5`-reject snapshot
+  - The direct minimal parser repros now pass on the rebuilt generated adapter too:
+    - `/*a*/\`ifdef A`
+    - `/*a*//*b*/\`ifdef A`
+    - `/*a*/ /*b*/\`ifdef A`
   - Important reuse nuance: the stable main-SV aggregate reuse surface is `rust/target/sv_parser_aggregate_contract_gate_json_proof`, and the lightweight SOTA reuse surfaces for failure-context and roundtrip are the `*_json_proof` directories, not the plain gate directories
   - A tempting shared parser+stimuli change was explicitly rejected during this slice: excluding backticks from `directive_tail` made the measured rejection surface worse, so future work should not retry that narrowing blindly
 - `vhdl`

@@ -2422,8 +2422,17 @@ impl AstBasedGenerator {
     // }
 
     fn generate_helper_methods(&self, filename: &str) -> TokenStream {
-        let allow_layout_skip_for_terminals = !self.grammar_name.eq_ignore_ascii_case("regex");
-        let allow_layout_skip_for_regexes = !self.grammar_name.eq_ignore_ascii_case("regex");
+        let normalized_grammar_name = self
+            .grammar_name
+            .chars()
+            .filter(|ch| ch.is_ascii_alphanumeric())
+            .collect::<String>()
+            .to_ascii_lowercase();
+        let allow_layout_skip_for_terminals = normalized_grammar_name != "regex";
+        let allow_layout_skip_for_regexes = !matches!(
+            normalized_grammar_name.as_str(),
+            "regex" | "systemverilogpreprocessor"
+        );
         quote! {
             fn byte_window_lossy(&self, start: usize, end: usize) -> String {
                 if start >= end || start >= self.input.len() {

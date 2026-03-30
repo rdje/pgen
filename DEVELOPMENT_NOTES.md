@@ -26779,3 +26779,38 @@ Architectural north star:
   - conclusion:
     - this was not the right seam; it neither fixed the real parser failure nor preserved the focused quality lane
     - keep the committed keyword-level `inline_trivia` shape and do not retry this refactor blindly
+- 2026-03-31: Landed a parser-side SystemVerilog-preprocessor reduction in the shared generator instead of another grammar hint.
+  - root cause:
+    - the generated preprocessor parser was still auto-skipping layout before regex tokens
+    - line-oriented rules in `grammars/systemverilog_preprocessor.ebnf` already encode same-line trivia explicitly, so that implicit layout skipping let regex rules like `directive_tail` hop across newline boundaries and consume following directive lines
+  - source fix:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+      - normalize the generator grammar id to alphanumeric lowercase
+      - keep `regex` behavior unchanged
+      - also disable regex-token auto layout skipping for the `systemverilogpreprocessor` family id
+    - important implementation nuance:
+      - `generate_parser_ast_based` passes `snake_to_pascal(grammar_name)` into `AstBasedGenerator::new`, so family-level generator guards cannot assume the raw underscore file stem
+  - proof that the fix actually landed:
+    - the freshly emitted `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs` now contains `if skip_leading_whitespace && false {`
+    - after rebuilding `parseability_probe` against that generated parser path, the direct parser repros now all pass:
+      - `/*a*/\`ifdef A`
+      - `/*a*//*b*/\`ifdef A`
+      - `/*a*/ /*b*/\`ifdef A`
+  - retained focused preprocessor-quality baseline after the fix:
+    - `parseability_attempts_total=37`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=4`
+    - `parseability_parser_rejections_total=4`
+    - `parseability_counterexamples_captured_total=4`
+    - `stage0_target_count=22`
+    - `final_targets=0`
+    - dominant aggregate triage bucket:
+      - `counterexample_primary_shrunk_sample=/**/\``
+      - `counterexample_primary_shrunk_sample_count=2`
+  - refreshed higher-level retained readers:
+    - `sv_preprocessor_aggregate_contract_gate`
+    - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_contract_gate`
+    - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_4reject_lightweight_refresh`
+    - `sv_combined_telemetry_contract_gate`

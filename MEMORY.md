@@ -8017,3 +8017,33 @@ Use this file to resume work without replaying full chat history.
   - steering consequence:
     - the real remaining seam is not fixed by relocating `inline_trivia`
     - future work should start from the retained baseline and target a narrower parser or generation issue instead of repeating this refactor
+- 2026-03-31: The retained SystemVerilog-preprocessor improvement is generator-side, not another grammar hint.
+  - real root cause:
+    - generated preprocessor parsers were still auto-skipping layout before regex tokens
+    - that let line-oriented regex rules such as `directive_tail` jump across newline boundaries even though the grammar already encodes same-line trivia explicitly
+  - critical implementation detail:
+    - `generate_parser_ast_based` passes `snake_to_pascal(grammar_name)` into `AstBasedGenerator::new`
+    - family-specific generator guards therefore need normalized alphanumeric lowercase ids like `systemverilogpreprocessor`, not the raw underscore stem
+  - retained source fix:
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - regex-token auto layout skipping now stays disabled for normalized grammar ids:
+      - `regex`
+      - `systemverilogpreprocessor`
+  - direct parser proof after rebuilding `parseability_probe` against `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs`:
+    - `/*a*/\`ifdef A` passes
+    - `/*a*//*b*/\`ifdef A` passes
+    - `/*a*/ /*b*/\`ifdef A` passes
+  - retained focused preprocessor baseline:
+    - `parseability_attempts_total=37`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=4`
+    - `parseability_parser_rejections_total=4`
+    - `parseability_counterexamples_captured_total=4`
+    - `final_targets=0`
+  - retained higher-level refresh path:
+    - aggregate: `rust/target/sv_preprocessor_aggregate_contract_gate`
+    - formal closure: `rust/target/sv_preprocessor_formal_exhaustive_closure_gate`
+    - family status: `rust/target/sv_parser_family_status_gate`
+    - family-status contract: `rust/target/sv_parser_family_status_contract_gate`
+    - lightweight SOTA: `rust/target/sota_exit_gate_svpp_4reject_lightweight_refresh`
+    - combined telemetry: `rust/target/sv_combined_telemetry_contract_gate`
