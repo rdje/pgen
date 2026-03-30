@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: add-sv-preprocessor-formal-closure-gate)
+Last updated: 2026-03-30 (+0200, task: thread-sv-preprocessor-formal-closure-through-proof-stack)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Threaded the retained SystemVerilog-preprocessor formal exhaustive-closure sidecar through the aggregate proof stack:
+  - [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh)
+  - [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh)
+  - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh)
+  - [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- This is proof-plumbing normalization, not a grammar or status promotion.
+- Current retained aggregate-visible preprocessor snapshot:
+  - `systemverilog_preprocessor=Mostly Done`
+  - `closure_criteria_total_count=12`
+  - `closure_criteria_satisfied_count=9`
+  - `formal_exhaustive_closure_surface_green=false`
+  - active blockers:
+    - `parseability_parser_rejections_total=10 > 0`
+    - `parseability_rejected_total=10 > 0`
+    - `SystemVerilog preprocessor still lacks an explicit grammar-level exhaustive proof surface that can turn the current bounded syntax, aggregate, and reachability evidence into a zero-plausible-gap closure claim.`
+- Current retained aggregate refresh:
+  - `sota_exit_gate` passed under lightweight reused state at [rust/target/sota_exit_gate_svpp_formal_refresh](rust/target/sota_exit_gate_svpp_formal_refresh)
+  - `sv_combined_telemetry_contract_gate` now parity-checks the preprocessor formal-closure sidecar paths and metadata against that refreshed aggregate state
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+
 - Added the explicit SystemVerilog-preprocessor formal exhaustive-closure sidecar:
   - [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh)
   - [rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json)

@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-03-30 - Thread SV-preprocessor formal closure through aggregate proof stack
+### ✅ Achievement Summary
+The new SystemVerilog-preprocessor formal exhaustive-closure sidecar is now preserved through the retained aggregate proof stack instead of living only as a standalone gate artifact.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
+  - now reuses and records the preprocessor formal-closure sidecar in `summary.txt` and `summary.json`
+  - now treats `formal_exhaustive_closure_surface_green` as an explicit preprocessor closure criterion
+- Updated [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - now validates the propagated preprocessor formal-closure gate metadata and proof-surface paths
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
+  - now surfaces the preprocessor formal-closure sidecar inside aggregate SV family-status and family-status-contract telemetry
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now parity-checks the preprocessor formal-closure provenance between `sota_exit_gate`, `sv_parser_family_status_gate`, and `sv_parser_family_status_contract_gate`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - now locks the new preprocessor formal-closure propagation points across the retained proof stack
+- Updated operator/continuity docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `bash -n rust/scripts/sv_parser_family_status_gate.sh rust/scripts/sv_parser_family_status_contract_gate.sh rust/scripts/sota_exit_gate.sh rust/scripts/sv_combined_telemetry_contract_gate.sh rust/scripts/ci_workflow_local_gate.sh`
+- reuse-backed family status:
+  - `env PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_syntax_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PARSER_AGGREGATE_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SV_FAMILY_STATUS_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_AGGREGATE_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_REACHABILITY_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_formal_exhaustive_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_SEMANTIC_SCOPE_CONTRACT_STATE_DIR=rust/target/sv_semantic_scope_contract_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_formal_exhaustive_closure_gate PGEN_SV_FAMILY_STATUS_EXISTING_SV_EXTERNAL_CORPUS_TRIAGE_STATE_DIR=rust/target/sv_external_corpus_triage_gate bash rust/scripts/sv_parser_family_status_gate.sh`
+- reuse-backed family-status contract:
+  - `env PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_formal_exhaustive_closure_gate bash rust/scripts/sv_parser_family_status_contract_gate.sh`
+- lightweight aggregate refresh over reused sidecars:
+  - `env PGEN_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_svpp_formal_refresh PGEN_SOTA_REQUIRED_CHECKS=differential_baseline_contract PGEN_SOTA_RUN_EBNF_READINESS=0 PGEN_SOTA_RUN_EBNF_DUAL_RUN_DIFF=0 PGEN_SOTA_RUN_HDL_FRONTEND_READINESS=0 PGEN_SOTA_RUN_SV_PREPROCESSOR_QUALITY=1 PGEN_SOTA_RUN_SV_STIMULI_QUALITY=1 PGEN_SOTA_RUN_SV_DECLARED_SHADOW_PROMOTION=0 PGEN_SOTA_RUN_SV_PARSE_FULL_RATIO_PROMOTION=0 PGEN_SOTA_RUN_VHDL_STIMULI_QUALITY=0 PGEN_SOTA_RUN_VHDL_STRICT_PROMOTION=0 PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate_json_proof_fresh PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_formal_exhaustive_closure_gate PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=rust/target/sv_failure_context_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=rust/target/sv_roundtrip_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=rust/target/sv_parser_family_status_contract_gate bash rust/scripts/sota_exit_gate.sh`
+- reuse-backed combined telemetry:
+  - `env PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_svpp_formal_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+
 ## 2026-03-30 - Add SystemVerilog-preprocessor formal closure gate
 ### ✅ Achievement Summary
 The SystemVerilog-preprocessor proof stack now has an explicit formal exhaustive-closure sidecar. This does not promote the row; it makes the remaining grammar-level missing-proof surface machine-checkable instead of implicit.

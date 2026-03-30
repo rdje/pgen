@@ -157,6 +157,9 @@ sota_exit_sv_systemverilog_formal_exhaustive_closure_summary_json_top_level="$(j
 sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_parser_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_parser_aggregate_summary_json' "$sota_summary_json")"
@@ -169,6 +172,9 @@ sota_exit_sv_contract_systemverilog_formal_exhaustive_closure_summary_json_top_l
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json_top_level="$(jq -r '.proof_surfaces.sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json' "$sota_summary_json")"
 sota_exit_sv_systemverilog_parser_aggregate_state_dir="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_systemverilog_parser_aggregate_summary_txt="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_systemverilog_parser_aggregate_summary_json="$(jq -r '.family_status.systemverilog.proof_surfaces.parser_aggregate_summary_json' "$sota_summary_json")"
@@ -184,6 +190,9 @@ sota_exit_sv_systemverilog_roundtrip_contract_summary_json="$(jq -r '.family_sta
 sota_exit_sv_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_state_dir="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.formal_exhaustive_closure_state_dir' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.formal_exhaustive_closure_summary_txt' "$sota_summary_json")"
+sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_json="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.formal_exhaustive_closure_summary_json' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_failure_context_contract_state_dir="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.failure_context_contract_state_dir' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_failure_context_contract_summary_txt="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_txt' "$sota_summary_json")"
 sota_exit_sv_systemverilog_preprocessor_failure_context_contract_summary_json="$(jq -r '.family_status.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_json' "$sota_summary_json")"
@@ -208,6 +217,9 @@ sota_exit_sv_contract_systemverilog_roundtrip_contract_summary_json="$(jq -r '.f
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.aggregate_summary_json' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.formal_exhaustive_closure_state_dir' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.formal_exhaustive_closure_summary_txt' "$sota_summary_json")"
+sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.formal_exhaustive_closure_summary_json' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_state_dir="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.failure_context_contract_state_dir' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_summary_txt="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_txt' "$sota_summary_json")"
 sota_exit_sv_contract_systemverilog_preprocessor_failure_context_contract_summary_json="$(jq -r '.family_status_contract.systemverilog_preprocessor.proof_surfaces.failure_context_contract_summary_json' "$sota_summary_json")"
@@ -344,6 +356,18 @@ assert_equal \
     "$sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json" \
     "$sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json_top_level"
 assert_equal \
+    "SOTA exit preprocessor formal-closure state dir mirror" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_state_dir_top_level"
+assert_equal \
+    "SOTA exit preprocessor formal-closure summary txt mirror" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt_top_level"
+assert_equal \
+    "SOTA exit preprocessor formal-closure summary json mirror" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_json_top_level"
+assert_equal \
     "SOTA exit main contract parser aggregate state dir mirror" \
     "$sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir" \
     "$sota_exit_sv_contract_systemverilog_parser_aggregate_state_dir_top_level"
@@ -391,6 +415,18 @@ assert_equal \
     "SOTA exit preprocessor contract aggregate summary json mirror" \
     "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json" \
     "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json_top_level"
+assert_equal \
+    "SOTA exit preprocessor contract formal-closure state dir mirror" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir_top_level"
+assert_equal \
+    "SOTA exit preprocessor contract formal-closure summary txt mirror" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt_top_level"
+assert_equal \
+    "SOTA exit preprocessor contract formal-closure summary json mirror" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json_top_level"
 
 sv_failure_summary_available=0
 sv_roundtrip_summary_available=0
@@ -934,6 +970,12 @@ sv_family_status_systemverilog_preprocessor_reachability_stage3_rules="$(jq -r '
 sv_family_status_systemverilog_preprocessor_reachability_stage4_rules="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.reachability_stage4_rules' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_reachability_stage3_branches="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.reachability_stage3_branches' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_reachability_stage4_branches="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.reachability_stage4_branches' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.formal_exhaustive_closure_gate' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.formal_exhaustive_closure_gate_version' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.formal_exhaustive_closure_generated_at_utc' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.formal_exhaustive_closure_primary_unmet_closure_criterion' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .metrics.formal_exhaustive_closure_unmet_closure_criteria_count' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_surface_green="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .criteria.formal_exhaustive_closure_surface_green' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_syntax_closure_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.syntax_closure_state_dir' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_syntax_closure_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.syntax_closure_summary_txt' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.syntax_closure_summary_json' "$sv_parser_family_status_summary_json")"
@@ -942,6 +984,9 @@ sv_family_status_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.fam
 sv_family_status_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_json' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_reachability_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_state_dir' "$sv_parser_family_status_summary_json")"
 sv_family_status_systemverilog_preprocessor_reachability_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.reachability_summary_txt' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.formal_exhaustive_closure_state_dir' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.formal_exhaustive_closure_summary_txt' "$sv_parser_family_status_summary_json")"
+sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.formal_exhaustive_closure_summary_json' "$sv_parser_family_status_summary_json")"
 sv_family_status_contract_systemverilog_parser_aggregate_state_dir="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_state_dir' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_parser_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_txt' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_parser_aggregate_summary_json="$(jq -r '.families[] | select(.family=="systemverilog") | .proof_surfaces.parser_aggregate_summary_json' "$sv_parser_family_status_contract_summary_json")"
@@ -954,6 +999,9 @@ sv_family_status_contract_systemverilog_formal_exhaustive_closure_summary_json="
 sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_state_dir' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_txt' "$sv_parser_family_status_contract_summary_json")"
 sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .proof_surfaces.aggregate_summary_json' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .formal_exhaustive_closure.state_dir' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .formal_exhaustive_closure.summary_txt' "$sv_parser_family_status_contract_summary_json")"
+sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json="$(jq -r '.families[] | select(.family=="systemverilog_preprocessor") | .formal_exhaustive_closure.summary_json' "$sv_parser_family_status_contract_summary_json")"
 
 assert_equal \
     "SOTA exit main family primary unmet closure criterion" \
@@ -1946,6 +1994,54 @@ assert_equal \
     "$sv_family_status_systemverilog_preprocessor_aggregate_summary_json" \
     "$sota_exit_sv_systemverilog_preprocessor_aggregate_summary_json"
 assert_equal \
+    "SV family-status preprocessor formal-closure state dir" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir")"
+assert_equal \
+    "SV family-status preprocessor formal-closure summary txt" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt")"
+assert_equal \
+    "SV family-status preprocessor formal-closure summary json" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json")"
+assert_equal \
+    "SV family-status preprocessor formal-closure gate" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate")"
+assert_equal \
+    "SV family-status preprocessor formal-closure gate version" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version")"
+assert_equal \
+    "SV family-status preprocessor formal-closure generated_at_utc" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc")"
+assert_equal \
+    "SV family-status preprocessor formal-closure primary unmet" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion")"
+assert_equal \
+    "SV family-status preprocessor formal-closure unmet count" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count")"
+assert_equal \
+    "SV family-status preprocessor formal-closure green" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_surface_green" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_surface_green")"
+assert_equal \
+    "SOTA JSON preprocessor formal-closure state dir" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_state_dir"
+assert_equal \
+    "SOTA JSON preprocessor formal-closure summary txt" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt"
+assert_equal \
+    "SOTA JSON preprocessor formal-closure summary json" \
+    "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
+    "$sota_exit_sv_systemverilog_preprocessor_formal_exhaustive_closure_summary_json"
+assert_equal \
     "SV family-status preprocessor reachability state dir" \
     "$sv_family_status_systemverilog_preprocessor_reachability_state_dir" \
     "$(extract_summary_value "$sota_summary_txt" "sv_family_status_systemverilog_preprocessor_reachability_state_dir")"
@@ -2025,6 +2121,30 @@ assert_equal \
     "SOTA JSON preprocessor contract aggregate summary json" \
     "$sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json" \
     "$sota_exit_sv_contract_systemverilog_preprocessor_aggregate_summary_json"
+assert_equal \
+    "SV family-status contract preprocessor formal-closure state dir" \
+    "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir")"
+assert_equal \
+    "SV family-status contract preprocessor formal-closure summary txt" \
+    "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt")"
+assert_equal \
+    "SV family-status contract preprocessor formal-closure summary json" \
+    "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
+    "$(extract_summary_value "$sota_summary_txt" "sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json")"
+assert_equal \
+    "SOTA JSON preprocessor contract formal-closure state dir" \
+    "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir"
+assert_equal \
+    "SOTA JSON preprocessor contract formal-closure summary txt" \
+    "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt"
+assert_equal \
+    "SOTA JSON preprocessor contract formal-closure summary json" \
+    "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
+    "$sota_exit_sv_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json"
 
 generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
@@ -2095,6 +2215,9 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir: $sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir"
     echo "sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt: $sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt"
     echo "sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json: $sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json"
+    echo "sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir"
+    echo "sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt"
+    echo "sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json"
     echo "sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok: $sv_parser_family_status_contract_systemverilog_preprocessor_tracker_alignment_ok"
     echo "sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count: $sv_parser_family_status_contract_systemverilog_preprocessor_false_criteria_count"
     echo "sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count: $sv_parser_family_status_contract_systemverilog_preprocessor_unmet_details_count"
@@ -2323,6 +2446,12 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "sv_family_status_systemverilog_preprocessor_reachability_stage4_rules: $sv_family_status_systemverilog_preprocessor_reachability_stage4_rules"
     echo "sv_family_status_systemverilog_preprocessor_reachability_stage3_branches: $sv_family_status_systemverilog_preprocessor_reachability_stage3_branches"
     echo "sv_family_status_systemverilog_preprocessor_reachability_stage4_branches: $sv_family_status_systemverilog_preprocessor_reachability_stage4_branches"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_surface_green: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_surface_green"
     echo "sv_family_status_systemverilog_preprocessor_syntax_closure_state_dir: $sv_family_status_systemverilog_preprocessor_syntax_closure_state_dir"
     echo "sv_family_status_systemverilog_preprocessor_syntax_closure_summary_txt: $sv_family_status_systemverilog_preprocessor_syntax_closure_summary_txt"
     echo "sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json: $sv_family_status_systemverilog_preprocessor_syntax_closure_summary_json"
@@ -2331,6 +2460,9 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "sv_family_status_systemverilog_preprocessor_aggregate_summary_json: $sv_family_status_systemverilog_preprocessor_aggregate_summary_json"
     echo "sv_family_status_systemverilog_preprocessor_reachability_state_dir: $sv_family_status_systemverilog_preprocessor_reachability_state_dir"
     echo "sv_family_status_systemverilog_preprocessor_reachability_summary_txt: $sv_family_status_systemverilog_preprocessor_reachability_summary_txt"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt"
+    echo "sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json"
 } >"$SUMMARY_TXT"
 
 require_nonempty_file "$SUMMARY_TXT"
@@ -2462,6 +2594,15 @@ jq -n \
     --arg sv_family_status_systemverilog_preprocessor_aggregate_summary_json "$sv_family_status_systemverilog_preprocessor_aggregate_summary_json" \
     --arg sv_family_status_systemverilog_preprocessor_reachability_state_dir "$sv_family_status_systemverilog_preprocessor_reachability_state_dir" \
     --arg sv_family_status_systemverilog_preprocessor_reachability_summary_txt "$sv_family_status_systemverilog_preprocessor_reachability_summary_txt" \
+    --arg sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate" \
+    --argjson sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version" \
+    --arg sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc" \
+    --arg sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion" \
+    --argjson sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count" \
+    --argjson sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_surface_green "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_surface_green" \
+    --arg sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    --arg sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    --arg sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json "$sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
     --arg sv_family_status_contract_gate "$sv_family_status_contract_gate" \
     --argjson sv_family_status_contract_gate_version "$sv_family_status_contract_gate_version" \
     --arg sv_family_status_contract_generated_at_utc "$sv_family_status_contract_generated_at_utc" \
@@ -2480,6 +2621,9 @@ jq -n \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir "$sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt "$sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt" \
     --arg sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json "$sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json" \
+    --arg sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir" \
+    --arg sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt" \
+    --arg sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json "$sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json" \
     --argjson sv_parser_family_status_contract_family_count "$sv_parser_family_status_contract_family_count" \
     --argjson sv_parser_family_status_contract_systemverilog_tracker_alignment_ok "$sv_parser_family_status_contract_systemverilog_tracker_alignment_ok" \
     --argjson sv_parser_family_status_contract_systemverilog_false_criteria_count "$sv_parser_family_status_contract_systemverilog_false_criteria_count" \
@@ -2532,7 +2676,13 @@ jq -n \
         sv_parser_family_status_summary_txt: $sv_parser_family_status_summary_txt,
         sv_parser_family_status_summary_json: $sv_parser_family_status_summary_json,
         sv_parser_family_status_contract_summary_txt: $sv_parser_family_status_contract_summary_txt,
-        sv_parser_family_status_contract_summary_json: $sv_parser_family_status_contract_summary_json
+        sv_parser_family_status_contract_summary_json: $sv_parser_family_status_contract_summary_json,
+        sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir,
+        sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt,
+        sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json,
+        sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir,
+        sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt,
+        sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json
       },
       optional_surfaces: {
         sv_failure_context_summary_available: $sv_failure_context_summary_available,
@@ -2652,7 +2802,12 @@ jq -n \
               covered_reachable_rules: $sv_family_status_systemverilog_preprocessor_covered_reachable_rules,
               covered_reachable_branches: $sv_family_status_systemverilog_preprocessor_covered_reachable_branches,
               reachability_stage3_targets: $sv_family_status_systemverilog_preprocessor_reachability_stage3_targets,
-              reachability_stage4_targets: $sv_family_status_systemverilog_preprocessor_reachability_stage4_targets
+              reachability_stage4_targets: $sv_family_status_systemverilog_preprocessor_reachability_stage4_targets,
+              formal_exhaustive_closure_gate: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate,
+              formal_exhaustive_closure_gate_version: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_gate_version,
+              formal_exhaustive_closure_generated_at_utc: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_generated_at_utc,
+              formal_exhaustive_closure_primary_unmet_closure_criterion: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_primary_unmet_closure_criterion,
+              formal_exhaustive_closure_unmet_closure_criteria_count: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_unmet_closure_criteria_count
             },
             proof_surfaces: {
               syntax_closure_state_dir: $sv_family_status_systemverilog_preprocessor_syntax_closure_state_dir,
@@ -2668,7 +2823,10 @@ jq -n \
               roundtrip_contract_summary_txt: $sv_roundtrip_contract_summary_txt,
               roundtrip_contract_summary_json: $sv_roundtrip_contract_summary_json,
               reachability_state_dir: $sv_family_status_systemverilog_preprocessor_reachability_state_dir,
-              reachability_summary_txt: $sv_family_status_systemverilog_preprocessor_reachability_summary_txt
+              reachability_summary_txt: $sv_family_status_systemverilog_preprocessor_reachability_summary_txt,
+              formal_exhaustive_closure_state_dir: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir,
+              formal_exhaustive_closure_summary_txt: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt,
+              formal_exhaustive_closure_summary_json: $sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_summary_json
             }
           }
         ]
@@ -2720,6 +2878,9 @@ jq -n \
               aggregate_state_dir: $sv_family_status_contract_systemverilog_preprocessor_aggregate_state_dir,
               aggregate_summary_txt: $sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_txt,
               aggregate_summary_json: $sv_family_status_contract_systemverilog_preprocessor_aggregate_summary_json,
+              formal_exhaustive_closure_state_dir: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir,
+              formal_exhaustive_closure_summary_txt: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_txt,
+              formal_exhaustive_closure_summary_json: $sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_summary_json,
               failure_context_contract_state_dir: $sv_failure_context_contract_state_dir,
               failure_context_contract_summary_txt: $sv_failure_context_contract_summary_txt,
               failure_context_contract_summary_json: $sv_failure_context_contract_summary_json,

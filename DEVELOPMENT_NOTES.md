@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog preprocessor formal closure: thread sidecar through retained aggregate proof stack
+### Context
+The new `sv_preprocessor_formal_exhaustive_closure_gate` existed, but the retained proof stack above it still behaved as if the sidecar were local-only. `sv_parser_family_status_gate`, its contract sidecar, aggregate `sota_exit_gate` telemetry, and `sv_combined_telemetry_contract_gate` were not yet preserving the preprocessor formal-closure provenance end to end.
+
+### Implementation
+- Updated [rust/scripts/sv_parser_family_status_gate.sh](rust/scripts/sv_parser_family_status_gate.sh):
+  - added reuse plumbing for `PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR`
+  - added preprocessor `formal_exhaustive_closure_surface_green` as an explicit closure criterion
+  - propagated the preprocessor formal-closure proof paths plus gate metadata into both `summary.txt` and `summary.json`
+  - bumped the family-status sidecar schema version from `5` to `6`
+- Updated [rust/scripts/sv_parser_family_status_contract_gate.sh](rust/scripts/sv_parser_family_status_contract_gate.sh):
+  - added source-side contract validation for the preprocessor formal-closure proof paths and gate metadata
+  - bumped the contract sidecar schema version from `2` to `3`
+- Updated [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh):
+  - aggregate SV telemetry now mirrors the preprocessor formal-closure proof-surface paths from both `family_status` and `family_status_contract`
+  - reused lightweight aggregate refresh proved the new fields without reopening unrelated VHDL work
+- Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
+  - now parity-checks the new preprocessor formal-closure aggregate mirrors against the family-status and family-status-contract sidecars
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - added branch-protection checks for the new propagation points across all four scripts
+
+### Validation
+- `bash -n rust/scripts/sv_parser_family_status_gate.sh rust/scripts/sv_parser_family_status_contract_gate.sh rust/scripts/sota_exit_gate.sh rust/scripts/sv_combined_telemetry_contract_gate.sh rust/scripts/ci_workflow_local_gate.sh`
+- reuse-backed `sv_parser_family_status_gate`
+  - retained preprocessor snapshot:
+    - `systemverilog_preprocessor=Mostly Done`
+    - `closure_criteria_total_count=12`
+    - `closure_criteria_satisfied_count=9`
+    - `formal_exhaustive_closure_surface_green=false`
+    - active blockers remain:
+      - `parseability_parser_rejections_total=10 > 0`
+      - `parseability_rejected_total=10 > 0`
+      - `SystemVerilog preprocessor still lacks an explicit grammar-level exhaustive proof surface that can turn the current bounded syntax, aggregate, and reachability evidence into a zero-plausible-gap closure claim.`
+- reuse-backed `sv_parser_family_status_contract_gate`
+- lightweight reused aggregate refresh:
+  - `env PGEN_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_svpp_formal_refresh ... bash rust/scripts/sota_exit_gate.sh`
+  - retained aggregate result:
+    - `required_checks=differential_baseline_contract`
+    - `sota_exit_status=passed`
+    - aggregate telemetry now includes the preprocessor formal-closure gate metadata and proof-surface paths
+- reuse-backed `sv_combined_telemetry_contract_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- `git diff --check`
+
 ## 2026-03-30 - SystemVerilog preprocessor formal closure: add explicit grammar-level missing-proof sidecar
 ### Context
 The `systemverilog_preprocessor` row already had strong bounded evidence:

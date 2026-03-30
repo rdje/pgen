@@ -952,6 +952,10 @@ For SystemVerilog-preprocessor formal-closure proof normalization, narrow quickl
 - `rust/scripts/sv_preprocessor_syntax_closure_gate.sh`
 - `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`
 - `rust/scripts/sv_preprocessor_reachability_closure_gate.sh`
+- `rust/scripts/sv_parser_family_status_gate.sh` when the task is retained family-status propagation for the preprocessor formal-closure seam
+- `rust/scripts/sv_parser_family_status_contract_gate.sh` when the task is source-side contract validation for that propagated seam
+- `rust/scripts/sota_exit_gate.sh` when the task is aggregate proof-surface propagation for the preprocessor formal-closure seam
+- `rust/scripts/sv_combined_telemetry_contract_gate.sh` when the task is aggregate parity over the retained preprocessor formal-closure sidecar paths
 
 For annotation-specific proof plumbing, narrow quickly to:
 - `annotation_contract_gate`

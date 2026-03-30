@@ -2098,6 +2098,36 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \
     '`sv_preprocessor_formal_exhaustive_closure_gate` when the task is SystemVerilog-preprocessor formal-closure proof normalization'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
+    'PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
+    'formal_exhaustive_closure_surface_green'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_gate.sh" \
+    'systemverilog_preprocessor_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_contract_gate.sh" \
+    'PGEN_SV_FAMILY_STATUS_CONTRACT_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_contract_gate.sh" \
+    'systemverilog_preprocessor_formal_exhaustive_closure_gate'
+  assert_file_contains \
+    "rust/scripts/sv_parser_family_status_contract_gate.sh" \
+    'formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/sota_exit_gate.sh" \
+    'sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'sv_family_status_systemverilog_preprocessor_formal_exhaustive_closure_state_dir'
+  assert_file_contains \
+    "rust/scripts/sv_combined_telemetry_contract_gate.sh" \
+    'sv_family_status_contract_systemverilog_preprocessor_formal_exhaustive_closure_state_dir'
 }
 
 audit_sv_aggregate_contract_proof_surface() {

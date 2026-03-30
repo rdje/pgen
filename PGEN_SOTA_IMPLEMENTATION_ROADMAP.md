@@ -3550,6 +3550,7 @@ Why `rtl_frontend` exists:
     - this is proof normalization, not a grammar or parser-quality promotion
     - the new sidecar reuses the existing `sv_preprocessor_syntax_closure_gate`, `sv_preprocessor_aggregate_contract_gate`, and `sv_preprocessor_reachability_closure_gate` evidence and turns the grammar-level missing-proof placeholder into a first-class machine-checkable artifact
     - the `systemverilog_preprocessor` row still remains `Mostly Done`; the active blocker is now explicitly the absence of a zero-plausible-gap grammar-level closure proof, not the absence of any formal-closure sidecar at all
+    - the retained aggregate proof stack now also preserves this sidecar through `sv_parser_family_status_gate`, `sv_parser_family_status_contract_gate`, `sota_exit_gate`, and `sv_combined_telemetry_contract_gate`, so future work should burn down real preprocessor parser debt rather than re-plumbing proof provenance again
   - roadmap implication:
     - this proof-plumbing normalization is now done
     - the next SystemVerilog closure slice should go back to parser-debt reduction rather than revisiting formal-closure provenance wiring
