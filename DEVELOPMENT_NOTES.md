@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SystemVerilog preprocessor parseability: record no-op sample-hint follow-ups
+### Context
+After landing the whitespace-only `directive_tail` hint, I tried two more parser-neutral sample-hint refinements against the fresh `5`-rejection baseline:
+- `directive_tail` from `@sample: " "` to `@sample: ""`
+- canonical sample hints on the conditional/directive rules themselves
+
+Neither changed the focused quality result. Both remained at:
+- `parseability_attempts_total=38`
+- `parseability_accepted_total=33`
+- `parseability_rejected_total=5`
+- `parseability_parser_rejections_total=5`
+
+### Implementation
+- Reverted the no-op grammar experiments instead of keeping churn in [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf).
+- Recorded the no-op directions here and in [MEMORY.md](MEMORY.md) so future sessions do not spend time rediscovering them.
+
+### Steering
+- Current retained baseline is still the whitespace-only `directive_tail` hint from the previous committed slice.
+- Do not retry these two sample-hint directions unless some deeper generator behavior changes first:
+  - empty-string `directive_tail` sample hint
+  - canonical whole-rule samples for the conditional/directive rules
+
 ## 2026-03-30 - SystemVerilog preprocessor parseability: refine retained tail hint to whitespace-only
 ### Context
 The first retained stimuli-only fix on `directive_tail` used `@sample: " tail"` and reduced the focused rejection surface from `10` to `6`. The remaining counterexamples were still all baseline-generation artifacts clustered around directive-leading lines, so the next safe refinement was to keep the parser-neutral hint but make it whitespace-only.

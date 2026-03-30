@@ -8,6 +8,30 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Follow-up no-op experiments were tried and explicitly rejected on the fresh `systemverilog_preprocessor` `5`-rejection baseline:
+  - `directive_tail` `@sample: ""`
+  - canonical whole-rule samples for:
+    - `pp_if_branch`
+    - `pp_elsif_branch`
+    - `pp_else_branch`
+    - `pp_endif`
+    - `pp_undef`
+    - `pp_include`
+    - `pp_timescale`
+    - `pp_default_nettype`
+    - `pp_celldefine`
+    - `pp_endcelldefine`
+- Why they were rejected:
+  - both experiments were true no-ops on the focused quality gate
+  - retained result stayed:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+- Steering:
+  - keep the previously committed whitespace-only `directive_tail` hint as the retained baseline
+  - do not retry the no-op sample-hint variants unless the underlying generator behavior changes
+
 - Tightened the retained `systemverilog_preprocessor` stimuli-only tail hint again:
   - [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf)
   - landed shape now:

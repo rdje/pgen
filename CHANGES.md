@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-03-30 - Record no-op SV-preprocessor sample-hint experiments
+### ✅ Achievement Summary
+No new grammar shape was retained in this slice. Two additional stimuli-only sample-hint experiments were tried against the fresh `5`-rejection preprocessor baseline and both proved to be no-ops, so they were reverted and recorded for continuity instead of being kept.
+
+### Scope of Changes
+- Updated continuity docs only:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Explicitly recorded the rejected/no-op directions:
+  - `directive_tail` sample hint `@sample: ""`
+  - canonical conditional/directive rule samples for `pp_if_branch`, `pp_elsif_branch`, `pp_else_branch`, `pp_endif`, `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`, `pp_celldefine`, and `pp_endcelldefine`
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - both experiments preserved the same retained baseline:
+    - `parseability_attempts_total=38`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=5`
+    - `parseability_parser_rejections_total=5`
+- `git diff --check`
+
 ## 2026-03-30 - Reduce SV-preprocessor parseability debt further with whitespace-only tail hint
 ### ✅ Achievement Summary
 The retained SystemVerilog-preprocessor stimuli-only tail steering is now narrower and better. `directive_tail` now samples as whitespace-only instead of `" tail"`, which drops the focused preprocessor rejection surface from `6` to `5` without narrowing the parser grammar.
