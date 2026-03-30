@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: record-rejected-vhdl-target-throttle-relaxation)
+Last updated: 2026-03-30 (+0200, task: record-rejected-svpp-inline-trivia-rebias)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,23 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tried and rejected a narrow `systemverilog_preprocessor` lexical steering pass in [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
+  - `inline_trivia`:
+    - `@branch_policy: priority_first`
+    - `@priority: [24, 1]`
+- Why it was rejected:
+  - the focused preprocessor quality lane regressed badly:
+    - `parseability_attempts_total=104`
+    - `parseability_accepted_total=93`
+    - `parseability_rejected_total=11`
+    - `parseability_parser_rejections_total=11`
+    - `final_targets=1`
+    - `target_attempts=6000`
+- Steering:
+  - the `inline_trivia` priority annotations were reverted
+  - do not retry this simple space-over-block-comment rebias blindly
+  - retained preprocessor baseline is still the earlier whitespace-only `directive_tail` hint
+
 - Tried and rejected a narrow Rust-side VHDL target-drive change in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
   - capped the zero-success branch failure throttle inside `coverage_guidance_multiplier(...)` so unresolved targets would stay more probeable
   - added a temporary focused unit test alongside the existing `coverage_guidance_multiplier` test

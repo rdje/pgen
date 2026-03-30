@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-30 - SV preprocessor parseability: reject inline-trivia comment rebias
+### Context
+The retained `systemverilog_preprocessor` lane already had:
+- `parseability_attempts_total=38`
+- `parseability_accepted_total=33`
+- `parseability_rejected_total=5`
+- `parseability_parser_rejections_total=5`
+- `final_targets=0`
+
+The remaining parser rejects were all comment-heavy directive samples, so I tried a very narrow lexical steering pass on [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
+- `inline_trivia`:
+  - `@branch_policy: priority_first`
+  - `@priority: [24, 1]`
+- goal: prefer `space_or_tab` over `block_comment` during generation without changing the accepted grammar
+
+### Why It Was Rejected
+- The focused quality lane got much worse instead of better:
+  - `parseability_attempts_total=104`
+  - `parseability_accepted_total=93`
+  - `parseability_rejected_total=11`
+  - `parseability_parser_rejections_total=11`
+  - `final_targets=1`
+  - `target_attempts=6000`
+- So this was not just a different comment mix inside the same green shape; it actually reopened coverage debt and doubled parser rejections.
+
+### Steering
+- The `inline_trivia` priority annotations were reverted.
+- Do not retry this simple space-over-block-comment rebias blindly.
+- The retained preprocessor baseline is still the earlier whitespace-only `directive_tail` hint:
+  - [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf)
+  - `@sample: " "` on `directive_tail`
+
 ## 2026-03-30 - VHDL replay-target closure: reject target-throttle relaxation in generator
 ### Context
 After multiple grammar-side dead ends, I tried a much narrower Rust-side generator change in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):

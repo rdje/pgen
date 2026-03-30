@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-03-30 - Record rejected SV-preprocessor inline-trivia comment rebias
+### ✅ Achievement Summary
+No preprocessor grammar change was retained in this slice. I tried a very narrow stimuli-side rebias on `inline_trivia` to prefer spaces over block comments around directive lines, but the focused preprocessor quality lane regressed badly, so the grammar was reverted and the result was recorded for continuity only.
+
+### Scope of Changes
+- Updated continuity docs only:
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Explicitly recorded the rejected direction:
+  - `inline_trivia` with `@branch_policy: priority_first` and `@priority: [24, 1]`
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - regressed focused lane:
+    - `parseability_attempts_total=104`
+    - `parseability_accepted_total=93`
+    - `parseability_rejected_total=11`
+    - `parseability_parser_rejections_total=11`
+    - `final_targets=1`
+    - `target_attempts=6000`
+- `git diff --check`
+
 ## 2026-03-30 - Record rejected VHDL target-throttle relaxation
 ### ✅ Achievement Summary
 No code change was retained in this slice. I tried a narrow Rust-side target-drive relaxation in [stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) so unresolved zero-success branches would remain more probeable, but the real VHDL lane regressed from `11` replay targets to `12` total actionable targets and introduced new rule debt, so the patch was reverted and recorded for continuity only.
