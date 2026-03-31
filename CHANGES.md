@@ -26221,3 +26221,15 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - reverted immediately
     - future work can revisit true line-end enforcement only with a branch shape that does not strand aggregate-contract debt on `eof`
+- 2026-03-31: Tried an empty default sample on the retained `directive_comment_tail` seam.
+  - attempted shape:
+    - add `@sample: ""` directly on `directive_comment_tail := inline_trivia line_comment?`
+  - why it looked plausible:
+    - this was the narrowest remaining stimuli-only steer for the last retained reject
+    - the hope was that generation would stop preferring long comment tails full of fake directives without changing the parser surface at all
+  - outcome:
+    - no measurable change on the focused preprocessor lane
+    - the gate stayed exactly at the retained `37/36/1/1` baseline with `initial_targets=3` and `final_targets=0`
+  - net result:
+    - reverted as a no-op
+    - future work should not expect an empty default sample on `directive_comment_tail` alone to close the remaining reject

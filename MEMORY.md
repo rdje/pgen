@@ -8175,3 +8175,16 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - revert to the retained `newline?` shape
     - do not retry `newline | eof` line-end enforcement blindly without first solving the aggregate-contract `eof` branch behavior
+- 2026-03-31: An empty default sample on `directive_comment_tail` is also a no-op.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - add `@sample: ""` directly on `directive_comment_tail := inline_trivia line_comment?`
+  - why it was tested:
+    - this was the narrowest possible stimuli-only steer on the retained seam after the structural line-end experiment failed
+  - measured effect:
+    - none on the focused quality surface
+    - baseline stayed `37/36/1/1` with `initial_targets=3` and `final_targets=0`
+    - the single remaining counterexample stayed unchanged
+  - retained consequence:
+    - keep `directive_comment_tail` without a default sample hint
+    - do not retry the empty-sample variant blindly

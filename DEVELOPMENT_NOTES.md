@@ -26967,3 +26967,18 @@ Architectural north star:
   - conclusion:
     - this is not a keepable shipped shape yet
     - true line-end enforcement may still be the right long-term seam, but not with the current `eof` branch behavior
+- 2026-03-31: An empty default sample on `directive_comment_tail` is also a no-op.
+  - attempted change:
+    - keep the parser surface unchanged
+    - add `@sample: ""` directly on `directive_comment_tail := inline_trivia line_comment?`
+  - reason for the experiment:
+    - after the rejected structural line-end attempt, this was the narrowest remaining stimuli-only steer on the actual retained seam
+    - it aimed to reduce fake-directive generation inside line comments without changing the branch structure or regex shape
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - stayed exactly at the retained `37/36/1/1` baseline
+      - kept `initial_targets=3` and `final_targets=0`
+      - preserved the same single counterexample
+  - conclusion:
+    - the remaining reject is not improved by an empty default sample on `directive_comment_tail`
+    - keep the grammar without that hint and treat this as another recorded no-op
