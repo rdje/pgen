@@ -26127,3 +26127,14 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_2reject_lightweight_refresh`
     - `sv_combined_telemetry_contract_gate`
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate`
+- 2026-03-31: Rejected a stimuli-only `non_directive_text` sample-hint shortcut in `grammars/systemverilog_preprocessor.ebnf`.
+  - attempted shape:
+    - add `@sample: "text"` on `non_directive_text`
+  - why it looked plausible:
+    - the two remaining preprocessor rejects looked like malformed passthrough-line generation rather than another real directive parser gap
+  - why it was rejected:
+    - the focused preprocessor seam regressed from the retained `35/33/2/2` baseline back to `37/33/4/4`
+    - `initial_targets` also reopened from `0` to `2`
+  - net result:
+    - this hint was reverted immediately
+    - the retained baseline stays `35/33/2/2` with `initial_targets=0` and `final_targets=0`

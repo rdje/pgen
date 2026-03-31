@@ -26839,3 +26839,15 @@ Architectural north star:
     - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_2reject_lightweight_refresh`
     - `sv_combined_telemetry_contract_gate`
     - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- 2026-03-31: Rejected a stimuli-only passthrough-line steer in `systemverilog_preprocessor.ebnf`.
+  - attempted change:
+    - add `@sample: "text"` on `non_directive_text`
+  - reason for the experiment:
+    - after the retained `pp_elsif_branch` tightening, the last two focused rejects looked more like malformed passthrough-line generation than another directive-specific parser seam
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - regressed from `35/33/2/2` to `37/33/4/4`
+      - reopened `initial_targets` from `0` to `2`
+  - conclusion:
+    - the current remaining rejects are not improved by this broad passthrough sample hint
+    - keep the preprocessor grammar without that hint and treat this as a recorded dead end

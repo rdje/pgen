@@ -8071,3 +8071,15 @@ Use this file to resume work without replaying full chat history.
     - family-status contract: `rust/target/sv_parser_family_status_contract_gate`
     - lightweight SOTA: `rust/target/sota_exit_gate_svpp_2reject_lightweight_refresh`
     - combined telemetry: `rust/target/sv_combined_telemetry_contract_gate`
+- 2026-03-31: A stimuli-only `non_directive_text` sample hint is a rejected shortcut.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - add `@sample: "text"` on `non_directive_text`
+  - why it was tested:
+    - the remaining two focused rejects looked passthrough-line-shaped after the retained `pp_elsif_branch` fix
+  - why it must stay rejected:
+    - focused quality regressed from `35/33/2/2` to `37/33/4/4`
+    - `initial_targets` reopened from `0` to `2`
+  - retained consequence:
+    - do not retry this sample-hint shortcut blindly
+    - the retained preprocessor baseline remains `35/33/2/2` with `initial_targets=0` and `final_targets=0`
