@@ -26179,3 +26179,17 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
     - `sv_combined_telemetry_contract_gate`
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate`
+- 2026-03-31: Tried a narrower stimuli-only comment-tail sample hint inside the retained `directive_comment_tail` seam.
+  - attempted shape:
+    - replace `directive_comment_tail := inline_trivia line_comment?` with `directive_comment_tail := inline_trivia directive_line_comment?`
+    - add `directive_line_comment := /\/\/[^\r\n]*/` with `@sample: "//x"`
+  - why it looked plausible:
+    - the last retained preprocessor reject still comes from comment-heavy fake directive text being swallowed inside line-oriented directive tails
+    - this was narrower than the already rejected broad comment-steering experiments because it only touched the comment payload generated inside `directive_comment_tail`
+  - outcome:
+    - no measurable change on the focused preprocessor lane
+    - the gate stayed exactly at the retained `37/36/1/1` baseline with `stage0_target_count=3`, `stage1_target_count=2`, and `final_targets=0`
+    - the single remaining counterexample was byte-for-byte unchanged
+  - net result:
+    - reverted as a no-op
+    - future work should not expect directive-tail line-comment sample hints alone to close the remaining reject

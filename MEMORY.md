@@ -8129,3 +8129,17 @@ Use this file to resume work without replaying full chat history.
     - family-status contract: `rust/target/sv_parser_family_status_contract_gate`
     - lightweight SOTA: `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
     - combined telemetry: `rust/target/sv_combined_telemetry_contract_gate`
+- 2026-03-31: A narrower `directive_comment_tail` comment-sample steer is also a no-op.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - replace `directive_comment_tail := inline_trivia line_comment?` with `directive_comment_tail := inline_trivia directive_line_comment?`
+    - add `directive_line_comment := /\/\/[^\r\n]*/` with `@sample: "//x"`
+  - why it was tested:
+    - the last retained preprocessor reject still looks comment-tail-shaped, and this was narrower than the already rejected broad comment steering
+  - measured effect:
+    - none on the focused quality surface
+    - baseline stayed `37/36/1/1` with `stage0_target_count=3`, `stage1_target_count=2`, and `final_targets=0`
+    - the single remaining counterexample stayed unchanged
+  - retained consequence:
+    - keep the existing `directive_comment_tail := inline_trivia line_comment?`
+    - do not expect directive-tail line-comment sample hints alone to close the remaining reject

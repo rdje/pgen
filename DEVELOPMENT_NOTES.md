@@ -26906,3 +26906,19 @@ Architectural north star:
     - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
     - `sv_combined_telemetry_contract_gate`
     - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+- 2026-03-31: A narrower stimuli-only comment-tail sample hint was also a no-op.
+  - attempted change:
+    - keep the parser surface unchanged
+    - replace `directive_comment_tail := inline_trivia line_comment?` with `directive_comment_tail := inline_trivia directive_line_comment?`
+    - add `directive_line_comment := /\/\/[^\r\n]*/` with `@sample: "//x"`
+  - reason for the experiment:
+    - after the retained `directive_comment_tail` narrowing, the single remaining reject still looked like fake directive text surviving only inside line-oriented comment tails
+    - this was a much narrower steering attempt than the already rejected global comment-hint directions because it only touched comment payload generation inside `directive_comment_tail`
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - stayed exactly at the retained `37/36/1/1` baseline
+      - kept `stage0_target_count=3`, `stage1_target_count=2`, and `final_targets=0`
+      - preserved the exact same single counterexample sample and failure location
+  - conclusion:
+    - directive-tail line-comment sample shaping alone is not enough to close the last reject
+    - keep the simpler `directive_comment_tail := inline_trivia line_comment?` form and treat this as a recorded no-op
