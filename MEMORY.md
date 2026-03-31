@@ -8105,3 +8105,27 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - keep the existing `" "` sample
     - do not expect comment-only tail sampling to close the remaining two rejects
+- 2026-03-31: The latest retained SystemVerilog-preprocessor reduction is a narrower shared line-oriented-tail contract.
+  - specific retained fix:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - add `directive_comment_tail := inline_trivia line_comment?`
+    - route only `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`, `pp_celldefine`, and `pp_endcelldefine` through that narrower tail
+  - reason this was safe:
+    - those directives are line-oriented and do not need arbitrary same-line tail payloads after their required payloads
+    - the broader all-directives tail refactor remains rejected; this retained slice is intentionally narrower
+  - retained focused baseline after the fix:
+    - `parseability_attempts_total=37`
+    - `parseability_accepted_total=36`
+    - `parseability_rejected_total=1`
+    - `parseability_parser_rejections_total=1`
+    - `parseability_counterexamples_captured_total=1`
+    - `stage0_target_count=3`
+    - `stage1_target_count=2`
+    - `final_targets=0`
+  - retained refreshed state dirs:
+    - aggregate: `rust/target/sv_preprocessor_aggregate_contract_gate`
+    - formal closure: `rust/target/sv_preprocessor_formal_exhaustive_closure_gate`
+    - family status: `rust/target/sv_parser_family_status_gate`
+    - family-status contract: `rust/target/sv_parser_family_status_contract_gate`
+    - lightweight SOTA: `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
+    - combined telemetry: `rust/target/sv_combined_telemetry_contract_gate`

@@ -26875,3 +26875,34 @@ Architectural north star:
   - conclusion:
     - inline-comment sampling by itself is not moving the remaining two rejects
     - keep the original `" "` sample and treat this as a recorded no-op
+- 2026-03-31: Landed a narrower shared line-oriented-tail contract in `systemverilog_preprocessor.ebnf`.
+  - root cause:
+    - after the retained generator-side newline fix and the retained `pp_elsif_branch` tightening, the last focused reject still looked like same-line directive chaining on otherwise line-oriented non-conditional directives
+    - the earlier all-directives `directive_line_tail := inline_trivia line_comment?` refactor had already proven too broad, so the next keepable slice needed to be more surgical
+  - retained source fix:
+    - `grammars/systemverilog_preprocessor.ebnf`
+      - add `directive_comment_tail := inline_trivia line_comment?`
+      - route only `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`, `pp_celldefine`, and `pp_endcelldefine` through that narrower tail
+      - keep `pp_if_branch`, `pp_else_branch`, and `pp_endif` on the broader `directive_tail`
+  - why this is shared parser+stimuli-safe:
+    - these directives are line-oriented and do not need arbitrary same-line tail payloads after their required payloads
+    - the change narrows fake same-line chaining at those sites without reviving the rejected broader conditional-family normalization
+  - retained focused preprocessor-quality baseline after the fix:
+    - `parseability_attempts_total=37`
+    - `parseability_accepted_total=36`
+    - `parseability_rejected_total=1`
+    - `parseability_parser_rejections_total=1`
+    - `parseability_counterexamples_captured_total=1`
+    - `stage0_target_count=3`
+    - `stage1_target_count=2`
+    - `final_targets=0`
+    - remaining aggregate triage bucket:
+      - `counterexample_primary_shrunk_sample=/**/\``
+  - refreshed higher-level retained readers:
+    - `sv_preprocessor_aggregate_contract_gate`
+    - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_contract_gate`
+    - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
+    - `sv_combined_telemetry_contract_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`

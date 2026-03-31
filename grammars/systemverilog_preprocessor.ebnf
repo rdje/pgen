@@ -31,12 +31,12 @@ pp_item := pp_define
 # ---------------------------------------------------------------------------
 
 pp_define := kw_define macro_name macro_formals? macro_body? newline?
-pp_undef := kw_undef macro_name directive_tail? newline?
-pp_include := kw_include include_path directive_tail? newline?
-pp_timescale := kw_timescale time_literal slash time_literal directive_tail? newline?
-pp_default_nettype := kw_default_nettype nettype_value directive_tail? newline?
-pp_celldefine := kw_celldefine directive_tail? newline?
-pp_endcelldefine := kw_endcelldefine directive_tail? newline?
+pp_undef := kw_undef macro_name directive_comment_tail newline?
+pp_include := kw_include include_path directive_comment_tail newline?
+pp_timescale := kw_timescale time_literal slash time_literal directive_comment_tail newline?
+pp_default_nettype := kw_default_nettype nettype_value directive_comment_tail newline?
+pp_celldefine := kw_celldefine directive_comment_tail newline?
+pp_endcelldefine := kw_endcelldefine directive_comment_tail newline?
 
 include_path := quoted_string
               | angle_path
@@ -117,6 +117,8 @@ pp_blank_line := newline
 non_directive_text := inline_trivia /[^`\r\n][^\r\n]*/
 @sample: " "
 directive_tail := inline_trivia /[^\r\n]+/
+@sample: " "
+directive_comment_tail := inline_trivia line_comment?
 
 # ---------------------------------------------------------------------------
 # Identifiers and literals

@@ -1301,22 +1301,26 @@ Operational rule:
 - `systemverilog_preprocessor`
   - Also env-driven, but not just a smaller copy of parser-only families
   - Its runtime semantics include macro expansion, include handling, conditional policy, source mapping, diagnostics, and strict-promotion-adjacent behavior
-  - The latest retained closure reduction came from one parser-side fix plus one shared parser+stimuli-safe grammar tightening:
+  - The latest retained closure reduction came from one parser-side fix plus two shared parser+stimuli-safe grammar tightenings:
     - [ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs) now disables auto layout skipping for regex tokens in the `systemverilog_preprocessor` generated parser family, using the generator's normalized PascalCase grammar identifier instead of only the raw underscore file stem
     - [systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) now requires `condition_expr` in `pp_elsif_branch`, which closes illegal bare `` `elsif`` generation without narrowing valid preprocessor syntax
+    - that same grammar now routes the line-oriented non-conditional directives `undef`, `include`, `timescale`, `default_nettype`, `celldefine`, and `endcelldefine` through `directive_comment_tail := inline_trivia line_comment?` instead of the broader `directive_tail`
   - Root causes:
     - preprocessor directive rules already encode same-line trivia explicitly via `inline_trivia`
     - the generated parser was still auto-skipping layout before regex tokens, so line-oriented regex rules like `directive_tail` could hop across a newline and swallow the following directive line
     - the grammar also still allowed `pp_elsif_branch` with no condition expression, which let the stimuli lane emit syntactically invalid bare `` `elsif`` lines
-  - Fresh focused proof on the retained shape now records `parseability_attempts_total=35`, `parseability_accepted_total=33`, `parseability_rejected_total=2`, `parseability_parser_rejections_total=2`, `parseability_counterexamples_captured_total=2`, `stage0_target_count=0`, and `final_targets=0` in the preprocessor aggregate contract lane
-  - The higher-level proof readers are now aligned on that same retained aggregate: formal closure, family status, lightweight SOTA telemetry, and combined telemetry all now mirror the `2`-reject / `final_targets=0` baseline instead of the older stale `4`-reject snapshot
+    - even after those two fixes, the broader `directive_tail` allowance on line-oriented non-conditional directives still left a narrower same-line directive-chaining seam that needed a more surgical shared-tail contract
+  - Fresh focused proof on the retained shape now records `parseability_attempts_total=37`, `parseability_accepted_total=36`, `parseability_rejected_total=1`, `parseability_parser_rejections_total=1`, `parseability_counterexamples_captured_total=1`, `stage0_target_count=3`, `stage1_target_count=2`, and `final_targets=0` in the preprocessor aggregate contract lane
+  - The higher-level proof readers are now aligned on that same retained aggregate: formal closure, family status, lightweight SOTA telemetry, and combined telemetry all now mirror the `1`-reject / `final_targets=0` baseline instead of the older stale `2`-reject snapshot
   - The direct minimal parser repros now pass on the rebuilt generated adapter too:
     - `/*a*/\`ifdef A`
     - `/*a*//*b*/\`ifdef A`
     - `/*a*/ /*b*/\`ifdef A`
   - The focused sample corpus no longer emits bare `` `elsif`` lines
   - Important reuse nuance: the stable main-SV aggregate reuse surface is `rust/target/sv_parser_aggregate_contract_gate_json_proof`, and the lightweight SOTA reuse surfaces for failure-context and roundtrip are the `*_json_proof` directories, not the plain gate directories
-  - A tempting shared parser+stimuli change was explicitly rejected during this slice: excluding backticks from `directive_tail` made the measured rejection surface worse, so future work should not retry that narrowing blindly
+  - Two tempting shared parser+stimuli changes were explicitly rejected during this slice:
+    - excluding backticks from `directive_tail` made the measured rejection surface worse, so future work should not retry that narrowing blindly
+    - the broader all-directives `directive_line_tail := inline_trivia line_comment?` refactor also made the measured rejection surface worse, so future work should keep the narrower `directive_comment_tail` scope instead of broadening it again by default
 - `vhdl`
   - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
   - In practice it is strongly coupled to quality/parseability, strict-promotion, and now a dedicated formal-exhaustive-closure proof surface

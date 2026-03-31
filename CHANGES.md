@@ -26158,3 +26158,24 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - reverted as a no-op
     - future work should not expect inline-comment sampling alone to close the remaining two rejects
+- 2026-03-31: Landed a narrower shared line-oriented-tail contract in `grammars/systemverilog_preprocessor.ebnf`.
+  - retained shape:
+    - add `directive_comment_tail := inline_trivia line_comment?`
+    - route only `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`, `pp_celldefine`, and `pp_endcelldefine` through that narrower tail
+    - leave conditional-family directives on the broader `directive_tail`
+  - why this was safe:
+    - these directives are line-oriented and do not need broad arbitrary same-line tail text after their required payloads
+    - the previously rejected all-directives tail normalization was too broad; this retained slice keeps the contract narrow and local
+  - fresh retained proof on the focused preprocessor seam improved from `35/33/2/2` to `37/36/1/1`.
+  - The refreshed aggregate sidecar now records:
+    - `parseability_counterexamples_captured_total=1`
+    - `stage0_target_count=3`
+    - `stage1_target_count=2`
+    - `final_targets=0`
+  - The higher-level retained SV preprocessor proof readers were refreshed on that same baseline:
+    - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_contract_gate`
+    - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
+    - `sv_combined_telemetry_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate`
