@@ -26107,3 +26107,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `sv_parser_family_status_contract_gate`
     - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_4reject_lightweight_refresh`
     - `sv_combined_telemetry_contract_gate`
+- 2026-03-31: Landed a shared SystemVerilog-preprocessor grammar tightening after the generator-side fix.
+  - `grammars/systemverilog_preprocessor.ebnf`
+    - `pp_elsif_branch` now requires `condition_expr` instead of permitting a missing condition
+  - Why this was safe:
+    - bare `` `elsif`` lines are not valid preprocessor syntax
+    - the change narrows an invalid generation hole rather than removing any legitimate preprocessor form
+  - Proof the retained hole is actually closed:
+    - `grep -RIn '^.*\`elsif[[:space:]]*$' rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_samples_stage*.txt` now finds no bare `` `elsif`` sample lines
+  - Fresh retained proof on the focused preprocessor seam improved again from `37/33/4/4` to `35/33/2/2`.
+  - The refreshed aggregate sidecar now records:
+    - `parseability_counterexamples_captured_total=2`
+    - `stage0_target_count=0`
+    - `final_targets=0`
+  - The higher-level retained SV preprocessor proof readers were refreshed on that same baseline:
+    - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_contract_gate`
+    - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_2reject_lightweight_refresh`
+    - `sv_combined_telemetry_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate`

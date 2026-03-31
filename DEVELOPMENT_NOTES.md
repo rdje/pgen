@@ -26814,3 +26814,28 @@ Architectural north star:
     - `sv_parser_family_status_contract_gate`
     - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_4reject_lightweight_refresh`
     - `sv_combined_telemetry_contract_gate`
+- 2026-03-31: Landed a shared parser+stimuli-safe follow-up in `systemverilog_preprocessor.ebnf`.
+  - root cause:
+    - after the generator-side newline fix, the remaining focused failures still included syntactically invalid bare `` `elsif`` lines
+    - `pp_elsif_branch := kw_elsif condition_expr? newline pp_item*` was therefore still too permissive for the actual preprocessor contract
+  - retained source fix:
+    - `grammars/systemverilog_preprocessor.ebnf`
+      - `pp_elsif_branch := kw_elsif condition_expr newline pp_item*`
+  - proof the specific hole closed:
+    - `grep -RIn '^.*\`elsif[[:space:]]*$' rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_samples_stage*.txt` now returns no matches
+  - retained focused preprocessor-quality baseline after the fix:
+    - `parseability_attempts_total=35`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=2`
+    - `parseability_parser_rejections_total=2`
+    - `parseability_counterexamples_captured_total=2`
+    - `stage0_target_count=0`
+    - `final_targets=0`
+  - refreshed higher-level retained readers:
+    - `sv_preprocessor_aggregate_contract_gate`
+    - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `sv_parser_family_status_gate`
+    - `sv_parser_family_status_contract_gate`
+    - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_2reject_lightweight_refresh`
+    - `sv_combined_telemetry_contract_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`

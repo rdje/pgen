@@ -8047,3 +8047,27 @@ Use this file to resume work without replaying full chat history.
     - family-status contract: `rust/target/sv_parser_family_status_contract_gate`
     - lightweight SOTA: `rust/target/sota_exit_gate_svpp_4reject_lightweight_refresh`
     - combined telemetry: `rust/target/sv_combined_telemetry_contract_gate`
+- 2026-03-31: The next retained SystemVerilog-preprocessor reduction is a shared grammar tightening, not another generator change.
+  - specific retained fix:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - `pp_elsif_branch` now requires `condition_expr`
+  - reason this was safe:
+    - bare `` `elsif`` lines are invalid preprocessor syntax
+    - the grammar had been over-permissive for stimuli generation, not under-permissive for real parser support
+  - retained proof that the hole is closed:
+    - `grep -RIn '^.*\`elsif[[:space:]]*$' rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_samples_stage*.txt` now yields no hits
+  - retained focused baseline after the fix:
+    - `parseability_attempts_total=35`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=2`
+    - `parseability_parser_rejections_total=2`
+    - `parseability_counterexamples_captured_total=2`
+    - `stage0_target_count=0`
+    - `final_targets=0`
+  - retained refreshed state dirs:
+    - aggregate: `rust/target/sv_preprocessor_aggregate_contract_gate`
+    - formal closure: `rust/target/sv_preprocessor_formal_exhaustive_closure_gate`
+    - family status: `rust/target/sv_parser_family_status_gate`
+    - family-status contract: `rust/target/sv_parser_family_status_contract_gate`
+    - lightweight SOTA: `rust/target/sota_exit_gate_svpp_2reject_lightweight_refresh`
+    - combined telemetry: `rust/target/sv_combined_telemetry_contract_gate`
