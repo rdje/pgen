@@ -26938,3 +26938,32 @@ Architectural north star:
   - conclusion:
     - even parser-equivalent alternation changes can materially distort the generator distribution here
     - keep the simpler retained `directive_comment_tail := inline_trivia line_comment?` form and treat this branch-splitting idea as explicitly rejected
+- 2026-03-31: A shared line-oriented end-of-line tightening is not retainable yet.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - replace `newline?` with `directive_line_end := newline | eof` on:
+      - `pp_undef`
+      - `pp_include`
+      - `pp_timescale`
+      - `pp_default_nettype`
+      - `pp_celldefine`
+      - `pp_endcelldefine`
+    - add stimuli-only hints:
+      - `directive_line_end @sample: ""`
+      - `macro_default_value @sample: ":"`
+  - reason for the experiment:
+    - the retained single reject only appears once the fifth line introduces a top-level `endif`, and the earlier apparent opening directives are being created through same-line chaining on otherwise line-oriented directives
+    - this was the first structural attempt that directly blocked same-line chaining while still trying to allow EOF-at-file-end
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - improved parseability to `49/49/0/0`
+      - but reopened `final_targets=2`
+    - `sv_preprocessor_aggregate_contract_gate`
+      - failed immediately on the final gap contract
+      - remaining selected-but-never-successful targets:
+        - `branch::directive_line_end::root#1` depending on `eof`
+        - `branch::macro_default_atom::root#7` depending on `colon`
+      - the `directive_line_end` EOF branch had `selected_hits=3713` and `success_hits=0`
+  - conclusion:
+    - this is not a keepable shipped shape yet
+    - true line-end enforcement may still be the right long-term seam, but not with the current `eof` branch behavior

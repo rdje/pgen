@@ -8157,3 +8157,21 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - keep the existing `directive_comment_tail := inline_trivia line_comment?`
     - do not retry parser-equivalent comment-branch splitting blindly
+- 2026-03-31: True line-end enforcement on the line-oriented non-conditional directives is also rejected for now.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - introduce `directive_line_end := newline | eof`
+    - replace `newline?` with `directive_line_end` on `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`, `pp_celldefine`, and `pp_endcelldefine`
+    - add `directive_line_end @sample: ""` and `macro_default_value @sample: ":"`
+  - why it was tested:
+    - the retained single reject depends on same-line directive chaining before a top-level `endif`, so true line termination looked like the right structural seam
+  - measured effect:
+    - focused quality improved parseability to `49/49/0/0`
+    - but reopened `final_targets=2`
+    - aggregate contract failed on:
+      - `branch::directive_line_end::root#1` depending on `eof`
+      - `branch::macro_default_atom::root#7` depending on `colon`
+    - the `directive_line_end` EOF branch had `selected_hits=3713` and `success_hits=0`
+  - retained consequence:
+    - revert to the retained `newline?` shape
+    - do not retry `newline | eof` line-end enforcement blindly without first solving the aggregate-contract `eof` branch behavior

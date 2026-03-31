@@ -26206,3 +26206,18 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - reverted immediately
     - future work should not assume parser-equivalent “safe comment branch” alternations are benign in this grammar
+- 2026-03-31: Rejected a shared line-oriented end-of-line tightening for non-conditional directives.
+  - attempted shape:
+    - replace `newline?` with `directive_line_end := newline | eof` on `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`, `pp_celldefine`, and `pp_endcelldefine`
+    - add targeted stimuli-only hints `directive_line_end @sample: ""` and `macro_default_value @sample: ":"`
+  - why it looked plausible:
+    - the remaining retained reject depends on same-line directive chaining, and requiring a true line end looked like the first structural fix that directly blocked that seam while still permitting EOF
+  - why it was rejected:
+    - focused parseability improved all the way to `49/49/0/0`, but the aggregate contract failed and the focused lane reopened target debt to `final_targets=2`
+    - the two remaining selected-but-never-successful targets were:
+      - `branch::directive_line_end::root#1` depending on `eof`
+      - `branch::macro_default_atom::root#7` depending on `colon`
+    - the `directive_line_end` EOF branch was selected heavily (`3713` hits) but never succeeded, so this shape is not shippable as-is
+  - net result:
+    - reverted immediately
+    - future work can revisit true line-end enforcement only with a branch shape that does not strand aggregate-contract debt on `eof`
