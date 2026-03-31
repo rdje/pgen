@@ -27080,3 +27080,23 @@ Architectural north star:
   - steering consequence:
     - do not resume more blanket VHDL `@sample` bundles by default
     - use the triage output to pick narrower dependency-level or branch-specific fixes first
+- 2026-03-31: Three VHDL reserved-word exclusion experiments are now explicitly rejected.
+  - why they were attempted:
+    - the new `coverage_gap_triage` output plus replay artifacts strongly suggested keyword-vs-identifier shadowing around `open`, `to`, `downto`, and operator words
+    - the idea was to replace broad hint sweeps with one systematic ambiguity reduction
+  - rejected shape A:
+    - put the reserved-word exclusion directly into the `identifier` token regex
+    - direct `parseability_probe --parse vhdl ../rust/test_data/grammar_quality/vhdl_realistic_corpus/entity_and2_architecture.vhd --trace` showed the generated parser rejected that regex because Rust regex look-around is unsupported
+  - rejected shape B:
+    - move the same idea to grammar-level negative lookahead on `identifier`
+    - this preserved realistic-corpus parseability but still regressed the focused VHDL quality lane to:
+      - `closed_loop_replay_targets=15`
+      - `closed_loop_parseability_shadow_parser_rejections_total=8`
+  - rejected shape C:
+    - narrow the grammar-level lookahead to `selected_name` and only the likely conflict set (`open`, `to`, `downto`, `range`, operator words)
+    - this also preserved the direct realistic-corpus repro, but regressed the focused VHDL lane further to:
+      - `closed_loop_replay_targets=35`
+      - `closed_loop_parseability_shadow_parser_rejections_total=1`
+  - conclusion:
+    - broad reserved-word exclusion is not a keepable VHDL closure shortcut on the current lane
+    - revert to the retained baseline and keep using the branch-gap tool for more local interventions

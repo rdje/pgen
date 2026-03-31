@@ -8249,3 +8249,18 @@ Use this file to resume work without replaying full chat history.
     - `actual_part#expression` is part of a shared `expression` dependency failure
   - retained consequence:
     - future VHDL and SV-preprocessor work should favor this tool over more broad hint sweeps when a family is down to a small stubborn replay/rejection set
+- 2026-03-31: Three VHDL reserved-word exclusion shapes are now known dead ends.
+  - why they were tried:
+    - `coverage_gap_triage` plus replay artifacts pointed at likely keyword-vs-identifier shadowing around `open`, `to`, `downto`, and operator words
+  - rejected shape A:
+    - regex-level reserved-word exclusion inside `identifier`
+    - failed because Rust regex look-around is unsupported in the generated parser runtime
+  - rejected shape B:
+    - grammar-level negative lookahead for the full current VHDL keyword surface on `identifier`
+    - realistic corpus stayed green, but focused VHDL quality regressed to `replay_targets=15` and replay-shadow parser rejections `8`
+  - rejected shape C:
+    - grammar-level negative lookahead only on `selected_name` for `open`, `to`, `downto`, `range`, and operator words
+    - realistic corpus stayed green, but focused VHDL quality regressed to `replay_targets=35` and replay-shadow parser rejections `1`
+  - retained consequence:
+    - keep the earlier VHDL baseline (`closed_loop_replay_targets=11`, replay-shadow parser rejections `0`)
+    - do not retry broad reserved-word exclusion on `identifier` or `selected_name` blindly

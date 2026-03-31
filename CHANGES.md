@@ -26288,3 +26288,28 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `actual_part#expression` is likewise part of a shared `expression` dependency failure
   - net result:
     - future VHDL / SV-preprocessor closure work should prefer this branch-level introspection path over more blanket `@sample` sweeps or other broad grammar nudges
+- 2026-03-31: Rejected three VHDL keyword-reservation experiments derived from the new branch-gap triage results.
+  - reason they looked plausible:
+    - the new triage surface plus replay artifacts showed likely keyword-vs-identifier shadowing around `open`, `to`, `downto`, and expression operator words
+    - this suggested a systematic reserved-word exclusion might close the stubborn ambiguity debt more effectively than more blanket `@sample` hints
+  - attempted shape A:
+    - regex-level reserved-word exclusion directly inside `identifier`
+  - why shape A was rejected:
+    - direct realistic-corpus repro on `entity_and2_architecture.vhd` failed immediately
+    - traced failure showed the generated parser rejected the regex itself because Rust regex look-around is unsupported
+  - attempted shape B:
+    - grammar-level negative lookahead for the full current VHDL keyword surface on `identifier`
+  - why shape B was rejected:
+    - realistic corpus stayed green, but the focused VHDL quality lane regressed to:
+      - `closed_loop_replay_targets=15`
+      - `closed_loop_parseability_shadow_parser_rejections_total=8`
+  - attempted shape C:
+    - narrower grammar-level negative lookahead only on `selected_name` for the likely conflict set (`open`, `to`, `downto`, `range`, and operator words)
+  - why shape C was rejected:
+    - realistic corpus still stayed green, but the focused VHDL quality lane regressed even harder to:
+      - `closed_loop_replay_targets=35`
+      - `closed_loop_parseability_shadow_parser_rejections_total=1`
+  - net result:
+    - reverted all three attempts
+    - the retained VHDL baseline is still the earlier one-blocker state with `closed_loop_replay_targets=11` and replay-shadow parser rejections `0`
+    - future VHDL work should not retry reserved-word exclusion broadly on `identifier` or `selected_name` without a much more local proof strategy
