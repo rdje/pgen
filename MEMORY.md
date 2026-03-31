@@ -8232,3 +8232,20 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - revert all of those sample hints
     - do not spend more time on blanket VHDL `@sample` bundles without a branch-specific reason
+- 2026-03-31: There is now a retained branch-level introspection tool for the stuck HDL closure seams.
+  - tool:
+    - `cargo run --bin coverage_gap_triage -- --gap-report ... --coverage ... --grammar-ast ...`
+  - source/doc locations:
+    - `rust/src/bin/coverage_gap_triage.rs`
+    - `rust/docs/COVERAGE_GAP_TRIAGE.md`
+  - key behavior:
+    - reads gap-report JSON + coverage JSON + grammar AST JSON
+    - accepts either transformed `grammar_tree` or frontend-style `raw_ast`
+    - reconstructs the transformed grammar tree from `raw_ast` when needed
+    - reports branch rendering, sibling success counts, referenced-rule success counts, and a lightweight heuristic label
+  - current verified VHDL outcome:
+    - `trivia#line_comment` is a selection-bias hole
+    - `actual_parameter_element#range_expression` is part of a shared `range_expression` dependency failure
+    - `actual_part#expression` is part of a shared `expression` dependency failure
+  - retained consequence:
+    - future VHDL and SV-preprocessor work should favor this tool over more broad hint sweeps when a family is down to a small stubborn replay/rejection set

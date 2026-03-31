@@ -26273,3 +26273,18 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - reverted immediately
     - future work should not expect broad parser-neutral `@sample` bundles alone to move the retained VHDL replay debt
+- 2026-03-31: Added branch-level coverage-gap triage tooling for the stuck HDL closure seams.
+  - retained implementation:
+    - add Rust bin [rust/src/bin/coverage_gap_triage.rs](rust/src/bin/coverage_gap_triage.rs)
+    - register it in [rust/Cargo.toml](rust/Cargo.toml)
+    - document usage in [rust/docs/COVERAGE_GAP_TRIAGE.md](rust/docs/COVERAGE_GAP_TRIAGE.md)
+  - what it does:
+    - joins gap-report JSON, coverage JSON, and grammar AST JSON into one readable branch-debt triage view
+    - accepts either `grammar_tree` or `raw_ast` grammar artifacts, reconstructing the transformed grammar tree from `raw_ast` when needed
+    - renders the stuck branch, its siblings, referenced-rule success counts, and a lightweight heuristic such as `selection_bias_likely` or `shared_dependency_failure_likely`
+  - verified current VHDL findings on the retained `closed_loop_replay_targets=11` seam:
+    - `trivia#line_comment` is a real selection-bias hole (`white_space` succeeds heavily while `line_comment` is never selected)
+    - `actual_parameter_element#range_expression` is not just a local sample miss; it is part of a shared `range_expression` dependency failure
+    - `actual_part#expression` is likewise part of a shared `expression` dependency failure
+  - net result:
+    - future VHDL / SV-preprocessor closure work should prefer this branch-level introspection path over more blanket `@sample` sweeps or other broad grammar nudges

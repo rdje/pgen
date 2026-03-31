@@ -1,6 +1,6 @@
 # RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-03-30
+Last updated: 2026-03-31
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -31,6 +31,8 @@ This is a live document, not an archival write-up. It should be amended whenever
   - downstream regex hardening under `regex_corpus_bundle/` now also has two distinct external-corpus roles:
     - `regex_pcre2_textsafe_corpus_gate` for accepted-syntax widening
     - `regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth
+  - the current HDL closure tactic has now shifted away from broad hint sweeps:
+    - when a family is down to a small stubborn replay/rejection set, prefer the new branch-level triage tooling over more blanket grammar/sample nudges
 
 ## Rust-Adjacent Cargo Surface
 - Main product crate
@@ -117,6 +119,11 @@ Operational rule:
     - PCRE2-first external regex hardening doctrine
     - corpus acquisition / normalization layout
     - the maintained difference between text-safe widening and compile-oracle measurement lanes
+- `rust/docs/COVERAGE_GAP_TRIAGE.md`
+  - Use for:
+    - branch-level closure debugging on the remaining HDL seams
+    - joining gap-report, coverage, and grammar-AST artifacts into one readable triage surface
+    - avoiding more blind `@sample` / lexical hint sweeps when a family is down to a small stubborn target set
 
 Operational rule:
 - If a Rust task raises a question about doctrine, status, semantics, or workflow, reach for the matching repo doc instead of trying to infer everything from code alone.
@@ -1343,6 +1350,14 @@ Operational rule:
   - Two additional directions are now explicitly rejected rather than merely “not yet landed”:
     - a shared `stimuli_generator.rs` direct-probe rebias worsened replay debt from `11` to `30`
     - broader VHDL branch-steering experiments either worsened replay debt (`11 -> 17`) or made replay materially more expensive without yielding a keepable result
+  - The current preferred tactic for the remaining `11` replay targets is now the new branch-level triage tool instead of more blanket sample-hint sweeps:
+    - [coverage_gap_triage.rs](rust/src/bin/coverage_gap_triage.rs) joins the gap report, coverage report, and grammar AST into one readable triage surface
+    - the verified current VHDL run shows:
+      - `trivia#line_comment` is a real selection-bias seam
+      - `actual_parameter_element#range_expression` is part of a shared `range_expression` dependency failure
+      - `actual_part#expression` is part of a shared `expression` dependency failure
+    - operational consequence:
+      - future VHDL fixes should favor dependency-level or branch-specific interventions over more wide `@sample` bundles
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling

@@ -24,6 +24,7 @@ Execution preference for this roadmap:
 - deterministic reproducibility,
 - embedder-facing diagnostics and AST visibility,
 - checked-in external corpora only count toward closure after they are consumed by repeatable gates or reports rather than merely present in the tree.
+- when a family is down to a small stubborn replay/rejection set and repeated broad grammar/sample tweaks keep failing, prefer branch-level introspection tooling over more blanket hint sweeps.
 - when a parser family is already `Done` on its published closure bar, downstream-hardening follow-up should not reopen that family automatically unless the published syntax/contract is intentionally widened.
 - for regex specifically, the remaining embedded-code-block follow-up should proceed through parser-layer structural guarantees plus compact synthetic contract corpora/gates rather than waiting for a large external Lua/JS dataset.
 - RGX's 2026-03-29 downstream maintenance review now treats regex handoff `1.1.1` as integration-ready for starting downstream adoption; the remaining regex caveats are now scope-widening questions rather than baseline contract blockers:
@@ -63,6 +64,12 @@ Tracker note (2026-03-31): the current retained `systemverilog_preprocessor` red
 - `sv_parser_family_status_contract_gate`
 - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
 - `sv_combined_telemetry_contract_gate`
+
+Tracker note (2026-03-31): after the repeated rejected/no-op VHDL and SV-preprocessor hint sweeps, the preferred tactic for the remaining HDL seams is now explicit branch-level introspection rather than more blanket grammar nudges. New local tool [coverage_gap_triage.rs](rust/src/bin/coverage_gap_triage.rs), documented in [COVERAGE_GAP_TRIAGE.md](rust/docs/COVERAGE_GAP_TRIAGE.md), joins gap-report JSON, coverage JSON, and grammar AST JSON into one readable triage view and accepts both transformed `grammar_tree` and frontend-style `raw_ast` artifacts. The first verified VHDL run against `rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json` showed:
+- `trivia#line_comment` is a true selection-bias seam
+- `actual_parameter_element#range_expression` is part of a shared `range_expression` dependency failure
+- `actual_part#expression` is part of a shared `expression` dependency failure
+Future VHDL closure work should use that tool to drive narrower dependency-level or branch-specific fixes instead of resuming broad `@sample` bundles by default.
 The active preprocessor blockers are therefore now narrowed to:
 - `parseability_parser_rejections_total=1 > 0`
 - `parseability_rejected_total=1 > 0`

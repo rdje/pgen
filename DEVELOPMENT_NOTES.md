@@ -27056,3 +27056,27 @@ Architectural north star:
   - conclusion:
     - broad parser-neutral `@sample` bundles are not moving the retained VHDL replay debt
     - future work should pivot back to narrower branch-specific steering or better branch-introspection, not more blanket sample hints
+- 2026-03-31: `coverage_gap_triage` is now the preferred next-step tool for the stuck HDL closure seams.
+  - files:
+    - `rust/src/bin/coverage_gap_triage.rs`
+    - `rust/docs/COVERAGE_GAP_TRIAGE.md`
+    - `rust/Cargo.toml`
+  - purpose:
+    - consume one gap-report JSON, one coverage JSON, and one grammar AST artifact
+    - join them into a readable branch-level triage view showing:
+      - branch text
+      - sibling branch success counts
+      - referenced-rule success counts
+      - heuristic classification (`selection_bias_likely`, `shared_dependency_failure_likely`, `branch_specific_failure_likely`, `dependency_rule_debt_likely`)
+  - important implementation detail:
+    - the tool accepts both transformed `grammar_tree` artifacts and frontend-style `raw_ast` exports
+    - when only `raw_ast` exists, it reconstructs the transformed grammar tree through `RustASTPipeline::transform_from_raw_ast(...)`
+  - verified VHDL command:
+    - `cargo run --bin coverage_gap_triage -- --gap-report rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json --coverage rust/target/vhdl_stimuli_quality_gate/work/closed_loop_initial_coverage.json --grammar-ast rust/target/vhdl_stimuli_quality_gate/work/vhdl.json --top 3`
+  - verified current VHDL takeaways:
+    - `trivia#line_comment` is selection bias, not parser failure
+    - `actual_parameter_element#range_expression` is shared dependency failure through `range_expression`
+    - `actual_part#expression` is shared dependency failure through `expression`
+  - steering consequence:
+    - do not resume more blanket VHDL `@sample` bundles by default
+    - use the triage output to pick narrower dependency-level or branch-specific fixes first
