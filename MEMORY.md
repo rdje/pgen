@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-30 (+0200, task: refresh-svpp-proof-stack-to-5-reject-baseline)
+Last updated: 2026-03-31 (+0200, task: svpp-orphan-endif-trace-triage)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,37 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Rebuilt `generated_parse_probe` and `parseability_probe` against the exact generated preprocessor parser from:
+  - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs`
+- Verified the retained one-reject seam precisely:
+  - standalone `/**/\`` is rejected
+  - standalone `` `endif`` is rejected
+  - standalone `` `celldefine`` is accepted
+- Trace-backed root cause:
+  - the retained counterexample is not failing in its first four lines
+  - the parser cleanly consumes the first `418` bytes as five top-level items:
+    - `pp_celldefine`
+    - `pp_include`
+    - `pp_define`
+    - `pp_include`
+    - `pp_timescale`
+  - the remaining failure begins at a comment-prefixed top-level `` `endif`` line
+  - so the seam is an orphaned closer after same-line chaining/comment-swallowing, not a generic raw-backtick parse bug
+- Tried and rejected two more stimuli-only steering ideas in [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf):
+  - `non_directive_text @sample: "text"`
+    - exact no-op; lane stayed at `37/36/1/1`
+  - canonical comment payload samples:
+    - `line_comment @sample: "//comment"`
+    - `block_comment @sample: "/*comment*/"`
+    - regressed badly to `46/41/5/5` with `initial_targets=20`
+- Steering:
+  - do not retry `non_directive_text` or comment-payload sample hints for this seam
+  - the next keepable move should treat this as a generator/layout problem around:
+    - leading `inline_trivia`
+    - broad regex text payloads
+    - same-line directive chaining
+  - if true line-end enforcement is revisited, pair it with an explicit plan for the previously stranded aggregate-contract `eof` branch
+
 - Refreshed the higher-level `systemverilog_preprocessor` proof stack so it now matches the retained aggregate baseline instead of the older stale `10`-reject snapshot:
   - aggregate retained truth is still:
     - `parseability_attempts_total=38`

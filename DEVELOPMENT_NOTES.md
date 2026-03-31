@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-03-31 - SV preprocessor one-reject triage: orphan top-level endif, not generic backtick rejection
+### Context
+After the retained reductions, the focused `systemverilog_preprocessor` lane was sitting at:
+- `parseability_attempts_total=37`
+- `parseability_accepted_total=36`
+- `parseability_rejected_total=1`
+- `parseability_parser_rejections_total=1`
+- `initial_targets=3`
+- `final_targets=0`
+
+The shrunk counterexample was only `/**/\``, which was too small to explain whether the real issue was:
+- a raw backtick parser bug,
+- a standalone conditional-tail bug,
+- or a generation/layout interaction elsewhere in the sample.
+
+### What Was Verified
+- Rebuilt `generated_parse_probe` and `parseability_probe` against the exact generated parser artifact used by `sv_preprocessor_quality_gate`:
+  - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs`
+- Direct parser behavior on the real generated backend is:
+  - `/**/\``: rejected
+  - `` `endif``: rejected
+  - `` `celldefine``: accepted
+- Tracing the full retained counterexample shows the parser cleanly consumes the first `418` bytes, then stops at the comment-prefixed top-level `` `endif`` line.
+- Dumping the successful `418`-byte prefix AST shows that prefix is not a conditional at all; it is five top-level items in sequence:
+  - `pp_celldefine`
+  - `pp_include`
+  - `pp_define`
+  - `pp_include`
+  - `pp_timescale`
+- So the remaining one-reject seam is an orphaned closing-style conditional token after same-line chaining/comment-swallowing, not a failure hidden in the earlier prefix.
+
+### Rejected Steering In This Slice
+- `non_directive_text @sample: "text"`
+  - exact no-op
+  - focused lane stayed at `37/36/1/1`
+- canonical comment payload samples:
+  - `line_comment @sample: "//comment"`
+  - `block_comment @sample: "/*comment*/"`
+  - badly regressed the focused lane to `46/41/5/5`
+  - `initial_targets` widened from `3` to `20`
+
+### Steering
+- Treat the retained one-reject seam as a layout-sensitive generator problem, not as a generic parser keyword/regex problem.
+- Do not spend more time on broad sample-hint sweeps for:
+  - `non_directive_text`
+  - `line_comment`
+  - `block_comment`
+- The most promising future directions are now:
+  - generator-side handling of leading `inline_trivia` before broad regex text rules
+  - generator-side control of same-line directive chaining in line-oriented grammars
+  - or a revisited true line-end solution only if the aggregate-contract `eof` branch debt is solved at the same time
+
 ## 2026-03-30 - SV preprocessor proof refresh: align higher-level readers on retained 5-reject aggregate
 ### Context
 By the start of this slice, the retained `systemverilog_preprocessor` aggregate proof was already:

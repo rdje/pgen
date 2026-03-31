@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-03-31 - Trace-triage retained SV-preprocessor orphan-endif reject
+### Achievement Summary
+No grammar or Rust source change was retained in this slice. I rebuilt the local probes against the same generated `systemverilog_preprocessor` parser used by the focused quality gate, traced the retained one-reject counterexample, and confirmed the remaining seam is a generator-side orphan top-level `` `endif`` shape rather than a generic raw-backtick parse bug.
+
+### Scope of Changes
+- Rebuilt probe binaries against the quality-gate parser artifact:
+  - `generated_parse_probe`
+  - `parseability_probe`
+- Verified the minimal parser behavior on the retained seam:
+  - standalone `/**/\`` is rejected
+  - standalone `` `endif`` is rejected
+  - standalone `` `celldefine`` still parses
+- Traced the retained full counterexample and extracted the key structure:
+  - the parser cleanly consumes the first `418` bytes as five top-level items:
+    - `pp_celldefine`
+    - `pp_include`
+    - `pp_define`
+    - `pp_include`
+    - `pp_timescale`
+  - the remaining failure starts at a comment-prefixed top-level `` `endif`` line
+  - so the remaining reject is an orphaned closing-style conditional token after same-line chaining/comment-swallowing, not a failure in the earlier prefix
+- Rejected two new stimuli-only steering ideas and reverted both immediately:
+  - `non_directive_text @sample: "text"`
+    - exact no-op on the retained lane
+    - stayed at `37/36/1/1` with `initial_targets=3`, `final_targets=0`
+  - canonical comment payload samples:
+    - `line_comment @sample: "//comment"`
+    - `block_comment @sample: "/*comment*/"`
+    - regressed badly to:
+      - `parseability_attempts_total=46`
+      - `parseability_accepted_total=41`
+      - `parseability_rejected_total=5`
+      - `parseability_parser_rejections_total=5`
+      - `initial_targets=20`
+      - `final_targets=0`
+
+### Steering
+- Do not retry `non_directive_text @sample: "text"` for the retained one-reject seam; it is a true no-op.
+- Do not retry canonical comment-payload samples on this seam; they materially widen the rejection surface.
+- The next keepable move should treat the remaining `systemverilog_preprocessor` reject as a layout-sensitive generator issue around:
+  - broad text/comment payload generation
+  - leading `inline_trivia`
+  - same-line directive chaining
+- If true line-end enforcement is revisited, do it only with an explicit plan for the previously stranded aggregate-contract `eof` branch behavior.
+
+### Validation
+- `env PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH=rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs cargo build --features generated_parsers --bin generated_parse_probe`
+- `env PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH=rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs cargo build --features generated_parsers --bin parseability_probe`
+- `./target/debug/generated_parse_probe --supports systemverilog_preprocessor`
+- `./target/debug/generated_parse_probe --parse systemverilog_preprocessor /tmp/svpp_min_fail.sv`
+- `./target/debug/generated_parse_probe --parse systemverilog_preprocessor /tmp/svpp_endif_ok.sv`
+- `./target/debug/generated_parse_probe --parse systemverilog_preprocessor /tmp/svpp_celldefine_ok.sv`
+- `PGEN_TRACE_VERBOSITY=debug ./target/debug/parseability_probe --parse systemverilog_preprocessor /tmp/svpp_counterexample_full.sv --trace --trace-log-file /tmp/svpp_counterexample_full.trace`
+- `PGEN_TRACE_VERBOSITY=debug ./target/debug/parseability_probe --parse systemverilog_preprocessor /tmp/svpp_min_fail.sv --trace --trace-log-file /tmp/svpp_min_fail.trace`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+
 ## 2026-03-30 - Refresh SV-preprocessor proof stack to retained 5-reject baseline
 ### ✅ Achievement Summary
 No grammar or Rust source change was retained in this slice. I refreshed the higher-level SystemVerilog preprocessor proof stack so it now consumes the same retained aggregate baseline already documented elsewhere: `parseability_attempts_total=38`, `parseability_accepted_total=33`, `parseability_rejected_total=5`, `parseability_parser_rejections_total=5`, and `final_targets=0`.

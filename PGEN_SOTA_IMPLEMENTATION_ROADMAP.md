@@ -65,6 +65,11 @@ Tracker note (2026-03-31): the current retained `systemverilog_preprocessor` red
 - lightweight reused `sota_exit_gate` at `rust/target/sota_exit_gate_svpp_1reject_lightweight_refresh`
 - `sv_combined_telemetry_contract_gate`
 
+Tracker note (2026-03-31): trace-backed triage on that retained one-reject `systemverilog_preprocessor` seam now shows the remaining failure is an orphaned top-level `` `endif`` after `418` bytes of successful top-level parsing (`pp_celldefine`, `pp_include`, `pp_define`, `pp_include`, `pp_timescale`). The obvious stimuli-only detours are now ruled out:
+- `non_directive_text @sample: "text"` is a true no-op on the retained `37/36/1/1` baseline
+- canonical `line_comment` / `block_comment` payload samples regress the focused lane badly to `46/41/5/5`
+- future work should therefore target generator/layout behavior around leading `inline_trivia` plus broad regex text rules and same-line directive chaining, or revisit true line-end enforcement only with an explicit solution for the previously stranded aggregate-contract `eof` branch
+
 Tracker note (2026-03-31): after the repeated rejected/no-op VHDL and SV-preprocessor hint sweeps, the preferred tactic for the remaining HDL seams is now explicit branch-level introspection rather than more blanket grammar nudges. New local tool [coverage_gap_triage.rs](rust/src/bin/coverage_gap_triage.rs), documented in [COVERAGE_GAP_TRIAGE.md](rust/docs/COVERAGE_GAP_TRIAGE.md), joins gap-report JSON, coverage JSON, and grammar AST JSON into one readable triage view and accepts both transformed `grammar_tree` and frontend-style `raw_ast` artifacts. The first verified VHDL run against `rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json` showed:
 - `trivia#line_comment` is a true selection-bias seam
 - `actual_parameter_element#range_expression` is part of a shared `range_expression` dependency failure
