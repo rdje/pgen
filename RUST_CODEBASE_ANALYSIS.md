@@ -1668,3 +1668,15 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
 - It is not a benchmark report.
 - It is not a full dynamic validation run of all Rust binaries and all gates.
 - It should therefore be refreshed when runtime evidence materially changes the picture.
+
+## Current Closure Steering Notes
+- VHDL is still the cleanest near-term HDL closure candidate, but the remaining work should now be treated as dependency triage, not broad grammar experimentation.
+  - Current retained branch-priority order from `coverage_gap_triage`:
+    - `trivia#line_comment`
+    - `actual_parameter_element#range_expression`
+    - `actual_part#expression`
+    - `aggregate#expression,...aggregate_element_association`
+  - The downstream declaration-item and statement-item misses mostly hang off those same unresolved `expression`, `range_expression`, and declaration surfaces.
+- SystemVerilog preprocessor has one retained focused reject on the shipped baseline, but not every plausible structural fix is safe.
+  - Specifically, the `directive_line_end := newline | eof` plus synthetic-`eof` generator path is now known to be non-keepable because it resolves target debt by collapsing parseability.
+  - If returning to that family, prefer tighter generator/layout analysis over synthetic-EOF closure tricks.

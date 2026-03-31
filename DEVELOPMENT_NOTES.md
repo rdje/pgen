@@ -27152,3 +27152,44 @@ Architectural north star:
   - conclusion:
     - broad reserved-word exclusion is not a keepable VHDL closure shortcut on the current lane
     - revert to the retained baseline and keep using the branch-gap tool for more local interventions
+- 2026-03-31: The next retained VHDL replay-target attack order is now explicit from `coverage_gap_triage`.
+  - verified command:
+    - `./rust/target/debug/coverage_gap_triage --gap-report rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json --coverage rust/target/vhdl_stimuli_quality_gate/work/closed_loop_initial_coverage.json --grammar-ast rust/target/vhdl_stimuli_quality_gate/work/vhdl.json`
+  - top current VHDL seams:
+    - `trivia#line_comment`
+      - pure `selection_bias_likely`
+      - `white_space` is succeeding heavily; `line_comment` remains `selected=0 success=0`
+    - `actual_parameter_element#range_expression`
+      - `shared_dependency_failure_likely`
+      - should be treated as part of the broader `range_expression` closure seam, not a one-off local branch
+    - `actual_part#expression`
+      - `branch_specific_failure_likely`
+      - sibling `kw_open` already succeeds, so this is one of the cleanest local parser+stimuli closure seams left
+    - `aggregate#(expression, aggregate_element_association...)`
+      - still coupled to the same missing `expression` / aggregate-association surfaces
+  - secondary VHDL cluster now known to be downstream of those same missing surfaces:
+    - declaration items:
+      - `constant_declaration`
+      - `file_declaration`
+      - `variable_declaration`
+      - `type_declaration`
+      - `subtype_declaration`
+    - statement/items:
+      - `concurrent_signal_assignment_statement`
+      - `assert_statement`
+      - `range_constraint`
+      - `generic_clause`
+      - `port_clause`
+      - `generate_statement(if...)`
+  - practical consequence:
+    - future VHDL work should start with `expression` / `range_expression` / `line_comment` branch-specific closure, not more broad grammar sweeps
+- 2026-03-31: One SystemVerilog-preprocessor path is now explicitly known-bad even though it looked close.
+  - attempted path:
+    - force line termination on the non-conditional comment-tail directives using `directive_line_end := newline | eof`
+    - add synthetic `eof` support to the stimuli generator so the `directive_line_end#eof` target could close
+  - outcome:
+    - target debt disappeared, but the focused proof lane collapsed to `122/69/53/53`
+    - this is not a healthy retained closure shape
+  - consequence:
+    - keep the retained shipped baseline on the earlier `37/36/1/1` seam
+    - do not retry the `directive_line_end + synthetic eof` approach without a much tighter proof strategy

@@ -4035,3 +4035,16 @@ Why `rtl_frontend` exists:
 - That keeps the proof stack regular all the way from family-status through family-status contract, combined telemetry, and `sota_exit_gate`, which reduces special cases for downstream aggregate consumers and future local-CI policy guards.
 - The sibling coherence step below that is family-contract self-description. The shipped regex and VHDL family-contract gates should likewise surface their own sidecar identities by carrying `summary_txt` and `summary_json` at the top level of their JSON sidecars, and their TXT headers should expose `summary_json` consistently too.
 - That keeps the proof stack regular all the way from family-contract up through family-status, family-status contract, combined telemetry, and `sota_exit_gate`.
+- The active VHDL closure lane is now narrow enough that it should be treated as branch/dependency triage, not broad grammar exploration.
+  - Verified current top VHDL replay-gap seams:
+    - `trivia#line_comment`
+    - `actual_parameter_element#range_expression`
+    - `actual_part#expression`
+    - `aggregate#expression,...aggregate_element_association`
+  - The next declaration-item and statement-item failures mostly sit downstream of those same unresolved dependencies, so future VHDL work should attack those first instead of returning to blanket `@sample` bundles or broad reserved-word exclusion.
+- One SystemVerilog-preprocessor closure path is now explicitly deferred as non-keepable:
+  - forcing `directive_line_end := newline | eof` on the non-conditional comment-tail directives and pairing it with synthetic-`eof` generator support
+  - reason:
+    - it can clear target debt, but only by regressing the focused proof lane to a high-rejection parseability surface
+  - roadmap consequence:
+    - do not prioritize that path ahead of cleaner VHDL / SystemVerilog closure work

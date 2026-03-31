@@ -26369,3 +26369,45 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - reverted all three attempts
     - the retained VHDL baseline is still the earlier one-blocker state with `closed_loop_replay_targets=11` and replay-shadow parser rejections `0`
     - future VHDL work should not retry reserved-word exclusion broadly on `identifier` or `selected_name` without a much more local proof strategy
+- 2026-03-31: Refreshed the retained VHDL replay-gap triage ranking with the new branch-level tool instead of doing another broad grammar sweep.
+  - verified command:
+    - `./rust/target/debug/coverage_gap_triage --gap-report rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json --coverage rust/target/vhdl_stimuli_quality_gate/work/closed_loop_initial_coverage.json --grammar-ast rust/target/vhdl_stimuli_quality_gate/work/vhdl.json`
+  - most actionable current reachable branch debts:
+    - `trivia#line_comment`
+      - `selection_bias_likely`
+      - sibling evidence: `white_space` succeeds heavily while `line_comment` is still never selected
+    - `actual_parameter_element#range_expression`
+      - `shared_dependency_failure_likely`
+      - depends on unresolved `range_expression`
+    - `actual_part#expression`
+      - `branch_specific_failure_likely`
+      - the sibling `kw_open` branch is already succeeding, so this is a good local seam
+    - `aggregate#expression,...aggregate_element_association`
+      - `shared_dependency_failure_likely`
+      - still blocked by `expression` plus `aggregate_element_association`
+  - next-tier cluster after those top three:
+    - `architecture_declarative_item#{constant_declaration,file_declaration}`
+    - `concurrent_statement#{concurrent_signal_assignment_statement,assert_statement}`
+    - `constraint#range_constraint`
+    - `discrete_range#subtype_indication kw_range range_expression`
+    - entity/package/process declaration-item branches that all still depend on the same missing declaration/expression surfaces
+  - retained consequence:
+    - VHDL should stay on branch/dependency-focused closure work
+    - do not go back to blanket `@sample` bundles or broad reserved-word exclusion as the default tactic
+- 2026-03-31: Rejected a SystemVerilog-preprocessor line-end plus synthetic-`eof` closure path even though it looked promising mid-slice.
+  - attempted shape:
+    - require `directive_line_end := newline | eof` on the non-conditional comment-tail directives (`undef`, `include`, `timescale`, `default_nettype`, `celldefine`, `endcelldefine`)
+    - add synthetic `eof` handling to the stimuli generator so the uncovered `directive_line_end#eof` target could resolve
+  - why it looked promising:
+    - the focused preprocessor lane briefly reached `parseability_accepted_total=49`, `parseability_rejected_total=0` before the `eof` target-debt problem was addressed
+    - the retained orphan-`` `endif`` counterexample really does come from same-line directive chaining on these line-oriented directives
+  - why it was rejected:
+    - even after fixing synthetic `eof` to hard-stop the remaining sequence, the focused lane regressed badly to:
+      - `parseability_attempts_total=122`
+      - `parseability_accepted_total=69`
+      - `parseability_rejected_total=53`
+      - `parseability_parser_rejections_total=53`
+    - the path resolves target debt by over-changing the emitted corpus, not by producing a healthy retained proof surface
+  - retained consequence:
+    - keep the shipped `systemverilog_preprocessor` baseline on the earlier `37/36/1/1` seam
+    - do not resume the `directive_line_end + synthetic eof` path blindly

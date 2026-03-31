@@ -8295,3 +8295,23 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - keep the earlier VHDL baseline (`closed_loop_replay_targets=11`, replay-shadow parser rejections `0`)
     - do not retry broad reserved-word exclusion on `identifier` or `selected_name` blindly
+- 2026-03-31: The current retained VHDL replay-gap order is now sharper.
+  - verified with:
+    - `./rust/target/debug/coverage_gap_triage --gap-report rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json --coverage rust/target/vhdl_stimuli_quality_gate/work/closed_loop_initial_coverage.json --grammar-ast rust/target/vhdl_stimuli_quality_gate/work/vhdl.json`
+  - highest-value remaining seams:
+    - `trivia#line_comment`
+      - selection-bias only
+    - `actual_parameter_element#range_expression`
+      - shared dependency failure through `range_expression`
+    - `actual_part#expression`
+      - locally attractive branch-specific seam; sibling `kw_open` already succeeds
+    - `aggregate#expression,...aggregate_element_association`
+      - still downstream of missing `expression`
+  - practical reminder:
+    - when returning to VHDL, start from these dependency seams before touching broader declaration-item branches
+- 2026-03-31: The tempting SV-preprocessor `directive_line_end + synthetic eof` path is a trap on the retained baseline.
+  - it can erase target debt, but only by exploding parseability (`122/69/53/53`)
+  - the correct memory is:
+    - same-line directive chaining is real
+    - but this specific fix path is not keepable
+    - do not resume it blindly
