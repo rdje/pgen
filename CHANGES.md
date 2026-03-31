@@ -26258,3 +26258,18 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - reverted immediately
     - future work should not expect a direct `line_comment` sample hint to be safe on the retained VHDL lane
+- 2026-03-31: Rejected two broader VHDL sample-hint bundles as no-ops.
+  - attempted shape:
+    - add construct-level `@sample` hints on `file_declaration`, `record_type_definition`, `range_expression`, `concurrent_signal_assignment_statement`, `actual_part`, `signal_assignment_statement`, and `aggregate`
+    - then add lower-level `@sample` hints on `subtype_indication` and `expression`
+  - why they looked plausible:
+    - the remaining VHDL replay debt is concentrated in branches that depend on ranges, aggregates, signal assignments, record types, file declarations, expressions, and subtype indications
+  - why they were rejected:
+    - both runs were complete no-ops on the tracked closure surface
+    - the retained baseline stayed exactly:
+      - `closed_loop_replay_targets=11`
+      - parser-backed generation `8/8/0`
+      - replay-shadow parser rejections `0`
+  - net result:
+    - reverted immediately
+    - future work should not expect broad parser-neutral `@sample` bundles alone to move the retained VHDL replay debt

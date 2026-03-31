@@ -8215,3 +8215,20 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - keep `line_comment` without a default sample hint
     - do not retry the direct VHDL line-comment sample shortcut blindly
+- 2026-03-31: Two broader parser-neutral VHDL `@sample` bundles are also no-ops.
+  - attempted change set A:
+    - `grammars/vhdl.ebnf`
+    - add `@sample` hints on `file_declaration`, `record_type_definition`, `range_expression`, `concurrent_signal_assignment_statement`, `actual_part`, `signal_assignment_statement`, and `aggregate`
+  - attempted change set B:
+    - keep set A and also add `@sample` on `subtype_indication` and `expression`
+  - why they were tested:
+    - the retained VHDL replay-gap cluster still points at ranges, aggregates, signal assignments, file declarations, record types, expressions, and subtype indications
+  - measured effect for both sets:
+    - exact no-op on the tracked retained baseline
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=11`
+    - parser-backed generation stayed `8/8/0`
+    - replay-shadow parser rejections stayed `0`
+  - retained consequence:
+    - revert all of those sample hints
+    - do not spend more time on blanket VHDL `@sample` bundles without a branch-specific reason

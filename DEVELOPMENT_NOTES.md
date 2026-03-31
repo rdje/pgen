@@ -27028,3 +27028,31 @@ Architectural north star:
   - conclusion:
     - this is not a safe stimuli-only shortcut
     - the retained VHDL baseline remains the earlier `closed_loop_replay_targets=11` state with generation parser rejections `0` and replay-shadow parser rejections `0`
+- 2026-03-31: Two broader parser-neutral VHDL `@sample` bundles are also rejected as no-ops.
+  - attempted change set A:
+    - `grammars/vhdl.ebnf`
+    - add construct-level `@sample` hints on:
+      - `file_declaration`
+      - `record_type_definition`
+      - `range_expression`
+      - `concurrent_signal_assignment_statement`
+      - `actual_part`
+      - `signal_assignment_statement`
+      - `aggregate`
+  - attempted change set B:
+    - keep set A and also add lower-level `@sample` hints on:
+      - `subtype_indication`
+      - `expression`
+  - reason for the experiments:
+    - the retained replay-gap list is clustered around branches that depend on ranges, aggregates, signal assignments, record types, file declarations, expressions, and subtype indications
+    - unlike the rejected `line_comment` sample, these were parser-neutral structure-preserving hints aimed at making those constructs easier to realize successfully
+  - measured result for both sets:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+      - stayed exactly on the retained baseline
+      - kept `closed_loop_initial_targets=247`
+      - kept `closed_loop_replay_targets=11`
+      - kept parser-backed generation at `attempts=8`, `accepted=8`, `rejected=0`, `parser_rejections=0`
+      - kept replay-shadow parser rejections at `0`
+  - conclusion:
+    - broad parser-neutral `@sample` bundles are not moving the retained VHDL replay debt
+    - future work should pivot back to narrower branch-specific steering or better branch-introspection, not more blanket sample hints
