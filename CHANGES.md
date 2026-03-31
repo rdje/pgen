@@ -26193,3 +26193,16 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - reverted as a no-op
     - future work should not expect directive-tail line-comment sample hints alone to close the remaining reject
+- 2026-03-31: Rejected a parser-equivalent “safe comment branch” refactor inside `directive_comment_tail`.
+  - attempted shape:
+    - replace `directive_comment_tail := inline_trivia line_comment?` with `directive_comment_tail := inline_trivia (directive_comment_line_comment | line_comment)?`
+    - add `directive_comment_line_comment := /\/\/[^`\r\n]*/` with `@sample: "//x"`
+  - why it looked plausible:
+    - the last retained preprocessor reject depends on fake directives hidden inside comment tails on otherwise line-oriented directives
+    - this offered the generator a parser-equivalent non-backtick comment branch instead of only re-sampling the broad `line_comment` regex
+  - why it was rejected:
+    - the focused preprocessor seam regressed from the retained `37/36/1/1` baseline to `40/36/4/4`
+    - `initial_targets` changed from `3` to `2`, but parseability debt widened sharply and `fuzz_rejected` reopened from `0` to `1`
+  - net result:
+    - reverted immediately
+    - future work should not assume parser-equivalent “safe comment branch” alternations are benign in this grammar

@@ -8143,3 +8143,17 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - keep the existing `directive_comment_tail := inline_trivia line_comment?`
     - do not expect directive-tail line-comment sample hints alone to close the remaining reject
+- 2026-03-31: A parser-equivalent “safe comment branch” in `directive_comment_tail` is also rejected.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - replace `directive_comment_tail := inline_trivia line_comment?` with `directive_comment_tail := inline_trivia (directive_comment_line_comment | line_comment)?`
+    - add `directive_comment_line_comment := /\/\/[^`\r\n]*/` with `@sample: "//x"`
+  - why it was tested:
+    - the retained single reject depends on fake directives hidden inside line-oriented comment tails, and this looked like a parser-equivalent way to bias generation toward safer comments
+  - measured effect:
+    - bad regression to `40/36/4/4`
+    - `initial_targets` moved to `2`
+    - `fuzz_rejected` reopened to `1`
+  - retained consequence:
+    - keep the existing `directive_comment_tail := inline_trivia line_comment?`
+    - do not retry parser-equivalent comment-branch splitting blindly

@@ -26922,3 +26922,19 @@ Architectural north star:
   - conclusion:
     - directive-tail line-comment sample shaping alone is not enough to close the last reject
     - keep the simpler `directive_comment_tail := inline_trivia line_comment?` form and treat this as a recorded no-op
+- 2026-03-31: A parser-equivalent “safe comment branch” inside `directive_comment_tail` is a rejected regression.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - replace `directive_comment_tail := inline_trivia line_comment?` with `directive_comment_tail := inline_trivia (directive_comment_line_comment | line_comment)?`
+    - add `directive_comment_line_comment := /\/\/[^`\r\n]*/` with `@sample: "//x"`
+  - reason for the experiment:
+    - the retained single counterexample only appears when fake directives are buried inside comment tails on otherwise line-oriented directives
+    - unlike the previous sample-hint-only no-op, this version introduced a structurally distinct parser-equivalent “safe” branch that generation could prefer
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - regressed from `37/36/1/1` to `40/36/4/4`
+      - changed `initial_targets` from `3` to `2`
+      - reopened `fuzz_rejected` from `0` to `1`
+  - conclusion:
+    - even parser-equivalent alternation changes can materially distort the generator distribution here
+    - keep the simpler retained `directive_comment_tail := inline_trivia line_comment?` form and treat this branch-splitting idea as explicitly rejected
