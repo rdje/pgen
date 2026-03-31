@@ -26851,3 +26851,16 @@ Architectural north star:
   - conclusion:
     - the current remaining rejects are not improved by this broad passthrough sample hint
     - keep the preprocessor grammar without that hint and treat this as a recorded dead end
+- 2026-03-31: Rejected a stricter shared `directive_line_tail` refactor in `systemverilog_preprocessor.ebnf`.
+  - attempted change:
+    - replace the broad `directive_tail?` usage on line-oriented directives with `directive_line_tail := inline_trivia line_comment?`
+  - reason for the experiment:
+    - the two remaining focused rejects still looked like invalid same-line chained directives after otherwise line-oriented directives
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - regressed from `35/33/2/2` to `40/36/4/4`
+      - reopened `initial_targets` from `0` to `10`
+    - after reverting the grammar, the same gate returned cleanly to the retained `35/33/2/2` baseline with `initial_targets=0`
+  - conclusion:
+    - this stricter shared-tail normalization is not the right next closure seam
+    - future work should not retry it blindly

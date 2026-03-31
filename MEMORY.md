@@ -8083,3 +8083,15 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - do not retry this sample-hint shortcut blindly
     - the retained preprocessor baseline remains `35/33/2/2` with `initial_targets=0` and `final_targets=0`
+- 2026-03-31: A stricter shared `directive_line_tail` normalization is also a rejected shortcut.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - replace broad `directive_tail?` usage with `directive_line_tail := inline_trivia line_comment?`
+  - why it was tested:
+    - the remaining two rejects still looked like same-line chained-directive debt
+  - why it must stay rejected:
+    - focused quality regressed from `35/33/2/2` to `40/36/4/4`
+    - `initial_targets` reopened from `0` to `10`
+  - retained consequence:
+    - do not retry this shared-tail refactor blindly
+    - the retained preprocessor baseline remains `35/33/2/2` with `initial_targets=0` and `final_targets=0`

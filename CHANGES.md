@@ -26138,3 +26138,14 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - this hint was reverted immediately
     - the retained baseline stays `35/33/2/2` with `initial_targets=0` and `final_targets=0`
+- 2026-03-31: Rejected a stricter shared `directive_line_tail` refactor in `grammars/systemverilog_preprocessor.ebnf`.
+  - attempted shape:
+    - replace the broad `directive_tail?` uses on line-oriented directives with `directive_line_tail := inline_trivia line_comment?`
+  - why it looked plausible:
+    - the remaining focused rejects still showed invalid same-line directive chaining after line-oriented directives such as `include`, `default_nettype`, and `endif`
+  - why it was rejected:
+    - the focused preprocessor seam regressed from the retained `35/33/2/2` baseline to `40/36/4/4`
+    - `initial_targets` reopened from `0` to `10`
+  - net result:
+    - this refactor was reverted immediately
+    - the retained baseline remains `35/33/2/2` with `initial_targets=0` and `final_targets=0`
