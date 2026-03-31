@@ -26233,3 +26233,28 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - reverted as a no-op
     - future work should not expect an empty default sample on `directive_comment_tail` alone to close the remaining reject
+- 2026-03-31: Rejected a celldefine-only line-end tightening.
+  - attempted shape:
+    - require `newline` instead of `newline?` only on `pp_celldefine` and `pp_endcelldefine`
+  - why it looked plausible:
+    - the retained single reject still depended on same-line chaining that began immediately after `` `celldefine``
+    - this was a much narrower shared structural attempt than the already rejected all-directives `newline | eof` line-end change
+  - why it was rejected:
+    - focused parseability did not improve; it stayed at `38/37/1/1`
+    - the single reject merely moved to a different same-line chain rooted in `` `define`` / `` `celldefine`` / `` `define`` / `` `include``
+    - the focused gap surface widened from the retained `initial_targets=3` to `initial_targets=12`
+  - net result:
+    - reverted immediately
+    - future work should not assume celldefine-only required newlines are a keepable shortcut
+- 2026-03-31: Rejected a VHDL line-comment sample hint.
+  - attempted shape:
+    - add `@sample: "-- note\n"` on `line_comment` in `grammars/vhdl.ebnf`
+  - why it looked plausible:
+    - the retained VHDL replay-gap list still had `branch::trivia::root/q#1` (`line_comment`) as the only `never_selected` replay target
+  - why it was rejected:
+    - replay debt did not improve; `closed_loop_replay_targets` stayed at `11`
+    - parser-backed generation regressed badly to `26/8/18/18` for `attempts/accepted/rejected/parser_rejections`
+    - replay-shadow parser rejections exploded to `693`
+  - net result:
+    - reverted immediately
+    - future work should not expect a direct `line_comment` sample hint to be safe on the retained VHDL lane

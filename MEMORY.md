@@ -8188,3 +8188,30 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - keep `directive_comment_tail` without a default sample hint
     - do not retry the empty-sample variant blindly
+- 2026-03-31: A celldefine-only required-newline tightening is also rejected.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - require `newline` instead of `newline?` only on `pp_celldefine` and `pp_endcelldefine`
+  - why it was tested:
+    - the retained single reject was confirmed to start its same-line directive chain immediately after `` `celldefine``
+    - this was the narrowest remaining shared structural follow-up to the previously rejected all-directives line-end idea
+  - measured effect:
+    - focused quality stayed at one reject, changing from the retained `37/36/1/1` baseline to `38/37/1/1`
+    - `initial_targets` widened from `3` to `12`
+    - the counterexample changed, but the remaining failure simply moved to a different same-line chain rooted in `` `define`` / `` `celldefine`` / `` `define`` / `` `include``
+  - retained consequence:
+    - revert to the retained `newline?` shape on `pp_celldefine` and `pp_endcelldefine`
+    - do not retry celldefine-only required newlines blindly
+- 2026-03-31: A direct VHDL `line_comment` sample hint is also rejected.
+  - attempted change:
+    - `grammars/vhdl.ebnf`
+    - add `@sample: "-- note\n"` on `line_comment`
+  - why it was tested:
+    - the retained VHDL replay-target list still had `trivia#line_comment` as the only `never_selected` branch
+  - measured effect:
+    - `closed_loop_replay_targets` stayed flat at `11`
+    - parser-backed generation regressed to `26/8/18/18`
+    - replay-shadow parser rejections exploded to `693`
+  - retained consequence:
+    - keep `line_comment` without a default sample hint
+    - do not retry the direct VHDL line-comment sample shortcut blindly

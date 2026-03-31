@@ -26982,3 +26982,49 @@ Architectural north star:
   - conclusion:
     - the remaining reject is not improved by an empty default sample on `directive_comment_tail`
     - keep the grammar without that hint and treat this as another recorded no-op
+- 2026-03-31: A celldefine-only required-newline tightening is also rejected.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - require `newline` instead of `newline?` only on:
+      - `pp_celldefine`
+      - `pp_endcelldefine`
+  - reason for the experiment:
+    - after extracting the retained single counterexample more carefully, the first visible same-line chain started immediately after `` `celldefine``
+    - this looked like the narrowest remaining shared structural variant of the earlier rejected all-directives line-end idea
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - stayed at one reject instead of improving
+      - shifted to `parseability_attempts_total=38`
+      - shifted to `parseability_accepted_total=37`
+      - kept `parseability_rejected_total=1`
+      - kept `parseability_parser_rejections_total=1`
+      - widened `initial_targets` from the retained `3` to `12`
+      - changed the single counterexample rather than closing it
+    - new failing shape:
+      - a different same-line chain rooted in `` `define`` / `` `celldefine`` / `` `define`` / `` `include``
+  - conclusion:
+    - this is not a keepable shared fix
+    - the retained preprocessor baseline remains the earlier `37/36/1/1` state with `initial_targets=3` and `final_targets=0`
+- 2026-03-31: A direct VHDL `line_comment` sample hint is also rejected.
+  - attempted change:
+    - `grammars/vhdl.ebnf`
+    - add `@sample: "-- note\n"` on `line_comment := /--[^\n]*(\n|$)/`
+  - reason for the experiment:
+    - the retained VHDL replay-gap list still included `branch::trivia::root/q#1` (`line_comment`) as the lone `never_selected` replay target
+    - this looked like the narrowest possible stimuli-only attempt to close that exact hole
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+      - kept `closed_loop_replay_targets=11`
+      - regressed parser-backed generation to:
+        - `parseability_generation_attempts_total=26`
+        - `parseability_generation_accepted_total=8`
+        - `parseability_generation_rejected_total=18`
+        - `parseability_generation_parser_rejections_total=18`
+      - regressed replay-shadow parseability to:
+        - `closed_loop_parseability_shadow_attempts_total=873`
+        - `closed_loop_parseability_shadow_accepted_total=180`
+        - `closed_loop_parseability_shadow_rejected_total=693`
+        - `closed_loop_parseability_shadow_parser_rejections_total=693`
+  - conclusion:
+    - this is not a safe stimuli-only shortcut
+    - the retained VHDL baseline remains the earlier `closed_loop_replay_targets=11` state with generation parser rejections `0` and replay-shadow parser rejections `0`
