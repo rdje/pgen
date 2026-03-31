@@ -26864,3 +26864,14 @@ Architectural north star:
   - conclusion:
     - this stricter shared-tail normalization is not the right next closure seam
     - future work should not retry it blindly
+- 2026-03-31: A stimuli-only `directive_tail` comment sample hint was a no-op.
+  - attempted change:
+    - keep the parser surface unchanged
+    - change `directive_tail` sample from `" "` to `" //tail"`
+  - measured result:
+    - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+      - stayed exactly at the retained `35/33/2/2` baseline
+      - kept `initial_targets=0` and `final_targets=0`
+  - conclusion:
+    - inline-comment sampling by itself is not moving the remaining two rejects
+    - keep the original `" "` sample and treat this as a recorded no-op

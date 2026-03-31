@@ -8095,3 +8095,13 @@ Use this file to resume work without replaying full chat history.
   - retained consequence:
     - do not retry this shared-tail refactor blindly
     - the retained preprocessor baseline remains `35/33/2/2` with `initial_targets=0` and `final_targets=0`
+- 2026-03-31: A `directive_tail` comment sample hint is also a no-op.
+  - attempted change:
+    - `grammars/systemverilog_preprocessor.ebnf`
+    - change `directive_tail` sample from `" "` to `" //tail"`
+  - measured effect:
+    - none on the focused quality surface
+    - baseline stayed `35/33/2/2` with `initial_targets=0` and `final_targets=0`
+  - retained consequence:
+    - keep the existing `" "` sample
+    - do not expect comment-only tail sampling to close the remaining two rejects

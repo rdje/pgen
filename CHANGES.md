@@ -26149,3 +26149,12 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - net result:
     - this refactor was reverted immediately
     - the retained baseline remains `35/33/2/2` with `initial_targets=0` and `final_targets=0`
+- 2026-03-31: Tried a stimuli-only `directive_tail` comment sample hint in `grammars/systemverilog_preprocessor.ebnf`.
+  - attempted shape:
+    - change `directive_tail` sample from `" "` to `" //tail"`
+  - outcome:
+    - no measurable change on the focused preprocessor lane
+    - the gate stayed exactly at the retained `35/33/2/2` baseline with `initial_targets=0` and `final_targets=0`
+  - net result:
+    - reverted as a no-op
+    - future work should not expect inline-comment sampling alone to close the remaining two rejects
