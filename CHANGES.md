@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-04-01 - Normalize VHDL family proof refresh onto the 9-target baseline
+### Achievement Summary
+Kept a proof-plumbing fix in [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh). The VHDL quality gate now uses a state-local `CARGO_TARGET_DIR`, which stops nested quality / strict-promotion refreshes from clobbering each other's adapter-backed `ast_pipeline` and `parseability_probe` binaries. With that in place, the higher-level VHDL family proof stack was refreshed successfully onto the retained `9`-target baseline.
+
+### Scope of Changes
+- Updated [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh):
+  - added `PGEN_VHDL_STIMULI_CARGO_TARGET_DIR` support
+  - defaulted it to `"$STATE_DIR/cargo_target"`
+  - resolved state-local `ast_pipeline` / `parseability_probe` paths from that cargo target dir
+  - passed the isolated cargo target through both cargo-build steps
+  - surfaced `cargo_target_dir` in the gate summary
+- Updated continuity / live steering docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Refreshed VHDL proof readers on the same retained quality baseline:
+  - `vhdl_parser_family_contract_gate`
+  - `vhdl_formal_exhaustive_closure_gate`
+  - `vhdl_parser_family_status_gate`
+  - `vhdl_parser_family_status_contract_gate`
+  - lightweight reused `sota_exit_gate`
+  - `vhdl_combined_telemetry_contract_gate`
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - passed with:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=9`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `parseability_generation_parser_rejections_total=0`
+- `env PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/vhdl_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_contract_gate`
+  - passed with:
+    - `strict_promotion_primary_blocker=none`
+    - `strict_promotion_trial_passed=3`
+- `env PGEN_VHDL_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_FAMILY_CONTRACT_STATE_DIR=rust/target/vhdl_parser_family_contract_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_formal_exhaustive_closure_gate`
+  - passed with:
+    - `vhdl_formal_exhaustive_closure_surface_green=true`
+- `env PGEN_VHDL_FAMILY_STATUS_EXISTING_FAMILY_CONTRACT_STATE_DIR=rust/target/vhdl_parser_family_contract_gate PGEN_VHDL_FAMILY_STATUS_EXISTING_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/vhdl_formal_exhaustive_closure_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+  - passed with:
+    - `vhdl_unmet_closure_criteria_count=1`
+    - `vhdl_primary_unmet_closure_criterion=quality_closed_loop_replay_targets=9 > 0`
+- `env PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=rust/target/vhdl_parser_family_status_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_contract_gate`
+  - passed
+- `env PGEN_VHDL_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_vhdl_9target_refresh make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
+  - passed
+
 ## 2026-04-01 - Reduce VHDL replay debt with dependency-aware target driving
 ### Achievement Summary
 Kept a narrow Rust-side VHDL generator improvement in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs). Targeted branches are no longer failure-throttled when all still-targeted referenced dependencies have zero success history, which reduced the focused VHDL replay debt from `11` to `9` on the retained `vhdl_stimuli_quality_gate` lane.
@@ -32,7 +80,7 @@ Kept a narrow Rust-side VHDL generator improvement in [rust/src/ast_pipeline/sti
   - `rust/target/debug/deps/pgen-b24ff383e18e32ce ast_pipeline::stimuli_generator::tests::coverage_guidance_multiplier_preserves_dependency_blocked_target_branch --exact --nocapture`
     - passed
 - exploratory family-contract refresh:
-  - `env PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_contract_gate`
+  - `env PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR=rust/target/vhdl_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_contract_gate`
   - surfaced a separate strict-promotion proof-plumbing issue rather than a regression in the retained quality gate
 
 ## 2026-04-01 - Ship regex downstream maintenance release 1.1.2 for RGX blocker PGEN-RGX-0005

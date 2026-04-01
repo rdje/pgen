@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - VHDL proof normalization: isolate cargo targets so family refreshes stay on the retained 9-target baseline
+### Context
+The retained VHDL generator improvement had already reduced the direct quality lane to `closed_loop_replay_targets=9`, but the first attempted higher-level refresh failed inside nested strict-promotion trials with:
+- `No matching compiled generated parser is available for grammar 'vhdl'`
+
+That looked like a deeper adapter problem at first, but the failure shape strongly suggested shared binary clobbering: repeated VHDL quality / strict-promotion invocations were rebuilding `ast_pipeline` and `parseability_probe` into the same `rust/target/debug` location while changing `PGEN_VHDL_PARSER_PATH`.
+
+### What Was Changed
+- Updated [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh):
+  - added `PGEN_VHDL_STIMULI_CARGO_TARGET_DIR`
+  - defaulted it to `"$STATE_DIR/cargo_target"`
+  - resolved `AST_PIPELINE_BIN` and `PARSE_PROBE_BIN` from that state-local cargo target
+  - passed `CARGO_TARGET_DIR` through both cargo build steps
+  - surfaced `cargo_target_dir` in the gate summary for future debugging / reuse
+
+### What Was Verified
+- Fresh retained direct quality proof now runs from a state-local cargo target and stays green:
+  - `closed_loop_initial_targets=247`
+  - `closed_loop_replay_targets=9`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - `parseability_generation_parser_rejections_total=0`
+- The higher-level VHDL proof stack is now refreshed successfully onto that same retained baseline:
+  - `vhdl_parser_family_contract_gate`
+    - `strict_promotion_primary_blocker=none`
+    - `strict_promotion_trial_passed=3`
+  - `vhdl_formal_exhaustive_closure_gate`
+    - `vhdl_formal_exhaustive_closure_surface_green=true`
+  - `vhdl_parser_family_status_gate`
+    - `vhdl_unmet_closure_criteria_count=1`
+    - `vhdl_primary_unmet_closure_criterion=quality_closed_loop_replay_targets=9 > 0`
+  - `vhdl_parser_family_status_contract_gate`
+    - passed
+  - lightweight reused `sota_exit_gate`
+    - `required_failures=0`
+    - `informational_failures=0`
+  - `vhdl_combined_telemetry_contract_gate`
+    - passed
+
+### Steering
+- Treat the earlier nested strict-promotion failure as a resolved proof-plumbing issue, not as the active VHDL blocker.
+- The retained VHDL family truth is now normalized:
+  - family quality: `closed_loop_replay_targets=9`
+  - family status: `In Progress`
+  - only unmet closure criterion: `quality_closed_loop_replay_targets=9 > 0`
+- The next VHDL task should go back to replay-target reduction itself, not more proof-refresh plumbing.
+
 ## 2026-04-01 - VHDL replay reduction: keep dependency-aware target-branch relaxation, surface strict-promotion plumbing issue
 ### Context
 The retained VHDL blocker had already narrowed to replay target debt only, with the preferred next seam coming from branch-level triage rather than more blanket grammar sweeps. The strongest current triage signals were:

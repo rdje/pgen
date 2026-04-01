@@ -9,6 +9,7 @@ LOG_DIR="$STATE_DIR/logs"
 WORK_DIR="$STATE_DIR/work"
 SUMMARY_CSV="$STATE_DIR/summary.csv"
 SUMMARY_TXT="$STATE_DIR/summary.txt"
+CARGO_TARGET_DIR_RAW="${PGEN_VHDL_STIMULI_CARGO_TARGET_DIR:-$STATE_DIR/cargo_target}"
 
 CONTRACT_FILE="${PGEN_VHDL_STIMULI_QUALITY_CONTRACT:-$RUST_DIR/test_data/grammar_quality/vhdl_core_v0_contract.json}"
 PARSE_FULL_MODE="${PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE:-auto}"
@@ -19,9 +20,6 @@ PARSEABILITY_MAX_ATTEMPTS_OVERRIDE="${PGEN_VHDL_STIMULI_QUALITY_PARSEABILITY_MAX
 REALISTIC_CORPUS_MODE="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE:-auto}"
 REALISTIC_CORPUS_OVERRIDE="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS:-}"
 REALISTIC_CORPUS_MAX_CASES="${PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES:-0}"
-
-AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
-PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
 
 require_tool() {
     local tool="$1"
@@ -95,6 +93,15 @@ resolve_path() {
     fi
 }
 
+resolve_rust_path() {
+    local raw="$1"
+    if [[ "$raw" == /* ]]; then
+        printf '%s\n' "$raw"
+    else
+        printf '%s\n' "$RUST_DIR/$raw"
+    fi
+}
+
 run_logged() {
     local label="$1"
     shift
@@ -140,6 +147,10 @@ if ! [[ "$REALISTIC_CORPUS_MAX_CASES" =~ ^[0-9]+$ ]] || [[ "$REALISTIC_CORPUS_MA
 fi
 
 mkdir -p "$LOG_DIR" "$WORK_DIR"
+
+CARGO_TARGET_DIR="$(resolve_rust_path "$CARGO_TARGET_DIR_RAW")"
+AST_PIPELINE_BIN="$CARGO_TARGET_DIR/debug/ast_pipeline"
+PARSE_PROBE_BIN="$CARGO_TARGET_DIR/debug/parseability_probe"
 
 require_tool jq
 require_tool perl
@@ -222,6 +233,7 @@ require_file "$grammar_file"
 
 echo "==> VHDL stimuli quality gate"
 echo "state_dir: $STATE_DIR"
+echo "cargo_target_dir: $CARGO_TARGET_DIR"
 echo "contract_file: $CONTRACT_FILE"
 echo "contract_version: $contract_version"
 echo "grammar_name: $grammar_name"
@@ -251,6 +263,7 @@ echo "parseability_generation_max_attempts_per_sample: $parseability_max_attempt
 echo "sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,parseability_attempts,parseability_accepted,parseability_rejected,parseability_parser_rejections,parseability_generation_errors,parseability_empty_generations,parseability_acceptance_rate_percent,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
 run_logged_rust "build_ast_pipeline_for_vhdl_generation" \
+    env CARGO_TARGET_DIR="$CARGO_TARGET_DIR" \
     cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
@@ -272,7 +285,7 @@ run_logged "generate_vhdl_parser" \
 require_nonempty_file "$parser_out"
 
 run_logged_rust "build_ast_pipeline_and_parseability_probe_with_vhdl_adapter" \
-    env PGEN_VHDL_PARSER_PATH="$parser_out" \
+    env CARGO_TARGET_DIR="$CARGO_TARGET_DIR" PGEN_VHDL_PARSER_PATH="$parser_out" \
     cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe
 if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
     echo "error: parseability_probe binary is missing at '$PARSE_PROBE_BIN' after adapter build" >&2

@@ -84,7 +84,15 @@ Tracker note (2026-04-01): the first keepable VHDL follow-up on that diagnosis i
 - `sequential_statement::root#0`
 - `sequential_statement::root#3`
 - `sequential_statement::root#7`
-The adjacent proof-normalization caveat is now explicit too: nested `vhdl_strict_promotion_gate` trials inside `vhdl_parser_family_contract_gate` are not yet reliably reusing the adapter-backed generated `ast_pipeline` build, so the higher-level VHDL family-contract/status sidecars should not be treated as refreshed to the `9`-target baseline until that nested strict-promotion plumbing issue is fixed.
+Tracker note (2026-04-01): that adjacent proof-normalization issue is now resolved in the retained gate path. [vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh) now uses a state-local `CARGO_TARGET_DIR`, which stops nested quality / strict-promotion refreshes from clobbering each other's adapter-backed generated binaries. The refreshed VHDL proof stack now agrees end to end on the same retained baseline:
+- `vhdl_parser_family_contract_gate`
+- `vhdl_formal_exhaustive_closure_gate`
+- `vhdl_parser_family_status_gate`
+- `vhdl_parser_family_status_contract_gate`
+- lightweight reused `sota_exit_gate`
+- `vhdl_combined_telemetry_contract_gate`
+The active VHDL blocker is therefore back to the real one:
+- `quality_closed_loop_replay_targets=9 > 0`
 The active preprocessor blockers are therefore now narrowed to:
 - `parseability_parser_rejections_total=1 > 0`
 - `parseability_rejected_total=1 > 0`

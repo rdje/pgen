@@ -1332,7 +1332,7 @@ Operational rule:
 - `vhdl`
   - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
   - In practice it is strongly coupled to quality/parseability, strict-promotion, and now a dedicated formal-exhaustive-closure proof surface
-  - The current machine-checked family-status row is still `In Progress`, with `9/10` closure criteria satisfied and replay target debt as the only tracked blocker. The last fully refreshed family sidecars still report replay debt `11`, but a fresh direct `vhdl_stimuli_quality_gate` run on 2026-04-01 reduced the focused replay surface further to `9` without reintroducing parser rejections.
+  - The current machine-checked family-status row is still `In Progress`, with `9/10` closure criteria satisfied and replay target debt as the only tracked blocker. The refreshed direct quality, family-contract, formal-closure, family-status, family-status-contract, lightweight SOTA, and combined-telemetry sidecars now all agree on the retained `9`-target baseline.
   - Fresh direct VHDL quality proof on the retained Rust-side slice now records:
     - `closed_loop_initial_targets=247`
     - `closed_loop_replay_targets=9`
@@ -1348,18 +1348,10 @@ Operational rule:
     - `sequential_statement#signal_assignment_statement`
     - `sequential_statement#assert_statement`
     - `sequential_statement#procedure_call_statement`
-  - The last fully refreshed family-sidecar replay-target cluster is still known and should continue to inform broader closure reasoning until strict-promotion proof plumbing is refreshed:
-    - `trivia#line_comment`
-    - `actual_parameter_element#range_expression`
-    - `actual_part#expression`
-    - `aggregate#1`
-    - `concurrent_statement#concurrent_signal_assignment_statement`
-    - `constraint#range_constraint`
-    - `discrete_range#subtype_indication kw_range range_expression`
-    - `package_body_declarative_item#file_declaration`
-    - `range_expression#downto`
-    - `sequential_statement#signal_assignment_statement`
-    - `type_definition#record_type_definition`
+  - The refreshed machine-checked family blocker surface now matches the direct quality seam too:
+    - `quality_closed_loop_replay_targets=9 > 0`
+    - `strict_promotion_primary_blocker=none`
+    - `strict_promotion_trial_passed=3`
   - The parser-backed generation side of the current canonical family-quality surface is now green (`attempts=8`, `accepted=8`, `rejected=0`), realistic-corpus parity is now `13` expected pass / `1` expected fail with matching observed totals, and strict promotion is still green (`trial_passed=3`, `primary_blocker=none`)
   - The new VHDL formal-closure gate is now green off the checked-in external-corpus-backed proof surface, and the family-status / family-status-contract / SOTA / combined-telemetry stack preserves that provenance end to end
   - Recent VHDL work also reinforced the general EBNF steering rule: grammar changes must be classified as parser-only, stimuli-only, or shared parser+stimuli changes before they are kept. The retained VHDL slice (`--enforce-word-boundary-spacing`, `trivia` priority bias, newline-terminated line comments, and explicit `end process` / `end procedure` / `end function` body endings) improved the shared family-quality surface; a temporary `wait until` grammar broadening was intentionally reverted because it improved one parser-facing case while worsening replay-shadow parser debt
@@ -1376,9 +1368,10 @@ Operational rule:
       - dependency-blocked target branches are no longer failure-throttled before their still-targeted referenced rules record any success history
     - operational consequence:
       - future VHDL fixes should favor dependency-level or branch-specific interventions over more wide `@sample` bundles
-  - Important proof-plumbing caveat:
-    - nested `vhdl_strict_promotion_gate` trials are not yet reliably reusing the adapter-backed generated `ast_pipeline` build
-    - so the higher-level VHDL family-contract / family-status sidecars should not be described as refreshed to `9` replay targets until that nested strict-promotion seam is fixed
+  - The proof-plumbing caveat from the first `9`-target refresh attempt is now resolved in the retained gate path:
+    - [vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh) now isolates a state-local `CARGO_TARGET_DIR`
+    - nested strict-promotion refreshes no longer clobber the adapter-backed generated `ast_pipeline` / `parseability_probe` binaries
+    - future VHDL work should spend its effort on reducing the remaining replay targets, not on this normalized refresh seam
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling
