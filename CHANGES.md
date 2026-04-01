@@ -26781,3 +26781,15 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `ast_pipeline::stimuli_generator::tests::gap_report_surfaces_top_branch_failure_reasons`
     - `tests::heuristic_prefers_shared_dependency_failure_when_no_branch_succeeds`
     - `tests::branch_hit_delta_reports_new_successes_only`
+- 2026-04-02: widened the main `systemverilog` aggregate proof surface so replay/generation counterexample triage now summarizes entry-context metadata too.
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now carries:
+    - `by_primary_entry_rule`
+    - `by_generation_entry_rule`
+    - `by_entry_mode`
+    - corresponding unique-count / primary-value summary fields in both `summary.txt` and `summary.json`
+  - important compatibility rule:
+    - lean reusable `sv_stimuli_quality_gate` reports may omit embedded `counterexamples` arrays and `counterexamples_captured_total`
+    - aggregate proof now treats those missing fields as zero/empty instead of failing the whole reuse lane
+  - practical retained consequence:
+    - the canonical cheap reuse surface for main-SV aggregate work is the top-level `rust/target/sv_stimuli_quality_gate`
+    - old nested historical aggregate artifacts are not the right default reuse source

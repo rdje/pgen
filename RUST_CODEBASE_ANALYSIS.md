@@ -1688,21 +1688,22 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
 - It should therefore be refreshed when runtime evidence materially changes the picture.
 
 ## Current Closure Steering Notes
-- VHDL is still the cleanest near-term HDL closure candidate, but the remaining work should now be treated as dependency triage, not broad grammar experimentation.
-  - Current retained branch-priority order from `coverage_gap_triage`:
-    - `trivia#line_comment`
-    - `actual_parameter_element#range_expression`
-    - `actual_part#expression`
-    - `aggregate#expression,...aggregate_element_association`
-  - The downstream declaration-item and statement-item misses mostly hang off those same unresolved `expression`, `range_expression`, and declaration surfaces.
-- SystemVerilog preprocessor has one retained focused reject on the shipped baseline, but not every plausible structural fix is safe.
-  - Specifically, the `directive_line_end := newline | eof` plus synthetic-`eof` generator path is now known to be non-keepable because it resolves target debt by collapsing parseability.
-  - If returning to that family, prefer tighter generator/layout analysis over synthetic-EOF closure tricks.
-- VHDL closure triage now has an important tooling guard: non-default `--entry-rule` plus `--validate-parseability` is intentionally rejected in `ast_pipeline`, because parseability validation only supports the grammar's full parser entry today. Use subrule probes for coverage/gap shape only.
-- Current retained VHDL subrule facts:
-  - `actual_part` low-budget probe collapses onto `open`
-  - `actual_parameter_element` low-budget probe collapses onto `association_element -> actual_part -> open`
-  - `range_expression` is not impossible; it just needs near-default depth budget to succeed in isolated generation
-- Branch-level failure telemetry is now available for the next VHDL closure pass.
-  - `selected_but_failed` no longer has to be treated as a black box: gap artifacts now keep ranked local branch failure reasons.
-  - The next VHDL branch/dependency slice should start by reading `top_failure_reasons` from `closed_loop_replay_gap.json` or `coverage_gap_triage`, then choose a generator or grammar fix from that evidence rather than from branch counts alone.
+- The active HDL closure lane is now main `systemverilog`, not `vhdl` or `systemverilog_preprocessor`.
+  - `vhdl` is on a clean retained baseline.
+  - `systemverilog_preprocessor` is on a clean retained baseline.
+  - `regex` is closed for the currently published contract.
+- Main SystemVerilog aggregate proof now has a better retained counterexample surface.
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now summarizes:
+    - unique/dominant `primary_entry_rule`
+    - unique/dominant `generation_entry_rule`
+    - unique/dominant `entry_mode`
+    - for both generation and replay-shadow counterexample triage
+  - important reuse rule:
+    - prefer the top-level `rust/target/sv_stimuli_quality_gate` state as the canonical cheap reuse surface
+    - older nested aggregate artifacts are not the default reuse source anymore
+  - important compatibility rule:
+    - current reusable `sv_stimuli_quality_gate` reports may be lean and omit embedded `counterexamples`
+    - aggregate proof now normalizes those omissions to zero/empty, so `<none>` / `0` on the new entry-context fields is acceptable on lean artifacts
+- VHDL still has useful local triage tooling if it ever needs to be revisited.
+  - non-default `--entry-rule` plus `--validate-parseability` stays intentionally rejected in `ast_pipeline`; full-entry validation only
+  - `coverage_gap_triage` plus `top_failure_reasons` remains the right resume surface if VHDL closure is reopened later

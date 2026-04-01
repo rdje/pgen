@@ -8503,3 +8503,17 @@ Use this file to resume work without replaying full chat history.
   - practical resume rule:
     - for VHDL `selected_but_failed` debt, do not guess from counts alone anymore
     - rerun `vhdl_stimuli_quality_gate`, then inspect `closed_loop_replay_gap.json` / `coverage_gap_triage` for `top_failure_reasons` before editing grammar or target-driving code
+- 2026-04-02: main `systemverilog` aggregate-proof memory update.
+  - canonical reuse surface:
+    - `rust/target/sv_stimuli_quality_gate`
+  - verified refresh command:
+    - `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_entry_context_refresh PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate bash rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - new retained aggregate metrics:
+    - unique and dominant `primary_entry_rule`
+    - unique and dominant `generation_entry_rule`
+    - unique and dominant `entry_mode`
+    - all emitted for both generation and replay-shadow triage
+  - important caveat:
+    - current reusable top-level `sv_stimuli_quality_gate` reports are lean, so parser rejections can be present even when embedded `counterexamples` arrays are absent
+    - the aggregate contract now treats missing `counterexamples` / `counterexamples_captured_total` as zero/empty
+    - therefore `<none>` / `0` on the new entry-context fields is acceptable until a fresh richer main-SV artifact is built

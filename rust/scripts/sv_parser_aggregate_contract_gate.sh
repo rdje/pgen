@@ -155,11 +155,11 @@ assert_same_json "$closed_loop_initial_gap_json" "$closed_loop_initial_replay_ga
 if ! jq -e '
     .grammar_name == "systemverilog"
     and .enabled == true
-    and (.counterexamples | type == "array")
-    and ((.counterexamples | length) <= 20)
+    and ((.counterexamples // []) | type == "array")
+    and (((.counterexamples // []) | length) <= 20)
     and (
-        if (.observed.parser_rejections_total // 0) > 0
-        then (.counterexamples | length) > 0
+        if (.observed.parser_rejections_total // 0) > 0 and has("counterexamples")
+        then ((.counterexamples // []) | length) > 0
         else true
         end
     )
@@ -182,6 +182,9 @@ if ! jq -e '
         and (.failure_column | type == "number")
         and (.failure_line_excerpt | type == "string")
         and (.failure_context_excerpt | type == "string")
+        and (if has("primary_entry_rule") then (.primary_entry_rule | type == "string") else true end)
+        and (if has("generation_entry_rule") then (.generation_entry_rule | type == "string") else true end)
+        and (if has("entry_mode") then (.entry_mode | type == "string") else true end)
     )
 ' "$generation_report_json" >/dev/null; then
     echo "error: generation aggregate report contract failed: $generation_report_json" >&2
@@ -193,17 +196,17 @@ if ! jq -e '
     .grammar_name == "systemverilog"
     and .enabled == true
     and .effective_mode == "enabled"
-    and (.counterexamples | type == "array")
-    and (.counterexamples_captured_total | numbers) >= (.counterexamples | length)
-    and ((.counterexamples | length) <= 20)
+    and ((.counterexamples // []) | type == "array")
+    and ((.counterexamples_captured_total // 0) | numbers) >= (((.counterexamples // []) | length))
+    and (((.counterexamples // []) | length) <= 20)
     and (
-        if (.observed.parser_rejections_total // 0) > 0
-        then (.counterexamples | length) > 0
+        if (.observed.parser_rejections_total // 0) > 0 and has("counterexamples")
+        then ((.counterexamples // []) | length) > 0
         else true
         end
     )
     and ((.profiles | length) >= 1)
-    and all(.profiles[]; (.counterexamples_captured | numbers) >= 0)
+    and all(.profiles[]; ((.counterexamples_captured // 0) | numbers) >= 0)
     and all(
         .counterexamples[]?;
         has("stage")
@@ -221,6 +224,9 @@ if ! jq -e '
         and (.failure_column | type == "number")
         and (.failure_line_excerpt | type == "string")
         and (.failure_context_excerpt | type == "string")
+        and (if has("primary_entry_rule") then (.primary_entry_rule | type == "string") else true end)
+        and (if has("generation_entry_rule") then (.generation_entry_rule | type == "string") else true end)
+        and (if has("entry_mode") then (.entry_mode | type == "string") else true end)
     )
 ' "$shadow_report_json" >/dev/null; then
     echo "error: replay-shadow aggregate report contract failed: $shadow_report_json" >&2
@@ -327,6 +333,33 @@ jq '
                 count: length
             })
         ),
+        by_primary_entry_rule: (
+            (.counterexamples // [])
+            | sort_by(.primary_entry_rule // "<missing>")
+            | group_by(.primary_entry_rule // "<missing>")
+            | map({
+                primary_entry_rule: (.[0].primary_entry_rule // "<missing>"),
+                count: length
+            })
+        ),
+        by_generation_entry_rule: (
+            (.counterexamples // [])
+            | sort_by(.generation_entry_rule // "<missing>")
+            | group_by(.generation_entry_rule // "<missing>")
+            | map({
+                generation_entry_rule: (.[0].generation_entry_rule // "<missing>"),
+                count: length
+            })
+        ),
+        by_entry_mode: (
+            (.counterexamples // [])
+            | sort_by(.entry_mode // "<missing>")
+            | group_by(.entry_mode // "<missing>")
+            | map({
+                entry_mode: (.[0].entry_mode // "<missing>"),
+                count: length
+            })
+        ),
         by_failure_location: (
             (.counterexamples // [])
             | sort_by(.failure_line, .failure_column)
@@ -365,6 +398,9 @@ jq '
                 profile,
                 sample_index,
                 seed,
+                primary_entry_rule: (.primary_entry_rule // "<missing>"),
+                generation_entry_rule: (.generation_entry_rule // "<missing>"),
+                entry_mode: (.entry_mode // "<missing>"),
                 shrunk_sample,
                 failure_line_excerpt,
                 failure_context_excerpt,
@@ -380,6 +416,9 @@ require_nonempty_file "$generation_counterexample_triage_json"
     echo "source_report: $generation_report_json"
     jq -r '.by_stage[]? | "stage_count[\(.stage)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$generation_counterexample_triage_json"
+    jq -r '.by_primary_entry_rule[]? | "primary_entry_rule_count[\(.primary_entry_rule | @json)]: \(.count)"' "$generation_counterexample_triage_json"
+    jq -r '.by_generation_entry_rule[]? | "generation_entry_rule_count[\(.generation_entry_rule | @json)]: \(.count)"' "$generation_counterexample_triage_json"
+    jq -r '.by_entry_mode[]? | "entry_mode_count[\(.entry_mode | @json)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$generation_counterexample_triage_json"
     jq -r '.by_failure_context_excerpt[]? | "failure_context_excerpt_count[\(.failure_context_excerpt | @json)]: \(.count)"' "$generation_counterexample_triage_json"
@@ -415,6 +454,33 @@ jq '
             | group_by(.shrunk_sample)
             | map({
                 shrunk_sample: .[0].shrunk_sample,
+                count: length
+            })
+        ),
+        by_primary_entry_rule: (
+            (.counterexamples // [])
+            | sort_by(.primary_entry_rule // "<missing>")
+            | group_by(.primary_entry_rule // "<missing>")
+            | map({
+                primary_entry_rule: (.[0].primary_entry_rule // "<missing>"),
+                count: length
+            })
+        ),
+        by_generation_entry_rule: (
+            (.counterexamples // [])
+            | sort_by(.generation_entry_rule // "<missing>")
+            | group_by(.generation_entry_rule // "<missing>")
+            | map({
+                generation_entry_rule: (.[0].generation_entry_rule // "<missing>"),
+                count: length
+            })
+        ),
+        by_entry_mode: (
+            (.counterexamples // [])
+            | sort_by(.entry_mode // "<missing>")
+            | group_by(.entry_mode // "<missing>")
+            | map({
+                entry_mode: (.[0].entry_mode // "<missing>"),
                 count: length
             })
         ),
@@ -454,6 +520,9 @@ jq '
                 failure_line,
                 failure_column,
                 profile,
+                primary_entry_rule: (.primary_entry_rule // "<missing>"),
+                generation_entry_rule: (.generation_entry_rule // "<missing>"),
+                entry_mode: (.entry_mode // "<missing>"),
                 shrunk_sample,
                 failure_line_excerpt,
                 failure_context_excerpt,
@@ -469,6 +538,9 @@ require_nonempty_file "$shadow_counterexample_triage_json"
     echo "source_report: $shadow_report_json"
     jq -r '.by_stage[]? | "stage_count[\(.stage)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_shrunk_sample[]? | "shrunk_sample_count[\(.shrunk_sample | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
+    jq -r '.by_primary_entry_rule[]? | "primary_entry_rule_count[\(.primary_entry_rule | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
+    jq -r '.by_generation_entry_rule[]? | "generation_entry_rule_count[\(.generation_entry_rule | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
+    jq -r '.by_entry_mode[]? | "entry_mode_count[\(.entry_mode | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_failure_location[]? | "failure_location[\(.failure_line):\(.failure_column)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_failure_line_excerpt[]? | "failure_line_excerpt_count[\(.failure_line_excerpt | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
     jq -r '.by_failure_context_excerpt[]? | "failure_context_excerpt_count[\(.failure_context_excerpt | @json)]: \(.count)"' "$shadow_counterexample_triage_json"
@@ -553,8 +625,11 @@ generation_parser_rejections="$(extract_json_number "$generation_report_json" '.
 generation_counterexamples_count="$(extract_json_number "$generation_report_json" '((.counterexamples // []) | length)')"
 shadow_parser_rejections="$(extract_json_number "$shadow_report_json" '.observed.parser_rejections_total')"
 shadow_counterexamples_count="$(extract_json_number "$shadow_report_json" '((.counterexamples // []) | length)')"
-shadow_counterexamples_captured_total="$(extract_json_number "$shadow_report_json" '.counterexamples_captured_total')"
+shadow_counterexamples_captured_total="$(extract_json_number "$shadow_report_json" '(.counterexamples_captured_total // 0)')"
 generation_counterexample_unique_shrunk_samples="$(extract_json_number "$generation_counterexample_triage_json" '(.by_shrunk_sample | length)')"
+generation_counterexample_unique_primary_entry_rules="$(extract_json_number "$generation_counterexample_triage_json" '(.by_primary_entry_rule | length)')"
+generation_counterexample_unique_generation_entry_rules="$(extract_json_number "$generation_counterexample_triage_json" '(.by_generation_entry_rule | length)')"
+generation_counterexample_unique_entry_modes="$(extract_json_number "$generation_counterexample_triage_json" '(.by_entry_mode | length)')"
 generation_counterexample_unique_failure_locations="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_location | length)')"
 generation_counterexample_unique_failure_line_excerpts="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
 generation_counterexample_unique_failure_context_excerpts="$(extract_json_number "$generation_counterexample_triage_json" '(.by_failure_context_excerpt | length)')"
@@ -562,6 +637,12 @@ generation_counterexample_primary_stage="$(jq -er 'if (.by_stage | length) > 0 t
 generation_counterexample_primary_stage_count="$(jq -er 'if (.by_stage | length) > 0 then (.by_stage | sort_by(-.count, .stage) | .[0].count) else 0 end' "$generation_counterexample_triage_json")"
 generation_counterexample_primary_shrunk_sample="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].shrunk_sample) else "<none>" end' "$generation_counterexample_triage_json")"
 generation_counterexample_primary_shrunk_sample_count="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].count) else 0 end' "$generation_counterexample_triage_json")"
+generation_counterexample_primary_primary_entry_rule="$(jq -er 'if (.by_primary_entry_rule | length) > 0 then (.by_primary_entry_rule | sort_by(-.count, .primary_entry_rule) | .[0].primary_entry_rule) else "<none>" end' "$generation_counterexample_triage_json")"
+generation_counterexample_primary_primary_entry_rule_count="$(jq -er 'if (.by_primary_entry_rule | length) > 0 then (.by_primary_entry_rule | sort_by(-.count, .primary_entry_rule) | .[0].count) else 0 end' "$generation_counterexample_triage_json")"
+generation_counterexample_primary_generation_entry_rule="$(jq -er 'if (.by_generation_entry_rule | length) > 0 then (.by_generation_entry_rule | sort_by(-.count, .generation_entry_rule) | .[0].generation_entry_rule) else "<none>" end' "$generation_counterexample_triage_json")"
+generation_counterexample_primary_generation_entry_rule_count="$(jq -er 'if (.by_generation_entry_rule | length) > 0 then (.by_generation_entry_rule | sort_by(-.count, .generation_entry_rule) | .[0].count) else 0 end' "$generation_counterexample_triage_json")"
+generation_counterexample_primary_entry_mode="$(jq -er 'if (.by_entry_mode | length) > 0 then (.by_entry_mode | sort_by(-.count, .entry_mode) | .[0].entry_mode) else "<none>" end' "$generation_counterexample_triage_json")"
+generation_counterexample_primary_entry_mode_count="$(jq -er 'if (.by_entry_mode | length) > 0 then (.by_entry_mode | sort_by(-.count, .entry_mode) | .[0].count) else 0 end' "$generation_counterexample_triage_json")"
 generation_counterexample_primary_parser_error="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].parser_error) else "<none>" end' "$generation_counterexample_triage_json")"
 generation_counterexample_primary_parser_error_count="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].count) else 0 end' "$generation_counterexample_triage_json")"
 generation_counterexample_primary_failure_location="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0] | "\(.failure_line):\(.failure_column)") else "<none>" end' "$generation_counterexample_triage_json")"
@@ -571,6 +652,9 @@ generation_counterexample_primary_failure_line_excerpt_count="$(jq -er 'if (.by_
 generation_counterexample_primary_failure_context_excerpt_json="$(jq -er 'if (.by_failure_context_excerpt | length) > 0 then (.by_failure_context_excerpt | sort_by(-.count, .failure_context_excerpt) | .[0].failure_context_excerpt | @json) else "\"<none>\"" end' "$generation_counterexample_triage_json")"
 generation_counterexample_primary_failure_context_excerpt_count="$(jq -er 'if (.by_failure_context_excerpt | length) > 0 then (.by_failure_context_excerpt | sort_by(-.count, .failure_context_excerpt) | .[0].count) else 0 end' "$generation_counterexample_triage_json")"
 shadow_counterexample_unique_shrunk_samples="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_shrunk_sample | length)')"
+shadow_counterexample_unique_primary_entry_rules="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_primary_entry_rule | length)')"
+shadow_counterexample_unique_generation_entry_rules="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_generation_entry_rule | length)')"
+shadow_counterexample_unique_entry_modes="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_entry_mode | length)')"
 shadow_counterexample_unique_failure_locations="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_location | length)')"
 shadow_counterexample_unique_failure_line_excerpts="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_line_excerpt | length)')"
 shadow_counterexample_unique_failure_context_excerpts="$(extract_json_number "$shadow_counterexample_triage_json" '(.by_failure_context_excerpt | length)')"
@@ -578,6 +662,12 @@ shadow_counterexample_primary_stage="$(jq -er 'if (.by_stage | length) > 0 then 
 shadow_counterexample_primary_stage_count="$(jq -er 'if (.by_stage | length) > 0 then (.by_stage | sort_by(-.count, .stage) | .[0].count) else 0 end' "$shadow_counterexample_triage_json")"
 shadow_counterexample_primary_shrunk_sample="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].shrunk_sample) else "<none>" end' "$shadow_counterexample_triage_json")"
 shadow_counterexample_primary_shrunk_sample_count="$(jq -er 'if (.by_shrunk_sample | length) > 0 then (.by_shrunk_sample | sort_by(-.count, .shrunk_sample) | .[0].count) else 0 end' "$shadow_counterexample_triage_json")"
+shadow_counterexample_primary_primary_entry_rule="$(jq -er 'if (.by_primary_entry_rule | length) > 0 then (.by_primary_entry_rule | sort_by(-.count, .primary_entry_rule) | .[0].primary_entry_rule) else "<none>" end' "$shadow_counterexample_triage_json")"
+shadow_counterexample_primary_primary_entry_rule_count="$(jq -er 'if (.by_primary_entry_rule | length) > 0 then (.by_primary_entry_rule | sort_by(-.count, .primary_entry_rule) | .[0].count) else 0 end' "$shadow_counterexample_triage_json")"
+shadow_counterexample_primary_generation_entry_rule="$(jq -er 'if (.by_generation_entry_rule | length) > 0 then (.by_generation_entry_rule | sort_by(-.count, .generation_entry_rule) | .[0].generation_entry_rule) else "<none>" end' "$shadow_counterexample_triage_json")"
+shadow_counterexample_primary_generation_entry_rule_count="$(jq -er 'if (.by_generation_entry_rule | length) > 0 then (.by_generation_entry_rule | sort_by(-.count, .generation_entry_rule) | .[0].count) else 0 end' "$shadow_counterexample_triage_json")"
+shadow_counterexample_primary_entry_mode="$(jq -er 'if (.by_entry_mode | length) > 0 then (.by_entry_mode | sort_by(-.count, .entry_mode) | .[0].entry_mode) else "<none>" end' "$shadow_counterexample_triage_json")"
+shadow_counterexample_primary_entry_mode_count="$(jq -er 'if (.by_entry_mode | length) > 0 then (.by_entry_mode | sort_by(-.count, .entry_mode) | .[0].count) else 0 end' "$shadow_counterexample_triage_json")"
 shadow_counterexample_primary_parser_error="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].parser_error) else "<none>" end' "$shadow_counterexample_triage_json")"
 shadow_counterexample_primary_parser_error_count="$(jq -er 'if (.by_parser_error | length) > 0 then (.by_parser_error | sort_by(-.count, .parser_error) | .[0].count) else 0 end' "$shadow_counterexample_triage_json")"
 shadow_counterexample_primary_failure_location="$(jq -er 'if (.by_failure_location | length) > 0 then (.by_failure_location | sort_by(-.count, .failure_line, .failure_column) | .[0] | "\(.failure_line):\(.failure_column)") else "<none>" end' "$shadow_counterexample_triage_json")"
@@ -621,10 +711,19 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "generation_parser_rejections_total: $generation_parser_rejections"
     echo "generation_counterexamples_count: $generation_counterexamples_count"
     echo "generation_counterexample_unique_shrunk_samples: $generation_counterexample_unique_shrunk_samples"
+    echo "generation_counterexample_unique_primary_entry_rules: $generation_counterexample_unique_primary_entry_rules"
+    echo "generation_counterexample_unique_generation_entry_rules: $generation_counterexample_unique_generation_entry_rules"
+    echo "generation_counterexample_unique_entry_modes: $generation_counterexample_unique_entry_modes"
     echo "generation_counterexample_primary_stage: $generation_counterexample_primary_stage"
     echo "generation_counterexample_primary_stage_count: $generation_counterexample_primary_stage_count"
     echo "generation_counterexample_primary_shrunk_sample: $generation_counterexample_primary_shrunk_sample"
     echo "generation_counterexample_primary_shrunk_sample_count: $generation_counterexample_primary_shrunk_sample_count"
+    echo "generation_counterexample_primary_primary_entry_rule: $generation_counterexample_primary_primary_entry_rule"
+    echo "generation_counterexample_primary_primary_entry_rule_count: $generation_counterexample_primary_primary_entry_rule_count"
+    echo "generation_counterexample_primary_generation_entry_rule: $generation_counterexample_primary_generation_entry_rule"
+    echo "generation_counterexample_primary_generation_entry_rule_count: $generation_counterexample_primary_generation_entry_rule_count"
+    echo "generation_counterexample_primary_entry_mode: $generation_counterexample_primary_entry_mode"
+    echo "generation_counterexample_primary_entry_mode_count: $generation_counterexample_primary_entry_mode_count"
     echo "generation_counterexample_primary_parser_error: $generation_counterexample_primary_parser_error"
     echo "generation_counterexample_primary_parser_error_count: $generation_counterexample_primary_parser_error_count"
     echo "generation_counterexample_primary_failure_location: $generation_counterexample_primary_failure_location"
@@ -640,10 +739,19 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "shadow_counterexamples_count: $shadow_counterexamples_count"
     echo "shadow_counterexamples_captured_total: $shadow_counterexamples_captured_total"
     echo "shadow_counterexample_unique_shrunk_samples: $shadow_counterexample_unique_shrunk_samples"
+    echo "shadow_counterexample_unique_primary_entry_rules: $shadow_counterexample_unique_primary_entry_rules"
+    echo "shadow_counterexample_unique_generation_entry_rules: $shadow_counterexample_unique_generation_entry_rules"
+    echo "shadow_counterexample_unique_entry_modes: $shadow_counterexample_unique_entry_modes"
     echo "shadow_counterexample_primary_stage: $shadow_counterexample_primary_stage"
     echo "shadow_counterexample_primary_stage_count: $shadow_counterexample_primary_stage_count"
     echo "shadow_counterexample_primary_shrunk_sample: $shadow_counterexample_primary_shrunk_sample"
     echo "shadow_counterexample_primary_shrunk_sample_count: $shadow_counterexample_primary_shrunk_sample_count"
+    echo "shadow_counterexample_primary_primary_entry_rule: $shadow_counterexample_primary_primary_entry_rule"
+    echo "shadow_counterexample_primary_primary_entry_rule_count: $shadow_counterexample_primary_primary_entry_rule_count"
+    echo "shadow_counterexample_primary_generation_entry_rule: $shadow_counterexample_primary_generation_entry_rule"
+    echo "shadow_counterexample_primary_generation_entry_rule_count: $shadow_counterexample_primary_generation_entry_rule_count"
+    echo "shadow_counterexample_primary_entry_mode: $shadow_counterexample_primary_entry_mode"
+    echo "shadow_counterexample_primary_entry_mode_count: $shadow_counterexample_primary_entry_mode_count"
     echo "shadow_counterexample_primary_parser_error: $shadow_counterexample_primary_parser_error"
     echo "shadow_counterexample_primary_parser_error_count: $shadow_counterexample_primary_parser_error_count"
     echo "shadow_counterexample_primary_failure_location: $shadow_counterexample_primary_failure_location"
@@ -699,10 +807,19 @@ jq -n \
     --argjson generation_parser_rejections_total "$generation_parser_rejections" \
     --argjson generation_counterexamples_count "$generation_counterexamples_count" \
     --argjson generation_counterexample_unique_shrunk_samples "$generation_counterexample_unique_shrunk_samples" \
+    --argjson generation_counterexample_unique_primary_entry_rules "$generation_counterexample_unique_primary_entry_rules" \
+    --argjson generation_counterexample_unique_generation_entry_rules "$generation_counterexample_unique_generation_entry_rules" \
+    --argjson generation_counterexample_unique_entry_modes "$generation_counterexample_unique_entry_modes" \
     --arg generation_counterexample_primary_stage "$generation_counterexample_primary_stage" \
     --argjson generation_counterexample_primary_stage_count "$generation_counterexample_primary_stage_count" \
     --arg generation_counterexample_primary_shrunk_sample "$generation_counterexample_primary_shrunk_sample" \
     --argjson generation_counterexample_primary_shrunk_sample_count "$generation_counterexample_primary_shrunk_sample_count" \
+    --arg generation_counterexample_primary_primary_entry_rule "$generation_counterexample_primary_primary_entry_rule" \
+    --argjson generation_counterexample_primary_primary_entry_rule_count "$generation_counterexample_primary_primary_entry_rule_count" \
+    --arg generation_counterexample_primary_generation_entry_rule "$generation_counterexample_primary_generation_entry_rule" \
+    --argjson generation_counterexample_primary_generation_entry_rule_count "$generation_counterexample_primary_generation_entry_rule_count" \
+    --arg generation_counterexample_primary_entry_mode "$generation_counterexample_primary_entry_mode" \
+    --argjson generation_counterexample_primary_entry_mode_count "$generation_counterexample_primary_entry_mode_count" \
     --arg generation_counterexample_primary_parser_error "$generation_counterexample_primary_parser_error" \
     --argjson generation_counterexample_primary_parser_error_count "$generation_counterexample_primary_parser_error_count" \
     --arg generation_counterexample_primary_failure_location "$generation_counterexample_primary_failure_location" \
@@ -718,10 +835,19 @@ jq -n \
     --argjson shadow_counterexamples_count "$shadow_counterexamples_count" \
     --argjson shadow_counterexamples_captured_total "$shadow_counterexamples_captured_total" \
     --argjson shadow_counterexample_unique_shrunk_samples "$shadow_counterexample_unique_shrunk_samples" \
+    --argjson shadow_counterexample_unique_primary_entry_rules "$shadow_counterexample_unique_primary_entry_rules" \
+    --argjson shadow_counterexample_unique_generation_entry_rules "$shadow_counterexample_unique_generation_entry_rules" \
+    --argjson shadow_counterexample_unique_entry_modes "$shadow_counterexample_unique_entry_modes" \
     --arg shadow_counterexample_primary_stage "$shadow_counterexample_primary_stage" \
     --argjson shadow_counterexample_primary_stage_count "$shadow_counterexample_primary_stage_count" \
     --arg shadow_counterexample_primary_shrunk_sample "$shadow_counterexample_primary_shrunk_sample" \
     --argjson shadow_counterexample_primary_shrunk_sample_count "$shadow_counterexample_primary_shrunk_sample_count" \
+    --arg shadow_counterexample_primary_primary_entry_rule "$shadow_counterexample_primary_primary_entry_rule" \
+    --argjson shadow_counterexample_primary_primary_entry_rule_count "$shadow_counterexample_primary_primary_entry_rule_count" \
+    --arg shadow_counterexample_primary_generation_entry_rule "$shadow_counterexample_primary_generation_entry_rule" \
+    --argjson shadow_counterexample_primary_generation_entry_rule_count "$shadow_counterexample_primary_generation_entry_rule_count" \
+    --arg shadow_counterexample_primary_entry_mode "$shadow_counterexample_primary_entry_mode" \
+    --argjson shadow_counterexample_primary_entry_mode_count "$shadow_counterexample_primary_entry_mode_count" \
     --arg shadow_counterexample_primary_parser_error "$shadow_counterexample_primary_parser_error" \
     --argjson shadow_counterexample_primary_parser_error_count "$shadow_counterexample_primary_parser_error_count" \
     --arg shadow_counterexample_primary_failure_location "$shadow_counterexample_primary_failure_location" \
@@ -778,10 +904,19 @@ jq -n \
         generation_parser_rejections_total: $generation_parser_rejections_total,
         generation_counterexamples_count: $generation_counterexamples_count,
         generation_counterexample_unique_shrunk_samples: $generation_counterexample_unique_shrunk_samples,
+        generation_counterexample_unique_primary_entry_rules: $generation_counterexample_unique_primary_entry_rules,
+        generation_counterexample_unique_generation_entry_rules: $generation_counterexample_unique_generation_entry_rules,
+        generation_counterexample_unique_entry_modes: $generation_counterexample_unique_entry_modes,
         generation_counterexample_primary_stage: $generation_counterexample_primary_stage,
         generation_counterexample_primary_stage_count: $generation_counterexample_primary_stage_count,
         generation_counterexample_primary_shrunk_sample: $generation_counterexample_primary_shrunk_sample,
         generation_counterexample_primary_shrunk_sample_count: $generation_counterexample_primary_shrunk_sample_count,
+        generation_counterexample_primary_primary_entry_rule: $generation_counterexample_primary_primary_entry_rule,
+        generation_counterexample_primary_primary_entry_rule_count: $generation_counterexample_primary_primary_entry_rule_count,
+        generation_counterexample_primary_generation_entry_rule: $generation_counterexample_primary_generation_entry_rule,
+        generation_counterexample_primary_generation_entry_rule_count: $generation_counterexample_primary_generation_entry_rule_count,
+        generation_counterexample_primary_entry_mode: $generation_counterexample_primary_entry_mode,
+        generation_counterexample_primary_entry_mode_count: $generation_counterexample_primary_entry_mode_count,
         generation_counterexample_primary_parser_error: $generation_counterexample_primary_parser_error,
         generation_counterexample_primary_parser_error_count: $generation_counterexample_primary_parser_error_count,
         generation_counterexample_primary_failure_location: $generation_counterexample_primary_failure_location,
@@ -797,10 +932,19 @@ jq -n \
         shadow_counterexamples_count: $shadow_counterexamples_count,
         shadow_counterexamples_captured_total: $shadow_counterexamples_captured_total,
         shadow_counterexample_unique_shrunk_samples: $shadow_counterexample_unique_shrunk_samples,
+        shadow_counterexample_unique_primary_entry_rules: $shadow_counterexample_unique_primary_entry_rules,
+        shadow_counterexample_unique_generation_entry_rules: $shadow_counterexample_unique_generation_entry_rules,
+        shadow_counterexample_unique_entry_modes: $shadow_counterexample_unique_entry_modes,
         shadow_counterexample_primary_stage: $shadow_counterexample_primary_stage,
         shadow_counterexample_primary_stage_count: $shadow_counterexample_primary_stage_count,
         shadow_counterexample_primary_shrunk_sample: $shadow_counterexample_primary_shrunk_sample,
         shadow_counterexample_primary_shrunk_sample_count: $shadow_counterexample_primary_shrunk_sample_count,
+        shadow_counterexample_primary_primary_entry_rule: $shadow_counterexample_primary_primary_entry_rule,
+        shadow_counterexample_primary_primary_entry_rule_count: $shadow_counterexample_primary_primary_entry_rule_count,
+        shadow_counterexample_primary_generation_entry_rule: $shadow_counterexample_primary_generation_entry_rule,
+        shadow_counterexample_primary_generation_entry_rule_count: $shadow_counterexample_primary_generation_entry_rule_count,
+        shadow_counterexample_primary_entry_mode: $shadow_counterexample_primary_entry_mode,
+        shadow_counterexample_primary_entry_mode_count: $shadow_counterexample_primary_entry_mode_count,
         shadow_counterexample_primary_parser_error: $shadow_counterexample_primary_parser_error,
         shadow_counterexample_primary_parser_error_count: $shadow_counterexample_primary_parser_error_count,
         shadow_counterexample_primary_failure_location: $shadow_counterexample_primary_failure_location,

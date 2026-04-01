@@ -27586,3 +27586,18 @@ Architectural north star:
     - rerun `vhdl_stimuli_quality_gate`
     - inspect `rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json`
     - prefer the new `top_failure_reasons` over branch-count heuristics when choosing the next VHDL closure edit
+- 2026-04-02: main `systemverilog` aggregate proof now exposes entry-context triage in a reuse-safe way.
+  - retained script surface:
+    - `rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - new aggregate triage summaries:
+    - `generation_counterexample_unique_primary_entry_rules`
+    - `generation_counterexample_unique_generation_entry_rules`
+    - `generation_counterexample_unique_entry_modes`
+    - matching `shadow_*` variants
+    - dominant-value fields for `primary_entry_rule`, `generation_entry_rule`, and `entry_mode`
+  - verified cheap refresh command:
+    - `env PGEN_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_entry_context_refresh PGEN_SV_PARSER_AGGREGATE_CONTRACT_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate bash rust/scripts/sv_parser_aggregate_contract_gate.sh`
+  - important compatibility nuance:
+    - the current reusable top-level `sv_stimuli_quality_gate` reports are lean and may omit embedded `counterexamples` arrays plus `counterexamples_captured_total`
+    - aggregate proof now normalizes those omissions to empty/zero so reuse mode stays valid
+    - until a fresh richer main-SV report is regenerated, the new entry-context summary fields can legitimately show `<none>` / `0`

@@ -4097,20 +4097,25 @@ Why `rtl_frontend` exists:
 - That keeps the proof stack regular all the way from family-status through family-status contract, combined telemetry, and `sota_exit_gate`, which reduces special cases for downstream aggregate consumers and future local-CI policy guards.
 - The sibling coherence step below that is family-contract self-description. The shipped regex and VHDL family-contract gates should likewise surface their own sidecar identities by carrying `summary_txt` and `summary_json` at the top level of their JSON sidecars, and their TXT headers should expose `summary_json` consistently too.
 - That keeps the proof stack regular all the way from family-contract up through family-status, family-status contract, combined telemetry, and `sota_exit_gate`.
-- The active VHDL closure lane is now narrow enough that it should be treated as branch/dependency triage, not broad grammar exploration.
-  - Verified current top VHDL replay-gap seams:
-    - `trivia#line_comment`
-    - `actual_parameter_element#range_expression`
-    - `actual_part#expression`
-    - `aggregate#expression,...aggregate_element_association`
-  - The next declaration-item and statement-item failures mostly sit downstream of those same unresolved dependencies, so future VHDL work should attack those first instead of returning to blanket `@sample` bundles or broad reserved-word exclusion.
-- One SystemVerilog-preprocessor closure path is now explicitly deferred as non-keepable:
-  - forcing `directive_line_end := newline | eof` on the non-conditional comment-tail directives and pairing it with synthetic-`eof` generator support
-  - reason:
-    - it can clear target debt, but only by regressing the focused proof lane to a high-rejection parseability surface
-  - roadmap consequence:
-    - do not prioritize that path ahead of cleaner VHDL / SystemVerilog closure work
-- VHDL future-session note: keep using branch-level subrule probes, but only as generation-shape evidence. Non-default `--entry-rule` parseability validation is now blocked on purpose because it still validates through the full grammar parser entry. The current retained probe facts are: `actual_part -> open` collapse under low budget, `actual_parameter_element` low-budget collapse onto `association_element -> actual_part -> open`, and standalone `range_expression` needs near-default depth to succeed.
-- VHDL next-step note: the branch/dependency lane now has explicit local failure telemetry.
-  - Before the next VHDL closure edit, rerun `vhdl_stimuli_quality_gate` and inspect `top_failure_reasons` in the replay gap artifacts.
-  - That should replace the recent low-yield pattern of broad sample-hint or lexical steering experiments with evidence-driven branch-local fixes.
+- The active HDL closure lane is now main `systemverilog`.
+  - `vhdl` is on a retained no-regression baseline.
+  - `systemverilog_preprocessor` is on a retained no-regression baseline.
+- The main `systemverilog` aggregate proof surface now carries entry-context triage metadata.
+  - `rust/scripts/sv_parser_aggregate_contract_gate.sh` now summarizes:
+    - unique/dominant `primary_entry_rule`
+    - unique/dominant `generation_entry_rule`
+    - unique/dominant `entry_mode`
+    - for both generation and replay-shadow counterexample surfaces
+  - practical roadmap consequence:
+    - future main-SV proof work should consume those entry-context summaries before attempting more parser/generator edits
+    - this is the intended path for separating true primary-entry parser debt from alternate-entry helper noise
+- Main-SV aggregate reuse doctrine is now explicit too.
+  - canonical cheap reuse surface:
+    - `rust/target/sv_stimuli_quality_gate`
+  - compatibility rule:
+    - reusable main-SV quality reports may be lean and omit embedded `counterexamples` arrays
+    - aggregate proof must normalize those omissions to zero/empty rather than failing reuse mode
+- VHDL remains resumable if needed later, but not as the current front-of-queue closure lane.
+  - if VHDL is reopened, keep using branch-level probes only as generation-shape evidence
+  - non-default `--entry-rule` parseability validation stays intentionally blocked because validation still flows through the full grammar entry
+  - `coverage_gap_triage` plus `top_failure_reasons` remains the preferred restart surface
