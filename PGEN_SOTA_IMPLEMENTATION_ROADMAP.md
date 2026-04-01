@@ -50,6 +50,10 @@ Execution preference for this roadmap:
 - if repeated parser ambiguity depends on names, declaration categories, or earlier matched constructs, prefer annotation-driven semantic steering over repeated local branch reorderings.
 - current focused SV external-corpus frontier is now deeper parser-only work inside the UVM package bodies again; inline conditional macro-body normalization, comment-side macro leakage, brace-concat macro-argument truncation, and comment-side fake multiline macro collection are no longer active blockers.
 - repeated bare `type` parameter headers in SV class declarations are now a known solved branch-shape issue; the next remaining UVM frontier is broader package parse scaling/reduction rather than that specific header syntax.
+- for the remaining main-SV replay-shadow parser debt, keep the evidence classes separate:
+  - primary-entry parser rejections are the tracked family blocker
+  - alternate-entry probe failures are helper-rule exploration telemetry
+  - target-drive counterexample capture should therefore stay primary-entry-only when the goal is to triage full-entry parser debt
 
 Tracker note (2026-03-30): the next retained `systemverilog_preprocessor` reduction was stimuli-only, not a shared parser narrowing. [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) now steers `directive_tail` with `@sample: " tail"` so the quality lane stops inventing fake same-line directive tails while parser acceptance stays unchanged. Fresh proof on the focused preprocessor seam now records `parseability_attempts_total=39`, `parseability_accepted_total=33`, `parseability_rejected_total=6`, `parseability_parser_rejections_total=6`, `parseability_counterexamples_captured_total=6`, `stage0_target_count=22`, and `final_targets=0` in [sv_preprocessor_aggregate_contract_gate](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh). Future work should keep this classification straight:
 - keep stimuli-only steering fixes like this one in the grammar/annotation layer when they improve the quality lane without narrowing the parser surface

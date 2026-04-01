@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-01 - Clarify main-SV replay-shadow counterexample capture
+### Achievement Summary
+Tightened the `systemverilog` target-drive parseability reporting path so replay-shadow counterexamples now represent primary-entry parser debt instead of mixing in alternate-entry probe failures. This does not change acceptance semantics or tracked family status yet, but it removes a major triage blind spot for the remaining main-SV closure work.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - `generate_until_targets_with_filter` now passes entry-context metadata into the validation callback
+  - the callback can now distinguish:
+    - `primary_entry_rule`
+    - `generation_entry_rule`
+    - whether the sample came from primary-entry generation or an alternate-entry probe
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - replay-shadow `target_drive_output_filter` counterexample capture now records only primary-entry parseability failures
+  - parseability counterexamples can now serialize optional entry metadata:
+    - `primary_entry_rule`
+    - `generation_entry_rule`
+    - `entry_mode`
+- This keeps alternate-entry probe rejection counts in telemetry while stopping them from polluting the main parser-debt sample set.
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parseability_report_serializes_counterexamples_when_present -- --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib target_driven_generation_filter_keeps_alternate_probe_helper_coverage -- --nocapture`
+
 ## 2026-04-01 - Close the SV preprocessor family at Done
 ### Achievement Summary
 Promoted the `systemverilog_preprocessor` formal-closure seam from a placeholder blocker into a real machine-checkable proof surface. New sidecar [rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh](rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh), backed by [rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json), now proves that the only syntax-unreachable surface is the helper-only `trivia` pocket while the retained aggregate and reachability sidecars stay green.

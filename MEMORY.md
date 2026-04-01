@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-01 (+0200, task: sv-preprocessor-formal-closure)
+Last updated: 2026-04-01 (+0200, task: sv-main-shadow-counterexample-clarity)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,27 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained main-SystemVerilog reporting/triage change:
+  - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - target-drive validation callbacks now receive entry metadata:
+      - `primary_entry_rule`
+      - `generation_entry_rule`
+      - `is_primary_entry`
+  - [rust/src/main.rs](rust/src/main.rs)
+    - replay-shadow `target_drive_output_filter` counterexamples are now captured only for primary-entry parseability failures
+    - alternate-entry probe failures still contribute to validation telemetry counts, but no longer pollute the main parser-debt counterexample sample set
+    - parseability counterexamples can now serialize:
+      - `primary_entry_rule`
+      - `generation_entry_rule`
+      - `entry_mode`
+- Retained exact regressions:
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parseability_report_serializes_counterexamples_when_present -- --nocapture`
+  - `cargo test --manifest-path rust/Cargo.toml --lib target_driven_generation_filter_keeps_alternate_probe_helper_coverage -- --nocapture`
+- Current steering update for the remaining main-SV closure work:
+  - do not trust the old mixed replay-shadow counterexample set at face value
+  - primary-entry summary counts remain the true tracked parser-debt surface
+  - alternate-entry probe failures should be treated as helper-rule exploration evidence, not top-level-file parser debt
+  - next best follow-up is to rerun the focused main-SV aggregate proof surfaces and inspect the now-primary-only counterexample set before attempting another grammar or generator change
 - Retained SystemVerilog-preprocessor code change:
   - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
     - quantified `pp_item` repetition now inserts a newline separator when generating under the `systemverilog_preprocessor` grammar and the previous repeated item did not already end the line

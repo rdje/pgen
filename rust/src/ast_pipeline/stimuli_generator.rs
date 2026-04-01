@@ -684,6 +684,13 @@ pub struct TargetDriveValidationSummary {
     pub alternate_entry_rejected_outputs: usize,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetDriveFilterContext<'a> {
+    pub primary_entry_rule: &'a str,
+    pub generation_entry_rule: &'a str,
+    pub is_primary_entry: bool,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct DependencyProbeCandidate {
     rule_name: String,
@@ -1347,7 +1354,7 @@ impl<'a> StimuliGenerator<'a> {
         TargetDriveValidationSummary,
     )>
     where
-        F: FnMut(&str) -> Result<bool>,
+        F: FnMut(&str, &TargetDriveFilterContext<'_>) -> Result<bool>,
     {
         let previous_validation_mode = self.target_drive_validation_active;
         self.target_drive_validation_active = true;
@@ -1399,18 +1406,24 @@ impl<'a> StimuliGenerator<'a> {
                 match self.generate_from_entry(&generation_entry) {
                     Ok(sample) => {
                         generation_successes = generation_successes.saturating_add(1);
-                        if generation_entry != resolved_entry {
+                        let is_primary_entry = generation_entry == resolved_entry;
+                        if !is_primary_entry {
                             validation_summary.alternate_entry_attempts = validation_summary
                                 .alternate_entry_attempts
                                 .saturating_add(1);
                         }
-                        let accepted = output_filter(&sample)?;
-                        if generation_entry == resolved_entry {
+                        let filter_context = TargetDriveFilterContext {
+                            primary_entry_rule: resolved_entry.as_str(),
+                            generation_entry_rule: generation_entry.as_str(),
+                            is_primary_entry,
+                        };
+                        let accepted = output_filter(&sample, &filter_context)?;
+                        if is_primary_entry {
                             validation_summary.validated_outputs =
                                 validation_summary.validated_outputs.saturating_add(1);
                         }
                         if !accepted {
-                            if generation_entry == resolved_entry {
+                            if is_primary_entry {
                                 // Primary-entry outputs are candidate final samples, so failed
                                 // validation must not pay target debt for the canonical entry rule.
                                 self.coverage.restore_success_state(&success_snapshot);
@@ -1429,7 +1442,7 @@ impl<'a> StimuliGenerator<'a> {
                             continue;
                         }
 
-                        if generation_entry == resolved_entry {
+                        if is_primary_entry {
                             validation_summary.accepted_outputs =
                                 validation_summary.accepted_outputs.saturating_add(1);
                             outputs.push(sample);
@@ -6200,7 +6213,7 @@ mod tests {
         assert!(!report.targets.is_empty(), "expected actionable targets");
 
         let (samples, summary, validation) = generator
-            .generate_until_targets_with_filter(Some("start"), &report.targets, 200, |sample| {
+            .generate_until_targets_with_filter(Some("start"), &report.targets, 200, |sample, _| {
                 Ok(sample == "L")
             })
             .expect("target-driven generation with filter should succeed");
@@ -6261,8 +6274,19 @@ mod tests {
             "expected helper targets to drive alternate-entry probing"
         );
 
+        let mut saw_primary_entry = false;
+        let mut saw_alternate_entry = false;
         let (samples, summary, validation) = generator
-            .generate_until_targets_with_filter(Some("start"), &helper_targets, 400, |sample| {
+            .generate_until_targets_with_filter(Some("start"), &helper_targets, 400, |sample, context| {
+                if context.is_primary_entry {
+                    saw_primary_entry = true;
+                    assert_eq!(context.primary_entry_rule, "start");
+                    assert_eq!(context.generation_entry_rule, "start");
+                } else {
+                    saw_alternate_entry = true;
+                    assert_eq!(context.primary_entry_rule, "start");
+                    assert_eq!(context.generation_entry_rule, "helper");
+                }
                 Ok(sample == "S")
             })
             .expect("target-driven generation with helper-only filter should succeed");
@@ -6270,6 +6294,14 @@ mod tests {
         assert!(
             samples.iter().all(|sample| sample == "S"),
             "only primary-entry outputs should pass the strict filter"
+        );
+        assert!(
+            saw_primary_entry,
+            "helper-only validation should still evaluate some primary-entry outputs"
+        );
+        assert!(
+            saw_alternate_entry,
+            "helper-only validation should expose alternate-entry probe context"
         );
         assert!(
             validation.alternate_entry_attempts > 0,

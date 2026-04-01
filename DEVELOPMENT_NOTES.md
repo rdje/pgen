@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - Main SV triage: replay-shadow counterexamples must stay primary-entry-only
+### Context
+The retained `systemverilog` family still has three live closure blockers, but the stored replay-shadow counterexample set was noisier than the tracked debt. The aggregate summary already counts only primary-entry parseability rejects, while the raw `target_drive_output_filter` counterexamples were still capturing alternate-entry probe failures too. That mismatch made the sample set look worse and more top-level-broken than the actual tracked parser debt.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - `generate_until_targets_with_filter` now passes a `TargetDriveFilterContext` into the validation callback
+  - the callback now knows:
+    - `primary_entry_rule`
+    - `generation_entry_rule`
+    - whether the current sample is primary-entry or alternate-entry
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - `target_drive_output_filter` counterexample capture now records only primary-entry parseability failures
+  - parseability-report counterexamples now optionally serialize the target-drive entry metadata above
+- Important boundary:
+  - this is a proof-clarity / triage fix
+  - it does not change primary-entry acceptance, alternate-entry telemetry accounting, or the current `systemverilog` tracker row by itself
+
+### What Was Verified
+- Exact report serialization still works and now includes entry metadata:
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parseability_report_serializes_counterexamples_when_present -- --nocapture`
+- Exact target-drive validation context is wired through and observable:
+  - `cargo test --manifest-path rust/Cargo.toml --lib target_driven_generation_filter_keeps_alternate_probe_helper_coverage -- --nocapture`
+
+### Steering
+- When triaging the remaining main-SV replay-shadow parser debt, trust the primary-entry summary counts first.
+- Treat alternate-entry probe failures as helper-rule exploration telemetry, not as direct evidence of full-file parser debt.
+- The next meaningful main-SV refresh should rerun the focused aggregate proof surfaces and inspect the now-cleaner primary-entry counterexample set before attempting another grammar or generator fix.
+
 ## 2026-04-01 - SV preprocessor closure: formalize the zero-plausible-gap proof surface
 ### Context
 The retained `systemverilog_preprocessor` parser/stimuli baseline was already clean at `33/33/0/0`, but the family still stayed `Mostly Done` because [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh) was intentionally hardcoded red on the missing `zero_plausible_grammar_level_gap_proof_surface`.

@@ -39,6 +39,10 @@ This is a live document, not an archival write-up. It should be amended whenever
       - aggregate contract `parseability_rejected_total=0`, `parseability_parser_rejections_total=0`, `counterexamples_captured_total=0`
       - zero-plausible-gap proof is now explicit and green through `sv_preprocessor_zero_plausible_gap_proof_gate`
       - formal exhaustive closure is now green through `sv_preprocessor_formal_exhaustive_closure_gate`
+    - main-SV replay-shadow triage now also has one important reporting guard:
+      - primary-entry parser-rejection counts remain the tracked debt surface
+      - alternate-entry probe failures are still useful telemetry, but they should not be mixed into the main parser-debt counterexample set
+      - the retained Rust path now carries entry-context metadata through target-drive validation so the replay-shadow counterexamples can stay primary-entry-only
     - treat `systemverilog_preprocessor` as a closed no-regression baseline unless its published contract is intentionally widened; active HDL closure work should now bias toward the remaining `systemverilog` main-parser debt and the broader Phase `S` build-out
 
 ## Rust-Adjacent Cargo Surface

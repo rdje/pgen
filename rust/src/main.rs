@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
     RecoveryStimuliMode, StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics,
-    StimuliGenerator, TargetDriveValidationSummary,
+    StimuliGenerator, TargetDriveFilterContext, TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
@@ -328,6 +328,12 @@ struct ParseabilityCounterexample {
     sample_chars: usize,
     shrunk_sample: String,
     shrunk_sample_chars: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    primary_entry_rule: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    generation_entry_rule: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    entry_mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     parser_error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -987,6 +993,7 @@ fn main() -> Result<()> {
                                 &grammar.grammar_name,
                                 args.grammar_profile.as_deref(),
                                 sample,
+                                None,
                             );
                             if let Some(shrunk) = case.shrunk_counterexample.as_deref() {
                                 counterexample.shrunk_sample = shrunk.to_string();
@@ -1046,13 +1053,14 @@ fn main() -> Result<()> {
                     Some(resolved_entry_rule.as_str()),
                     &target_report.targets,
                     args.target_max_attempts,
-                    |sample| {
+                    |sample, context| {
                         let parseable = is_sample_parseable_by_generated_parser(
                             &grammar.grammar_name,
                             args.grammar_profile.as_deref(),
                             sample,
                         )?;
                         if !parseable
+                            && context.is_primary_entry
                             && parseability_counterexamples.len() < MAX_PARSEABILITY_COUNTEREXAMPLES
                         {
                             parseability_counterexamples.push(build_parseability_counterexample(
@@ -1060,6 +1068,7 @@ fn main() -> Result<()> {
                                 &grammar.grammar_name,
                                 args.grammar_profile.as_deref(),
                                 sample,
+                                Some(context),
                             ));
                         }
                         Ok(parseable)
@@ -1780,6 +1789,7 @@ fn build_parseability_counterexample(
     grammar_name: &str,
     grammar_profile: Option<&str>,
     sample: &str,
+    entry_context: Option<&TargetDriveFilterContext<'_>>,
 ) -> ParseabilityCounterexample {
     let shrunk_sample = shrink_parseability_counterexample(grammar_name, grammar_profile, sample)
         .unwrap_or_else(|_| sample.to_string());
@@ -1791,6 +1801,15 @@ fn build_parseability_counterexample(
         sample_chars: sample.chars().count(),
         shrunk_sample_chars: shrunk_sample.chars().count(),
         shrunk_sample,
+        primary_entry_rule: entry_context.map(|context| context.primary_entry_rule.to_string()),
+        generation_entry_rule: entry_context.map(|context| context.generation_entry_rule.to_string()),
+        entry_mode: entry_context.map(|context| {
+            if context.is_primary_entry {
+                "primary".to_string()
+            } else {
+                "alternate".to_string()
+            }
+        }),
         parser_error: failure_detail
             .as_ref()
             .map(|detail| detail.parser_error.clone()),
@@ -2386,6 +2405,7 @@ where
                     grammar_name,
                     grammar_profile,
                     &sample,
+                    None,
                 ));
             }
         }
@@ -2474,6 +2494,7 @@ fn generate_parseable_stimuli(
                         grammar_name,
                         grammar_profile,
                         sample,
+                        None,
                     ));
                 }
             }
@@ -2800,6 +2821,9 @@ mod tests {
             sample_chars: 16,
             shrunk_sample: "`define FOO".to_string(),
             shrunk_sample_chars: 11,
+            primary_entry_rule: Some("systemverilog_preprocessor_file".to_string()),
+            generation_entry_rule: Some("pp_item".to_string()),
+            entry_mode: Some("alternate".to_string()),
             parser_error: Some("Parser did not consume full input at position 8".to_string()),
             failure_position: Some(8),
             failure_line: Some(1),
@@ -2834,6 +2858,18 @@ mod tests {
         assert_eq!(
             report_value["counterexamples"][0]["shrunk_sample"].as_str(),
             Some("`define FOO")
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["primary_entry_rule"].as_str(),
+            Some("systemverilog_preprocessor_file")
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["generation_entry_rule"].as_str(),
+            Some("pp_item")
+        );
+        assert_eq!(
+            report_value["counterexamples"][0]["entry_mode"].as_str(),
+            Some("alternate")
         );
         assert_eq!(
             report_value["counterexamples"][0]["parser_error"].as_str(),
