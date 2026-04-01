@@ -8402,3 +8402,13 @@ Use this file to resume work without replaying full chat history.
   - `actual_parameter_element` low-budget probe => only `association_element -> actual_part -> open`
   - `range_expression` low-budget probe => depth blowups at `--max-depth 8/12/16`
   - `range_expression` succeeds again at `--max-depth 24`
+- 2026-04-01: branch-level failure telemetry is now part of the stimuli coverage surface.
+  - stored in:
+    - `BranchCoverageGroup.failure_reasons`
+    - `BranchCoverageDebt.top_failure_reasons`
+  - surfaced in:
+    - `StimuliCoverageGapReport::to_pretty_text()`
+    - `coverage_gap_triage`
+  - practical resume rule:
+    - for VHDL `selected_but_failed` debt, do not guess from counts alone anymore
+    - rerun `vhdl_stimuli_quality_gate`, then inspect `closed_loop_replay_gap.json` / `coverage_gap_triage` for `top_failure_reasons` before editing grammar or target-driving code

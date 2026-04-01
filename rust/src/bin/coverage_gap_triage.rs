@@ -1,7 +1,8 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
-    BranchCoverageDebt, BranchCoverageGroup, StimuliCoverageGapReport, StimuliCoverageMetrics,
+    BranchCoverageDebt, BranchCoverageGroup, BranchFailureReasonCount, StimuliCoverageGapReport,
+    StimuliCoverageMetrics,
 };
 use pgen::ast_pipeline::{ASTNode, ASTValue, PipelineConfig, RustASTPipeline, TokenValue};
 use serde::Serialize;
@@ -70,6 +71,7 @@ struct BranchTriageRecord {
     sibling_statuses: Vec<SiblingBranchStatus>,
     rule_references: Vec<DependencyRuleStatus>,
     uncovered_rule_references: Vec<String>,
+    top_failure_reasons: Vec<BranchFailureReasonCount>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -111,10 +113,9 @@ fn load_grammar_ast(path: &str) -> Result<GrammarAstFile> {
         .to_string();
 
     if let Some(grammar_tree_value) = json.get("grammar_tree") {
-        let grammar_tree = serde_json::from_value::<HashMap<String, ASTNode>>(
-            grammar_tree_value.clone(),
-        )
-        .with_context(|| format!("failed parsing grammar_tree from {}", path))?;
+        let grammar_tree =
+            serde_json::from_value::<HashMap<String, ASTNode>>(grammar_tree_value.clone())
+                .with_context(|| format!("failed parsing grammar_tree from {}", path))?;
         return Ok(GrammarAstFile {
             grammar_name,
             grammar_tree,
@@ -255,7 +256,10 @@ fn render_ast(node: &ASTNode) -> String {
             ASTValue::Token(values) => render_token_values(values),
             ASTValue::Node(node) => wrap_if_needed(node, render_ast(node)),
         },
-        ASTNode::Quantified { element, quantifier } => {
+        ASTNode::Quantified {
+            element,
+            quantifier,
+        } => {
             let inner = wrap_if_needed(element, render_ast(element));
             format!("{}{}", inner, quantifier)
         }
@@ -335,7 +339,8 @@ fn build_record(
     grammar_tree: &HashMap<String, ASTNode>,
 ) -> BranchTriageRecord {
     let group = coverage.branch_groups.get(&debt.group_key);
-    let alternatives = or_alternatives_for_group_path(grammar_tree, &debt.rule_name, &debt.node_path);
+    let alternatives =
+        or_alternatives_for_group_path(grammar_tree, &debt.rule_name, &debt.node_path);
 
     let sibling_statuses = match (group, alternatives) {
         (Some(group), Some(alternatives)) => (0..group.total_branches)
@@ -379,6 +384,7 @@ fn build_record(
         sibling_statuses,
         rule_references: dependency_rule_statuses(debt, coverage, debt.required_successes),
         uncovered_rule_references: debt.uncovered_rule_references.clone(),
+        top_failure_reasons: debt.top_failure_reasons.clone(),
     }
 }
 
@@ -398,7 +404,10 @@ fn print_text(output: &TriageOutput) {
     println!("Coverage Gap Triage");
     println!("grammar: {}", output.grammar_name);
     println!("entry_rule: {}", output.entry_rule);
-    println!("reachable_branch_debt_total: {}", output.reachable_branch_debt_total);
+    println!(
+        "reachable_branch_debt_total: {}",
+        output.reachable_branch_debt_total
+    );
     println!("records_shown: {}", output.records_shown);
     println!();
 
@@ -437,6 +446,12 @@ fn print_text(output: &TriageOutput) {
                 "  uncovered_refs: {}",
                 record.uncovered_rule_references.join(", ")
             );
+        }
+        if !record.top_failure_reasons.is_empty() {
+            println!("  top_failure_reasons:");
+            for failure in &record.top_failure_reasons {
+                println!("    - {} ({})", failure.reason, failure.count);
+            }
         }
         if !record.sibling_statuses.is_empty() {
             println!("  siblings:");
@@ -561,6 +576,7 @@ mod tests {
             reason: "selected_but_failed".to_string(),
             rule_references: vec![],
             uncovered_rule_references: vec![],
+            top_failure_reasons: vec![],
         };
         let group = BranchCoverageGroup {
             rule_name: "x".to_string(),
@@ -568,6 +584,7 @@ mod tests {
             total_branches: 2,
             selected_counts: vec![10, 10],
             success_counts: vec![0, 0],
+            failure_reasons: vec![HashMap::new(), HashMap::new()],
         };
         assert_eq!(
             heuristic_for_branch(&debt, Some(&group)),

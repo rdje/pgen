@@ -1698,3 +1698,6 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - `actual_part` low-budget probe collapses onto `open`
   - `actual_parameter_element` low-budget probe collapses onto `association_element -> actual_part -> open`
   - `range_expression` is not impossible; it just needs near-default depth budget to succeed in isolated generation
+- Branch-level failure telemetry is now available for the next VHDL closure pass.
+  - `selected_but_failed` no longer has to be treated as a black box: gap artifacts now keep ranked local branch failure reasons.
+  - The next VHDL branch/dependency slice should start by reading `top_failure_reasons` from `closed_loop_replay_gap.json` or `coverage_gap_triage`, then choose a generator or grammar fix from that evidence rather than from branch counts alone.

@@ -3068,6 +3068,7 @@ mod tests {
                 total_branches: 2,
                 selected_counts: vec![1, 1],
                 success_counts: vec![0, 1],
+                failure_reasons: vec![HashMap::new(), HashMap::new()],
             },
         );
         let before = StimuliCoverageMetrics {
@@ -3091,6 +3092,7 @@ mod tests {
                 total_branches: 2,
                 selected_counts: vec![2, 2],
                 success_counts: vec![1, 1],
+                failure_reasons: vec![HashMap::new(), HashMap::new()],
             },
         );
         let after = StimuliCoverageMetrics {

@@ -26534,3 +26534,11 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - do not resume the `directive_line_end + synthetic eof` path blindly
 - 2026-04-01: hardened `ast_pipeline` so generated parseability validation now rejects non-default `--entry-rule` usage instead of silently validating subrule stimuli through the full grammar parser. This closes the misleading VHDL subrule-probe hole encountered during closure work.
 - 2026-04-01: retained VHDL subrule triage findings: low-budget `actual_part` probes collapse onto `open`, low-budget `actual_parameter_element` probes collapse onto the `association_element -> actual_part -> open` path while `range_expression` branches are selected but do not succeed, and standalone `range_expression` succeeds again once the probe is allowed near-default depth (`--max-depth 24`). Treat low-depth subrule runs as generation-shape evidence, not parser acceptance proof.
+- 2026-04-01: added per-branch failure-reason telemetry to stimuli coverage artifacts.
+  - `rust/src/ast_pipeline/stimuli_generator.rs` now records normalized branch-generation failure reasons whenever an OR-branch is selected but `generate_node(...)` returns `Err`.
+  - `BranchCoverageDebt` now carries `top_failure_reasons`, and `StimuliCoverageGapReport::to_pretty_text()` includes them for reachable branch debt.
+  - `rust/src/bin/coverage_gap_triage.rs` now surfaces `top_failure_reasons` too, so the next VHDL closure slice can inspect the real local branch failure causes instead of inferring only from `selected_but_failed`.
+  - validated on exact isolated-target tests:
+    - `ast_pipeline::stimuli_generator::tests::gap_report_surfaces_top_branch_failure_reasons`
+    - `tests::heuristic_prefers_shared_dependency_failure_when_no_branch_succeeds`
+    - `tests::branch_hit_delta_reports_new_successes_only`

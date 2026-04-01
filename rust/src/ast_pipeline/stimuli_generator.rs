@@ -67,6 +67,14 @@ pub struct BranchCoverageGroup {
     pub total_branches: usize,
     pub selected_counts: Vec<u64>,
     pub success_counts: Vec<u64>,
+    #[serde(default)]
+    pub failure_reasons: Vec<HashMap<String, u64>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct BranchFailureReasonCount {
+    pub reason: String,
+    pub count: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -146,11 +154,15 @@ impl StimuliCoverageMetrics {
                     total_branches: other_group.total_branches,
                     selected_counts: vec![0; other_group.total_branches],
                     success_counts: vec![0; other_group.total_branches],
+                    failure_reasons: vec![HashMap::new(); other_group.total_branches],
                 });
 
             if group.total_branches < other_group.total_branches {
                 group.selected_counts.resize(other_group.total_branches, 0);
                 group.success_counts.resize(other_group.total_branches, 0);
+                group
+                    .failure_reasons
+                    .resize(other_group.total_branches, HashMap::new());
                 group.total_branches = other_group.total_branches;
             }
 
@@ -165,6 +177,16 @@ impl StimuliCoverageMetrics {
                     group.success_counts.push(0);
                 }
                 group.success_counts[idx] += count;
+            }
+            for (idx, reasons) in other_group.failure_reasons.iter().enumerate() {
+                if idx >= group.failure_reasons.len() {
+                    group.failure_reasons.push(HashMap::new());
+                }
+                for (reason, count) in reasons {
+                    *group.failure_reasons[idx]
+                        .entry(reason.clone())
+                        .or_insert(0) += count;
+                }
             }
         }
 
@@ -206,6 +228,7 @@ impl StimuliCoverageMetrics {
                 total_branches,
                 selected_counts: vec![0; total_branches],
                 success_counts: vec![0; total_branches],
+                failure_reasons: vec![HashMap::new(); total_branches],
             });
     }
 
@@ -224,6 +247,9 @@ impl StimuliCoverageMetrics {
             }
             if group.success_counts.len() <= branch_idx {
                 group.success_counts.resize(branch_idx + 1, 0);
+            }
+            if group.failure_reasons.len() <= branch_idx {
+                group.failure_reasons.resize(branch_idx + 1, HashMap::new());
             }
             if group.total_branches < total_branches {
                 group.total_branches = total_branches;
@@ -248,10 +274,60 @@ impl StimuliCoverageMetrics {
             if group.selected_counts.len() <= branch_idx {
                 group.selected_counts.resize(branch_idx + 1, 0);
             }
+            if group.failure_reasons.len() <= branch_idx {
+                group.failure_reasons.resize(branch_idx + 1, HashMap::new());
+            }
             if group.total_branches < total_branches {
                 group.total_branches = total_branches;
             }
             group.success_counts[branch_idx] += 1;
+        }
+    }
+
+    fn record_branch_failure(
+        &mut self,
+        group_key: &str,
+        rule_name: &str,
+        node_path: &str,
+        total_branches: usize,
+        branch_idx: usize,
+        reason: &str,
+    ) {
+        self.ensure_group_entry(group_key, rule_name, node_path, total_branches);
+        if let Some(group) = self.branch_groups.get_mut(group_key) {
+            if group.failure_reasons.len() <= branch_idx {
+                group.failure_reasons.resize(branch_idx + 1, HashMap::new());
+            }
+            if group.selected_counts.len() <= branch_idx {
+                group.selected_counts.resize(branch_idx + 1, 0);
+            }
+            if group.success_counts.len() <= branch_idx {
+                group.success_counts.resize(branch_idx + 1, 0);
+            }
+            if group.total_branches < total_branches {
+                group.total_branches = total_branches;
+            }
+            let normalized = Self::normalize_failure_reason(reason);
+            *group.failure_reasons[branch_idx]
+                .entry(normalized)
+                .or_insert(0) += 1;
+        }
+    }
+
+    fn normalize_failure_reason(reason: &str) -> String {
+        let single_line = reason
+            .lines()
+            .next()
+            .unwrap_or(reason)
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        let trimmed = single_line.trim();
+        const MAX_LEN: usize = 160;
+        if trimmed.len() <= MAX_LEN {
+            trimmed.to_string()
+        } else {
+            format!("{}...", &trimmed[..MAX_LEN])
         }
     }
 
@@ -365,6 +441,8 @@ pub struct BranchCoverageDebt {
     pub reason: String,
     pub rule_references: Vec<String>,
     pub uncovered_rule_references: Vec<String>,
+    #[serde(default)]
+    pub top_failure_reasons: Vec<BranchFailureReasonCount>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -473,8 +551,20 @@ impl StimuliCoverageGapReport {
             out.push_str("- none\n");
         } else {
             for debt in &self.reachable_branch_debt {
+                let top_failure_reasons = if debt.top_failure_reasons.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        " failure_reasons=[{}]",
+                        debt.top_failure_reasons
+                            .iter()
+                            .map(|item| format!("{} ({})", item.reason, item.count))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                };
                 out.push_str(&format!(
-                    "- {} | selected={} success={} required={} deficit={} priority={} reason={} refs=[{}] uncovered_refs=[{}]\n",
+                    "- {} | selected={} success={} required={} deficit={} priority={} reason={} refs=[{}] uncovered_refs=[{}]{}\n",
                     debt.branch_id,
                     debt.selected_hits,
                     debt.success_hits,
@@ -483,7 +573,8 @@ impl StimuliCoverageGapReport {
                     debt.priority_score,
                     debt.reason,
                     debt.rule_references.join(","),
-                    debt.uncovered_rule_references.join(",")
+                    debt.uncovered_rule_references.join(","),
+                    top_failure_reasons
                 ));
             }
         }
@@ -974,6 +1065,27 @@ impl<'a> StimuliGenerator<'a> {
 
                 let branch_id =
                     Self::branch_target_id(&group.rule_name, &group.node_path, branch_idx);
+                let top_failure_reasons = group
+                    .failure_reasons
+                    .get(branch_idx)
+                    .map(|reasons| {
+                        let mut ranked: Vec<BranchFailureReasonCount> = reasons
+                            .iter()
+                            .map(|(reason, count)| BranchFailureReasonCount {
+                                reason: reason.clone(),
+                                count: *count,
+                            })
+                            .collect();
+                        ranked.sort_by(|left, right| {
+                            right
+                                .count
+                                .cmp(&left.count)
+                                .then_with(|| left.reason.cmp(&right.reason))
+                        });
+                        ranked.truncate(3);
+                        ranked
+                    })
+                    .unwrap_or_default();
                 let debt = BranchCoverageDebt {
                     branch_id: branch_id.clone(),
                     group_key: group_key.clone(),
@@ -989,6 +1101,7 @@ impl<'a> StimuliGenerator<'a> {
                     reason: reason.to_string(),
                     rule_references: rule_refs.clone(),
                     uncovered_rule_references: uncovered_rule_refs.clone(),
+                    top_failure_reasons,
                 };
 
                 if reachable {
@@ -1799,6 +1912,7 @@ impl<'a> StimuliGenerator<'a> {
                         total_branches: alternatives.len(),
                         selected_counts: vec![0; alternatives.len()],
                         success_counts: vec![0; alternatives.len()],
+                        failure_reasons: vec![HashMap::new(); alternatives.len()],
                     });
 
                 for (idx, alternative) in alternatives.iter().enumerate() {
@@ -2268,6 +2382,14 @@ impl<'a> StimuliGenerator<'a> {
                     return Ok(output);
                 }
                 Err(err) => {
+                    self.coverage.record_branch_failure(
+                        &group_key,
+                        current_rule,
+                        node_path,
+                        alternatives.len(),
+                        selected_global,
+                        &err.to_string(),
+                    );
                     self.trace(
                         TraceLevel::Debug,
                         format_args!(
@@ -5881,6 +6003,77 @@ mod tests {
         assert!(
             helper_group.success_counts.iter().all(|count| *count > 0),
             "helper branch successes should be retained after rejected alternate-entry probes"
+        );
+    }
+
+    #[test]
+    fn gap_report_surfaces_top_branch_failure_reasons() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "L"), token("quoted_string", "R")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1991);
+        generator
+            .coverage
+            .record_branch_selected("start::root", "start", "root", 2, 0);
+        generator.coverage.record_branch_failure(
+            "start::root",
+            "start",
+            "root",
+            2,
+            0,
+            "max depth exceeded while generating expression\ncontext that should be trimmed",
+        );
+        generator
+            .coverage
+            .record_branch_selected("start::root", "start", "root", 2, 0);
+        generator.coverage.record_branch_failure(
+            "start::root",
+            "start",
+            "root",
+            2,
+            0,
+            "max depth exceeded while generating expression",
+        );
+        generator
+            .coverage
+            .record_branch_selected("start::root", "start", "root", 2, 0);
+        generator.coverage.record_branch_failure(
+            "start::root",
+            "start",
+            "root",
+            2,
+            0,
+            "visit limit exceeded",
+        );
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        let branch = report
+            .reachable_branch_debt
+            .iter()
+            .find(|debt| debt.branch_id == "branch::start::root#0")
+            .expect("branch debt should be present");
+
+        assert_eq!(branch.reason, "selected_but_failed");
+        assert_eq!(
+            branch.top_failure_reasons,
+            vec![
+                BranchFailureReasonCount {
+                    reason: "max depth exceeded while generating expression".to_string(),
+                    count: 2,
+                },
+                BranchFailureReasonCount {
+                    reason: "visit limit exceeded".to_string(),
+                    count: 1,
+                },
+            ]
         );
     }
 

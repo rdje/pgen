@@ -4067,3 +4067,6 @@ Why `rtl_frontend` exists:
   - roadmap consequence:
     - do not prioritize that path ahead of cleaner VHDL / SystemVerilog closure work
 - VHDL future-session note: keep using branch-level subrule probes, but only as generation-shape evidence. Non-default `--entry-rule` parseability validation is now blocked on purpose because it still validates through the full grammar parser entry. The current retained probe facts are: `actual_part -> open` collapse under low budget, `actual_parameter_element` low-budget collapse onto `association_element -> actual_part -> open`, and standalone `range_expression` needs near-default depth to succeed.
+- VHDL next-step note: the branch/dependency lane now has explicit local failure telemetry.
+  - Before the next VHDL closure edit, rerun `vhdl_stimuli_quality_gate` and inspect `top_failure_reasons` in the replay gap artifacts.
+  - That should replace the recent low-yield pattern of broad sample-hint or lexical steering experiments with evidence-driven branch-local fixes.
