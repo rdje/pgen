@@ -754,6 +754,7 @@ pub struct StimuliGenerator<'a> {
     rng: StdRng,
     coverage: StimuliCoverageMetrics,
     target_plan: ActiveTargetPlan,
+    target_drive_validation_active: bool,
     deterministic_partition_counters: HashMap<String, u64>,
 }
 
@@ -807,6 +808,7 @@ impl<'a> StimuliGenerator<'a> {
             rng,
             coverage,
             target_plan: ActiveTargetPlan::default(),
+            target_drive_validation_active: false,
             deterministic_partition_counters: HashMap::new(),
         }
     }
@@ -1347,118 +1349,125 @@ impl<'a> StimuliGenerator<'a> {
     where
         F: FnMut(&str) -> Result<bool>,
     {
-        let resolved_entry = self.resolve_entry_rule(entry_rule)?;
-        let applicable_targets: Vec<StimuliCoverageTarget> = targets
-            .iter()
-            .filter(|target| target.reachable)
-            .cloned()
-            .collect();
-        let applied_targets = self.apply_targets(&applicable_targets);
+        let previous_validation_mode = self.target_drive_validation_active;
+        self.target_drive_validation_active = true;
+        let result = (|| {
+            let resolved_entry = self.resolve_entry_rule(entry_rule)?;
+            let applicable_targets: Vec<StimuliCoverageTarget> = targets
+                .iter()
+                .filter(|target| target.reachable)
+                .cloned()
+                .collect();
+            let applied_targets = self.apply_targets(&applicable_targets);
 
-        let mut outputs = Vec::new();
-        let mut attempts = 0usize;
-        let mut generation_successes = 0usize;
-        let mut generation_errors = 0usize;
-        let mut best_remaining = applicable_targets.len();
-        let mut stagnant_iterations = 0usize;
-        let mut validation_summary = TargetDriveValidationSummary::default();
+            let mut outputs = Vec::new();
+            let mut attempts = 0usize;
+            let mut generation_successes = 0usize;
+            let mut generation_errors = 0usize;
+            let mut best_remaining = applicable_targets.len();
+            let mut stagnant_iterations = 0usize;
+            let mut validation_summary = TargetDriveValidationSummary::default();
 
-        while attempts < max_attempts {
-            let pending = self.evaluate_target_statuses(&applicable_targets);
-            if pending.is_empty() {
-                break;
-            }
+            while attempts < max_attempts {
+                let pending = self.evaluate_target_statuses(&applicable_targets);
+                if pending.is_empty() {
+                    break;
+                }
 
-            if pending.len() < best_remaining {
-                best_remaining = pending.len();
-                stagnant_iterations = 0;
-            } else {
-                stagnant_iterations = stagnant_iterations.saturating_add(1);
-            }
+                if pending.len() < best_remaining {
+                    best_remaining = pending.len();
+                    stagnant_iterations = 0;
+                } else {
+                    stagnant_iterations = stagnant_iterations.saturating_add(1);
+                }
 
-            let probe_threshold =
-                self.target_probe_threshold_for_validation(&pending, &validation_summary);
-            let generation_entry = if stagnant_iterations >= probe_threshold {
-                self.select_target_probe_rule_for_validation(
-                    &pending,
-                    &resolved_entry,
-                    &validation_summary,
-                )
-                .unwrap_or_else(|| resolved_entry.clone())
-            } else {
-                resolved_entry.clone()
-            };
+                let probe_threshold =
+                    self.target_probe_threshold_for_validation(&pending, &validation_summary);
+                let generation_entry = if stagnant_iterations >= probe_threshold {
+                    self.select_target_probe_rule_for_validation(
+                        &pending,
+                        &resolved_entry,
+                        &validation_summary,
+                    )
+                    .unwrap_or_else(|| resolved_entry.clone())
+                } else {
+                    resolved_entry.clone()
+                };
 
-            attempts = attempts.saturating_add(1);
-            let success_snapshot = self.coverage.snapshot_success_state();
-            match self.generate_from_entry(&generation_entry) {
-                Ok(sample) => {
-                    generation_successes = generation_successes.saturating_add(1);
-                    if generation_entry != resolved_entry {
-                        validation_summary.alternate_entry_attempts = validation_summary
-                            .alternate_entry_attempts
-                            .saturating_add(1);
-                    }
-                    let accepted = output_filter(&sample)?;
-                    if generation_entry == resolved_entry {
-                        validation_summary.validated_outputs =
-                            validation_summary.validated_outputs.saturating_add(1);
-                    }
-                    if !accepted {
+                attempts = attempts.saturating_add(1);
+                let success_snapshot = self.coverage.snapshot_success_state();
+                match self.generate_from_entry(&generation_entry) {
+                    Ok(sample) => {
+                        generation_successes = generation_successes.saturating_add(1);
+                        if generation_entry != resolved_entry {
+                            validation_summary.alternate_entry_attempts = validation_summary
+                                .alternate_entry_attempts
+                                .saturating_add(1);
+                        }
+                        let accepted = output_filter(&sample)?;
                         if generation_entry == resolved_entry {
-                            // Primary-entry outputs are candidate final samples, so failed
-                            // validation must not pay target debt for the canonical entry rule.
-                            self.coverage.restore_success_state(&success_snapshot);
-                            validation_summary.rejected_outputs =
-                                validation_summary.rejected_outputs.saturating_add(1);
+                            validation_summary.validated_outputs =
+                                validation_summary.validated_outputs.saturating_add(1);
+                        }
+                        if !accepted {
+                            if generation_entry == resolved_entry {
+                                // Primary-entry outputs are candidate final samples, so failed
+                                // validation must not pay target debt for the canonical entry rule.
+                                self.coverage.restore_success_state(&success_snapshot);
+                                validation_summary.rejected_outputs =
+                                    validation_summary.rejected_outputs.saturating_add(1);
+                            } else {
+                                // Alternate-entry probes exist only to exercise helper-rule debt.
+                                // Even when those helper outputs are not valid full-entry samples,
+                                // keep the local coverage progress so target driving can retire
+                                // subrule debt instead of spinning on rolled-back helper probes.
+                                validation_summary.alternate_entry_rejected_outputs =
+                                    validation_summary
+                                        .alternate_entry_rejected_outputs
+                                        .saturating_add(1);
+                            }
+                            continue;
+                        }
+
+                        if generation_entry == resolved_entry {
+                            validation_summary.accepted_outputs =
+                                validation_summary.accepted_outputs.saturating_add(1);
+                            outputs.push(sample);
                         } else {
-                            // Alternate-entry probes exist only to exercise helper-rule debt.
-                            // Even when those helper outputs are not valid full-entry samples,
-                            // keep the local coverage progress so target driving can retire
-                            // subrule debt instead of spinning on rolled-back helper probes.
-                            validation_summary.alternate_entry_rejected_outputs =
+                            validation_summary.alternate_entry_accepted_outputs =
                                 validation_summary
-                                    .alternate_entry_rejected_outputs
+                                    .alternate_entry_accepted_outputs
                                     .saturating_add(1);
                         }
-                        continue;
                     }
-
-                    if generation_entry == resolved_entry {
-                        validation_summary.accepted_outputs =
-                            validation_summary.accepted_outputs.saturating_add(1);
-                        outputs.push(sample);
-                    } else {
-                        validation_summary.alternate_entry_accepted_outputs = validation_summary
-                            .alternate_entry_accepted_outputs
-                            .saturating_add(1);
+                    Err(_) => {
+                        generation_errors = generation_errors.saturating_add(1);
                     }
-                }
-                Err(_) => {
-                    generation_errors = generation_errors.saturating_add(1);
                 }
             }
-        }
 
-        let unresolved_targets = self.evaluate_target_statuses(&applicable_targets);
-        let total_targets = applicable_targets.len();
-        let resolved_targets = total_targets.saturating_sub(unresolved_targets.len());
-        self.clear_targets();
+            let unresolved_targets = self.evaluate_target_statuses(&applicable_targets);
+            let total_targets = applicable_targets.len();
+            let resolved_targets = total_targets.saturating_sub(unresolved_targets.len());
+            self.clear_targets();
 
-        Ok((
-            outputs,
-            TargetDriveSummary {
-                entry_rule: resolved_entry,
-                attempts,
-                generation_successes,
-                generation_errors,
-                total_targets,
-                applied_targets,
-                resolved_targets,
-                unresolved_targets,
-            },
-            validation_summary,
-        ))
+            Ok((
+                outputs,
+                TargetDriveSummary {
+                    entry_rule: resolved_entry,
+                    attempts,
+                    generation_successes,
+                    generation_errors,
+                    total_targets,
+                    applied_targets,
+                    resolved_targets,
+                    unresolved_targets,
+                },
+                validation_summary,
+            ))
+        })();
+        self.target_drive_validation_active = previous_validation_mode;
+        result
     }
 
     fn select_target_probe_rule(
@@ -2382,6 +2391,74 @@ impl<'a> StimuliGenerator<'a> {
                     return Ok(output);
                 }
                 Err(err) => {
+                    if let Some(depth_retry_slack) =
+                        self.target_branch_depth_retry_slack(&group_key, selected_global, &err)
+                    {
+                        self.trace(
+                            TraceLevel::Debug,
+                            format_args!(
+                                "Retrying targeted OR branch with temporary depth slack: rule='{}' path='{}' branch={} retry_max_depth={}",
+                                current_rule,
+                                node_path,
+                                selected_global,
+                                self.config.max_depth.saturating_add(depth_retry_slack)
+                            ),
+                        );
+                        let original_max_depth = self.config.max_depth;
+                        self.config.max_depth =
+                            original_max_depth.saturating_add(depth_retry_slack);
+                        let retry_result = self.generate_node(
+                            &selected_node,
+                            current_rule,
+                            depth,
+                            call_stack,
+                            &alt_path,
+                        );
+                        self.config.max_depth = original_max_depth;
+
+                        match retry_result {
+                            Ok(output) => {
+                                self.coverage.record_branch_success(
+                                    &group_key,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                    selected_global,
+                                );
+                                self.trace(
+                                    TraceLevel::High,
+                                    format_args!(
+                                        "Selected OR branch after depth-slack retry: rule='{}' path='{}' branch={} output_len={} retry_max_depth={}",
+                                        current_rule,
+                                        node_path,
+                                        selected_global,
+                                        output.len(),
+                                        original_max_depth.saturating_add(depth_retry_slack)
+                                    ),
+                                );
+                                return Ok(output);
+                            }
+                            Err(retry_err) => {
+                                self.coverage.record_branch_failure(
+                                    &group_key,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                    selected_global,
+                                    &retry_err.to_string(),
+                                );
+                                self.trace(
+                                    TraceLevel::Debug,
+                                    format_args!(
+                                        "OR branch failed after depth-slack retry: rule='{}' path='{}' branch={} reason={}",
+                                        current_rule, node_path, selected_global, retry_err
+                                    ),
+                                );
+                                last_error = Some(retry_err);
+                                continue;
+                            }
+                        }
+                    }
                     self.coverage.record_branch_failure(
                         &group_key,
                         current_rule,
@@ -2911,6 +2988,32 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         penalty.max(1)
+    }
+
+    fn target_branch_depth_retry_slack(
+        &self,
+        group_key: &str,
+        branch_idx: usize,
+        err: &anyhow::Error,
+    ) -> Option<usize> {
+        if self.target_drive_validation_active {
+            return None;
+        }
+        if !Self::is_depth_exhaustion_error(err) {
+            return None;
+        }
+        if self.branch_target_deficit(group_key, branch_idx) == 0 {
+            return None;
+        }
+        if self.branch_success_hits(group_key, branch_idx) > 0 {
+            return None;
+        }
+        Some(4)
+    }
+
+    fn is_depth_exhaustion_error(err: &anyhow::Error) -> bool {
+        err.to_string()
+            .starts_with("Stimuli generation depth exceeded max_depth=")
     }
 
     fn coverage_guidance_multiplier(
@@ -6003,6 +6106,58 @@ mod tests {
         assert!(
             helper_group.success_counts.iter().all(|count| *count > 0),
             "helper branch successes should be retained after rejected alternate-entry probes"
+        );
+    }
+
+    #[test]
+    fn target_driven_generation_retries_target_branch_with_depth_slack() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "long_branch"),
+                    token("quoted_string", "S"),
+                ],
+            },
+        );
+        grammar_tree.insert("long_branch".to_string(), token("rule_reference", "helper"));
+        grammar_tree.insert("helper".to_string(), token("rule_reference", "leaf"));
+        grammar_tree.insert("leaf".to_string(), token("quoted_string", "L"));
+        let rule_order = vec![
+            "start".to_string(),
+            "long_branch".to_string(),
+            "helper".to_string(),
+            "leaf".to_string(),
+        ];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 2501);
+        generator.config.max_depth = 3;
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+
+        let (_samples, summary) = generator
+            .generate_until_targets(Some("start"), &report.targets, 400)
+            .expect("target-driven generation should succeed");
+
+        assert!(
+            summary
+                .unresolved_targets
+                .iter()
+                .all(|status| status.id != "branch::start::root#0"),
+            "depth-slack retry should retire the previously depth-blocked start branch target"
+        );
+
+        let group = generator
+            .coverage_metrics()
+            .branch_groups
+            .get("start::root")
+            .expect("branch group should exist");
+        assert!(
+            group.success_counts.first().copied().unwrap_or(0) > 0,
+            "targeted start branch should record at least one success after depth-slack retry"
         );
     }
 

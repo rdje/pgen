@@ -1332,24 +1332,22 @@ Operational rule:
 - `vhdl`
   - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
   - In practice it is strongly coupled to quality/parseability, strict-promotion, and now a dedicated formal-exhaustive-closure proof surface
-  - The current machine-checked family-status row is still `In Progress`, with `9/10` closure criteria satisfied and replay target debt as the only tracked blocker. The refreshed direct quality, family-contract, formal-closure, family-status, family-status-contract, lightweight SOTA, and combined-telemetry sidecars now all agree on the retained `9`-target baseline.
+  - The current machine-checked family-status row is still `In Progress`, with `9/10` closure criteria satisfied and replay target debt as the only tracked blocker. The refreshed direct quality, family-contract, formal-closure, family-status, family-status-contract, and combined-telemetry sidecars now all agree on the retained `5`-target baseline.
   - Fresh direct VHDL quality proof on the retained Rust-side slice now records:
     - `closed_loop_initial_targets=247`
-    - `closed_loop_replay_targets=9`
+    - `closed_loop_replay_targets=5`
     - `closed_loop_parseability_shadow_parser_rejections_total=0`
     - `quality_parseability_generation_parser_rejections_total=0`
   - The exact current focused replay-target debt set is now:
-    - `trivia#line_comment`
-    - `actual_parameter_element#range_expression`
-    - `actual_part#expression`
-    - `constraint#range_constraint`
-    - `discrete_range#subtype_indication kw_range range_expression`
-    - `discrete_range#downto`
-    - `sequential_statement#signal_assignment_statement`
-    - `sequential_statement#assert_statement`
-    - `sequential_statement#procedure_call_statement`
+    - rule debt:
+      - `parameter_interface_element`
+      - `parameter_list`
+    - branch debt:
+      - `trivia#line_comment`
+      - `concurrent_statement#0`
+      - `constraint#0`
   - The refreshed machine-checked family blocker surface now matches the direct quality seam too:
-    - `quality_closed_loop_replay_targets=9 > 0`
+    - `quality_closed_loop_replay_targets=5 > 0`
     - `strict_promotion_primary_blocker=none`
     - `strict_promotion_trial_passed=3`
   - The parser-backed generation side of the current canonical family-quality surface is now green (`attempts=8`, `accepted=8`, `rejected=0`), realistic-corpus parity is now `13` expected pass / `1` expected fail with matching observed totals, and strict promotion is still green (`trial_passed=3`, `primary_blocker=none`)
@@ -1366,6 +1364,8 @@ Operational rule:
       - `actual_part#expression` is part of a shared `expression` dependency failure
     - the latest retained generator-side win now reflects that diagnosis directly:
       - dependency-blocked target branches are no longer failure-throttled before their still-targeted referenced rules record any success history
+      - still-targeted OR branches that fail only on local depth exhaustion now get one temporary depth-slack retry during plain target driving
+      - that retry is explicitly disabled during validation-aware target driving so replay-shadow parseability stays on the stricter canonical surface
     - operational consequence:
       - future VHDL fixes should favor dependency-level or branch-specific interventions over more wide `@sample` bundles
   - The proof-plumbing caveat from the first `9`-target refresh attempt is now resolved in the retained gate path:

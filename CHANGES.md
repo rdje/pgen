@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-04-01 - Reduce VHDL replay debt to the 5-target baseline
+### Achievement Summary
+Kept a second narrow Rust-side VHDL generator improvement in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs). Still-targeted OR branches that fail only on local depth exhaustion now get one temporary depth-slack retry during plain target driving, but not during validation-aware target driving. That reduced the retained VHDL replay debt from `9` to `5` while keeping parser-backed generation and replay-shadow parser rejections at `0`.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `target_drive_validation_active` so validation-aware target driving can explicitly opt out of local depth-slack retries
+  - wrapped `generate_until_targets_with_filter(...)` with that validation-mode flag
+  - added `target_branch_depth_retry_slack(...)` and `is_depth_exhaustion_error(...)`
+  - when a still-targeted OR branch with zero success history fails only on local depth exhaustion, retry that same selected branch once with temporary `max_depth + 4`
+- Added focused Rust regression test:
+  - `target_driven_generation_retries_target_branch_with_depth_slack`
+- Updated continuity / live steering docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Refreshed the retained VHDL proof stack on the new baseline:
+  - `vhdl_parser_family_contract_gate`
+  - `vhdl_formal_exhaustive_closure_gate`
+  - `vhdl_parser_family_status_gate`
+  - `vhdl_parser_family_status_contract_gate`
+  - `vhdl_combined_telemetry_contract_gate`
+  - filtered local CI via `branch-protection-contract-gate`
+
+### Validation
+- exact Rust regression:
+  - `env CARGO_TARGET_DIR=/tmp/pgen-vhdl-depth-slack cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::stimuli_generator::tests::target_driven_generation_retries_target_branch_with_depth_slack -- --exact --nocapture`
+    - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - passed with:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=5`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `parseability_generation_parser_rejections_total=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_contract_gate`
+  - passed with:
+    - `quality_closed_loop_replay_targets=5`
+    - `strict_promotion_primary_blocker=none`
+    - `strict_promotion_trial_passed=3`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_formal_exhaustive_closure_gate`
+  - passed with:
+    - `vhdl_formal_exhaustive_closure_surface_green=true`
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`
+  - passed with:
+    - `vhdl_unmet_closure_criteria_count=1`
+    - `vhdl_primary_unmet_closure_criterion=quality_closed_loop_replay_targets=5 > 0`
+- `env PGEN_VHDL_FAMILY_STATUS_CONTRACT_EXISTING_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_parser_family_status_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_contract_gate`
+  - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_combined_telemetry_contract_gate`
+  - passed
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
+  - passed
+
 ## 2026-04-01 - Normalize VHDL family proof refresh onto the 9-target baseline
 ### Achievement Summary
 Kept a proof-plumbing fix in [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh). The VHDL quality gate now uses a state-local `CARGO_TARGET_DIR`, which stops nested quality / strict-promotion refreshes from clobbering each other's adapter-backed `ast_pipeline` and `parseability_probe` binaries. With that in place, the higher-level VHDL family proof stack was refreshed successfully onto the retained `9`-target baseline.

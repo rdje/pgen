@@ -84,6 +84,14 @@ Tracker note (2026-04-01): the first keepable VHDL follow-up on that diagnosis i
 - `sequential_statement::root#0`
 - `sequential_statement::root#3`
 - `sequential_statement::root#7`
+Tracker note (2026-04-01): the next keepable VHDL generator slice is now also retained in [stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs). Still-targeted OR branches that fail only on local depth exhaustion now get one temporary depth-slack retry during plain target driving, but not during validation-aware target driving. That narrowed the retained replay debt again from `9` to `5` without reopening parser-backed generation rejects or replay-shadow parser rejects. The retained replay-gap shape is now:
+- rule debt:
+  - `parameter_interface_element`
+  - `parameter_list`
+- branch debt:
+  - `trivia::root/q#1`
+  - `concurrent_statement::root#0`
+  - `constraint::root#0`
 Tracker note (2026-04-01): that adjacent proof-normalization issue is now resolved in the retained gate path. [vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh) now uses a state-local `CARGO_TARGET_DIR`, which stops nested quality / strict-promotion refreshes from clobbering each other's adapter-backed generated binaries. The refreshed VHDL proof stack now agrees end to end on the same retained baseline:
 - `vhdl_parser_family_contract_gate`
 - `vhdl_formal_exhaustive_closure_gate`
@@ -92,7 +100,7 @@ Tracker note (2026-04-01): that adjacent proof-normalization issue is now resolv
 - lightweight reused `sota_exit_gate`
 - `vhdl_combined_telemetry_contract_gate`
 The active VHDL blocker is therefore back to the real one:
-- `quality_closed_loop_replay_targets=9 > 0`
+- `quality_closed_loop_replay_targets=5 > 0`
 The active preprocessor blockers are therefore now narrowed to:
 - `parseability_parser_rejections_total=1 > 0`
 - `parseability_rejected_total=1 > 0`

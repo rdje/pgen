@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - VHDL replay reduction: keep targeted depth-slack retry outside validation-aware target driving
+### Context
+Fresh branch-failure telemetry on the retained `9`-target VHDL baseline showed that the remaining replay debt was dominated by local depth exhaustion rather than parser rejection. The first experimental depth-slack retry confirmed the direction by dropping replay debt to `5`, but it also reintroduced a single replay-shadow parser rejection because validation-aware target driving started keeping deeper primary-entry outputs too. The keepable version therefore had to separate plain target driving from validation-aware target driving.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `target_drive_validation_active` on `StimuliGenerator`
+  - wrapped `generate_until_targets_with_filter(...)` so validation-aware target driving sets that flag only for the duration of the validation run
+  - added `target_branch_depth_retry_slack(...)` and `is_depth_exhaustion_error(...)`
+  - when a still-targeted OR branch with zero success history fails only on local depth exhaustion, retry that same selected branch once with temporary `max_depth + 4`
+  - explicitly disable that retry while `target_drive_validation_active=true`, so replay-shadow validation stays on the stricter canonical generation surface
+- Added focused regression test:
+  - `target_driven_generation_retries_target_branch_with_depth_slack`
+
+### What Was Verified
+- Fresh retained direct quality proof now records:
+  - `closed_loop_initial_targets=247`
+  - `closed_loop_replay_targets=5`
+  - `closed_loop_parseability_shadow_attempts_total=504`
+  - `closed_loop_parseability_shadow_accepted_total=504`
+  - `closed_loop_parseability_shadow_rejected_total=0`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - `parseability_generation_attempts_total=8`
+  - `parseability_generation_accepted_total=8`
+  - `parseability_generation_rejected_total=0`
+  - `parseability_generation_parser_rejections_total=0`
+- The retained replay-gap shape is now narrower:
+  - rule debt:
+    - `parameter_interface_element`
+    - `parameter_list`
+  - branch debt:
+    - `trivia#line_comment`
+    - `concurrent_statement#0`
+    - `constraint#0`
+- Branch-failure telemetry on the retained branch debt is now specific enough to guide the next slice:
+  - `trivia#line_comment`
+    - no local failure reasons; still a selection-bias seam
+  - `concurrent_statement#0`
+    - top local failures are `term`, `primary`, and `selected_name` at `max_depth=28`
+  - `constraint#0`
+    - top local failures are `simple_expression`, `factor`, and `relation` at `max_depth=28/32`
+- The refreshed higher-level VHDL proof stack now agrees on the same retained baseline:
+  - `vhdl_parser_family_contract_gate`
+  - `vhdl_formal_exhaustive_closure_gate`
+  - `vhdl_parser_family_status_gate`
+  - `vhdl_parser_family_status_contract_gate`
+  - `vhdl_combined_telemetry_contract_gate`
+- Machine-checked family truth is now:
+  - `vhdl_status=In Progress`
+  - `closure_criteria_satisfied_count=9`
+  - `closure_criteria_total_count=10`
+  - only unmet criterion:
+    - `quality_closed_loop_replay_targets=5 > 0`
+
+### Steering
+- Keep the depth-slack retry, but keep it out of validation-aware target driving.
+- Treat the remaining VHDL seam as a smaller dependency/depth problem, not a parser-rejection problem.
+- Next VHDL work should start from the retained `5`-target set and its branch-failure telemetry instead of reopening broad grammar/sample sweeps.
+
 ## 2026-04-01 - VHDL proof normalization: isolate cargo targets so family refreshes stay on the retained 9-target baseline
 ### Context
 The retained VHDL generator improvement had already reduced the direct quality lane to `closed_loop_replay_targets=9`, but the first attempted higher-level refresh failed inside nested strict-promotion trials with:
