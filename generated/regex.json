@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-03-29T15:02:39.565215+00:00",
+    "generated_at": "2026-03-31T23:47:23.617709+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -3963,6 +3963,18 @@
       [
         "operator",
         "?"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "R&"
+      ],
+      [
+        "rule_reference",
+        "name"
       ]
     ],
     [

@@ -267,6 +267,7 @@ condition_assertion = "?=" pattern
                     | "?<=" pattern
                     | "?<!" pattern
 recursion_condition = "R" digits?
+                    | "R&" name
 
 # PCRE2 verbs and start-of-pattern directives
 directive_verb    = "(*" directive_body ")"

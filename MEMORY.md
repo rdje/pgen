@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-03-31 (+0200, task: svpp-orphan-endif-trace-triage)
+Last updated: 2026-04-01 (+0200, task: regex-rgx-0005-named-recursion-condition)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- RGX issue intake now includes blocker report:
+  - `../rgx/pgen-issues/PGEN-RGX-0005.yaml`
+  - reproducer: `(?(R&word)a|b)`
+- Verified locally that the issue was real parser debt, not downstream misuse:
+  - the generated regex backend rejected `(?(R&word)a|b)` at byte `0`
+  - control numeric recursion-condition forms still parsed
+  - grammar inspection showed `recursion_condition` only accepted `"R" digits?`
+- Retained regex fix is now landed:
+  - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - `recursion_condition = "R" digits? | "R&" name`
+  - regenerated:
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+  - release metadata rolled to:
+    - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.1.2"`
+    - `REGEX_PARSER_RELEASE_VERSION = "1.1.2"`
+  - focused regression coverage added:
+    - manifest success sample `named_recursion_conditional`
+    - Rust test `regex_parser_integration_contract_accepts_named_recursion_conditionals`
+- Roadmap/analysis steering updated:
+  - `(?(R&name)...)` is no longer a deferred future-only target
+  - remaining deferred extra conditional widening is now `(?(VERSION[...])...)`
+- Immediate next validation to keep aligned around this slice:
+  - `make -C rust regex_parser_integration_contract_gate`
+  - `make -C rust embedding_api_gate`
+  - likely `make -C rust regex_pcre2_compile_oracle_gate`
 - Rebuilt `generated_parse_probe` and `parseability_probe` against the exact generated preprocessor parser from:
   - `rust/target/sv_preprocessor_quality_gate/work/systemverilog_preprocessor_parser.rs`
 - Verified the retained one-reject seam precisely:

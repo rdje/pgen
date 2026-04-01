@@ -1,4 +1,36 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - Regex blocker fix for RGX issue PGEN-RGX-0005
+### Context
+RGX reported a new parser-side blocker under `../rgx/pgen-issues/PGEN-RGX-0005.yaml`. The failing reproducer was:
+- `(?(R&word)a|b)`
+
+This was not an AST-shape disagreement or a downstream runtime-policy question. The published generated regex backend rejected the pattern at byte `0`, which meant the current regex parser contract was missing a named recursion-condition form that RGX needed to proceed.
+
+### What Was Verified
+- The RGX reproducer failed locally through the generated backend before the fix.
+- A control numeric recursion-condition form still parsed, which narrowed the gap specifically to `R&name` inside conditional syntax.
+- Local grammar inspection confirmed the issue:
+  - `condition` already allowed `recursion_condition`
+  - but `recursion_condition` only admitted `"R" digits?`
+  - so `R&name` was a real grammar gap, not a downstream misuse
+
+### Implementation
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - `recursion_condition = "R" digits? | "R&" name`
+- Regenerated [generated/regex.json](generated/regex.json) and [generated/regex_parser.rs](generated/regex_parser.rs).
+- Rolled regex release metadata to `1.1.2` in:
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+- Added focused regression coverage:
+  - success-sample manifest case `named_recursion_conditional`
+  - Rust regression test `regex_parser_integration_contract_accepts_named_recursion_conditionals`
+- Updated downstream-facing handoff/support docs and ledger so RGX gets a coherent published release rather than a silent grammar-only change.
+
+### Why This Matters
+- This issue had previously appeared only as future widening from a general PCRE2 syntax check.
+- RGX turned it into a real current blocker, so it no longer belongs on the deferred-only list.
+- `regex` still remains a closed downstream-ready family; this was a bounded maintenance unblock, not a broad reopening of regex work.
+
 ## 2026-03-31 - SV preprocessor one-reject triage: orphan top-level endif, not generic backtick rejection
 ### Context
 After the retained reductions, the focused `systemverilog_preprocessor` lane was sitting at:

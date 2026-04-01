@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.1",
-  "parser_release_version": "1.1.1",
+  "integration_contract_version": "1.1.2",
+  "parser_release_version": "1.1.2",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -52,6 +52,10 @@
     {
       "name": "numeric_conditional",
       "input": "(?(1)a|b)"
+    },
+    {
+      "name": "named_recursion_conditional",
+      "input": "(?(R&word)a|b)"
     },
     {
       "name": "whole_pattern_recursion",

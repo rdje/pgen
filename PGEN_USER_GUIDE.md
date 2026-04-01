@@ -3695,9 +3695,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.1`
+  - `1.1.2`
 - integration contract version:
-  - `1.1.1`
+  - `1.1.2`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3800,6 +3800,7 @@ Accepted syntax families in the current published flavor:
 - scoped inline modifier forms
 - conditional forms:
   - condition may be a lookaround, a bare name, an explicit name reference, digits, signed digits, or a recursion condition
+  - recursion conditions currently include plain `R`, numeric forms like `R1`, and named forms like `R&word`
   - explicit false branches are preserved separately, so `(?(1)a|b)` transports `a` and `b` as distinct yes/no branches
 - embedded code-block forms:
   - plain `(?{...})`
@@ -3820,6 +3821,7 @@ Representative accepted examples:
 - `[[:^alnum:]]+`
 - `(a)\\1`
 - `(?(1)a|b)`
+- `(?(R&word)a|b)`
 - `(?<A>foo)-\\k{A}`
 - `(?<A>a)?(?(A)b|c)`
 - `a{,4}`
@@ -3861,10 +3863,11 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.1` specifically fixes several accepted-tree semantic transport bugs while keeping that JSON schema version stable:
+- parser release `1.1.2` specifically fixes several accepted-tree semantic transport bugs and closes one downstream-blocking conditional-syntax gap while keeping that JSON schema version stable:
   - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`
   - `\1` now appears as `backreference`, not `escape`
   - `(?(1)a|b)` now emits separate `yes_branch` and `no_branch`
+  - `(?(R&word)a|b)` now parses and emits `recursion_condition` inside the `conditional`
   - `ab+` now emits separate pieces for `a` and `b+` instead of a single `(ab)+`-style piece
 - the generated regex host path now also applies a compile-style validation layer after parse success, so several obvious compile-invalid forms are rejected deterministically instead of surfacing as false accepts:
   - unsupported `\i`
@@ -3935,10 +3938,10 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.1`
-  - integration contract version `1.1.1`
+  - parser release version `1.1.2`
+  - integration contract version `1.1.2`
 - the current improvement came from two complementary changes:
-  - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, `\k{name}`, and `{,}` counted-quantifier forms
+  - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind
 - future normalizer work should stay split by source family:
   - `normalize_pcre2_testdata.py`

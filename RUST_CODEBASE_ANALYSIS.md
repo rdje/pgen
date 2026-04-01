@@ -23,10 +23,10 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work for `systemverilog` and `vhdl` now outranks deferred maintainability refactors, while `regex` has reached its current closure bar and should be treated as a no-regression proof baseline unless its contract is intentionally widened.
   - downstream regex hardening on embedded code blocks should now be treated as parser-layer contract precision work backed by compact synthetic corpora/gates, not as a reason to reopen the `regex` family row by default.
-  - RGX's 2026-03-29 downstream maintenance review now treats regex handoff `1.1.1` as integration-ready for starting adoption; the `1.1.1` maintenance release specifically fixed four real accepted-tree transport bugs (`(?R)`, `\1`, conditional false-branch transport, and final-atom quantifier binding), and the remaining regex caveats are now scope-widening questions around stronger AST semantic stability, stronger JS/Lua shielding, optional published `rhai` / `native` / `wasm` tags, and host-language wrapper parsing.
+  - RGX's downstream review now treats regex handoff `1.1.2` as integration-ready for starting adoption; the regex maintenance line now covers the `1.1.1` accepted-tree transport fixes plus the `1.1.2` named recursion-condition unblock for `(?(R&name)...)`, and the remaining regex caveats are now scope-widening questions around stronger AST semantic stability, stronger JS/Lua shielding, optional published `rhai` / `native` / `wasm` tags, and host-language wrapper parsing.
   - a fresh current-PCRE2 syntax check also identified future regex widening targets that are real but not urgent:
     - returned-capture subroutine forms such as `(?R(grouplist))`, `(?n(grouplist))`, `(?+n(grouplist))`, `(?-n(grouplist))`, `(?&name(grouplist))`, and `(?P>name(grouplist))`
-    - additional conditionals such as `(?(R&name)...)` and `(?(VERSION[...])...)`
+    - additional conditionals such as `(?(VERSION[...])...)`
   - those regex syntax additions are intentionally deferred until the active closure work for `vhdl`, `systemverilog`, and the other live parser families is materially complete; they should be treated as deliberate future contract widening, not as current closure blockers
   - downstream regex hardening under `regex_corpus_bundle/` now also has two distinct external-corpus roles:
     - `regex_pcre2_textsafe_corpus_gate` for accepted-syntax widening

@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-01 - Ship regex downstream maintenance release 1.1.2 for RGX blocker PGEN-RGX-0005
+### Achievement Summary
+Regex handoff is now published as downstream maintenance release `1.1.2`. This closes RGX blocker `PGEN-RGX-0005` by adding named recursion-condition support in conditionals, so `(?(R&name)...)` now parses and transports through the published generated backend without changing regex AST schema version `1`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - widened `recursion_condition` from `"R" digits?` to:
+    - `"R" digits?`
+    - `"R&" name`
+- Regenerated:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.1.2"`
+  - `REGEX_PARSER_RELEASE_VERSION = "1.1.2"`
+  - added focused regression test:
+    - `regex_parser_integration_contract_accepts_named_recursion_conditionals`
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - added declared success sample:
+    - `named_recursion_conditional = (?(R&word)a|b)`
+  - rolled release/contract metadata to `1.1.2`
+- Updated downstream handoff/status/support docs:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) so local CI locks the `1.1.2` handoff strings.
+
+### Validation
+- `cargo run --features generated_parsers --bin parseability_probe -- --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0005/repro_input.txt --profile regex_default`
+  - now passes
+- `cargo run --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0005/repro_input.txt /tmp/pgen_rgx_0005_ast.json --profile regex_default`
+  - now passes and emits AST with `recursion_condition`
+
 ## 2026-03-31 - Trace-triage retained SV-preprocessor orphan-endif reject
 ### Achievement Summary
 No grammar or Rust source change was retained in this slice. I rebuilt the local probes against the same generated `systemverilog_preprocessor` parser used by the focused quality gate, traced the retained one-reject counterexample, and confirmed the remaining seam is a generator-side orphan top-level `` `endif`` shape rather than a generic raw-backtick parse bug.

@@ -18,10 +18,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.1";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.2";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.1";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.2";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2077,9 +2077,15 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 13);
+        assert_eq!(manifest.success_samples.len(), 14);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "named_recursion_conditional")
+        );
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
         assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
         assert!(
@@ -2561,6 +2567,17 @@ mod tests {
         assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(0, 9)]);
         assert_eq!(regex_rule_spans(&parsed, "yes_branch"), vec![(5, 6)]);
         assert_eq!(regex_rule_spans(&parsed, "no_branch"), vec![(7, 8)]);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_named_recursion_conditionals() {
+        let parsed = regex_ast_dump_json("(?(R&word)a|b)");
+
+        assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(0, 14)]);
+        assert_eq!(regex_rule_spans(&parsed, "recursion_condition"), vec![(3, 9)]);
+        assert_eq!(regex_rule_spans(&parsed, "yes_branch"), vec![(10, 11)]);
+        assert_eq!(regex_rule_spans(&parsed, "no_branch"), vec![(12, 13)]);
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]

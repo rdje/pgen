@@ -27,7 +27,7 @@ Execution preference for this roadmap:
 - when a family is down to a small stubborn replay/rejection set and repeated broad grammar/sample tweaks keep failing, prefer branch-level introspection tooling over more blanket hint sweeps.
 - when a parser family is already `Done` on its published closure bar, downstream-hardening follow-up should not reopen that family automatically unless the published syntax/contract is intentionally widened.
 - for regex specifically, the remaining embedded-code-block follow-up should proceed through parser-layer structural guarantees plus compact synthetic contract corpora/gates rather than waiting for a large external Lua/JS dataset.
-- RGX's 2026-03-29 downstream maintenance review now treats regex handoff `1.1.1` as integration-ready for starting downstream adoption; the remaining regex caveats are now scope-widening questions rather than baseline contract blockers:
+- RGX's downstream review now treats regex handoff `1.1.2` as integration-ready for starting downstream adoption; `1.1.2` additionally closed RGX blocker `PGEN-RGX-0005` by shipping named recursion conditions `(?(R&name)...)`. The remaining regex caveats are now scope-widening questions rather than baseline contract blockers:
   - stronger JS/Lua shielding guarantees
   - published `rhai` source-body tag support
   - published `native` / `wasm` tag support
@@ -42,7 +42,6 @@ Execution preference for this roadmap:
     - `(?&name(grouplist))`
     - `(?P>name(grouplist))`
   - additional conditional forms:
-    - `(?(R&name)...)`
     - `(?(VERSION[...])...)`
   - these are intentionally deferred until the active closure work for `systemverilog`, `vhdl`, and the other live parser families is materially complete
   - do not reopen the closed `regex` family row for these syntax-widening targets until the project deliberately chooses to widen the published regex contract

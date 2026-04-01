@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.1`
+  - `1.1.2`
 - Parser release version:
-  - `1.1.1`
+  - `1.1.2`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-03-29`
+  - `2026-04-01`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -28,20 +28,23 @@ This is the document downstream projects such as RGX should read first when deci
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
 
-## Release 1.1.1 Highlights
-- `1.1.1` is the first downstream maintenance patch over the `1.1.0` regex handoff release.
-- The headline change in `1.1.1` is accepted-tree correctness for downstream consumers, not just broader syntax bragging rights.
-- `1.1.1` fixes four real RGX-reported transport bugs in the published generated backend:
+## Release 1.1.2 Highlights
+- `1.1.2` is a targeted downstream unblock patch over the `1.1.1` regex maintenance release.
+- The headline change in `1.1.2` is closing RGX's blocker on named recursion-condition conditionals.
+- `1.1.2` fixes one real RGX-reported missing published syntax form in the generated backend:
+  - named recursion conditions such as `(?(R&word)a|b)` now parse and transport as `conditional` plus `recursion_condition`
+- `1.1.2` also carries forward the `1.1.1` accepted-tree correctness fixes:
   - whole-pattern recursion `(?R)` now classifies as `subroutine_call` / `subroutine_target` instead of `inline_modifiers`
   - numeric backreferences such as `\1` now classify as `backreference` instead of generic `escape`
   - explicit conditional false branches such as `(?(1)a|b)` now preserve separate `yes_branch` and `no_branch` spans
   - trailing quantifiers now bind to the final literal atom instead of an entire preceding literal run, so `ab+` now transports as `a` plus `b+`, not `(ab)+`-style grouping
-- `1.1.1` also carries forward the `1.1.0` published syntax coverage:
+- `1.1.2` also carries forward the `1.1.0` published syntax coverage:
   - negated POSIX classes such as `[[:^alnum:]]`
   - braced named backreferences such as `\k{name}`
   - bare-name and signed numeric conditional references
+  - named recursion conditions such as `R&name` inside conditionals
   - left-open counted quantifiers such as `{,4}` and comma-only counted form `{,}`
-- The generated regex host path in `1.1.1` also continues to enforce the compile-style validation contract added in `1.1.0`, so obvious compile-invalid forms no longer slip through as successful parses.
+- The generated regex host path in `1.1.2` also continues to enforce the compile-style validation contract added in `1.1.0`, so obvious compile-invalid forms no longer slip through as successful parses.
 - The release is additionally backed by the maintained PCRE2 compile-oracle lane documented in `PGEN_USER_GUIDE.md`.
 
 ## Supporting Documents
@@ -169,10 +172,11 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
-- Parser release `1.1.1` specifically fixes several accepted-tree semantic transport bugs without changing this JSON schema version:
+- Parser release `1.1.2` specifically fixes several accepted-tree semantic transport bugs and closes one downstream-blocking conditional-syntax gap without changing this JSON schema version:
   - `(?R)` now transports as `subroutine_call`
   - `\1` now transports as `backreference`
   - `(?(1)a|b)` now transports with separate `yes_branch` / `no_branch`
+  - `(?(R&word)a|b)` now parses and transports `R&word` as `recursion_condition`
   - `ab+` now transports with final-atom quantifier binding
 - Downstream consumers that interpret specific `rule_name` values should pin to a parser release version and rerun their own AST compatibility suite on upgrade.
 - This document does not promise stable internal Rust AST node types.
@@ -211,8 +215,9 @@ This is the document downstream projects such as RGX should read first when deci
     - an explicit name reference
     - digits
     - signed digits
-    - a recursion condition
+    - a recursion condition such as `R`, `R1`, or `R&name`
   - explicit conditional false-branch transport, so `(?(1)a|b)` preserves distinct `yes_branch` and `no_branch` spans
+  - named recursion conditions such as `(?(R&word)a|b)`
   - embedded code-block syntax such as `(?{...})` and language-tagged variants
 - Embedded code-block parser-layer contract:
   - plain `(?{...})` is preserved as opaque generic payload
@@ -313,7 +318,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.1");
+assert_eq!(contract.regex_parser_release_version, "1.1.2");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```
