@@ -8341,3 +8341,9 @@ Use this file to resume work without replaying full chat history.
     - same-line directive chaining is real
     - but this specific fix path is not keepable
     - do not resume it blindly
+- 2026-04-01: do not trust subrule `--validate-parseability` runs from `ast_pipeline`. The CLI now rejects them on purpose because generated parseability validation only knows how to call the grammar's full parser entry. For VHDL branch triage, use `--entry-rule ...` with coverage/gap reports only, then confirm parser behavior with a full-file reproducer if needed.
+- 2026-04-01: retained VHDL probe facts for quick resume:
+  - `actual_part` low-budget probe => only `open` variants
+  - `actual_parameter_element` low-budget probe => only `association_element -> actual_part -> open`
+  - `range_expression` low-budget probe => depth blowups at `--max-depth 8/12/16`
+  - `range_expression` succeeds again at `--max-depth 24`

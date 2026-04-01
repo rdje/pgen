@@ -9,18 +9,18 @@ use pgen::ast_pipeline::stimuli_generator::{
     StimuliGenerator, TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
-    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
     extract_semantic_directive, parse_semantic_string_list, resolve_trace_verbosity,
-    set_global_trace_verbosity,
+    set_global_trace_verbosity, ASTNode, Annotations, PipelineConfig, RustASTPipeline,
+    TraceVerbosity, TransformedASTJson,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
 use pgen::sv_preprocessor::{
-    ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
-    SvPreprocessorConfig, parse_strict_warning_codes, preprocess_systemverilog_file,
+    parse_strict_warning_codes, preprocess_systemverilog_file, ConditionalExprPolicy,
+    ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy, SvPreprocessorConfig,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -799,6 +799,12 @@ fn main() -> Result<()> {
             &grammar.rule_order,
             args.entry_rule.as_deref(),
         )?;
+        if args.validate_parseability {
+            ensure_generated_parseability_entry_rule_supported(
+                &grammar.rule_order,
+                resolved_entry_rule.as_str(),
+            )?;
+        }
         let samples = if args.validate_parseability {
             let outcome = generate_parseable_stimuli(
                 &grammar.grammar_name,
@@ -917,6 +923,17 @@ fn main() -> Result<()> {
             let existing_coverage = load_coverage_metrics(coverage_input_path)?;
             generator.merge_coverage_metrics(&existing_coverage)?;
         }
+        let resolved_entry_rule = resolve_stimuli_entry_rule(
+            &grammar.grammar_tree,
+            &grammar.rule_order,
+            args.entry_rule.as_deref(),
+        )?;
+        if args.validate_parseability {
+            ensure_generated_parseability_entry_rule_supported(
+                &grammar.rule_order,
+                resolved_entry_rule.as_str(),
+            )?;
+        }
 
         if args.coverage_guided_fuzz_rounds == 0
             && (args.coverage_guided_fuzz_seed_start.is_some()
@@ -945,7 +962,7 @@ fn main() -> Result<()> {
                 &grammar.rule_order,
                 grammar.annotations.as_ref(),
                 &stimuli_config,
-                args.entry_rule.as_deref(),
+                Some(resolved_entry_rule.as_str()),
                 args.coverage_guided_fuzz_rounds,
                 seed_start,
                 args.grammar_profile.as_deref(),
@@ -1003,14 +1020,14 @@ fn main() -> Result<()> {
                     args.grammar_profile.as_deref(),
                     &mut generator,
                     args.count,
-                    args.entry_rule.as_deref(),
+                    Some(resolved_entry_rule.as_str()),
                     args.parseability_max_attempts,
                 )?;
                 parseability_summary = Some(outcome.summary);
                 parseability_counterexamples = outcome.counterexamples;
                 outcome.samples
             } else {
-                generator.generate_many(args.count, args.entry_rule.as_deref())?
+                generator.generate_many(args.count, Some(resolved_entry_rule.as_str()))?
             };
             generator.clear_targets();
             merged_coverage = generator.coverage_metrics().clone();
@@ -1026,7 +1043,7 @@ fn main() -> Result<()> {
             }
             let (generated_samples, target_summary) = if args.validate_parseability {
                 let (samples, summary, validation) = generator.generate_until_targets_with_filter(
-                    args.entry_rule.as_deref(),
+                    Some(resolved_entry_rule.as_str()),
                     &target_report.targets,
                     args.target_max_attempts,
                     |sample| {
@@ -1061,7 +1078,7 @@ fn main() -> Result<()> {
                 (samples, summary)
             } else {
                 generator.generate_until_targets(
-                    args.entry_rule.as_deref(),
+                    Some(resolved_entry_rule.as_str()),
                     &target_report.targets,
                     args.target_max_attempts,
                 )?
@@ -1103,7 +1120,7 @@ fn main() -> Result<()> {
                 args.grammar_profile.as_deref(),
                 &mut generator,
                 args.count,
-                args.entry_rule.as_deref(),
+                Some(resolved_entry_rule.as_str()),
                 args.parseability_max_attempts,
             )?;
             parseability_summary = Some(outcome.summary);
@@ -1112,7 +1129,7 @@ fn main() -> Result<()> {
             outcome.samples
         } else {
             let generated_samples =
-                generator.generate_many(args.count, args.entry_rule.as_deref())?;
+                generator.generate_many(args.count, Some(resolved_entry_rule.as_str()))?;
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
         };
@@ -1136,11 +1153,6 @@ fn main() -> Result<()> {
         }
 
         if let Some(report_path) = args.parseability_report_json.as_deref() {
-            let resolved_entry_rule = resolve_stimuli_entry_rule(
-                &grammar.grammar_tree,
-                &grammar.rule_order,
-                args.entry_rule.as_deref(),
-            )?;
             let Some(summary) = parseability_summary.as_ref() else {
                 return Err(anyhow::anyhow!(
                     "--parseability-report-json requires parseability-aware generation or filtering; current generation mode did not produce a parseability summary"
@@ -1201,8 +1213,10 @@ fn main() -> Result<()> {
                 stimuli_config.clone(),
             );
             gap_generator.merge_coverage_metrics(&merged_coverage)?;
-            let gap_report = gap_generator
-                .generate_gap_report(args.entry_rule.as_deref(), args.gap_report_threshold)?;
+            let gap_report = gap_generator.generate_gap_report(
+                Some(resolved_entry_rule.as_str()),
+                args.gap_report_threshold,
+            )?;
             if let Some(gap_report_json_path) = args.gap_report_json.as_deref() {
                 let report_json = serde_json::to_string_pretty(&gap_report)?;
                 std::fs::write(gap_report_json_path, report_json)?;
@@ -2225,6 +2239,23 @@ fn resolve_stimuli_entry_rule(
     })
 }
 
+fn ensure_generated_parseability_entry_rule_supported(
+    rule_order: &[String],
+    entry_rule: &str,
+) -> Result<()> {
+    let full_entry_rule = rule_order.first().ok_or_else(|| {
+        anyhow::anyhow!("No entry rule available for generated parseability validation")
+    })?;
+    if entry_rule != full_entry_rule {
+        return Err(anyhow::anyhow!(
+            "Generated parseability validation currently supports only the grammar's full entry rule ('{}'), but '{}' was requested. Use the full entry rule when passing --validate-parseability, or omit --validate-parseability for subrule coverage triage.",
+            full_entry_rule,
+            entry_rule
+        ));
+    }
+    Ok(())
+}
+
 fn coverage_rule_hit_delta(
     before: &StimuliCoverageMetrics,
     after: &StimuliCoverageMetrics,
@@ -2584,15 +2615,16 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        FuzzCorpusCandidate, LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
-        StimuliCoverageMetrics, TargetDriveParseabilityTelemetry, canonicalize_json_value,
-        coverage_branch_hit_delta, default_parser_output_path, default_stimuli_module_output_path,
+        canonicalize_json_value, coverage_branch_hit_delta, default_parser_output_path,
+        default_stimuli_module_output_path, ensure_generated_parseability_entry_rule_supported,
         extract_parse_error_position, generate_stimuli_module_source, is_ebnf_input_path,
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
         parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
         parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
         resolve_stimuli_module_seed, supported_generated_parseability_grammars,
-        supports_generated_parseability, write_parseability_report,
+        supports_generated_parseability, write_parseability_report, FuzzCorpusCandidate,
+        LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary, StimuliCoverageMetrics,
+        TargetDriveParseabilityTelemetry,
     };
     use pgen::ast_pipeline::stimuli_generator::{
         BranchCoverageGroup, RecoveryStimuliMode, TargetDriveValidationSummary,
@@ -2649,6 +2681,23 @@ mod tests {
         assert_eq!(summary.parser_rejections, 3);
         assert_eq!(summary.generation_errors, 0);
         assert_eq!(summary.empty_generations, 0);
+    }
+
+    #[test]
+    fn generated_parseability_accepts_full_entry_rule() {
+        let rule_order = vec!["vhdl_file".to_string(), "actual_part".to_string()];
+        ensure_generated_parseability_entry_rule_supported(&rule_order, "vhdl_file")
+            .expect("full entry rule should be accepted");
+    }
+
+    #[test]
+    fn generated_parseability_rejects_subrule_entry_validation() {
+        let rule_order = vec!["vhdl_file".to_string(), "actual_part".to_string()];
+        let err = ensure_generated_parseability_entry_rule_supported(&rule_order, "actual_part")
+            .expect_err("subrule parseability validation should be rejected");
+        assert!(err
+            .to_string()
+            .contains("supports only the grammar's full entry rule"));
     }
 
     #[test]
@@ -2732,10 +2781,10 @@ mod tests {
             report_value["target_drive_validation"]["alternate_entry_rejected_outputs"].as_u64(),
             Some(6)
         );
-        let alternate_rate =
-            report_value["target_drive_validation"]["alternate_entry_acceptance_rate_percent"]
-                .as_f64()
-                .expect("alternate entry rate should be present");
+        let alternate_rate = report_value["target_drive_validation"]
+            ["alternate_entry_acceptance_rate_percent"]
+            .as_f64()
+            .expect("alternate entry rate should be present");
         assert!((alternate_rate - (100.0 / 7.0)).abs() < 1e-9);
 
         std::fs::remove_file(&path).expect("temporary parseability report should be removable");

@@ -1680,3 +1680,8 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
 - SystemVerilog preprocessor has one retained focused reject on the shipped baseline, but not every plausible structural fix is safe.
   - Specifically, the `directive_line_end := newline | eof` plus synthetic-`eof` generator path is now known to be non-keepable because it resolves target debt by collapsing parseability.
   - If returning to that family, prefer tighter generator/layout analysis over synthetic-EOF closure tricks.
+- VHDL closure triage now has an important tooling guard: non-default `--entry-rule` plus `--validate-parseability` is intentionally rejected in `ast_pipeline`, because parseability validation only supports the grammar's full parser entry today. Use subrule probes for coverage/gap shape only.
+- Current retained VHDL subrule facts:
+  - `actual_part` low-budget probe collapses onto `open`
+  - `actual_parameter_element` low-budget probe collapses onto `association_element -> actual_part -> open`
+  - `range_expression` is not impossible; it just needs near-default depth budget to succeed in isolated generation

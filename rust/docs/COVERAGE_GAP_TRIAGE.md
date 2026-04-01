@@ -35,3 +35,13 @@ For each reachable branch-debt item, the tool reports:
   - `dependency_rule_debt_likely`
 
 The tool is intentionally read-only. It does not mutate coverage state or attempt target driving by itself.
+
+## Important Limitation
+
+When using `ast_pipeline --generate-stimuli --entry-rule <subrule>`, generated parseability validation is only trustworthy for the grammar's full entry rule today.
+
+- `--entry-rule` affects generation and gap-report reachability as expected.
+- `--validate-parseability` still validates samples through the generated parser's full grammar entry, not an arbitrary subrule entry.
+- Because of that, subrule triage should use coverage/gap artifacts without `--validate-parseability` unless and until explicit entry-rule parseability support is added.
+
+The CLI now rejects `--validate-parseability` when paired with a non-default entry rule so this limitation fails loudly instead of creating misleading counterexamples.

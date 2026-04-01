@@ -26448,3 +26448,5 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained consequence:
     - keep the shipped `systemverilog_preprocessor` baseline on the earlier `37/36/1/1` seam
     - do not resume the `directive_line_end + synthetic eof` path blindly
+- 2026-04-01: hardened `ast_pipeline` so generated parseability validation now rejects non-default `--entry-rule` usage instead of silently validating subrule stimuli through the full grammar parser. This closes the misleading VHDL subrule-probe hole encountered during closure work.
+- 2026-04-01: retained VHDL subrule triage findings: low-budget `actual_part` probes collapse onto `open`, low-budget `actual_parameter_element` probes collapse onto the `association_element -> actual_part -> open` path while `range_expression` branches are selected but do not succeed, and standalone `range_expression` succeeds again once the probe is allowed near-default depth (`--max-depth 24`). Treat low-depth subrule runs as generation-shape evidence, not parser acceptance proof.
