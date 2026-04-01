@@ -33,7 +33,12 @@ This is a live document, not an archival write-up. It should be amended whenever
     - `regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth
   - the current HDL closure tactic has now shifted away from broad hint sweeps:
     - when a family is down to a small stubborn replay/rejection set, prefer the new branch-level triage tooling over more blanket grammar/sample nudges
-    - for the retained one-reject `systemverilog_preprocessor` seam specifically, trace-backed triage now shows the failure is an orphaned top-level `` `endif`` after `418` bytes of successful top-level non-conditional directive chaining, so future work should target generator/layout behavior around `inline_trivia` plus broad regex text rules rather than retrying broad sample hints on `non_directive_text` or comment payloads
+    - the retained `systemverilog_preprocessor` orphan-closer seam is now solved on the focused and aggregate lanes by a stimuli-only generator fix: repeated `pp_item` expansions are forced onto separate lines when the previous generated item did not already end with newline
+    - current retained preprocessor truth is now:
+      - focused quality `33/33/0/0` with `final_targets=0`
+      - aggregate contract `parseability_rejected_total=0`, `parseability_parser_rejections_total=0`, `counterexamples_captured_total=0`
+      - formal exhaustive closure still red only on `zero_plausible_grammar_level_gap_proof_surface=false`
+    - so future `systemverilog_preprocessor` work should promote the missing grammar-level zero-plausible-gap proof surface rather than retrying the older comment/tail hint experiments
 
 ## Rust-Adjacent Cargo Surface
 - Main product crate

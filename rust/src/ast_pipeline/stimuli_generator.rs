@@ -2742,7 +2742,17 @@ impl<'a> StimuliGenerator<'a> {
                     call_stack,
                     &quantified_path,
                 ) {
-                    Ok(generated) => self.append_generated_segment(&mut output, &generated),
+                    Ok(generated) => {
+                        if self.should_insert_quantified_separator(
+                            current_rule,
+                            element,
+                            output.as_str(),
+                            &generated,
+                        ) {
+                            output.push('\n');
+                        }
+                        self.append_generated_segment(&mut output, &generated)
+                    }
                     Err(err) => {
                         failed = true;
                         last_error = Some(err);
@@ -3412,6 +3422,42 @@ impl<'a> StimuliGenerator<'a> {
             output.push(' ');
         }
         output.push_str(segment);
+    }
+
+    fn should_insert_quantified_separator(
+        &self,
+        current_rule: &str,
+        element: &ASTNode,
+        output: &str,
+        segment: &str,
+    ) -> bool {
+        if self.grammar_name != "systemverilog_preprocessor"
+            || output.is_empty()
+            || segment.is_empty()
+            || output.ends_with('\n')
+            || segment.starts_with('\n')
+            || segment.starts_with('\r')
+        {
+            return false;
+        }
+
+        matches!(
+            current_rule,
+            "systemverilog_preprocessor_file" | "pp_if_branch" | "pp_elsif_branch" | "pp_else_branch"
+        ) && Self::node_is_rule_reference(element, "pp_item")
+    }
+
+    fn node_is_rule_reference(node: &ASTNode, expected_rule: &str) -> bool {
+        let ASTNode::Atom { value } = node else {
+            return false;
+        };
+        let ASTValue::Token(parts) = value else {
+            return false;
+        };
+        let Some((token_type, token_value)) = Self::extract_token_pair(parts) else {
+            return false;
+        };
+        token_type == "rule_reference" && token_value == expected_rule
     }
 
     fn constraint_driven_candidate(
@@ -6083,6 +6129,56 @@ mod tests {
                 .iter()
                 .all(|status| status.id != "branch::start::root#1"),
             "target driving should retire the lower-priority branch target"
+        );
+    }
+
+    #[test]
+    fn preprocessor_item_repetition_inserts_newline_separator() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "systemverilog_preprocessor_file".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(token("rule_reference", "pp_item")),
+                quantifier: "2".to_string(),
+            },
+        );
+        grammar_tree.insert(
+            "pp_item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("quoted_string", "`celldefine"),
+                    token("quoted_string", "`endif"),
+                ],
+            },
+        );
+        let rule_order = vec![
+            "systemverilog_preprocessor_file".to_string(),
+            "pp_item".to_string(),
+        ];
+
+        let mut generator = StimuliGenerator::new(
+            "systemverilog_preprocessor".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(991),
+                max_depth: 8,
+                max_repeat: 4,
+                max_rule_visits: 4,
+                recovery_mode: RecoveryStimuliMode::Baseline,
+                enforce_word_boundary_spacing: false,
+                trace_verbosity: TraceVerbosity::None,
+            },
+        );
+
+        let sample = generator
+            .generate_many(1, None)
+            .expect("preprocessor repetition generation should succeed");
+        assert!(
+            sample[0].contains('\n'),
+            "repeated preprocessor items should be newline-separated: {:?}",
+            sample[0]
         );
     }
 

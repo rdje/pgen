@@ -1,4 +1,54 @@
 # CHANGES.md
+## 2026-04-01 - Eliminate focused SV preprocessor parseability debt
+### Achievement Summary
+Kept a narrow stimuli-only generator fix in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs). Repeated `pp_item` expansions in the `systemverilog_preprocessor` grammar now get a forced newline separator when the previous generated item did not already end the line. That closed the retained orphan-closer seam without narrowing parser acceptance.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added a `systemverilog_preprocessor`-specific separator rule for quantified `pp_item` repetition in:
+    - `systemverilog_preprocessor_file`
+    - `pp_if_branch`
+    - `pp_elsif_branch`
+    - `pp_else_branch`
+  - kept the change stimuli-only by leaving [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) on its retained parser shape
+- Added focused Rust regression test:
+  - `preprocessor_item_repetition_inserts_newline_separator`
+- Updated continuity / live steering docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- exact Rust regressions:
+  - `env CARGO_TARGET_DIR=/tmp/pgen-svpp-separator cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::stimuli_generator::tests::preprocessor_item_repetition_inserts_newline_separator -- --exact --nocapture`
+    - passed
+  - `env CARGO_TARGET_DIR=/tmp/pgen-svpp-separator cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::stimuli_generator::tests::target_driven_generation_can_probe_unseen_low_priority_branch_once -- --exact --nocapture`
+    - passed
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - passed with:
+    - `parseability_attempts_total=33`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `final_targets=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - passed with:
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `parseability_counterexamples_captured_total=0`
+    - `stage0_target_count=3`
+    - `stage1_target_count=0`
+    - `final_targets=0`
+- `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`
+  - passed with:
+    - `syntax_closure_surface_green=true`
+    - `aggregate_contract_surface_green=true`
+    - `reachability_closure_surface_green=true`
+    - `zero_plausible_grammar_level_gap_proof_surface=false`
+    - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=false`
+
 ## 2026-04-01 - Close the VHDL parser family at Done
 ### Achievement Summary
 Kept the final VHDL generator-side closure slice in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) and a small aggregate-proof normalization in [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh). `priority_first` branch selection now gives unresolved unseen target branches a one-shot probe opportunity without changing ordinary priority behavior, which closed the last VHDL replay gap. The retained VHDL family is now machine-checked at `Done`.

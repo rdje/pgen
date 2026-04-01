@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - SV preprocessor closure: separate repeated pp_item expansions onto their own lines
+### Context
+The retained `systemverilog_preprocessor` seam was down to one parser-backed reject, and trace-backed triage had already shown it was not a generic `` `endif`` or raw-backtick bug. The actual failure was same-line item chaining: a later preprocessor item could be swallowed into the preceding item's comment/text payload when repeated `pp_item` generation omitted a newline separator.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added a narrow separator rule for quantified `pp_item` repetition under the `systemverilog_preprocessor` grammar
+  - the newline is only injected when:
+    - the current repeated element is `pp_item`
+    - the surrounding rule is `systemverilog_preprocessor_file`, `pp_if_branch`, `pp_elsif_branch`, or `pp_else_branch`
+    - the prior generated item did not already end with newline
+  - left [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) unchanged on its retained parser shape
+- Added focused regression test:
+  - `preprocessor_item_repetition_inserts_newline_separator`
+
+### What Was Verified
+- Fresh focused quality proof now records:
+  - `parseability_attempts_total=33`
+  - `parseability_accepted_total=33`
+  - `parseability_rejected_total=0`
+  - `parseability_parser_rejections_total=0`
+  - `parseability_counterexamples_captured_total=0`
+  - `final_targets=0`
+- The aggregate sidecar now matches that clean surface:
+  - `sv_preprocessor_aggregate_contract_gate`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `parseability_counterexamples_captured_total=0`
+    - `stage1_target_count=0`
+    - `final_targets=0`
+- The formal-closure sidecar is now narrower and more honest:
+  - `sv_preprocessor_formal_exhaustive_closure_gate`
+    - `syntax_closure_surface_green=true`
+    - `aggregate_contract_surface_green=true`
+    - `reachability_closure_surface_green=true`
+    - only unmet criterion:
+      - `zero_plausible_grammar_level_gap_proof_surface=false`
+
+### Steering
+- Treat the old orphan-closer one-reject seam as solved on the retained focused and aggregate proof surfaces.
+- `systemverilog_preprocessor` still remains `Mostly Done`, but its remaining blocker is now just the missing explicit grammar-level zero-plausible-gap proof surface rather than active focused parseability debt.
+- Future preprocessor work should prefer proof-surface promotion over more tail/comment sample sweeps unless a new measured regression appears.
+
 ## 2026-04-01 - VHDL closure: one-shot priority-first target probes close the family
 ### Context
 After the retained depth-slack slice, the VHDL family was down to one clean selection-bias seam and two remaining depth/dependency seams. The joined gap triage made the last obvious non-depth issue explicit: `trivia#line_comment` was never selected under `priority_first` because semantic priority always favored whitespace first. The keepable fix had to let target driving probe that branch without changing ordinary generation behavior.

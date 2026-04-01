@@ -69,6 +69,28 @@ Tracker note (2026-03-31): trace-backed triage on that retained one-reject `syst
 - canonical `line_comment` / `block_comment` payload samples regress the focused lane badly to `46/41/5/5`
 - future work should therefore target generator/layout behavior around leading `inline_trivia` plus broad regex text rules and same-line directive chaining, or revisit true line-end enforcement only with an explicit solution for the previously stranded aggregate-contract `eof` branch
 
+Tracker note (2026-04-01): that retained one-reject `systemverilog_preprocessor` seam is now closed on the focused and aggregate lanes without reopening the grammar. [stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now injects a newline separator between repeated `pp_item` expansions when generating under the `systemverilog_preprocessor` grammar and the previous repeated item did not already end the line. This is a stimuli-only generator fix, not a parser-surface change. Fresh retained proof now records:
+- `sv_preprocessor_quality_gate`
+  - `parseability_attempts_total=33`
+  - `parseability_accepted_total=33`
+  - `parseability_rejected_total=0`
+  - `parseability_parser_rejections_total=0`
+  - `parseability_counterexamples_captured_total=0`
+  - `final_targets=0`
+- `sv_preprocessor_aggregate_contract_gate`
+  - `parseability_rejected_total=0`
+  - `parseability_parser_rejections_total=0`
+  - `parseability_counterexamples_captured_total=0`
+  - `stage0_target_count=3`
+  - `stage1_target_count=0`
+  - `final_targets=0`
+- `sv_preprocessor_formal_exhaustive_closure_gate`
+  - `syntax_closure_surface_green=true`
+  - `aggregate_contract_surface_green=true`
+  - `reachability_closure_surface_green=true`
+  - the only remaining unmet criterion is still `zero_plausible_grammar_level_gap_proof_surface=false`
+So the live `systemverilog_preprocessor` blocker is now narrower: future work should focus on promoting the missing grammar-level zero-plausible-gap proof surface rather than reopening the old tail/comment layout experiments.
+
 Tracker note (2026-04-01): after the repeated rejected/no-op VHDL and SV-preprocessor hint sweeps, the preferred tactic for the remaining HDL seams is now explicit branch-level introspection rather than more blanket grammar nudges. New local tool [coverage_gap_triage.rs](rust/src/bin/coverage_gap_triage.rs), documented in [COVERAGE_GAP_TRIAGE.md](rust/docs/COVERAGE_GAP_TRIAGE.md), joins gap-report JSON, coverage JSON, and grammar AST JSON into one readable triage view and accepts both transformed `grammar_tree` and frontend-style `raw_ast` artifacts. The first verified VHDL run against `rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json` showed:
 - `trivia#line_comment` is a true selection-bias seam
 - `actual_parameter_element#range_expression` is part of a shared `range_expression` dependency failure

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-01 (+0200, task: vhdl-family-closure)
+Last updated: 2026-04-01 (+0200, task: sv-preprocessor-focused-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,49 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained SystemVerilog-preprocessor code change:
+  - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - quantified `pp_item` repetition now inserts a newline separator when generating under the `systemverilog_preprocessor` grammar and the previous repeated item did not already end the line
+    - scope is intentionally narrow:
+      - `systemverilog_preprocessor_file`
+      - `pp_if_branch`
+      - `pp_elsif_branch`
+      - `pp_else_branch`
+    - this is stimuli-only; [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) stays on its retained parser shape
+- Retained focused Rust regression test:
+  - `ast_pipeline::stimuli_generator::tests::preprocessor_item_repetition_inserts_newline_separator`
+- Fresh retained focused SV-preprocessor quality result:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_quality_gate`
+  - summary:
+    - `parseability_attempts_total=33`
+    - `parseability_accepted_total=33`
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `parseability_counterexamples_captured_total=0`
+    - `initial_targets=3`
+    - `final_targets=0`
+- Fresh retained aggregate SV-preprocessor result:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_aggregate_contract_gate`
+  - summary:
+    - `parseability_rejected_total=0`
+    - `parseability_parser_rejections_total=0`
+    - `parseability_counterexamples_captured_total=0`
+    - `stage0_target_count=3`
+    - `stage1_target_count=0`
+    - `final_targets=0`
+- Current formal-closure truth for `systemverilog_preprocessor`:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`
+  - summary:
+    - `syntax_closure_surface_green=true`
+    - `aggregate_contract_surface_green=true`
+    - `reachability_closure_surface_green=true`
+    - `zero_plausible_grammar_level_gap_proof_surface=false`
+    - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=false`
+  - so the retained blocker is now only the missing explicit grammar-level zero-plausible-gap proof surface
+- Immediate next best SV-preprocessor task:
+  - preserve the new `33/33/0/0` no-regression baseline on the focused and aggregate lanes
+  - if continuing that family, work on the missing proof-surface promotion instead of reopening broad comment/tail hint experiments
+
 - Retained VHDL code changes now consist of four keepable pieces:
   - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
     - `coverage_guidance_multiplier(...)` now skips the low-yield target-branch throttle only when:
