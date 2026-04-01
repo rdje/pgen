@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-01 (+0200, task: vhdl-depth-slack-replay-reduction)
+Last updated: 2026-04-01 (+0200, task: vhdl-family-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,7 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
-- Retained VHDL code changes now consist of three keepable pieces:
+- Retained VHDL code changes now consist of four keepable pieces:
   - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
     - `coverage_guidance_multiplier(...)` now skips the low-yield target-branch throttle only when:
       - the branch still has targeted referenced dependencies
@@ -18,68 +18,57 @@ Use this file to resume work without replaying full chat history.
       - the branch still has zero success history
       - the local failure is depth exhaustion
       - and the run is plain target driving rather than validation-aware target driving
+    - `priority_first` branch ordering now gives unresolved unseen target branches a one-shot probe bias
+      - only when the branch still has target deficit
+      - only before that branch has ever been selected
+      - and only before that branch has ever succeeded
+      - after that first probe, ordinary semantic priority behavior is restored
   - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
     - now builds into a state-local `CARGO_TARGET_DIR`
     - this prevents nested quality / strict-promotion runs from clobbering each other's adapter-backed `ast_pipeline` and `parseability_probe` binaries
+  - [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh)
+    - normalizes cleared VHDL primary-unmet fields from SOTA JSON to `"<none>"`
+    - this keeps aggregate JSON/TXT parity stable once the family has no remaining blockers
 - Retained focused Rust regression test:
   - `ast_pipeline::stimuli_generator::tests::coverage_guidance_multiplier_preserves_dependency_blocked_target_branch`
   - `ast_pipeline::stimuli_generator::tests::target_driven_generation_retries_target_branch_with_depth_slack`
+  - `ast_pipeline::stimuli_generator::tests::target_driven_generation_can_probe_unseen_low_priority_branch_once`
 - Fresh retained direct VHDL quality result:
   - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
   - summary:
     - `closed_loop_initial_targets=247`
-    - `closed_loop_replay_targets=5`
-    - `closed_loop_parseability_shadow_attempts_total=504`
-    - `closed_loop_parseability_shadow_accepted_total=504`
+    - `closed_loop_replay_targets=0`
+    - `closed_loop_parseability_shadow_attempts_total=683`
+    - `closed_loop_parseability_shadow_accepted_total=683`
     - `closed_loop_parseability_shadow_rejected_total=0`
     - `closed_loop_parseability_shadow_parser_rejections_total=0`
     - `parseability_generation_attempts_total=8`
     - `parseability_generation_accepted_total=8`
     - `parseability_generation_rejected_total=0`
     - `parseability_generation_parser_rejections_total=0`
-- Exact remaining replay-target set from `rust/target/vhdl_stimuli_quality_gate/work/closed_loop_replay_gap.json`:
-  - rule debt:
-    - `parameter_interface_element`
-    - `parameter_list`
-  - branch debt:
-    - `trivia::root/q#1`
-    - `concurrent_statement::root#0`
-    - `constraint::root#0`
-- Current branch-failure telemetry on that retained `5`-target set:
-  - `trivia::root/q#1`
-    - no local failure reasons captured; still a selection-bias seam
-  - `concurrent_statement::root#0`
-    - top local failures:
-      - `max_depth=28` while expanding `term` (`40`)
-      - `max_depth=28` while expanding `primary` (`32`)
-      - `max_depth=28` while expanding `selected_name` (`22`)
-  - `constraint::root#0`
-    - top local failures:
-      - `max_depth=28` while expanding `simple_expression` (`168`)
-      - `max_depth=28` while expanding `factor` (`86`)
-      - `max_depth=32` while expanding `relation` (`64`)
 - Direct test proof for the new unit test:
   - `rust/target/debug/deps/pgen-b24ff383e18e32ce ast_pipeline::stimuli_generator::tests::coverage_guidance_multiplier_preserves_dependency_blocked_target_branch --exact --nocapture`
   - result: pass
   - `env CARGO_TARGET_DIR=/tmp/pgen-vhdl-depth-slack cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::stimuli_generator::tests::target_driven_generation_retries_target_branch_with_depth_slack -- --exact --nocapture`
   - result: pass
+  - `env CARGO_TARGET_DIR=/tmp/pgen-vhdl-priority-probe cargo test --manifest-path rust/Cargo.toml --lib ast_pipeline::stimuli_generator::tests::target_driven_generation_can_probe_unseen_low_priority_branch_once -- --exact --nocapture`
+  - result: pass
 - The earlier nested strict-promotion proof-plumbing issue is now normalized:
   - family refreshes are green again once the VHDL quality gate isolates its cargo target
-  - refreshed proof readers now all match the retained `5`-target baseline:
+  - refreshed proof readers now all match the retained closed baseline:
     - `vhdl_parser_family_contract_gate`
     - `vhdl_formal_exhaustive_closure_gate`
     - `vhdl_parser_family_status_gate`
     - `vhdl_parser_family_status_contract_gate`
     - `vhdl_combined_telemetry_contract_gate`
 - Current machine-checked VHDL family truth:
-  - `vhdl_status=In Progress`
-  - `closure_criteria_satisfied_count=9`
+  - `vhdl_status=Done`
+  - `closure_criteria_satisfied_count=10`
   - `closure_criteria_total_count=10`
-  - only unmet criterion:
-    - `quality_closed_loop_replay_targets=5 > 0`
+  - `closure_criteria_unsatisfied_count=0`
 - Next best VHDL task:
-  - reduce the remaining replay-target debt itself
-  - start from the retained `parameter_interface_element` / `parameter_list` / `concurrent_statement` / `constraint` / `trivia#line_comment` seam instead of reopening broad sample sweeps
+  - preserve the closed no-regression VHDL baseline
+  - only reopen VHDL if we intentionally widen the contract or corpus expectations
 
 - RGX issue intake now includes blocker report:
   - `../rgx/pgen-issues/PGEN-RGX-0005.yaml`

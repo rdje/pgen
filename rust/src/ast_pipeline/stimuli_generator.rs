@@ -2268,6 +2268,7 @@ impl<'a> StimuliGenerator<'a> {
             ));
         }
 
+        let group_key = format!("{}::{}", current_rule, node_path);
         let (branch_policy, associativity, branch_priorities) =
             self.rule_branch_controls(current_rule, prepared.len());
         let attempt_order: Vec<usize> = match branch_policy {
@@ -2277,10 +2278,38 @@ impl<'a> StimuliGenerator<'a> {
                 ordered.sort_by(|left, right| {
                     let left_global = candidate_indices[*left];
                     let right_global = candidate_indices[*right];
+                    let left_target_probe =
+                        self.target_priority_probe_bias(&group_key, left_global);
+                    let right_target_probe =
+                        self.target_priority_probe_bias(&group_key, right_global);
                     let left_priority = branch_priorities.get(left_global).copied().unwrap_or(0);
                     let right_priority = branch_priorities.get(right_global).copied().unwrap_or(0);
-                    right_priority
-                        .cmp(&left_priority)
+                    right_target_probe
+                        .cmp(&left_target_probe)
+                        .then_with(|| {
+                            if left_target_probe || right_target_probe {
+                                let left_deficit =
+                                    self.branch_target_deficit(&group_key, left_global);
+                                let right_deficit =
+                                    self.branch_target_deficit(&group_key, right_global);
+                                let left_success =
+                                    self.branch_success_hits(&group_key, left_global);
+                                let right_success =
+                                    self.branch_success_hits(&group_key, right_global);
+                                let left_selected =
+                                    self.branch_selected_hits(&group_key, left_global);
+                                let right_selected =
+                                    self.branch_selected_hits(&group_key, right_global);
+
+                                right_deficit
+                                    .cmp(&left_deficit)
+                                    .then_with(|| left_selected.cmp(&right_selected))
+                                    .then_with(|| left_success.cmp(&right_success))
+                            } else {
+                                std::cmp::Ordering::Equal
+                            }
+                        })
+                        .then_with(|| right_priority.cmp(&left_priority))
                         .then_with(|| match associativity {
                             SemanticAssociativity::Right => right_global.cmp(&left_global),
                             _ => left_global.cmp(&right_global),
@@ -2353,7 +2382,6 @@ impl<'a> StimuliGenerator<'a> {
         for local_idx in attempt_order {
             let selected_global = candidate_indices[local_idx];
             let selected_node = prepared[selected_global].1.clone();
-            let group_key = format!("{}::{}", current_rule, node_path);
             self.coverage.record_branch_selected(
                 &group_key,
                 current_rule,
@@ -3009,6 +3037,21 @@ impl<'a> StimuliGenerator<'a> {
             return None;
         }
         Some(4)
+    }
+
+    fn target_priority_probe_bias(&self, group_key: &str, branch_idx: usize) -> bool {
+        self.branch_target_deficit(group_key, branch_idx) > 0
+            && self.branch_success_hits(group_key, branch_idx) == 0
+            && self.branch_selected_hits(group_key, branch_idx) == 0
+    }
+
+    fn branch_selected_hits(&self, group_key: &str, branch_idx: usize) -> u64 {
+        self.coverage
+            .branch_groups
+            .get(group_key)
+            .and_then(|group| group.selected_counts.get(branch_idx))
+            .copied()
+            .unwrap_or(0)
     }
 
     fn is_depth_exhaustion_error(err: &anyhow::Error) -> bool {
@@ -5985,6 +6028,61 @@ mod tests {
         assert!(
             summary.unresolved_targets.is_empty(),
             "no unresolved targets expected"
+        );
+    }
+
+    #[test]
+    fn target_driven_generation_can_probe_unseen_low_priority_branch_once() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", " "), token("quoted_string", "--x\n")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "start".to_string(),
+            vec![
+                SemanticAnnotation::Named {
+                    name: "branch_policy".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "priority_first".to_string(),
+                    },
+                },
+                SemanticAnnotation::Named {
+                    name: "priority".to_string(),
+                    ast: UnifiedSemanticAST::Raw {
+                        content: "[32, 1]".to_string(),
+                    },
+                },
+            ],
+        );
+
+        let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 890);
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report generation should succeed");
+        assert!(
+            report
+                .targets
+                .iter()
+                .any(|target| target.id == "branch::start::root#1"),
+            "expected lower-priority branch target to be present"
+        );
+
+        let (_samples, summary) = generator
+            .generate_until_targets(Some("start"), &report.targets, 200)
+            .expect("target-driven generation should succeed");
+
+        assert!(
+            summary
+                .unresolved_targets
+                .iter()
+                .all(|status| status.id != "branch::start::root#1"),
+            "target driving should retire the lower-priority branch target"
         );
     }
 

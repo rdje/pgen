@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - VHDL closure: one-shot priority-first target probes close the family
+### Context
+After the retained depth-slack slice, the VHDL family was down to one clean selection-bias seam and two remaining depth/dependency seams. The joined gap triage made the last obvious non-depth issue explicit: `trivia#line_comment` was never selected under `priority_first` because semantic priority always favored whitespace first. The keepable fix had to let target driving probe that branch without changing ordinary generation behavior.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - `priority_first` ordering now gives unresolved unseen target branches a one-shot probe bias
+  - that bias applies only when a branch still has target deficit, zero successes, and zero selections
+  - once that first probe is spent, the ordering falls back to ordinary semantic priority behavior
+- Added focused regression test:
+  - `target_driven_generation_can_probe_unseen_low_priority_branch_once`
+- Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
+  - normalize cleared VHDL `primary_unmet_*` SOTA JSON fields to `"<none>"` so aggregate JSON/TXT parity stays stable once the family has no remaining blockers
+
+### What Was Verified
+- Fresh retained VHDL quality proof now records:
+  - `closed_loop_initial_targets=247`
+  - `closed_loop_replay_targets=0`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - `parseability_generation_parser_rejections_total=0`
+- The refreshed higher-level VHDL proof stack is now fully closed:
+  - `vhdl_parser_family_contract_gate`
+    - `quality_closed_loop_replay_targets=0`
+    - `strict_promotion_primary_blocker=none`
+    - `strict_promotion_trial_passed=3`
+  - `vhdl_formal_exhaustive_closure_gate`
+    - `vhdl_formal_exhaustive_closure_surface_green=true`
+  - `vhdl_parser_family_status_gate`
+    - `vhdl_status=Done`
+    - `vhdl_unmet_closure_criteria_count=0`
+    - `vhdl_closure_criteria_satisfied_count=10`
+    - `vhdl_closure_criteria_total_count=10`
+  - `vhdl_parser_family_status_contract_gate`
+    - `vhdl_false_criteria_count=0`
+    - `vhdl_unmet_details_count=0`
+  - `vhdl_combined_telemetry_contract_gate`
+    - `vhdl_family_status_vhdl=Done`
+    - `vhdl_family_quality_closed_loop_replay_targets=0`
+    - `vhdl_family_status_contract_vhdl_false_criteria_count=0`
+
+### Steering
+- Treat `vhdl` as closed on the current tracked contract.
+- Future VHDL work should preserve the closed no-regression baseline rather than immediately reopening broad grammar/generator experimentation.
+- If VHDL is intentionally widened later, keep the family/status/aggregate proof stack aligned from the start so the row does not drift back into tracker-only closure.
+
 ## 2026-04-01 - VHDL replay reduction: keep targeted depth-slack retry outside validation-aware target driving
 ### Context
 Fresh branch-failure telemetry on the retained `9`-target VHDL baseline showed that the remaining replay debt was dominated by local depth exhaustion rather than parser rejection. The first experimental depth-slack retry confirmed the direction by dropping replay debt to `5`, but it also reintroduced a single replay-shadow parser rejection because validation-aware target driving started keeping deeper primary-entry outputs too. The keepable version therefore had to separate plain target driving from validation-aware target driving.

@@ -92,6 +92,15 @@ Tracker note (2026-04-01): the next keepable VHDL generator slice is now also re
   - `trivia::root/q#1`
   - `concurrent_statement::root#0`
   - `constraint::root#0`
+Tracker note (2026-04-01): the final VHDL closure slice is now retained too. `priority_first` branch ordering in [stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs) now gives unresolved unseen target branches a one-shot probe bias without changing ordinary priority behavior, which closed the last VHDL replay debt seam. The refreshed VHDL quality/family/status/aggregate stack now records:
+- `closed_loop_initial_targets=247`
+- `closed_loop_replay_targets=0`
+- `parseability_generation_parser_rejections_total=0`
+- `closed_loop_parseability_shadow_parser_rejections_total=0`
+- `vhdl_status=Done`
+- `closure_criteria_satisfied_count=10`
+- `closure_criteria_total_count=10`
+- `closure_criteria_unsatisfied_count=0`
 Tracker note (2026-04-01): that adjacent proof-normalization issue is now resolved in the retained gate path. [vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh) now uses a state-local `CARGO_TARGET_DIR`, which stops nested quality / strict-promotion refreshes from clobbering each other's adapter-backed generated binaries. The refreshed VHDL proof stack now agrees end to end on the same retained baseline:
 - `vhdl_parser_family_contract_gate`
 - `vhdl_formal_exhaustive_closure_gate`
@@ -99,8 +108,7 @@ Tracker note (2026-04-01): that adjacent proof-normalization issue is now resolv
 - `vhdl_parser_family_status_contract_gate`
 - lightweight reused `sota_exit_gate`
 - `vhdl_combined_telemetry_contract_gate`
-The active VHDL blocker is therefore back to the real one:
-- `quality_closed_loop_replay_targets=5 > 0`
+The active VHDL blocker is now gone on the tracked contract, so future VHDL work should preserve this closed baseline unless the contract is intentionally widened.
 The active preprocessor blockers are therefore now narrowed to:
 - `parseability_parser_rejections_total=1 > 0`
 - `parseability_rejected_total=1 > 0`
