@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-04-02 - Align steering docs with closed VHDL status
+### Achievement Summary
+No parser behavior changed in this slice. The retained improvement is continuity: the top-level steering docs no longer describe `vhdl` as an active closure family now that the machine-checked live row is already `Done`.
+
+### Scope of Changes
+- Updated top-level steering surfaces so current active closure work is described honestly:
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Current guidance is now:
+  - active parser-family closure work is centered on main `systemverilog`
+  - `vhdl`, `systemverilog_preprocessor`, and `regex` are current no-regression proof baselines unless their published contracts are intentionally widened
+  - future regex widening is deferred behind the remaining live `systemverilog` closure work, not behind already-closed `vhdl`
+
+### Validation
+- `git diff --check`
+
 ## 2026-04-01 - Clarify main-SV replay-shadow counterexample capture
 ### Achievement Summary
 Tightened the `systemverilog` target-drive parseability reporting path so replay-shadow counterexamples now represent primary-entry parser debt instead of mixing in alternate-entry probe failures. This does not change acceptance semantics or tracked family status yet, but it removes a major triage blind spot for the remaining main-SV closure work.

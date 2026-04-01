@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-01 (+0200, task: sv-main-shadow-counterexample-clarity)
+Last updated: 2026-04-02 (+0200, task: steering-align-vhdl-closed)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,14 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Continuity steering correction:
+  - do not treat `vhdl` as active closure work anymore
+  - the current machine-checked no-regression baselines are:
+    - `vhdl=Done`
+    - `systemverilog_preprocessor=Done`
+    - `regex=Done`
+  - the main active parser-family closure seam is the remaining `systemverilog` main-parser debt
+  - future regex contract widening remains deferred behind that remaining live `systemverilog` work, not behind already-closed `vhdl`
 - Retained main-SystemVerilog reporting/triage change:
   - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
     - target-drive validation callbacks now receive entry metadata:

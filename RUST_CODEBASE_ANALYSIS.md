@@ -1,6 +1,6 @@
 # RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-04-01
+Last updated: 2026-04-02
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -21,13 +21,14 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It is not a claim that every parser family is closed.
 - It is not a replacement for the live closure tracker in `LIVE_ACHIEVEMENT_STATUS.md`.
 - It should be read alongside the roadmap priority rule:
-  - active parser-family closure work for `systemverilog` and `vhdl` now outranks deferred maintainability refactors, while `regex` has reached its current closure bar and should be treated as a no-regression proof baseline unless its contract is intentionally widened.
+  - active parser-family closure work is now centered on the remaining main-`systemverilog` debt and still outranks deferred maintainability refactors.
+  - `vhdl`, `systemverilog_preprocessor`, and `regex` have reached their current published closure bars and should be treated as no-regression proof baselines unless their contracts are intentionally widened.
   - downstream regex hardening on embedded code blocks should now be treated as parser-layer contract precision work backed by compact synthetic corpora/gates, not as a reason to reopen the `regex` family row by default.
   - RGX's downstream review now treats regex handoff `1.1.2` as integration-ready for starting adoption; the regex maintenance line now covers the `1.1.1` accepted-tree transport fixes plus the `1.1.2` named recursion-condition unblock for `(?(R&name)...)`, and the remaining regex caveats are now scope-widening questions around stronger AST semantic stability, stronger JS/Lua shielding, optional published `rhai` / `native` / `wasm` tags, and host-language wrapper parsing.
   - a fresh current-PCRE2 syntax check also identified future regex widening targets that are real but not urgent:
     - returned-capture subroutine forms such as `(?R(grouplist))`, `(?n(grouplist))`, `(?+n(grouplist))`, `(?-n(grouplist))`, `(?&name(grouplist))`, and `(?P>name(grouplist))`
     - additional conditionals such as `(?(VERSION[...])...)`
-  - those regex syntax additions are intentionally deferred until the active closure work for `vhdl`, `systemverilog`, and the other live parser families is materially complete; they should be treated as deliberate future contract widening, not as current closure blockers
+  - those regex syntax additions are intentionally deferred until the remaining live `systemverilog` closure work and the other still-open parser families are materially complete; they should be treated as deliberate future contract widening, not as current closure blockers
   - downstream regex hardening under `regex_corpus_bundle/` now also has two distinct external-corpus roles:
     - `regex_pcre2_textsafe_corpus_gate` for accepted-syntax widening
     - `regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth

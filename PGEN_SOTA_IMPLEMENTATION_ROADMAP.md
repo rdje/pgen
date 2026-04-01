@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-01
+Last updated: 2026-04-02
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -43,8 +43,11 @@ Execution preference for this roadmap:
     - `(?P>name(grouplist))`
   - additional conditional forms:
     - `(?(VERSION[...])...)`
-  - these are intentionally deferred until the active closure work for `systemverilog`, `vhdl`, and the other live parser families is materially complete
+  - these are intentionally deferred until the remaining live `systemverilog` closure work and the other still-open parser families are materially complete
   - do not reopen the closed `regex` family row for these syntax-widening targets until the project deliberately chooses to widen the published regex contract
+- closed parser families should stay closed in steering too:
+  - `vhdl`, `systemverilog_preprocessor`, and `regex` are current no-regression proof baselines
+  - do not treat them as active closure work unless their published contracts are intentionally widened or a real regression is discovered
 - external-corpus grammar debugging should prefer systematic keyword-vs-identifier discrimination and precise branch-shape fixes over corpus-specific hacks, even when the first landed step is a narrow surgical patch.
 - if repeated keyword-vs-identifier debt keeps surfacing in a family such as SystemVerilog, promote that into one shared systematic grammar/annotation mechanism instead of accumulating ad hoc local exclusions indefinitely.
 - if repeated parser ambiguity depends on names, declaration categories, or earlier matched constructs, prefer annotation-driven semantic steering over repeated local branch reorderings.

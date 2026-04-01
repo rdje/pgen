@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-02 - Steering alignment: VHDL is closed, not active closure work
+### Context
+The live family proof now keeps `vhdl=Done`, but a few top-level steering notes still spoke as if VHDL were one of the active closure families. That mismatch is small, but it is exactly the kind of continuity drift that causes future sessions to spend time reopening already-closed work.
+
+### What Was Changed
+- Updated the top steering language in:
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [MEMORY.md](MEMORY.md)
+- Current steering is now explicit:
+  - main active parser-family closure work is the remaining `systemverilog` main-parser debt
+  - `vhdl`, `systemverilog_preprocessor`, and `regex` should be treated as no-regression proof baselines on their current published closure bars
+  - future regex syntax widening is deferred behind the remaining live `systemverilog` closure work, not behind already-closed `vhdl`
+
+### Why It Matters
+- This is not a status-row change.
+- It is a crash-recovery / steering correction so new sessions do not misprioritize effort.
+- Historical VHDL notes remain intact as history; only the current steering layer was normalized.
+
 ## 2026-04-01 - Main SV triage: replay-shadow counterexamples must stay primary-entry-only
 ### Context
 The retained `systemverilog` family still has three live closure blockers, but the stored replay-shadow counterexample set was noisier than the tracked debt. The aggregate summary already counts only primary-entry parseability rejects, while the raw `target_drive_output_filter` counterexamples were still capturing alternate-entry probe failures too. That mismatch made the sample set look worse and more top-level-broken than the actual tracked parser debt.
