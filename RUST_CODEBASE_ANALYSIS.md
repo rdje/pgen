@@ -37,8 +37,9 @@ This is a live document, not an archival write-up. It should be amended whenever
     - current retained preprocessor truth is now:
       - focused quality `33/33/0/0` with `final_targets=0`
       - aggregate contract `parseability_rejected_total=0`, `parseability_parser_rejections_total=0`, `counterexamples_captured_total=0`
-      - formal exhaustive closure still red only on `zero_plausible_grammar_level_gap_proof_surface=false`
-    - so future `systemverilog_preprocessor` work should promote the missing grammar-level zero-plausible-gap proof surface rather than retrying the older comment/tail hint experiments
+      - zero-plausible-gap proof is now explicit and green through `sv_preprocessor_zero_plausible_gap_proof_gate`
+      - formal exhaustive closure is now green through `sv_preprocessor_formal_exhaustive_closure_gate`
+    - treat `systemverilog_preprocessor` as a closed no-regression baseline unless its published contract is intentionally widened; active HDL closure work should now bias toward the remaining `systemverilog` main-parser debt and the broader Phase `S` build-out
 
 ## Rust-Adjacent Cargo Surface
 - Main product crate

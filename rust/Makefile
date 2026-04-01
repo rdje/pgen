@@ -245,6 +245,7 @@ help:
 	@echo "  sv_preprocessor_quality_gate - Enforce deterministic closed-loop quality checks for systemverilog_preprocessor grammar"
 	@echo "  sv_preprocessor_aggregate_contract_gate - Enforce repeatable aggregate-report contract checks for focused preprocessor evidence surfaces"
 	@echo "  sv_preprocessor_reachability_closure_gate - Enforce zero-target/full-reachable-coverage preprocessor closure under checked-in policy"
+	@echo "  sv_preprocessor_zero_plausible_gap_proof_gate - Prove the SV-preprocessor helper-only syntax-unreachable whitelist over the retained aggregate/reachability sidecars"
 	@echo "  sv_preprocessor_formal_exhaustive_closure_gate - Compute the explicit SV-preprocessor exhaustive-closure proof surface status from syntax, aggregate, and reachability sidecars"
 	@echo "  sv_preprocessor_curated_differential_gate - Run curated expected-artifact differential corpus and classify expected-vs-bug taxonomy deltas"
 	@echo "  sv_preprocessor_template_differential_gate - Run dynamic template-based preprocessor oracle differential (fully offline)"
@@ -561,6 +562,12 @@ sv_preprocessor_reachability_closure_gate:
 	@echo "🧪 Running SystemVerilog preprocessor reachability-closure gate..."
 	cd $(RUST_DIR) && ./scripts/sv_preprocessor_reachability_closure_gate.sh
 	@echo "✅ SystemVerilog preprocessor reachability-closure gate passed."
+
+.PHONY: sv_preprocessor_zero_plausible_gap_proof_gate
+sv_preprocessor_zero_plausible_gap_proof_gate:
+	@echo "🧪 Running SystemVerilog preprocessor zero-plausible-gap proof gate..."
+	cd $(RUST_DIR) && ./scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh
+	@echo "✅ SystemVerilog preprocessor zero-plausible-gap proof gate completed."
 
 .PHONY: sv_preprocessor_curated_differential_gate
 sv_preprocessor_curated_differential_gate:

@@ -2039,11 +2039,19 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
   assert_tracked "rust/scripts/sv_preprocessor_syntax_closure_gate.sh"
   assert_tracked "rust/scripts/sv_preprocessor_aggregate_contract_gate.sh"
   assert_tracked "rust/scripts/sv_preprocessor_reachability_closure_gate.sh"
+  assert_tracked "rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh"
   assert_tracked "rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json"
+  assert_tracked "rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json"
 
   assert_file_contains \
     "rust/Makefile" \
+    'sv_preprocessor_zero_plausible_gap_proof_gate - Prove the SV-preprocessor helper-only syntax-unreachable whitelist over the retained aggregate/reachability sidecars'
+  assert_file_contains \
+    "rust/Makefile" \
     'sv_preprocessor_formal_exhaustive_closure_gate - Compute the explicit SV-preprocessor exhaustive-closure proof surface status from syntax, aggregate, and reachability sidecars'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh'
   assert_file_contains \
     "rust/Makefile" \
     'cd $(RUST_DIR) && ./scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh'
@@ -2054,6 +2062,12 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
   assert_file_contains \
     "rust/test_data/grammar_quality/systemverilog_preprocessor_formal_exhaustive_closure_contract.json" \
     '"required_surface_missing_detail": "SystemVerilog preprocessor still lacks an explicit grammar-level exhaustive proof surface'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json" \
+    '"allowed_unreachable_rules":'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json" \
+    '"helper_only_whitelist_detail": "SystemVerilog preprocessor zero-plausible-gap proof requires the syntax-unreachable surface'
 
   assert_file_contains \
     "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
@@ -2066,6 +2080,9 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
     'REACHABILITY_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"'
   assert_file_contains \
     "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'ZERO_GAP_PROOF_GATE="$RUST_DIR/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
     'EXISTING_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_SYNTAX_CLOSURE_STATE_DIR:-}"'
   assert_file_contains \
     "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
@@ -2075,16 +2092,28 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
     'EXISTING_REACHABILITY_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_REACHABILITY_CLOSURE_STATE_DIR:-}"'
   assert_file_contains \
     "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'EXISTING_ZERO_GAP_PROOF_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_ZERO_PLAUSIBLE_GAP_PROOF_STATE_DIR:-}"'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
     'aggregate_contract_summary_json'
   assert_file_contains \
     "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
     'reachability_closure_summary_txt'
   assert_file_contains \
     "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
+    'zero_gap_proof_summary_json'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
     'zero_plausible_grammar_level_gap_proof_surface'
   assert_file_contains \
     "rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh" \
     'systemverilog_preprocessor_formal_exhaustive_closure_surface_green'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh" \
+    'helper_only_unreachable_surface_green'
+  assert_file_contains \
+    "rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh" \
+    'zero_plausible_grammar_level_gap_proof_surface'
 
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \

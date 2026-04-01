@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-01 - Close the SV preprocessor family at Done
+### Achievement Summary
+Promoted the `systemverilog_preprocessor` formal-closure seam from a placeholder blocker into a real machine-checkable proof surface. New sidecar [rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh](rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh), backed by [rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json), now proves that the only syntax-unreachable surface is the helper-only `trivia` pocket while the retained aggregate and reachability sidecars stay green.
+
+### Scope of Changes
+- Added new SystemVerilog-preprocessor zero-gap proof surface:
+  - [rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh](rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh)
+  - [rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json)
+- Updated [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh):
+  - now reuses or runs the zero-gap proof sidecar
+  - now records zero-gap proof provenance in the formal-closure summary
+  - formal-closure surface is now driven by the real proof sidecar instead of a hardcoded red placeholder
+- Updated operator / audit surfaces:
+  - [rust/Makefile](rust/Makefile)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- `bash -n rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh rust/scripts/ci_workflow_local_gate.sh`
+- reused-state `sv_preprocessor_zero_plausible_gap_proof_gate`
+  - `syntax_preconditions_green=true`
+  - `aggregate_preconditions_green=true`
+  - `reachability_preconditions_green=true`
+  - `helper_only_unreachable_surface_green=true`
+  - `zero_plausible_grammar_level_gap_proof_surface=true`
+- reused-state `sv_preprocessor_formal_exhaustive_closure_gate`
+  - `syntax_closure_surface_green=true`
+  - `aggregate_contract_surface_green=true`
+  - `reachability_closure_surface_green=true`
+  - `zero_plausible_grammar_level_gap_proof_surface=true`
+  - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=true`
+
 ## 2026-04-01 - Eliminate focused SV preprocessor parseability debt
 ### Achievement Summary
 Kept a narrow stimuli-only generator fix in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs). Repeated `pp_item` expansions in the `systemverilog_preprocessor` grammar now get a forced newline separator when the previous generated item did not already end the line. That closed the retained orphan-closer seam without narrowing parser acceptance.

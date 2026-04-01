@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - SV preprocessor closure: formalize the zero-plausible-gap proof surface
+### Context
+The retained `systemverilog_preprocessor` parser/stimuli baseline was already clean at `33/33/0/0`, but the family still stayed `Mostly Done` because [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh) was intentionally hardcoded red on the missing `zero_plausible_grammar_level_gap_proof_surface`.
+
+### What Was Changed
+- Added new proof sidecar:
+  - [rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh](rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh)
+  - [rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json)
+- The new sidecar reuses the retained syntax, aggregate, and reachability artifacts and proves green only when:
+  - syntax preconditions still hold
+  - aggregate parser/gap debt is still zero
+  - reachability stage3/stage4 targets are still zero with full reachable rule/branch coverage
+  - the only syntax-unreachable surface is the helper-only `trivia` pocket:
+    - rules: `line_comment`, `trivia`
+    - branches: `branch::trivia::root/q#0`, `#1`, `#2`
+- Updated [rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh](rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh):
+  - now consumes the new zero-gap sidecar instead of emitting a static false placeholder
+  - now preserves zero-gap proof provenance in `summary.txt` / `summary.json`
+- Updated [rust/Makefile](rust/Makefile), [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), and the continuity/live docs so the new proof seam is first-class and restart-safe.
+
+### What Was Verified
+- Reused-state zero-gap proof summary is now green:
+  - `syntax_preconditions_green=true`
+  - `aggregate_preconditions_green=true`
+  - `reachability_preconditions_green=true`
+  - `helper_only_unreachable_surface_green=true`
+  - `zero_plausible_grammar_level_gap_proof_surface=true`
+- Reused-state formal closure is now green:
+  - `syntax_closure_surface_green=true`
+  - `aggregate_contract_surface_green=true`
+  - `reachability_closure_surface_green=true`
+  - `zero_plausible_grammar_level_gap_proof_surface=true`
+  - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=true`
+
+### Steering
+- Treat `systemverilog_preprocessor` as closed on the current tracked contract.
+- Future work on that family should be no-regression maintenance or intentional contract widening, not more placeholder-proof plumbing or blanket grammar hint sweeps.
+
 ## 2026-04-01 - SV preprocessor closure: separate repeated pp_item expansions onto their own lines
 ### Context
 The retained `systemverilog_preprocessor` seam was down to one parser-backed reject, and trace-backed triage had already shown it was not a generic `` `endif`` or raw-backtick bug. The actual failure was same-line item chaining: a later preprocessor item could be swallowed into the preceding item's comment/text payload when repeated `pp_item` generation omitted a newline separator.

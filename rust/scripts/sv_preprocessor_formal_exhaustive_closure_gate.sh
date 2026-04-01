@@ -14,10 +14,12 @@ CONTRACT_FILE="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_CONTRACT_FILE:-$
 SYNTAX_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_syntax_closure_gate.sh"
 AGGREGATE_CONTRACT_GATE="$RUST_DIR/scripts/sv_preprocessor_aggregate_contract_gate.sh"
 REACHABILITY_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_reachability_closure_gate.sh"
+ZERO_GAP_PROOF_GATE="$RUST_DIR/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh"
 
 EXISTING_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_AGGREGATE_CONTRACT_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_AGGREGATE_CONTRACT_STATE_DIR:-}"
 EXISTING_REACHABILITY_CLOSURE_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_REACHABILITY_CLOSURE_STATE_DIR:-}"
+EXISTING_ZERO_GAP_PROOF_STATE_DIR="${PGEN_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_EXISTING_ZERO_PLAUSIBLE_GAP_PROOF_STATE_DIR:-}"
 
 require_tool() {
     local tool="$1"
@@ -95,6 +97,7 @@ require_file "$CONTRACT_FILE"
 require_file "$SYNTAX_CLOSURE_GATE"
 require_file "$AGGREGATE_CONTRACT_GATE"
 require_file "$REACHABILITY_CLOSURE_GATE"
+require_file "$ZERO_GAP_PROOF_GATE"
 
 jq -e '
     .family == "systemverilog_preprocessor"
@@ -141,11 +144,27 @@ syntax_summary_txt="$syntax_state_dir/summary.txt"
 aggregate_summary_txt="$aggregate_state_dir/summary.txt"
 aggregate_summary_json="$aggregate_state_dir/summary.json"
 reachability_summary_txt="$reachability_state_dir/summary.txt"
+zero_gap_proof_state_dir="${EXISTING_ZERO_GAP_PROOF_STATE_DIR:-$WORK_DIR/sv_preprocessor_zero_plausible_gap_proof_gate}"
+if [[ -z "$EXISTING_ZERO_GAP_PROOF_STATE_DIR" ]]; then
+    run_logged "sv_preprocessor_zero_plausible_gap_proof_gate" \
+        env \
+            PGEN_SV_PREPROCESSOR_ZERO_PLAUSIBLE_GAP_PROOF_STATE_DIR="$zero_gap_proof_state_dir" \
+            PGEN_SV_PREPROCESSOR_ZERO_PLAUSIBLE_GAP_PROOF_EXISTING_SYNTAX_CLOSURE_STATE_DIR="$syntax_state_dir" \
+            PGEN_SV_PREPROCESSOR_ZERO_PLAUSIBLE_GAP_PROOF_EXISTING_AGGREGATE_CONTRACT_STATE_DIR="$aggregate_state_dir" \
+            PGEN_SV_PREPROCESSOR_ZERO_PLAUSIBLE_GAP_PROOF_EXISTING_REACHABILITY_CLOSURE_STATE_DIR="$reachability_state_dir" \
+            "$ZERO_GAP_PROOF_GATE"
+else
+    zero_gap_proof_state_dir="$(cd "$zero_gap_proof_state_dir" && pwd)"
+fi
+zero_gap_proof_summary_txt="$zero_gap_proof_state_dir/summary.txt"
+zero_gap_proof_summary_json="$zero_gap_proof_state_dir/summary.json"
 
 require_nonempty_file "$syntax_summary_txt"
 require_nonempty_file "$aggregate_summary_txt"
 require_nonempty_file "$aggregate_summary_json"
 require_nonempty_file "$reachability_summary_txt"
+require_nonempty_file "$zero_gap_proof_summary_txt"
+require_nonempty_file "$zero_gap_proof_summary_json"
 
 contract_version="$(jq -r '.version' "$CONTRACT_FILE")"
 done_rule="$(jq -r '.done_rule' "$CONTRACT_FILE")"
@@ -157,6 +176,8 @@ aggregate_state_dir_from_txt="$(top_level_summary_value_from_txt "state_dir" "$a
 aggregate_generated_at_utc="$(top_level_summary_value_from_txt "generated_at_utc" "$aggregate_summary_txt")"
 aggregate_summary_json_from_txt="$(top_level_summary_value_from_txt "summary_json" "$aggregate_summary_txt")"
 reachability_state_dir_from_txt="$(top_level_summary_value_from_txt "state_dir" "$reachability_summary_txt")"
+zero_gap_proof_state_dir_from_txt="$(top_level_summary_value_from_txt "state_dir" "$zero_gap_proof_summary_txt")"
+zero_gap_proof_summary_json_from_txt="$(top_level_summary_value_from_txt "summary_json" "$zero_gap_proof_summary_txt")"
 
 if [[ "$syntax_state_dir_from_txt" != "$syntax_state_dir" ]]; then
     echo "error: preprocessor syntax-closure state_dir mismatch in summary.txt" >&2
@@ -172,6 +193,14 @@ if [[ "$aggregate_summary_json_from_txt" != "$aggregate_summary_json" ]]; then
 fi
 if [[ "$reachability_state_dir_from_txt" != "$reachability_state_dir" ]]; then
     echo "error: preprocessor reachability-closure state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$zero_gap_proof_state_dir_from_txt" != "$zero_gap_proof_state_dir" ]]; then
+    echo "error: preprocessor zero-gap proof state_dir mismatch in summary.txt" >&2
+    exit 1
+fi
+if [[ "$zero_gap_proof_summary_json_from_txt" != "$zero_gap_proof_summary_json" ]]; then
+    echo "error: preprocessor zero-gap proof summary_json mismatch in summary.txt" >&2
     exit 1
 fi
 
@@ -207,6 +236,34 @@ if [[ "$aggregate_summary_json_from_json" != "$aggregate_summary_json" ]]; then
     exit 1
 fi
 
+zero_gap_proof_gate_name="$(jq -r '.gate' "$zero_gap_proof_summary_json")"
+zero_gap_proof_gate_version="$(jq -r '.version' "$zero_gap_proof_summary_json")"
+zero_gap_proof_generated_at_utc="$(jq -r '.generated_at_utc' "$zero_gap_proof_summary_json")"
+zero_gap_proof_state_dir_from_json="$(jq -r '.state_dir' "$zero_gap_proof_summary_json")"
+zero_gap_proof_summary_txt_from_json="$(jq -r '.summary_txt' "$zero_gap_proof_summary_json")"
+zero_gap_proof_summary_json_from_json="$(jq -r '.summary_json' "$zero_gap_proof_summary_json")"
+
+if [[ "$zero_gap_proof_gate_name" != "sv_preprocessor_zero_plausible_gap_proof_gate" ]]; then
+    echo "error: unexpected preprocessor zero-gap proof gate identity '$zero_gap_proof_gate_name'" >&2
+    exit 1
+fi
+if [[ ! "$zero_gap_proof_gate_version" =~ ^[0-9]+$ ]]; then
+    echo "error: preprocessor zero-gap proof gate version is not numeric: '$zero_gap_proof_gate_version'" >&2
+    exit 1
+fi
+if [[ "$zero_gap_proof_state_dir_from_json" != "$zero_gap_proof_state_dir" ]]; then
+    echo "error: preprocessor zero-gap proof state_dir mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$zero_gap_proof_summary_txt_from_json" != "$zero_gap_proof_summary_txt" ]]; then
+    echo "error: preprocessor zero-gap proof summary_txt mismatch in summary.json" >&2
+    exit 1
+fi
+if [[ "$zero_gap_proof_summary_json_from_json" != "$zero_gap_proof_summary_json" ]]; then
+    echo "error: preprocessor zero-gap proof summary_json mismatch in summary.json" >&2
+    exit 1
+fi
+
 syntax_status="pass"
 syntax_failure_count="0"
 syntax_defined_rule_count="$(summary_value_from_txt "defined_rule_count" "$syntax_summary_txt")"
@@ -230,6 +287,10 @@ reachability_stage3_branches="$(summary_value_from_txt "stage3_covered_reachable
 reachability_stage4_branches="$(summary_value_from_txt "stage4_covered_reachable_branches" "$reachability_summary_txt")"
 reachability_parseability_rejected="$(summary_value_from_txt "parseability_rejected" "$reachability_summary_txt")"
 reachability_parser_rejections="$(summary_value_from_txt "parser_rejections" "$reachability_summary_txt")"
+zero_plausible_grammar_level_gap_proof_surface="$(summary_value_from_txt "zero_plausible_grammar_level_gap_proof_surface" "$zero_gap_proof_summary_txt")"
+zero_gap_primary_unmet_proof_criterion="$(summary_value_from_txt "primary_unmet_proof_criterion" "$zero_gap_proof_summary_txt")"
+zero_gap_unmet_proof_criteria_count="$(summary_value_from_txt "unmet_proof_criteria_count" "$zero_gap_proof_summary_txt")"
+zero_gap_unmet_proof_criteria_json="$(summary_value_from_txt "unmet_proof_criteria_json" "$zero_gap_proof_summary_txt")"
 
 syntax_closure_surface_green=false
 aggregate_contract_surface_green=false
@@ -244,9 +305,20 @@ if [[ "$reachability_stage3_targets" == "0" && "$reachability_stage4_targets" ==
 fi
 
 systemverilog_preprocessor_formal_exhaustive_closure_surface_green=false
-unmet_closure_criteria_count=1
-primary_unmet_closure_criterion="$required_surface_missing_detail"
-unmet_closure_criteria_json="$(jq -cn --arg detail "$required_surface_missing_detail" '[ $detail ]')"
+unmet_closure_criteria_count="$zero_gap_unmet_proof_criteria_count"
+primary_unmet_closure_criterion="$zero_gap_primary_unmet_proof_criterion"
+unmet_closure_criteria_json="$zero_gap_unmet_proof_criteria_json"
+
+if [[ "$zero_plausible_grammar_level_gap_proof_surface" == "true" ]]; then
+    systemverilog_preprocessor_formal_exhaustive_closure_surface_green=true
+    unmet_closure_criteria_count=0
+    primary_unmet_closure_criterion="<none>"
+    unmet_closure_criteria_json='[]'
+elif [[ "$primary_unmet_closure_criterion" == "<none>" || -z "$primary_unmet_closure_criterion" ]]; then
+    primary_unmet_closure_criterion="$required_surface_missing_detail"
+    unmet_closure_criteria_count=1
+    unmet_closure_criteria_json="$(jq -cn --arg detail "$required_surface_missing_detail" '[ $detail ]')"
+fi
 
 generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
@@ -271,10 +343,16 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "aggregate_contract_summary_json: $aggregate_summary_json"
     echo "reachability_closure_state_dir: $reachability_state_dir"
     echo "reachability_closure_summary_txt: $reachability_summary_txt"
+    echo "zero_gap_proof_gate: $zero_gap_proof_gate_name"
+    echo "zero_gap_proof_gate_version: $zero_gap_proof_gate_version"
+    echo "zero_gap_proof_generated_at_utc: $zero_gap_proof_generated_at_utc"
+    echo "zero_gap_proof_state_dir: $zero_gap_proof_state_dir"
+    echo "zero_gap_proof_summary_txt: $zero_gap_proof_summary_txt"
+    echo "zero_gap_proof_summary_json: $zero_gap_proof_summary_json"
     echo "syntax_closure_surface_green: $syntax_closure_surface_green"
     echo "aggregate_contract_surface_green: $aggregate_contract_surface_green"
     echo "reachability_closure_surface_green: $reachability_closure_surface_green"
-    echo "zero_plausible_grammar_level_gap_proof_surface: false"
+    echo "zero_plausible_grammar_level_gap_proof_surface: $zero_plausible_grammar_level_gap_proof_surface"
     echo "systemverilog_preprocessor_formal_exhaustive_closure_surface_green: $systemverilog_preprocessor_formal_exhaustive_closure_surface_green"
     echo "unmet_closure_criteria_count: $unmet_closure_criteria_count"
     echo "primary_unmet_closure_criterion: $primary_unmet_closure_criterion"
@@ -325,6 +403,12 @@ jq -n \
     --arg aggregate_contract_summary_json "$aggregate_summary_json" \
     --arg reachability_closure_state_dir "$reachability_state_dir" \
     --arg reachability_closure_summary_txt "$reachability_summary_txt" \
+    --arg zero_gap_proof_gate "$zero_gap_proof_gate_name" \
+    --argjson zero_gap_proof_gate_version "$zero_gap_proof_gate_version" \
+    --arg zero_gap_proof_generated_at_utc "$zero_gap_proof_generated_at_utc" \
+    --arg zero_gap_proof_state_dir "$zero_gap_proof_state_dir" \
+    --arg zero_gap_proof_summary_txt "$zero_gap_proof_summary_txt" \
+    --arg zero_gap_proof_summary_json "$zero_gap_proof_summary_json" \
     --arg syntax_status "$syntax_status" \
     --argjson syntax_failure_count "$syntax_failure_count" \
     --argjson syntax_defined_rule_count "$syntax_defined_rule_count" \
@@ -352,7 +436,7 @@ jq -n \
     --argjson syntax_closure_surface_green "$syntax_closure_surface_green" \
     --argjson aggregate_contract_surface_green "$aggregate_contract_surface_green" \
     --argjson reachability_closure_surface_green "$reachability_closure_surface_green" \
-    --argjson zero_plausible_grammar_level_gap_proof_surface false \
+    --argjson zero_plausible_grammar_level_gap_proof_surface "$zero_plausible_grammar_level_gap_proof_surface" \
     --argjson systemverilog_preprocessor_formal_exhaustive_closure_surface_green "$systemverilog_preprocessor_formal_exhaustive_closure_surface_green" \
     --argjson unmet_closure_criteria_count "$unmet_closure_criteria_count" \
     --arg primary_unmet_closure_criterion "$primary_unmet_closure_criterion" \
@@ -411,7 +495,13 @@ jq -n \
             aggregate_contract_summary_txt: $aggregate_contract_summary_txt,
             aggregate_contract_summary_json: $aggregate_contract_summary_json,
             reachability_closure_state_dir: $reachability_closure_state_dir,
-            reachability_closure_summary_txt: $reachability_closure_summary_txt
+            reachability_closure_summary_txt: $reachability_closure_summary_txt,
+            zero_gap_proof_gate: $zero_gap_proof_gate,
+            zero_gap_proof_gate_version: $zero_gap_proof_gate_version,
+            zero_gap_proof_generated_at_utc: $zero_gap_proof_generated_at_utc,
+            zero_gap_proof_state_dir: $zero_gap_proof_state_dir,
+            zero_gap_proof_summary_txt: $zero_gap_proof_summary_txt,
+            zero_gap_proof_summary_json: $zero_gap_proof_summary_json
         }
     }' >"$SUMMARY_JSON"
 

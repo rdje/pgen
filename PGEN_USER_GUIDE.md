@@ -2431,6 +2431,7 @@ make -C rust SHELL=/bin/bash sv_formal_exhaustive_closure_gate
 
 SV preprocessor formal exhaustive-closure surface command:
 ```bash
+make -C rust SHELL=/bin/bash sv_preprocessor_zero_plausible_gap_proof_gate
 make -C rust SHELL=/bin/bash sv_preprocessor_formal_exhaustive_closure_gate
 ```
 

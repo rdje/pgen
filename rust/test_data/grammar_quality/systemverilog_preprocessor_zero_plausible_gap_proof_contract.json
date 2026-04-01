@@ -1,0 +1,21 @@
+{
+  "family": "systemverilog_preprocessor",
+  "version": 1,
+  "description": "Explicit zero-plausible-gap proof whitelist for the SystemVerilog preprocessor formal-closure surface.",
+  "grammar_name": "systemverilog_preprocessor",
+  "entry_rule": "systemverilog_preprocessor_file",
+  "done_rule": "Done requires a machine-checkable proof that all remaining syntax-unreachable debt is confined to the helper-only trivia pocket while the retained aggregate and reachability sidecars still show zero reachable parser/gap debt.",
+  "allowed_unreachable_rules": [
+    "line_comment",
+    "trivia"
+  ],
+  "allowed_unreachable_branches": [
+    "branch::trivia::root/q#0",
+    "branch::trivia::root/q#1",
+    "branch::trivia::root/q#2"
+  ],
+  "required_unreachable_rule_reason": "unreachable_from_entry",
+  "required_unreachable_branch_rule_name": "trivia",
+  "required_unreachable_branch_reason": "unreachable_from_entry",
+  "helper_only_whitelist_detail": "SystemVerilog preprocessor zero-plausible-gap proof requires the syntax-unreachable surface to stay confined to the helper-only trivia pocket (`trivia` and its three branches) while the aggregate and reachability sidecars remain green."
+}

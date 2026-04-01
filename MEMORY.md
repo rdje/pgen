@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-01 (+0200, task: sv-preprocessor-focused-closure)
+Last updated: 2026-04-01 (+0200, task: sv-preprocessor-formal-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -38,18 +38,30 @@ Use this file to resume work without replaying full chat history.
     - `stage0_target_count=3`
     - `stage1_target_count=0`
     - `final_targets=0`
+- Retained SystemVerilog-preprocessor proof additions:
+  - [rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh](rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh)
+    - proves the syntax-unreachable surface is confined to the helper-only `trivia` pocket
+    - requires the retained aggregate and reachability sidecars to stay green
+  - [rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json](rust/test_data/grammar_quality/systemverilog_preprocessor_zero_plausible_gap_proof_contract.json)
+    - whitelists:
+      - rules `line_comment`, `trivia`
+      - branches `branch::trivia::root/q#0`, `#1`, `#2`
 - Current formal-closure truth for `systemverilog_preprocessor`:
-  - `make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`
-  - summary:
+  - `bash rust/scripts/sv_preprocessor_zero_plausible_gap_proof_gate.sh` with existing retained syntax / aggregate / reachability state dirs
+    - `syntax_preconditions_green=true`
+    - `aggregate_preconditions_green=true`
+    - `reachability_preconditions_green=true`
+    - `helper_only_unreachable_surface_green=true`
+    - `zero_plausible_grammar_level_gap_proof_surface=true`
+  - `bash rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh` with existing retained syntax / aggregate / reachability state dirs
     - `syntax_closure_surface_green=true`
     - `aggregate_contract_surface_green=true`
     - `reachability_closure_surface_green=true`
-    - `zero_plausible_grammar_level_gap_proof_surface=false`
-    - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=false`
-  - so the retained blocker is now only the missing explicit grammar-level zero-plausible-gap proof surface
-- Immediate next best SV-preprocessor task:
-  - preserve the new `33/33/0/0` no-regression baseline on the focused and aggregate lanes
-  - if continuing that family, work on the missing proof-surface promotion instead of reopening broad comment/tail hint experiments
+    - `zero_plausible_grammar_level_gap_proof_surface=true`
+    - `systemverilog_preprocessor_formal_exhaustive_closure_surface_green=true`
+- Immediate next best SV-family task:
+  - preserve the now-closed `systemverilog_preprocessor` proof stack as a no-regression baseline
+  - return active closure work to the remaining main `systemverilog` exhaustive-proof debt or broader Phase `S` work
 
 - Retained VHDL code changes now consist of four keepable pieces:
   - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
