@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-04-01 - Reduce VHDL replay debt with dependency-aware target driving
+### Achievement Summary
+Kept a narrow Rust-side VHDL generator improvement in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs). Targeted branches are no longer failure-throttled when all still-targeted referenced dependencies have zero success history, which reduced the focused VHDL replay debt from `11` to `9` on the retained `vhdl_stimuli_quality_gate` lane.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - `coverage_guidance_multiplier(...)` now detects still-targeted rule dependencies referenced by a branch
+  - the low-yield target-branch throttle is skipped only when those targeted dependencies all still have zero recorded success hits
+  - this keeps dependency-blocked targets probeable without reopening the previously rejected broad throttle relaxation
+- Added focused Rust regression test:
+  - `coverage_guidance_multiplier_preserves_dependency_blocked_target_branch`
+- Updated continuity / live steering docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Important proof-plumbing note discovered during validation:
+  - the direct quality gate is green on the new `9`-target baseline
+  - nested `vhdl_strict_promotion_gate` trials inside `vhdl_parser_family_contract_gate` are not currently reproducible enough to refresh the higher-level VHDL family sidecars automatically
+  - the exposed failure mode is adapter-backed `ast_pipeline` availability inside strict-promotion trials (`No matching compiled generated parser is available for grammar 'vhdl'`)
+
+### Validation
+- `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - passed with:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=9`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `parseability_generation_parser_rejections_total=0`
+- direct Rust unit regression:
+  - `rust/target/debug/deps/pgen-b24ff383e18e32ce ast_pipeline::stimuli_generator::tests::coverage_guidance_multiplier_preserves_dependency_blocked_target_branch --exact --nocapture`
+    - passed
+- exploratory family-contract refresh:
+  - `env PGEN_VHDL_FAMILY_CONTRACT_EXISTING_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/vhdl_stimuli_quality_gate make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_contract_gate`
+  - surfaced a separate strict-promotion proof-plumbing issue rather than a regression in the retained quality gate
+
 ## 2026-04-01 - Ship regex downstream maintenance release 1.1.2 for RGX blocker PGEN-RGX-0005
 ### Achievement Summary
 Regex handoff is now published as downstream maintenance release `1.1.2`. This closes RGX blocker `PGEN-RGX-0005` by adding named recursion-condition support in conditionals, so `(?(R&name)...)` now parses and transports through the published generated backend without changing regex AST schema version `1`.

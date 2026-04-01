@@ -1,16 +1,16 @@
 use super::{
-    ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
-    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
-    TraceVerbosity, UnifiedSemanticAST, UnifiedSemanticValue, extract_semantic_directive,
-    global_trace_verbosity, normalize_semantic_scalar, parse_canonical_transform_expression,
-    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
-    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
-    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
-    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_pattern,
-    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
-    stimuli_hint_for_target_type,
+    extract_semantic_directive, global_trace_verbosity, normalize_semantic_scalar,
+    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_branch_priorities,
+    parse_semantic_charset, parse_semantic_constraint_expression,
+    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
+    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
+    parse_semantic_numeric_bounds, parse_semantic_pattern, parse_semantic_reference_list,
+    parse_semantic_string_list, parse_semantic_token_class, stimuli_hint_for_target_type, ASTNode,
+    ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy,
+    SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel, TraceVerbosity,
+    UnifiedSemanticAST, UnifiedSemanticValue,
 };
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -2730,7 +2730,11 @@ impl<'a> StimuliGenerator<'a> {
                     return 0;
                 };
                 if token_type == "rule_reference" {
-                    if token_value == current_rule { 2 } else { 1 }
+                    if token_value == current_rule {
+                        2
+                    } else {
+                        1
+                    }
                 } else {
                     0
                 }
@@ -2805,6 +2809,22 @@ impl<'a> StimuliGenerator<'a> {
                 (0, 0)
             };
         let branch_target_deficit = self.branch_target_deficit(&group_key, branch_idx);
+        let mut rule_refs = HashSet::new();
+        self.collect_rule_references(branch_node, &mut rule_refs);
+        let targeted_dependency_refs: Vec<&str> = rule_refs
+            .iter()
+            .map(|rule_name| rule_name.as_str())
+            .filter(|rule_name| self.rule_target_deficit(rule_name) > 0)
+            .collect();
+        let blocked_on_zero_success_target_dependencies = !targeted_dependency_refs.is_empty()
+            && targeted_dependency_refs.iter().all(|rule_name| {
+                self.coverage
+                    .rule_success_hits
+                    .get(*rule_name)
+                    .copied()
+                    .unwrap_or(0)
+                    == 0
+            });
 
         let mut multiplier = 1u64;
         if success_hits == 0 {
@@ -2835,10 +2855,14 @@ impl<'a> StimuliGenerator<'a> {
             branch_node,
         ));
 
-        // Prevent target-driven mode from over-selecting branches that repeatedly fail parser-backed validation.
+        // Prevent target-driven mode from over-selecting branches that repeatedly fail parser-backed
+        // validation, but do not punish a branch solely because its still-targeted dependencies have
+        // never succeeded yet.
         if branch_target_deficit > 0 && selected_hits > 0 {
             let throttle = Self::target_branch_failure_throttle(selected_hits, success_hits);
-            multiplier = (multiplier / throttle).max(1);
+            if !blocked_on_zero_success_target_dependencies {
+                multiplier = (multiplier / throttle).max(1);
+            }
         }
 
         multiplier
@@ -3740,7 +3764,11 @@ impl<'a> StimuliGenerator<'a> {
         state ^= state >> 33;
         state = state.wrapping_mul(0xC4CE_B9FE_1A85_EC53);
         state ^= state >> 33;
-        if state == 0 { 1 } else { state }
+        if state == 0 {
+            1
+        } else {
+            state
+        }
     }
 
     fn relational_attempt_budget(&self) -> usize {
@@ -5690,24 +5718,18 @@ mod tests {
             .generate_gap_report(Some("start"), 1)
             .expect("gap report generation should succeed");
 
-        assert!(
-            report
-                .unreachable_rule_debt
-                .iter()
-                .any(|debt| debt.rule_name == "unreachable")
-        );
-        assert!(
-            report
-                .unreachable_branch_debt
-                .iter()
-                .any(|debt| debt.rule_name == "unreachable")
-        );
-        assert!(
-            report
-                .targets
-                .iter()
-                .all(|target| target.rule_name != "unreachable")
-        );
+        assert!(report
+            .unreachable_rule_debt
+            .iter()
+            .any(|debt| debt.rule_name == "unreachable"));
+        assert!(report
+            .unreachable_branch_debt
+            .iter()
+            .any(|debt| debt.rule_name == "unreachable"));
+        assert!(report
+            .targets
+            .iter()
+            .all(|target| target.rule_name != "unreachable"));
     }
 
     #[test]
@@ -5930,6 +5952,64 @@ mod tests {
             "low-yield target branch should be deemphasized once selection history shows poor parseability (low_yield={}, healthy={})",
             low_yield_multiplier,
             healthy_multiplier
+        );
+    }
+
+    #[test]
+    fn coverage_guidance_multiplier_preserves_dependency_blocked_target_branch() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "helper"),
+                    token("quoted_string", "R"),
+                ],
+            },
+        );
+        grammar_tree.insert("helper".to_string(), token("quoted_string", "H"));
+        let rule_order = vec!["start".to_string(), "helper".to_string()];
+
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 8911);
+        generator
+            .target_plan
+            .branch_thresholds
+            .entry("start::root".to_string())
+            .or_default()
+            .insert(0, 1);
+        generator
+            .target_plan
+            .rule_thresholds
+            .insert("helper".to_string(), 1);
+
+        let group = generator
+            .coverage
+            .branch_groups
+            .get_mut("start::root")
+            .expect("branch group should exist");
+        group.selected_counts = vec![64, 64];
+        group.success_counts = vec![0, 16];
+
+        let alternatives = match grammar_tree.get("start").expect("rule should exist") {
+            ASTNode::Or { alternatives } => alternatives,
+            other => panic!("expected OR node, got {:?}", other),
+        };
+
+        let blocked_multiplier =
+            generator.coverage_guidance_multiplier("start", "root", 0, &alternatives[0]);
+
+        generator
+            .coverage
+            .rule_success_hits
+            .insert("helper".to_string(), 1);
+        let throttled_multiplier =
+            generator.coverage_guidance_multiplier("start", "root", 0, &alternatives[0]);
+
+        assert!(
+            blocked_multiplier > throttled_multiplier,
+            "dependency-blocked target branches should not be throttled as harshly before their targeted dependency has any success history (blocked={}, throttled={})",
+            blocked_multiplier,
+            throttled_multiplier
         );
     }
 
@@ -6430,12 +6510,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9090);
@@ -6461,21 +6539,17 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "float_rule".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
+            }
+            .into()],
         );
         annotations.semantic_annotations.insert(
             "bool_rule".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
+            }
+            .into()],
         );
 
         let mut float_generator =
@@ -6502,12 +6576,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9094);
@@ -6526,12 +6598,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::TransformExpr {
-                    expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::TransformExpr {
+                expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9095);
@@ -6557,12 +6627,10 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![
-                UnifiedSemanticAST::Raw {
-                    content: "\"literal-token\"".to_string(),
-                }
-                .into(),
-            ],
+            vec![UnifiedSemanticAST::Raw {
+                content: "\"literal-token\"".to_string(),
+            }
+            .into()],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9093);
@@ -6634,8 +6702,7 @@ mod tests {
                 .semantic_annotations
                 .insert("start".to_string(), vec![annotation]);
 
-            let mut generator =
-                annotated_generator(&grammar_tree, &rule_order, &annotations, 9293);
+            let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9293);
             let values = generator
                 .generate_many(1, Some("start"))
                 .expect("literalish semantic hint generation should succeed");

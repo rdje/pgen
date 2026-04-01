@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-01 (+0200, task: regex-rgx-0005-named-recursion-condition)
+Last updated: 2026-04-01 (+0200, task: vhdl-dependency-aware-replay-reduction)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,52 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained a keepable VHDL generator-side improvement in [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - `coverage_guidance_multiplier(...)` now skips the low-yield target-branch throttle only when:
+    - the branch still has targeted referenced dependencies
+    - and all of those targeted dependencies still have zero success history
+  - this is intentionally narrower than the previously rejected broad target-throttle relaxation
+- Added focused Rust regression test:
+  - `ast_pipeline::stimuli_generator::tests::coverage_guidance_multiplier_preserves_dependency_blocked_target_branch`
+- Fresh retained VHDL quality-gate result:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash vhdl_stimuli_quality_gate`
+  - summary:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=9`
+    - `closed_loop_parseability_shadow_attempts_total=504`
+    - `closed_loop_parseability_shadow_accepted_total=504`
+    - `closed_loop_parseability_shadow_rejected_total=0`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `parseability_generation_attempts_total=8`
+    - `parseability_generation_accepted_total=8`
+    - `parseability_generation_rejected_total=0`
+    - `parseability_generation_parser_rejections_total=0`
+- Exact remaining replay-target set from `rust/target/vhdl_stimuli_quality_gate/logs/closed_loop_replay.log`:
+  - `trivia::root/q#1`
+  - `actual_parameter_element::root#1`
+  - `actual_part::root#0`
+  - `constraint::root#0`
+  - `discrete_range::root#0`
+  - `discrete_range::root#3`
+  - `sequential_statement::root#0`
+  - `sequential_statement::root#3`
+  - `sequential_statement::root#7`
+- Direct test proof for the new unit test:
+  - `rust/target/debug/deps/pgen-b24ff383e18e32ce ast_pipeline::stimuli_generator::tests::coverage_guidance_multiplier_preserves_dependency_blocked_target_branch --exact --nocapture`
+  - result: pass
+- Important adjacent finding:
+  - trying to refresh `vhdl_parser_family_contract_gate` with the fresh quality state exposed a separate nested proof-plumbing issue
+  - `vhdl_strict_promotion_gate` trial logs can still fail at `sample_0_generate_stimulus` with:
+    - `No matching compiled generated parser is available for grammar 'vhdl'`
+  - so the direct quality-gate improvement is real, but the higher-level VHDL family-contract/status sidecars were not refreshed in this slice
+- Next best VHDL proof task:
+  - make nested strict-promotion runs reliably consume the adapter-backed generated `ast_pipeline` build
+  - then rerun:
+    - `vhdl_parser_family_contract_gate`
+    - `vhdl_parser_family_status_gate`
+    - `vhdl_parser_family_status_contract_gate`
+    - `vhdl_combined_telemetry_contract_gate`
+
 - RGX issue intake now includes blocker report:
   - `../rgx/pgen-issues/PGEN-RGX-0005.yaml`
   - reproducer: `(?(R&word)a|b)`

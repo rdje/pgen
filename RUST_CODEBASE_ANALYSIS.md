@@ -1,6 +1,6 @@
 # RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-03-31
+Last updated: 2026-04-01
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -1332,8 +1332,23 @@ Operational rule:
 - `vhdl`
   - An env-driven generated-parser family with a comparatively cleaner parser-family seam than SV
   - In practice it is strongly coupled to quality/parseability, strict-promotion, and now a dedicated formal-exhaustive-closure proof surface
-  - The current machine-checked family-status row is still `In Progress`, but the blocker set is now narrower and cleaner than before: `9/10` closure criteria are satisfied, replay-shadow parser rejection debt is gone, and the only remaining tracked blocker is replay target debt (`11`) rather than missing proof plumbing
-  - The exact current replay-target debt set is now known and should drive the next closure slice directly:
+  - The current machine-checked family-status row is still `In Progress`, with `9/10` closure criteria satisfied and replay target debt as the only tracked blocker. The last fully refreshed family sidecars still report replay debt `11`, but a fresh direct `vhdl_stimuli_quality_gate` run on 2026-04-01 reduced the focused replay surface further to `9` without reintroducing parser rejections.
+  - Fresh direct VHDL quality proof on the retained Rust-side slice now records:
+    - `closed_loop_initial_targets=247`
+    - `closed_loop_replay_targets=9`
+    - `closed_loop_parseability_shadow_parser_rejections_total=0`
+    - `quality_parseability_generation_parser_rejections_total=0`
+  - The exact current focused replay-target debt set is now:
+    - `trivia#line_comment`
+    - `actual_parameter_element#range_expression`
+    - `actual_part#expression`
+    - `constraint#range_constraint`
+    - `discrete_range#subtype_indication kw_range range_expression`
+    - `discrete_range#downto`
+    - `sequential_statement#signal_assignment_statement`
+    - `sequential_statement#assert_statement`
+    - `sequential_statement#procedure_call_statement`
+  - The last fully refreshed family-sidecar replay-target cluster is still known and should continue to inform broader closure reasoning until strict-promotion proof plumbing is refreshed:
     - `trivia#line_comment`
     - `actual_parameter_element#range_expression`
     - `actual_part#expression`
@@ -1351,14 +1366,19 @@ Operational rule:
   - Two additional directions are now explicitly rejected rather than merely “not yet landed”:
     - a shared `stimuli_generator.rs` direct-probe rebias worsened replay debt from `11` to `30`
     - broader VHDL branch-steering experiments either worsened replay debt (`11 -> 17`) or made replay materially more expensive without yielding a keepable result
-  - The current preferred tactic for the remaining `11` replay targets is now the new branch-level triage tool instead of more blanket sample-hint sweeps:
+  - The current preferred tactic for the remaining VHDL replay targets is now the new branch-level triage tool plus targeted generator-side interventions instead of more blanket sample-hint sweeps:
     - [coverage_gap_triage.rs](rust/src/bin/coverage_gap_triage.rs) joins the gap report, coverage report, and grammar AST into one readable triage surface
     - the verified current VHDL run shows:
       - `trivia#line_comment` is a real selection-bias seam
       - `actual_parameter_element#range_expression` is part of a shared `range_expression` dependency failure
       - `actual_part#expression` is part of a shared `expression` dependency failure
+    - the latest retained generator-side win now reflects that diagnosis directly:
+      - dependency-blocked target branches are no longer failure-throttled before their still-targeted referenced rules record any success history
     - operational consequence:
       - future VHDL fixes should favor dependency-level or branch-specific interventions over more wide `@sample` bundles
+  - Important proof-plumbing caveat:
+    - nested `vhdl_strict_promotion_gate` trials are not yet reliably reusing the adapter-backed generated `ast_pipeline` build
+    - so the higher-level VHDL family-contract / family-status sidecars should not be described as refreshed to `9` replay targets until that nested strict-promotion seam is fixed
 - `regex`
   - An env-driven generated-parser family, but operationally closer to the EBNF frontend world than the HDL families
   - Dual-run/frontend/stimuli closure surfaces matter a lot here, so parser-family work often crosses into ingestion and diagnostic tooling

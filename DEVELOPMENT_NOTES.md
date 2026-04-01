@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-01 - VHDL replay reduction: keep dependency-aware target-branch relaxation, surface strict-promotion plumbing issue
+### Context
+The retained VHDL blocker had already narrowed to replay target debt only, with the preferred next seam coming from branch-level triage rather than more blanket grammar sweeps. The strongest current triage signals were:
+- `actual_parameter_element#range_expression`
+- `actual_part#expression`
+- `trivia#line_comment`
+
+The first two are dependency-shaped seams rather than obvious one-off parser rejects. That made the current `coverage_guidance_multiplier(...)` throttle suspect: target branches with repeated failures were being deemphasized even when all their still-targeted referenced dependencies had never succeeded once.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - collect rule references from the current target branch
+  - detect targeted dependency refs whose `rule_target_deficit(...) > 0`
+  - detect the specific blocked case where those targeted dependencies all still have `rule_success_hits == 0`
+  - skip the low-yield target-branch failure throttle only in that blocked case
+- Added focused regression test:
+  - `coverage_guidance_multiplier_preserves_dependency_blocked_target_branch`
+  - this pins the intended distinction:
+    - dependency-blocked targeted branches keep more weight
+    - ordinary repeatedly failing targeted branches are still throttled
+
+### What Was Verified
+- [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh) is green on the retained change.
+- Fresh quality summary on the kept slice:
+  - `closed_loop_initial_targets=247`
+  - `closed_loop_replay_targets=9`
+  - `closed_loop_parseability_shadow_attempts_total=504`
+  - `closed_loop_parseability_shadow_accepted_total=504`
+  - `closed_loop_parseability_shadow_rejected_total=0`
+  - `closed_loop_parseability_shadow_parser_rejections_total=0`
+  - `parseability_generation_attempts_total=8`
+  - `parseability_generation_accepted_total=8`
+  - `parseability_generation_rejected_total=0`
+  - `parseability_generation_parser_rejections_total=0`
+- The exact remaining replay-target set in `closed_loop_replay.log` is now:
+  - `trivia::root/q#1`
+  - `actual_parameter_element::root#1`
+  - `actual_part::root#0`
+  - `constraint::root#0`
+  - `discrete_range::root#0`
+  - `discrete_range::root#3`
+  - `sequential_statement::root#0`
+  - `sequential_statement::root#3`
+  - `sequential_statement::root#7`
+- Direct Rust regression proof:
+  - `rust/target/debug/deps/pgen-b24ff383e18e32ce ast_pipeline::stimuli_generator::tests::coverage_guidance_multiplier_preserves_dependency_blocked_target_branch --exact --nocapture`
+  - result: pass
+
+### Important Adjacent Finding
+- Attempting to refresh the higher-level VHDL family proof stack immediately exposed a separate proof-plumbing issue in nested strict-promotion trials.
+- `vhdl_parser_family_contract_gate` currently re-enters `vhdl_strict_promotion_gate`, which in turn reruns `vhdl_stimuli_quality_gate` trials.
+- In that nested path, trial logs can still fail at `sample_0_generate_stimulus` with:
+  - `No matching compiled generated parser is available for grammar 'vhdl'`
+- So the current retained truth is:
+  - the direct VHDL quality gate improvement is real and keepable
+  - the higher-level family-contract / family-status sidecars were not refreshed in this slice because nested strict-promotion reproducibility is not yet clean
+
+### Steering
+- Keep the dependency-aware throttle relaxation; it is a measured VHDL win.
+- Do not describe the VHDL family-contract / family-status sidecars as refreshed to `9` replay targets yet.
+- The next proof-normalization task on VHDL should be:
+  - make nested strict-promotion runs reliably consume the adapter-backed generated `ast_pipeline` build
+  - then refresh:
+    - `vhdl_parser_family_contract_gate`
+    - `vhdl_parser_family_status_gate`
+    - `vhdl_parser_family_status_contract_gate`
+    - `vhdl_combined_telemetry_contract_gate`
+
 ## 2026-04-01 - Regex blocker fix for RGX issue PGEN-RGX-0005
 ### Context
 RGX reported a new parser-side blocker under `../rgx/pgen-issues/PGEN-RGX-0005.yaml`. The failing reproducer was:
