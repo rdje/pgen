@@ -26810,3 +26810,19 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate_entry_context_refresh PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_svpp_done_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - practical retained consequence:
     - future proof-stack refreshes do not need a forced main-SV aggregate rebuild just because the aggregate summary predates the new entry-context keys
+- 2026-04-02: rejected a narrow main-`systemverilog` generator heuristic that forced a newline before any non-line-start `//...` segment.
+  - touched and reverted:
+    - `rust/src/ast_pipeline/stimuli_generator.rs`
+  - why it looked plausible:
+    - fresh main-SV counterexamples were still dominated by same-line comment poisoning around attribute instances plus `program` / `export` / `timeunit` seams
+  - exact adapter-backed direct probe result after the heuristic:
+    - `accepted=111`
+    - `rejected=69`
+    - `parser_rejections=69`
+    - `attempts=180`
+  - comparison against the previously retained direct probe baseline:
+    - regressed from `112/180 accepted, 68 parser rejects`
+    - to `111/180 accepted, 69 parser rejects`
+  - retained conclusion:
+    - broad newline insertion ahead of line comments is too blunt for main SV
+    - keep searching for a narrower generator/layout or grammar-local seam instead of retrying this heuristic

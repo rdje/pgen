@@ -8528,3 +8528,14 @@ Use this file to resume work without replaying full chat history.
   - practical rule:
     - do not force a fresh main-SV aggregate rebuild solely to populate those new keys in downstream summaries
     - only rebuild when the main-SV aggregate surface itself is the object under test
+- 2026-04-02: rejected main-SV memory item.
+  - bad path:
+    - forcing `\n` before any non-line-start `//...` segment in `StimuliGenerator::append_generated_segment(...)`
+  - evaluation command:
+    - adapter-backed direct probe using `rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+  - measured result:
+    - worsened the focused probe from `112 accepted / 68 parser rejects / 180 attempts`
+    - to `111 accepted / 69 parser rejects / 180 attempts`
+  - practical resume rule:
+    - do not treat all same-line line comments as the culprit
+    - the remaining main-SV seam is narrower than a global comment-newline normalization pass

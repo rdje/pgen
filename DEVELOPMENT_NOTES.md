@@ -27616,3 +27616,24 @@ Architectural north star:
     - reuse-backed `sv_combined_telemetry_contract_gate.sh` against `rust/target/sota_exit_gate_svpp_done_refresh`
   - practical resume rule:
     - if a future session sees `<none>` / `0` for main-SV entry-context fields in SOTA or combined telemetry while reusing older aggregate artifacts, treat that as expected compatibility behavior unless a fresh aggregate refresh has also been run
+- 2026-04-02: rejected a main-`systemverilog` line-comment separator heuristic in `rust/src/ast_pipeline/stimuli_generator.rs`.
+  - attempted behavior:
+    - if the next generated segment began with `//` and the current output was not already at line start, force `\n` before appending it
+  - why it was tried:
+    - fresh adapter-backed direct counterexamples still clustered around same-line comment poisoning near:
+      - `(* ... *)`
+      - `program`
+      - `export`
+      - `timeunit`
+  - exact adapter-backed repro path used for evaluation:
+    - rebuild `ast_pipeline` with:
+      - `PGEN_SYSTEMVERILOG_PARSER_PATH=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+      - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
+    - then run:
+      - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2023_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_report.json`
+  - outcome:
+    - regressed from the prior direct probe `112/180 accepted, 68 parser rejects`
+    - to `111/180 accepted, 69 parser rejects`
+  - resume rule:
+    - do not retry this broad newline-before-`//` heuristic blindly
+    - the main-SV seam is still narrower than “any same-line line comment”

@@ -1711,6 +1711,15 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - practical effect:
     - cheap reuse-backed proof refreshes stay viable even when the aggregate summary predates the new entry-context keys
     - do not waste a session rebuilding the full main-SV aggregate proof solely to make downstream summaries stop showing `<none>` / `0`
+- A fresh main-SV generator shortcut was tried and rejected.
+  - rejected idea:
+    - force a newline before any non-line-start `//...` segment in `StimuliGenerator::append_generated_segment(...)`
+  - retained evidence:
+    - adapter-backed direct probe regressed from `112/180 accepted, 68 parser rejects`
+    - to `111/180 accepted, 69 parser rejects`
+  - steering consequence:
+    - do not reopen the broad line-comment normalization path
+    - the remaining main-SV parser debt still needs a narrower seam than “newline all same-line comments”
 - VHDL still has useful local triage tooling if it ever needs to be revisited.
   - non-default `--entry-rule` plus `--validate-parseability` stays intentionally rejected in `ast_pipeline`; full-entry validation only
   - `coverage_gap_triage` plus `top_failure_reasons` remains the right resume surface if VHDL closure is reopened later
