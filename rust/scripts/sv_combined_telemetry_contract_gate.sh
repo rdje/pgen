@@ -742,10 +742,19 @@ sv_generation_counterexamples_count="$(extract_summary_value "$sv_parser_aggrega
 sv_generation_counterexample_triage_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_triage_json")"
 sv_generation_counterexample_triage_txt="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_triage_txt")"
 sv_generation_counterexample_unique_shrunk_samples="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_shrunk_samples")"
+sv_generation_counterexample_unique_primary_entry_rules="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_primary_entry_rules" "0")"
+sv_generation_counterexample_unique_generation_entry_rules="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_generation_entry_rules" "0")"
+sv_generation_counterexample_unique_entry_modes="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_unique_entry_modes" "0")"
 sv_generation_counterexample_primary_stage="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_stage")"
 sv_generation_counterexample_primary_stage_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_stage_count")"
 sv_generation_counterexample_primary_shrunk_sample="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_shrunk_sample")"
 sv_generation_counterexample_primary_shrunk_sample_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_shrunk_sample_count")"
+sv_generation_counterexample_primary_primary_entry_rule="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_primary_entry_rule" "<none>")"
+sv_generation_counterexample_primary_primary_entry_rule_count="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_primary_entry_rule_count" "0")"
+sv_generation_counterexample_primary_generation_entry_rule="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_generation_entry_rule" "<none>")"
+sv_generation_counterexample_primary_generation_entry_rule_count="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_generation_entry_rule_count" "0")"
+sv_generation_counterexample_primary_entry_mode="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_entry_mode" "<none>")"
+sv_generation_counterexample_primary_entry_mode_count="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_entry_mode_count" "0")"
 sv_generation_counterexample_primary_parser_error="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_parser_error")"
 sv_generation_counterexample_primary_parser_error_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_parser_error_count")"
 sv_generation_counterexample_primary_failure_location="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "generation_counterexample_primary_failure_location")"
@@ -765,10 +774,19 @@ sv_shadow_counterexamples_captured_total="$(extract_summary_value "$sv_parser_ag
 sv_shadow_counterexample_triage_json="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_triage_json")"
 sv_shadow_counterexample_triage_txt="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_triage_txt")"
 sv_shadow_counterexample_unique_shrunk_samples="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_shrunk_samples")"
+sv_shadow_counterexample_unique_primary_entry_rules="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_primary_entry_rules" "0")"
+sv_shadow_counterexample_unique_generation_entry_rules="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_generation_entry_rules" "0")"
+sv_shadow_counterexample_unique_entry_modes="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_unique_entry_modes" "0")"
 sv_shadow_counterexample_primary_stage="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_stage")"
 sv_shadow_counterexample_primary_stage_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_stage_count")"
 sv_shadow_counterexample_primary_shrunk_sample="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_shrunk_sample")"
 sv_shadow_counterexample_primary_shrunk_sample_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_shrunk_sample_count")"
+sv_shadow_counterexample_primary_primary_entry_rule="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_primary_entry_rule" "<none>")"
+sv_shadow_counterexample_primary_primary_entry_rule_count="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_primary_entry_rule_count" "0")"
+sv_shadow_counterexample_primary_generation_entry_rule="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_generation_entry_rule" "<none>")"
+sv_shadow_counterexample_primary_generation_entry_rule_count="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_generation_entry_rule_count" "0")"
+sv_shadow_counterexample_primary_entry_mode="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_entry_mode" "<none>")"
+sv_shadow_counterexample_primary_entry_mode_count="$(extract_summary_value_or_default "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_entry_mode_count" "0")"
 sv_shadow_counterexample_primary_parser_error="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_parser_error")"
 sv_shadow_counterexample_primary_parser_error_count="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_parser_error_count")"
 sv_shadow_counterexample_primary_failure_location="$(extract_summary_value "$sv_parser_aggregate_summary_txt" "shadow_counterexample_primary_failure_location")"
@@ -1141,6 +1159,18 @@ assert_equal \
     "$sv_generation_counterexample_unique_shrunk_samples" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_unique_shrunk_samples")"
 assert_equal \
+    "main SV generation unique primary entry rules" \
+    "$sv_generation_counterexample_unique_primary_entry_rules" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_unique_primary_entry_rules" "0")"
+assert_equal \
+    "main SV generation unique generation entry rules" \
+    "$sv_generation_counterexample_unique_generation_entry_rules" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_unique_generation_entry_rules" "0")"
+assert_equal \
+    "main SV generation unique entry modes" \
+    "$sv_generation_counterexample_unique_entry_modes" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_unique_entry_modes" "0")"
+assert_equal \
     "main SV generation primary stage" \
     "$sv_generation_counterexample_primary_stage" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_stage")"
@@ -1156,6 +1186,30 @@ assert_equal \
     "main SV generation primary shrunk sample count" \
     "$sv_generation_counterexample_primary_shrunk_sample_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_generation_counterexample_primary_shrunk_sample_count")"
+assert_equal \
+    "main SV generation primary primary entry rule" \
+    "$sv_generation_counterexample_primary_primary_entry_rule" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_primary_primary_entry_rule" "<none>")"
+assert_equal \
+    "main SV generation primary primary entry rule count" \
+    "$sv_generation_counterexample_primary_primary_entry_rule_count" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_primary_primary_entry_rule_count" "0")"
+assert_equal \
+    "main SV generation primary generation entry rule" \
+    "$sv_generation_counterexample_primary_generation_entry_rule" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_primary_generation_entry_rule" "<none>")"
+assert_equal \
+    "main SV generation primary generation entry rule count" \
+    "$sv_generation_counterexample_primary_generation_entry_rule_count" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_primary_generation_entry_rule_count" "0")"
+assert_equal \
+    "main SV generation primary entry mode" \
+    "$sv_generation_counterexample_primary_entry_mode" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_primary_entry_mode" "<none>")"
+assert_equal \
+    "main SV generation primary entry mode count" \
+    "$sv_generation_counterexample_primary_entry_mode_count" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_generation_counterexample_primary_entry_mode_count" "0")"
 assert_equal \
     "main SV generation primary parser error" \
     "$sv_generation_counterexample_primary_parser_error" \
@@ -1233,6 +1287,18 @@ assert_equal \
     "$sv_shadow_counterexample_unique_shrunk_samples" \
     "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_unique_shrunk_samples")"
 assert_equal \
+    "main SV shadow unique primary entry rules" \
+    "$sv_shadow_counterexample_unique_primary_entry_rules" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_unique_primary_entry_rules" "0")"
+assert_equal \
+    "main SV shadow unique generation entry rules" \
+    "$sv_shadow_counterexample_unique_generation_entry_rules" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_unique_generation_entry_rules" "0")"
+assert_equal \
+    "main SV shadow unique entry modes" \
+    "$sv_shadow_counterexample_unique_entry_modes" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_unique_entry_modes" "0")"
+assert_equal \
     "main SV shadow primary stage" \
     "$sv_shadow_counterexample_primary_stage" \
     "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_primary_stage")"
@@ -1248,6 +1314,30 @@ assert_equal \
     "main SV shadow primary shrunk sample count" \
     "$sv_shadow_counterexample_primary_shrunk_sample_count" \
     "$(extract_summary_value "$sota_summary_txt" "sv_shadow_counterexample_primary_shrunk_sample_count")"
+assert_equal \
+    "main SV shadow primary primary entry rule" \
+    "$sv_shadow_counterexample_primary_primary_entry_rule" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_primary_primary_entry_rule" "<none>")"
+assert_equal \
+    "main SV shadow primary primary entry rule count" \
+    "$sv_shadow_counterexample_primary_primary_entry_rule_count" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_primary_primary_entry_rule_count" "0")"
+assert_equal \
+    "main SV shadow primary generation entry rule" \
+    "$sv_shadow_counterexample_primary_generation_entry_rule" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_primary_generation_entry_rule" "<none>")"
+assert_equal \
+    "main SV shadow primary generation entry rule count" \
+    "$sv_shadow_counterexample_primary_generation_entry_rule_count" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_primary_generation_entry_rule_count" "0")"
+assert_equal \
+    "main SV shadow primary entry mode" \
+    "$sv_shadow_counterexample_primary_entry_mode" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_primary_entry_mode" "<none>")"
+assert_equal \
+    "main SV shadow primary entry mode count" \
+    "$sv_shadow_counterexample_primary_entry_mode_count" \
+    "$(extract_summary_value_or_default "$sota_summary_txt" "sv_shadow_counterexample_primary_entry_mode_count" "0")"
 assert_equal \
     "main SV shadow primary parser error" \
     "$sv_shadow_counterexample_primary_parser_error" \
@@ -2246,10 +2336,19 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "sv_generation_counterexample_triage_json: $sv_generation_counterexample_triage_json"
     echo "sv_generation_counterexample_triage_txt: $sv_generation_counterexample_triage_txt"
     echo "sv_generation_counterexample_unique_shrunk_samples: $sv_generation_counterexample_unique_shrunk_samples"
+    echo "sv_generation_counterexample_unique_primary_entry_rules: $sv_generation_counterexample_unique_primary_entry_rules"
+    echo "sv_generation_counterexample_unique_generation_entry_rules: $sv_generation_counterexample_unique_generation_entry_rules"
+    echo "sv_generation_counterexample_unique_entry_modes: $sv_generation_counterexample_unique_entry_modes"
     echo "sv_generation_counterexample_primary_stage: $sv_generation_counterexample_primary_stage"
     echo "sv_generation_counterexample_primary_stage_count: $sv_generation_counterexample_primary_stage_count"
     echo "sv_generation_counterexample_primary_shrunk_sample: $sv_generation_counterexample_primary_shrunk_sample"
     echo "sv_generation_counterexample_primary_shrunk_sample_count: $sv_generation_counterexample_primary_shrunk_sample_count"
+    echo "sv_generation_counterexample_primary_primary_entry_rule: $sv_generation_counterexample_primary_primary_entry_rule"
+    echo "sv_generation_counterexample_primary_primary_entry_rule_count: $sv_generation_counterexample_primary_primary_entry_rule_count"
+    echo "sv_generation_counterexample_primary_generation_entry_rule: $sv_generation_counterexample_primary_generation_entry_rule"
+    echo "sv_generation_counterexample_primary_generation_entry_rule_count: $sv_generation_counterexample_primary_generation_entry_rule_count"
+    echo "sv_generation_counterexample_primary_entry_mode: $sv_generation_counterexample_primary_entry_mode"
+    echo "sv_generation_counterexample_primary_entry_mode_count: $sv_generation_counterexample_primary_entry_mode_count"
     echo "sv_generation_counterexample_primary_parser_error: $sv_generation_counterexample_primary_parser_error"
     echo "sv_generation_counterexample_primary_parser_error_count: $sv_generation_counterexample_primary_parser_error_count"
     echo "sv_generation_counterexample_primary_failure_location: $sv_generation_counterexample_primary_failure_location"
@@ -2269,10 +2368,19 @@ generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "sv_shadow_counterexample_triage_json: $sv_shadow_counterexample_triage_json"
     echo "sv_shadow_counterexample_triage_txt: $sv_shadow_counterexample_triage_txt"
     echo "sv_shadow_counterexample_unique_shrunk_samples: $sv_shadow_counterexample_unique_shrunk_samples"
+    echo "sv_shadow_counterexample_unique_primary_entry_rules: $sv_shadow_counterexample_unique_primary_entry_rules"
+    echo "sv_shadow_counterexample_unique_generation_entry_rules: $sv_shadow_counterexample_unique_generation_entry_rules"
+    echo "sv_shadow_counterexample_unique_entry_modes: $sv_shadow_counterexample_unique_entry_modes"
     echo "sv_shadow_counterexample_primary_stage: $sv_shadow_counterexample_primary_stage"
     echo "sv_shadow_counterexample_primary_stage_count: $sv_shadow_counterexample_primary_stage_count"
     echo "sv_shadow_counterexample_primary_shrunk_sample: $sv_shadow_counterexample_primary_shrunk_sample"
     echo "sv_shadow_counterexample_primary_shrunk_sample_count: $sv_shadow_counterexample_primary_shrunk_sample_count"
+    echo "sv_shadow_counterexample_primary_primary_entry_rule: $sv_shadow_counterexample_primary_primary_entry_rule"
+    echo "sv_shadow_counterexample_primary_primary_entry_rule_count: $sv_shadow_counterexample_primary_primary_entry_rule_count"
+    echo "sv_shadow_counterexample_primary_generation_entry_rule: $sv_shadow_counterexample_primary_generation_entry_rule"
+    echo "sv_shadow_counterexample_primary_generation_entry_rule_count: $sv_shadow_counterexample_primary_generation_entry_rule_count"
+    echo "sv_shadow_counterexample_primary_entry_mode: $sv_shadow_counterexample_primary_entry_mode"
+    echo "sv_shadow_counterexample_primary_entry_mode_count: $sv_shadow_counterexample_primary_entry_mode_count"
     echo "sv_shadow_counterexample_primary_parser_error: $sv_shadow_counterexample_primary_parser_error"
     echo "sv_shadow_counterexample_primary_parser_error_count: $sv_shadow_counterexample_primary_parser_error_count"
     echo "sv_shadow_counterexample_primary_failure_location: $sv_shadow_counterexample_primary_failure_location"

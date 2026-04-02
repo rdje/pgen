@@ -27601,3 +27601,18 @@ Architectural north star:
     - the current reusable top-level `sv_stimuli_quality_gate` reports are lean and may omit embedded `counterexamples` arrays plus `counterexamples_captured_total`
     - aggregate proof now normalizes those omissions to empty/zero so reuse mode stays valid
     - until a fresh richer main-SV report is regenerated, the new entry-context summary fields can legitimately show `<none>` / `0`
+- 2026-04-02: downstream main-SV proof consumers now treat those new aggregate entry-context fields as optional on older reusable summaries.
+  - retained scripts:
+    - `rust/scripts/sota_exit_gate.sh`
+    - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - normalized defaults:
+    - unique-count / count fields => `0`
+    - dominant-value fields => `<none>`
+  - why this matters:
+    - `rust/target/sv_parser_aggregate_contract_gate_json_proof/summary.txt` can legitimately predate the entry-context expansion
+    - we still want cheap reuse-backed proof refreshes to stay green while the main-SV closure lane remains open
+  - verified cheap refreshes:
+    - reuse-backed `sota_exit_gate.sh` with `systemverilog_combined_telemetry_lightweight_v0.env`
+    - reuse-backed `sv_combined_telemetry_contract_gate.sh` against `rust/target/sota_exit_gate_svpp_done_refresh`
+  - practical resume rule:
+    - if a future session sees `<none>` / `0` for main-SV entry-context fields in SOTA or combined telemetry while reusing older aggregate artifacts, treat that as expected compatibility behavior unless a fresh aggregate refresh has also been run

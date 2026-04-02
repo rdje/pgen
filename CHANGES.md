@@ -26793,3 +26793,20 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - practical retained consequence:
     - the canonical cheap reuse surface for main-SV aggregate work is the top-level `rust/target/sv_stimuli_quality_gate`
     - old nested historical aggregate artifacts are not the right default reuse source
+- 2026-04-02: completed the downstream proof-stack compatibility pass for the new main-SV aggregate entry-context fields.
+  - retained script surface:
+    - `rust/scripts/sota_exit_gate.sh`
+    - `rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - why it was needed:
+    - older reusable `rust/target/sv_parser_aggregate_contract_gate_json_proof/summary.txt` artifacts do not yet carry the new entry-context keys
+    - downstream proof scripts must therefore treat those fields as incremental and backward-compatible, not mandatory
+  - retained behavior:
+    - `sota_exit_gate.sh` now normalizes missing main-SV entry-context fields to:
+      - counts / unique-counts => `0`
+      - value fields => `<none>`
+    - `sv_combined_telemetry_contract_gate.sh` now uses the same defaults when reading older aggregate summaries and when comparing against older SOTA summaries
+  - verified cheap refresh commands:
+    - `env PGEN_SOTA_POLICY_FILE=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env PGEN_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_entry_context_refresh PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_aggregate_contract_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_reachability_closure_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_formal_exhaustive_closure_gate PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_failure_context_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_roundtrip_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_gate PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_contract_gate bash rust/scripts/sota_exit_gate.sh`
+    - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate_entry_context_refresh PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_svpp_done_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - practical retained consequence:
+    - future proof-stack refreshes do not need a forced main-SV aggregate rebuild just because the aggregate summary predates the new entry-context keys

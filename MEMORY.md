@@ -8517,3 +8517,14 @@ Use this file to resume work without replaying full chat history.
     - current reusable top-level `sv_stimuli_quality_gate` reports are lean, so parser rejections can be present even when embedded `counterexamples` arrays are absent
     - the aggregate contract now treats missing `counterexamples` / `counterexamples_captured_total` as zero/empty
     - therefore `<none>` / `0` on the new entry-context fields is acceptable until a fresh richer main-SV artifact is built
+- 2026-04-02: downstream proof-stack memory update for those same main-SV entry-context fields.
+  - if `sota_exit_gate.sh` or `sv_combined_telemetry_contract_gate.sh` are reusing an older `sv_parser_aggregate_contract_gate_json_proof/summary.txt`, the new main-SV entry-context fields may be absent there
+  - retained compatibility defaults:
+    - counts => `0`
+    - values => `<none>`
+  - verified cheap commands:
+    - `env PGEN_SOTA_POLICY_FILE=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env ... bash rust/scripts/sota_exit_gate.sh`
+    - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate_entry_context_refresh PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_svpp_done_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+  - practical rule:
+    - do not force a fresh main-SV aggregate rebuild solely to populate those new keys in downstream summaries
+    - only rebuild when the main-SV aggregate surface itself is the object under test

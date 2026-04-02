@@ -1704,6 +1704,13 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - important compatibility rule:
     - current reusable `sv_stimuli_quality_gate` reports may be lean and omit embedded `counterexamples`
     - aggregate proof now normalizes those omissions to zero/empty, so `<none>` / `0` on the new entry-context fields is acceptable on lean artifacts
+- Downstream SOTA/combined-telemetry proof refreshes are now aligned with that incremental aggregate surface.
+  - `rust/scripts/sota_exit_gate.sh` and `rust/scripts/sv_combined_telemetry_contract_gate.sh` now default missing main-SV entry-context fields from older aggregate summaries to:
+    - `0` for counts
+    - `<none>` for dominant-value fields
+  - practical effect:
+    - cheap reuse-backed proof refreshes stay viable even when the aggregate summary predates the new entry-context keys
+    - do not waste a session rebuilding the full main-SV aggregate proof solely to make downstream summaries stop showing `<none>` / `0`
 - VHDL still has useful local triage tooling if it ever needs to be revisited.
   - non-default `--entry-rule` plus `--validate-parseability` stays intentionally rejected in `ast_pipeline`; full-entry validation only
   - `coverage_gap_triage` plus `top_failure_reasons` remains the right resume surface if VHDL closure is reopened later
