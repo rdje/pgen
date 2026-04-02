@@ -80,6 +80,7 @@ callable_identifier := non_keyword_identifier
 
 simple_identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
 
+@sample: "\\foo "
 escaped_identifier := trivia /\\[!-~]+/
 
 number := real_number | integral_number

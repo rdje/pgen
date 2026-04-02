@@ -1720,6 +1720,16 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - steering consequence:
     - do not reopen the broad line-comment normalization path
     - the remaining main-SV parser debt still needs a narrower seam than “newline all same-line comments”
+- The current best retained main-SV stimuli seam is `escaped_identifier`, not global comment handling.
+  - retained change:
+    - `grammars/systemverilog.ebnf`
+    - `@sample: "\\foo "` above `escaped_identifier := trivia /\\[!-~]+/`
+  - retained evidence:
+    - adapter-backed direct probe improved from `111/180 accepted, 69 parser rejects`
+    - to `123/181 accepted, 58 parser rejects`
+  - steering consequence:
+    - the next honest main-SV step is a full `sv_stimuli_quality_gate` rerun to see whether that focused win survives the retained proof lane
+    - until that rerun lands, treat this as a focused direct-lane improvement, not a refreshed main-SV status row
 - VHDL still has useful local triage tooling if it ever needs to be revisited.
   - non-default `--entry-rule` plus `--validate-parseability` stays intentionally rejected in `ast_pipeline`; full-entry validation only
   - `coverage_gap_triage` plus `top_failure_reasons` remains the right resume surface if VHDL closure is reopened later

@@ -4115,6 +4115,17 @@ Why `rtl_frontend` exists:
   - compatibility rule:
     - reusable main-SV quality reports may be lean and omit embedded `counterexamples` arrays
     - aggregate proof must normalize those omissions to zero/empty rather than failing reuse mode
+- The current main-SV front-of-queue grammar seam is now narrower too.
+  - retained focused win:
+    - `grammars/systemverilog.ebnf`
+    - `escaped_identifier` carries `@sample: "\\foo "`
+  - why this seam is now preferred:
+    - the direct adapter-backed probe improved from `111/180 accepted, 69 parser rejects`
+    - to `123/181 accepted, 58 parser rejects`
+    - after steering away from delimiter-hostile escaped identifiers inside attribute contexts
+  - roadmap consequence:
+    - the next main-SV task should be a full `sv_stimuli_quality_gate` refresh on top of this retained hint
+    - do not spend another slice on broad comment-normalization heuristics before that retained gate rerun
 - VHDL remains resumable if needed later, but not as the current front-of-queue closure lane.
   - if VHDL is reopened, keep using branch-level probes only as generation-shape evidence
   - non-default `--entry-rule` parseability validation stays intentionally blocked because validation still flows through the full grammar entry

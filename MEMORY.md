@@ -8539,3 +8539,18 @@ Use this file to resume work without replaying full chat history.
   - practical resume rule:
     - do not treat all same-line line comments as the culprit
     - the remaining main-SV seam is narrower than a global comment-newline normalization pass
+- 2026-04-02: retained main-SV memory item.
+  - current best focused seam:
+    - `grammars/systemverilog.ebnf`
+    - `escaped_identifier` now has `@sample: "\\foo "`
+  - focused proof:
+    - adapter-backed direct probe improved from:
+      - `111 accepted / 69 parser rejects / 180 attempts`
+    - to:
+      - `123 accepted / 58 parser rejects / 181 attempts`
+  - important caveat:
+    - the full `sv_stimuli_quality_gate` refresh was started and then deliberately stopped during `profile_2017_closed_loop_replay`
+    - do not claim a refreshed main-SV family status from this slice alone
+  - practical resume rule:
+    - next main-SV step is to rerun `sv_stimuli_quality_gate`
+    - only after that should aggregate/status docs be refreshed

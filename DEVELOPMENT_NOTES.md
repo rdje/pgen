@@ -27637,3 +27637,24 @@ Architectural north star:
   - resume rule:
     - do not retry this broad newline-before-`//` heuristic blindly
     - the main-SV seam is still narrower than “any same-line line comment”
+- 2026-04-02: retained a stimuli-only main-`systemverilog` `escaped_identifier` sample hint.
+  - changed grammar surface:
+    - `grammars/systemverilog.ebnf`
+  - retained hint:
+    - `@sample: "\\foo "`
+    - applied directly above `escaped_identifier := trivia /\\[!-~]+/`
+  - why this is the current best seam:
+    - the fresh direct counterexamples repeatedly generated escaped identifiers inside attribute contexts that absorbed delimiter-looking text and poisoned parseability, e.g. `(*\KN*)`, `(*\g*)`, `(*\Qc...)`
+  - focused validation path:
+    - run `rust/target/debug/ast_pipeline` against `grammars/systemverilog.ebnf`
+    - keep the adapter parser fixed at `rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+    - compare `/tmp/sv_target_drive_probe_report.json` against `/tmp/sv_target_drive_probe_after_escape_sample_report.json`
+  - retained result:
+    - improved from `111/180 accepted, 69 parser rejects`
+    - to `123/181 accepted, 58 parser rejects`
+  - important caveat:
+    - a full `make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate` refresh was started but intentionally stopped during `profile_2017_closed_loop_replay`
+    - therefore this slice should be treated as a retained focused-lane win, not a full proof-stack refresh
+  - next resume step:
+    - rerun the full `sv_stimuli_quality_gate`
+    - if that keeps the win, then refresh the main-SV aggregate/status stack

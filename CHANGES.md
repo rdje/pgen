@@ -26826,3 +26826,26 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained conclusion:
     - broad newline insertion ahead of line comments is too blunt for main SV
     - keep searching for a narrower generator/layout or grammar-local seam instead of retrying this heuristic
+- 2026-04-02: retained a narrow stimuli-only main-`systemverilog` steering hint on `escaped_identifier`.
+  - changed:
+    - `grammars/systemverilog.ebnf`
+  - retained shape:
+    - `escaped_identifier` now carries `@sample: "\\foo "`
+    - parser acceptance is unchanged; this is a generator-steering slice only
+  - why it was tried:
+    - fresh adapter-backed counterexamples were repeatedly generating delimiter-hostile escaped identifiers inside attribute contexts, e.g. `(*\KN*)` / `(*\g*)` / `(*\Qc...)`
+  - exact focused validation:
+    - adapter-backed direct repro against `rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+    - baseline:
+      - `accepted=111`
+      - `rejected=69`
+      - `parser_rejections=69`
+      - `attempts=180`
+    - after retained hint:
+      - `accepted=123`
+      - `rejected=58`
+      - `parser_rejections=58`
+      - `attempts=181`
+  - practical retained consequence:
+    - this is the current best main-SV stimuli-side seam
+    - a full `sv_stimuli_quality_gate` refresh was started but intentionally stopped during `profile_2017_closed_loop_replay` once the focused direct win was established, so no top-level status row changed in this slice
