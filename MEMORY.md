@@ -8670,3 +8670,23 @@ Use this file to resume work without replaying full chat history.
   - next honest resume step:
     - rerun `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
     - if that completes, refresh the broader main-SV external-corpus evidence instead of reopening this call grammar seam by instinct
+- 2026-04-04: future PNR parser backlog is now explicitly recorded.
+  - concrete downstream demand currently named by the sibling PNR project:
+    - LEF
+    - DEF
+    - Liberty
+    - SDC
+  - local supporting reference already available in this repo:
+    - `docs/tcl/md/tcl.md`
+  - practical architecture rule for later:
+    - treat SDC as Tcl-shaped first
+    - preferred future split is:
+      - `tcl.ebnf`
+      - `sdc.ebnf`
+    - LEF and DEF should still land as their own standalone grammar families
+  - important continuity caveat:
+    - this is backlog capture only
+    - do not infer that LEF/DEF/Tcl work has started
+    - current live rows remain:
+      - Liberty `Not Started`
+      - SDC `Not Started`

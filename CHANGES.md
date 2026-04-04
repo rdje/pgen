@@ -26970,3 +26970,20 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained consequence:
     - `rtl_frontend` is no longer grammar-less at the tracked-doc level
     - the next Phase S step is generating and wiring `generated/rtl_frontend_parser.rs`, not inventing the grammar from scratch
+- 2026-04-04: recorded a future PNR parser backlog note without starting implementation.
+  - retained downstream demand:
+    - sibling PNR work will need parser families for:
+      - LEF
+      - DEF
+      - Liberty
+      - SDC
+  - retained architecture guidance:
+    - SDC should be treated as Tcl-shaped rather than as a totally unrelated syntax family
+    - local Tcl syntax notes already exist under `docs/tcl/md/tcl.md`
+    - when parser capacity opens up, the likely durable split is:
+      - `tcl.ebnf`
+      - `sdc.ebnf`
+      - plus standalone `lef.ebnf` / `def.ebnf`
+  - explicit scope:
+    - this was continuity/backlog capture only
+    - no grammar file, parser crate, or live status row was started by this note

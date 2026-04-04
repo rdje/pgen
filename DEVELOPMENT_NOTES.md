@@ -27843,3 +27843,21 @@ Architectural north star:
     - generate `generated/rtl_frontend_parser.rs` from the new grammar
     - wire the parser into the build/registry surface
     - then start focused parity checks against the handwritten `rtl_frontend` crate instead of broad speculative grammar expansion
+- 2026-04-04: captured future PNR parser demand as continuity only, not active implementation.
+  - demand source:
+    - sibling PNR requirements currently call for:
+      - LEF
+      - DEF
+      - Liberty
+      - SDC
+    - local PGEN docs already also carry Tcl syntax notes at:
+      - `docs/tcl/md/tcl.md`
+  - retained architectural read:
+    - SDC should not be approached as an isolated one-off grammar first
+    - the more durable shape is:
+      - `tcl.ebnf` for the shared command/word/substitution/comment structure
+      - `sdc.ebnf` for the constrained SDC command subset and semantics
+    - LEF and DEF remain their own industrial file-format families and should likely land as separate flattened grammars
+  - why this was recorded now:
+    - the demand is concrete enough that it should survive crash/resume as tracked intent instead of living only in chat history
+    - but there is no claim here that parser work has started or that the current active parser lanes should be interrupted
