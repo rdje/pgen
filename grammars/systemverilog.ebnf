@@ -1235,6 +1235,11 @@ direct_method_call := method_call_root dot method_call_body
 @branch_policy: priority_first
 method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen | method_identifier attribute_instance*
 
+@branch_policy: priority_first
+callable_method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen
+
+direct_callable_method_call := method_call_root dot callable_method_call_body
+
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := primary_literal | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
 
@@ -1244,6 +1249,9 @@ method_call_receiver_sv_2023 := primary_literal | ( kw_class_qualifier_fa08937d 
 method_call_receiver := method_call_receiver_sv_2017 | method_call_receiver_sv_2023
 
 method_call_root := method_call_receiver | implicit_class_handle
+
+@branch_policy: priority_first
+call_primary := direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | system_tf_call
 
 method_identifier := declaration_identifier
 
@@ -1605,10 +1613,10 @@ port_identifier := declaration_identifier
 port_reference := port_identifier constant_select
 
 @profiles: ["sv_2017"]
-primary_sv_2017 := primary_literal | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | function_subroutine_call | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
+primary_sv_2017 := primary_literal | call_primary | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | function_subroutine_call | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
 
 @profiles: ["sv_2023"]
-primary_sv_2023 := primary_literal | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | function_subroutine_call ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
+primary_sv_2023 := primary_literal | call_primary ( lbrack range_expression rbrack )? | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | function_subroutine_call ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
 
 primary := primary_sv_2017 | primary_sv_2023
 
@@ -2104,7 +2112,12 @@ task_prototype := task_prototype_sv_2017 | task_prototype_sv_2023
 
 terminal_identifier := identifier
 
-tf_call := ps_or_hierarchical_tf_identifier attribute_instance* ( lparen list_of_arguments rparen )?
+plain_tf_call_with_args := tf_identifier attribute_instance* lparen list_of_arguments rparen
+
+tf_call_with_args := ps_or_hierarchical_tf_identifier attribute_instance* lparen list_of_arguments rparen
+
+@branch_policy: priority_first
+tf_call := plain_tf_call_with_args | tf_call_with_args | ps_or_hierarchical_tf_identifier attribute_instance*
 
 tf_identifier := callable_identifier
 
@@ -2286,7 +2299,7 @@ var_data_type := data_type | kw_var_e5b4e786 data_type_or_implicit
 
 variable_assignment := variable_lvalue assign expression
 
-variable_decl_assignment := variable_identifier variable_dimension* ( assign expression )? | dynamic_array_variable_identifier unsized_dimension variable_dimension* ( assign dynamic_array_new )? | class_variable_identifier ( assign class_new )?
+variable_decl_assignment := variable_identifier !lparen variable_dimension* ( assign expression )? | dynamic_array_variable_identifier unsized_dimension variable_dimension* ( assign dynamic_array_new )? | class_variable_identifier ( assign class_new )?
 
 variable_dimension := unsized_dimension | unpacked_dimension | associative_dimension | queue_dimension
 
@@ -3143,4 +3156,7 @@ known_unscoped_class_scoped_call_interface_class_identifier := class_identifier
 scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier
 
 class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
-class_scoped_tf_call := class_scoped_call_prefix tf_identifier attribute_instance* ( lparen list_of_arguments rparen )?
+class_scoped_tf_call_with_args := class_scoped_call_prefix tf_identifier attribute_instance* lparen list_of_arguments rparen
+
+@branch_policy: priority_first
+class_scoped_tf_call := class_scoped_tf_call_with_args | class_scoped_call_prefix tf_identifier attribute_instance*

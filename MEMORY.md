@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-04 (+0200, task: verilog-extracted-audit-alignment)
+Last updated: 2026-04-04 (+0200, task: systemverilog-call-expression-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,49 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained SystemVerilog main-parser hardening:
+  - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+  - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+    - added explicit call-shaped front-door rules:
+      - `callable_method_call_body`
+      - `direct_callable_method_call`
+      - `call_primary`
+      - `plain_tf_call_with_args`
+      - `tf_call_with_args`
+      - `class_scoped_tf_call_with_args`
+    - `primary_sv_2017` / `primary_sv_2023` now route explicit call-shaped forms through `call_primary`
+    - `tf_call` and `class_scoped_tf_call` now prefer explicit-paren forms before their bare callable-identifier fallbacks
+    - retained declaration-side ambiguity guard:
+      - `variable_decl_assignment := variable_identifier !lparen ...`
+- Fresh retained focused validation:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+    - passed
+    - `rule_count=1436`
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+    - passed
+    - `rule_count=1384`
+  - focused parseability probes now pass for:
+    - `x = foo();`
+    - `initial begin foo(); end`
+    - `void'(foo());`
+    - package/task bodies containing `foo();`
+    - package/task bodies containing `void'(foo(path, value));`
+    - the reduced UVM helper-task slice
+    - `/tmp/uvm_pkg_body_prefix_500.sv`
+- Important current limitation:
+  - still failing focused call shapes:
+    - `obj.foo();`
+    - `x = obj.foo();`
+    - `pkg::foo();` as a statement
+  - focused rerun of `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+    - rebuilt and preprocessed cleanly
+    - reached deep active `case_uvm_pkg_2017_parse_full`
+    - was intentionally stopped after several minutes, so no fresh top-level `parse_pass_total` / `parse_fail_total` should be claimed from that rerun
+- Immediate next best follow-up for this slice:
+  - keep working the scoped/object-call family
+  - then rerun the focused UVM external-corpus gate to completion
+  - if that finishes cleanly or with a fresh honest failure offset, refresh the broader SV aggregate/status proof surfaces as warranted
+
 - Retained Verilog-2005 extracted snapshot contract-alignment:
   - [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf)
     - now has explicit top-level wrapper:

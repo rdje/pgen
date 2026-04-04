@@ -27700,3 +27700,63 @@ Architectural north star:
   - next resume step:
     - rerun the full `sv_stimuli_quality_gate`
     - if that keeps the win, then refresh the main-SV aggregate/status stack
+- 2026-04-04: focused UVM parser debugging narrowed another real main-`systemverilog` false-negative cluster to the scoped/object-call family.
+  - root cause:
+    - plain unscoped call-shaped forms such as `foo()`, `foo(a, b)`, and `void'(foo(...))` were still competing with overly permissive fallback surfaces
+    - the old optional-paren `tf_call` and `class_scoped_tf_call` fronts made it too easy for the grammar to treat callable identifiers as the bare form first and only discover the real `(...)` later
+    - declaration-side ambiguity also still mattered in task/package bodies because `variable_decl_assignment` could start with the same identifier prefix as a call statement
+  - retained grammar fix:
+    - in both:
+      - `grammars/systemverilog.ebnf`
+      - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+    - added:
+      - `callable_method_call_body`
+      - `direct_callable_method_call`
+      - `call_primary`
+      - `plain_tf_call_with_args`
+      - `tf_call_with_args`
+      - `class_scoped_tf_call_with_args`
+    - changed:
+      - `primary_sv_2017` now routes explicit call-shaped forms through `call_primary`
+      - `primary_sv_2023` now routes explicit call-shaped forms through `call_primary ( lbrack range_expression rbrack )?`
+      - `tf_call` now prefers:
+        - `plain_tf_call_with_args`
+        - `tf_call_with_args`
+        - then the bare callable fallback
+      - `class_scoped_tf_call` now prefers:
+        - `class_scoped_tf_call_with_args`
+        - then the bare callable fallback
+      - `variable_decl_assignment` retains `!lparen` on the leading `variable_identifier`
+  - why this shape was kept:
+    - it gives parenthesized call forms an explicit front door without regressing the existing bare-callable identifier usage that other grammar surfaces still rely on
+    - it keeps the ambiguity reduction narrow and grammar-local rather than introducing another broad keyword or statement-level exclusion sweep
+  - fresh retained focused validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - passed
+      - `rule_count=1436`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - passed
+      - `rule_count=1384`
+    - focused parseability probes now pass for:
+      - `initial x = foo();`
+      - `initial begin foo(); end`
+      - `initial void'(foo());`
+      - package/task bodies with `foo();`
+      - package/task bodies with `void'(foo(path, value));`
+      - the reduced UVM helper-task slice
+      - `/tmp/uvm_pkg_body_prefix_500.sv`
+  - retained remaining focused failures:
+    - `initial obj.foo();`
+    - `initial x = obj.foo();`
+    - `initial pkg::foo();`
+  - broader-corpus follow-up attempted:
+    - reran:
+      - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+    - retained honest result:
+      - rebuild stages completed
+      - preprocess stages completed
+      - `case_uvm_pkg_2017_parse_full` ran deep and hot instead of failing immediately
+      - the rerun was intentionally stopped after several minutes, so it should be treated as evidence that the frontier moved deeper, not as a fresh top-level gate pass/fail summary
+  - next resume rule:
+    - continue on the scoped/object-call family first
+    - then rerun the focused UVM external-corpus gate to completion before claiming a new representative external-corpus summary

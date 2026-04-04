@@ -26878,3 +26878,42 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - practical retained consequence:
     - this is the current best main-SV stimuli-side seam
     - a full `sv_stimuli_quality_gate` refresh was started but intentionally stopped during `profile_2017_closed_loop_replay` once the focused direct win was established, so no top-level status row changed in this slice
+- 2026-04-04: hardened the active `systemverilog` call-expression fronts for the remaining focused UVM package parser lane.
+  - changed:
+    - `grammars/systemverilog.ebnf`
+    - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - retained grammar shape:
+    - added `callable_method_call_body` / `direct_callable_method_call`
+    - added `call_primary`
+    - split explicit-paren call forms into:
+      - `plain_tf_call_with_args`
+      - `tf_call_with_args`
+      - `class_scoped_tf_call_with_args`
+    - made `tf_call` and `class_scoped_tf_call` prefer explicit-paren forms before their bare callable-identifier fallbacks
+    - kept the narrow declaration-side ambiguity guard:
+      - `variable_decl_assignment := variable_identifier !lparen ...`
+  - validated:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - passed
+      - `rule_count=1436`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - passed
+      - `rule_count=1384`
+    - focused parseability probes now pass for:
+      - `x = foo();`
+      - `initial begin foo(); end`
+      - `void'(foo());`
+      - package/task bodies containing `foo();`
+      - package/task bodies containing `void'(foo(path, value));`
+      - the reduced UVM helper-task slice
+      - `/tmp/uvm_pkg_body_prefix_500.sv`
+  - still-open focused parser debt:
+    - `obj.foo();`
+    - `x = obj.foo();`
+    - `pkg::foo();` as a statement
+  - broader gate status:
+    - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+      - rebuilt cleanly
+      - preprocessed cleanly
+      - reached a deep active `case_uvm_pkg_2017_parse_full` phase instead of the earlier immediate rejection path
+      - was intentionally stopped after several minutes, so no fresh top-level `parse_pass_total` / `parse_fail_total` summary is claimed from that rerun
