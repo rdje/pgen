@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-04 - Align the Verilog-2005 extracted snapshot with the cross-grammar return-annotation audit
+### Achievement Summary
+Kept the canonical extracted Verilog-2005 snapshot usable while making it compatible with the repository-wide standalone return-annotation contract. [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf) now carries an explicit top-level file wrapper annotation and quotes the `event_trigger` literal `->`, which removes the old false-positive collision with the parser-registry return-annotation audit without changing the intended Verilog token.
+
+### Scope of Changes
+- Updated [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf):
+  - added top-level wrapper rule `verilog_2005_lrm_extracted_file := source_text` with standalone return annotation
+  - changed `event_trigger` to use the quoted literal `"->"` instead of a bare leading `->`
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is a contract-alignment / artifact-hardening slice, not a parser-family closure promotion
+
+### Validation
+- `perl tools/ebnf_to_json.pl --validate-only grammars/verilog_2005_lrm_extracted.ebnf`
+  - passed with `509` rules
+- tracked standalone return-annotation payload audit
+  - `return_annotation_generated_audit: audited_unique_samples=110`
+- missing tracked standalone return-annotation files audit
+  - passed with no missing tracked grammar files
+- `git diff --check`
+- Attempted but not claimed green:
+  - `make -C rust SHELL=/bin/bash return_annotation_support_gate`
+  - in this environment the `parser_registry` libtest process stalled before user-code execution, so the commit keeps the content fix and records the remaining harness-level verification limitation honestly
+
 ## 2026-04-02 - Align steering docs with closed VHDL status
 ### Achievement Summary
 No parser behavior changed in this slice. The retained improvement is continuity: the top-level steering docs no longer describe `vhdl` as an active closure family now that the machine-checked live row is already `Done`.

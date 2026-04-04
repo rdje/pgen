@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-02 (+0200, task: steering-align-vhdl-closed)
+Last updated: 2026-04-04 (+0200, task: verilog-extracted-audit-alignment)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,28 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained Verilog-2005 extracted snapshot contract-alignment:
+  - [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf)
+    - now has explicit top-level wrapper:
+      - `verilog_2005_lrm_extracted_file := source_text`
+      - `-> {type: "verilog_2005_lrm_extracted_file", source_text: $1}`
+    - `event_trigger` now quotes the literal `"->"` so the parser-registry standalone return-annotation audit no longer mistakes that token line for a shaping annotation payload
+- Fresh retained validation:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/verilog_2005_lrm_extracted.ebnf`
+    - passed
+    - `rule_count=509`
+  - tracked standalone return-annotation payload audit
+    - `audited_unique_samples=110`
+  - tracked missing-annotation audit
+    - no tracked grammar files missing standalone `->`
+- Important current limitation:
+  - attempted `make -C rust SHELL=/bin/bash return_annotation_support_gate`
+  - in this environment the `parser_registry` libtest binary stalled before observable user-code execution and had to be stopped
+  - treat that as a harness-level verification blocker, not as evidence that the Verilog content fix is wrong
+- Immediate next best follow-up for this slice:
+  - debug the `cargo test --features generated_parsers --lib parser_registry --quiet` startup stall if end-to-end proof is needed
+  - do not reopen the Verilog grammar content first unless a new concrete payload failure appears
+
 - Continuity steering correction:
   - do not treat `vhdl` as active closure work anymore
   - the current machine-checked no-regression baselines are:

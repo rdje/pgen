@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-04 - Verilog-2005 extracted snapshot: restore parser-registry contract compatibility
+### Context
+The canonical extracted Verilog-2005 snapshot was still frontend-valid, but it had drifted out of alignment with the repository-wide standalone return-annotation audit in [rust/src/parser_registry.rs](rust/src/parser_registry.rs). Two separate issues were involved:
+- `event_trigger` began with a bare leading `->`, which the audit misread as a standalone return annotation payload rather than as a Verilog literal token
+- unlike the other extracted snapshot grammars, [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf) had no explicit top-level standalone `->` return annotation at all, so once the false positive was removed the file became the only tracked grammar missing the baseline shaping marker
+
+### What Was Changed
+- Updated [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf):
+  - added:
+    - `verilog_2005_lrm_extracted_file ::=`
+    - `    source_text`
+    - `-> {type: "verilog_2005_lrm_extracted_file", source_text: $1}`
+  - changed `event_trigger` from bare `-> hierarchical_event_identifier ...` to quoted `"->" hierarchical_event_identifier ...`
+- Updated continuity / tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- This keeps the extracted Verilog artifact usable for frontend validation and snapshot/reference work.
+- It also keeps the cross-grammar return-AST shaping contract honest:
+  - the Verilog file now has a deliberate standalone shaping annotation instead of accidentally satisfying the audit via a token literal
+  - the old false-positive invalid payload `hierarchical_event_identifier { [ expression ] } ; ;` is gone
+- The task does not change any parser-family live-status row by itself.
+
+### What Was Verified
+- [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf) still frontend-validates:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/verilog_2005_lrm_extracted.ebnf`
+  - result: `509` rules, validation passed
+- Tracked standalone return-annotation payloads now all audit cleanly:
+  - generated audit over tracked grammar payload set
+  - result: `audited_unique_samples=110`
+- No tracked grammar files are now missing a standalone `->` annotation.
+- Attempted broader proof rerun:
+  - `make -C rust SHELL=/bin/bash return_annotation_support_gate`
+  - result: not claimed green in this environment because the `parser_registry` libtest process stalled before observable user-code execution and had to be stopped
+
+### Steering
+- Treat this as a keepable grammar-contract fix, not as evidence that the full return-annotation aggregate gate was freshly reproven locally.
+- If the next session wants end-to-end proof, start by debugging the libtest/harness startup stall around `cargo test --features generated_parsers --lib parser_registry --quiet` rather than reopening the Verilog grammar content itself.
+
 ## 2026-04-02 - Steering alignment: VHDL is closed, not active closure work
 ### Context
 The live family proof now keeps `vhdl=Done`, but a few top-level steering notes still spoke as if VHDL were one of the active closure families. That mismatch is small, but it is exactly the kind of continuity drift that causes future sessions to spend time reopening already-closed work.
