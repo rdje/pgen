@@ -27287,3 +27287,25 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `uvm_dpi_get_tool_version_c()`
       - retained hotspot `position 7654`
     - so the next honest UVM/SV grammar-quality move is no longer package-scope speculation for bare delay identifiers; it is the remaining call/cast ambiguity in function bodies
+- 2026-04-05: recorded the first-class unlimited-lookahead design contract before any implementation work.
+  - user requirement:
+    - if PGEN grows explicit user-facing unlimited lookahead, it must be elegant, robust, predictable, and must not risk breaking current grammars or current parser-family behavior
+    - the detailed exchange that produced this requirement is now retained in:
+      - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - current implementation reality:
+    - this is not a ground-up parser rewrite
+    - the generator already has speculative non-consuming lookahead machinery in:
+      - `rust/src/ast_pipeline/ast_based_generator.rs`
+    - and the self-hosting EBNF source already declares `&` / `!` lookahead assertions in:
+      - `grammars/ebnf.ebnf`
+  - retained rollout contract:
+    - treat unlimited lookahead as an opt-in PEG-style predicate feature over arbitrary grouped subexpressions, not as a hardcoded `LL(k)` extension
+    - do not change the behavior of any existing grammar unless that grammar explicitly opts into the lookahead syntax
+    - keep the first implementation wave semantic-side-effect-free inside lookahead:
+      - no fact emission
+      - no scope mutation
+      - no return-shaping dependency
+    - require dedicated validator diagnostics and trace counters before calling the feature production-ready
+  - retained sizing assessment:
+    - honest size is medium, not huge
+    - the risky part is not parser theory; it is productizing the surface cleanly, tightening validation, and proving non-regression

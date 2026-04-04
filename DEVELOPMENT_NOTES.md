@@ -28321,6 +28321,109 @@ Architectural north star:
       - `cast`
       - `constant_primary`
       - `constant_function_call`
-    - next honest resume rule:
+  - next honest resume rule:
       - keep the bare delay-identifier seam closed unless `position 4734` reappears materially
       - if continuing trace-guided SV/UVM work, reduce from the plain-call/cast ambiguity around `uvm_dpi_get_tool_version_c()` / position `7654`
+- 2026-04-05: captured the no-risk design contract for first-class unlimited lookahead in PGEN before any implementation work.
+  - retained exchange summary:
+    - user asked whether PGEN EBNF could support “N-level lookahead with user-defined N” rather than a hardcoded fixed limit
+    - initial answer recorded:
+      - yes in principle
+      - and in practice the current engine is already closer to unlimited PEG-style lookahead than to fixed-`k` LL lookahead
+    - user then clarified the quality bar:
+      - the feature must be implemented in a very elegant, robust, and predictable manner
+    - follow-up answer recorded:
+      - yes, but only if treated as a disciplined parsing predicate rather than as unrestricted speculative freedom
+      - the right product model is explicit grouped predicate lookahead over an arbitrary expression, not a numeric `k`
+    - user then accepted the docs-first design pass but added a non-regression constraint:
+      - the feature must not pose risk
+      - it must not break current PGEN when implemented
+      - and the user explicitly asked whether this implied a huge change
+    - sizing answer recorded:
+      - no, not huge in parser-theory terms
+      - honest size is medium because the engine already contains the essential speculative non-consuming machinery
+      - the main remaining work is productization, validator tightening, and non-regression proof
+    - user then explicitly asked that the entirety of this exchange be logged in the most appropriate markdown docs so future implementation stays aligned with the intended bar
+  - user constraint:
+    - the feature must be elegant, robust, and predictable
+    - and it must not break current PGEN behavior when introduced
+  - current codebase reality:
+    - the underlying parser runtime is already much closer to PEG-style unlimited lookahead than to fixed-`k` LL parsing
+    - the current implementation evidence is:
+      - [grammars/ebnf.ebnf](grammars/ebnf.ebnf)
+        - declares `lookahead_assertion := lookahead_operator primary_element`
+        - with `&` and `!` operators
+      - [rust/src/ast_pipeline/mod.rs](rust/src/ast_pipeline/mod.rs)
+        - already recognizes `&` and `!` as `RawRuleElement::Lookahead`
+        - wraps the following primary/group into `ASTNode::Lookahead`
+      - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)
+        - already lowers lookahead to `parser.try_parse(...)`
+        - and restores `parser.position` afterward
+    - so the parser engine already has the essential non-consuming speculative mechanism
+  - honest sizing assessment:
+    - this is not a “replace the parser algorithm” project
+    - it is a medium-sized productization and safety project
+    - the hard parts are:
+      - making the surface fully first-class and self-hosting-safe
+      - making lookahead semantics observably pure and rollback-safe
+      - validating expensive or misleading uses
+      - proving zero regression on existing grammars
+  - retained design decision:
+    - do not frame the feature as user-specified numeric `N`
+    - frame it as unlimited PEG-style predicate lookahead over an arbitrary grouped expression
+    - preferred long-term user-facing surface:
+      - `&( ... )`
+      - `!( ... )`
+    - that is stronger and cleaner than a numeric `lookahead<N>` dialect because the user can describe the exact syntactic shape they need, not just the number of tokens to peek
+    - if the project ever wants a numeric bounded-lookahead spelling later, treat it as optional sugar or policy on top of the unlimited predicate model, not as the core semantics
+  - retained safety contract:
+    - the feature must be strictly opt-in
+      - existing grammars keep identical behavior unless they explicitly add lookahead syntax
+    - the first implementation wave must keep lookahead semantically pure
+      - no `@emit_fact`
+      - no `@open_scope`
+      - no `@close_scope`
+      - no return-annotation side effects inside lookahead
+    - if side-effectful semantic annotations appear under lookahead during the first wave, the validator should reject them rather than “trying something clever”
+    - lookahead must remain non-consuming and fully rollback-safe on:
+      - parser position
+      - memo-visible semantic state
+      - branch-local semantic state
+  - retained rollout plan:
+    - phase 0:
+      - docs/design only
+      - no runtime behavior change
+    - phase 1:
+      - explicitly expose grouped lookahead as a supported EBNF surface in the self-hosting grammar
+      - keep it disabled-in-practice for existing grammars by simple non-use
+    - phase 2:
+      - add validator rules for:
+        - nullable lookahead bodies
+        - lookahead inside repetition with high churn risk
+        - semantic side effects inside lookahead
+        - impossible or shadowed lookahead branches
+    - phase 3:
+      - add trace/telemetry counters for:
+        - lookahead invocation count
+        - lookahead failure count
+        - hottest lookahead sites
+        - repeated lookahead churn under loops/alternatives
+    - phase 4:
+      - add dedicated contract tests proving:
+        - existing grammars parse identically without lookahead syntax changes
+        - positive and negative grouped lookahead behave deterministically
+        - memoization does not leak side effects across lookahead
+  - retained product position:
+    - unlimited lookahead is acceptable for PGEN
+    - but only as a disciplined parsing predicate, not as an invitation to hide weak grammar structure behind arbitrary speculative parsing
+    - the preferred default remains:
+      - structural grammar cleanup first
+      - semantic predicates second
+      - explicit lookahead only where it materially improves clarity or cost
+  - next honest resume rule:
+    - do not implement the surface immediately as a drive-by grammar tweak
+    - when this feature is picked up, start with:
+      - validator contract
+      - side-effect prohibition under lookahead
+      - no-regression tests
+    - and only then expose the syntax as a formally supported first-class feature

@@ -8956,3 +8956,23 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - keep the bare delay-identifier seam closed unless `position 4734` returns materially
     - the next honest trace hotspot is still the plain-call/cast ambiguity around `uvm_dpi_get_tool_version_c()` / `position 7654`
+- 2026-04-05: first-class unlimited lookahead is acceptable in principle, but only under a strict no-risk rollout contract.
+  - retained assessment:
+    - not a huge parser-architecture rewrite
+    - medium-sized productization/safety work instead
+    - reason:
+      - the AST pipeline already has speculative non-consuming lookahead machinery
+      - and the self-hosting EBNF source already declares `&` / `!` lookahead assertions
+  - retained design contract:
+    - model the feature as unlimited PEG-style grouped lookahead, not numeric fixed-`N` lookahead
+    - keep it strictly opt-in so existing grammars remain behavior-identical unless they use the syntax
+    - first implementation wave must reject side-effectful semantic annotations inside lookahead
+    - require validator rules plus trace counters before treating the feature as production-ready
+    - detailed user/assistant exchange and rationale are retained in:
+      - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - next resume step:
+    - if/when this feature is picked up, start with:
+      - validator contract
+      - side-effect prohibition
+      - no-regression tests
+    - only then expose it as a formally supported grammar feature
