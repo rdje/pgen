@@ -27760,3 +27760,49 @@ Architectural north star:
   - next resume rule:
     - continue on the scoped/object-call family first
     - then rerun the focused UVM external-corpus gate to completion before claiming a new representative external-corpus summary
+- 2026-04-04: Phase S now has a tracked `rtl_frontend` grammar bootstrap.
+  - changed:
+    - `grammars/rtl_frontend.ebnf`
+  - why it was done this way:
+    - the immediate RTLSyn need is to get the frontend onto an explicit EBNF track, not to solve grammar deduplication first
+    - the current HDL flow still prefers flattened standalone grammar files over include-heavy shared fragments, so this bootstrap is intentionally self-contained rather than trying to factor `systemverilog.ebnf` on day one
+    - the new file copies and trims the subset shape we actually need from the current handwritten `rtl_frontend` baseline instead of pretending the whole full-SV grammar is already a stable reusable library
+  - retained grammar scope:
+    - top-level design file with:
+      - file-scope typedefs
+      - packages
+      - modules
+    - module/package subset with:
+      - header imports
+      - parameter/localparam sequences
+      - ANSI port lists
+      - typedefs
+      - genvars
+      - net declarations
+      - continuous assigns
+      - `always`, `always_comb`, `always_ff`, `always_latch`
+      - generate `if` / `for` / `generate ... endgenerate`
+      - module instantiations with named/ordered overrides and named/ordered/wildcard port connections
+    - type surface with:
+      - builtin integral atom types
+      - named/package-qualified types
+      - packed `struct`
+      - packed `union`
+      - `enum` with optional base type and packed range
+    - expression/value/target surface with:
+      - unary/binary/ternary expression operators copied from the existing `rtl_const_expr` shape
+      - signal/member/index references
+      - final part-selects
+      - concatenations
+      - repetitions
+  - important continuity detail:
+    - the file is intentionally a bootstrap grammar, not a closure claim
+    - it includes a top-level standalone return annotation so it satisfies the repository-wide cross-grammar shaping audit expectations
+  - fresh retained validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/rtl_frontend.ebnf`
+      - passed
+      - `rule_count=161`
+  - next resume rule:
+    - generate `generated/rtl_frontend_parser.rs` from the new grammar
+    - wire the parser into the build/registry surface
+    - then start focused parity checks against the handwritten `rtl_frontend` crate instead of broad speculative grammar expansion

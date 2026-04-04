@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-04 (+0200, task: systemverilog-call-expression-hardening)
+Last updated: 2026-04-04 (+0200, task: rtl-frontend-ebnf-bootstrap)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,36 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained Phase S grammar bootstrap:
+  - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
+    - new standalone tracked bootstrap grammar for the current RTLSyn-facing synthesizable RTL subset
+    - scope currently includes:
+      - file-scope typedefs, packages, and modules
+      - module header imports, parameter lists, and ANSI port lists
+      - parameter/localparam declarations, typedefs, imports, genvars, and net declarations
+      - continuous assigns and `always` / `always_comb` / `always_ff` / `always_latch`
+      - generate regions with `if` / `for`
+      - module instantiations with named/ordered overrides and named/ordered/wildcard port connections
+      - enum / struct / union types plus builtin and package-qualified types
+      - shared RTL expression/value/target surface for signals, members, selects, concatenations, repetitions, and unary/binary/ternary expression operators
+    - important design choice:
+      - this is intentionally a flattened bootstrap grammar copied from the current handwritten subset rather than an early include-based refactor of `grammars/systemverilog.ebnf`
+    - top-level standalone return annotation is present so the new tracked grammar satisfies the repository-wide cross-grammar shaping audit expectation
+- Fresh retained validation:
+  - `perl tools/ebnf_to_json.pl --validate-only grammars/rtl_frontend.ebnf`
+    - passed
+    - `rule_count=161`
+- Important current limitation:
+  - `rtl_frontend` still does not have:
+    - `generated/rtl_frontend_parser.rs`
+    - parser-registry/build wiring
+    - parity proof against the handwritten `rtl_frontend` crate
+  - live Phase S status should therefore stay:
+    - `rtl_frontend=In Progress`
+- Immediate next best follow-up for this slice:
+  - generate and wire `generated/rtl_frontend_parser.rs`
+  - then run focused parity checks against the handwritten `rtl_frontend` crate instead of widening the grammar surface first
+
 - Retained SystemVerilog main-parser hardening:
   - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
   - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)

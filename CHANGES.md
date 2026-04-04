@@ -26917,3 +26917,22 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - preprocessed cleanly
       - reached a deep active `case_uvm_pkg_2017_parse_full` phase instead of the earlier immediate rejection path
       - was intentionally stopped after several minutes, so no fresh top-level `parse_pass_total` / `parse_fail_total` summary is claimed from that rerun
+- 2026-04-04: started the tracked `rtl_frontend` EBNF bootstrap for the RTLSyn-facing synthesizable RTL subset.
+  - changed:
+    - `grammars/rtl_frontend.ebnf`
+  - retained scope:
+    - file-scope typedefs, packages, and modules
+    - module header imports, parameter lists, and ANSI port lists
+    - parameter/localparam declarations, typedefs, imports, genvars, and net declarations
+    - continuous assigns, `always` / `always_comb` / `always_ff` / `always_latch`
+    - generate regions with `if` / `for`
+    - module instantiations with named/ordered parameter overrides and named/ordered/wildcard port connections
+    - enum / struct / union types plus builtin and package-qualified types
+    - shared RTL expression/value/target surface including signals, members, selects, concatenations, repetitions, and unary/binary/ternary expression operators
+  - validated:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/rtl_frontend.ebnf`
+      - passed
+      - `rule_count=161`
+  - retained consequence:
+    - `rtl_frontend` is no longer grammar-less at the tracked-doc level
+    - the next Phase S step is generating and wiring `generated/rtl_frontend_parser.rs`, not inventing the grammar from scratch

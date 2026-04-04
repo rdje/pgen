@@ -1,0 +1,321 @@
+# rtl_frontend.ebnf
+#
+# Phase S bootstrap grammar for the synthesizable RTL subset currently owned by
+# the handwritten `rtl_frontend` crate.
+#
+# Scope intentionally matches the current RTLSyn-facing baseline:
+# - file-scope typedefs, packages, and modules
+# - module header imports, parameter lists, and ANSI port lists
+# - parameter/localparam declarations, typedefs, imports, genvars, and net declarations
+# - continuous assigns, `always` / `always_comb` / `always_ff` / `always_latch`
+# - generate regions with `if` / `for` constructs
+# - module instantiations with named/ordered overrides and named/ordered/wildcard port connections
+# - enum / struct / union types plus builtin and package-qualified types
+# - value / target expressions for signals, members, selects, concatenations, repetitions, and
+#   the same unary/binary/ternary constant-expression core already used by `rtl_const_expr`
+
+@branch_policy: priority_first
+rtl_frontend_file := trivia design_item* trivia
+-> {type: "rtl_frontend_file", items: $2}
+
+@branch_policy: priority_first
+design_item := typedef_declaration
+             | package_declaration
+             | module_declaration
+             | semi
+
+package_declaration := kw_package identifier semi package_item* kw_endpackage
+
+@branch_policy: priority_first
+package_item := typedef_declaration
+              | parameter_declaration_statement
+              | semi
+
+module_declaration := kw_module identifier import_declaration* ( hash lparen ( parameter_declaration_sequence )? rparen )? import_declaration* ( lparen ( port_list )? rparen )? semi module_item* kw_endmodule
+
+@branch_policy: priority_first
+module_item := parameter_declaration_statement
+             | import_declaration
+             | typedef_declaration
+             | genvar_declaration
+             | module_instantiation
+             | net_declaration
+             | continuous_assign
+             | procedural_block
+             | generate_region
+             | semi
+
+generate_region := kw_generate generate_item* kw_endgenerate
+
+@branch_policy: priority_first
+generate_item := parameter_declaration_statement
+               | genvar_declaration
+               | module_instantiation
+               | net_declaration
+               | continuous_assign
+               | procedural_block
+               | generate_if
+               | generate_for
+               | semi
+
+generate_if := kw_if lparen rtl_expr rparen generate_body ( kw_else generate_body )?
+
+generate_for := kw_for lparen ( kw_genvar )? identifier equals rtl_expr semi rtl_expr semi identifier equals rtl_expr rparen generate_body
+
+@branch_policy: priority_first
+generate_body := kw_begin ( colon identifier )? generate_item* kw_end
+               | generate_item
+
+parameter_declaration_statement := parameter_declaration_sequence semi
+
+parameter_declaration_sequence := parameter_declaration_group ( comma parameter_declaration_group )*
+
+parameter_declaration_group := parameter_declaration_head ( comma parameter_declaration_tail )*
+
+parameter_declaration_head := parameter_flavor data_type? identifier ( equals rtl_expr )?
+
+@branch_policy: priority_first
+parameter_declaration_tail := parameter_declaration_head
+                            | data_type? identifier ( equals rtl_expr )?
+
+parameter_flavor := kw_parameter | kw_localparam
+
+port_list := port_group ( comma port_group )*
+
+port_group := port_direction data_type? packed_range? port_item ( comma !port_direction_token port_item )*
+
+port_item := identifier unpacked_dimension*
+
+port_direction := kw_input | kw_output | kw_inout
+port_direction_token := kw_input | kw_output | kw_inout
+
+import_declaration := kw_import identifier scope_resolution ( star | identifier ) semi
+
+typedef_declaration := kw_typedef data_type packed_range? identifier semi
+
+genvar_declaration := kw_genvar identifier ( comma identifier )* semi
+
+module_instantiation := identifier ( hash lparen ( parameter_override_list )? rparen )? instance_item ( comma instance_item )* semi
+
+instance_item := identifier unpacked_dimension? lparen ( port_connection_list )? rparen
+
+parameter_override_list := parameter_override ( comma parameter_override )*
+
+@branch_policy: priority_first
+parameter_override := dot identifier lparen rtl_expr rparen
+                    | rtl_expr
+
+port_connection_list := port_connection ( comma port_connection )*
+
+@branch_policy: priority_first
+port_connection := dot star
+                 | dot identifier lparen ( value_expr )? rparen
+                 | value_expr
+
+net_declaration := data_type packed_range? net_item ( comma net_item )* semi
+
+net_item := identifier unpacked_dimension*
+
+continuous_assign := kw_assign assignment_target equals value_expr semi
+
+@branch_policy: priority_first
+procedural_block := kw_always_comb statement
+                  | kw_always_latch statement
+                  | kw_always_ff event_control_list statement
+                  | kw_always always_star_event statement
+
+always_star_event := at lparen star rparen | star
+
+event_control_list := at lparen event_control_item ( ( comma | kw_or ) event_control_item )* rparen
+
+event_control_item := event_edge? rtl_expr
+
+event_edge := kw_posedge | kw_negedge
+
+@branch_policy: priority_first
+statement := semi
+          | kw_begin ( colon identifier )? statement* kw_end
+          | kw_if lparen rtl_expr rparen statement ( kw_else statement )?
+          | assignment_target assignment_operator value_expr semi
+
+assignment_operator := equals | less_equal
+
+@branch_policy: priority_first
+assignment_target := lbrace assignment_target ( comma assignment_target )+ rbrace
+                   | ranged_signal_reference
+                   | signal_reference
+
+value_expr := rtl_expr
+
+rtl_expr := conditional_expr
+
+conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
+                  | logical_or_expr
+
+logical_or_expr := logical_and_expr ( logical_or logical_and_expr )*
+logical_and_expr := bit_or_expr ( logical_and bit_or_expr )*
+bit_or_expr := bit_xor_expr ( bit_or bit_xor_expr )*
+bit_xor_expr := bit_and_expr ( bit_xor bit_and_expr )*
+bit_and_expr := equality_expr ( bit_and equality_expr )*
+equality_expr := relational_expr ( ( eqeq | ne ) relational_expr )*
+relational_expr := shift_expr ( ( le | lt | ge | gt ) shift_expr )*
+shift_expr := additive_expr ( ( shl | shr ) additive_expr )*
+additive_expr := multiplicative_expr ( ( plus | minus ) multiplicative_expr )*
+multiplicative_expr := unary_expr ( ( star | slash | percent ) unary_expr )*
+
+unary_expr := plus unary_expr
+           | minus unary_expr
+           | bang unary_expr
+           | tilde unary_expr
+           | primary_expr
+
+@branch_policy: priority_first
+primary_expr := repetition_expr
+             | concatenation_expr
+             | ranged_signal_reference
+             | signal_reference
+             | literal
+             | lparen rtl_expr rparen
+
+repetition_expr := lbrace rtl_expr concatenation_expr rbrace
+
+concatenation_expr := lbrace rtl_expr ( comma rtl_expr )+ rbrace
+
+ranged_signal_reference := scoped_identifier signal_path_op* lbrack rtl_expr colon rtl_expr rbrack
+
+signal_reference := scoped_identifier signal_path_op*
+
+scoped_identifier := identifier ( scope_resolution identifier )*
+
+signal_path_op := dot identifier | lbrack rtl_expr rbrack
+
+data_type := enum_type
+           | union_type
+           | struct_type
+           | builtin_data_type
+           | package_qualified_type
+           | named_data_type
+
+package_qualified_type := identifier scope_resolution identifier
+
+named_data_type := identifier
+
+builtin_data_type := kw_bit
+                   | kw_byte
+                   | kw_shortint
+                   | kw_int
+                   | kw_integer
+                   | kw_longint
+                   | kw_logic
+                   | kw_reg
+                   | kw_wire
+
+enum_type := kw_enum ( enum_base_type )? packed_range? lbrace enum_item ( comma enum_item )* ( comma )? rbrace
+
+enum_base_type := builtin_data_type | package_qualified_type | named_data_type
+
+enum_item := identifier ( equals rtl_expr )?
+
+union_type := kw_union ( kw_packed )? lbrace struct_union_field* rbrace
+
+struct_type := kw_struct ( kw_packed )? lbrace struct_union_field* rbrace
+
+struct_union_field := data_type packed_range? identifier ( comma identifier )* semi
+
+packed_range := lbrack rtl_expr colon rtl_expr rbrack
+unpacked_dimension := packed_range
+
+literal := based_integer | decimal_integer | real_number
+
+based_integer := trivia /[0-9][0-9_]*'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ?_]+/
+decimal_integer := trivia /[0-9][0-9_]*/
+real_number := trivia /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/ | trivia /[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)/
+
+identifier := non_keyword_identifier
+
+non_keyword_identifier := !kw_always !kw_always_comb !kw_always_ff !kw_always_latch !kw_assign !kw_begin !kw_bit !kw_byte !kw_else !kw_end !kw_endgenerate !kw_endmodule !kw_endpackage !kw_enum !kw_for !kw_generate !kw_genvar !kw_if !kw_import !kw_inout !kw_input !kw_int !kw_integer !kw_localparam !kw_logic !kw_longint !kw_module !kw_negedge !kw_or !kw_output !kw_package !kw_packed !kw_parameter !kw_posedge !kw_reg !kw_shortint !kw_struct !kw_typedef !kw_union !kw_wire simple_identifier
+
+simple_identifier := trivia /[A-Za-z_][A-Za-z0-9_$]*/
+
+trivia := ( white_space | line_comment | block_comment )*
+white_space := /[ \t\r\n]+/
+line_comment := /\/\/[^\r\n]*/
+block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
+
+kw_module := trivia "module"
+kw_endmodule := trivia "endmodule"
+kw_package := trivia "package"
+kw_endpackage := trivia "endpackage"
+kw_import := trivia "import"
+kw_typedef := trivia "typedef"
+kw_parameter := trivia "parameter"
+kw_localparam := trivia "localparam"
+kw_genvar := trivia "genvar"
+kw_assign := trivia "assign"
+kw_generate := trivia "generate"
+kw_endgenerate := trivia "endgenerate"
+kw_if := trivia "if"
+kw_else := trivia "else"
+kw_for := trivia "for"
+kw_begin := trivia "begin"
+kw_end := trivia "end"
+kw_always := trivia "always"
+kw_always_comb := trivia "always_comb"
+kw_always_ff := trivia "always_ff"
+kw_always_latch := trivia "always_latch"
+kw_posedge := trivia "posedge"
+kw_negedge := trivia "negedge"
+kw_or := trivia "or"
+kw_input := trivia "input"
+kw_output := trivia "output"
+kw_inout := trivia "inout"
+kw_struct := trivia "struct"
+kw_union := trivia "union"
+kw_enum := trivia "enum"
+kw_packed := trivia "packed"
+kw_bit := trivia "bit"
+kw_byte := trivia "byte"
+kw_shortint := trivia "shortint"
+kw_int := trivia "int"
+kw_integer := trivia "integer"
+kw_longint := trivia "longint"
+kw_logic := trivia "logic"
+kw_reg := trivia "reg"
+kw_wire := trivia "wire"
+
+scope_resolution := trivia "::"
+dot := trivia "."
+hash := trivia "#"
+lparen := trivia "("
+rparen := trivia ")"
+lbrace := trivia "{"
+rbrace := trivia "}"
+lbrack := trivia "["
+rbrack := trivia "]"
+comma := trivia ","
+colon := trivia ":"
+semi := trivia ";"
+question := trivia "?"
+at := trivia "@"
+
+logical_or := trivia "||"
+logical_and := trivia "&&"
+bit_or := trivia "|"
+bit_xor := trivia "^"
+bit_and := trivia "&"
+eqeq := trivia "=="
+ne := trivia "!="
+le := trivia "<="
+lt := trivia "<"
+ge := trivia ">="
+gt := trivia ">"
+shl := trivia "<<"
+shr := trivia ">>"
+plus := trivia "+"
+minus := trivia "-"
+star := trivia "*"
+slash := trivia "/"
+percent := trivia "%"
+bang := trivia "!"
+tilde := trivia "~"
+equals := trivia "="
