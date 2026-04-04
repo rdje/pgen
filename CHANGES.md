@@ -27070,3 +27070,29 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained honest remaining seam:
     - the remaining isolated `uvm_utils` debt is no longer the class header or the mixed type-plus-string parameter list
     - the next reduction target is deeper inside the reporting-heavy method bodies (`find_all`, `find`, `get_config`) rather than the previously blocked parameter-port surface
+- 2026-04-04: closed the next real UVM/SystemVerilog type-scope seam and moved the retained focused `uvm_pkg` frontier materially deeper.
+  - real grammar fix:
+    - `class_scope_type` in `grammars/systemverilog.ebnf` now also recognizes unscoped `type_parameter` identifiers, not just class/interface-class facts
+    - `class_scoped_call_prefix` now does the same, so class-scope/static-call prefixes can start from a type parameter such as `TYPE::`
+    - the retained generated snapshot now mirrors that intent with an explicit `class_scope_head_identifier`
+  - fresh focused proofs:
+    - the previously red reductions now parse cleanly:
+      - `/tmp/sv_typedef_plus_type_name.sv`
+      - `/tmp/sv_typedef_plus_warning_type_name.sv`
+    - nearby controls remain green:
+      - `/tmp/sv_typedef_plus_warning_plain.sv`
+      - `/tmp/sv_typedef_plus_report_block_plain.sv`
+      - `/tmp/sv_report_with_types_only.sv`
+      - `/tmp/sv_find_all_full_with_report_neutral.sv`
+      - `/tmp/sv_uvm_utils_find_all_with_forwards.sv`
+  - retained focused package frontier:
+    - balanced real-`uvm_pkg` prefixes now also parse cleanly through:
+      - `/tmp/uvm_pkg_boundary_v2_135.sv`
+      - `/tmp/uvm_pkg_boundary_v2_136.sv`
+      - `/tmp/uvm_pkg_boundary_v2_137.sv`
+      - `/tmp/uvm_pkg_boundary_v2_138.sv`
+      - `/tmp/uvm_pkg_boundary_v2_139.sv`
+    - `/tmp/uvm_pkg_boundary_v2_141.sv` is the next retained red boundary and now fails fast again with `Parser did not consume full input at position 0`
+  - retained honest remaining seam:
+    - the new failing retained slice reaches the `get_config` report path where `comp.uvm_report_fatal(...)` / `comp.uvm_report_warning(...)` still carry `TYPE::type_name` inside the message concatenation
+    - live samples from the heavier `139` / `141` runs (`/tmp/parseability_probe_2026-04-04_163212_1OZk.sample.txt` and `/tmp/parseability_probe_2026-04-04_163212_MpPE.sample.txt`) still center on deep `package -> function body -> statement/expression` parsing, so the remaining debt is narrower package-body closure work, not a reopened class-scope/type-visibility front-end seam

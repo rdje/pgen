@@ -27946,3 +27946,52 @@ Architectural north star:
   - next honest resume rule:
     - keep the retained focused package frontier at `boundary_v2_135` / line `5596`
     - when reducing `uvm_utils` again, focus on the nested report-wrapper blocks before reopening class-header or parameter-port work
+- 2026-04-04: the next retained UVM reduction after the mixed-parameter fix was a real class-scope/type-parameter hole, and closing it moved the focused package frontier from `135` to `139`.
+  - what changed:
+    - re-read the active grammar around `class_scope_type` and `class_scoped_call_prefix`
+    - confirmed that declared type parameters already emit `type_name` facts with `declaration_family: type_parameter`
+    - patched the active grammar so:
+      - `known_unscoped_class_scope_type_parameter_identifier := type_identifier` with a `declaration_family: type_parameter` predicate
+      - `known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier` with the same predicate
+      - both `class_scope_type` and `class_scoped_call_prefix` now admit that family explicitly
+    - mirrored the same intent in the retained generated snapshot by introducing:
+      - `class_scope_head_identifier := ps_class_identifier | declared_type_parameter_identifier`
+      - and reusing that helper in both `class_type` and `class_scoped_call_prefix`
+  - focused proofs after regenerating `/tmp/systemverilog_uvm_type_scope_probe_parser.rs` and rebuilding `parseability_probe`:
+    - the previously red minimal cases now parse:
+      - `/tmp/sv_typedef_plus_type_name.sv`
+      - `/tmp/sv_typedef_plus_warning_type_name.sv`
+    - nearby controls stayed green:
+      - `/tmp/sv_typedef_plus_warning_plain.sv`
+      - `/tmp/sv_typedef_plus_report_block_plain.sv`
+      - `/tmp/sv_report_with_types_only.sv`
+      - `/tmp/sv_find_all_full_with_report_neutral.sv`
+      - `/tmp/sv_uvm_utils_find_all_with_forwards.sv`
+    - the retained real-`uvm_pkg` balanced prefixes also moved forward and now parse through:
+      - `boundary_v2_135`
+      - `boundary_v2_136`
+      - `boundary_v2_137`
+      - `boundary_v2_138`
+      - `boundary_v2_139`
+  - retained new frontier:
+    - `boundary_v2_141` is now the next retained red slice
+    - it rejects at position `0`, but the tail of `/tmp/uvm_pkg_boundary_v2_141.sv` shows the still-suspicious surface is the `get_config` method path where:
+      - `comp.uvm_report_fatal(...)` / `comp.uvm_report_warning(...)`
+      - carry `TYPE::type_name`
+      - inside a multiline message concatenation
+    - the exact retained file tail is around lines `1843` to `1879` of `/tmp/uvm_pkg_boundary_v2_141.sv`
+  - retained debug evidence:
+    - live samples of the heavier `139` and `141` runs were captured to:
+      - `/tmp/parseability_probe_2026-04-04_163212_1OZk.sample.txt`
+      - `/tmp/parseability_probe_2026-04-04_163212_MpPE.sample.txt`
+    - both still concentrate under:
+      - `parse_package_declaration`
+      - `parse_package_item`
+      - `parse_package_or_generate_item_declaration_sv_2017`
+      - `parse_function_declaration`
+      - `parse_function_body_declaration`
+      - with the `141` sample also spending meaningful work in `parse_expression` / `parse_expression_base`
+  - next honest resume rule:
+    - resume from `boundary_v2_141`, not `135`
+    - reduce the `get_config` report-message form around `comp.uvm_report_{fatal,warning}` plus `TYPE::type_name`
+    - do not reopen the already-fixed type-parameter class-scope seam unless one of the focused green probes above regresses

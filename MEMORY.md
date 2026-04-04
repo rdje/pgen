@@ -8751,3 +8751,32 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - reduce `find_all` / `find` / `get_config` with their report-wrapper blocks
     - keep the retained package frontier at `boundary_v2_135` / line `5596` until a new balanced-prefix move is actually measured
+- 2026-04-04: the next retained UVM seam after the mixed class-header fix was a class-scope/type-parameter gap, and that seam is now fixed too.
+  - retained grammar fix:
+    - `class_scope_type` now explicitly accepts unscoped `type_parameter` identifiers
+    - `class_scoped_call_prefix` now does the same
+    - the retained generated snapshot mirrors that intent with `class_scope_head_identifier`
+  - retained green focused proofs:
+    - `/tmp/sv_typedef_plus_type_name.sv`
+    - `/tmp/sv_typedef_plus_warning_type_name.sv`
+    - `/tmp/sv_typedef_plus_warning_plain.sv`
+    - `/tmp/sv_typedef_plus_report_block_plain.sv`
+    - `/tmp/sv_report_with_types_only.sv`
+    - `/tmp/sv_find_all_full_with_report_neutral.sv`
+    - `/tmp/sv_uvm_utils_find_all_with_forwards.sv`
+    - balanced real `uvm_pkg` prefixes now green through:
+      - `/tmp/uvm_pkg_boundary_v2_135.sv`
+      - `/tmp/uvm_pkg_boundary_v2_136.sv`
+      - `/tmp/uvm_pkg_boundary_v2_137.sv`
+      - `/tmp/uvm_pkg_boundary_v2_138.sv`
+      - `/tmp/uvm_pkg_boundary_v2_139.sv`
+  - current honest frontier:
+    - `/tmp/uvm_pkg_boundary_v2_141.sv` is now the next retained red slice
+    - its tail centers on `get_config` report calls with `comp.uvm_report_{fatal,warning}` plus `TYPE::type_name`
+    - live samples:
+      - `/tmp/parseability_probe_2026-04-04_163212_1OZk.sample.txt`
+      - `/tmp/parseability_probe_2026-04-04_163212_MpPE.sample.txt`
+      still point to deep package/function-body statement-expression work, not a reopened front-end type-scope seam
+  - next resume step:
+    - resume from `boundary_v2_141`
+    - reduce the multiline `get_config` report-message path before touching the already-fixed class-scope/type-parameter rules again

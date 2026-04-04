@@ -393,9 +393,12 @@ known_unscoped_class_scope_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
 known_unscoped_class_scope_interface_class_identifier := class_identifier
 
+@predicate: { name: fact_attribute_equals, args: [type_name, $type_identifier, declaration_family, type_parameter], phase: post }
+known_unscoped_class_scope_type_parameter_identifier := type_identifier
+
 scoped_class_scope_identifier := non_typedef_package_scope class_identifier
 
-class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
 class_scope := class_scope_type scope_resolution
 
@@ -3173,9 +3176,12 @@ known_unscoped_class_scoped_call_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
 known_unscoped_class_scoped_call_interface_class_identifier := class_identifier
 
+@predicate: { name: fact_attribute_equals, args: [type_name, $type_identifier, declaration_family, type_parameter], phase: post }
+known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier
+
 scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier
 
-class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
+class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
 class_scoped_tf_call_with_args := class_scoped_call_prefix tf_identifier attribute_instance* lparen list_of_arguments rparen
 
 @branch_policy: priority_first
