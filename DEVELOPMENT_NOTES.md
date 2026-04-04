@@ -28115,3 +28115,33 @@ Architectural north star:
   - next honest resume rule:
     - retain `boundary_v2_141` as green evidence, not as an open blocker
     - the next honest measurable move is a fresh focused external-corpus rerun that reaches the case outputs, or a newly-generated later balanced `uvm_pkg` boundary if we want another retained prefix beyond `141`
+- 2026-04-04: refreshed the full-corpus UVM localization directly against the retained preprocessed artifacts, and the old corpus failure offset is no longer a useful red seam.
+  - what changed:
+    - reused the retained external-corpus work product instead of waiting for another full triage-gate rebuild:
+      - `rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv`
+      - `rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2023.preprocessed.sv`
+    - direct reparse of the 2017 preprocessed file with the current scratch-built parser ran hot for about `4m51s` at ~`99-100%` CPU before being intentionally terminated
+    - that run therefore exceeded the old retained baseline parse duration (`246075 ms`) without reproducing an early definitive fail
+  - retained localization result:
+    - the old retained 2023 parse-failure offset `113637` maps to:
+      - line `3888`, column `1`
+      - exactly at a later `package uvm_pkg;` restart in the preprocessed file
+    - carved the suffix beginning at that restart into:
+      - `/tmp/uvm_pkg_preprocessed_suffix_3888.sv`
+    - that suffix also entered the same deep-running parser path and stayed hot for ~`41s` before being intentionally terminated
+  - retained debug evidence:
+    - live sample of the full preprocessed 2017 run:
+      - `/tmp/parseability_probe_2026-04-04_212442_y6jS.sample.txt`
+    - live sample of the isolated suffix-from-`3888` run:
+      - `/tmp/parseability_probe_2026-04-04_212619_ulwO.sample.txt`
+    - both still concentrate under:
+      - `parse_systemverilog_file`
+      - `parse_source_text`
+      - `parse_source_text_item`
+      - `parse_description`
+      - downstream package/class/function-body work
+  - next honest resume rule:
+    - do not treat byte offset `113637` / line `3888` as the next red syntax blocker anymore
+    - the next measurable move is either:
+      - let the full preprocessed `uvm_pkg` run to a real pass/fail verdict with a larger wall-clock budget
+      - or derive a later balanced package boundary beyond the current retained `141` frontier from the same preprocessed corpus

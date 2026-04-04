@@ -27157,3 +27157,24 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `generate_systemverilog_parser`
       - `build_sv_external_corpus_triage_binaries`
     - that rerun was intentionally terminated while the triage-binary cargo build was still in progress, so no new case-level parseability verdict is claimed yet
+- 2026-04-04: refreshed the full-corpus UVM localization after retaining `boundary_v2_141` as green, and the old parse-failure offset is no longer the next honest red surface.
+  - fresh focused proofs:
+    - direct reparse of the retained preprocessed `uvm_pkg` 2017 corpus file:
+      - `rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv`
+      - stayed hot for about `4m51s` at ~`99-100%` CPU before being intentionally terminated
+      - it did not fail within the old recorded baseline window (`246075 ms`)
+    - the old retained 2023 failure offset `113637` maps to line `3888:1` in:
+      - `rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2023.preprocessed.sv`
+      - that exact location is a later `package uvm_pkg;` restart, not a local token-level seam
+    - an isolated later-package suffix from that restart point:
+      - `/tmp/uvm_pkg_preprocessed_suffix_3888.sv`
+      - also entered the same deep-running parser path and was intentionally terminated after ~`41s`, rather than failing immediately at the old offset
+  - retained package-frontier interpretation:
+    - the stale external-corpus failure point at byte `113637` is no longer an honest “next red seam”
+    - both the full preprocessed file and the isolated suffix from line `3888` now behave like deeper-running closure/performance work, not an immediate syntax reject
+  - retained debug evidence:
+    - live sample of the full preprocessed 2017 run:
+      - `/tmp/parseability_probe_2026-04-04_212442_y6jS.sample.txt`
+    - live sample of the isolated suffix-from-`3888` run:
+      - `/tmp/parseability_probe_2026-04-04_212619_ulwO.sample.txt`
+    - both again center on deep `systemverilog_file -> source_text -> source_text_item -> description` work

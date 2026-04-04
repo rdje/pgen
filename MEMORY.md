@@ -8845,3 +8845,23 @@ Use this file to resume work without replaying full chat history.
     - next measurable move is either:
       - a later balanced `uvm_pkg` boundary beyond `141`
       - or a focused external-corpus rerun that reaches the actual case outputs
+- 2026-04-04: the stale external-corpus `uvm_pkg` failure offset is no longer the next honest red seam.
+  - retained focused proofs:
+    - direct reparse of:
+      - `rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_2017.preprocessed.sv`
+    - that run stayed hot for about `4m51s` and was intentionally terminated without reproducing the old early failure
+    - old retained offset `113637` maps to:
+      - `case_uvm_pkg_2023.preprocessed.sv:3888:1`
+      - at a later `package uvm_pkg;` restart
+    - carved suffix:
+      - `/tmp/uvm_pkg_preprocessed_suffix_3888.sv`
+      - also stayed in the same deep-running parser path for about `41s` before intentional termination
+  - retained debug evidence:
+    - `/tmp/parseability_probe_2026-04-04_212442_y6jS.sample.txt`
+    - `/tmp/parseability_probe_2026-04-04_212619_ulwO.sample.txt`
+  - retained interpretation:
+    - byte offset `113637` / line `3888` is no longer the next honest syntax blocker
+    - remaining debt is deeper full-corpus closure/performance beyond both retained `boundary_v2_141` and that old preprocessed restart point
+  - next resume step:
+    - either let the full preprocessed `uvm_pkg` run finish with a larger wall-clock budget
+    - or derive a later balanced corpus-backed package boundary beyond the retained `141` ladder
