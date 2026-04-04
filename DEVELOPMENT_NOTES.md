@@ -28145,3 +28145,34 @@ Architectural north star:
     - the next measurable move is either:
       - let the full preprocessed `uvm_pkg` run to a real pass/fail verdict with a larger wall-clock budget
       - or derive a later balanced package boundary beyond the current retained `141` frontier from the same preprocessed corpus
+- 2026-04-04: derived the next corpus-backed retained boundary ladder from the later `package uvm_pkg;` restart at line `3888`.
+  - what changed:
+    - used the retained preprocessed `uvm_pkg` artifact as the source of truth and carved later package-prefix boundaries that end at top-level milestones:
+      - `/tmp/uvm_pkg_preprocessed_boundary_5773.sv`
+      - `/tmp/uvm_pkg_preprocessed_boundary_5782.sv`
+      - `/tmp/uvm_pkg_preprocessed_boundary_5967.sv`
+      - `/tmp/uvm_pkg_preprocessed_boundary_6195.sv`
+      - `/tmp/uvm_pkg_preprocessed_boundary_6859.sv`
+    - the useful results from this wave are:
+      - `/tmp/uvm_pkg_preprocessed_boundary_5773.sv` is green
+      - `/tmp/uvm_pkg_preprocessed_boundary_6195.sv` is green
+      - `/tmp/uvm_pkg_preprocessed_boundary_5967.sv` and `/tmp/uvm_pkg_preprocessed_boundary_6859.sv` both entered the same deep-running parser path and were intentionally terminated
+  - retained interpretation:
+    - the retained green frontier now extends past the old source-level `boundary_v2_141` checkpoint into the later corpus-backed package surface
+    - specifically, the parser now cleanly consumes the preprocessed `uvm_pkg` package through:
+      - line `5773` (`endclass` of `uvm_utils`)
+      - line `6195` (`endclass` of `uvm_default_coreservice_t`)
+    - parse cost is not monotonic by later boundary size, so the honest retained frontier is not “first expensive line”; it is “verified green through `6195`, with later anchors still deep-running”
+  - retained debug evidence:
+    - live sample of the later `6859` run:
+      - `/tmp/parseability_probe_2026-04-04_215241_m4ol.sample.txt`
+    - that sample again centers on deep:
+      - `parse_systemverilog_file`
+      - `parse_source_text`
+      - `parse_source_text_item`
+      - `parse_description`
+      - downstream package/class/function-body work
+  - next honest resume rule:
+    - retain `6195` as the latest corpus-backed green boundary
+    - treat `6859` as the next later corpus-backed expensive checkpoint
+    - do not regress to the stale byte-offset localization as the main resume point anymore

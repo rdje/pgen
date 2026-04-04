@@ -27178,3 +27178,22 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - live sample of the isolated suffix-from-`3888` run:
       - `/tmp/parseability_probe_2026-04-04_212619_ulwO.sample.txt`
     - both again center on deep `systemverilog_file -> source_text -> source_text_item -> description` work
+- 2026-04-04: promoted the next corpus-backed retained UVM ladder beyond the old source-level `boundary_v2_141` checkpoint.
+  - fresh focused proofs:
+    - built later package-prefix boundaries directly from the retained preprocessed `uvm_pkg` corpus artifact, anchored at line `3888`:
+      - `/tmp/uvm_pkg_preprocessed_boundary_5773.sv`
+      - `/tmp/uvm_pkg_preprocessed_boundary_6195.sv`
+    - both of those later corpus-backed boundaries now parse cleanly under the current parser
+  - retained package-frontier interpretation:
+    - the retained green frontier is now at least through corpus-backed boundary `6195`, not just the old source-level `boundary_v2_141`
+    - this means the parser now cleanly consumes the later preprocessed package surface through:
+      - `endclass` of `uvm_utils` at line `5773`
+      - `endclass` of `uvm_default_coreservice_t` at line `6195`
+  - retained honest remaining seam:
+    - later corpus-backed anchors were also probed:
+      - `/tmp/uvm_pkg_preprocessed_boundary_5967.sv`
+      - `/tmp/uvm_pkg_preprocessed_boundary_6859.sv`
+    - both entered the same deep-running path and were intentionally terminated, so they are useful as the next expensive checkpoints but are not claimed green in this task
+    - live sample of the later `6859` run:
+      - `/tmp/parseability_probe_2026-04-04_215241_m4ol.sample.txt`
+    - parse cost is therefore not monotonic by boundary size; the honest retained read is “green through `6195`, next later corpus anchors still deep-running”

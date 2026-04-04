@@ -8865,3 +8865,19 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - either let the full preprocessed `uvm_pkg` run finish with a larger wall-clock budget
     - or derive a later balanced corpus-backed package boundary beyond the retained `141` ladder
+- 2026-04-04: the retained corpus-backed UVM boundary ladder now extends later than the old source-level frontier.
+  - retained green focused proofs:
+    - `/tmp/uvm_pkg_preprocessed_boundary_5773.sv`
+    - `/tmp/uvm_pkg_preprocessed_boundary_6195.sv`
+  - retained deep-running checkpoints:
+    - `/tmp/uvm_pkg_preprocessed_boundary_5967.sv`
+    - `/tmp/uvm_pkg_preprocessed_boundary_6859.sv`
+  - retained interpretation:
+    - green corpus-backed frontier is now at least through line `6195` of the later preprocessed `uvm_pkg` package body
+    - `6859` is the next later expensive checkpoint worth resuming from
+    - parse cost is not monotonic, so do not over-interpret `5967` being slower than `6195`
+  - retained debug evidence:
+    - `/tmp/parseability_probe_2026-04-04_215241_m4ol.sample.txt`
+  - next resume step:
+    - keep `6195` as the latest retained green corpus-backed boundary
+    - resume at `6859` if continuing the later package-prefix ladder
