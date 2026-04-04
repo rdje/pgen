@@ -27053,3 +27053,20 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - this strengthens the current interpretation that the remaining UVM debt is deeper package-context progression/performance inside function-heavy package items, not a reopened call/type/front-end grammar seam
   - retained honest scope:
     - no fresh external-corpus top-level totals are claimed yet because the refreshed focused gate was intentionally stopped once it had re-proved the deep-running `uvm_pkg` path
+- 2026-04-04: closed a real mixed class-parameter-list seam in the active SystemVerilog grammar and retained the next honest UVM reduction point.
+  - real grammar fix:
+    - `parameter_port_list` in both `grammars/systemverilog.ebnf` and the retained generated snapshot now accepts the UVM-shaped mixed class parameter form `#(type TYPE=int, string FIELD="config")`
+    - focused validation is green for:
+      - `/tmp/sv_class_mixed_params.sv`
+      - `/tmp/sv_uvm_utils_min_class_header.sv`
+      - `/tmp/sv_uvm_utils_typedef_only.sv`
+  - retained deeper reduction evidence:
+    - once forward class facts are supplied, the following focused method-level repros now also parse cleanly:
+      - `/tmp/sv_uvm_utils_create_type_by_name_with_forwards.sv`
+      - `/tmp/sv_class_method_type_scope_name.sv`
+      - `/tmp/sv_class_method_scoped_get.sv`
+      - `/tmp/sv_class_method_typedef_init_call.sv`
+    - full isolated `uvm_utils` reductions are still not closed yet, even with forward class facts
+  - retained honest remaining seam:
+    - the remaining isolated `uvm_utils` debt is no longer the class header or the mixed type-plus-string parameter list
+    - the next reduction target is deeper inside the reporting-heavy method bodies (`find_all`, `find`, `get_config`) rather than the previously blocked parameter-port surface

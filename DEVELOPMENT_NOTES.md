@@ -27926,3 +27926,23 @@ Architectural north star:
   - next honest resume rule:
     - continue from the retained focused frontier at `boundary_v2_135` / line `5596`
     - only claim fresh corpus totals after a full focused UVM rerun is allowed to complete end to end
+- 2026-04-04: focused UVM reduction then exposed and closed a real mixed class-parameter-list bug before the deeper method-body work.
+  - what changed:
+    - isolated `class mixed_params #(type TYPE=int, string FIELD="config"); endclass` as a standalone repro
+    - confirmed the old grammar accepted `type`-only class params and `string`-only class params, but rejected the mixed UVM shape at position `0`
+    - patched `parameter_port_list` in both the active grammar and the retained generated snapshot so a leading type-parameter run can be followed by a `string` value parameter
+  - focused proofs now green:
+    - `/tmp/sv_class_mixed_params.sv`
+    - `/tmp/sv_uvm_utils_min_class_header.sv`
+    - `/tmp/sv_uvm_utils_typedef_only.sv`
+  - what that changed in the UVM diagnosis:
+    - the apparent `uvm_utils` failure is no longer blocked at the class header
+    - additional fair reductions with forward class facts also parse for:
+      - `create_type_by_name`
+      - `TYPE::type_name` inside a class method body
+      - `m_uvm_config_obj_misc::get(...)` static class-scope call inside a class method body
+      - typedef-backed local initialization `types_t types = find_all(start);`
+    - the remaining isolated red surface is therefore deeper inside the report-heavy `find_all` / `find` / `get_config` method bodies, not the mixed class parameter list itself
+  - next honest resume rule:
+    - keep the retained focused package frontier at `boundary_v2_135` / line `5596`
+    - when reducing `uvm_utils` again, focus on the nested report-wrapper blocks before reopening class-header or parameter-port work

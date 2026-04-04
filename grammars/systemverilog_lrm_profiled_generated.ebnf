@@ -1414,7 +1414,11 @@ parameter_port_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assign
 
 parameter_port_declaration := parameter_port_declaration_sv_2017 | parameter_port_declaration_sv_2023
 
-parameter_port_list := hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen | hash lparen rparen
+mixed_string_parameter_port_list := kw_type_d0a3e7f8 type_assignment ( !( comma kw_string_ecb25204 ) comma type_assignment )* comma kw_string_ecb25204 list_of_param_assignments ( comma parameter_port_declaration )*
+
+mixed_parameter_port_list := kw_type_d0a3e7f8 list_of_type_assignments comma parameter_port_declaration ( comma parameter_port_declaration )*
+
+parameter_port_list := hash lparen mixed_string_parameter_port_list rparen | hash lparen mixed_parameter_port_list rparen | hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen | hash lparen rparen
 
 @profiles: ["sv_2017"]
 parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen

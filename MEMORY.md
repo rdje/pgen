@@ -8739,3 +8739,15 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - continue from `boundary_v2_135` / line `5596`
     - after the next concrete frontier move, rerun the focused UVM corpus lane to completion again
+- 2026-04-04: a real UVM class-header bug is now fixed.
+  - retained green focused proofs:
+    - `/tmp/sv_class_mixed_params.sv`
+    - `/tmp/sv_uvm_utils_min_class_header.sv`
+    - `/tmp/sv_uvm_utils_typedef_only.sv`
+  - retained interpretation:
+    - mixed class parameters `#(type TYPE=int, string FIELD="config")` were a genuine SystemVerilog grammar hole and are now accepted
+    - once forward class facts are supplied, `create_type_by_name`, `TYPE::type_name`, `m_uvm_config_obj_misc::get(...)`, and typedef-backed local initialization all parse in isolation too
+    - the remaining isolated `uvm_utils` debt is deeper in the report-heavy method bodies, not in the class header or mixed class parameter list
+  - next resume step:
+    - reduce `find_all` / `find` / `get_config` with their report-wrapper blocks
+    - keep the retained package frontier at `boundary_v2_135` / line `5596` until a new balanced-prefix move is actually measured
