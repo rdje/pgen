@@ -28193,3 +28193,70 @@ Architectural north star:
     - keep `6195` as the last corpus-backed green checkpoint
     - resume from `7642` if continuing the later preprocessed package-prefix ladder
     - only reopen grammar surgery if a newly reduced later slice starts failing immediately again
+- 2026-04-05: switched from external `sample` alone to the built-in parser trace for the retained later `uvm_pkg` checkpoint, and that immediately surfaced a concrete declaration-shape bug.
+  - what changed:
+    - ran the current scratch parser with:
+      - `parseability_probe --parse systemverilog /tmp/uvm_pkg_preprocessed_boundary_7642.sv --profile sv_2017 --trace --trace-log-file ...`
+    - kept the runs intentionally short at roughly `10s` because medium trace verbosity writes hundreds of megabytes quickly
+    - retained trace artifacts:
+      - `/tmp/uvm_pkg_7642.trace.log`
+      - `/tmp/uvm_pkg_7642_after.trace.log`
+      - `/tmp/uvm_pkg_7642_after2.trace.log`
+      - `/tmp/uvm_pkg_7642_after3.trace.log`
+  - retained trace result:
+    - the pre-fix traces repeatedly churned at:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv:455`
+      - `parameter UVM_STREAMBITS = 4096;`
+    - the hot rule chain was:
+      - `parameter_declaration_sv_2017`
+      - `data_type_or_implicit`
+      - `data_type`
+      - `scoped_data_type_identifier`
+      - `class_scope_type` / `package_scope`
+    - representative counts from the first retained trace:
+      - `parameter_declaration_sv_2017`: `3494`
+      - `UVM_STREAMBITS`: `1726`
+      - position `15037`: `282` combined `position` / `position:` hits
+    - this exposed the concrete grammar problem:
+      - `implicit_data_type` is nullable
+      - the active `parameter` / `localparam` / `parameter_port_declaration` surfaces still had redundant single-assignment forms layered on top of the list-based forms
+      - `non_keyword_identifier` still allowed built-in SV type keywords to speculate as declaration identifiers
+  - landed grammar fix:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - excludes built-in SV type keywords (`type`, `bit`, `logic`, `reg`, `byte`, `shortint`, `int`, `longint`, `integer`, `time`, `shortreal`, `real`, `realtime`, `string`, `chandle`, `event`, `signed`, `unsigned`, `void`) from `non_keyword_identifier`
+      - removes the redundant single-assignment `parameter` / `localparam` branches
+      - collapses `parameter_port_declaration_*` back to the shared list-based surfaces already reflected in the retained generated snapshot
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - synced the `non_keyword_identifier` keyword exclusions so the retained generated snapshot stays aligned with the active grammar intent
+  - retained verification:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - `1447` rules, pass
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - `1394` rules, pass
+    - regenerated a scratch parser via:
+      - `rust/target/ebnf_frontend_build/debug/ast_pipeline`
+    - rebuilt `parseability_probe` against that scratch parser and re-ran the bounded traced checkpoint
+    - representative post-fix trace counts:
+      - `parameter_declaration_sv_2017`: down to `780` then `788` in like-for-like ~`10s` runs
+      - `UVM_STREAMBITS`: no longer a retained dominant trace signature
+      - position `15037`: gone from the retained hotspot list
+  - retained honest remaining seam:
+    - after the declaration fix, the trace heat moved later into function-declaration/endlabel churn around:
+      - `endfunction : uvm_re_match`
+      - the next `function string ...` surfaces
+    - the retained post-fix hotspot positions are now centered around:
+      - `10024`
+      - `10039`
+      - `10061`
+      - `10092`
+      - `10133`
+      - `10193`
+    - the representative stack there is:
+      - `function_declaration`
+      - `function_body_declaration`
+      - `function_identifier`
+      - `declaration_identifier`
+      - `non_keyword_identifier`
+    - next honest resume rule:
+      - keep the `UVM_STREAMBITS` parameter seam closed unless a regression reopens it
+      - if continuing the UVM trace work, reduce from the `uvm_re_match` / consecutive `function string ...` band rather than reopening parameter declarations first

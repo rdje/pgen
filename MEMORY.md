@@ -8894,3 +8894,30 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - keep `6195` as the latest retained green corpus-backed boundary
     - resume at `7642` if continuing the later preprocessed package-prefix ladder
+- 2026-04-05: the first built-in parser-trace pass on the later retained UVM checkpoint found and closed a real declaration-shape bug.
+  - retained trace evidence:
+    - traced:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+    - retained logs:
+      - `/tmp/uvm_pkg_7642.trace.log`
+      - `/tmp/uvm_pkg_7642_after.trace.log`
+      - `/tmp/uvm_pkg_7642_after2.trace.log`
+      - `/tmp/uvm_pkg_7642_after3.trace.log`
+    - original hotspot:
+      - `parameter UVM_STREAMBITS = 4096;`
+      - under `parameter_declaration_sv_2017 -> data_type_or_implicit -> data_type`
+  - landed fix:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - exclude built-in SV type keywords from `non_keyword_identifier`
+      - collapse redundant single-assignment `parameter` / `localparam` / `parameter_port_declaration` branches
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - sync the identifier keyword exclusions
+  - retained verification:
+    - grammar validation still green:
+      - active: `1447` rules
+      - retained generated snapshot: `1394` rules
+    - the like-for-like bounded trace dropped `parameter_declaration_sv_2017` hits from `3494` to about `788`
+    - `UVM_STREAMBITS` / position `15037` are no longer the dominant retained churn signature
+  - next resume step:
+    - keep the parameter declaration seam closed unless a later regression reopens it
+    - if continuing trace-guided UVM work, reduce from the later `uvm_re_match` / consecutive `function string ...` band around positions `10024..10193` instead of reopening parameter declarations

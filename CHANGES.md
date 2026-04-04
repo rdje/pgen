@@ -27209,3 +27209,42 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained debug evidence:
     - live sample of the later `7642` run:
       - `/tmp/parseability_probe_2026-04-04_230853_i34I.sample.txt`
+- 2026-04-05: used the built-in parser trace to turn the retained later UVM checkpoint into a concrete SystemVerilog declaration-shape fix.
+  - fresh trace-backed evidence:
+    - ran `parseability_probe --parse systemverilog /tmp/uvm_pkg_preprocessed_boundary_7642.sv --profile sv_2017 --trace --trace-log-file ...` with medium trace verbosity
+    - the first two retained trace logs:
+      - `/tmp/uvm_pkg_7642.trace.log`
+      - `/tmp/uvm_pkg_7642_after.trace.log`
+    - showed the parser churning around:
+      - `parameter UVM_STREAMBITS = 4096;`
+      - inside `parameter_declaration_sv_2017 -> data_type_or_implicit -> data_type -> scoped_data_type_identifier`
+    - the concrete root cause was overlapping declaration surfaces:
+      - nullable `implicit_data_type`
+      - redundant single-assignment `parameter` / `localparam` alternatives
+      - `non_keyword_identifier` still admitting built-in type keywords such as `string`, `int`, `logic`, and `void`
+  - landed grammar change:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now excludes the built-in SV type keywords from `non_keyword_identifier`
+    - the same active grammar also collapses the redundant single-assignment `parameter`, `localparam`, and `parameter_port_declaration` branches down to the shared list-based surfaces
+    - synced the retained generated snapshot in:
+      - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+  - retained verification:
+    - both grammars validate cleanly:
+      - `systemverilog.ebnf`: `1447` rules
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1394` rules
+    - regenerated a scratch parser with the Rust EBNF frontend and rebuilt `parseability_probe` against it
+    - the post-fix trace logs:
+      - `/tmp/uvm_pkg_7642_after2.trace.log`
+      - `/tmp/uvm_pkg_7642_after3.trace.log`
+    - show the original parameter hotspot materially reduced:
+      - `parameter_declaration_sv_2017` trace hits in a like-for-like ~`10s` run fell from `3494` to `788`
+      - `UVM_STREAMBITS` / position `15037` are no longer the dominant retained churn signature
+  - retained honest remaining seam:
+    - the representative later hotspot has moved to function-declaration/endlabel churn around:
+      - `endfunction : uvm_re_match`
+      - the following `function string ...` surfaces
+    - the retained post-fix trace now concentrates around positions `10024..10193` in `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`, under:
+      - `function_declaration`
+      - `function_body_declaration`
+      - `function_identifier`
+      - `non_keyword_identifier`
+    - so the next honest UVM/SV grammar-quality move is deeper function-declaration disambiguation, not reopening parameter declarations
