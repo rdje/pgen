@@ -8711,3 +8711,19 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - continue reducing inside `uvm_bit_vector_utils`
     - prefer focused synthetic probes over whole-package reruns until the class-body hotspot is identified
+- 2026-04-04: the old `uvm_bit_vector_utils` hotspot turned out to be slow-but-green.
+  - retained focused proofs now also green:
+    - `/tmp/uvm_pkg_boundary_v2_131.sv`
+    - `/tmp/uvm_pkg_boundary_v2_132.sv`
+    - `/tmp/uvm_pkg_boundary_v2_133.sv`
+    - `/tmp/uvm_pkg_boundary_v2_134.sv`
+    - `/tmp/uvm_bit_vector_utils_extract.sv`
+    - `/tmp/sv_param_class_scope_call_probe.sv`
+    - `/tmp/sv_uvm_get_array_index_int_extract.sv`
+  - retained interpretation:
+    - the previously suspicious class boundary at `131` / line `5513` is no longer a blocker
+    - the focused `uvm_pkg` frontier now reaches `134` / line `5570`
+    - the next unresolved interrupted boundary is `135` / line `5596`
+  - next resume step:
+    - continue the balanced-prefix sweep from `135`
+    - if a later boundary stalls, prefer isolating the exact new package item before editing grammar

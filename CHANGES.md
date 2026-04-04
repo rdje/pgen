@@ -27017,3 +27017,24 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained remaining hotspot:
     - the next unresolved focused UVM package frontier is now the balanced prefix that first enters `virtual class uvm_bit_vector_utils#(type T=int);` at boundary `131` / line `5513`
     - that `131` prefix was intentionally terminated after becoming the next long-running parser hotspot, so no fresh external-corpus totals are claimed yet
+- 2026-04-04: refreshed the focused UVM package frontier after the type-visibility fixes and confirmed the old `131` hotspot was slow-but-green, not a new syntax bug.
+  - fresh focused proofs:
+    - the previously suspicious balanced real-`uvm_pkg` prefix now also passes for:
+      - `/tmp/uvm_pkg_boundary_v2_131.sv`
+      - `/tmp/uvm_pkg_boundary_v2_132.sv`
+      - `/tmp/uvm_pkg_boundary_v2_133.sv`
+      - `/tmp/uvm_pkg_boundary_v2_134.sv`
+    - isolated exact extracts now also parse cleanly for:
+      - `/tmp/uvm_bit_vector_utils_extract.sv`
+      - `/tmp/sv_param_class_scope_call_probe.sv`
+      - `/tmp/sv_uvm_get_array_index_int_extract.sv`
+  - retained performance/debug evidence:
+    - live sampling of the old `131` run showed real parser work under:
+      - `parse_package_item`
+      - `parse_function_declaration`
+      - nested `parse_statement` / `parse_statement_item`
+    - the extracted class/function probes proving green means that hotspot is now a package-context cost spike, not an immediate grammar rejection
+  - retained new frontier:
+    - the balanced focused `uvm_pkg` frontier now reaches boundary `134` / line `5570`
+    - the interrupted next step was boundary `135` / line `5596`
+    - no fresh external-corpus top-level totals are claimed yet because this was still focused prefix probing, not a completed `sv_external_corpus_triage_gate` rerun

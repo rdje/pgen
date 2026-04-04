@@ -27892,3 +27892,21 @@ Architectural north star:
   - next honest resume rule:
     - resume at boundary `131` / line `5513`, which is the first balanced prefix that fully includes `virtual class uvm_bit_vector_utils#(type T=int);`
     - do not reopen the earlier type-parameter or forward-class typedef seams unless one of the focused probes above regresses
+- 2026-04-04: that retained `boundary 131` concern is now resolved as a green-but-expensive parse, and the focused UVM frontier has moved deeper again.
+  - what changed:
+    - reran the balanced real-`uvm_pkg` prefixes with the patched generated parser and let the old `131` hotspot finish
+    - `boundary_v2_131` / line `5513` now parses cleanly
+    - the next balanced prefixes also parse cleanly through:
+      - `132` / line `5522`
+      - `133` / line `5531`
+      - `134` / line `5570`
+  - why this matters:
+    - the earlier suspicion around `virtual class uvm_bit_vector_utils#(type T=int);` was wrong
+    - exact extracted probes for the class body, the parameterized class-scope wrapper call, and `uvm_get_array_index_int` all parse cleanly on their own
+    - the remaining pain in this slice is therefore deeper package-context cost/progression, not the already-fixed type-visibility seams and not an isolated syntax miss in those extracted constructs
+  - retained debug evidence:
+    - a live sample of the old `boundary_v2_131` run concentrated under `parse_package_item -> parse_function_declaration -> parse_statement_item`
+    - that is consistent with a slow green path through package-context procedural code, not a wrapper/process failure
+  - next honest resume rule:
+    - resume at `boundary_v2_135` / line `5596`
+    - only reopen grammar editing if a newly isolated post-`5570` construct can be shown to fail outside the large package context
