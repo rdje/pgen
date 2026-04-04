@@ -27197,3 +27197,15 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - live sample of the later `6859` run:
       - `/tmp/parseability_probe_2026-04-04_215241_m4ol.sample.txt`
     - parse cost is therefore not monotonic by boundary size; the honest retained read is “green through `6195`, next later corpus anchors still deep-running”
+- 2026-04-04: pushed the retained later corpus-backed UVM checkpoint one step further without another grammar edit.
+  - fresh focused proof:
+    - built an even later package-prefix boundary from the same retained preprocessed `uvm_pkg` restart at line `3888`:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+    - that later boundary also entered the same deep-running parser path and was intentionally terminated after capturing a live sample, rather than failing immediately
+  - retained package-frontier interpretation:
+    - the retained green corpus-backed frontier still stands through line `6195`
+    - the honest later expensive checkpoint is now better recorded as line `7642`, not `6859`
+    - this strengthens the current read that the remaining UVM debt is deeper package/class/function-body closure or performance work, not a reopened front-end syntax seam
+  - retained debug evidence:
+    - live sample of the later `7642` run:
+      - `/tmp/parseability_probe_2026-04-04_230853_i34I.sample.txt`

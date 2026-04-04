@@ -8881,3 +8881,16 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - keep `6195` as the latest retained green corpus-backed boundary
     - resume at `6859` if continuing the later package-prefix ladder
+- 2026-04-04: the later corpus-backed UVM ladder was pushed one step farther again without a grammar edit.
+  - retained focused proof:
+    - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+    - that later balanced package prefix also entered the same deep-running parser path and was intentionally terminated after a live sample
+  - retained interpretation:
+    - latest green corpus-backed boundary is still `6195`
+    - `7642` is now the best retained later expensive checkpoint, replacing `6859` as the next resume anchor
+    - remaining debt still looks like deeper package/class/function-body closure or performance work, not a reopened front-edge syntax seam
+  - retained debug evidence:
+    - `/tmp/parseability_probe_2026-04-04_230853_i34I.sample.txt`
+  - next resume step:
+    - keep `6195` as the latest retained green corpus-backed boundary
+    - resume at `7642` if continuing the later preprocessed package-prefix ladder

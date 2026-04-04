@@ -28176,3 +28176,20 @@ Architectural north star:
     - retain `6195` as the latest corpus-backed green boundary
     - treat `6859` as the next later corpus-backed expensive checkpoint
     - do not regress to the stale byte-offset localization as the main resume point anymore
+- 2026-04-04: pushed the later corpus-backed retained UVM checkpoint one step farther, again without a grammar change.
+  - what changed:
+    - carved a still-later balanced package-prefix boundary from the same retained preprocessed `uvm_pkg` artifact:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+    - re-ran `parseability_probe` on that later boundary with profile `sv_2017`
+    - the run entered the same deep package/class/function-body parser path and was intentionally terminated after capturing a live sample, rather than surfacing an immediate syntax rejection
+  - retained interpretation:
+    - the latest retained corpus-backed green boundary remains `6195`
+    - the later expensive checkpoint worth resuming from is now `7642`, which supersedes the earlier retained `6859` checkpoint as the most informative later anchor
+    - this further supports the current read that the representative remaining debt is deeper UVM closure/performance work, not a reopened front-edge grammar seam
+  - retained debug evidence:
+    - live sample of the `7642` probe:
+      - `/tmp/parseability_probe_2026-04-04_230853_i34I.sample.txt`
+  - next honest resume rule:
+    - keep `6195` as the last corpus-backed green checkpoint
+    - resume from `7642` if continuing the later preprocessed package-prefix ladder
+    - only reopen grammar surgery if a newly reduced later slice starts failing immediately again
