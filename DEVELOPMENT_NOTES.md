@@ -27910,3 +27910,19 @@ Architectural north star:
   - next honest resume rule:
     - resume at `boundary_v2_135` / line `5596`
     - only reopen grammar editing if a newly isolated post-`5570` construct can be shown to fail outside the large package context
+- 2026-04-04: a refreshed focused external-corpus rerun confirms that this SystemVerilog/UVM debt is still living in the same deep package-body region.
+  - what changed:
+    - reran `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+    - the gate rebuilt cleanly, regenerated the parser cleanly, rebuilt the triage binaries cleanly, and `case_uvm_pkg_2017_preprocess` passed again
+    - `case_uvm_pkg_2017_parse_full` then ran hot for more than two minutes before being terminated on purpose to avoid leaving a silent long-running parser behind
+  - retained debug evidence:
+    - live sample file `/tmp/parseability_probe_2026-04-04_154319_Nh1S.sample.txt` again shows the active stack centered on:
+      - `parse_package_declaration`
+      - `parse_package_item`
+      - `parse_package_or_generate_item_declaration_sv_2017`
+      - `parse_function_declaration`
+      - `parse_function_body_declaration`
+    - this is stronger evidence that the remaining UVM debt is deep package-context procedural/function parsing cost or progression, not a front-end rebreak in the already-fixed call-shape or type-visibility seams
+  - next honest resume rule:
+    - continue from the retained focused frontier at `boundary_v2_135` / line `5596`
+    - only claim fresh corpus totals after a full focused UVM rerun is allowed to complete end to end

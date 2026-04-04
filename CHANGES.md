@@ -27038,3 +27038,18 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - the balanced focused `uvm_pkg` frontier now reaches boundary `134` / line `5570`
     - the interrupted next step was boundary `135` / line `5596`
     - no fresh external-corpus top-level totals are claimed yet because this was still focused prefix probing, not a completed `sv_external_corpus_triage_gate` rerun
+- 2026-04-04: reran the focused external-corpus UVM lane after retaining the deeper `boundary_v2_134` frontier, and it again confirmed that the remaining debt is deep package-body work rather than an immediate front-end rejection.
+  - refreshed focused gate evidence:
+    - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` rebuilt cleanly
+    - `case_uvm_pkg_2017_preprocess` passed again
+    - `case_uvm_pkg_2017_parse_full` re-entered the same hot `uvm_pkg` parse path and was manually terminated after more than two minutes without surfacing an immediate parse error summary
+  - retained runtime/debug evidence:
+    - live sampling of that refreshed run (`/tmp/parseability_probe_2026-04-04_154319_Nh1S.sample.txt`) again concentrated under:
+      - `parse_package_declaration`
+      - `parse_package_item`
+      - `parse_package_or_generate_item_declaration_sv_2017`
+      - `parse_function_declaration`
+      - `parse_function_body_declaration`
+    - this strengthens the current interpretation that the remaining UVM debt is deeper package-context progression/performance inside function-heavy package items, not a reopened call/type/front-end grammar seam
+  - retained honest scope:
+    - no fresh external-corpus top-level totals are claimed yet because the refreshed focused gate was intentionally stopped once it had re-proved the deep-running `uvm_pkg` path

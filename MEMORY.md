@@ -8727,3 +8727,15 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - continue the balanced-prefix sweep from `135`
     - if a later boundary stalls, prefer isolating the exact new package item before editing grammar
+- 2026-04-04: a refreshed focused `sv_external_corpus_triage_gate` rerun did not produce a new immediate failure surface.
+  - retained gate evidence:
+    - `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate` rebuilt cleanly
+    - `case_uvm_pkg_2017_preprocess` passed again
+    - `case_uvm_pkg_2017_parse_full` ran hot for more than two minutes and was then terminated on purpose
+  - retained interpretation:
+    - fresh sample `/tmp/parseability_probe_2026-04-04_154319_Nh1S.sample.txt` again centers on deep package/function parsing
+    - no evidence of a reopened front-end call-shape or type-visibility regression
+    - no fresh top-level corpus totals should be claimed from that interrupted rerun
+  - next resume step:
+    - continue from `boundary_v2_135` / line `5596`
+    - after the next concrete frontier move, rerun the focused UVM corpus lane to completion again
