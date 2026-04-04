@@ -2023,15 +2023,17 @@ type_assignment := type_assignment_sv_2017 | type_assignment_sv_2023
 
 declared_type_parameter_identifier := type_identifier
 
+declared_class_alias_identifier := type_identifier
+
 declared_forward_class_identifier := type_identifier
 
 declared_forward_interface_class_identifier := type_identifier
 
 @profiles: ["sv_2017"]
-type_declaration_sv_2017 := kw_typedef_6dc2082b data_type type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_instance_identifier constant_bit_select dot type_identifier type_identifier semi | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? type_identifier semi
+type_declaration_sv_2017 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi | kw_typedef_6dc2082b data_type type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_instance_identifier constant_bit_select dot type_identifier type_identifier semi | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? type_identifier semi
 
 @profiles: ["sv_2023"]
-type_declaration_sv_2023 := kw_typedef_6dc2082b data_type_or_incomplete_class_scoped_type type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_port_identifier constant_bit_select dot type_identifier type_identifier semi | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? type_identifier semi
+type_declaration_sv_2023 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi | kw_typedef_6dc2082b data_type_or_incomplete_class_scoped_type type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_port_identifier constant_bit_select dot type_identifier type_identifier semi | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? type_identifier semi
 
 type_declaration := type_declaration_sv_2017 | type_declaration_sv_2023
 

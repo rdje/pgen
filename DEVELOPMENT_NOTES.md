@@ -28040,3 +28040,42 @@ Architectural north star:
     - resume from `boundary_v2_141`
     - treat it as a deep-running package-body frontier, not as an immediate syntax-reject seam
     - if another isolated false negative appears, reduce from the full `uvm_utils` class again before editing grammar
+- 2026-04-04: the next retained `boundary_v2_141` seam after the unresolved-class fix was a typedef-class-alias visibility gap, and that seam is now fixed too.
+  - what changed:
+    - reused the focused package suffix around the suspicious `1211..1249` band instead of guessing from the whole `uvm_pkg`
+    - confirmed the real alias pattern inside `/tmp/uvm_pkg_boundary_v2_141.sv`:
+      - `typedef uvm_config_db#(uvm_object) m_uvm_config_obj_misc;`
+      - followed by later scoped use `m_uvm_config_obj_misc::get(...)`
+    - built a tiny targeted repro:
+      - `/tmp/sv_typedef_class_alias_scoped_call.sv`
+      - it originally failed and proved that a class-typed typedef alias was not being treated as a class-family scope head
+  - retained grammar fix:
+    - in the active grammar:
+      - added `declared_class_alias_identifier := type_identifier`
+      - made it emit both `declaration_family: typedef` and `declaration_family: class`
+      - added explicit leading `kw_typedef ... class_type declared_class_alias_identifier variable_dimension* semi` branches in both `type_declaration_sv_2017` and `type_declaration_sv_2023`
+    - in the retained generated snapshot:
+      - added `declared_class_alias_identifier := type_identifier`
+      - mirrored the same leading `class_type` typedef branches in both profile-specific `type_declaration` rules
+  - focused proofs after regenerating `/tmp/systemverilog_typedef_class_alias_probe_parser.rs` and rebuilding `parseability_probe` against it:
+    - grammar validation stayed green:
+      - `grammars/systemverilog.ebnf` -> `1447` rules
+      - `grammars/systemverilog_lrm_profiled_generated.ebnf` -> `1394` rules
+    - green focused slices:
+      - `/tmp/sv_typedef_class_alias_scoped_call.sv`
+      - `/tmp/uvm_pkg_suffix_1211.sv`
+  - retained new frontier:
+    - the suspicious suffix starting at line `1211` is now green, so the typedef alias band is no longer the active blocker
+    - the retained full prefix `/tmp/uvm_pkg_boundary_v2_141.sv` no longer gives a quick verdict either; on the refreshed run it stayed hot for more than `1m27s` at ~`100%` CPU before being intentionally terminated
+  - retained debug evidence:
+    - live sample `/tmp/parseability_probe_2026-04-04_201100_BZEF.sample.txt` again centers on deep:
+      - `parse_systemverilog_file`
+      - `parse_source_text`
+      - `parse_source_text_item`
+      - `parse_description`
+      - downstream package/class/function-body work
+    - this supports the current read that the remaining debt is deeper package-body closure/performance, not the already-fixed typedef-class-alias seam
+  - next honest resume rule:
+    - resume from `boundary_v2_141`
+    - treat the `1211..1249` typedef alias band as closed unless one of the new green probes regresses
+    - if another false negative appears, reduce from the next deeper `uvm_utils` / package-body slice rather than reopening the typedef rules first

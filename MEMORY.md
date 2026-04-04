@@ -8802,3 +8802,21 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - continue from `boundary_v2_141`
     - treat it as a deep-running UVM frontier, not as an unresolved-class-handle seam anymore
+- 2026-04-04: the next retained `boundary_v2_141` seam after that was a typedef-class-alias visibility gap, and that seam is now fixed too.
+  - retained fix:
+    - active grammar now has `declared_class_alias_identifier`
+    - that alias identifier emits both `declaration_family: typedef` and `declaration_family: class`
+    - both `type_declaration_sv_2017` and `type_declaration_sv_2023` now take a leading `kw_typedef ... class_type declared_class_alias_identifier ...` branch before the generic typedef branches
+    - retained generated snapshot mirrors the same leading class-typed typedef alias branches
+  - retained green focused proofs:
+    - `/tmp/sv_typedef_class_alias_scoped_call.sv`
+    - `/tmp/uvm_pkg_suffix_1211.sv`
+  - retained interpretation:
+    - the suspicious `1211..1249` band in `/tmp/uvm_pkg_boundary_v2_141.sv` is no longer the blocker
+    - the full retained `boundary_v2_141` probe now runs much deeper and stayed hot for more than `1m27s` at about `100%` CPU before being intentionally terminated
+    - live sample:
+      - `/tmp/parseability_probe_2026-04-04_201100_BZEF.sample.txt`
+    - the remaining debt is still deeper package/class/function-body closure work, not the already-fixed typedef-class-alias seam
+  - next resume step:
+    - continue from `boundary_v2_141`
+    - do not reopen the typedef alias rules unless `/tmp/sv_typedef_class_alias_scoped_call.sv` or `/tmp/uvm_pkg_suffix_1211.sv` regresses

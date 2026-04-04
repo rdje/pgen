@@ -27116,3 +27116,21 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained honest remaining seam:
     - no new green pass/fail claim is recorded yet for `boundary_v2_141` itself because the focused run was intentionally stopped after re-proving the deep-running path
     - live sample `/tmp/parseability_probe_2026-04-04_185731_7Uq4.sample.txt` centers on `parse_package_declaration -> parse_class_declaration -> parse_function_body_declaration -> parse_function_statement_or_null`, so the remaining debt is now deeper package-body closure/performance beyond the unresolved-class-handle seam
+- 2026-04-04: closed the next real UVM/SystemVerilog typedef-class-alias seam and removed the last retained fast failure in the suspicious `1211..1249` package band.
+  - real grammar fix:
+    - the active grammar now defines `declared_class_alias_identifier` with both `declaration_family: typedef` and `declaration_family: class`, so `typedef uvm_config_db#(uvm_object) m_uvm_config_obj_misc;` contributes a class-family `type_name` fact instead of remaining a generic typedef only
+    - `type_declaration_sv_2017` and `type_declaration_sv_2023` in `grammars/systemverilog.ebnf` now explicitly admit a leading `kw_typedef ... class_type declared_class_alias_identifier ...` branch before the more generic typedef alternatives
+    - the retained generated snapshot now mirrors that same intent with `declared_class_alias_identifier` plus the corresponding leading `class_type` typedef branches
+  - fresh focused proofs:
+    - frontend validation still passes for both grammar snapshots:
+      - `grammars/systemverilog.ebnf` (`1447` rules)
+      - `grammars/systemverilog_lrm_profiled_generated.ebnf` (`1394` rules)
+    - after regenerating `/tmp/systemverilog_typedef_class_alias_probe_parser.rs` and rebuilding `parseability_probe` against it, these previously red or suspicious slices now parse cleanly:
+      - `/tmp/sv_typedef_class_alias_scoped_call.sv`
+      - `/tmp/uvm_pkg_suffix_1211.sv`
+  - retained package-frontier interpretation:
+    - the suspicious real-`uvm_pkg` band beginning at line `1211` is no longer the active blocker; it now parses cleanly as a standalone package suffix
+    - the retained full prefix `/tmp/uvm_pkg_boundary_v2_141.sv` now runs materially deeper than before and stayed hot for more than `1m27s` at roughly `100%` CPU before being intentionally terminated
+  - retained honest remaining seam:
+    - no new green pass/fail claim is recorded yet for `boundary_v2_141` itself because the focused run was stopped after proving the frontier moved past the typedef-alias seam
+    - live sample `/tmp/parseability_probe_2026-04-04_201100_BZEF.sample.txt` still centers on deep `systemverilog_file -> source_text -> package/class/function-body` work, so the remaining debt is now deeper package-body closure/performance beyond this newly-fixed typedef-class-alias gap
