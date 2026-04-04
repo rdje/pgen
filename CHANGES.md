@@ -27309,3 +27309,53 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained sizing assessment:
     - honest size is medium, not huge
     - the risky part is not parser theory; it is productizing the surface cleanly, tightening validation, and proving non-regression
+- 2026-04-05: trace-guided SV/UVM cleanup tightened expression-side function-call surfaces and removed a large false-call spillover without changing the live label.
+  - retained problem statement:
+    - the later UVM trace checkpoint `/tmp/uvm_pkg_preprocessed_boundary_7642.sv` still had a hot seam around:
+      - `return uvm_dpi_get_tool_version_c();`
+      - byte positions `7558` / `7654`
+    - the real problem was broader than that one return statement:
+      - `function_subroutine_call := subroutine_call`
+      - and `constant_function_call := function_subroutine_call`
+      - allowed the expression and constant-expression surfaces to inherit the broad statement-side `tf_call` path, including bare no-paren task/function speculation
+  - landed grammar change:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now:
+      - rewrites `function_subroutine_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call`
+      - rewrites `constant_function_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call`
+      - removes the redundant `function_subroutine_call` alternatives from `primary_sv_2017` / `primary_sv_2023`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf) mirrors the same expression-side narrowing
+  - retained verification:
+    - both grammars still validate cleanly:
+      - `systemverilog.ebnf`: `1449` rules
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1396` rules
+    - focused call-shape probes are green:
+      - `/tmp/sv_void_function_call_probe.sv`
+      - `/tmp/sv_return_function_call_probe.sv`
+      - `/tmp/sv_task_call_with_parens_probe.sv`
+    - the intentionally tried bare task-statement reduction `/tmp/sv_bare_task_call_probe2.sv` is still red at position `0`, so it is not being treated as a regression oracle for this wave
+    - the bounded traced rerun improved materially:
+      - compared:
+        - `/tmp/uvm_pkg_7642_after6.trace.log`
+        - `/tmp/uvm_pkg_7642_after8.trace.log`
+      - file size:
+        - `231M -> 166M`
+      - `plain_tf_call_with_args`:
+        - `8159 -> 786`
+      - `function_subroutine_call`:
+        - `7451 -> 4`
+      - `constant_function_call`:
+        - `7391 -> 446`
+      - `uvm_dpi_get_tool_version_c`:
+        - `114 -> 105`
+      - retained hotspot counts still improved, but stayed honest and non-zero:
+        - `position 7654`: `1011 -> 979`
+        - `position: 7654`: `735 -> 703`
+    - previously closed package-scope delay speculation stayed closed too:
+      - `position 4734`: `14`
+      - `position: 4734`: `9`
+  - retained honest remaining seam:
+    - this wave did not claim a fresh green on the later corpus-backed `uvm_pkg` boundaries
+    - the next honest remaining SV/UVM grammar-quality seam is still the later call-body churn clustered around:
+      - `uvm_dpi_get_tool_version_c()`
+      - `position 7558`
+      - `position 7654`

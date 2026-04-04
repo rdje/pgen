@@ -28427,3 +28427,79 @@ Architectural north star:
       - side-effect prohibition under lookahead
       - no-regression tests
     - and only then expose the syntax as a formally supported first-class feature
+- 2026-04-05: trace-guided SV/UVM work tightened the expression-side function-call surface and cleanly removed the broad no-paren call spillover from `function_subroutine_call`.
+  - retained pre-change problem:
+    - the current later UVM trace checkpoint was:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+    - the retained hot seam was still:
+      - `return uvm_dpi_get_tool_version_c();`
+      - byte positions `7558` / `7654`
+    - the key grammar-overlap read was:
+      - `function_subroutine_call := subroutine_call`
+      - `constant_function_call := function_subroutine_call`
+      - `subroutine_call := class_scoped_tf_call | tf_call | system_tf_call | method_call | ...`
+      - `tf_call := plain_tf_call_with_args | tf_call_with_args | ps_or_hierarchical_tf_identifier attribute_instance*`
+    - so expression and constant-expression surfaces were still inheriting the broad statement-side no-paren `tf_call` guess path
+  - dead-end explicitly rejected during this wave:
+    - a temporary split of cast vs non-cast callable method receivers was tried first
+    - it validated but did not honestly improve the retained hotspot and was intentionally removed before commit
+    - do not resume from that abandoned split
+  - landed fix:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - `function_subroutine_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call`
+      - `constant_function_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call`
+      - `primary_sv_2017` / `primary_sv_2023` no longer carry redundant `function_subroutine_call` alternatives
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - synced to the same narrowed expression-side call contract
+  - retained verification:
+    - grammar validation stayed green:
+      - active: `1449` rules
+      - retained generated snapshot: `1396` rules
+    - regenerated scratch parser:
+      - `/tmp/systemverilog_expr_call_probe_parser.rs`
+    - focused probes:
+      - green:
+        - `/tmp/sv_void_function_call_probe.sv`
+        - `/tmp/sv_return_function_call_probe.sv`
+        - `/tmp/sv_task_call_with_parens_probe.sv`
+      - intentionally *not* treated as regression oracle:
+        - `/tmp/sv_bare_task_call_probe2.sv`
+        - still rejected at position `0`
+        - this surface is not being claimed as newly broken by this wave
+    - like-for-like bounded trace comparison:
+      - compared:
+        - `/tmp/uvm_pkg_7642_after6.trace.log`
+        - `/tmp/uvm_pkg_7642_after8.trace.log`
+      - file size:
+        - `231M -> 166M`
+      - `plain_tf_call_with_args`:
+        - `8159 -> 786`
+      - `function_subroutine_call`:
+        - `7451 -> 4`
+      - `constant_function_call`:
+        - `7391 -> 446`
+      - `split_direct_callable_method_call`:
+        - `675 -> 392`
+      - `direct_callable_method_call`:
+        - `8653 -> 5307`
+      - `uvm_dpi_get_tool_version_c`:
+        - `114 -> 105`
+      - retained hotspot still present but smaller:
+        - `position 7654`: `1011 -> 979`
+        - `position: 7654`: `735 -> 703`
+      - previously closed `#force_time;` seam remained closed:
+        - `position 4734`: `14`
+        - `position: 4734`: `9`
+    - bounded trace interpretation:
+      - this is a real grammar-quality win, not just a moved hotspot
+      - the broad no-paren task/function spillover into expression and constant-expression parsing has materially collapsed
+      - the remaining UVM churn is now closer to the true later function-call body work rather than the old generic statement-side spillover
+  - honest non-claims:
+    - no fresh completed full UVM external-corpus rerun is claimed in this wave
+    - later corpus-backed boundary probes were not promoted to green evidence during this session because they remained deep-running and were not used as truthful completion oracles under the current session/process limits
+  - next honest resume rule:
+    - keep the expression-side no-paren spillover fix intact unless a concrete regression disproves it
+    - if continuing trace-guided UVM work, reduce from the remaining later call-body churn around:
+      - `uvm_dpi_get_tool_version_c()`
+      - `position 7558`
+      - `position 7654`

@@ -8976,3 +8976,48 @@ Use this file to resume work without replaying full chat history.
       - side-effect prohibition
       - no-regression tests
     - only then expose it as a formally supported grammar feature
+- 2026-04-05: the next retained trace-guided SV/UVM wave narrowed expression-side subroutine calls and removed a large false-call spillover.
+  - retained problem:
+    - the later UVM checkpoint remained:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+    - the honest hot seam stayed around:
+      - `uvm_dpi_get_tool_version_c()`
+      - positions `7558` / `7654`
+    - root cause read:
+      - expression-side `function_subroutine_call` and `constant_function_call` were still inheriting broad statement-side `subroutine_call` / `tf_call` surfaces, including the bare no-paren identifier path
+  - landed fix:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - `function_subroutine_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call`
+      - `constant_function_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call`
+      - remove redundant `function_subroutine_call` alternatives from `primary_sv_2017` / `primary_sv_2023`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - same narrowed expression-side call surface
+  - retained verification:
+    - validation still green:
+      - active: `1449` rules
+      - retained generated snapshot: `1396` rules
+    - focused probe greens:
+      - `/tmp/sv_void_function_call_probe.sv`
+      - `/tmp/sv_return_function_call_probe.sv`
+      - `/tmp/sv_task_call_with_parens_probe.sv`
+    - non-oracle probe:
+      - `/tmp/sv_bare_task_call_probe2.sv`
+      - still rejected at position `0`
+      - not being treated as a newly introduced regression
+    - retained trace improvement:
+      - compared:
+        - `/tmp/uvm_pkg_7642_after6.trace.log`
+        - `/tmp/uvm_pkg_7642_after8.trace.log`
+      - `plain_tf_call_with_args`: `8159 -> 786`
+      - `function_subroutine_call`: `7451 -> 4`
+      - `constant_function_call`: `7391 -> 446`
+      - `uvm_dpi_get_tool_version_c`: `114 -> 105`
+      - `position 7654`: `1011 -> 979`
+      - `position: 7654`: `735 -> 703`
+      - `position 4734` stayed closed at `14`
+      - `position: 4734` stayed closed at `9`
+  - next resume step:
+    - keep this expression-side narrowing unless a concrete regression disproves it
+    - if continuing UVM trace work, reduce from the remaining later call-body seam around:
+      - `position 7558`
+      - `position 7654`
