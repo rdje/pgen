@@ -31,7 +31,12 @@ callable_identifier := non_keyword_identifier
 
 simple_identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
 
+simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \t\r\n]*::)/
+
 escaped_identifier := trivia /\\[!-~]+/
+
+@branch_policy: priority_first
+scope_free_identifier := simple_identifier_no_scope | escaped_identifier !scope_resolution
 
 number := real_number | integral_number
 
@@ -1569,7 +1574,7 @@ ps_class_identifier := ( package_scope )? class_identifier
 
 ps_covergroup_identifier := ( package_scope )? covergroup_identifier
 
-ps_identifier := ( package_scope )? identifier
+ps_identifier := scope_free_identifier | package_scope identifier
 
 ps_or_hierarchical_array_identifier := ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_array_identifier
 

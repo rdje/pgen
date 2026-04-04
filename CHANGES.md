@@ -27248,3 +27248,42 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `function_identifier`
       - `non_keyword_identifier`
     - so the next honest UVM/SV grammar-quality move is deeper function-declaration disambiguation, not reopening parameter declarations
+- 2026-04-05: landed the next trace-driven SystemVerilog cleanup on the later retained UVM checkpoint, this time for bare identifier package-scope speculation.
+  - fresh trace-backed evidence:
+    - the retained post-parameter-fix trace still showed a very hot task-body seam at:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+      - line `144`, byte position `4734`
+      - source slice `#force_time;`
+    - the failing stack there repeatedly ran through:
+      - `delay_control`
+      - `delay_value`
+      - `ps_identifier`
+      - `non_typedef_package_scope`
+      - `package_scope`
+      - `scope_resolution`
+    - representative retained counts from `/tmp/uvm_pkg_7642_after3.trace.log`:
+      - `position 4734`: `1064`
+      - `position: 4734`: `813`
+      - `force_time`: `3807`
+  - landed grammar change:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now adds:
+      - `simple_identifier_no_scope`
+      - `scope_free_identifier`
+    - and rewrites `ps_identifier` to prefer the scope-free identifier surface before trying `non_typedef_package_scope identifier`
+    - synced the retained generated snapshot in:
+      - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+  - retained verification:
+    - both grammars validate cleanly after the new helper rules:
+      - `systemverilog.ebnf`: `1449` rules
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1396` rules
+    - regenerated the scratch parser, rebuilt `parseability_probe`, and re-ran the same bounded traced UVM checkpoint:
+      - `/tmp/uvm_pkg_7642_after6.trace.log`
+    - the hot `#force_time;` seam dropped materially:
+      - `position 4734`: `1064 -> 14`
+      - `position: 4734`: `813 -> 9`
+      - `force_time`: `3807 -> 3563`
+  - retained honest remaining seam:
+    - this change did not materially move the later plain-call/cast false path around:
+      - `uvm_dpi_get_tool_version_c()`
+      - retained hotspot `position 7654`
+    - so the next honest UVM/SV grammar-quality move is no longer package-scope speculation for bare delay identifiers; it is the remaining call/cast ambiguity in function bodies

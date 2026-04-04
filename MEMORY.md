@@ -8921,3 +8921,38 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - keep the parameter declaration seam closed unless a later regression reopens it
     - if continuing trace-guided UVM work, reduce from the later `uvm_re_match` / consecutive `function string ...` band around positions `10024..10193` instead of reopening parameter declarations
+- 2026-04-05: the next retained trace-guided cleanup closed the hot bare delay-identifier scope-speculation seam.
+  - retained trace evidence:
+    - compared:
+      - `/tmp/uvm_pkg_7642_after3.trace.log`
+      - `/tmp/uvm_pkg_7642_after6.trace.log`
+    - old hot seam:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+      - line `144`
+      - byte position `4734`
+      - `#force_time;`
+    - old stack centered on:
+      - `delay_control`
+      - `delay_value`
+      - `ps_identifier`
+      - `non_typedef_package_scope`
+      - `package_scope`
+      - `scope_resolution`
+  - landed fix:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - add `simple_identifier_no_scope`
+      - add `scope_free_identifier`
+      - rewrite `ps_identifier := scope_free_identifier | non_typedef_package_scope identifier`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - mirror the same helper rules and `ps_identifier` surface
+  - retained verification:
+    - validation still green:
+      - active: `1449` rules
+      - retained generated snapshot: `1396` rules
+    - retained improvement on the same bounded trace window:
+      - `position 4734`: `1064 -> 14`
+      - `position: 4734`: `813 -> 9`
+      - `force_time`: `3807 -> 3563`
+  - next resume step:
+    - keep the bare delay-identifier seam closed unless `position 4734` returns materially
+    - the next honest trace hotspot is still the plain-call/cast ambiguity around `uvm_dpi_get_tool_version_c()` / `position 7654`

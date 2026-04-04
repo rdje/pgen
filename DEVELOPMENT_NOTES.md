@@ -28257,6 +28257,70 @@ Architectural north star:
       - `function_identifier`
       - `declaration_identifier`
       - `non_keyword_identifier`
-    - next honest resume rule:
+  - next honest resume rule:
       - keep the `UVM_STREAMBITS` parameter seam closed unless a regression reopens it
       - if continuing the UVM trace work, reduce from the `uvm_re_match` / consecutive `function string ...` band rather than reopening parameter declarations first
+- 2026-04-05: used the same retained traced UVM checkpoint to close the next hot bare-identifier scope-speculation seam.
+  - what changed:
+    - kept the same retained input:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+    - compared the pre-change trace:
+      - `/tmp/uvm_pkg_7642_after3.trace.log`
+    - against the rebuilt post-change trace:
+      - `/tmp/uvm_pkg_7642_after6.trace.log`
+  - retained trace result:
+    - the hottest remaining task-body hotspot after the parameter cleanup was:
+      - line `144`
+      - byte position `4734`
+      - `#force_time;`
+    - the representative stack there was:
+      - `task_body_declaration`
+      - `procedural_timing_control_statement`
+      - `procedural_timing_control`
+      - `delay_control`
+      - `delay_value`
+      - `ps_identifier`
+      - `non_typedef_package_scope`
+      - `package_scope`
+      - `scope_resolution`
+    - this showed that a bare delay identifier was still repeatedly speculating as a package-qualified identifier before failing on missing `::`
+  - landed grammar fix:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - adds `simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \\t\\r\\n]*::)/`
+      - adds `scope_free_identifier := simple_identifier_no_scope | escaped_identifier !scope_resolution`
+      - rewrites `ps_identifier` to:
+        - `scope_free_identifier | non_typedef_package_scope identifier`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - mirrors the same helper rules and `ps_identifier` ordering in the retained snapshot
+    - an earlier experimental branch-order shuffle on `call_primary` and `ps_identifier` was not retained because it produced no meaningful trace improvement; only the scope-free helper rules remain in the final worktree
+  - retained verification:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - `1449` rules, pass
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - `1396` rules, pass
+    - regenerated the scratch parser and rebuilt `parseability_probe`
+    - bounded trace comparison on the same retained UVM checkpoint:
+      - `position 4734`: `1064 -> 14`
+      - `position: 4734`: `813 -> 9`
+      - `force_time`: `3807 -> 3563`
+    - the `#force_time;` seam is therefore no longer one of the dominant retained trace hotspots
+  - retained honest remaining seam:
+    - the function-body plain-call/cast false path was not materially changed by this wave:
+      - `position 7654`: unchanged at `1011`
+      - `position: 7654`: unchanged at `735`
+      - source slice:
+        - `return uvm_dpi_get_tool_version_c();`
+        - followed by `endfunction`
+    - the representative remaining stack there still runs through:
+      - `function_statement`
+      - `jump_statement`
+      - `primary`
+      - `call_primary`
+      - `direct_callable_method_call`
+      - `method_call_receiver`
+      - `cast`
+      - `constant_primary`
+      - `constant_function_call`
+    - next honest resume rule:
+      - keep the bare delay-identifier seam closed unless `position 4734` reappears materially
+      - if continuing trace-guided SV/UVM work, reduce from the plain-call/cast ambiguity around `uvm_dpi_get_tool_version_c()` / position `7654`
