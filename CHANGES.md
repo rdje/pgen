@@ -27134,3 +27134,26 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained honest remaining seam:
     - no new green pass/fail claim is recorded yet for `boundary_v2_141` itself because the focused run was stopped after proving the frontier moved past the typedef-alias seam
     - live sample `/tmp/parseability_probe_2026-04-04_201100_BZEF.sample.txt` still centers on deep `systemverilog_file -> source_text -> package/class/function-body` work, so the remaining debt is now deeper package-body closure/performance beyond this newly-fixed typedef-class-alias gap
+- 2026-04-04: the retained focused UVM frontier moved again without another grammar edit.
+  - fresh focused proofs:
+    - the retained real-`uvm_pkg` prefix `/tmp/uvm_pkg_boundary_v2_141.sv` now parses cleanly under the current scratch-built parser
+    - the nearby package suffixes that preserve the `uvm_void` / `uvm_apprepend` / forward-typedef prelude are also green:
+      - `/tmp/uvm_pkg_suffix_1204.sv`
+      - `/tmp/uvm_pkg_suffix_1208.sv`
+      - `/tmp/uvm_pkg_suffix_1211.sv`
+    - the previously retained small UVM extracts remain green too:
+      - `/tmp/sv_uvm_utils_extract.sv`
+      - `/tmp/sv_uvm_utils_extract_with_forwards.sv`
+      - `/tmp/sv_uvm_utils_find_all_only.sv`
+      - `/tmp/sv_uvm_utils_get_config_only.sv`
+  - retained package-frontier interpretation:
+    - `boundary_v2_141` was not a hidden red syntax seam anymore; it was a slow-but-green retained frontier
+    - the successful refreshed run completed after roughly `1m45s`, which is materially slower than the focused extracts but no longer blocks the retained prefix ladder
+  - retained honest remaining seam:
+    - there is still no fresh completed external-corpus top-level summary for UVM from this task
+    - a follow-up `PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/bin/bash sv_external_corpus_triage_gate` rerun was started, reached:
+      - `build_ast_pipeline_for_sv_external_corpus_triage`
+      - `frontend_rust_raw_ast_export`
+      - `generate_systemverilog_parser`
+      - `build_sv_external_corpus_triage_binaries`
+    - that rerun was intentionally terminated while the triage-binary cargo build was still in progress, so no new case-level parseability verdict is claimed yet

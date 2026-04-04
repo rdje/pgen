@@ -8820,3 +8820,28 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - continue from `boundary_v2_141`
     - do not reopen the typedef alias rules unless `/tmp/sv_typedef_class_alias_scoped_call.sv` or `/tmp/uvm_pkg_suffix_1211.sv` regresses
+- 2026-04-04: `boundary_v2_141` is now green without further grammar edits.
+  - retained green focused proofs:
+    - `/tmp/uvm_pkg_boundary_v2_141.sv`
+    - `/tmp/uvm_pkg_suffix_1204.sv`
+    - `/tmp/uvm_pkg_suffix_1208.sv`
+    - `/tmp/uvm_pkg_suffix_1211.sv`
+    - `/tmp/sv_uvm_utils_extract.sv`
+    - `/tmp/sv_uvm_utils_extract_with_forwards.sv`
+    - `/tmp/sv_uvm_utils_find_all_only.sv`
+    - `/tmp/sv_uvm_utils_get_config_only.sv`
+  - retained interpretation:
+    - the retained `boundary_v2_141` prefix was slow but valid
+    - the successful refreshed run completed after about `1m45s`
+    - live sample:
+      - `/tmp/parseability_probe_2026-04-04_205257_kwJ0.sample.txt`
+    - remaining debt is now beyond the old retained `141` boundary, not inside it
+  - retained follow-up:
+    - a focused `PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2` rerun was started
+    - it reached parser generation and `build_sv_external_corpus_triage_binaries`
+    - it was intentionally terminated before fresh case-level output, so there is still no new corpus summary from this task
+  - next resume step:
+    - keep `boundary_v2_141` as green evidence
+    - next measurable move is either:
+      - a later balanced `uvm_pkg` boundary beyond `141`
+      - or a focused external-corpus rerun that reaches the actual case outputs

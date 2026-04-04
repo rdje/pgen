@@ -28079,3 +28079,39 @@ Architectural north star:
     - resume from `boundary_v2_141`
     - treat the `1211..1249` typedef alias band as closed unless one of the new green probes regresses
     - if another false negative appears, reduce from the next deeper `uvm_utils` / package-body slice rather than reopening the typedef rules first
+- 2026-04-04: the retained `boundary_v2_141` frontier is now green, and this task did not require another grammar edit.
+  - what changed:
+    - re-ran the retained full prefix `/tmp/uvm_pkg_boundary_v2_141.sv` and let it continue well past the earlier manual stop point
+    - that full prefix now completes successfully instead of remaining an unproven deep-running checkpoint
+    - also sanity-checked the nearby focused package suffixes:
+      - `/tmp/uvm_pkg_suffix_1204.sv`
+      - `/tmp/uvm_pkg_suffix_1208.sv`
+      - `/tmp/uvm_pkg_suffix_1211.sv`
+    - and revalidated the previously retained class-only UVM reductions:
+      - `/tmp/sv_uvm_utils_extract.sv`
+      - `/tmp/sv_uvm_utils_extract_with_forwards.sv`
+      - `/tmp/sv_uvm_utils_find_all_only.sv`
+      - `/tmp/sv_uvm_utils_get_config_only.sv`
+  - retained focused proofs:
+    - `/tmp/uvm_pkg_boundary_v2_141.sv` is now green
+    - the refreshed successful full-prefix run completed after roughly `1m45s`
+    - live sample taken during that run:
+      - `/tmp/parseability_probe_2026-04-04_205257_kwJ0.sample.txt`
+    - that sample still concentrates under deep:
+      - `parse_systemverilog_file`
+      - `parse_source_text`
+      - `parse_source_text_item`
+      - `parse_description`
+      - downstream package/class/function-body work
+    - the sample is therefore still useful as a performance/closure clue even though the retained prefix now finishes
+  - follow-up external-corpus attempt:
+    - started `PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/bin/bash sv_external_corpus_triage_gate`
+    - it reached:
+      - `build_ast_pipeline_for_sv_external_corpus_triage`
+      - `frontend_rust_raw_ast_export`
+      - `generate_systemverilog_parser`
+      - `build_sv_external_corpus_triage_binaries`
+    - it was then intentionally terminated while the triage-binary cargo build was still in progress, before any fresh case-level output was emitted
+  - next honest resume rule:
+    - retain `boundary_v2_141` as green evidence, not as an open blocker
+    - the next honest measurable move is a fresh focused external-corpus rerun that reaches the case outputs, or a newly-generated later balanced `uvm_pkg` boundary if we want another retained prefix beyond `141`
