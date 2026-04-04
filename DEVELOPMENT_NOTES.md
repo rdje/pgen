@@ -27760,6 +27760,43 @@ Architectural north star:
   - next resume rule:
     - continue on the scoped/object-call family first
     - then rerun the focused UVM external-corpus gate to completion before claiming a new representative external-corpus summary
+- 2026-04-04: focused UVM parser debugging then closed that scoped/object-call family with two narrower fixes.
+  - root cause:
+    - `pkg::foo()` statement forms were not failing inside `tf_call`; they were being stolen earlier by the optional statement-label front `( block_identifier colon )?`, which consumed `pkg:` and left the parser stranded on the second `:`
+    - `obj.foo()` / `x = obj.foo();` were still failing for the classic PEG split reason: the old `direct_method_call` path let the hierarchical receiver surface greedily absorb `obj.foo` as one identifier chain, so the trailing callable-body split point was lost before the parser could see the `(` of `foo()`
+  - retained grammar fix:
+    - in both:
+      - `grammars/systemverilog.ebnf`
+      - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+    - changed:
+      - `statement := ( block_identifier colon !colon )? attribute_instance* statement_item`
+        - this keeps ordinary labels intact but prevents `pkg::...` from being stolen as `pkg:`
+      - `method_call_initial` now prefers `split_direct_callable_method_call` before the old `direct_method_call`
+      - `call_primary` now also prefers `split_direct_callable_method_call` before `direct_callable_method_call`
+    - added:
+      - `split_hierarchical_callable_receiver`
+      - `split_direct_callable_method_call`
+    - why this exact split was kept:
+      - the new receiver rule stops repeated dotted receiver segments when the next token stream is already a `callable_method_call_body`, which is enough to preserve the receiver/body boundary for `obj.foo()` without reopening the wider earlier ambiguity surfaces
+      - this kept the repair local to the focused callable-method seam instead of widening statement-level exclusions or refactoring the whole receiver hierarchy
+  - fresh retained validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - passed
+      - `rule_count=1438`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - passed
+      - `rule_count=1386`
+    - env-wired generated-parser probes now pass for:
+      - `initial begin foo(); end`
+      - `initial x = foo();`
+      - `initial begin obj.foo(); end`
+      - `initial x = obj.foo();`
+      - `initial pkg::foo();`
+      - `initial x = pkg::foo();`
+      - `/tmp/uvm_pkg_body_prefix_500.sv`
+  - practical conclusion:
+    - the previously tracked scoped/object-call seam is now closed at the focused repro level
+    - the next honest representative step is not more speculative call-grammar work; it is rerunning the focused UVM external-corpus lane to completion and measuring the deeper remaining package-body blocker
 - 2026-04-04: Phase S now has a tracked `rtl_frontend` grammar bootstrap.
   - changed:
     - `grammars/rtl_frontend.ebnf`

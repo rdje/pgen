@@ -1087,7 +1087,7 @@ member_identifier := identifier
 
 method_call := method_call_initial ( dot method_call_body )*
 
-method_call_initial := direct_method_call | class_scoped_tf_call | tf_call | system_tf_call
+method_call_initial := split_direct_callable_method_call | direct_method_call | class_scoped_tf_call | tf_call | system_tf_call
 
 direct_method_call := method_call_root dot method_call_body
 
@@ -1096,6 +1096,10 @@ method_call_body := built_in_method_call | method_identifier attribute_instance*
 
 @branch_policy: priority_first
 callable_method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen
+
+split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? ( identifier constant_bit_select dot !callable_method_call_body )* identifier
+
+split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body | implicit_class_handle dot callable_method_call_body
 
 direct_callable_method_call := method_call_root dot callable_method_call_body
 
@@ -1110,7 +1114,7 @@ method_call_receiver := method_call_receiver_sv_2017 | method_call_receiver_sv_2
 method_call_root := method_call_receiver | implicit_class_handle
 
 @branch_policy: priority_first
-call_primary := direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | system_tf_call
+call_primary := split_direct_callable_method_call | direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | system_tf_call
 
 method_identifier := declaration_identifier
 
@@ -1812,7 +1816,7 @@ start_edge_offset := mintypmax_expression
 
 state_dependent_path_declaration := kw_if_958f57f5 lparen module_path_expression rparen simple_path_declaration | kw_if_958f57f5 lparen module_path_expression rparen edge_sensitive_path_declaration | kw_ifnone_32ae8180 simple_path_declaration
 
-statement := ( block_identifier colon )? attribute_instance* statement_item
+statement := ( block_identifier colon !colon )? attribute_instance* statement_item
 
 @profiles: ["sv_2017"]
 statement_item_sv_2017 := blocking_assignment semi | nonblocking_assignment semi | procedural_continuous_assignment semi | case_statement | conditional_statement | inc_or_dec_expression semi | subroutine_call_statement | disable_statement | event_trigger | loop_statement | jump_statement | par_block | procedural_timing_control_statement | seq_block | wait_statement | procedural_assertion_statement | clocking_drive semi | randsequence_statement | randcase_statement | expect_property_statement

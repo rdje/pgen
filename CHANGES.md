@@ -26917,6 +26917,40 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - preprocessed cleanly
       - reached a deep active `case_uvm_pkg_2017_parse_full` phase instead of the earlier immediate rejection path
       - was intentionally stopped after several minutes, so no fresh top-level `parse_pass_total` / `parse_fail_total` summary is claimed from that rerun
+- 2026-04-04: removed the remaining focused `systemverilog` scoped/object-call false-negative seam without changing the live label.
+  - changed:
+    - `grammars/systemverilog.ebnf`
+    - `grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - retained grammar shape:
+    - the optional statement label is now guarded as:
+      - `statement := ( block_identifier colon !colon )? ...`
+    - added:
+      - `split_hierarchical_callable_receiver`
+      - `split_direct_callable_method_call`
+    - changed:
+      - `method_call_initial` now prefers `split_direct_callable_method_call` ahead of the older generic `direct_method_call`
+      - `call_primary` now prefers `split_direct_callable_method_call` ahead of `direct_callable_method_call`
+  - root cause captured:
+    - `pkg::foo()` as a statement was being misread as labeled statement prefix `pkg:`
+    - `obj.foo()` / `x = obj.foo();` were still hitting PEG receiver greediness, where the old hierarchical receiver surface swallowed `obj.foo` before the parser could split receiver vs callable body
+  - validated:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - passed
+      - `rule_count=1438`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - passed
+      - `rule_count=1386`
+    - focused parseability probes now pass for:
+      - `initial begin foo(); end`
+      - `initial x = foo();`
+      - `initial begin obj.foo(); end`
+      - `initial x = obj.foo();`
+      - `initial pkg::foo();`
+      - `initial x = pkg::foo();`
+      - `/tmp/uvm_pkg_body_prefix_500.sv`
+  - practical consequence:
+    - the previously tracked scoped/object-call seam is no longer the representative UVM blocker
+    - the next honest resume step is rerunning the focused external-corpus lane to completion and measuring where the deeper remaining package-body debt now lands
 - 2026-04-04: started the tracked `rtl_frontend` EBNF bootstrap for the RTLSyn-facing synthesizable RTL subset.
   - changed:
     - `grammars/rtl_frontend.ebnf`

@@ -8649,3 +8649,24 @@ Use this file to resume work without replaying full chat history.
   - practical resume rule:
     - next main-SV step is to rerun `sv_stimuli_quality_gate`
     - only after that should aggregate/status docs be refreshed
+- 2026-04-04: the main-SV scoped/object-call seam is no longer the current blocker.
+  - keep these root causes straight:
+    - `pkg::foo()` as a statement was being stolen by the optional statement-label prefix `( block_identifier colon )?`
+    - `obj.foo()` / `x = obj.foo();` were failing because the old hierarchical receiver surface greedily swallowed `obj.foo` before the parser could split receiver vs callable body
+  - retained grammar fix:
+    - `statement := ( block_identifier colon !colon )? attribute_instance* statement_item`
+    - added:
+      - `split_hierarchical_callable_receiver`
+      - `split_direct_callable_method_call`
+    - `method_call_initial` and `call_primary` now prefer that split callable path before the older generic receiver/body split
+  - retained focused proofs:
+    - `initial begin foo(); end`
+    - `initial x = foo();`
+    - `initial begin obj.foo(); end`
+    - `initial x = obj.foo();`
+    - `initial pkg::foo();`
+    - `initial x = pkg::foo();`
+    - `/tmp/uvm_pkg_body_prefix_500.sv`
+  - next honest resume step:
+    - rerun `env PGEN_SV_EXTERNAL_CORPUS_TRIAGE_MAX_CASES=2 make -C rust SHELL=/opt/homebrew/bin/bash sv_external_corpus_triage_gate`
+    - if that completes, refresh the broader main-SV external-corpus evidence instead of reopening this call grammar seam by instinct
