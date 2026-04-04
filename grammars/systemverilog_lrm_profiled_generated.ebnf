@@ -551,7 +551,9 @@ data_event := timing_check_event
 
 data_source_expression := expression
 
-data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | ( class_scope | package_scope )? type_identifier packed_dimension* | class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
+provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+
+data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | ( class_scope | package_scope )? type_identifier packed_dimension* | class_type | provisional_unscoped_block_class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
 
 data_type_or_implicit := data_type | implicit_data_type
 

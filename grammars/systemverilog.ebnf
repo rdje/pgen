@@ -659,6 +659,8 @@ scoped_data_type_identifier := ( class_scope | non_typedef_package_scope ) type_
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, typedef], phase: post }
 known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
+provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+
 scoped_block_class_type := non_typedef_package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $covergroup_identifier, declaration_family, covergroup], phase: post }
@@ -670,11 +672,11 @@ known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_ide
 
 scoped_block_covergroup_identifier := scoped_covergroup_type_identifier
 
-block_data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_block_type_identifier | known_unscoped_block_type_identifier | scoped_block_class_type | known_unscoped_block_class_type | kw_event_5006ed02 | scoped_block_covergroup_identifier | known_unscoped_block_covergroup_identifier | type_reference
+block_data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_block_type_identifier | known_unscoped_block_type_identifier | scoped_block_class_type | known_unscoped_block_class_type | provisional_unscoped_block_class_type | kw_event_5006ed02 | scoped_block_covergroup_identifier | known_unscoped_block_covergroup_identifier | type_reference
 
 block_data_type_or_implicit := block_data_type | implicit_data_type
 
-data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_data_type_identifier | known_unscoped_data_type_identifier | class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
+data_type := integer_vector_type ( signing )? packed_dimension* | integer_atom_type ( signing )? | non_integer_type | struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension* | kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension* | kw_string_ecb25204 | kw_chandle_34401c13 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )? | scoped_data_type_identifier | known_unscoped_data_type_identifier | class_type | provisional_unscoped_block_class_type | kw_event_5006ed02 | ps_covergroup_identifier | type_reference
 
 data_type_or_implicit := data_type | implicit_data_type
 

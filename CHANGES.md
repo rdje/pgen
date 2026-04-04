@@ -27096,3 +27096,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained honest remaining seam:
     - the new failing retained slice reaches the `get_config` report path where `comp.uvm_report_fatal(...)` / `comp.uvm_report_warning(...)` still carry `TYPE::type_name` inside the message concatenation
     - live samples from the heavier `139` / `141` runs (`/tmp/parseability_probe_2026-04-04_163212_1OZk.sample.txt` and `/tmp/parseability_probe_2026-04-04_163212_MpPE.sample.txt`) still center on deep `package -> function body -> statement/expression` parsing, so the remaining debt is narrower package-body closure work, not a reopened class-scope/type-visibility front-end seam
+- 2026-04-04: closed the next real UVM/SystemVerilog unresolved-class-handle seam and removed the old immediate rejection in the retained `boundary_v2_141` slice.
+  - real grammar fix:
+    - `block_data_type` in `grammars/systemverilog.ebnf` now includes a provisional unscoped class-like fallback, so block-local declarations can still parse when a realistic corpus uses class handles before this focused prefix has seen their forward declarations
+    - `data_type` in the active grammar now reuses that same provisional class-like fallback, which closes the matching unknown-class formal-argument seam
+    - the retained generated snapshot now mirrors the same intent with the same provisional class-like fallback in `data_type`
+  - fresh focused proofs:
+    - the exact unresolved-class probes are now green:
+      - `/tmp/sv_unknown_class_local_decl.sv`
+      - `/tmp/sv_unknown_class_var_and_scoped_call.sv`
+      - `/tmp/sv_unknown_class_formal_type.sv`
+      - `/tmp/sv_unknown_class_get_scoped_call_with_known_formal.sv`
+    - the previously red UVM-shaped extracts without extra forward typedef help are now also green:
+      - `/tmp/sv_uvm_utils_get_config_only.sv`
+      - `/tmp/sv_uvm_utils_extract.sv`
+  - retained package-frontier interpretation:
+    - the retained balanced `uvm_pkg` prefix `/tmp/uvm_pkg_boundary_v2_141.sv` no longer fails fast at position `0`
+    - it now enters the same deep package/class/function-body work as the later UVM frontier and runs hot instead of surfacing an immediate front-edge reject
+  - retained honest remaining seam:
+    - no new green pass/fail claim is recorded yet for `boundary_v2_141` itself because the focused run was intentionally stopped after re-proving the deep-running path
+    - live sample `/tmp/parseability_probe_2026-04-04_185731_7Uq4.sample.txt` centers on `parse_package_declaration -> parse_class_declaration -> parse_function_body_declaration -> parse_function_statement_or_null`, so the remaining debt is now deeper package-body closure/performance beyond the unresolved-class-handle seam

@@ -27995,3 +27995,48 @@ Architectural north star:
     - resume from `boundary_v2_141`, not `135`
     - reduce the `get_config` report-message form around `comp.uvm_report_{fatal,warning}` plus `TYPE::type_name`
     - do not reopen the already-fixed type-parameter class-scope seam unless one of the focused green probes above regresses
+- 2026-04-04: the next retained `boundary_v2_141` seam turned out not to be the report-message text itself, but unresolved class-handle types in block locals and function formals.
+  - what changed:
+    - reused the retained focused extracts instead of inventing a new broad hypothesis
+    - confirmed:
+      - `/tmp/sv_uvm_utils_get_config_with_forwards.sv` parses
+      - `/tmp/sv_uvm_utils_extract_with_forwards.sv` parses
+      - `/tmp/sv_uvm_utils_get_config_only.sv` and `/tmp/sv_uvm_utils_extract.sv` fail without those extra forward class typedefs
+    - built a tiny matrix to isolate the exact seam:
+      - `/tmp/sv_unknown_class_local_decl.sv` originally failed
+      - `/tmp/sv_unknown_class_var_and_scoped_call.sv` originally failed
+      - `/tmp/sv_unknown_class_scoped_call_only.sv` was already green
+      - `/tmp/sv_unknown_class_formal_type.sv` originally failed
+      - `/tmp/sv_unknown_class_get_scoped_call_with_known_formal.sv` proved the scoped `m_uvm_config_obj_misc::get(...)` path was already fine once the formal type was known
+  - retained grammar fix:
+    - in the active grammar:
+      - added `provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*`
+      - added that helper to `block_data_type`
+      - then reused the same helper in `data_type` to close the unknown-class formal-argument surface as well
+    - in the retained generated snapshot:
+      - mirrored the same provisional class-like fallback in `data_type`
+  - focused proofs after regenerating `/tmp/systemverilog_uvm_unknown_formal_probe_parser.rs` and rebuilding `parseability_probe` against it:
+    - green unresolved-class probes:
+      - `/tmp/sv_unknown_class_local_decl.sv`
+      - `/tmp/sv_unknown_class_var_and_scoped_call.sv`
+      - `/tmp/sv_unknown_class_formal_type.sv`
+      - `/tmp/sv_unknown_class_get_scoped_call_with_known_formal.sv`
+    - green UVM extracts without extra forward typedef patching:
+      - `/tmp/sv_uvm_utils_get_config_only.sv`
+      - `/tmp/sv_uvm_utils_extract.sv`
+  - retained new frontier:
+    - `boundary_v2_141` no longer rejects immediately at position `0`
+    - the retained focused run now simply goes hot and stays in deep package/class/function-body parsing work
+  - retained debug evidence:
+    - live sample `/tmp/parseability_probe_2026-04-04_185731_7Uq4.sample.txt` centers on:
+      - `parse_package_declaration`
+      - `parse_package_item`
+      - `parse_package_or_generate_item_declaration_sv_2017`
+      - `parse_class_declaration`
+      - `parse_function_body_declaration`
+      - `parse_function_statement_or_null`
+    - this is the right resume shape: the unresolved-class-handle seam is closed, and the next debt is now deeper than that front edge
+  - next honest resume rule:
+    - resume from `boundary_v2_141`
+    - treat it as a deep-running package-body frontier, not as an immediate syntax-reject seam
+    - if another isolated false negative appears, reduce from the full `uvm_utils` class again before editing grammar

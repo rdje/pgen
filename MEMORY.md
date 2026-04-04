@@ -8780,3 +8780,25 @@ Use this file to resume work without replaying full chat history.
   - next resume step:
     - resume from `boundary_v2_141`
     - reduce the multiline `get_config` report-message path before touching the already-fixed class-scope/type-parameter rules again
+- 2026-04-04: the next retained `boundary_v2_141` seam was not the report-message text itself.
+  - retained fix:
+    - the actual false negative was unresolved class-handle types in:
+      - block-local declarations
+      - function formal arguments
+    - active grammar now uses `provisional_unscoped_block_class_type` in both `block_data_type` and `data_type`
+    - retained generated snapshot mirrors that same provisional class-like fallback in `data_type`
+  - retained green focused proofs:
+    - `/tmp/sv_unknown_class_local_decl.sv`
+    - `/tmp/sv_unknown_class_var_and_scoped_call.sv`
+    - `/tmp/sv_unknown_class_formal_type.sv`
+    - `/tmp/sv_unknown_class_get_scoped_call_with_known_formal.sv`
+    - `/tmp/sv_uvm_utils_get_config_only.sv`
+    - `/tmp/sv_uvm_utils_extract.sv`
+  - current honest frontier:
+    - `/tmp/uvm_pkg_boundary_v2_141.sv` no longer fails fast at position `0`
+    - it now runs hot in deep package/class/function-body parsing work
+    - live sample:
+      - `/tmp/parseability_probe_2026-04-04_185731_7Uq4.sample.txt`
+  - next resume step:
+    - continue from `boundary_v2_141`
+    - treat it as a deep-running UVM frontier, not as an unresolved-class-handle seam anymore
