@@ -27861,3 +27861,34 @@ Architectural north star:
   - why this was recorded now:
     - the demand is concrete enough that it should survive crash/resume as tracked intent instead of living only in chat history
     - but there is no claim here that parser work has started or that the current active parser lanes should be interrupted
+- 2026-04-04: focused UVM package debugging moved from call-shape work into type-visibility semantics.
+  - first closed seam:
+    - class/module/interface `type` parameters declared through `type_assignment` were syntactically accepted in `#(...)` lists but were not being registered as in-scope `type_name` facts
+    - that meant class methods like `static function int a(T value);` still failed even after the earlier callable-form fixes
+  - retained grammar fix:
+    - added `declared_type_parameter_identifier := type_identifier`
+    - attached:
+      - `@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: type_parameter }`
+      - matching post-phase `has_fact` predicate
+    - rewired both `type_assignment_sv_2017` and `type_assignment_sv_2023` to use that declared identifier
+  - second closed seam:
+    - forward `typedef class Foo;` / `typedef interface class Foo;` names were being emitted only as generic `typedef` facts
+    - later class-type uses such as `typedef Foo#(Bar) Baz;` therefore failed because `class_type` requires `declaration_family: class` / `interface_class`
+  - retained grammar fix:
+    - added:
+      - `declared_forward_class_identifier`
+      - `declared_forward_interface_class_identifier`
+    - rewired the forward-type arms of `type_declaration_sv_2017` / `type_declaration_sv_2023` so forward class names emit the correct declaration family instead of plain `typedef`
+  - fresh focused proofs after regenerating `/tmp/systemverilog_typeparam_probe_parser.rs` and rebuilding `parseability_probe` against it:
+    - `static function int a(T value);` now parses in `/tmp/sv_class_method_probe3.sv`
+    - forward-class chain `typedef class uvm_object; typedef class uvm_config_db; typedef uvm_config_db#(uvm_object) m_uvm_config_obj_misc;` now parses in `/tmp/sv_forward_class_typedef_probe.sv`
+    - control case with concrete class declarations still parses in `/tmp/sv_forward_class_typedef_control.sv`
+    - balanced real `uvm_pkg` prefixes now pass through:
+      - boundary `90` / line `4957`
+      - boundary `110` / line `5035`
+      - boundary `120` / line `5112`
+      - boundary `125` / line `5175`
+      - boundary `130` / line `5336`
+  - next honest resume rule:
+    - resume at boundary `131` / line `5513`, which is the first balanced prefix that fully includes `virtual class uvm_bit_vector_utils#(type T=int);`
+    - do not reopen the earlier type-parameter or forward-class typedef seams unless one of the focused probes above regresses

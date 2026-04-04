@@ -8690,3 +8690,24 @@ Use this file to resume work without replaying full chat history.
     - current live rows remain:
       - Liberty `Not Started`
       - SDC `Not Started`
+- 2026-04-04: focused SystemVerilog UVM package debugging has now removed two more type-visibility seams.
+  - retained fixes:
+    - `type_assignment` now declares `type_parameter` names into the `type_name` fact space, so class methods can use `T` from `#(type T=int)` in formal arguments
+    - forward `typedef class Foo;` / `typedef interface class Foo;` now declare `class` / `interface_class` facts instead of falling back to generic `typedef`
+  - retained focused proofs:
+    - `/tmp/sv_class_method_probe3.sv`
+    - `/tmp/sv_forward_class_typedef_probe.sv`
+    - `/tmp/sv_forward_class_typedef_control.sv`
+    - balanced real `uvm_pkg` prefixes now green through:
+      - `/tmp/uvm_pkg_boundary_v2_90.sv`
+      - `/tmp/uvm_pkg_boundary_v2_110.sv`
+      - `/tmp/uvm_pkg_boundary_v2_120.sv`
+      - `/tmp/uvm_pkg_boundary_v2_125.sv`
+      - `/tmp/uvm_pkg_boundary_v2_130.sv`
+  - current honest frontier:
+    - the next unresolved balanced UVM prefix is `boundary_v2_131`
+    - that first fully includes `virtual class uvm_bit_vector_utils#(type T=int);`
+    - the parse was intentionally terminated after it became the next long-running hotspot, so no pass/fail claim is retained yet for `131`
+  - next resume step:
+    - continue reducing inside `uvm_bit_vector_utils`
+    - prefer focused synthetic probes over whole-package reruns until the class-body hotspot is identified

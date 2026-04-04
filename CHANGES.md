@@ -26987,3 +26987,33 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - explicit scope:
     - this was continuity/backlog capture only
     - no grammar file, parser crate, or live status row was started by this note
+- 2026-04-04: closed two more focused SystemVerilog UVM type-visibility seams without changing the live label.
+  - active grammar change:
+    - `type_assignment` now routes through `declared_type_parameter_identifier`, which emits `type_name` facts with `declaration_family: type_parameter`
+    - forward `typedef class ...;` and `typedef interface class ...;` now route through dedicated declared identifiers that emit `declaration_family: class` / `interface_class` instead of generic `typedef`
+  - retained generated snapshot sync:
+    - mirrored the same structural split in `grammars/systemverilog_lrm_profiled_generated.ebnf`
+  - fresh focused proofs:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - passed
+      - `rule_count=1441`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - passed
+      - `rule_count=1389`
+    - regenerated scratch parser via:
+      - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/systemverilog.ebnf --generate-parser --output /tmp/systemverilog_typeparam_probe_parser.rs`
+    - rebuilt focused parse probe against that scratch parser via:
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_typeparam_probe_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+    - focused parser proofs now pass for:
+      - `/tmp/sv_class_method_probe3.sv`
+      - `/tmp/sv_forward_class_typedef_probe.sv`
+      - `/tmp/sv_forward_class_typedef_control.sv`
+      - balanced real-`uvm_pkg` prefixes:
+        - `/tmp/uvm_pkg_boundary_v2_90.sv`
+        - `/tmp/uvm_pkg_boundary_v2_110.sv`
+        - `/tmp/uvm_pkg_boundary_v2_120.sv`
+        - `/tmp/uvm_pkg_boundary_v2_125.sv`
+        - `/tmp/uvm_pkg_boundary_v2_130.sv`
+  - retained remaining hotspot:
+    - the next unresolved focused UVM package frontier is now the balanced prefix that first enters `virtual class uvm_bit_vector_utils#(type T=int);` at boundary `131` / line `5513`
+    - that `131` prefix was intentionally terminated after becoming the next long-running parser hotspot, so no fresh external-corpus totals are claimed yet
