@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-06 - Release regex 1.1.4 for numeric angle subroutine refs
+### Achievement Summary
+Closed RGX bug `PGEN-RGX-0007` against the published regex handoff. Numeric angle subroutine references such as `\g<1>` now transport as a real regex `backreference` containing `subroutine_ref` / `signed_digits` in the generated regex parser instead of degrading into `simple_escape("g")` plus literal `<`, `1`, `>`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - widened `subroutine_ref` so `<...>` and `'...'` forms now admit `signed_digits_or_name`, not just `name`
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - added AST regression `regex_parser_integration_contract_classifies_numeric_angle_subroutine_ref`
+  - updated manifest metadata expectation from `15` to `16` success samples
+  - bumped published regex contract/release constants to `1.1.4`
+- Updated generated regex artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated published regex release surfaces and bug ledger:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - `regex` stays `Done`; this is a downstream maintenance release, not a family-status promotion
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_numeric_angle_subroutine_ref --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_declared_success_samples --lib`
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0007/repro_input.txt /tmp/pgen_rgx_0007.fixed_ast.json --profile regex_default`
+
 ## 2026-04-05 - Release regex 1.1.3 for braced octal escapes
 ### Achievement Summary
 Closed RGX bug `PGEN-RGX-0006` against the published regex handoff. Braced octal escapes such as `\o{101}` now transport as a real octal escape in the generated regex parser, and the compile-contract validator no longer reinterprets brace-style numeric escapes as counted quantifiers during post-parse validation.

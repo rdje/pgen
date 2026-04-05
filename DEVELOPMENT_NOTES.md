@@ -28681,6 +28681,42 @@ Architectural north star:
   - live-status impact:
     - none
     - `regex` stays `Done`; this is a downstream maintenance patch, not a closure-status change
+- 2026-04-06: closed RGX regex report `PGEN-RGX-0007` in the published regex handoff.
+  - report summary:
+    - numeric angle subroutine reference `\g<1>` was misparsed as `simple_escape("g")` plus literal `<`, `1`, `>`
+    - expected transport was `backreference` plus `subroutine_ref` / `signed_digits`
+  - root cause:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+      - `subroutine_ref` admitted numeric or named payloads inside `{...}`, but `<...>` and `'...'` still admitted only `name`
+      - that let `\g<1>` fall out of the `backreference` path entirely
+  - landed fix:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+      - widened `subroutine_ref` so `<...>` and `'...'` now accept `signed_digits_or_name`
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+      - bumped published regex release / integration contract to `1.1.4`
+      - added `regex_parser_integration_contract_classifies_numeric_angle_subroutine_ref`
+      - raised the declared success-sample manifest count from `15` to `16`
+    - regeneration:
+      - [generated/regex.json](generated/regex.json)
+      - [generated/regex_parser.rs](generated/regex_parser.rs)
+  - focused proof:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_numeric_angle_subroutine_ref --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_declared_success_samples --lib`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0007/repro_input.txt /tmp/pgen_rgx_0007.fixed_ast.json --profile regex_default`
+    - `jq` over `/tmp/pgen_rgx_0007.fixed_ast.json` confirmed:
+      - `backreference` span `0..5`
+      - `subroutine_ref` span `2..5`
+      - `signed_digits` span `3..4`
+      - no `escape`
+      - no `literal`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - release/docs result:
+    - published regex handoff is now `1.1.4`
+    - released-bug ledger row added:
+      - `REGEX-0007`
+  - live-status impact:
+    - none
+    - `regex` stays `Done`; this is a downstream maintenance patch, not a closure-status change
 - 2026-04-06: kept a narrow trace-guided SV/UVM grammar cleanup after proving it safe through the scratch-parser loop.
   - preserved starting point:
     - resumed from the committed `after10` semantics and the same later-UVM hotspot at:

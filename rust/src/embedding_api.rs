@@ -18,10 +18,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.3";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.4";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.3";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.4";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2077,7 +2077,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 15);
+        assert_eq!(manifest.success_samples.len(), 16);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2091,6 +2091,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "braced_octal_escape")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "numeric_angle_subroutine_ref")
         );
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
         assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
@@ -2580,6 +2586,24 @@ mod tests {
         assert!(
             regex_rule_spans(&parsed, "quantifier").is_empty(),
             "braced octal escape must not spill into a counted quantifier"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_classifies_numeric_angle_subroutine_ref() {
+        let parsed = regex_ast_dump_json("\\g<1>");
+
+        assert_eq!(regex_rule_spans(&parsed, "backreference"), vec![(0, 5)]);
+        assert_eq!(regex_rule_spans(&parsed, "subroutine_ref"), vec![(2, 5)]);
+        assert_eq!(regex_rule_spans(&parsed, "signed_digits"), vec![(3, 4)]);
+        assert!(
+            regex_rule_spans(&parsed, "escape").is_empty(),
+            "numeric angle subroutine ref must not degrade into a generic escape"
+        );
+        assert!(
+            regex_rule_spans(&parsed, "literal").is_empty(),
+            "numeric angle subroutine ref must not spill into literal atoms"
         );
     }
 

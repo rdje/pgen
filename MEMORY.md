@@ -9130,6 +9130,27 @@ Use this file to resume work without replaying full chat history.
       - `octal_digits 3..6`
       - no `simple_escape`
       - no `quantifier`
+- 2026-04-06: regex downstream handoff `1.1.4` closes RGX issue `PGEN-RGX-0007`.
+  - fixed behavior:
+    - `\g<1>` now transports as outer `backreference` plus inner `subroutine_ref` / `signed_digits`
+    - it no longer degrades into `simple_escape("g")` plus literal `<`, `1`, `>`
+  - landed files:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - published regex release/docs surfaces now pin `1.1.4`
+  - retained proof:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_numeric_angle_subroutine_ref --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_declared_success_samples --lib`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `/tmp/pgen_rgx_0007.fixed_ast.json` shows:
+      - `backreference 0..5`
+      - `subroutine_ref 2..5`
+      - `signed_digits 3..4`
+      - no `escape`
+      - no `literal`
 - 2026-04-06: the retained SV/UVM trace frontier moved forward again, but only modestly.
   - landed grammar tightening:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

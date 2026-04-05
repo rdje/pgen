@@ -71,8 +71,8 @@ backreference  = "\\" backreference_digits
 backreference_digits = nonzero_digit digit*
 name_ref       = "<" name ">" | "'" name "'"
 subroutine_ref = "{" signed_digits_or_name "}"
-              | "<" name ">"
-              | "'" name "'"
+              | "<" signed_digits_or_name ">"
+              | "'" signed_digits_or_name "'"
               | signed_digits
 signed_digits_or_name = signed_digits | name
 signed_digits = sign? digits

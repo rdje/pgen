@@ -220,10 +220,10 @@ audit_embedding_api_surface() {
     'pub const EMBEDDING_API_VERSION: &str = "1.2.0";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.3";'
+    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.4";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.3";'
+    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.4";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
@@ -416,7 +416,7 @@ audit_embedding_api_surface() {
     '- `Contract Identity`'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.3`. |'
+    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.4`. |'
   assert_file_contains \
     "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
@@ -479,13 +479,16 @@ audit_embedding_api_surface() {
     'Published Regex Flavor Summary'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    '## Release 1.1.3 Highlights'
+    '## Release 1.1.4 Highlights'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'raw regex bodies, not host-language delimiter wrappers'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'braced named backreferences such as `\k{name}`'
+  assert_file_contains \
+    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    'subroutine-reference forms such as `\g{1}` and `\g<1>`'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'whole-pattern recursion `(?R)` now classifies as `subroutine_call` / `subroutine_target`'

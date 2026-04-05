@@ -3696,9 +3696,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.3`
+  - `1.1.4`
 - integration contract version:
-  - `1.1.3`
+  - `1.1.4`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3779,6 +3779,7 @@ Accepted syntax families in the current published flavor:
   - numeric forms such as `\1`
   - named forms such as `\k<name>`, `\k'name'`, and `\k{name}`
   - numeric forms are preserved as `backreference` constructs rather than generic escapes in the AST dump
+  - subroutine-reference forms such as `\g{1}` and `\g<1>` are transported through `backreference` / `subroutine_ref`
 - character classes:
   - simple classes such as `[abc]`
   - negated classes such as `[^abc]`
@@ -3822,6 +3823,7 @@ Representative accepted examples:
 - `[[:^alnum:]]+`
 - `(a)\\1`
 - `\\o{101}`
+- `\\g<1>`
 - `(?(1)a|b)`
 - `(?(R&word)a|b)`
 - `(?<A>foo)-\\k{A}`
@@ -3865,7 +3867,8 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.3` specifically fixes one more accepted-tree transport bug plus a compile-validation false-negative while keeping that JSON schema version stable:
+- parser release `1.1.4` specifically fixes one more accepted-tree transport bug while keeping that JSON schema version stable:
+  - `\g<1>` now appears as outer `backreference` plus inner `subroutine_ref` / `signed_digits`, not `simple_escape("g")` plus literal `<`, `1`, `>`
   - `\o{101}` now appears as outer `escape` plus inner `octal_escape` / `octal_digits`, not `simple_escape` plus counted `quantifier`
   - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`
   - `\1` now appears as `backreference`, not `escape`
@@ -3942,8 +3945,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.3`
-  - integration contract version `1.1.3`
+  - parser release version `1.1.4`
+  - integration contract version `1.1.4`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind
