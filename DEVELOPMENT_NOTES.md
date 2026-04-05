@@ -28503,3 +28503,88 @@ Architectural north star:
       - `uvm_dpi_get_tool_version_c()`
       - `position 7558`
       - `position 7654`
+- 2026-04-05: follow-up trace-guided SV/UVM work rebalanced `call_primary` and `list_of_arguments` without claiming the later UVM seam closed.
+  - retained pre-change problem:
+    - after the previous expression-side narrowing, the remaining hot later-UVM seam was still:
+      - `/tmp/uvm_pkg_preprocessed_boundary_7642.sv`
+      - `uvm_dpi_get_tool_name_c()`
+      - `uvm_dpi_get_tool_version_c()`
+      - positions `7558` / `7654`
+    - the first retained trace stack there still ran through the wrong receiver family:
+      - `call_primary`
+      - `direct_callable_method_call`
+      - `method_call_receiver`
+      - `sequence_method_call`
+      - `sequence_instance`
+      - `sequence_list_of_arguments`
+      - `sequence_actual_arg`
+      - `event_expression`
+      - `edge_identifier`
+  - landed fix 1:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - `call_primary := split_direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | direct_callable_method_call | system_tf_call`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - same `call_primary` priority order
+  - retained verification for fix 1:
+    - focused probes stayed green:
+      - `/tmp/sv_plain_call_order_probe.sv`
+      - `/tmp/sv_obj_method_call_order_probe.sv`
+      - `/tmp/sv_pkg_call_order_probe.sv`
+    - bounded trace comparison:
+      - `/tmp/uvm_pkg_7642_after8.trace.log`
+      - `/tmp/uvm_pkg_7642_after9.trace.log`
+    - material deltas:
+      - `direct_callable_method_call`: `5307 -> 1223`
+      - `sequence_method_call`: `4617 -> 543`
+      - `plain_tf_call_with_args`: `786 -> 4900`
+    - unchanged honest hotspot counts:
+      - `position 7558`: `979`
+      - `position: 7558`: `703`
+      - `position 7654`: `979`
+      - `position: 7654`: `703`
+    - interpretation:
+      - the parser stopped misclassifying ordinary helper calls as would-be method receivers
+      - but the remaining empty-call churn moved into the plain-call family instead of disappearing
+  - retained intermediate stack shift:
+    - after fix 1, the same hotspot no longer centered on `sequence_method_call`
+    - it now centered on:
+      - `call_primary`
+      - `plain_tf_call_with_args`
+      - `list_of_arguments`
+      - `list_of_arguments_mixed`
+      - `list_of_arguments_mixed_head`
+      - `expression`
+      - `tagged_union_expression`
+  - landed fix 2:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - add `@branch_policy: priority_first` to `list_of_arguments`
+      - rewrite `list_of_arguments := list_of_arguments_ordered | list_of_arguments_named | list_of_arguments_mixed`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - same `list_of_arguments` priority order
+  - retained verification for fix 2:
+    - focused mixed-argument probe stayed green:
+      - `/tmp/sv_mixed_named_args_probe.sv`
+    - bounded trace comparison:
+      - `/tmp/uvm_pkg_7642_after9.trace.log`
+      - `/tmp/uvm_pkg_7642_after10.trace.log`
+    - material deltas:
+      - `list_of_arguments_mixed`: `10710 -> 390`
+      - `list_of_arguments_ordered`: `18 -> 4392`
+    - unchanged honest hotspot counts:
+      - `position 7558`: `979`
+      - `position: 7558`: `703`
+      - `position 7654`: `979`
+      - `position: 7654`: `703`
+    - interpretation:
+      - argument parsing is now flowing through the correct ordered-arguments family for ordinary helper calls
+      - the later empty-call seam is still not closed
+  - explicitly rejected during this wave:
+    - a further `&rparen` fast-path for empty `list_of_arguments` was drafted
+    - it was intentionally rolled back before commit because it was not carried through the full scratch-parser verification loop in this session
+    - do not resume from that rolled-back variant
+  - next honest resume rule:
+    - keep the verified `call_primary` and `list_of_arguments` priority changes
+    - if continuing trace-guided UVM work, reduce from the still-open empty-call churn around:
+      - `uvm_dpi_get_tool_name_c()`
+      - `uvm_dpi_get_tool_version_c()`
+      - positions `7558` / `7654`

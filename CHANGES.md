@@ -27359,3 +27359,64 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `uvm_dpi_get_tool_version_c()`
       - `position 7558`
       - `position 7654`
+- 2026-04-05: trace-guided SV/UVM cleanup also rebalanced plain-call priority and argument-list priority without changing the live label.
+  - landed grammar change:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf) now:
+      - rewrites `call_primary` to prefer:
+        - `split_direct_callable_method_call`
+        - `class_scoped_tf_call_with_args`
+        - `plain_tf_call_with_args`
+        - `tf_call_with_args`
+        - `direct_callable_method_call`
+        - `system_tf_call`
+      - adds explicit `@branch_policy: priority_first` on `list_of_arguments`
+      - rewrites `list_of_arguments := list_of_arguments_ordered | list_of_arguments_named | list_of_arguments_mixed`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf) mirrors the same priority changes
+  - retained verification:
+    - both grammars still validate cleanly:
+      - `systemverilog.ebnf`: `1449` rules
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1396` rules
+    - focused probe set is green:
+      - `/tmp/sv_plain_call_order_probe.sv`
+      - `/tmp/sv_obj_method_call_order_probe.sv`
+      - `/tmp/sv_pkg_call_order_probe.sv`
+      - `/tmp/sv_mixed_named_args_probe.sv`
+    - first bounded trace comparison:
+      - compared:
+        - `/tmp/uvm_pkg_7642_after8.trace.log`
+        - `/tmp/uvm_pkg_7642_after9.trace.log`
+      - `direct_callable_method_call`:
+        - `5307 -> 1223`
+      - `sequence_method_call`:
+        - `4617 -> 543`
+      - `plain_tf_call_with_args`:
+        - `786 -> 4900`
+      - hotspot counts stayed honest and unchanged:
+        - `position 7558`: `979`
+        - `position: 7558`: `703`
+        - `position 7654`: `979`
+        - `position: 7654`: `703`
+    - second bounded trace comparison:
+      - compared:
+        - `/tmp/uvm_pkg_7642_after9.trace.log`
+        - `/tmp/uvm_pkg_7642_after10.trace.log`
+      - `list_of_arguments_mixed`:
+        - `10710 -> 390`
+      - `list_of_arguments_ordered`:
+        - `18 -> 4392`
+      - `plain_tf_call_with_args` stayed:
+        - `4900`
+      - the retained hot empty-call sites stayed honest and unchanged:
+        - `position 7558`: `979`
+        - `position: 7558`: `703`
+        - `position 7654`: `979`
+        - `position: 7654`: `703`
+  - retained honest remaining seam:
+    - these waves materially moved the parser away from the wrong speculative families:
+      - first from `direct_callable_method_call` / `sequence_method_call`
+      - then from `list_of_arguments_mixed`
+    - but they did not close the later UVM seam itself
+    - the next honest remaining hotspot is still the empty-argument plain-call churn at:
+      - `uvm_dpi_get_tool_name_c()`
+      - `uvm_dpi_get_tool_version_c()`
+      - positions `7558` / `7654`

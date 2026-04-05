@@ -1010,7 +1010,8 @@ lifetime := kw_static_a381562a | kw_automatic_ebe88724
 
 limit_value := constant_mintypmax_expression
 
-list_of_arguments := list_of_arguments_mixed | list_of_arguments_ordered | list_of_arguments_named
+@branch_policy: priority_first
+list_of_arguments := list_of_arguments_ordered | list_of_arguments_named | list_of_arguments_mixed
 
 list_of_arguments_mixed := list_of_arguments_mixed_head comma named_argument ( comma named_argument )*
 
@@ -1123,7 +1124,7 @@ method_call_receiver := method_call_receiver_sv_2017 | method_call_receiver_sv_2
 method_call_root := method_call_receiver | implicit_class_handle
 
 @branch_policy: priority_first
-call_primary := split_direct_callable_method_call | direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | system_tf_call
+call_primary := split_direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | direct_callable_method_call | system_tf_call
 
 method_identifier := declaration_identifier
 

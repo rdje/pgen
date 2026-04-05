@@ -9021,3 +9021,61 @@ Use this file to resume work without replaying full chat history.
     - if continuing UVM trace work, reduce from the remaining later call-body seam around:
       - `position 7558`
       - `position 7654`
+- 2026-04-05: the next retained trace-guided SV/UVM wave rebalanced `call_primary` and `list_of_arguments` priority.
+  - retained problem:
+    - after the previous narrowing, the later UVM seam still centered on:
+      - `uvm_dpi_get_tool_name_c()`
+      - `uvm_dpi_get_tool_version_c()`
+      - positions `7558` / `7654`
+    - first wrong-family stack:
+      - `direct_callable_method_call`
+      - `sequence_method_call`
+      - `sequence_instance`
+      - `sequence_actual_arg`
+      - `event_expression`
+      - `edge_identifier`
+    - second wrong-family stack after that fix:
+      - `plain_tf_call_with_args`
+      - `list_of_arguments_mixed`
+      - `list_of_arguments_mixed_head`
+      - `tagged_union_expression`
+  - landed fix 1:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - `call_primary := split_direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | direct_callable_method_call | system_tf_call`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - same call-family priority
+  - retained verification for fix 1:
+    - focused call probes green:
+      - `/tmp/sv_plain_call_order_probe.sv`
+      - `/tmp/sv_obj_method_call_order_probe.sv`
+      - `/tmp/sv_pkg_call_order_probe.sv`
+    - `/tmp/uvm_pkg_7642_after8.trace.log -> /tmp/uvm_pkg_7642_after9.trace.log`
+      - `direct_callable_method_call`: `5307 -> 1223`
+      - `sequence_method_call`: `4617 -> 543`
+      - `plain_tf_call_with_args`: `786 -> 4900`
+      - hotspot positions unchanged:
+        - `7558`: `979 / 703`
+        - `7654`: `979 / 703`
+  - landed fix 2:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - `@branch_policy: priority_first`
+      - `list_of_arguments := list_of_arguments_ordered | list_of_arguments_named | list_of_arguments_mixed`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - same argument-family priority
+  - retained verification for fix 2:
+    - mixed named-argument probe green:
+      - `/tmp/sv_mixed_named_args_probe.sv`
+    - `/tmp/uvm_pkg_7642_after9.trace.log -> /tmp/uvm_pkg_7642_after10.trace.log`
+      - `list_of_arguments_mixed`: `10710 -> 390`
+      - `list_of_arguments_ordered`: `18 -> 4392`
+      - hotspot positions unchanged:
+        - `7558`: `979 / 703`
+        - `7654`: `979 / 703`
+  - explicitly rejected in this wave:
+    - an extra `&rparen` fast-path draft for empty `list_of_arguments`
+    - rolled back before commit because it was not fully verified in the scratch-parser loop
+  - next resume step:
+    - keep the verified call-family and argument-family priority changes
+    - if continuing UVM trace work, reduce from the still-open empty-call churn at:
+      - `position 7558`
+      - `position 7654`
