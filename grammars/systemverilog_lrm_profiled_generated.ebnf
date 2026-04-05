@@ -26,6 +26,7 @@ expression := expression_base | inside_expression | conditional_expression
 
 identifier := escaped_identifier | simple_identifier
 
+reserved_non_keyword_identifier := trivia /(?:parameter|localparam|type|context|pure|import|export|typedef|module|package|interface|program|class|checker|function|task|property|sequence|generate|modport|clocking|enum|struct|union|bit|logic|reg|byte|shortint|int|longint|integer|time|shortreal|real|realtime|string|chandle|event|signed|unsigned|void|endchecker|endclass|endfunction|endinterface|endmodule|endpackage|endprogram|endproperty|endsequence|endtask|begin|end|if|else|case|casez|casex|endcase|for|foreach|forever|repeat|while|do|wait|wait_order|disable|return|break|continue|fork|join|join_any|join_none|assert|assume|expect|randcase|randsequence)\b/
 
 callable_identifier := non_keyword_identifier
 
@@ -2988,7 +2989,7 @@ wildcard_equal := trivia "==?"
 wildcard_not_equal := trivia "!=?"
 
 xor_assign := trivia "^="
-non_keyword_identifier := !kw_parameter_b75381f0 !kw_localparam_7829ee69 !kw_type_d0a3e7f8 !kw_context_ec2727b3 !kw_pure_afe003f1 !kw_import_62fdfbd5 !kw_export_51713409 !kw_typedef_6dc2082b !kw_module_fbd34a2b !kw_package_582681c2 !kw_interface_5ea2d81a !kw_program_81d9aeea !kw_class_8d767bf5 !kw_checker_29e5b9a8 !kw_function_c218e39e !kw_task_7fbb727d !kw_property_269fe373 !kw_sequence_92504616 !kw_generate_9e59d425 !kw_modport_1cf85849 !kw_clocking_4d22041d !kw_enum_e338e8e3 !kw_struct_d118e5a3 !kw_union_67ad5a07 !kw_bit_026e996a !kw_logic_2c684987 !kw_reg_e06b9586 !kw_byte_8cf1783f !kw_shortint_131a0f0d !kw_int_46f8ab7c !kw_longint_30bcfc87 !kw_integer_1178cafb !kw_time_714eea0f !kw_shortreal_99d69111 !kw_real_c9c64e07 !kw_realtime_91c462ed !kw_string_ecb25204 !kw_chandle_34401c13 !kw_event_5006ed02 !kw_signed_07235a80 !kw_unsigned_9861ca25 !kw_void_e9cede9b !kw_endchecker_cd5c3b65 !kw_endclass_b43ac277 !kw_endfunction_84b8f967 !kw_endinterface_ebd6ca35 !kw_endmodule_2eb38ec9 !kw_endpackage_4f31e93e !kw_endprogram_6b609b1f !kw_endproperty_6594321c !kw_endsequence_241830d7 !kw_endtask_eb64ab0d !kw_begin_8cbd0a74 !kw_end_7a92f3d2 !kw_if_958f57f5 !kw_else_ae050f5b !kw_case_6406510c !kw_casez_b8fbe0e1 !kw_casex_b31a7350 !kw_endcase_a27a6786 !kw_for_43eef9a6 !kw_foreach_4d3e8614 !kw_forever_e07f8c4a !kw_repeat_c0ac4842 !kw_while_6517f89c !kw_do_eadcd9bd !kw_wait_daaad336 !kw_wait_order_e1b7850a !kw_disable_ccf09e2d !kw_return_63143b6f !kw_break_4f9cac8d !kw_continue_eee0bbba !kw_fork_3f673f2a !kw_join_c455b38e !kw_join_any_24358a7a !kw_join_none_4454a7a6 !kw_assert_64b5daad !kw_assume_661e458e !kw_expect_ff93c451 !kw_randcase_89bbd045 !kw_randsequence_8b92cf8f identifier
+non_keyword_identifier := !reserved_non_keyword_identifier identifier
 
 declaration_identifier := non_keyword_identifier
 class_scoped_call_prefix := class_scope_head_identifier ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*

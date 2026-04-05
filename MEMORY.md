@@ -9177,3 +9177,53 @@ Use this file to resume work without replaying full chat history.
       - `declaration_identifier`
       - `non_keyword_identifier`
     - do not reopen empty-argument fast-path experiments first
+- 2026-04-06: the next retained SV/UVM wave closed most of that declaration-side keyword churn.
+  - landed grammar shape:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - added:
+        - `reserved_non_keyword_identifier`
+      - rewrote:
+        - `non_keyword_identifier := !reserved_non_keyword_identifier identifier`
+  - important implementation note:
+    - do not try regex lookaround for lexical compaction here
+    - that shape was tested locally and discarded before commit because the runtime regex engine does not support lookaround
+    - the kept aggregated reserved-word guard is the safe pattern
+  - retained validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - passed
+      - `rule_count=1451`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - passed
+      - `rule_count=1398`
+  - retained scratch-parser path:
+    - `/tmp/systemverilog_empty_call_probe_parser.rs`
+  - retained focused proofs:
+    - parse-pass:
+      - `/tmp/sv_plain_call_probe.sv`
+      - `/tmp/sv_bare_task_call_probe.sv`
+      - `/tmp/sv_pkg_call_probe.sv`
+      - `/tmp/sv_obj_method_call_probe.sv`
+      - `/tmp/sv_escaped_module_identifier_probe.sv`
+    - parse-reject:
+      - `/tmp/sv_keyword_decl_probe.sv`
+  - retained minimal-trace result:
+    - `/tmp/sv_empty_call_return_probe_after_reserved.trace.log`
+    - compared with `/tmp/sv_empty_call_return_probe_after_hier.trace.log`:
+      - `non_keyword_identifier`: `1971 -> 178`
+      - `declaration_identifier`: `2058 -> 198`
+      - `function_identifier`: `348 -> 28`
+      - `plain_tf_call_with_args`: `510 -> 254`
+      - `tf_call_with_args`: `534 -> 278`
+      - hotspot `position 30 / 30:`: `277 / 276 -> 149 / 148`
+  - retained later-UVM result:
+    - `/tmp/uvm_pkg_7642_after17.trace.log`
+    - compared with `/tmp/uvm_pkg_7642_after15.trace.log`:
+      - `position 7558`: `976 / 700 -> 688 / 540`
+      - `position 7654`: `976 / 700 -> 688 / 540`
+  - honest next resume rule:
+    - resume from:
+      - `/tmp/uvm_pkg_7642_after17.trace.log`
+      - `/tmp/sv_empty_call_return_probe_after_reserved.trace.log`
+    - the same later helper-call zone remains the representative UVM hotspot
+    - do not spend another wave on declaration-keyword compaction first; this pass already captured the big available win there

@@ -27551,3 +27551,68 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `/tmp/uvm_pkg_7642_after15.trace.log`
       - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
       - and attack identifier/keyword-exclusion churn before reopening more call-family variants
+- 2026-04-06: landed the next trace-guided SV/UVM cleanup on that identifier-side churn, and it produced the first sizable win on both the tiny standalone empty-call repro and the retained later UVM frontier.
+  - retained problem:
+    - after the kept `after15` grammar state, the next honest hotspot was broader declaration-side keyword churn under:
+      - `function_identifier`
+      - `declaration_identifier`
+      - `non_keyword_identifier`
+    - the minimal retained repro:
+      - `/tmp/sv_empty_call_return_probe.sv`
+    - still showed heavy repeated negative-lookahead work before the parser even reached the `foo()` / `bar()` call bodies
+  - important implementation note:
+    - a direct regex negative-lookahead rewrite for `non_keyword_identifier` was tried locally and immediately discarded before commit
+    - reason:
+      - the runtime regex engine does not support lookaround
+    - the kept solution therefore uses one aggregated reserved-word regex plus a single `!reserved_non_keyword_identifier` guard instead
+  - landed grammar change:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - added:
+        - `reserved_non_keyword_identifier := trivia /(?:...)\b/`
+      - rewrote:
+        - `non_keyword_identifier := !reserved_non_keyword_identifier identifier`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - mirrors the same retained reserved-word guard
+  - retained verification:
+    - both grammars still validate cleanly:
+      - `systemverilog.ebnf`: `1451` rules
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1398` rules
+    - rebuilt scratch parser:
+      - `/tmp/systemverilog_empty_call_probe_parser.rs`
+    - focused safety probes stayed green:
+      - `/tmp/sv_plain_call_probe.sv`
+      - `/tmp/sv_bare_task_call_probe.sv`
+      - `/tmp/sv_pkg_call_probe.sv`
+      - `/tmp/sv_obj_method_call_probe.sv`
+    - reserved keyword declaration stays rejected:
+      - `/tmp/sv_keyword_decl_probe.sv`
+        - `function string begin(); ...`
+    - escaped identifier support stays intact:
+      - `/tmp/sv_escaped_module_identifier_probe.sv`
+  - bounded minimal trace comparison:
+    - retained baseline:
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+    - new trace:
+      - `/tmp/sv_empty_call_return_probe_after_reserved.trace.log`
+    - material deltas:
+      - `non_keyword_identifier`: `1971 -> 178`
+      - `declaration_identifier`: `2058 -> 198`
+      - `function_identifier`: `348 -> 28`
+      - `plain_tf_call_with_args`: `510 -> 254`
+      - `tf_call_with_args`: `534 -> 278`
+      - hotspot position `30 / 30:`:
+        - `277 / 276 -> 149 / 148`
+  - bounded later-UVM trace comparison:
+    - retained baseline:
+      - `/tmp/uvm_pkg_7642_after15.trace.log`
+    - new trace:
+      - `/tmp/uvm_pkg_7642_after17.trace.log`
+    - retained hotspot moved materially:
+      - `position 7558`: `976 / 700 -> 688 / 540`
+      - `position 7654`: `976 / 700 -> 688 / 540`
+  - retained honest remaining seam:
+    - the same later `uvm_dpi_get_tool_name_c()` / `uvm_dpi_get_tool_version_c()` area is still the active representative UVM hotspot
+    - but it is much smaller now, and the declaration-side keyword churn that previously dominated the tiny repro is no longer the main blocker
+    - the next honest resume point is:
+      - `/tmp/uvm_pkg_7642_after17.trace.log`
+      - with `/tmp/sv_empty_call_return_probe_after_reserved.trace.log` as the minimal sidecar

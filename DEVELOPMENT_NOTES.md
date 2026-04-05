@@ -28742,3 +28742,75 @@ Architectural north star:
       - `declaration_identifier`
       - `non_keyword_identifier`
     - do not reopen more empty-call fast-path experiments first; the current traces no longer justify that as the highest-signal move
+- 2026-04-06: landed the next identifier-side SV/UVM cleanup after rejecting one unsupported implementation shape and keeping the safer one.
+  - preserved starting point:
+    - resumed from:
+      - `/tmp/uvm_pkg_7642_after15.trace.log`
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+    - retained problem was broader declaration-side keyword churn under:
+      - `function_identifier`
+      - `declaration_identifier`
+      - `non_keyword_identifier`
+  - explicitly rejected before commit:
+    - direct regex negative-lookahead for `non_keyword_identifier`
+    - why it was rejected:
+      - the runtime regex engine does not support lookaround
+      - the transient scratch-parser build completed, but runtime probing immediately collapsed to position-`0` rejection
+    - resume rule from that dead end:
+      - if future lexical compaction is needed, do not use lookaround-based regexes in parser tokens
+  - landed fix:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - added:
+        - `reserved_non_keyword_identifier := trivia /(?:parameter|localparam|type|...|randsequence)\b/`
+      - rewrote:
+        - `non_keyword_identifier := !reserved_non_keyword_identifier identifier`
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - mirrors the same retained reserved-word guard
+  - why this shape is better:
+    - it preserves the previous semantics:
+      - reserved declaration-style keywords still reject
+      - escaped identifiers still pass
+    - but it collapses dozens of separate keyword probes into one aggregated lexical check plus one lookahead
+    - it stays within the regex feature set the runtime actually supports
+  - retained verification:
+    - both grammars validate cleanly:
+      - `systemverilog.ebnf`: `1451`
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1398`
+    - rebuilt scratch parser:
+      - `/tmp/systemverilog_empty_call_probe_parser.rs`
+    - focused safety probes green:
+      - `/tmp/sv_plain_call_probe.sv`
+      - `/tmp/sv_bare_task_call_probe.sv`
+      - `/tmp/sv_pkg_call_probe.sv`
+      - `/tmp/sv_obj_method_call_probe.sv`
+    - reserved keyword declaration still rejects:
+      - `/tmp/sv_keyword_decl_probe.sv`
+    - escaped identifier support still works:
+      - `/tmp/sv_escaped_module_identifier_probe.sv`
+  - bounded minimal trace result:
+    - compared:
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+      - `/tmp/sv_empty_call_return_probe_after_reserved.trace.log`
+    - major reductions:
+      - `non_keyword_identifier`: `1971 -> 178`
+      - `declaration_identifier`: `2058 -> 198`
+      - `function_identifier`: `348 -> 28`
+      - `plain_tf_call_with_args`: `510 -> 254`
+      - `tf_call_with_args`: `534 -> 278`
+      - hotspot `position 30 / position: 30`: `277 / 276 -> 149 / 148`
+  - bounded later-UVM trace result:
+    - compared:
+      - `/tmp/uvm_pkg_7642_after15.trace.log`
+      - `/tmp/uvm_pkg_7642_after17.trace.log`
+    - representative later hotspot improved materially:
+      - `position 7558`: `976 / 700 -> 688 / 540`
+      - `position 7654`: `976 / 700 -> 688 / 540`
+  - interpretation:
+    - this is the first wave after `after10` that buys a sizable improvement from the declaration-side path itself rather than only reshuffling call-family routing
+    - the retained UVM hotspot is still the same later helper-call zone, but it is no longer being dominated by declaration keyword churn
+  - next honest resume rule:
+    - keep the reserved-word guard form
+    - resume from:
+      - `/tmp/uvm_pkg_7642_after17.trace.log`
+      - `/tmp/sv_empty_call_return_probe_after_reserved.trace.log`
+    - if continuing trace-guided SV/UVM work, attack the remaining helper-call hotspot directly from this cleaner baseline rather than reopening declaration-identifier compaction again
