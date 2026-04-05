@@ -18,10 +18,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.2";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.3";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.2";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.3";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2077,7 +2077,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 14);
+        assert_eq!(manifest.success_samples.len(), 15);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2085,6 +2085,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "named_recursion_conditional")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "braced_octal_escape")
         );
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
         assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
@@ -2556,6 +2562,24 @@ mod tests {
         assert!(
             regex_rule_spans(&parsed, "escape").is_empty(),
             "numeric backreference must not be reported as a generic escape"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_classifies_braced_octal_escape() {
+        let parsed = regex_ast_dump_json("\\o{101}");
+
+        assert_eq!(regex_rule_spans(&parsed, "escape"), vec![(0, 7)]);
+        assert_eq!(regex_rule_spans(&parsed, "octal_escape"), vec![(1, 7)]);
+        assert_eq!(regex_rule_spans(&parsed, "octal_digits"), vec![(3, 6)]);
+        assert!(
+            regex_rule_spans(&parsed, "simple_escape").is_empty(),
+            "braced octal escape must not degrade into a simple escape"
+        );
+        assert!(
+            regex_rule_spans(&parsed, "quantifier").is_empty(),
+            "braced octal escape must not spill into a counted quantifier"
         );
     }
 

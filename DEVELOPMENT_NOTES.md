@@ -28640,3 +28640,44 @@ Architectural north star:
     - both experimental branches were rolled back completely
     - `git status --short` returned to baseline with only `?? docs/tcl/`
     - `/tmp/uvm_pkg_7642_after10.trace.log` remains the last verified trace to resume from
+- 2026-04-05: closed RGX regex issue `PGEN-RGX-0006` against the published `regex_default` handoff.
+  - reproducer bundle:
+    - `/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0006.yaml`
+    - `/Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0006/`
+  - reported symptom:
+    - `\o{101}` parsed successfully but the accepted tree split into `escape(simple_escape("o"))` plus counted quantifier `{101}`
+  - confirmed local pre-fix shape:
+    - `rust/target/debug/parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0006/repro_input.txt --trace --trace-log-file /tmp/pgen_rgx_0006.trace.log`
+    - RGX artifact AST and local repro both showed generic `escape` + `simple_escape` at the front edge and a separate counted quantifier
+  - root cause 1:
+    - [grammars/regex.ebnf](grammars/regex.ebnf) had no braced octal branch under `octal_escape`
+    - fix:
+      - `octal_escape = "o{" octal_digits "}" | octal_digit octal_digit? octal_digit?`
+      - `octal_digits = octal_digit+`
+  - root cause 2:
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs) treated every escape as exactly two bytes wide, so brace-style numeric escapes could be re-read as counted quantifiers during post-parse compile validation
+    - fix:
+      - added `skip_regex_escape(...)`
+      - switched the counted-quantifier, char-class, anchor, lookbehind, and group scanners to use it
+  - regeneration:
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+  - focused proof:
+    - `cargo test --manifest-path rust/Cargo.toml allows_braced_octal_escape_without_counted_quantifier_rejection --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_braced_octal_escape --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_declared_success_samples --lib`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0006/repro_input.txt /tmp/pgen_rgx_0006.fixed_ast.json --profile regex_default`
+    - `jq` over `/tmp/pgen_rgx_0006.fixed_ast.json` confirmed:
+      - `escape` span `0..7`
+      - `octal_escape` span `1..7`
+      - `octal_digits` span `3..6`
+      - no `simple_escape`
+      - no `quantifier`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - release/docs result:
+    - published regex handoff is now `1.1.3`
+    - released-bug ledger row added:
+      - `REGEX-0006`
+  - live-status impact:
+    - none
+    - `regex` stays `Done`; this is a downstream maintenance patch, not a closure-status change

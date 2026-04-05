@@ -9108,3 +9108,25 @@ Use this file to resume work without replaying full chat history.
   - resume rule:
     - do not resume from either rolled-back variant
     - resume from committed grammar state after `after10`
+- 2026-04-05: regex downstream handoff `1.1.3` closes RGX issue `PGEN-RGX-0006`.
+  - fixed behavior:
+    - `\o{101}` now transports as outer `escape` plus inner `octal_escape` / `octal_digits`
+    - brace-style numeric escapes no longer trip counted-quantifier validation in [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+  - landed files:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - published regex release/docs surfaces now pin `1.1.3`
+  - retained proof:
+    - `cargo test --manifest-path rust/Cargo.toml allows_braced_octal_escape_without_counted_quantifier_rejection --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_braced_octal_escape --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_declared_success_samples --lib`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `/tmp/pgen_rgx_0006.fixed_ast.json` shows:
+      - `escape 0..7`
+      - `octal_escape 1..7`
+      - `octal_digits 3..6`
+      - no `simple_escape`
+      - no `quantifier`

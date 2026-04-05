@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-04-05 - Release regex 1.1.3 for braced octal escapes
+### Achievement Summary
+Closed RGX bug `PGEN-RGX-0006` against the published regex handoff. Braced octal escapes such as `\o{101}` now transport as a real octal escape in the generated regex parser, and the compile-contract validator no longer reinterprets brace-style numeric escapes as counted quantifiers during post-parse validation.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - added explicit braced octal support via `octal_escape = "o{" octal_digits "}" | ...`
+  - added helper rule `octal_digits = octal_digit+`
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - added `skip_regex_escape(...)` so brace-style escapes are skipped atomically across counted-quantifier, class, anchor, and lookbehind validation scans
+  - added focused regression `allows_braced_octal_escape_without_counted_quantifier_rejection`
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - added AST regression `regex_parser_integration_contract_classifies_braced_octal_escape`
+  - updated manifest metadata expectation from `14` to `15` success samples
+  - bumped published regex contract/release constants to `1.1.3`
+- Updated generated regex artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated published regex release surfaces and bug ledger:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - `regex` stays `Done`; this is a downstream maintenance release, not a family-status promotion
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml allows_braced_octal_escape_without_counted_quantifier_rejection --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_braced_octal_escape --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_declared_success_samples --lib`
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0006/repro_input.txt /tmp/pgen_rgx_0006.fixed_ast.json --profile regex_default`
+  - fresh AST proof now shows:
+    - `escape` span `0..7`
+    - `octal_escape` span `1..7`
+    - `octal_digits` span `3..6`
+    - no `simple_escape` node
+    - no `quantifier` node
+- `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+
 ## 2026-04-04 - Align the Verilog-2005 extracted snapshot with the cross-grammar return-annotation audit
 ### Achievement Summary
 Kept the canonical extracted Verilog-2005 snapshot usable while making it compatible with the repository-wide standalone return-annotation contract. [grammars/verilog_2005_lrm_extracted.ebnf](grammars/verilog_2005_lrm_extracted.ebnf) now carries an explicit top-level file wrapper annotation and quotes the `event_trigger` literal `->`, which removes the old false-positive collision with the parser-registry return-annotation audit without changing the intended Verilog token.

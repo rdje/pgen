@@ -3696,9 +3696,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.2`
+  - `1.1.3`
 - integration contract version:
-  - `1.1.2`
+  - `1.1.3`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3772,7 +3772,7 @@ Accepted syntax families in the current published flavor:
   - simple escaped characters such as `\n`, `\t`, `\\`
   - hexadecimal forms such as `\xFF` and `\x{FFFF}`
   - Unicode forms such as `\u{FFFF}`
-  - octal escapes
+  - octal escapes, including braced forms such as `\o{101}`
   - control escapes such as `\cA`
   - Unicode property escapes `\p{...}` and `\P{...}`
 - backreferences:
@@ -3821,6 +3821,7 @@ Representative accepted examples:
 - `(?<name>[a-z]+)`
 - `[[:^alnum:]]+`
 - `(a)\\1`
+- `\\o{101}`
 - `(?(1)a|b)`
 - `(?(R&word)a|b)`
 - `(?<A>foo)-\\k{A}`
@@ -3864,12 +3865,14 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.2` specifically fixes several accepted-tree semantic transport bugs and closes one downstream-blocking conditional-syntax gap while keeping that JSON schema version stable:
+- parser release `1.1.3` specifically fixes one more accepted-tree transport bug plus a compile-validation false-negative while keeping that JSON schema version stable:
+  - `\o{101}` now appears as outer `escape` plus inner `octal_escape` / `octal_digits`, not `simple_escape` plus counted `quantifier`
   - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`
   - `\1` now appears as `backreference`, not `escape`
   - `(?(1)a|b)` now emits separate `yes_branch` and `no_branch`
   - `(?(R&word)a|b)` now parses and emits `recursion_condition` inside the `conditional`
   - `ab+` now emits separate pieces for `a` and `b+` instead of a single `(ab)+`-style piece
+  - brace-style numeric escapes no longer trip counted-quantifier validation during post-parse compile checks
 - the generated regex host path now also applies a compile-style validation layer after parse success, so several obvious compile-invalid forms are rejected deterministically instead of surfacing as false accepts:
   - unsupported `\i`
   - counted-quantifier inversions such as `{5,4}`
@@ -3939,8 +3942,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.2`
-  - integration contract version `1.1.2`
+  - parser release version `1.1.3`
+  - integration contract version `1.1.3`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

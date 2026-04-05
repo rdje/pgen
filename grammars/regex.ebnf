@@ -198,7 +198,8 @@ unicode_escape = "u{" hex_digits "}"
 @description: "Octal escape sequence \777"
 @constraint: "must be valid octal digits 0-7"
 @precedence: {level: 9}
-octal_escape   = octal_digit octal_digit? octal_digit?
+octal_escape   = "o{" octal_digits "}" | octal_digit octal_digit? octal_digit?
+octal_digits   = octal_digit+
 
 @type: "control_escape"
 @description: "Control character escape \cA"

@@ -32,6 +32,26 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     Ok(())
 }
 
+fn skip_regex_escape(bytes: &[u8], start: usize) -> usize {
+    if bytes.get(start) != Some(&b'\\') {
+        return start.saturating_add(1).min(bytes.len());
+    }
+
+    let Some(next) = bytes.get(start + 1).copied() else {
+        return bytes.len();
+    };
+
+    if matches!(next, b'x' | b'u' | b'o' | b'p' | b'P' | b'k' | b'g')
+        && bytes.get(start + 2) == Some(&b'{')
+    {
+        if let Some(close) = bytes[start + 3..].iter().position(|byte| *byte == b'}') {
+            return start + 4 + close;
+        }
+    }
+
+    start.saturating_add(2).min(bytes.len())
+}
+
 fn find_invalid_escape_i(input: &str) -> Option<RegexCompileValidationError> {
     let bytes = input.as_bytes();
     let mut index = 0usize;
@@ -44,7 +64,7 @@ fn find_invalid_escape_i(input: &str) -> Option<RegexCompileValidationError> {
                         "unsupported regex escape \\i",
                     ));
                 }
-                index += 2;
+                index = skip_regex_escape(bytes, index);
             }
             _ => index += 1,
         }
@@ -60,7 +80,7 @@ fn find_invalid_counted_quantifier(input: &str) -> Option<RegexCompileValidation
     while index < bytes.len() {
         if in_char_class {
             if bytes[index] == b'\\' {
-                index += 2;
+                index = skip_regex_escape(bytes, index);
                 continue;
             }
             if bytes[index] == b']' {
@@ -71,7 +91,7 @@ fn find_invalid_counted_quantifier(input: &str) -> Option<RegexCompileValidation
         }
 
         match bytes[index] {
-            b'\\' => index += 2,
+            b'\\' => index = skip_regex_escape(bytes, index),
             b'[' => {
                 if is_extended_class_start(bytes, index) {
                     index += 1;
@@ -177,7 +197,7 @@ fn find_invalid_char_class_construct(input: &str) -> Option<RegexCompileValidati
     let mut index = 0usize;
     while index < bytes.len() {
         match bytes[index] {
-            b'\\' => index += 2,
+            b'\\' => index = skip_regex_escape(bytes, index),
             b'[' if !is_extended_class_start(bytes, index) => {
                 let end = match scan_char_class(bytes, index) {
                     Ok(end) => end,
@@ -260,7 +280,11 @@ fn read_class_atom(
                 "escape is not accepted inside a character class by the regex compile contract",
             ));
         }
-        return Ok((Some(next), index + 2));
+        let after_escape = skip_regex_escape(bytes, index);
+        if after_escape > index + 2 {
+            return Ok((None, after_escape));
+        }
+        return Ok((Some(next), after_escape));
     }
     Ok((Some(bytes[index]), index + 1))
 }
@@ -287,7 +311,7 @@ fn find_invalid_quantified_anchor(input: &str) -> Option<RegexCompileValidationE
     while index < bytes.len() {
         if in_char_class {
             if bytes[index] == b'\\' {
-                index += 2;
+                index = skip_regex_escape(bytes, index);
                 continue;
             }
             if bytes[index] == b']' {
@@ -298,7 +322,7 @@ fn find_invalid_quantified_anchor(input: &str) -> Option<RegexCompileValidationE
         }
 
         match bytes[index] {
-            b'\\' => index += 2,
+            b'\\' => index = skip_regex_escape(bytes, index),
             b'[' => {
                 if is_extended_class_start(bytes, index) {
                     index += 1;
@@ -359,7 +383,7 @@ fn find_variable_length_lookbehind(input: &str) -> Option<RegexCompileValidation
             continue;
         }
         if bytes[index] == b'\\' {
-            index += 2;
+            index = skip_regex_escape(bytes, index);
         } else {
             index += 1;
         }
@@ -373,7 +397,7 @@ fn find_matching_group_end(bytes: &[u8], start: usize) -> Option<usize> {
     let mut index = start + 1;
     while index < bytes.len() {
         match bytes[index] {
-            b'\\' => index += 2,
+            b'\\' => index = skip_regex_escape(bytes, index),
             b'[' => {
                 if let Some(end) = skip_char_class_for_group(bytes, index) {
                     index = end + 1;
@@ -402,7 +426,7 @@ fn skip_char_class_for_group(bytes: &[u8], start: usize) -> Option<usize> {
     let mut index = start + 1;
     while index < bytes.len() {
         match bytes[index] {
-            b'\\' => index += 2,
+            b'\\' => index = skip_regex_escape(bytes, index),
             b']' => return Some(index),
             _ => index += 1,
         }
@@ -417,7 +441,7 @@ fn contains_variable_length_quantifier(bytes: &[u8], start: usize, end: usize) -
     while index < end {
         if in_char_class {
             if bytes[index] == b'\\' {
-                index += 2;
+                index = skip_regex_escape(bytes, index);
                 continue;
             }
             if bytes[index] == b']' {
@@ -428,7 +452,7 @@ fn contains_variable_length_quantifier(bytes: &[u8], start: usize, end: usize) -
         }
 
         match bytes[index] {
-            b'\\' => index += 2,
+            b'\\' => index = skip_regex_escape(bytes, index),
             b'[' => {
                 in_char_class = true;
                 index += 1;
@@ -534,5 +558,11 @@ mod tests {
     #[test]
     fn allows_fixed_length_lookbehind_and_quantifier() {
         validate_regex_compile_contract("(?<=a{2})b").expect("fixed-length lookbehind is valid");
+    }
+
+    #[test]
+    fn allows_braced_octal_escape_without_counted_quantifier_rejection() {
+        validate_regex_compile_contract(r"\o{65536}")
+            .expect("braced octal escape must not be misclassified as a counted quantifier");
     }
 }
