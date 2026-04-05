@@ -9130,3 +9130,50 @@ Use this file to resume work without replaying full chat history.
       - `octal_digits 3..6`
       - no `simple_escape`
       - no `quantifier`
+- 2026-04-06: the retained SV/UVM trace frontier moved forward again, but only modestly.
+  - landed grammar tightening:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - introduced `scoped_or_hierarchical_tf_identifier`
+      - restricted `tf_call_with_args` to that scoped/hierarchical-only surface
+      - preserved bare no-paren task enables explicitly in `tf_call`
+      - tightened `hierarchical_tf_identifier` so it now requires a real hierarchy head
+  - retained validation:
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog.ebnf`
+      - passed
+      - `rule_count=1450`
+    - `perl tools/ebnf_to_json.pl --validate-only grammars/systemverilog_lrm_profiled_generated.ebnf`
+      - passed
+      - `rule_count=1397`
+  - retained scratch-parser path:
+    - `/tmp/systemverilog_empty_call_probe_parser.rs`
+  - retained focused proofs:
+    - `/tmp/sv_plain_call_probe.sv`
+    - `/tmp/sv_bare_task_call_probe.sv`
+    - `/tmp/sv_pkg_call_probe.sv`
+    - `/tmp/sv_obj_method_call_probe.sv`
+    - all parse cleanly with the rebuilt `parseability_probe`
+  - retained later-UVM trace result:
+    - `/tmp/uvm_pkg_7642_after15.trace.log`
+    - hotspot moved slightly relative to the old `after10` baseline:
+      - `7558`: `979 / 703 -> 976 / 700`
+      - `7654`: `979 / 703 -> 976 / 700`
+  - retained minimal empty-call trace result:
+    - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+    - still effectively flat:
+      - `plain_tf_call_with_args=510`
+      - `tf_call_with_args=534`
+      - `position 30=277`
+      - `position: 30=276`
+  - honest interpretation:
+    - the duplicate bare-call entry surfaces were real and worth removing
+    - but they are no longer the dominant remaining empty-call cost seam
+  - next resume rule:
+    - resume from:
+      - `/tmp/uvm_pkg_7642_after15.trace.log`
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+    - next target should be broader identifier-side churn, especially:
+      - `function_identifier`
+      - `declaration_identifier`
+      - `non_keyword_identifier`
+    - do not reopen empty-argument fast-path experiments first

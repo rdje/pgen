@@ -848,7 +848,7 @@ hierarchical_sequence_identifier := hierarchical_identifier
 
 hierarchical_task_identifier := hierarchical_identifier
 
-hierarchical_tf_identifier := ( kw_sv_dollar_root_f65f0e67 dot )? ( identifier constant_bit_select dot )* callable_identifier
+hierarchical_tf_identifier := kw_sv_dollar_root_f65f0e67 dot ( identifier constant_bit_select dot )* callable_identifier | identifier constant_bit_select dot ( identifier constant_bit_select dot )* callable_identifier
 
 hierarchical_variable_identifier := hierarchical_identifier
 
@@ -1586,7 +1586,10 @@ ps_or_hierarchical_property_identifier := ( package_scope )? property_identifier
 ps_or_hierarchical_sequence_identifier := ( package_scope )? sequence_identifier | hierarchical_sequence_identifier
 
 @branch_policy: priority_first
-ps_or_hierarchical_tf_identifier := class_scope tf_identifier | package_scope tf_identifier | hierarchical_tf_identifier | tf_identifier
+scoped_or_hierarchical_tf_identifier := class_scope tf_identifier | package_scope tf_identifier | hierarchical_tf_identifier
+
+@branch_policy: priority_first
+ps_or_hierarchical_tf_identifier := scoped_or_hierarchical_tf_identifier | tf_identifier
 
 ps_parameter_identifier := ( package_scope | class_scope )? parameter_identifier | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier
 
@@ -1948,10 +1951,10 @@ terminal_identifier := identifier
 
 plain_tf_call_with_args := tf_identifier attribute_instance* lparen list_of_arguments rparen
 
-tf_call_with_args := ps_or_hierarchical_tf_identifier attribute_instance* lparen list_of_arguments rparen
+tf_call_with_args := scoped_or_hierarchical_tf_identifier attribute_instance* lparen list_of_arguments rparen
 
 @branch_policy: priority_first
-tf_call := plain_tf_call_with_args | tf_call_with_args | ps_or_hierarchical_tf_identifier attribute_instance*
+tf_call := plain_tf_call_with_args | tf_call_with_args | scoped_or_hierarchical_tf_identifier attribute_instance* | tf_identifier attribute_instance*
 
 tf_identifier := callable_identifier
 

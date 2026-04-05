@@ -28681,3 +28681,64 @@ Architectural north star:
   - live-status impact:
     - none
     - `regex` stays `Done`; this is a downstream maintenance patch, not a closure-status change
+- 2026-04-06: kept a narrow trace-guided SV/UVM grammar cleanup after proving it safe through the scratch-parser loop.
+  - preserved starting point:
+    - resumed from the committed `after10` semantics and the same later-UVM hotspot at:
+      - `uvm_dpi_get_tool_name_c()`
+      - `uvm_dpi_get_tool_version_c()`
+      - positions `7558` / `7654`
+  - landed grammar changes:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - introduced `scoped_or_hierarchical_tf_identifier`
+      - narrowed `tf_call_with_args` to that scoped/hierarchical-only surface
+      - preserved bare no-paren task enables by splitting them back out explicitly in `tf_call`
+      - tightened `hierarchical_tf_identifier` so it now requires either:
+        - `$root.`
+        - or at least one `identifier ... dot` segment before the final callable identifier
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - mirrors the same retained split
+  - why this looked worth trying:
+    - the retained minimal repro:
+      - `/tmp/sv_empty_call_return_probe.sv`
+    - still showed `foo()`/`bar()` revisiting broader task/function-call families after the earlier `call_primary` and `list_of_arguments` improvements
+    - the most plausible remaining low-risk duplication was:
+      - bare `tf_identifier` still being admitted through `ps_or_hierarchical_tf_identifier`
+      - `hierarchical_tf_identifier` still accepting bare identifiers because its prefix chain was fully optional
+  - retained verification:
+    - both grammars validate cleanly:
+      - `systemverilog.ebnf`: `1450` rules
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1397` rules
+    - rebuilt scratch parser:
+      - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-parser --eliminate-left-recursion --output /tmp/systemverilog_empty_call_probe_parser.rs`
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_empty_call_probe_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+    - focused safety probes all stayed green:
+      - `/tmp/sv_plain_call_probe.sv`
+      - `/tmp/sv_bare_task_call_probe.sv`
+      - `/tmp/sv_pkg_call_probe.sv`
+      - `/tmp/sv_obj_method_call_probe.sv`
+    - bounded later-UVM trace:
+      - `/tmp/uvm_pkg_7642_after15.trace.log`
+      - hotspot improved slightly relative to retained `after10`:
+        - `position 7558`: `979 / 703 -> 976 / 700`
+        - `position 7654`: `979 / 703 -> 976 / 700`
+    - bounded minimal empty-call trace:
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+      - remained effectively flat:
+        - `plain_tf_call_with_args=510`
+        - `tf_call_with_args=534`
+        - `position 30=277`
+        - `position: 30=276`
+  - interpretation:
+    - the duplicate bare-call surfaces were real and worth tightening
+    - they do buy a measurable later-UVM improvement without regressions
+    - but they are not the dominant remaining cause of empty-call churn
+  - next honest resume rule:
+    - keep this grammar tightening
+    - resume from:
+      - `/tmp/uvm_pkg_7642_after15.trace.log`
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+    - next target should be broader identifier-side churn, especially repeated stacks under:
+      - `function_identifier`
+      - `declaration_identifier`
+      - `non_keyword_identifier`
+    - do not reopen more empty-call fast-path experiments first; the current traces no longer justify that as the highest-signal move

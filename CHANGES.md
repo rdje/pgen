@@ -27491,3 +27491,63 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - honest resume rule:
       - do not resume from either rolled-back variant
       - keep committed `after10` semantics as the last verified grammar state
+- 2026-04-06: landed a narrow trace-guided SV/UVM cleanup that removes two remaining duplicate bare-call entry surfaces without reopening the focused call probes.
+  - retained problem:
+    - after the last verified `after10` baseline, the later UVM hotspot still centered on:
+      - `uvm_dpi_get_tool_name_c()`
+      - `uvm_dpi_get_tool_version_c()`
+      - positions `7558` / `7654`
+    - the minimal retained empty-call repro:
+      - `/tmp/sv_empty_call_return_probe.sv`
+      - `function string f(); return foo(); endfunction`
+      - `function string g(); return bar(); endfunction`
+    - still showed duplicate task/function-call routing through broader identifier families
+  - landed grammar change:
+    - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)
+      - split `scoped_or_hierarchical_tf_identifier` from bare `tf_identifier`
+      - rewrote `ps_or_hierarchical_tf_identifier := scoped_or_hierarchical_tf_identifier | tf_identifier`
+      - narrowed `tf_call_with_args := scoped_or_hierarchical_tf_identifier attribute_instance* lparen list_of_arguments rparen`
+      - kept bare no-paren task enables via:
+        - `tf_call := plain_tf_call_with_args | tf_call_with_args | scoped_or_hierarchical_tf_identifier attribute_instance* | tf_identifier attribute_instance*`
+      - tightened `hierarchical_tf_identifier` so it now requires a real hierarchy head:
+        - either `$root.`
+        - or at least one `identifier ... dot` segment
+    - [grammars/systemverilog_lrm_profiled_generated.ebnf](grammars/systemverilog_lrm_profiled_generated.ebnf)
+      - mirrors the same split and hierarchy tightening
+  - retained verification:
+    - both grammars still validate cleanly:
+      - `systemverilog.ebnf`: `1450` rules
+      - `systemverilog_lrm_profiled_generated.ebnf`: `1397` rules
+    - fresh scratch parser path:
+      - `/tmp/systemverilog_empty_call_probe_parser.rs`
+    - focused safety probes stayed green:
+      - `/tmp/sv_plain_call_probe.sv`
+      - `/tmp/sv_bare_task_call_probe.sv`
+      - `/tmp/sv_pkg_call_probe.sv`
+      - `/tmp/sv_obj_method_call_probe.sv`
+    - bounded later-UVM trace comparison:
+      - retained baseline:
+        - `/tmp/uvm_pkg_7642_after10.trace.log`
+      - new trace:
+        - `/tmp/uvm_pkg_7642_after15.trace.log`
+      - honest hotspot improvement:
+        - `position 7558`: `979 / 703 -> 976 / 700`
+        - `position 7654`: `979 / 703 -> 976 / 700`
+    - bounded minimal empty-call trace:
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+      - remained effectively flat:
+        - `plain_tf_call_with_args=510`
+        - `tf_call_with_args=534`
+        - `position 30=277`
+        - `position: 30=276`
+  - retained honest remaining seam:
+    - this wave safely removed duplicate bare-call entry surfaces and did buy a small later-UVM win
+    - but the tiny standalone empty-call repro did not materially improve
+    - trace inspection now points to broader identifier-side churn as the next honest target, especially:
+      - `function_identifier`
+      - `declaration_identifier`
+      - `non_keyword_identifier`
+    - so the next SV/UVM trace-guided task should start from:
+      - `/tmp/uvm_pkg_7642_after15.trace.log`
+      - `/tmp/sv_empty_call_return_probe_after_hier.trace.log`
+      - and attack identifier/keyword-exclusion churn before reopening more call-family variants
