@@ -27420,3 +27420,27 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `uvm_dpi_get_tool_name_c()`
       - `uvm_dpi_get_tool_version_c()`
       - positions `7558` / `7654`
+  - follow-up rejection checkpoint:
+    - two additional trace-guided ideas were fully tested and then rolled back cleanly:
+      - explicit empty-argument call fast-paths in the plain/class-scoped/task-function call families
+      - `!kw_endfunction` / `!kw_endtask` terminator guards for function/task body statement loops
+    - both variants preserved the focused safety probes:
+      - `/tmp/sv_plain_call_order_probe.sv`
+      - `/tmp/sv_obj_method_call_order_probe.sv`
+      - `/tmp/sv_pkg_call_order_probe.sv`
+      - `/tmp/sv_mixed_named_args_probe.sv`
+    - but neither variant improved the retained UVM trace frontier:
+      - `/tmp/uvm_pkg_7642_after10.trace.log -> /tmp/uvm_pkg_7642_after12.trace.log`
+        - hotspot positions stayed effectively unchanged and slightly worse:
+          - `position 7558`: `979 / 703 -> 988 / 712`
+          - `position 7654`: `979 / 703 -> 988 / 712`
+      - `/tmp/uvm_pkg_7642_after10.trace.log -> /tmp/uvm_pkg_7642_after13.trace.log`
+        - hotspot positions stayed flat:
+          - `position 7558`: `979 / 703 -> 979 / 703`
+          - `position 7654`: `979 / 703 -> 979 / 703`
+        - higher-level churn worsened materially:
+          - `function_body_declaration`: `12107 -> 21055`
+          - `function_declaration_sv_2017`: `12213 -> 21209`
+    - honest resume rule:
+      - do not resume from either rolled-back variant
+      - keep committed `after10` semantics as the last verified grammar state

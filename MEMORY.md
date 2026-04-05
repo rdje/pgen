@@ -9079,3 +9079,32 @@ Use this file to resume work without replaying full chat history.
     - if continuing UVM trace work, reduce from the still-open empty-call churn at:
       - `position 7558`
       - `position 7654`
+- 2026-04-05: rejected two more trace-guided UVM empty-call follow-ups and rolled both back before commit.
+  - preserved baseline:
+    - last verified resume point is still `/tmp/uvm_pkg_7642_after10.trace.log`
+  - rejected branch 1:
+    - explicit empty-argument fast-paths for plain/class-scoped/task-function calls plus method-call bodies
+    - scratch-parser path:
+      - `/tmp/systemverilog_empty_call_probe_parser.rs`
+    - bounded trace:
+      - `/tmp/uvm_pkg_7642_after12.trace.log`
+    - result:
+      - focused call probes stayed green
+      - retained empty-call hotspot got slightly worse:
+        - `7558`: `979 / 703 -> 988 / 712`
+        - `7654`: `979 / 703 -> 988 / 712`
+  - rejected branch 2:
+    - `!kw_endfunction` / `!kw_endtask` guards on function/task body loops
+    - bounded trace:
+      - `/tmp/uvm_pkg_7642_after13.trace.log`
+    - result:
+      - focused call probes stayed green
+      - retained empty-call hotspot stayed flat:
+        - `7558`: `979 / 703 -> 979 / 703`
+        - `7654`: `979 / 703 -> 979 / 703`
+      - higher-level function churn worsened:
+        - `function_body_declaration`: `12107 -> 21055`
+        - `function_declaration_sv_2017`: `12213 -> 21209`
+  - resume rule:
+    - do not resume from either rolled-back variant
+    - resume from committed grammar state after `after10`

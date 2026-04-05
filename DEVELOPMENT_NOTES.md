@@ -28588,3 +28588,55 @@ Architectural north star:
       - `uvm_dpi_get_tool_name_c()`
       - `uvm_dpi_get_tool_version_c()`
       - positions `7558` / `7654`
+- 2026-04-05: rejected two further trace-guided UVM empty-call follow-ups after carrying both through the full scratch-parser loop.
+  - preserved baseline before testing:
+    - kept the already verified call-family and argument-family priority changes from `/tmp/uvm_pkg_7642_after10.trace.log`
+    - rebuilt a fresh scratch parser from the active grammar with:
+      - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-parser --eliminate-left-recursion --output /tmp/systemverilog_empty_call_probe_parser.rs`
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH=/tmp/systemverilog_empty_call_probe_parser.rs cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+  - rejected idea 1:
+    - add explicit empty-argument fast-paths for:
+      - `plain_tf_call`
+      - `tf_call`
+      - `class_scoped_tf_call`
+      - `method_call_body`
+    - why it looked plausible:
+      - the retained `after10` hotspot repeatedly entered `plain_tf_call_with_args -> list_of_arguments_ordered -> expression` at the `uvm_dpi_get_tool_name_c()` / `uvm_dpi_get_tool_version_c()` empty calls
+    - focused safety result:
+      - `/tmp/sv_plain_call_order_probe.sv` stayed green
+      - `/tmp/sv_obj_method_call_order_probe.sv` stayed green
+      - `/tmp/sv_pkg_call_order_probe.sv` stayed green
+      - `/tmp/sv_mixed_named_args_probe.sv` stayed green
+    - bounded trace result:
+      - `/tmp/uvm_pkg_7642_after12.trace.log`
+      - exact hot spans were not improved:
+        - `position 7558`: `979 / 703 -> 988 / 712`
+        - `position 7654`: `979 / 703 -> 988 / 712`
+      - `plain_tf_call_with_empty_args` did succeed locally in the trace, but the parser still revisited the same spans often enough that overall retained counts got slightly worse
+    - conclusion:
+      - do not resume from the explicit empty-argument fast-path branch
+      - the issue is not solved just by skipping `list_of_arguments` on `foo()`
+  - rejected idea 2:
+    - add `!kw_endfunction` / `!kw_endtask` guards to stop body loops before terminators:
+      - `function_body_statement_or_null := !kw_endfunction_84b8f967 function_statement_or_null`
+      - `task_body_statement_or_null := !kw_endtask_eb64ab0d statement_or_null`
+    - why it looked plausible:
+      - after the empty-argument fast-path trace, the `foo()` call itself was matching successfully, which suggested the remaining churn might come from higher-level function/task body re-entry
+    - focused safety result:
+      - the same focused call probes stayed green again after rebuilding the scratch parser
+    - bounded trace result:
+      - `/tmp/uvm_pkg_7642_after13.trace.log`
+      - retained hot spans stayed completely flat:
+        - `position 7558`: `979 / 703 -> 979 / 703`
+        - `position 7654`: `979 / 703 -> 979 / 703`
+      - higher-level function churn worsened substantially:
+        - `function_body_declaration`: `12107 -> 21055`
+        - `function_statement_or_null`: `7063 -> 11885`
+        - `function_declaration_sv_2017`: `12213 -> 21209`
+    - conclusion:
+      - do not resume from the terminator-guard branch either
+      - it increases the retained outer-function churn without buying a hotspot win
+  - final continuity state for this wave:
+    - both experimental branches were rolled back completely
+    - `git status --short` returned to baseline with only `?? docs/tcl/`
+    - `/tmp/uvm_pkg_7642_after10.trace.log` remains the last verified trace to resume from
