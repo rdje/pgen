@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Root markdown cleanup: rehome roadmap and Rust analysis under docs/reference
+### Context
+After the regex bootstrap note moved under `docs/reference/`, the only remaining non-control docs still occupying repo-root markdown slots were `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` and `RUST_CODEBASE_ANALYSIS.md`. Both were still active and important, but they had clearly become maintained deep-reference docs rather than operator entrypoints. Keeping them at root was no longer buying enough discoverability to justify the extra root clutter.
+
+### What Was Changed
+- Rehomed these maintained deep-reference docs from repo root into [docs/reference](docs/reference):
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Rewrote tracked references across the repo so the new paths are canonical, including:
+  - [README.md](README.md)
+  - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)
+  - [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [COMMIT.md](COMMIT.md)
+  - [rust/docs/TECHNICAL_ARCHITECTURE.md](rust/docs/TECHNICAL_ARCHITECTURE.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - retained contract/reference docs and continuity logs
+- Updated [README.md](README.md):
+  - active markdown index now includes the rehomed roadmap and Rust analysis under `docs/reference/`
+  - root-policy wording now explicitly treats those two docs as deep-reference, not root-surface material
+- Updated continuity docs so the wave is restart-safe:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- This is the first point where the repo root is down to the genuinely intentional operator surface rather than a “mostly cleaned up” surface.
+- The roadmap and Rust architecture/state assessment remain prominent in onboarding, but they now live where the other maintained deep-reference docs live.
+- This makes the root layer easier to scan while preserving the same active documentation contract.
+
+### What Was Verified
+- Repo-root markdown count is now:
+  - `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `9`
+- The roadmap and Rust analysis are gone from repo root:
+  - `find . -maxdepth 1 -type f \( -name 'PGEN_SOTA_IMPLEMENTATION_ROADMAP.md' -o -name 'RUST_CODEBASE_ANALYSIS.md' \)`
+  - result: no output
+- Local workflow parity still accepts the slimmer root/doc surface:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat the repo-root markdown cleanup track as closed unless a new root doc is introduced later and proves unnecessary.
+- The remaining root set is now:
+  - `README.md`
+  - `SESSION_BOOTSTRAP.md`
+  - `QUICKSTART_AI_ONBOARDING.md`
+  - `PGEN_USER_GUIDE.md`
+  - `CHANGES.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `COMMIT.md`
+- The active roadmap and Rust architecture/state assessment now live under:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+
 ## 2026-04-06 - Root markdown cleanup: rehome regex bootstrap note under docs/reference
 ### Context
 After the stale trio removal, the only remaining obvious root residue was `REGEX_BOOTSTRAP_ARCHITECTURE.md`. It was a historical regex bootstrap explanation, not an active contract or operator guide, but because RGX is actively consuming the regex parser it was still worth retaining as background context rather than deleting outright.
@@ -38,8 +97,8 @@ After the stale trio removal, the only remaining obvious root residue was `REGEX
   - `SESSION_BOOTSTRAP.md`
   - `QUICKSTART_AI_ONBOARDING.md`
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `RUST_CODEBASE_ANALYSIS.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
   - `CHANGES.md`
   - `DEVELOPMENT_NOTES.md`
   - `MEMORY.md`
@@ -64,7 +123,7 @@ After the contract and reference rehome waves, the remaining root clutter was no
   - replaced references to the deleted stale docs with the actual live Rust-first entrypoints:
     - `README.md`
     - `PGEN_USER_GUIDE.md`
-    - `RUST_CODEBASE_ANALYSIS.md`
+    - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
     - `LIVE_ACHIEVEMENT_STATUS.md`
 - Updated continuity docs so the deletion wave is explicit and restart-safe:
   - [CHANGES.md](CHANGES.md)
@@ -91,7 +150,7 @@ After the contract and reference rehome waves, the remaining root clutter was no
 
 ### Steering
 - Treat the remaining root residue as:
-  - keep for now: `README.md`, `SESSION_BOOTSTRAP.md`, `QUICKSTART_AI_ONBOARDING.md`, `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `RUST_CODEBASE_ANALYSIS.md`, and continuity docs
+  - keep for now: `README.md`, `SESSION_BOOTSTRAP.md`, `QUICKSTART_AI_ONBOARDING.md`, `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, and continuity docs
   - no obvious additional root cleanup candidate remains after the regex bootstrap note removal
 
 ## 2026-04-06 - Root markdown cleanup: second reference-doc rehome wave
@@ -111,8 +170,8 @@ After the first root rehome wave moved the parser handoff/support docs into `doc
 - Rewrote tracked references across the repo so they now point at `docs/reference/...`, including:
   - [README.md](README.md)
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - `CURRENT_STATUS.md`
   - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
   - the annotation-family contract docs under [docs/contracts](docs/contracts)
@@ -175,8 +234,8 @@ The top-level `docs/*.md` cleanup was already complete, but the repository root 
   - [README.md](README.md)
   - [COMMIT.md](COMMIT.md)
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
   - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
   - continuity docs and retained history references
@@ -256,8 +315,8 @@ The live family proof now keeps `vhdl=Done`, but a few top-level steering notes 
 
 ### What Was Changed
 - Updated the top steering language in:
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
   - [MEMORY.md](MEMORY.md)
 - Current steering is now explicit:
   - main active parser-family closure work is the remaining `systemverilog` main-parser debt
@@ -1040,7 +1099,7 @@ But unlike regex, VHDL, and now main SystemVerilog, it still lacked the explicit
   - added the user-facing target/help wiring
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - now locks the new preprocessor formal-closure gate, contract, Makefile help line, and doc references
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - the row now reflects that the sidecar exists
   - the remaining blocker is now described as promotion of that sidecar into a genuine zero-plausible-gap proof, not absence of any formal-closure gate
 
@@ -1255,7 +1314,7 @@ The key outcome is a prioritization one, not an implementation one:
   - Perl extended character classes `(?[...])` are already present
 
 ### Decision
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) so future sessions do not misprioritize this:
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) so future sessions do not misprioritize this:
   - these regex syntax additions are future work
   - they are explicitly deferred until the active closure work for `vhdl`, `systemverilog`, and the other live parser families is materially complete
   - they should be treated as deliberate future regex contract widening, not as urgent current blockers
@@ -1365,7 +1424,7 @@ RGX provided four precise generated-backend bug bundles under `../rgx/pgen-issue
 After the regex handoff bump to `1.1.0`, RGX re-reviewed the published downstream docs and no longer treated the remaining caveats as integration blockers.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) so the live steering story now reflects the downstream review outcome directly.
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) so the live steering story now reflects the downstream review outcome directly.
 - The recorded remaining regex caveats are now framed as contract-widening follow-up:
   - stronger AST semantic stability beyond the current shape/schema contract
   - stronger JS/Lua code-body shielding guarantees
@@ -1522,9 +1581,9 @@ PGEN already had a closed regex family row and a checked-in broader-corpus proof
   - It also emits presence booleans for snapshots/inventories so later sessions can tell immediately whether acquisition has already happened.
 - Updated the user/operator/status docs so the role is explicit:
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
   - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [README.md](README.md)
 - The doctrinal split is now explicit and should remain stable:
   - PCRE2 upstream is canonical syntax truth
@@ -1552,7 +1611,7 @@ PGEN already had a closed regex family row and a checked-in broader-corpus proof
 Regex family closure is already `Done`, but RGX-facing downstream hardening still needed a clearer embedded-code-block story. The key constraint is that we should not wait for a large external Lua/JS corpus before tightening the contract; instead, we should publish and prove the structural subset the generated regex parser can already preserve reliably.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - regex embedded-code-block follow-up is now explicitly parser-layer structural hardening
   - compact synthetic corpora/gates are the current proof mechanism
   - this work does not reopen the regex family row unless we intentionally widen the published syntax contract
@@ -1675,7 +1734,7 @@ RGX's complaint pass was accurate: the first regex handoff doc was useful, but s
   - local CI now locks the new regex release/version/schema/reporting surface instead of only the original regex host gate basics
 
 ### Validation
-- `git diff --check -- rust/src/embedding_api.rs rust/docs/EMBEDDING_API_CONTRACT.md docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md PGEN_USER_GUIDE.md RUST_CODEBASE_ANALYSIS.md rust/scripts/ci_workflow_local_gate.sh rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+- `git diff --check -- rust/src/embedding_api.rs rust/docs/EMBEDDING_API_CONTRACT.md docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md PGEN_USER_GUIDE.md docs/reference/RUST_CODEBASE_ANALYSIS.md rust/scripts/ci_workflow_local_gate.sh rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
 - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
 - `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
 - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
@@ -1694,8 +1753,8 @@ The repo had already gained consumer-facing parser integration docs, but many ol
 ### Implementation
 - Normalized every remaining tracked `.md` occurrence of a checkout-specific absolute repo path into a relative repo path.
 - The remaining affected tracked Markdown files were:
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [docs/reference/STRESS_TEST_STANDARDIZATION.md](docs/reference/STRESS_TEST_STANDARDIZATION.md)
   - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
   - [MEMORY.md](MEMORY.md)
@@ -1775,8 +1834,8 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
   - [README.md](README.md)
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [COMMIT.md](COMMIT.md)
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks:
@@ -1893,7 +1952,7 @@ After the regex layout/literal fixes landed, the direct regex-only `ebnf_stimuli
     - now parity-checks and re-emits the refreshed aggregate regex surface (`197/197/0`, `355 -> 122`, `7/8/1`)
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks the checked-in regex-family stimuli contract file and the family gate's explicit use of it
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - the regex row now reflects the refreshed family/status/aggregate proof stack instead of warning that those sidecars are stale
 
 ### Why This Matters
@@ -1927,7 +1986,7 @@ After the parser-backed regex family-quality promotion and the follow-on debt-tr
   - [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) now parity-checks and re-emits that same closure provenance
 - Tightened [rust/scripts/regex_parser_family_status_gate.sh](rust/scripts/regex_parser_family_status_gate.sh) slightly:
   - the formal-closure detail extraction now tolerates a future all-green closure sidecar instead of assuming a blocker is always present
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - regex is now described from the stronger baseline:
     - parser-backed quality
     - deterministic parser-rejection triage
@@ -2039,7 +2098,7 @@ Once the regex formal-closure gate existed, the next missing seam was no longer 
     - closure counts `1/1/0`
 - Updated [rust/Makefile](rust/Makefile):
   - added the new `regex_broader_corpus_proof_gate` help and target surface
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - regex is now described from the stronger baseline:
     - parser-backed quality
     - deterministic parser-rejection triage
@@ -2084,7 +2143,7 @@ After promoting `regex` onto the parser-backed shared stimuli contract, the fami
 - Updated [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh):
   - combined telemetry now parity-checks the new regex triage surface against the source family contract
   - the aggregate-visible regex family contract object now preserves the triage sidecar paths and extracted triage metrics directly
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - the regex family is now documented as carrying deterministic parser-rejection triage, not only parser-backed totals
   - the current measured regex triage surface is:
     - `counterexamples_captured_total=5`
@@ -2135,7 +2194,7 @@ The previous roadmap slice exposed regex through the public embedding API, but t
 - Updated the aggregate proof spine:
   - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh) now re-emits regex parser-backed quality evidence and the new status boolean
   - [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) now consumes and preserves that parser-backed regex family proof
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - regex is now described as having parser-backed quality proof in the shared non-annotation stimuli contract
   - the docs now record the current measured regex family values:
     - `parseability_required=1`
@@ -2174,12 +2233,12 @@ The fresh Rust/codebase read showed a real roadmap-relevant asymmetry: parser-re
 - Updated [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
   - documented the new regex public profile surface and host-oriented convenience APIs
   - clarified that `embedding_api_gate` now covers the public regex surface while `nexsim_parser_embedding_contract_gate` remains the narrower SV/VHDL host-profile slice
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - refreshed the date
   - made the roadmap priority rule more explicit
   - recorded the fresh lesson that internal registry/probe capability can lead the stable public embedding contract
   - updated the regex family-asymmetry note so the new public embedding seam is visible without overstating closure
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md) and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md) and [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - removed the stale implication that regex still lacks any public embedding surface
   - kept the parser-backed realistic-corpus and exhaustive-closure work explicitly open
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
@@ -2194,7 +2253,7 @@ The fresh Rust/codebase read showed a real roadmap-relevant asymmetry: parser-re
 The live Rust analysis doc now had a much stronger annotation proof-spine map, but its trap list still did not call out one of the easiest annotation-specific mistakes: assuming that a passing leaf suite or individual SC gate automatically means the repo-level annotation proof claim is complete.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - under `Known Traps And False Assumptions`, added an annotation-specific warning that passing one leaf annotation suite or one SC gate is not the same thing as satisfying the aggregate annotation proof surface
   - the trap now points readers back to the aggregate annotation proof layer:
     - `annotation_contract_gate`
@@ -2214,7 +2273,7 @@ The live Rust analysis doc now had a much stronger annotation proof-spine map, b
 The live Rust analysis doc already mapped the annotation proof spine, doc routing, rerun guidance, and triage flow, but it still did not answer one practical ownership question clearly enough: which layer is authoritative for aggregate annotation proof composition versus semantic intent versus the operator-facing gate map?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - under `Canonical Source-Of-Truth Map`, added explicit annotation proof ownership entries for:
     - aggregate annotation proof composition -> `rust/Makefile`
     - annotation proof obligations and semantic intent -> [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
@@ -2239,7 +2298,7 @@ The live Rust analysis doc now had better annotation code-start, doc-routing, an
 - “Which order should I patch layers in when an annotation proof/closure problem spans code, gates, and docs?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - under `Symptom-To-Layer Triage Shortcuts`, added an annotation-specific shortcut for the case where leaf suites pass but the aggregate annotation proof still looks wrong or incomplete
   - under `Safe Intervention Order`, added an annotation-specific `Annotation proof / closure problem` patch order that routes through:
     - typed annotation parse/validation/runtime
@@ -2259,7 +2318,7 @@ The live Rust analysis doc now had better annotation code-start, doc-routing, an
 The live Rust analysis doc already had better annotation code-start and doc-routing guidance, but its change-impact and validation sections still spoke too generically about annotation work. That left a practical gap: a future session could understand the proof spine exists but still not get a crisp answer to “which aggregate gates should I re-run for this annotation change?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - under `Change-Impact Checklist`, the annotation-change entry now explicitly points readers to the nearest aggregate annotation proof surface:
     - `annotation_contract_gate`
     - `semantic_full_contract_gate`
@@ -2282,7 +2341,7 @@ The live Rust analysis doc already had better annotation code-start and doc-rout
 The live Rust analysis doc already named the aggregate annotation proof spine, but its repo-doc crosswalk still described the relevant docs too generically. That made it slower than necessary for a future session to answer a narrow question like “which doc explains the operator-facing annotation gate map?” or “which doc defines the aggregate annotation proof obligations?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - in `Rust-Facing Repo Doc Crosswalk`, clarified that:
     - [README.md](README.md) is the high-level entrypoint into aggregate annotation proof surfaces
     - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) is the operator-facing map of aggregate annotation / semantic / return local gates
@@ -2300,7 +2359,7 @@ The live Rust analysis doc already named the aggregate annotation proof spine, b
 The live Rust analysis doc now named the aggregate annotation proof seam, but its task-oriented navigation still treated annotation work as mostly a code-module problem. That was missing an important repo-specific reality: annotation changes are only really “done” when they still fit the aggregate annotation proof spine.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - under `If the task is return/semantic annotation parsing or validation`, added:
     - the usual aggregate-doc follow-up files
     - the nearest aggregate proof surfaces to choose from:
@@ -2319,7 +2378,7 @@ The live Rust analysis doc now named the aggregate annotation proof seam, but it
 
 ## 2026-03-27 - Surface annotation proof spine in entry docs
 ### Context
-The detailed operator docs now described the aggregate annotation contract spine well, but the repo-entry docs still under-surfaced it. That meant a new session could land in `README.md`, `QUICKSTART_AI_ONBOARDING.md`, or `RUST_CODEBASE_ANALYSIS.md` and still miss the top-level annotation proof surfaces that actually steer Rust annotation closure work.
+The detailed operator docs now described the aggregate annotation contract spine well, but the repo-entry docs still under-surfaced it. That meant a new session could land in `README.md`, `QUICKSTART_AI_ONBOARDING.md`, or `docs/reference/RUST_CODEBASE_ANALYSIS.md` and still miss the top-level annotation proof surfaces that actually steer Rust annotation closure work.
 
 ### Implementation
 - Updated [README.md](README.md):
@@ -2329,7 +2388,7 @@ The detailed operator docs now described the aggregate annotation contract spine
     - `return_annotation_support_gate`
 - Updated [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md):
   - extended the historical-note redirect so annotation-heavy work points readers to the aggregate annotation proof surfaces directly
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added an `Aggregate annotation proof seam` entry under `Rust-To-Shell Contract Seams`
   - mapped the current aggregate annotation gate composition and its common failure mode
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
@@ -2598,7 +2657,7 @@ The semantic steering matrix still described SC-02 raw literal sample hints as o
 The live Rust analysis doc had become a strong map of code, artifacts, seams, and risks, but it still did not say clearly which top-level repo docs answer the non-code questions that frequently come up during Rust work: doctrine, live status, annotation meaning, semantic-steering policy, and workflow rules.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Rust-Facing Repo Doc Crosswalk` section near the top-of-doc orientation area.
 - The new section now maps Rust work to the main top-level docs for:
   - repo orientation
@@ -2619,7 +2678,7 @@ The live Rust analysis doc had become a strong map of code, artifacts, seams, an
 The live Rust analysis doc already named high-risk files and change-coupling clusters, but it still did not say what kinds of regressions should be reviewed for first in those hotspots. That made the document stronger for navigation than for actual review work.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Review Hotspots And Common Regression Types` section near the high-risk/change-coupling area.
 - The new section now records first-review targets for:
   - `mod.rs`
@@ -2639,7 +2698,7 @@ The live Rust analysis doc already named high-risk files and change-coupling clu
 The live Rust analysis doc had become strong on current structure, risks, invariants, and recommended refactors, but it still did not say in one place which architecture decisions remain genuinely open. That made it too easy to read current tradeoffs as if they were already settled doctrine.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added an `Open Architecture Questions` section near the steering/refactor/session-start area.
 - The new section now records active questions around:
   - giant-engine file splitting
@@ -2658,7 +2717,7 @@ The live Rust analysis doc had become strong on current structure, risks, invari
 The live Rust analysis doc focused correctly on the main `rust/` implementation, but it still did not say plainly how the other Cargo manifests in the repo relate to that main crate. That made it too easy to forget the active `rtl_const_expr` / `rtl_frontend` companions or to waste time in peripheral manifests. The doc’s own top-level `Last updated` line also needed to catch up with the current session date.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - refreshed `Last updated` to `2026-03-26`,
   - added a `Rust-Adjacent Cargo Surface` section near the top-of-doc scope/orientation area.
 - The new section now distinguishes:
@@ -2675,7 +2734,7 @@ The live Rust analysis doc focused correctly on the main `rust/` implementation,
 The live Rust analysis doc already described source-of-truth layers and several public/host-visible seams, but it still did not say in one place which outputs should be treated as compatibility surfaces when they move. That left too much compatibility reasoning implicit.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Public Contract Surface Map` section near the source-of-truth/triage area.
 - The new section now distinguishes the main compatibility surfaces around:
   - embedder-facing Rust APIs
@@ -2694,7 +2753,7 @@ The live Rust analysis doc already described source-of-truth layers and several 
 The live Rust analysis doc already said which refactors were desirable, but it still did not say what refactor shapes are actually safe in a repo where artifact contracts, proof sidecars, and shell consumers are tightly coupled. That made the priority list less actionable than it should be.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Refactor Patterns That Fit This Codebase` section near the steering/refactor area.
 - The new section now records the main recommended refactor shapes around:
   - splitting by artifact boundary
@@ -2713,7 +2772,7 @@ The live Rust analysis doc already said which refactors were desirable, but it s
 The live Rust analysis doc already described risks, traps, task entrypoints, and validation seams, but it still did not say in one place which architectural traits future work should actively preserve. That left the “what should we not erode while improving things?” question too implicit.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added an `Architectural Invariants Worth Preserving` section near the steering/refactor area.
 - The new section now records the main invariants around:
   - bootstrap/generated boundaries
@@ -2733,7 +2792,7 @@ The live Rust analysis doc already described risks, traps, task entrypoints, and
 The live Rust analysis doc already acknowledged that the shell proof layer is part of the effective product contract, but it still did not say in one place which Rust artifact seams most often propagate into shell-gate and sidecar drift. That made seam-crossing validation too implicit.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Rust-To-Shell Contract Seams` section near the executable/surface guidance.
 - The new section now maps:
   - parser availability / registry seam
@@ -2750,7 +2809,7 @@ The live Rust analysis doc already acknowledged that the shell proof layer is pa
 The live Rust analysis doc already named the main executables and noted that some testing/proof layers are more current than others, but it still did not say in one place which Rust-facing surfaces are canonical, specialist-but-current, or legacy-adjacent. That makes it too easy for a future session to start from the wrong layer.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Canonical-Vs-Legacy Surface Map` section near the executable/test guidance.
 - The new section now distinguishes:
   - canonical day-to-day Rust operational surfaces
@@ -2767,7 +2826,7 @@ The live Rust analysis doc already named the main executables and noted that som
 The live Rust analysis doc already described artifact flow and source-of-truth layers, but it still did not say plainly which Rust-adjacent artifacts are authored source, tracked-generated files, build-discovered runtime inputs, or throwaway proof/debug outputs. That made it too easy to patch the wrong layer.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added an `Artifact Persistence Classes` section near the artifact-spine area.
 - The new section now distinguishes:
   - hand-authored source-of-truth artifacts
@@ -2785,7 +2844,7 @@ The live Rust analysis doc already described artifact flow and source-of-truth l
 The live Rust analysis doc already captured build-shape asymmetries and bootstrap/generated boundary exceptions, but it still did not say in one place how the main grammar families differ operationally. That leaves too much room for “this worked for regex/SV/VHDL, so it should work everywhere” reasoning.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Grammar-Family Asymmetry Map` section near the build/boundary area.
 - The new section now distinguishes the operational shape of:
   - `systemverilog`
@@ -2805,7 +2864,7 @@ The live Rust analysis doc already captured build-shape asymmetries and bootstra
 The live Rust analysis doc already had task-start guidance, high-risk zones, change-impact checks, and symptom triage. The remaining navigation gap was cross-file coupling: which modules usually need to be reasoned about together even when only one looks primary at first glance?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Modules That Tend To Change Together` section near the high-risk/change-impact area.
 - The new section now maps the main coupled clusters:
   - grammar normalization
@@ -2823,7 +2882,7 @@ The live Rust analysis doc already had task-start guidance, high-risk zones, cha
 After documenting build shape, source-of-truth layers, traps, and intervention order, one seam still remained easy to misread: the repo’s bootstrap-vs-generated boundary. It was documented indirectly, but not as one explicit map.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Bootstrap-Vs-Generated Boundary Map` section near the build/testing area.
 - The new section now explains the boundary role of:
   - `ast_pipeline`
@@ -2843,7 +2902,7 @@ After documenting build shape, source-of-truth layers, traps, and intervention o
 After adding the symptom-triage shortcuts, the live Rust analysis doc could say which layer was most likely wrong first. The missing follow-up was procedural: in what order should a future session patch the layers when several of them are implicated?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Safe Intervention Order` section after symptom triage.
 - The new section now records preferred patch order for:
   - build / availability problems
@@ -2864,7 +2923,7 @@ After adding the symptom-triage shortcuts, the live Rust analysis doc could say 
 After adding the source-of-truth map, the live Rust analysis doc could already answer “which layer is authoritative?” What it still did not answer directly was the earlier debugging question: given a symptom, which layer is most likely wrong first?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Symptom-To-Layer Triage Shortcuts` section after the source-of-truth map.
 - The new section now gives first-pass triage guidance for recurring symptom patterns around:
   - binary/build availability
@@ -2884,7 +2943,7 @@ After adding the source-of-truth map, the live Rust analysis doc could already a
 After documenting the operational vocabulary and the major traps, the live Rust analysis doc still lacked one practical steering aid: a direct map of which file or layer is actually authoritative for a given concern.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Canonical Source-Of-Truth Map` section after the operational vocabulary.
 - The new section now identifies the primary authoritative files for:
   - Cargo bin/feature shape
@@ -2907,7 +2966,7 @@ After documenting the operational vocabulary and the major traps, the live Rust 
 After documenting the artifact spine, operational vocabulary, build model, and validation ladder, one practical gap remained: the live Rust analysis doc still did not explicitly call out the false assumptions that repeatedly cause wrong-turn debugging in this repo.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Known Traps And False Assumptions` section near the build/testing area.
 - The new section now captures recurring mistakes around:
   - treating Cargo binary presence as proof of runtime availability,
@@ -2925,7 +2984,7 @@ After documenting the artifact spine, operational vocabulary, build model, and v
 After adding the artifact spine, the live Rust analysis doc still assumed familiarity with recurring project terms like raw AST, generation-input AST, parseability reports, family-status contracts, and `summary.txt` / `summary.json`.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added an `Operational Vocabulary` section immediately after the artifact-spine section.
 - The new section now defines the main recurring artifact/proof terms used across:
   - Rust generation/runtime work
@@ -2941,7 +3000,7 @@ After adding the artifact spine, the live Rust analysis doc still assumed famili
 After adding startup probes and impact-check guidance, the live Rust analysis doc still lacked one close-out aid: a compact map from change type to the smallest representative validation slice that usually makes sense in this repo.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Validation Ladder By Change Type` section under the testing/verification area.
 - The new section now records representative validation slices for:
   - docs-only changes
@@ -2961,10 +3020,10 @@ After adding startup probes and impact-check guidance, the live Rust analysis do
 
 ## 2026-03-25 - Add Rust session-start sanity probes to analysis doc
 ### Context
-After turning `RUST_CODEBASE_ANALYSIS.md` into a stronger steering document, it still lacked one pragmatic startup aid: a tiny set of cheap commands that let a new session confirm the Rust workspace, binary surface, and build-shape assumptions before digging deeper.
+After turning `docs/reference/RUST_CODEBASE_ANALYSIS.md` into a stronger steering document, it still lacked one pragmatic startup aid: a tiny set of cheap commands that let a new session confirm the Rust workspace, binary surface, and build-shape assumptions before digging deeper.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Session-Start Sanity Probes` section after the “what to re-check” guidance.
 - The new section now recommends a compact probe set for:
   - workspace dirt
@@ -2982,7 +3041,7 @@ After turning `RUST_CODEBASE_ANALYSIS.md` into a stronger steering document, it 
 After documenting subsystem navigation, executable ownership, build shape, and artifact flow, the live Rust analysis doc still lacked one very practical steering aid: a first-pass checklist of what else usually has to be revisited when a given subsystem changes.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Change-Impact Checklist` section near the risk/build model area.
 - The new checklist now records typical companion checks for changes in:
   - grammar normalization / AST pipeline shape
@@ -3004,7 +3063,7 @@ After documenting subsystem navigation, executable ownership, build shape, and a
 After documenting the executable surface and the build/env/cfg surface, the live Rust analysis doc still described the codebase more by subsystem than by artifact handoff. That left one practical debugging question underexplained: where in the pipeline did this artifact actually come from?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added an `End-To-End Artifact Spine` section,
   - added an operational reading rule for diagnosing issues by artifact family.
 - The new section now walks the main artifact handoffs across:
@@ -3025,10 +3084,10 @@ After documenting the executable surface and the build/env/cfg surface, the live
 
 ## 2026-03-25 - Add generated-parser env and cfg map to analysis doc
 ### Context
-After adding the feature/build matrix to `RUST_CODEBASE_ANALYSIS.md`, one build-shape ambiguity still remained easy to forget: which `PGEN_*_PARSER_PATH` variables feed which generated parser modules and `has_generated_*` cfgs, and where the important exceptions are.
+After adding the feature/build matrix to `docs/reference/RUST_CODEBASE_ANALYSIS.md`, one build-shape ambiguity still remained easy to forget: which `PGEN_*_PARSER_PATH` variables feed which generated parser modules and `has_generated_*` cfgs, and where the important exceptions are.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - expanded `Build And Feature Model` with a generated-parser env/cfg map,
   - recorded the main environment variables and the cfgs/modules they influence,
   - documented the asymmetry between env-driven generated grammar families, tracked generated annotation parsers, and the special EBNF dual-run path.
@@ -3050,10 +3109,10 @@ After adding the feature/build matrix to `RUST_CODEBASE_ANALYSIS.md`, one build-
 
 ## 2026-03-25 - Add Rust feature/build matrix to analysis doc
 ### Context
-After adding the executable-role map to `RUST_CODEBASE_ANALYSIS.md`, there was still one session-start question that required re-reading `Cargo.toml` and `build.rs`: which features unlock which binaries and how generated-parser availability is actually decided at build time.
+After adding the executable-role map to `docs/reference/RUST_CODEBASE_ANALYSIS.md`, there was still one session-start question that required re-reading `Cargo.toml` and `build.rs`: which features unlock which binaries and how generated-parser availability is actually decided at build time.
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - expanded the `Build And Feature Model` section with a compact feature/build matrix,
   - added the practical distinction between Cargo feature enablement and build-time generated-parser discovery.
 - The new matrix now explains:
@@ -3071,10 +3130,10 @@ After adding the executable-role map to `RUST_CODEBASE_ANALYSIS.md`, there was s
 
 ## 2026-03-25 - Add Rust binary-role map to analysis doc
 ### Context
-After adding task-oriented navigation to `RUST_CODEBASE_ANALYSIS.md`, the document still mostly navigated by subsystem. A future session could still lose time on a simpler question first: which Rust executable actually owns this workflow?
+After adding task-oriented navigation to `docs/reference/RUST_CODEBASE_ANALYSIS.md`, the document still mostly navigated by subsystem. A future session could still lose time on a simpler question first: which Rust executable actually owns this workflow?
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Main Rust Executables And Roles` section,
   - added a task-navigation entry for selecting the correct Rust executable/workflow surface.
 - The executable-role map now explains the current place of:
@@ -3094,10 +3153,10 @@ After adding task-oriented navigation to `RUST_CODEBASE_ANALYSIS.md`, the docume
 
 ## 2026-03-25 - Add task-oriented navigation to Rust analysis doc
 ### Context
-After creating and surfacing `RUST_CODEBASE_ANALYSIS.md`, it was still primarily a descriptive architecture assessment. It explained the codebase well, but it did not yet help a future session quickly answer “where do I start for this specific kind of Rust task?”
+After creating and surfacing `docs/reference/RUST_CODEBASE_ANALYSIS.md`, it was still primarily a descriptive architecture assessment. It explained the codebase well, but it did not yet help a future session quickly answer “where do I start for this specific kind of Rust task?”
 
 ### Implementation
-- Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Updated [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - added a `Where To Start By Task Type` section,
   - added a `High-Risk Change Zones` section.
 - The task-oriented navigation now points readers to the right starting modules for:
@@ -3117,14 +3176,14 @@ After creating and surfacing `RUST_CODEBASE_ANALYSIS.md`, it was still primarily
 
 ## 2026-03-25 - Bind Rust analysis doc into roadmap and historical Rust architecture redirect
 ### Context
-After surfacing `RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archival top-level docs, the roadmap and one older Rust-specific architecture doc still referenced the current Rust architecture picture only indirectly.
+After surfacing `docs/reference/RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archival top-level docs, the roadmap and one older Rust-specific architecture doc still referenced the current Rust architecture picture only indirectly.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - refreshed the doc date,
-  - added an explicit pointer from the deferred Rust engineering concerns to `RUST_CODEBASE_ANALYSIS.md` as the live architecture/risk snapshot.
+  - added an explicit pointer from the deferred Rust engineering concerns to `docs/reference/RUST_CODEBASE_ANALYSIS.md` as the live architecture/risk snapshot.
 - Updated [rust/docs/TECHNICAL_ARCHITECTURE.md](rust/docs/TECHNICAL_ARCHITECTURE.md):
-  - extended its historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
+  - extended its historical-note redirect list to include `docs/reference/RUST_CODEBASE_ANALYSIS.md`.
 - Updated [MEMORY.md](MEMORY.md):
   - recorded that the roadmap and historical Rust architecture redirect now include the live Rust analysis doc.
 
@@ -3134,13 +3193,13 @@ After surfacing `RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archi
 
 ## 2026-03-25 - Surface Rust analysis doc in archival top-level docs
 ### Context
-After wiring `RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two archival top-level docs still redirected readers to the current authoritative set without mentioning the new live Rust architecture/state assessment.
+After wiring `docs/reference/RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two archival top-level docs still redirected readers to the current authoritative set without mentioning the new live Rust architecture/state assessment.
 
 ### Implementation
 - Updated `CURRENT_STATUS.md`:
-  - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
+  - extended the historical-note redirect list to include `docs/reference/RUST_CODEBASE_ANALYSIS.md`.
 - Updated `PROJECT_OVERVIEW.md`:
-  - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
+  - extended the historical-note redirect list to include `docs/reference/RUST_CODEBASE_ANALYSIS.md`.
 - Updated [MEMORY.md](MEMORY.md):
   - recorded that the archival top-level redirect path now includes the Rust analysis doc too.
 
@@ -3150,11 +3209,11 @@ After wiring `RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two arch
 
 ## 2026-03-25 - Bind Rust analysis doc into commit workflow
 ### Context
-After adding and surfacing `RUST_CODEBASE_ANALYSIS.md`, its maintenance rule still lived mostly in the document itself and in recent chat context, not in the formal commit workflow.
+After adding and surfacing `docs/reference/RUST_CODEBASE_ANALYSIS.md`, its maintenance rule still lived mostly in the document itself and in recent chat context, not in the formal commit workflow.
 
 ### Implementation
 - Updated [COMMIT.md](COMMIT.md):
-  - added `RUST_CODEBASE_ANALYSIS.md` to the tracked workflow files,
+  - added `docs/reference/RUST_CODEBASE_ANALYSIS.md` to the tracked workflow files,
   - required review/update when a task materially changes Rust architecture, major subsystem boundaries, public integration seams, or the current high-level Rust risk picture,
   - added the file to the standard markdown-sync list used before commit.
 - Updated [MEMORY.md](MEMORY.md):
@@ -3162,22 +3221,22 @@ After adding and surfacing `RUST_CODEBASE_ANALYSIS.md`, its maintenance rule sti
 
 ### Why This Matters
 - Future Rust architecture work now has a formal workflow reminder to refresh the live analysis doc.
-- The repo’s continuity policy now matches the intended role of `RUST_CODEBASE_ANALYSIS.md` as a maintained steering document.
+- The repo’s continuity policy now matches the intended role of `docs/reference/RUST_CODEBASE_ANALYSIS.md` as a maintained steering document.
 
 ## 2026-03-25 - Surface Rust analysis doc in onboarding docs
 ### Context
-After adding `RUST_CODEBASE_ANALYSIS.md` and wiring it into `README.md`, the older onboarding surfaces still did not point readers to the new live Rust architecture/state reference.
+After adding `docs/reference/RUST_CODEBASE_ANALYSIS.md` and wiring it into `README.md`, the older onboarding surfaces still did not point readers to the new live Rust architecture/state reference.
 
 ### Implementation
 - Updated [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md):
-  - extended the historical-note pointer list to include `RUST_CODEBASE_ANALYSIS.md`.
+  - extended the historical-note pointer list to include `docs/reference/RUST_CODEBASE_ANALYSIS.md`.
 - Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
   - refreshed the file date,
   - added a small “Current-State Companion Docs” section near the top pointing readers to:
     - `README.md`
-    - `RUST_CODEBASE_ANALYSIS.md`
+    - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
     - `LIVE_ACHIEVEMENT_STATUS.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - Updated [MEMORY.md](MEMORY.md):
   - recorded that the new Rust analysis doc is now surfaced beyond `README.md`.
 
@@ -3190,7 +3249,7 @@ After adding `RUST_CODEBASE_ANALYSIS.md` and wiring it into `README.md`, the old
 The current Rust codebase has grown into a large parser-generation, stimuli, and proof platform, and the most useful high-level architecture assessment only existed in chat context.
 
 ### Implementation
-- Added [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
+- Added [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md):
   - captured the current high-level architecture of the Rust crate and surrounding Rust-owned operational layer,
   - summarized the main engines, public integration surfaces, strengths, and current technical risks,
   - marked it as a live document that should be refreshed when a new session starts from a meaningfully different project state.
@@ -5784,7 +5843,7 @@ The repository already had documented LRM conversion workspaces for SystemVerilo
 - Updated [tools/txt_to_md_converter.py](tools/txt_to_md_converter.py):
   - clause-heading detection now accepts the standard dotted form (`1. Overview`)
   - title selection now prefers an exact section-heading match and otherwise uses the filename-derived title, which avoids front-page copyright/boilerplate titles in the generated markdown
-- Updated [README.md](README.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [tools/LRM_CONVERSION_WORKFLOW.md](tools/LRM_CONVERSION_WORKFLOW.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md) so the new workspace is part of the documented repo workflow.
+- Updated [README.md](README.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [tools/LRM_CONVERSION_WORKFLOW.md](tools/LRM_CONVERSION_WORKFLOW.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md) so the new workspace is part of the documented repo workflow.
 
 ### Outcome
 - The versioned Verilog workspace now contains:
@@ -5910,7 +5969,7 @@ The user added a substantial external corpus base intended specifically to harde
 - Added vendored UVM source package [stimuli/sv/uvm/uvm-core-2020.3.1](stimuli/sv/uvm/uvm-core-2020.3.1):
   - core package entrypoints `src/uvm_pkg.sv` and `src/uvm_macros.svh`
   - the broader UVM class/package/macro/sequence/register/TLM/DPI source tree for parser hardening
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new external corpus base for SV/VHDL
   - explicitly kept live status unchanged because tracked corpora only count toward closure once wired into machine-checkable proof surfaces
 
@@ -5938,7 +5997,7 @@ After landing the regex family contract, regex family-status, and regex family-s
   - checked-in lightweight aggregate policy for the regex proof slice
 - Updated [rust/Makefile](rust/Makefile):
   - added target `regex_combined_telemetry_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that regex aggregate telemetry parity is now landed
   - kept `regex` at `In Progress`
 
@@ -5959,7 +6018,7 @@ After landing the regex family-status sidecar, the next missing layer was the sa
     - `regex_primary_unmet_detail_criterion=stimuli_final_target_debt_zero`
 - Updated [rust/Makefile](rust/Makefile):
   - added target `regex_parser_family_status_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new regex status-contract proof layer
   - kept `regex` at `In Progress`
 
@@ -5982,7 +6041,7 @@ After landing the first reusable regex family contract gate, the next missing la
       - `formal_exhaustive_closure_surface=missing`
 - Updated [rust/Makefile](rust/Makefile):
   - added target `regex_parser_family_status_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new regex source-side status proof
   - kept `regex` at `In Progress`
 
@@ -6004,7 +6063,7 @@ The `regex` row was still mostly narrative: it had frontend-readiness, dual-run 
     - current stimuli closure still leaves bounded debt (`initial_targets=167`, `final_targets=81`)
 - Updated [rust/Makefile](rust/Makefile):
   - added target `regex_parser_family_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new regex-family proof anchor
   - kept `regex` at `In Progress`
 
@@ -6025,7 +6084,7 @@ Aggregate sign-off already surfaced the VHDL family-status label, blocker arrays
 - Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now extracts the VHDL family-status sidecar's top-level metadata directly from `summary.json`
   - now proves exact parity for the new aggregate-visible metadata and proof-surface path fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL family-status proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6034,7 +6093,7 @@ Aggregate sign-off already surfaced the VHDL family-status label, blocker arrays
 After a full README-driven documentation pass and a thorough static analysis of the Rust codebase, a few maintainability concerns were clear: several core Rust modules are very large, `main.rs` is a heavy orchestration hub, and some of the release-proof aggregation logic now lives in very large shell gates. Those concerns are legitimate, but the user explicitly prioritized finishing the parser-family roadmap objectives first, especially for `systemverilog`, `vhdl`, and `regex`.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added a dedicated deferred-engineering-concerns section
   - explicitly recorded that these concerns are real but must not displace parser-family closure work for `systemverilog`, `vhdl`, and `regex`
   - captured the concrete deferred concerns:
@@ -6065,7 +6124,7 @@ After adding the VHDL status-contract `summary.json` sidecar and surfacing its p
 - Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now requires `jq` and reads the VHDL status-contract `summary.json` directly
   - now proves exact parity for the new aggregate-visible metadata/provenance fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL status-contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6102,7 +6161,7 @@ The VHDL family-status contract proof already exposed its key facts through `sum
 - Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now requires the produced `summary.json`
   - now proves exact parity for the aggregate-visible JSON-sidecar path
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger machine-readable VHDL status-contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6117,7 +6176,7 @@ Aggregate sign-off already exposed the VHDL status-contract counts and primary u
   - now surfaces aggregate-visible VHDL status-contract blocker arrays
 - Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those aggregate-visible VHDL status-contract blocker arrays
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL status-contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6130,7 +6189,7 @@ Aggregate sign-off already exposed the VHDL status label, blocker arrays, and cl
   - now surfaces the VHDL family-status criterion booleans from `vhdl_parser_family_status_gate/summary.txt`
 - Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those aggregate-visible criterion flags
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL status-proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6145,7 +6204,7 @@ Aggregate sign-off already surfaced the VHDL status label, blocker counts, and t
     - `vhdl_family_status_vhdl_unmet_closure_criteria_details_json`
 - Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those new aggregate-visible VHDL blocker-array fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL blocker surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6165,7 +6224,7 @@ Once aggregate sign-off exposed the VHDL family-status sidecar directly, the nex
     - `vhdl_family_status_contract_vhdl_false_criteria_count`
     - `vhdl_family_status_contract_vhdl_unmet_details_count`
     - `vhdl_family_status_contract_vhdl_primary_unmet_detail_criterion`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL family-status contract surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6195,7 +6254,7 @@ The first VHDL status gate was useful, but its proof layering was wrong for long
 - Updated [rust/scripts/vhdl_combined_telemetry_contract_gate.sh](rust/scripts/vhdl_combined_telemetry_contract_gate.sh):
   - now requires the produced `vhdl_parser_family_status_gate` sidecar under aggregate state
   - now proves exact parity for those new aggregate-visible VHDL status fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the corrected proof layering and new aggregate-visible VHDL status surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6210,7 +6269,7 @@ Once the VHDL family-status gate existed, the next clean hardening step was the 
   - enforces parity between `summary.json` and `summary.txt` for the VHDL blocker arrays, primary unmet criterion, and tracker-alignment boolean
 - Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_parser_family_status_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new VHDL family-status contract proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6230,7 +6289,7 @@ The VHDL proof surface had already reached the point where the row deserved the 
     - `formal_exhaustive_closure_surface=missing`
 - Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_parser_family_status_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new VHDL family-status proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6249,7 +6308,7 @@ The new VHDL family contract gate made the current VHDL proof surface reusable, 
   - checked-in lightweight aggregate policy for the VHDL telemetry parity proof
 - Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_combined_telemetry_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible VHDL family proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6264,7 +6323,7 @@ Once the repository-wide parser proof doctrine was made explicit, the next usefu
   - emits one reusable combined summary for current VHDL family evidence
 - Updated [rust/Makefile](rust/Makefile):
   - added the new `vhdl_parser_family_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger reusable VHDL proof surface
   - recorded that `vhdl` remains `In Progress`
 
@@ -6276,7 +6335,7 @@ The repo had already evolved a strong proof-first doctrine in practice, especial
 - Updated [README.md](README.md):
   - clarified that the parser proof doctrine applies to all PGEN EBNF-based parser families with no exception
   - clarified that tracker/status differences reflect landed proof depth, not differing quality bars
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added a universal-application rule under parser deliverable proof doctrine
   - clarified in live-tracking policy that every parser-family row is interpreted against that same common closure bar
 - Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
@@ -6294,7 +6353,7 @@ We already had two adjacent proof layers for shipped SV-family status: the produ
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the source-side contract summary under `work/sv_parser_family_status_contract_gate/summary.txt`
   - now proves exact parity for the new aggregate-visible contract fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible family-status contract surface
   - recorded that live-status labels remain unchanged
 
@@ -6315,7 +6374,7 @@ The project already had a producer for the SV family-status sidecar and consumer
   - enforces parity between the sidecar JSON and `summary.txt` for structured blocker arrays and tracker-alignment booleans
 - Updated [rust/Makefile](rust/Makefile):
   - added the new `sv_parser_family_status_contract_gate` target and help text
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new source-side contract gate and the stronger sidecar proof surface
   - recorded that live-status labels remain unchanged
 
@@ -6335,7 +6394,7 @@ Aggregate sign-off already exposed the shipped SV-family blocker counts, first-b
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads those structured blocker arrays from the family-status sidecar
   - now proves exact parity for the aggregate-visible `*_details_json` fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger structured blocker surface
   - recorded that live-status labels remain unchanged
 
@@ -6351,7 +6410,7 @@ Aggregate sign-off already exposed the shipped SV-family labels, blocker lists, 
   - now reads the same `metrics.*` fields from the family-status JSON sidecar
   - now proves exact parity for every new aggregate-visible family-status metric field
   - now emits those fields in its own summary for deterministic inspection
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible family-status metric surface
   - recorded that live-status labels remain unchanged
 
@@ -6366,7 +6425,7 @@ Aggregate sign-off already exposed the computed SV-family rows and the family-st
   - now surfaces the shipped SV families' tracker statuses and tracker-alignment flags directly in aggregate telemetry
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves exact parity for those aggregate-visible tracker fields against the family-status sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible tracker-alignment surface
   - recorded that live-status labels remain unchanged
 
@@ -6381,7 +6440,7 @@ Aggregate sign-off already exposed the computed SV-family labels, blocker lists,
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads the top-level family-status metadata from `sv_parser_family_status_gate/summary.json`
   - now proves exact parity for the aggregate-visible contract metadata fields emitted by `sota_exit_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible contract provenance surface
   - recorded that live-status labels remain unchanged
 
@@ -6396,7 +6455,7 @@ Aggregate sign-off already surfaced the computed family-status labels, blocker l
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads the same per-family proof-surface paths from the family-status JSON sidecar
   - now proves exact parity for every new aggregate-visible provenance field
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible provenance surface
   - recorded that live-status labels remain unchanged
 
@@ -6412,7 +6471,7 @@ After surfacing the exact family-status criteria booleans, aggregate sign-off st
   - now surfaces those closure-progress counts directly in aggregate telemetry for both shipped SV families
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves exact parity for all new aggregate-visible progress-count fields
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible closure-progress surface
   - recorded that live-status labels remain unchanged
 
@@ -6427,7 +6486,7 @@ Aggregate sign-off already carried the family-status labels, blocker lists, firs
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now reads the same criteria booleans from the family-status JSON sidecar
   - now proves exact parity for every new aggregate-visible boolean field
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the new aggregate-visible family-status criteria surface
   - recorded that live-status labels remain unchanged
 
@@ -6451,7 +6510,7 @@ Aggregate sign-off already surfaced the blocker count and the first unmet closur
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now extracts the compact unmet-closure arrays from the family-status JSON sidecar
   - now proves those aggregate blocker-list fields exactly match the family-status sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible blocker-list proof surface
   - recorded that the live-status labels did not change
 
@@ -6483,7 +6542,7 @@ Aggregate sign-off already surfaced the family-status labels, blocker counts, bl
     - `syntax_target_debt_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those aggregate syntax-debt fields exactly match the family-status summary
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible syntax-debt proof surface
   - recorded that the live-status labels did not change
 
@@ -6526,7 +6585,7 @@ Aggregate sign-off already surfaced the computed SV-family status labels and unm
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the family-status JSON sidecar path
   - now proves the new aggregate blocker strings exactly match the family-status summary
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate-visible blocker proof surface
   - recorded that live-status labels are unchanged
 
@@ -6562,7 +6621,7 @@ The SV-family status gate now computes the authoritative `systemverilog` and `sy
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the family-status sidecar summary
   - now proves those aggregate telemetry fields exactly match the family-status summary
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate sign-off now carries the computed family-status proof surface
   - recorded that the live-status labels themselves did not change
 
@@ -6610,7 +6669,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
     - `sv_shadow_counterexample_primary_failure_context_excerpt_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV excerpt-bucket proof surface without changing the status labels
 
 ### Validation
@@ -6649,7 +6708,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets plus do
     - `sv_shadow_counterexample_unique_failure_context_excerpts`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt diversity proof surface without changing the status labels
 
 ### Validation
@@ -6686,7 +6745,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets and dom
     - `sv_shadow_counterexample_primary_failure_location_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the main parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -6722,7 +6781,7 @@ The preprocessor aggregate proof already surfaced the dominant stage/sample/pars
     - `sv_preprocessor_counterexample_primary_failure_location_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger preprocessor parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -6756,7 +6815,7 @@ The preprocessor aggregate proof already surfaced the dominant stage/sample buck
     - `sv_preprocessor_counterexample_primary_parser_error_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger preprocessor parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -6794,7 +6853,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets and dom
     - `sv_shadow_counterexample_primary_parser_error_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -6842,7 +6901,7 @@ The main SV aggregate proof already surfaced dominant replay-gap buckets, but th
     - `sv_shadow_counterexample_primary_shrunk_sample_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV parser-debt proof surface without changing the status labels
 
 ### Validation
@@ -6894,7 +6953,7 @@ The main SV aggregate proof already surfaced replay-gap triage artifact paths an
     - `sv_replay_gap_target_primary_dependency_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the parser aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger main-SV replay-gap proof surface without changing the status labels
 
 ### Validation
@@ -6938,7 +6997,7 @@ The aggregate SV sign-off already exposed the preprocessor triage sidecar paths 
     - `sv_preprocessor_counterexample_primary_shrunk_sample_count`
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate debt-shape proof without changing the status labels
 
 ### Validation
@@ -6980,7 +7039,7 @@ The preprocessor side already had deterministic parser-debt triage artifacts ins
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires the preprocessor aggregate summary sidecar
   - now proves those new aggregate telemetry fields exactly match the preprocessor aggregate sidecar values
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate preprocessor debt-triage proof surface without changing the status labels
 
 ### Validation
@@ -7014,7 +7073,7 @@ The main SV side already had objective roundtrip counts, but the unresolved repl
   - proves the new aggregate replay-gap triage fields exactly match that sidecar
 - Updated [rust/Makefile](rust/Makefile):
   - added helper target `sv_replay_gap_target_triage`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger debt-triage proof surface without changing the status labels
 
 ### Validation
@@ -7044,7 +7103,7 @@ The preprocessor reachability-closure gate already existed as a good standalone 
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - requires the preprocessor reachability-closure summary sidecar
   - proves the new aggregate `sota_exit_gate` fields exactly match that sidecar
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate proof surface without changing the status labels
 
 ### Validation
@@ -7079,7 +7138,7 @@ The preprocessor side already had strong aggregate proof, but “zero target deb
   - reports parseability totals and parser-rejection debt separately instead of hiding them behind the closure claim
 - Updated [rust/Makefile](rust/Makefile):
   - added `sv_preprocessor_reachability_closure_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that preprocessor reachability closure is now a standalone tracked proof surface.
 
 ### Validation
@@ -7111,7 +7170,7 @@ The new aggregate SV telemetry contract gate was already useful, but its bounded
 - Updated [rust/scripts/sv_combined_telemetry_contract_gate.sh](rust/scripts/sv_combined_telemetry_contract_gate.sh):
   - now requires and surfaces `sota_policy_env_file`
   - now sources that checked-in policy when running `sota_exit_gate` directly
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that this aggregate proof path is now driven by checked-in policy instead of script-local env.
 
 ### Validation
@@ -7140,7 +7199,7 @@ Once aggregate `sota_exit_gate` started surfacing the combined SV proof numbers 
     - preprocessor roundtrip staged target/rule/branch counts
 - Updated [rust/Makefile](rust/Makefile):
   - added `sv_combined_telemetry_contract_gate`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate telemetry is now machine-checked against the combined proof sidecars.
 
 ### Validation
@@ -7167,7 +7226,7 @@ The previous aggregate sign-off increment made the combined SV-family proof gate
     - main SV roundtrip counts: `sv_roundtrip_initial_targets`, `sv_roundtrip_replay_targets`, `sv_roundtrip_initial_covered_reachable_rules`, `sv_roundtrip_replay_covered_reachable_rules`, `sv_roundtrip_initial_covered_reachable_branches`, `sv_roundtrip_replay_covered_reachable_branches`
     - preprocessor failure-context count: `sv_preprocessor_failure_context_excerpts`
     - preprocessor roundtrip counts: `sv_preprocessor_roundtrip_stage0_targets`, `sv_preprocessor_roundtrip_stage1_targets`, `sv_preprocessor_roundtrip_final_targets`, `sv_preprocessor_roundtrip_stage4_targets`, plus the three staged reachable-rule and reachable-branch counters
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate sign-off now carries concrete combined proof metrics in addition to the summary paths.
 
 ### Validation
@@ -7197,7 +7256,7 @@ The SV-family proof surface had been normalized nicely at the gate level, but ag
     - `sv_roundtrip_contract_summary_txt`
     - `sv_preprocessor_failure_context_contract_summary_txt`
     - `sv_preprocessor_roundtrip_contract_summary_txt`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that aggregate sign-off now carries the combined lightweight proof surface, not only the lower-level contract summaries.
 
 ### Validation
@@ -7238,7 +7297,7 @@ The lightweight SV-family proof commands were already useful, but the “lightwe
 - Updated [rust/scripts/sv_roundtrip_contract_gate.sh](rust/scripts/sv_roundtrip_contract_gate.sh):
   - now requires and surfaces the same checked-in preprocessor policy file
   - now sources it when running `sv_preprocessor_quality_gate` directly
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that lightweight SV-family proof now means checked-in policy on both sides, not only the main SV side.
 
 ### Validation
@@ -7278,7 +7337,7 @@ The lower-level SV aggregate contract gates were already proving parser/stimuli 
 - Updated [rust/Makefile](rust/Makefile):
   - added `sv_roundtrip_contract_gate`
   - added help text for the new gate
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that lightweight parser/stimuli roundtrip proof is now one tracked command.
 
 ### Validation
@@ -7320,7 +7379,7 @@ The source-level failure-context work was already objective, but replaying it st
 - Updated [rust/Makefile](rust/Makefile):
   - added `sv_failure_context_contract_gate`
   - added help text for the new gate
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded that source-level failure-context proof is now one tracked command, not a recipe.
 
 ### Validation
@@ -7358,7 +7417,7 @@ The SV-family gates were already reconstructing line-level context from stored s
 - Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - now requires the same numeric/string source-level failure detail
   - now groups triage by `failure_context_excerpt` too
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the move from shell-only reconstruction to source-level parser proof,
   - kept status labels unchanged because exhaustive closure remains the actual blocker.
 
@@ -7392,7 +7451,7 @@ The preprocessor triage artifact was already summarizing bounded parser debt by 
   - `sample_previews` now retain `failure_line_excerpt`
   - the aggregate summary now records:
     - `counterexample_unique_failure_line_excerpts`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger parser-context observability,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
@@ -7423,7 +7482,7 @@ The main SystemVerilog triage artifacts were already summarizing bounded parser 
   - the aggregate summary now records:
     - `generation_counterexample_unique_failure_line_excerpts`
     - `shadow_counterexample_unique_failure_line_excerpts`
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger parser-context observability,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
@@ -7466,7 +7525,7 @@ The main SystemVerilog aggregate contract gate was already preserving bounded pa
     - failure line/column
     - sample preview
   - the aggregate summary now also records the count of unique shrunk samples and unique failure locations for both generation-side and replay-shadow debt.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger bounded-debt observability for the main SV parser family,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
@@ -7505,7 +7564,7 @@ After the roundtrip and staged-coverage contract work, the preprocessor row stil
     - failure line/column
     - sample preview
   - the aggregate summary now also records the count of unique shrunk samples and unique failure locations.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger bounded-debt observability,
   - kept status labels unchanged because exhaustive closure is still the real remaining gap.
 
@@ -7547,7 +7606,7 @@ The preprocessor aggregate contract gate was still proving mostly report shape, 
   - now requires non-decreasing staged covered reachable rules and branches,
   - now requires stable reachable rule/branch universes across stage0, stage1, stage3, and stage4 artifacts,
   - now requires the stored fuzz replay metadata to satisfy accepted/rejected/minimized/shrunk invariants.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger roundtrip proof surface,
   - kept status labels unchanged because exhaustive grammar-level closure remains the real blocker.
 
@@ -7588,7 +7647,7 @@ The main SV aggregate contract gate was already proving bounded parser-backed co
   - now requires covered reachable rules/branches to stay non-decreasing,
   - now requires reachable rule/branch universes to remain stable across focused replay,
   - now requires replay-shadow aggregate `observed` totals and `target_drive_validation` totals to agree.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger roundtrip proof surface,
   - kept status labels unchanged because exhaustive grammar-level closure is still the remaining blocker.
 
@@ -7621,7 +7680,7 @@ The main SV generation-side aggregate report already had parser-location detail,
     - `failure_line`
     - `failure_column`
   - the generation-side richer contract remains enforced too, so both main-SV aggregate report surfaces are now parser-located.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - removed stale “generation-side only” wording,
   - kept status labels unchanged because this improves bounded-debt observability rather than supplying exhaustive grammar-level closure.
 
@@ -7660,7 +7719,7 @@ The preprocessor side now preserves parser-located counterexamples, but the main
     - `failure_line`
     - `failure_column`
   - shadow-side aggregate counterexample requirements are intentionally unchanged in this task because that probe is materially slower and should be upgraded as its own follow-up increment.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the generation-side proof improvement without changing status labels.
 
 ### Validation
@@ -7700,7 +7759,7 @@ The preprocessor parser-family row is still only `Mostly Done`, and the next use
   - reused the same richer builder for direct parseability generation, target-drive output filtering, and coverage-guided fuzz replay counterexamples.
 - Updated [rust/scripts/sv_preprocessor_aggregate_contract_gate.sh](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh):
   - the aggregate proof now rejects reports that omit parser-location detail from captured counterexamples.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger counterexample observability surface without changing status labels.
 
 ### Validation
@@ -7748,7 +7807,7 @@ The two dedicated SV-family aggregate-report contract gates already gave us repe
   - after `sv_stimuli_quality_gate`, aggregate sign-off now runs `sv_parser_aggregate_contract_gate` in reuse mode,
   - after `sv_preprocessor_quality_gate`, aggregate sign-off now runs `sv_preprocessor_aggregate_contract_gate` in reuse mode,
   - aggregate telemetry now emits both contract-summary paths so sign-off artifacts directly point to the contract-proof files.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger aggregate proof integration,
   - kept parser-family status rows unchanged.
 
@@ -7791,7 +7850,7 @@ The previous task made the remaining preprocessor parseability gap inspectable, 
   - switched directive keywords, identifiers, literals, punctuation, `condition_text`, macro-body/default text atoms, and directive-tail/non-directive text atoms onto `inline_trivia`.
 - Updated [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh):
   - enabled `--enforce-word-boundary-spacing` for all parseability-reporting stages.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the improved aggregate proof numbers,
   - kept the parser-family row at `Mostly Done`.
 
@@ -7831,7 +7890,7 @@ The current `systemverilog_preprocessor` row is intentionally only `Mostly Done`
 - Updated [rust/scripts/sv_preprocessor_quality_gate.sh](rust/scripts/sv_preprocessor_quality_gate.sh):
   - preserved stage-level counterexamples in the aggregate `systemverilog_preprocessor_parseability_report.json`,
   - surfaced `parseability_counterexamples_captured_total` in `summary.csv` / `summary.txt`.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [CHANGES.md](CHANGES.md), and [MEMORY.md](MEMORY.md):
   - recorded the stronger evidence surface without changing status labels.
 
 ### Validation
@@ -7857,7 +7916,7 @@ The user correctly challenged the live tracker on the two SV parser-family rows.
   - changed `systemverilog_preprocessor` frontend (`Phase Q`) from `Done` to `Mostly Done`,
   - rewrote both evidence cells to name the concrete gate surfaces that really exist today,
   - rewrote both left-to-close cells to name the missing deliverable precisely: exhaustive grammar-level proof, not just strong gate telemetry.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added an explicit interpretation note that a closed parser roadmap phase can still correspond to parser-family `Mostly Done` when the stronger live-tracker proof bar is not yet met.
 - Updated [CHANGES.md](CHANGES.md) and [MEMORY.md](MEMORY.md):
   - recorded the correction so future summaries do not collapse “phase complete” into “formal parser-family closure.”
@@ -7904,7 +7963,7 @@ The user-set closure bar for `Done` is now explicit: no plausible proof gap is a
   - added postfix-text fallbacks for property/index access,
   - relaxed bootstrap spread parsing so valid generated forms like `$2::1**` survive fallback reparsing,
   - added focused regression coverage for that nested-spread shape.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [README.md](README.md), [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [README.md](README.md), [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md):
   - promoted `return_annotation` full Rust AST-pipeline support from `Mostly Done` to `Done`,
   - documented that the curated full-construct suite is now supplementary rather than the closure dependency.
 
@@ -7943,7 +8002,7 @@ The new `return_annotation_support_gate` materially improved the proof surface, 
   - documented the formal closure rule for return-annotation support,
   - clarified that the current construct suite is useful evidence but not formal closure,
   - recorded the current-state note that this area remains `Mostly Done` until the proof becomes grammar-derived and exhaustiveness-safe.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [README.md](README.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) and [README.md](README.md):
   - added a general parser deliverable proof doctrine,
   - made the parser/stimuli pair explicit,
   - made roundtrip, parser coverage, stimuli coverage/gap proof, and machine-checkable evidence part of the project-level closure bar.
@@ -8063,7 +8122,7 @@ The roadmap already showed Phases `A-R` as complete, but that did not answer a m
   - classified `systemverilog_preprocessor` as `Done` within the tracked Phase `Q` scope,
   - classified `vhdl` as `In Progress` because the current roadmap only closes readiness kickoff, not a full production-closure phase,
   - classified `regex` as `In Progress` because it has readiness/parity work but no dedicated professional-grade closure program.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added an interpretation note that phase closure and parser-family maturity are different tracking surfaces.
 - Updated [MEMORY.md](MEMORY.md):
   - recorded the parser-family status split for crash recovery and future handoff.
@@ -8099,7 +8158,7 @@ The project already had a four-state live tracker, but the communication contrac
 Phase S had a growing implementation surface and a stricter EBNF-only closure rule, but the docs still did not plainly answer a basic architectural question: why these components exist at all. For a complex project, the roadmap needs to explain not just "what we are building" but "why this layer is required." The required clarification was therefore to document the precise role of Phase S, `rtl_const_expr`, and `rtl_frontend`.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - explained that Phase S exists because RTLSyn needs the minimum trusted parser/evaluator stack for synthesizable RTL, constant-driven elaboration, libraries, and constraints,
   - explained that `rtl_const_expr` exists because RTLSyn cannot trust parameters, widths, or generate structure without a dedicated constant-expression subsystem,
   - explained that `rtl_frontend` exists because RTLSyn needs a synthesis-facing RTL/elaboration boundary before Liberty/SDC and later synthesis logic can bind to real design structure.
@@ -8118,7 +8177,7 @@ Phase S had a growing implementation surface and a stricter EBNF-only closure ru
 Phase S had accumulated substantial handwritten bootstrap progress in `rtl_frontend` and `rtl_const_expr`, but the project’s top-level doctrine is that PGEN deliverables are EBNF-backed parsers. That meant the roadmap language was still too permissive: it described parser crates, but did not explicitly forbid handwritten parsers from counting as final Phase S closure. The required correction was to make that rule explicit and realign the live tracker to match it.
 
 ### Implementation
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
   - added a Phase S closure rule requiring tracked EBNF plus PGEN-generated parser paths for every parser family in the phase,
   - clarified that handwritten parsers are bootstrap/prototyping scaffolding only.
 - Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
@@ -8169,7 +8228,7 @@ The project had a living roadmap and continuity docs, but it still lacked a sing
 - Updated [COMMIT.md](COMMIT.md):
   - added `LIVE_ACHIEVEMENT_STATUS.md` to the required tracked files,
   - made its review/update mandatory before every commit whenever closure or remaining scope changes.
-- Updated [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [README.md](README.md), and [MEMORY.md](MEMORY.md):
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [README.md](README.md), and [MEMORY.md](MEMORY.md):
   - aligned the roadmap legend to the four-state model,
   - promoted the live tracker into the normal ramp-up and crash-recovery read order.
 
@@ -8715,7 +8774,7 @@ The interrupted worktree already contained two high-value but still-uncommitted 
   - the initial AST covers module headers, parameters/localparams, ANSI ports, packed ranges, net declarations, continuous assigns, basic procedural blocks, and explicit generate constructs,
   - constant-bearing frontend nodes use `rtl_const_expr::Expr`,
   - elaboration helpers were added for parameter/localparam evaluation, width resolution, generate-if enablement checks, and bounded generate-for unrolling.
-- Synced `README.md` and `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` so the repo navigation and the roadmap both describe the same current Phase S baseline.
+- Synced `README.md` and `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` so the repo navigation and the roadmap both describe the same current Phase S baseline.
 
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml --lib --quiet` passed after the semantic-hint fix.
@@ -9355,7 +9414,7 @@ After low-yield branch throttling landed, the next open engine gap was what to d
   - surfaces both configured aggregate fields and effective gate-side fields in aggregate `summary.txt`.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/sota_exit_gate.sh`
@@ -9386,7 +9445,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - emits both `closed_loop_target_max_attempts` and `closed_loop_target_max_attempts_source` (`contract` or `env_override`) in startup logs and `summary.txt`.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/vhdl_stimuli_quality_gate.sh`
@@ -9426,7 +9485,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - surfaces them in aggregate VHDL strict-promotion telemetry so sign-off can see parser-backed effort directly.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/vhdl_strict_promotion_gate.sh`
@@ -9465,7 +9524,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - surfaces them in aggregate parse-full promotion telemetry so sign-off can see parser-backed effort directly.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
@@ -9500,7 +9559,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - surfaces them in aggregate declared-shadow promotion telemetry so sign-off can see parser-backed effort directly.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/sv_declared_shadow_promotion_gate.sh`
@@ -9533,7 +9592,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - surfaces aggregate preprocessor parseability attempts / accepted / rejected totals, acceptance rate, and report path in top-level sign-off output.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/sv_preprocessor_quality_gate.sh`
@@ -9564,7 +9623,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - declared `perl` as an explicit required tool because summary-rate formatting depends on it.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/annotation_stimuli_quality_gate.sh`
@@ -9587,7 +9646,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - writes `summary.csv` / `summary.txt` with parseability telemetry and artifact paths for both parser-backed rows.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/annotation_robustness_gate.sh`
@@ -9611,7 +9670,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - leaves `regex` as an explicit non-parseability row so current gate scope stays honest.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/annotation_nonbootstrap_e2e_gate.sh`
@@ -9635,7 +9694,7 @@ Bounded VHDL proofs were still awkward because `vhdl_stimuli_quality_gate` only 
   - extends summary CSV/text with parseability totals and report artifact paths.
 - Updated operator docs/state:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/stimuli_module_parity_gate.sh`
@@ -9660,7 +9719,7 @@ The readiness gates were already producing the right parser-backed telemetry, bu
   - appended both readiness summary tables directly into aggregate `summary.txt`.
 - Updated operator-facing docs:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/sota_exit_gate.sh`
@@ -9696,7 +9755,7 @@ The readiness gates were already producing the right parser-backed telemetry, bu
     - the VHDL realistic-corpus report path for direct drill-down.
 - Updated operator docs:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `bash -n rust/scripts/sota_exit_gate.sh`
@@ -10127,7 +10186,7 @@ The observed SystemVerilog random-stimuli `parse_full` ratio was too low to be a
   - enables `--validate-parseability` for the scored sample-generation rows when `parse_full` mode is active,
   - leaves closed-loop debt replay on raw generation for now because parser-in-loop replay increased target debt and would have invalidated that invariant.
 - Recorded the explicit policy that shared parser/stimuli fixes must remain EBNF-agnostic in:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_RELEASE_POLICY.md`
 
 ### Validation
@@ -12024,7 +12083,7 @@ You clarified that the desired end-state is not just "high quality parsers," but
 
 ### Implementation
 Updated:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added a `Parser Trust Doctrine` section directly under the mission,
   - encoded the required parser-quality evidence categories:
     - grammar-contract correctness,
@@ -12060,7 +12119,7 @@ You identified a distinct downstream requirement set for the planned RTLSyn flow
 
 ### Implementation
 Updated:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added a dedicated future-track phase for the RTLSyn parser stack,
   - recorded the mandatory planned families:
     - synthesizable RTL frontend parser,
@@ -12940,7 +12999,7 @@ Corpus expectation promotion:
 
 Documentation updates:
 - `CHANGES.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 - `MEMORY.md`
 
@@ -13003,7 +13062,7 @@ Why these cases:
 - they broaden semantic evidence without smuggling grammar-specific logic into the Rust pipeline.
 
 Documentation updates:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 - `CHANGES.md`
 - `MEMORY.md`
@@ -13073,7 +13132,7 @@ Canonical extracted EBNF promotion:
   - sourced from `docs/systemverilog/2023/grammar_clean.ebnf`.
 
 Roadmap synchronization:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added explicit 2026-03-06 progress for full dual-SV extraction closure and canonical snapshot promotion.
 
 ### Validation
@@ -13110,7 +13169,7 @@ Policy update:
   - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STIMULI_QUALITY_STRICT=1` (previously `0`).
 
 Documentation synchronization:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 - `CHANGES.md`
 - `MEMORY.md`
@@ -13136,7 +13195,7 @@ Policy update:
   - `PGEN_SOTA_POLICY_REQUIRE_VHDL_STRICT_PROMOTION_STRICT=1` (previously `0`).
 
 Documentation synchronization:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 - `CHANGES.md`
 - `MEMORY.md`
@@ -13412,7 +13471,7 @@ Phase P still had one open item: close SV stimuli mode-level semantic steering w
 ### Implementation
 Primary files:
 - `grammars/systemverilog.ebnf`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Grammar steering changes:
 - `module_header_ports`
@@ -13580,7 +13639,7 @@ Changes:
   - promotion target `100`
   - promotion trial shape `4x8` from policy.
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13611,7 +13670,7 @@ Changes:
   - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO=100`
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100`
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13638,7 +13697,7 @@ Changes:
 - Kept ceiling promotion target unchanged:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100`.
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13665,7 +13724,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=100` (from `95`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13692,7 +13751,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=95` (from `90`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13719,7 +13778,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=90` (from `85`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13746,7 +13805,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=85` (from `80`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13773,7 +13832,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=80` (from `75`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13800,7 +13859,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=75` (from `70`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13827,7 +13886,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=70` (from `65`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13854,7 +13913,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=65` (from `60`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13881,7 +13940,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=60` (from `55`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13908,7 +13967,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=55` (from `50`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13935,7 +13994,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=50` (from `45`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13962,7 +14021,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=45` (from `40`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -13989,7 +14048,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=40` (from `35`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -14016,7 +14075,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=35` (from `30`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -14043,7 +14102,7 @@ Changes:
 - Advanced promotion trial target:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=30` (from `25`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -14070,7 +14129,7 @@ Changes:
 - Advanced promotion trial target to keep ratchet loop active:
   - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO=25` (from `20`).
 - Synced docs/continuity surfaces:
-  - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
+  - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `CHANGES.md`, `MEMORY.md`.
 
 ### Validation
 Executed:
@@ -14451,7 +14510,7 @@ Primary files:
 - `rust/scripts/sv_preprocessor_template_differential_gate.sh`
 - `rust/Makefile`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added dynamic template differential gate with deterministic seed-driven case synthesis:
@@ -14535,7 +14594,7 @@ Aggregate `sota_exit_gate` executed `sv_preprocessor_quality_gate` without stage
 Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added aggregate-scoped stage directory for `sv_preprocessor_quality_gate`:
@@ -14580,7 +14639,7 @@ Aggregate `sota_exit_gate` executed `sv_stimuli_quality_gate` without stage-spec
 Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added aggregate-scoped stage directory for `sv_stimuli_quality_gate`:
@@ -14620,7 +14679,7 @@ Aggregate parse-full promotion telemetry exposed only observed ratio average, wh
 Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parsing for:
@@ -14652,7 +14711,7 @@ Aggregate parse-full promotion telemetry surfaced recommendation, primary blocke
 Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parsing for:
@@ -14684,7 +14743,7 @@ Aggregate declared-shadow promotion telemetry already exposed recommendation, to
 Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parsing for:
@@ -14716,7 +14775,7 @@ Aggregate gate printed declared-shadow promotion configuration (`sv_declared_sha
 Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added stage-report parse for:
@@ -14748,7 +14807,7 @@ Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - Added standalone promotion gate knob:
@@ -14789,7 +14848,7 @@ Primary files:
 - `rust/scripts/sv_declared_shadow_promotion_gate.sh`
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Declared-shadow promotion gate changes:
 - Added trial blocker classifier with deterministic keys for:
@@ -14841,7 +14900,7 @@ Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Aggregate policy/runtime controls added for declared-shadow promotion stage:
 - `TRIALS`
@@ -14908,7 +14967,7 @@ Promotion-stage recommendations were visible only by reading stage-local logs or
 Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Changes:
 - aggregate now forces promotion stage state dir to:
@@ -14943,7 +15002,7 @@ Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Added aggregate policy/runtime controls:
 - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS` / `PGEN_SOTA_SV_PARSE_FULL_RATIO_PROMOTION_TRIALS`
@@ -14986,7 +15045,7 @@ Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Added policy/runtime controls:
 - `PGEN_SOTA_POLICY_SV_PARSE_FULL_RATIO_PROMOTION_TARGET_MIN_RATIO`
@@ -15023,7 +15082,7 @@ Promotion recommendations (`raise` vs `hold`) needed explicit blocker attributio
 Primary files:
 - `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Key changes:
 - Added per-trial blocker metadata:
@@ -15077,7 +15136,7 @@ Initial parse-full promotion trial defaults used semantic-closure profile (`sv_s
 Primary files:
 - `rust/scripts/sv_parse_full_ratio_promotion_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Default alignment changes:
 - `PGEN_SV_PARSE_FULL_RATIO_PROMOTION_SEMANTIC_CLOSURE_MODE: 1 -> 0`
@@ -15109,7 +15168,7 @@ Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added deterministic parse-full ratio promotion gate
 `sv_parse_full_ratio_promotion_gate.sh`:
@@ -15172,7 +15231,7 @@ Aggregate policy enforcement for SV parse-full ratio was in place at `10%`. With
 Primary files:
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Policy change:
 - `PGEN_SOTA_POLICY_SV_STIMULI_MIN_PARSE_FULL_PASS_RATIO: 10 -> 15`
@@ -15201,7 +15260,7 @@ Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added aggregate policy/runtime knobs for SV parse-full ratio strictness
 `sota_exit_gate.sh`:
@@ -15241,7 +15300,7 @@ Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
 - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added parse-full quality contract surface (v21)
 `systemverilog_core_v0_contract.json`:
@@ -15292,7 +15351,7 @@ Primary files:
 - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 - `rust/scripts/sv_stimuli_quality_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Contract promotion to runtime enforcement (v20)
 `systemverilog_core_v0_contract.json`:
@@ -15337,7 +15396,7 @@ Declared-shadow promotion trials had converged to stable green recommendations (
 Primary files:
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Policy flip:
 - `PGEN_SOTA_POLICY_REQUIRE_SV_DECLARED_SHADOW_PROMOTION_STRICT: 0 -> 1`
@@ -15363,7 +15422,7 @@ Parseability-scoped strict-shadow logic was in place, but promotion evidence sti
 Primary files:
 - `rust/scripts/sv_declared_shadow_promotion_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Increased promotion-trial evidence density
 `sv_declared_shadow_promotion_gate` default sample count changed:
@@ -15423,7 +15482,7 @@ Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
 - `rust/scripts/sv_declared_shadow_promotion_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added parseability-scoped shadow control
 New `sv_stimuli_quality_gate` env control:
@@ -15480,7 +15539,7 @@ Primary files:
 - `rust/scripts/sota_exit_gate.sh`
 - `rust/config/sota_exit_policy.env`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added standalone promotion-trial gate
 New script:
@@ -15551,7 +15610,7 @@ The remaining gap was user-facing operational guidance: a new user still had to 
 ### Implementation
 Primary files:
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added concrete AST debug playbook section
 `PGEN_USER_GUIDE.md` now includes `AST Debug Playbooks (SV/VHDL/Regex)` with explicit command-level steps.
@@ -15571,7 +15630,7 @@ Added flows:
   - documented adapter caveat for parser-returned dump availability.
 
 #### 2) Closed roadmap documentation item
-`PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase R item:
+`docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase R item:
 - `Document AST dump workflows in user-facing docs` moved from pending to complete.
 - added explicit progress note summarizing the new playbook coverage.
 
@@ -15595,7 +15654,7 @@ Primary files:
 - `rust/src/embedding_api.rs`
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added stable AST dump API types and outcomes
 New public types in `pgen::embedding_api`:
@@ -15717,7 +15776,7 @@ Primary files:
 - `rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json`
 - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 - `rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added deterministic semantic contract corpus
@@ -15789,7 +15848,7 @@ Even after lexical cleanups, declaration-before-use still produced noise when sc
 Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
 - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Reworked declaration-before-use to structured use extraction
@@ -15833,7 +15892,7 @@ After introducing `sv_semantic_file`, enabling both `require_declared_identifier
 Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
 - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Hardened declaration-before-use checker
@@ -15887,7 +15946,7 @@ Phase P semantic-closure validators were already wired but mostly default-disabl
 Primary files:
 - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
 - `rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added dedicated semantic-closure stimuli mode
@@ -15944,7 +16003,7 @@ Primary files:
 - `rust/Makefile`
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added dedicated parser-profile contract gate
 Created:
@@ -16006,7 +16065,7 @@ Observed:
 ### Implementation
 Primary files:
 - `rust/config/sota_exit_policy.env`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Policy change:
@@ -16031,7 +16090,7 @@ To close the convergence contract, we needed an explicit deterministic replay as
 ### Implementation
 Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added explicit initial replay stage per profile
@@ -16075,7 +16134,7 @@ Gate implementation had equivalent stages but executed semantic validation befor
 ### Implementation
 Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Reordered sample-stage execution
@@ -16111,7 +16170,7 @@ To align with Phase Q parser/stimuli integration goals, closed-loop convergence 
 ### Implementation
 Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added per-profile preprocess replay passes for closed-loop corpora
@@ -16154,7 +16213,7 @@ Observed:
 ### Implementation
 Primary files:
 - `rust/config/sota_exit_policy.env`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Policy change:
@@ -16178,7 +16237,7 @@ Phase Q required differential hardening against trusted references and publicati
 Primary files:
 - `rust/scripts/sv_preprocessor_quality_gate.sh`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added trusted-reference differential controls
 `sv_preprocessor_quality_gate.sh` now supports:
@@ -16804,7 +16863,7 @@ Summary text includes:
 Updated:
 - `rust/Makefile` help text
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Roadmap Phase P item:
 - `Freeze systemverilog_core_v0 contract corpus and add sv_stimuli_quality_gate` is now marked complete.
@@ -16938,7 +16997,7 @@ Added deterministic invalid-argument diagnostic for name parsing:
 Updated:
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 Executed:
@@ -16962,7 +17021,7 @@ Primary files:
 - `rust/src/embedding_api.rs`
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added generated parser backend detection for SV and VHDL
 `rust/build.rs` now resolves both optional parser artifacts:
@@ -17013,7 +17072,7 @@ Behavior contracts:
 #### 5) Documentation alignment
 - `rust/docs/EMBEDDING_API_CONTRACT.md` now documents parser-profile APIs and diagnostic matrix.
 - `PGEN_USER_GUIDE.md` embedding section now lists parser-profile entry points and profile set.
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase P item updated with progress note for this scaffold.
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase P item updated with progress note for this scaffold.
 
 ### Validation
 Executed:
@@ -17034,7 +17093,7 @@ This increment implements the first executable scaffold in gate/contract paths s
 Primary files:
 - `rust/scripts/sv_stimuli_quality_gate.sh`
 - `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added profile selection controls to SV stimuli quality gate
 New env controls:
@@ -17182,7 +17241,7 @@ After `grammars/vhdl.ebnf` was added and strict `hdl_frontend_gate` turned green
 ### Implementation
 Primary files:
 - `rust/config/sota_exit_policy.env`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Policy change:
@@ -17217,7 +17276,7 @@ Goal of this increment:
 ### Implementation
 Primary files:
 - `grammars/vhdl.ebnf`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Added `grammars/vhdl.ebnf` seed coverage for:
@@ -17300,7 +17359,7 @@ These were blocking clean syntax-consistency posture for Phase P syntax burn-dow
 Primary files:
 - `grammars/systemverilog.ebnf`
 - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added missing item/declaration symbol definitions
@@ -17345,7 +17404,7 @@ Phase P required an explicit, executable-adjacent syntax closure tracker mapped 
 ### Implementation
 Primary files:
 - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added dedicated coverage matrix artifact
@@ -17379,7 +17438,7 @@ Captured current unresolved-rule debt detected in `grammars/systemverilog.ebnf`:
 These unresolved symbols are now called out as objective blockers for strict syntax-closure promotion.
 
 #### 3) Roadmap + user-guide integration
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - marked the Phase P matrix item complete.
   - added explicit progress log entry for the new artifact.
 - `PGEN_USER_GUIDE.md`
@@ -18006,7 +18065,7 @@ To move from intent to enforceable engineering workflow, the project needed:
 Primary files:
 - `rust/scripts/hdl_frontend_readiness_gate.sh`
 - `rust/Makefile`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 - `CHANGES.md`
 
@@ -18044,7 +18103,7 @@ Added targets:
 Also added help text entries in `rust/Makefile` so the new gate appears in standard operator discovery.
 
 #### 3) Roadmap and UG updates
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Pillar 5 status moved to `In Progress`,
   - new Phase O added for HDL readiness kickoff and next closure items.
 - `PGEN_USER_GUIDE.md`
@@ -18235,7 +18294,7 @@ With strict gate runs now passing on tracked grammars (`ebnf/json/regex`), polic
 ### Implementation
 Primary files:
 - `rust/config/sota_exit_policy.env`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 - `CHANGES.md`
 
@@ -18270,7 +18329,7 @@ Primary files:
 - `rust/scripts/ebnf_stimuli_quality_gate.sh`
 - `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added `ebnf` parseability adapter in parser registry
 In `parser_registry`:
@@ -18304,7 +18363,7 @@ Rationale:
 #### 4) Documentation sync
 - `PGEN_USER_GUIDE.md`:
   - parseability support matrix now documents `ebnf` support and the required feature set.
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
   - Phase M progress/changelog updated to record required `ebnf` parseability enforcement.
 
 ### Validation
@@ -18323,7 +18382,7 @@ After strict-on-validated named semantic routing and corpus-level generated sema
 
 ### Implementation
 Primary file:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Updates:
 - promoted the semantic typed-AST closure checkbox to complete,
@@ -18352,7 +18411,7 @@ This weakened closure guarantees for conforming named semantic constructs, while
 ### Implementation
 Primary files:
 - `rust/src/ast_pipeline/mod.rs`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Thread backend parseability state into named semantic shaping
 In `parse_semantic_annotation_entry(...)`:
@@ -18420,7 +18479,7 @@ The generated conversion paths were already wired, but objective closure proof n
 Primary files:
 - `rust/src/ast_pipeline/unified_return_ast.rs`
 - `rust/src/ast_pipeline/unified_semantic_ast.rs`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Return full generated-pass corpus closure proof
 File:
@@ -18469,7 +18528,7 @@ Result:
 
 #### 3) Roadmap closure/progress bookkeeping
 File:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Updates:
 - marked Phase L return typed-AST closure item complete,
@@ -18501,7 +18560,7 @@ Primary files:
 - `rust/src/bin/test_runner.rs`
 - `rust/Makefile`
 - `rust/test_data/differential_baseline/semantic_annotation_baseline.json`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Non-bootstrap semantic extraction no longer relies on bootstrap marker fallback
@@ -18564,7 +18623,7 @@ Result after refresh:
 
 #### 6) Docs/roadmap update
 Files:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Updated:
@@ -18598,7 +18657,7 @@ Reason previously:
 Primary files:
 - `rust/src/parser_registry.rs`
 - `rust/test_data/grammar_quality/ebnf_stimuli_contract.json`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added matching builtin semantic parseability adapter
@@ -18637,7 +18696,7 @@ Added/updated tests:
 
 #### 4) Roadmap and UG updates
 Files:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Updates:
@@ -18666,7 +18725,7 @@ The required closure points were:
 Primary files:
 - `PGEN_USER_GUIDE.md`
 - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added dedicated normative stimuli-module contract spec
 File:
@@ -18700,7 +18759,7 @@ Added:
 
 #### 3) Closed roadmap checkbox
 File:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Updated:
 - marked final Phase N “Extend User Guide and normative docs …” item complete,
@@ -18811,7 +18870,7 @@ Changes:
 
 #### 5) Roadmap and UG updates
 Files:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Updates:
@@ -18839,7 +18898,7 @@ The initial `--generate-stimuli-module` mode existed, but contract details were 
 ### Implementation
 Primary files:
 - `rust/src/main.rs`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Deterministic seed enforcement for module mode
@@ -18897,7 +18956,7 @@ Added/updated tests:
 
 #### 4) Roadmap and UG closure updates
 Files:
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 Updates:
@@ -18931,7 +18990,7 @@ This increment targets the first Phase N execution item:
 Primary files:
 - `rust/src/main.rs`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added new CLI mode
 File:
@@ -18980,7 +19039,7 @@ Added tests:
 #### 4) Documentation/roadmap updates
 Files:
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 Updates:
 - documented `--generate-stimuli-module` command usage and artifact contents in UG.
@@ -19420,7 +19479,7 @@ Primary files:
 - `rust/scripts/sc08_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19472,7 +19531,7 @@ Primary files:
 - `rust/scripts/sc05_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19522,7 +19581,7 @@ Primary files:
 - `rust/scripts/sc12_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19572,7 +19631,7 @@ Primary files:
 - `rust/scripts/sc11_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19621,7 +19680,7 @@ Primary files:
 - `rust/scripts/sc10_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19671,7 +19730,7 @@ Primary files:
 - `rust/scripts/sc09_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19721,7 +19780,7 @@ Primary files:
 - `rust/scripts/sc07_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19776,7 +19835,7 @@ Primary files:
 - `rust/src/ast_pipeline/semantic_directive_registry.rs`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -19918,7 +19977,7 @@ Primary files:
 - `rust/scripts/annotation_stimuli_quality_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -20001,7 +20060,7 @@ Primary files:
 - `rust/scripts/sc03_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -20067,7 +20126,7 @@ Primary files:
 - `rust/scripts/sc04_contract_gate.sh`
 - `rust/Makefile`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -20135,7 +20194,7 @@ That meant embedders had no parser-runtime control surface to:
 Primary files:
 - `rust/src/ast_pipeline/ast_based_generator.rs`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -20214,7 +20273,7 @@ Primary files:
 - `rust/src/ast_pipeline/ast_based_generator.rs`
 - `rust/src/ast_pipeline/stimuli_generator.rs`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -20332,7 +20391,7 @@ Primary files:
 - `rust/src/ast_pipeline/semantic_directive_registry.rs`
 - `rust/src/ast_pipeline/ast_based_generator.rs`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -20416,7 +20475,7 @@ Primary files:
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) SC-12 typed parsing primitives and directive-capability promotion
 - Added typed helper:
@@ -20775,7 +20834,7 @@ Primary file:
 
 #### 5) Living docs alignment
 - Updated:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
@@ -20839,7 +20898,7 @@ Primary file:
 
 #### 5) Living docs alignment
 - Updated:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
@@ -20893,7 +20952,7 @@ Primary file:
 
 #### 5) Living docs alignment
 - Updated:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
@@ -20958,7 +21017,7 @@ Primary files:
 #### 5) Living docs alignment
 - Updated:
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - SC-07 status now reflects dedicated stimuli modes as implemented baseline behavior.
@@ -21038,7 +21097,7 @@ Primary files:
 - Updated:
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `PGEN_USER_GUIDE.md`
 - UG SC-07 deep-dive now documents:
   - all recovery budget scopes,
@@ -21106,7 +21165,7 @@ Primary file:
 
 #### 5) Living-doc status alignment
 - Updated:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
@@ -21178,7 +21237,7 @@ Primary file:
 
 #### 5) Living-doc/spec alignment
 - Updated:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
@@ -21386,7 +21445,7 @@ Primary file:
   - pass (`32 semantic_usage_* tests`).
 
 ### Contract/Docs Updates
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added completed Phase K item and change-log entry for structured recovery reporting baseline.
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - updated `SC-07` status to include structured recovery event reporting in current baseline.
@@ -21441,7 +21500,7 @@ Primary file:
   - pass (`29 semantic_usage_* tests`).
 
 ### Contract/Docs Updates
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added completed Phase K item for SC-07 stimuli baseline.
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `SC-07` promoted to parser+stimuli baseline tier with explicit note on remaining advanced recovery-targeted generation.
@@ -21505,7 +21564,7 @@ Primary file:
   - pass (`27 semantic_usage_* tests`).
 
 ### Contract/Docs Updates
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added Phase K item for executable recovery runtime baseline and completion log entry.
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `SC-07` promoted from Tier 1 (contract-only) to Tier 2 (parser runtime steering baseline).
@@ -21544,7 +21603,7 @@ However, this check was still local-only and not yet part of:
   - inserted `annotation_nonbootstrap_e2e_gate` into:
     - `PGEN_SOTA_POLICY_REQUIRED_CHECKS`
 - Updated roadmap:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Phase I now explicitly records completion of non-bootstrap annotation E2E enforcement in both standalone CI and aggregate policy.
 ### Validation
 - `make -C rust SHELL=/bin/bash annotation_nonbootstrap_e2e_gate`
@@ -22124,7 +22183,7 @@ The agreed direction is:
 - Added explicit `P0/P1` priority queue in matrix:
   - `P0`: typed directive registry, unknown-directive policy modes, precedence+associativity steering, value-domain steering.
   - `P1`: deterministic directive conflict policy + return mismatch closure tightening.
-- Updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase J tasks to reflect these priorities.
+- Updated `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase J tasks to reflect these priorities.
 - Updated `PGEN_USER_GUIDE.md` semantic section with policy summary for contributor/user clarity.
 ### Validation
 - Documentation/priority alignment only; no executable changes in this slice.
@@ -22150,7 +22209,7 @@ At the same time, return annotations are AST-shaping core functionality and must
   - "Return Annotation No-Compromise Contract"
   - Enumerates required construct coverage and quality expectations (including parity and closure direction for return differential drift).
 - Updated integration docs:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
     - added Phase J (semantic steering control surface + return completeness closure).
   - `PGEN_USER_GUIDE.md`
     - linked matrix as authoritative steering-control reference.
@@ -22247,7 +22306,7 @@ Without an aggregate gate, merge/release confidence required manually chaining s
     - `allowed_mismatches`: `0 -> 22`
 - Updated living docs:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 ### Validation
 - Ran:
   - `make -C rust SHELL=/bin/bash differential_refresh_baseline`
@@ -22327,7 +22386,7 @@ Without an explicit readiness gate/report, migration planning would be based on 
     - `ebnf_frontend_gate` (strict failure policy)
 - Updated living docs:
   - `PGEN_USER_GUIDE.md` with new gate targets and intent.
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with new Phase H migration track.
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with new Phase H migration track.
 ### Validation
 - Ran report mode:
   - `make -C rust ebnf_frontend_readiness`
@@ -22380,7 +22439,7 @@ Semantic transform handling was implemented in multiple locations with slightly 
 - Updated docs/roadmap:
   - `PGEN_USER_GUIDE.md` semantic leverage section updated with canonical/path-aware behavior and non-canonical fallback note.
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` updated with shared canonical parser contract.
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated to track completion.
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated to track completion.
 ### Validation
 - Ran:
   - `make -C rust semantic_usage_gate`
@@ -22419,7 +22478,7 @@ There was ambiguity about whether semantic annotations currently steer parser ge
     - Added a dedicated "Semantic Leverage Contract (Parser + Stimuli)" section documenting current steering behavior and boundaries.
   - `PGEN_USER_GUIDE.md`
     - Expanded semantic section to state exactly what semantic annotations steer today and what remains non-steering.
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
     - Marked semantic leverage gate completion under Phase F.
 ### Validation
 - Ran:
@@ -22465,7 +22524,7 @@ The embedding API was stable and versioned but accepted unbounded input payloads
     - default bound constant,
     - new diagnostic codes and semantics.
 - Updated roadmap:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Pillar 11 status moved to `In Progress` with this hardening slice logged under Phase G.
 ### Validation
 - Ran:
@@ -22505,7 +22564,7 @@ The initial normative contract gate focused on bootstrap behavior plus validator
   - `annotation_contract_gate` now invokes `annotation_shared_contract_gate` after validator + bootstrap-specific contract checks.
 - Updated contract docs/roadmap:
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` now distinguishes bootstrap-only and shared bootstrap/generated suites.
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated with completed shared-contract enforcement step.
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated with completed shared-contract enforcement step.
 ### Validation
 - Ran:
   - `make -C rust annotation_shared_contract_gate`
@@ -22532,7 +22591,7 @@ After introducing `annotation_contract_gate` locally, the gate still depended on
     - bootstrap return built-in contract suite,
     - bootstrap semantic built-in contract suite.
 - Updated roadmap:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Added and marked complete Phase F item for CI wiring of `annotation_contract_gate`.
 ### Validation
 - Re-ran:
@@ -22591,7 +22650,7 @@ Given PGEN’s bootstrap architecture constraints (annotation parsers must exist
     - `test_runner --parser semantic --suite semantic_annotation_builtin_contract`
 - Updated discoverability and roadmap:
   - `README.md` docs list now links normative spec.
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
     - Pillar 2 set to `In Progress`,
     - Phase F checklist added and marked complete for this contractization step.
 ### Validation
@@ -22635,7 +22694,7 @@ User feedback also highlighted specific feature areas needing first-class onboar
 - Added discoverability link:
   - `README.md` documentation section now references `PGEN_USER_GUIDE.md`.
 - Marked roadmap task complete:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase E checklist updated.
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase E checklist updated.
 ### Validation
 - Verified command/flag accuracy against current interfaces:
   - `cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- --help`
@@ -23031,7 +23090,7 @@ This gives an actionable pre-merge CI check surface for fixed-point bootstrap de
 Given the SOTA objective for PGEN, the first implementation priority is bootstrap reproducibility: repeated generation from the same annotation EBNFs must produce stable artifacts. This is especially important because annotation parser stability directly impacts downstream parser generation, roundtrip testing, and automated stimuli validation loops.
 ### Implementation
 - Added living roadmap document:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Tracks 12 major pillars, statuses, and phased execution.
 - Added fixed-point gate script:
   - `rust/scripts/fixed_point_bootstrap_gate.sh`
@@ -24988,7 +25047,7 @@ Result:
 - Passed (`19 passed, 0 failed` in the annotation validator suite).
 
 ### Documentation/Plan Updates
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Pillar 6 moved to `In Progress`.
   - New Phase K added for ambiguity/recovery kickoff.
   - Phase K first task (prefix ambiguity diagnostic) marked done.
@@ -25076,7 +25135,7 @@ Result:
 - Passed (`21 passed, 0 failed` in annotation validator suite).
 
 ### Plan Update
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Phase K second checkbox (nullable/FIRST overlap) marked complete.
 - Remaining Phase K activity:
   - branch-policy/recovery hint control surface (`@branch_policy`, `@recover`, `@sync`, `@panic_until`).
@@ -25223,7 +25282,7 @@ Results:
 - All commands passed.
 
 ### Plan Update
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Phase K third checkbox marked complete.
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `SC-06` promoted to implemented branch-policy steering baseline.
@@ -25379,7 +25438,7 @@ Changes:
 - Result: pass.
 
 ### Plan update
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Phase P semantic-closure section updated with explicit deterministic width-compatibility contract-suite progress entry.
 
 ---
@@ -25395,7 +25454,7 @@ Without explicit planning, these observability capabilities risked being treated
 
 ### Fixes implemented
 - Added a dedicated roadmap phase:
-  - `Phase R (AST Observability and Debug Artifacts)` in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`.
+  - `Phase R (AST Observability and Debug Artifacts)` in `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`.
 - Captured concrete deliverables:
   - AST-pipeline CLI dump option for generation-input AST with default `gen_ast.json`,
   - generated-parser runtime/API dump option for parser-returned AST with default `<grammar>_ast.json`,
@@ -25842,7 +25901,7 @@ That made strict differential mode operationally inconsistent:
   - backend stderr lines are normalized into structured warning/error entries.
 - Documentation and roadmap synchronization:
   - updated `PGEN_USER_GUIDE.md` with runner shim usage and env controls,
-  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase Q differential-hardening progress.
+  - updated `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase Q differential-hardening progress.
 
 ### Validation
 - `bash -n rust/scripts/sv_preprocessor_reference_runner.sh`
@@ -25911,7 +25970,7 @@ This left dump behavior under-specified for large corpora and cross-run byte-dif
   - bounded dump truncation diagnostics behavior.
 - Synced user-facing docs and roadmap progress:
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline`
@@ -25946,7 +26005,7 @@ Phase R generation-input AST dumps already had deterministic key canonicalizatio
   - truncation envelope emission path.
 - Synced docs/roadmap:
   - `PGEN_USER_GUIDE.md` parser-returned AST dump section now documents bounded control + env fallback + truncation envelope contract.
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` marks dump-format/safety baseline complete across both AST dump surfaces.
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` marks dump-format/safety baseline complete across both AST dump surfaces.
 
 ### Validation
 - `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers`
@@ -25983,7 +26042,7 @@ for both generation-input and parser-returned AST dump paths.
   - `rust/src/main.rs`: `maybe_dump_generation_ast` now wraps write failures with explicit context string, enabling reliable negative-path pattern checks in gate output.
 - Documentation synchronization:
   - `PGEN_USER_GUIDE.md` updated with new gate command + artifact path.
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` gate-level validation item marked complete.
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` gate-level validation item marked complete.
 
 ### Validation
 - `bash -n rust/scripts/ast_dump_contract_gate.sh`
@@ -26012,7 +26071,7 @@ Improve the measurability of the main `systemverilog` parser-family proof surfac
     - `seed`
 - Synced status/roadmap continuity:
   - `LIVE_ACHIEVEMENT_STATUS.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `CHANGES.md`
   - `MEMORY.md`
 
@@ -26052,7 +26111,7 @@ Extend the same objective-evidence tightening from aggregate parseability genera
     - `counterexamples_captured`
 - Synced status/roadmap continuity:
   - `LIVE_ACHIEVEMENT_STATUS.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `CHANGES.md`
   - `MEMORY.md`
 
@@ -26101,7 +26160,7 @@ Replace ad hoc focused verification for the main `systemverilog` aggregate repor
     - each profile carries `counterexamples_captured`
 - Synced continuity docs:
   - `LIVE_ACHIEVEMENT_STATUS.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `CHANGES.md`
   - `MEMORY.md`
 
@@ -26139,7 +26198,7 @@ Make the main preprocessor aggregate evidence surface repeatable and machine-che
     - `covered_reachable_branches == reachable_branches`
 - Synced continuity docs:
   - `LIVE_ACHIEVEMENT_STATUS.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `CHANGES.md`
   - `MEMORY.md`
 
@@ -27441,7 +27500,7 @@ Architectural north star:
   - new top-level file `SESSION_BOOTSTRAP.md` now captures the intended first-step workflow for a new session:
     - read `README.md` and all referenced Markdown files
     - thoroughly analyze the Rust codebase
-    - update `RUST_CODEBASE_ANALYSIS.md` if needed
+    - update `docs/reference/RUST_CODEBASE_ANALYSIS.md` if needed
     - then continue with roadmap objectives
   - this is intentionally lightweight and direct so future sessions have one unambiguous starting instruction before any other task.
 - 2026-03-31: Rejected a `systemverilog_preprocessor.ebnf` directive-keyword refactor.
@@ -29694,8 +29753,8 @@ Architectural north star:
     - `LIVE_ACHIEVEMENT_STATUS.md`
     - `MEMORY.md`
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-    - `RUST_CODEBASE_ANALYSIS.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
     - `QUICKSTART_AI_ONBOARDING.md`
   - retained move-under-`docs/` recommendation:
     - contracts / downstream handoff docs:
@@ -29724,7 +29783,7 @@ Architectural north star:
     - `REGEX_BOOTSTRAP_ARCHITECTURE.md`
   - rationale notes:
     - `SESSION_BOOTSTRAP.md` and `COMMIT.md` should stay at root because they are operational control docs for new sessions and end-of-task workflow
-    - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and `RUST_CODEBASE_ANALYSIS.md` are still central enough to keep at root for now
+    - `PGEN_USER_GUIDE.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and `docs/reference/RUST_CODEBASE_ANALYSIS.md` are still central enough to keep at root for now
     - many `PGEN_*` files are genuinely active, but they do not need to live at the filesystem root to remain authoritative
   - next root-doc cleanup wave:
     - move the contract/spec/roadmap set under `docs/`
@@ -29743,6 +29802,6 @@ Architectural north star:
       - `LIVE_ACHIEVEMENT_STATUS.md`
       - `MEMORY.md`
       - `PGEN_USER_GUIDE.md`
-      - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-      - `RUST_CODEBASE_ANALYSIS.md`
+      - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+      - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
       - `QUICKSTART_AI_ONBOARDING.md`

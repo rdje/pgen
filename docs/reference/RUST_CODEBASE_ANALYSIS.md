@@ -1,4 +1,4 @@
-# RUST_CODEBASE_ANALYSIS.md
+# docs/reference/RUST_CODEBASE_ANALYSIS.md
 
 Last updated: 2026-04-02
 
@@ -103,7 +103,7 @@ Operational rule:
   - Use for:
     - current closure/status truth
     - distinguishing architecture work from “family actually closed” claims
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Use for:
     - current project doctrine
     - phase/closure expectations
@@ -120,7 +120,7 @@ Operational rule:
 - `COMMIT.md`
   - Use for:
     - workflow and continuity expectations
-    - knowing when `RUST_CODEBASE_ANALYSIS.md` itself should be refreshed as part of a task
+    - knowing when `docs/reference/RUST_CODEBASE_ANALYSIS.md` itself should be refreshed as part of a task
 - `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`
   - Use for:
     - short-term continuity
@@ -389,7 +389,7 @@ Operational reading rule:
   - Examples:
     - `rust/src/**/*.rs`
     - `grammars/*.ebnf`
-    - repo docs such as `README.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and this analysis doc
+    - repo docs such as `README.md`, `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and this analysis doc
   - How to treat them:
     - edit directly when changing architecture, grammar intent, or authored implementation
 - Tracked generated artifacts
@@ -501,7 +501,7 @@ Operational rule:
   - Canonical source: `PGEN_USER_GUIDE.md`
   - Use this first when the question is “which aggregate annotation gates are meant to be run or read by humans?”
 - Current architecture/risk/steering snapshot
-  - Canonical source: `RUST_CODEBASE_ANALYSIS.md`
+  - Canonical source: `docs/reference/RUST_CODEBASE_ANALYSIS.md`
   - Use this first when the question is “what is the current repo-level understanding of the Rust codebase?”
 
 Operational rule:
@@ -841,7 +841,7 @@ Start here:
 - `rust/src/bin/parseability_probe.rs`
 - `rust/src/bin/ebnf_dual_run_diff.rs`
 - `rust/src/bin/perf_bench.rs`
-- `RUST_CODEBASE_ANALYSIS.md` section `Main Rust Executables And Roles`
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` section `Main Rust Executables And Roles`
 
 Reason:
 - Cargo wiring matters in this repo because feature-gated binaries share entrypoints.
@@ -1194,7 +1194,7 @@ Use this as a first-pass companion-check map, not as a complete proof checklist.
     - `summary.txt` / `summary.json` parity
     - `ci_workflow_local_gate.sh`
     - higher aggregate readers like family-status, combined telemetry, and SOTA exit
-    - `RUST_CODEBASE_ANALYSIS.md` if the effective operational contract changed
+    - `docs/reference/RUST_CODEBASE_ANALYSIS.md` if the effective operational contract changed
 
 ## Build And Feature Model
 - The crate is feature-gated around bootstrap, normal, generated-parser, and EBNF-dual-run modes.
@@ -1675,7 +1675,7 @@ Use these as cheap orientation probes before deeper Rust work, not as a replacem
   - Re-checks the generated-parser availability contract quickly without re-reading the full files.
 - `rg --files rust/src/bin`
   - Re-confirms the active Rust utility-binary surface.
-- `sed -n '1,120p' RUST_CODEBASE_ANALYSIS.md`
+- `sed -n '1,120p' docs/reference/RUST_CODEBASE_ANALYSIS.md`
   - Fast check that the live analysis doc still presents the same top-level structure and hasn’t fallen behind a major architectural shift.
 - If the task is proof/gate-heavy:
   - `rg -n "summary\\.json|summary\\.txt|sota_exit_gate|combined_telemetry|family_status" rust/scripts`

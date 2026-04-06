@@ -83,7 +83,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - Family proof/status surfaces:
   - `LIVE_ACHIEVEMENT_STATUS.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ## Stable Integration Surface
 - Grammar family:

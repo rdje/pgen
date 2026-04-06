@@ -542,13 +542,13 @@ audit_embedding_api_surface() {
     '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
 
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'internal parser-registry or probe availability automatically means the same family already has a public embedding contract'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'dedicated downstream integration contract doc plus a regex-specific host contract gate'
 }
 
@@ -761,73 +761,73 @@ audit_annotation_aggregate_contract_surface() {
     '`return_annotation_support_gate`, and `annotation_stimuli_quality_gate`.'
 
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '## Rust-To-Shell Contract Seams'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '- Aggregate annotation proof seam'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '- `annotation_contract_gate`'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '- `return_annotation_support_gate`'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'high-level entrypoints into aggregate annotation proof surfaces'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'operator-facing map of aggregate annotation / semantic / return local gates'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'annotation proof obligations and gate targets behind aggregate annotation claims'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'If an annotation leaf suite or one SC gate passes, the repo-level annotation proof claim is done.'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'Aggregate annotation proof composition'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'Operator-facing annotation gate map'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'Aggregate annotation proof contract'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '### If the task is return/semantic annotation parsing or validation'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'And pick the nearest aggregate proof surface:'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '### If the task is proof plumbing, contract sidecars, or release-gate behavior'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'For annotation-specific proof plumbing, narrow quickly to:'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'the nearest aggregate annotation proof surface:'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'if the parser is `return_annotation` or `semantic_annotation`, usually also add:'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'for annotation-focused stimuli work, usually also add:'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'for annotation-proof changes, the practical aggregate readers are usually:'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'Symptom: Annotation-focused unit tests or leaf suites pass, but the repo-level annotation proof still feels wrong or incomplete'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'Annotation proof / closure problem'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'stopping at the leaf suite that passed instead of checking which aggregate proof claim the repo is actually making'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     'patching the top-level proof claim before the nearest annotation seam is correct tends to hide whether the real drift is semantic behavior, closure evidence, or just the proof map'
 }
 
@@ -1767,13 +1767,13 @@ audit_regex_corpus_bundle_surface() {
     "PGEN_USER_GUIDE.md" \
     'make -C rust regex_corpus_bundle_contract_gate'
   assert_file_contains \
-    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`regex_corpus_bundle/` is the canonical PCRE2-first starter for widening regex evidence'
   assert_file_contains \
     "LIVE_ACHIEVEMENT_STATUS.md" \
     'future regex hardening now also has a maintained external-corpus acquisition lane under `regex_corpus_bundle/`'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`regex_corpus_bundle/`'
   assert_file_contains \
     "README.md" \
@@ -1841,13 +1841,13 @@ audit_regex_pcre2_compile_oracle_surface() {
     "LIVE_ACHIEVEMENT_STATUS.md" \
     '`make -C rust regex_pcre2_compile_oracle_gate` pairs PCRE2 `testinput2` with `testoutput2`'
   assert_file_contains \
-    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`make -C rust regex_pcre2_compile_oracle_gate` consumes the new normalizer `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py`'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`rust/src/regex_compile_validation.rs`'
   assert_file_contains \
     "README.md" \
@@ -2028,10 +2028,10 @@ audit_sv_formal_exhaustive_closure_surface() {
     "LIVE_ACHIEVEMENT_STATUS.md" \
     '`make -C rust SHELL=/opt/homebrew/bin/bash sv_formal_exhaustive_closure_gate` now computes an explicit external-corpus-backed formal-closure sidecar'
   assert_file_contains \
-    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`sv_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog external-corpus proof surface explicit'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`sv_formal_exhaustive_closure_gate` when the task is SystemVerilog external-corpus proof normalization'
 }
 
@@ -2125,10 +2125,10 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
     "LIVE_ACHIEVEMENT_STATUS.md" \
     '`make -C rust SHELL=/opt/homebrew/bin/bash sv_preprocessor_formal_exhaustive_closure_gate`'
   assert_file_contains \
-    "PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
+    "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`sv_preprocessor_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog-preprocessor grammar-level proof surface explicit'
   assert_file_contains \
-    "RUST_CODEBASE_ANALYSIS.md" \
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`sv_preprocessor_formal_exhaustive_closure_gate` when the task is SystemVerilog-preprocessor formal-closure proof normalization'
   assert_file_contains \
     "rust/scripts/sv_parser_family_status_gate.sh" \

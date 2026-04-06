@@ -60,9 +60,9 @@ PGEN is a production-focused parser and stimuli generator platform.
 1. `README.md` (this file)
 2. `QUICKSTART_AI_ONBOARDING.md`
 3. `PGEN_USER_GUIDE.md`
-4. `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+4. `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 5. `LIVE_ACHIEVEMENT_STATUS.md`
-6. `RUST_CODEBASE_ANALYSIS.md`
+6. `docs/reference/RUST_CODEBASE_ANALYSIS.md`
 7. `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 8. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 9. `CHANGES.md`
@@ -141,9 +141,9 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
   - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
   - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `LIVE_ACHIEVEMENT_STATUS.md`
-  - `RUST_CODEBASE_ANALYSIS.md`
+  - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
@@ -160,9 +160,9 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Project governance, release policy, and live status:
   - `docs/reference/PGEN_RELEASE_POLICY.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`
 - Rust architecture/state assessment:
-  - `RUST_CODEBASE_ANALYSIS.md`
+  - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
 - Core contracts and roadmaps:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Downstream parser integration contracts:
   - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - Regex corpus acquisition and hardening:
@@ -182,6 +182,8 @@ The list below is the current high-signal markdown surface for active work. A 20
 - `PGEN_USER_GUIDE.md`
 - `QUICKSTART_AI_ONBOARDING.md`
 - `SESSION_BOOTSTRAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
@@ -212,8 +214,9 @@ Root markdown policy note:
 - tool-specific editor/assistant docs that no longer serve the active workflow should be removed rather than kept as root clutter
 - the parser integration contract surface now lives under `docs/contracts/` instead of consuming repo-root markdown slots
 - the maintained spec / matrix / policy reference surface now also lives under `docs/reference/` instead of consuming repo-root markdown slots
+- the active roadmap and the live Rust architecture/state assessment now also live under `docs/reference/` instead of consuming repo-root markdown slots
 - stale historical root overview/status/guidance docs have now been removed instead of being kept as dead navigation noise
-- the remaining root markdown set is now the intended steady-state entrypoint / continuity / active-operator surface, while historical deep-reference notes like regex bootstrap architecture live under `docs/reference/`
+- the remaining root markdown set is now the intentionally minimal entrypoint / continuity / active-operator surface, while deep-reference docs like the roadmap, Rust analysis, and regex bootstrap architecture live under `docs/reference/`
 - a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
 
 Read SESSION_BOOTSTRAP.md and start from there.

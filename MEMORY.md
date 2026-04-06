@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: root-regex-bootstrap-note-rehome-wave-4)
+Last updated: 2026-04-06 (+0200, task: root-roadmap-analysis-rehome-wave-5)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,19 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained root deep-reference rehome wave:
+  - moved out of repo root:
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+  - repo-root markdown count is now `9`
+  - important continuity detail:
+    - this is the final root-surface tightening step that leaves only entrypoint / continuity / control docs at repo root
+    - onboarding and workflow docs were all rewritten to use the `docs/reference/...` paths, so the roadmap and architecture/state assessment remain first-class without spending root slots
+    - this supersedes the earlier “root surface is steady-state at `11` files” note
+  - retained verification target:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up for the docs cleanup track:
+    - none urgent; treat root markdown cleanup as closed unless new root docs accumulate again
 - Retained final obvious root-doc cleanup wave:
   - moved out of repo root:
     - [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md)
@@ -727,8 +740,8 @@ Use this file to resume work without replaying full chat history.
   - `sv_combined_telemetry_contract_gate` now parity-checks the preprocessor formal-closure sidecar paths and metadata against that refreshed aggregate state
 - Updated:
   - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
 
 - Added the explicit SystemVerilog-preprocessor formal exhaustive-closure sidecar:
@@ -747,8 +760,8 @@ Use this file to resume work without replaying full chat history.
   - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
 - Reuse-backed validation passed:
   - `bash -n rust/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh`
   - reuse-backed `sv_preprocessor_formal_exhaustive_closure_gate`
@@ -803,8 +816,8 @@ Use this file to resume work without replaying full chat history.
   - `regex` remains closed on its current published contract
   - `rhai` joins the already deferred embedded-code widening items rather than reopening active grammar work now
 - Updated:
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
   - [CHANGES.md](CHANGES.md)
 
@@ -995,9 +1008,9 @@ Use this file to resume work without replaying full chat history.
     - optional published `native` / `wasm` tags
     - optional host-language wrapper parsing such as `/pattern/flags`
 - Updated:
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
   - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
 - Operational takeaway:
   - regex is now a downstream-integration-ready baseline for RGX
   - future regex work should treat those remaining items as deliberate contract-widening/product choices, not as urgent baseline trust repairs
@@ -1112,7 +1125,7 @@ Use this file to resume work without replaying full chat history.
 - Added [/.gitattributes](.gitattributes):
   - `regex_corpus_bundle/third_party/** -text -whitespace`
   - this keeps the tracked upstream snapshots byte-faithful while preventing `git diff --check` from treating upstream trailing spaces / blank-EOF markers as local formatting regressions
-- [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md), and [README.md](README.md) now all reflect the same role:
+- [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md), [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md), and [README.md](README.md) now all reflect the same role:
   - `regex_corpus_bundle/` is the maintained PCRE2-first acquisition/inventory starter for future regex hardening
   - PCRE2 upstream is canonical syntax truth
   - PHP `ext/pcre/tests` is secondary wrapper-normalized input
@@ -1124,7 +1137,7 @@ Use this file to resume work without replaying full chat history.
   - `make -C rust regex_corpus_bundle_contract_gate`
   - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
 - Regex downstream embedded-code-block hardening now has a dedicated parser-layer proof seam and no longer depends on finding a large external Lua/JS dataset first.
-- [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) now all record the same posture:
+- [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) now all record the same posture:
   - regex family closure remains `Done`
   - embedded-code-block follow-up is downstream contract hardening
   - compact synthetic corpora/gates are the current proof path
@@ -1219,8 +1232,8 @@ Use this file to resume work without replaying full chat history.
     - generated-target stage still reports the pre-existing non-strict generated-parser clippy issue in tracked `rtl_const_expr` generated code; the wrapper completed successfully
 - PGEN's tracked Markdown docs now enforce repo-relative paths instead of checkout-specific absolute paths.
 - The remaining tracked `.md` occurrences of checkout-specific absolute repo paths were normalized across:
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [docs/reference/STRESS_TEST_STANDARDIZATION.md](docs/reference/STRESS_TEST_STANDARDIZATION.md)
   - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
   - [MEMORY.md](MEMORY.md)
@@ -1271,8 +1284,8 @@ Use this file to resume work without replaying full chat history.
   - [README.md](README.md)
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
-  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
-  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
   - [COMMIT.md](COMMIT.md)
   - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
 - Validation already completed:
@@ -1380,7 +1393,7 @@ Use this file to resume work without replaying full chat history.
   - `primary_failure_location=1:1`
 - [rust/scripts/sota_exit_gate.sh](rust/scripts/sota_exit_gate.sh) now preserves those regex triage sidecar paths and extracted dominant-bucket values in both top-level telemetry and the nested regex family proof surfaces.
 - [rust/scripts/regex_combined_telemetry_contract_gate.sh](rust/scripts/regex_combined_telemetry_contract_gate.sh) now parity-checks and re-emits the same regex triage surface so aggregate-visible regex debt is no longer totals-only.
-- [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) now describe regex from that parser-backed-plus-triage baseline.
+- [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) now describe regex from that parser-backed-plus-triage baseline.
 - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now locks representative regex triage producer/consumer fields across family, SOTA, and combined telemetry layers.
 - The repository now tracks the default generated regex parser artifact expected by `build.rs`:
   - [generated/regex_parser.rs](generated/regex_parser.rs)
@@ -1410,13 +1423,13 @@ Use this file to resume work without replaying full chat history.
   - `supports_regex_generated_backend` in `ParserEmbeddingApiContract`
 - `EMBEDDING_API_VERSION` was bumped from `1.0.0` to `1.1.0` for that backward-compatible public contract expansion.
 - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) now describe the regex public embedding surface directly.
-- [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md) now also says more explicitly that:
+- [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md) now also says more explicitly that:
   - parser-family closure work for `systemverilog`, `vhdl`, and `regex` outranks deferred refactors
   - internal registry/probe support can lead the stable public embedding contract
   - `regex` now has a public embedding seam, but that does not by itself mean the regex family is closed
-- [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md) and [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) now treat regex as having a public embedding/AST-dump surface already, while keeping parser-backed realistic-corpus proof and exhaustive closure explicitly open.
+- [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md) and [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) now treat regex as having a public embedding/AST-dump surface already, while keeping parser-backed realistic-corpus proof and exhaustive closure explicitly open.
 - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now audits that public regex embedding seam and its key doc cues.
-- `RUST_CODEBASE_ANALYSIS.md` now explicitly warns that passing one annotation leaf suite or one SC gate is not the same as satisfying the repo-level annotation proof claim.
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` now explicitly warns that passing one annotation leaf suite or one SC gate is not the same as satisfying the repo-level annotation proof claim.
 - That trap now points readers back to the aggregate annotation proof layer:
   - `annotation_contract_gate`
   - `semantic_full_contract_gate`
@@ -1424,7 +1437,7 @@ Use this file to resume work without replaying full chat history.
   - `annotation_stimuli_quality_gate`
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts that annotation-specific aggregate-proof warning.
 - The live Rust analysis trap list now contains a clearer annotation-specific false-completion warning.
-- `RUST_CODEBASE_ANALYSIS.md` now makes annotation proof ownership more explicit.
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` now makes annotation proof ownership more explicit.
 - It now states:
   - `rust/Makefile` is the source of truth for aggregate annotation proof composition
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` is the source of truth for annotation proof obligations and semantic intent
@@ -1432,13 +1445,13 @@ Use this file to resume work without replaying full chat history.
 - It also now includes an explicit `Aggregate annotation proof contract` entry in `Public Contract Surface Map`.
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts those annotation proof ownership cues.
 - The live Rust analysis doc now answers annotation proof ownership questions more directly.
-- `RUST_CODEBASE_ANALYSIS.md` now carries annotation-specific symptom triage and intervention-order guidance.
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` now carries annotation-specific symptom triage and intervention-order guidance.
 - It now includes:
   - a symptom shortcut for the case where annotation leaf suites pass but the repo-level proof still feels wrong or incomplete
   - an `Annotation proof / closure problem` patch-order entry under `Safe Intervention Order`
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts those annotation-specific triage cues.
 - The live Rust analysis doc now helps future sessions localize and patch annotation proof drift in a more consistent order.
-- `RUST_CODEBASE_ANALYSIS.md` now gives more explicit aggregate-gate rerun guidance for annotation-heavy changes.
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` now gives more explicit aggregate-gate rerun guidance for annotation-heavy changes.
 - In `Change-Impact Checklist` and `Validation Ladder By Change Type`, annotation work now points readers toward:
   - `annotation_contract_gate`
   - `semantic_full_contract_gate`
@@ -1446,14 +1459,14 @@ Use this file to resume work without replaying full chat history.
   - `annotation_stimuli_quality_gate`
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts those annotation-specific validation cues.
 - The live Rust analysis doc now links annotation change types to the right aggregate proof reruns.
-- `RUST_CODEBASE_ANALYSIS.md` now routes aggregate annotation proof questions to the right repo docs more explicitly.
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` now routes aggregate annotation proof questions to the right repo docs more explicitly.
 - In `Rust-Facing Repo Doc Crosswalk`, it now says:
   - `README.md` is the high-level entrypoint into aggregate annotation proof surfaces
   - `PGEN_USER_GUIDE.md` is the operator-facing map of aggregate annotation / semantic / return local gates
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` carries the annotation proof obligations and gate targets behind aggregate annotation claims
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts those crosswalk cues.
 - The Rust-analysis doc-routing layer is now explicit and local-policy-guarded for annotation proof questions.
-- `RUST_CODEBASE_ANALYSIS.md` now points annotation-heavy tasks toward the aggregate annotation proof spine directly.
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` now points annotation-heavy tasks toward the aggregate annotation proof spine directly.
 - Under task-oriented navigation, annotation parsing/validation work now explicitly routes readers toward:
   - `annotation_contract_gate`
   - `semantic_full_contract_gate`
@@ -1472,7 +1485,7 @@ Use this file to resume work without replaying full chat history.
   - `semantic_full_contract_gate`
   - `return_annotation_support_gate`
   - `annotation_stimuli_quality_gate`
-- `RUST_CODEBASE_ANALYSIS.md` now includes an `Aggregate annotation proof seam` entry under `Rust-To-Shell Contract Seams`.
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` now includes an `Aggregate annotation proof seam` entry under `Rust-To-Shell Contract Seams`.
 - `rust/scripts/ci_workflow_local_gate.sh` now also asserts those README/quickstart/Rust-analysis references.
 - The repo-entry annotation proof map is now both documented and local-policy-guarded.
 - The repo now surfaces the aggregate annotation/semantic/return gate map more explicitly in the operator-facing docs.
@@ -1597,7 +1610,7 @@ Use this file to resume work without replaying full chat history.
 - The SC-02 docs also now call out the current comparability boundary explicitly:
   - focused stimuli tests cover bare-string and single-quoted/raw literal-hint behavior,
   - the shared bootstrap/generated parity slice is currently limited to generated-comparable named string forms.
-- The repo now has a dedicated live Rust architecture/state reference at `RUST_CODEBASE_ANALYSIS.md`.
+- The repo now has a dedicated live Rust architecture/state reference at `docs/reference/RUST_CODEBASE_ANALYSIS.md`.
 - It is intended to be reviewed and refreshed at the start of future Rust-focused sessions whenever the codebase state no longer materially matches the saved assessment.
 - The live Rust analysis doc now also includes a `Rust-Facing Repo Doc Crosswalk` section:
   - a compact map from Rust-side questions to the top-level docs that define doctrine, status, semantics, and workflow.
@@ -1606,7 +1619,7 @@ Use this file to resume work without replaying full chat history.
   - `QUICKSTART_AI_ONBOARDING.md`
   - `PGEN_USER_GUIDE.md`
   - `LIVE_ACHIEVEMENT_STATUS.md`
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `COMMIT.md`
@@ -1802,14 +1815,14 @@ Use this file to resume work without replaying full chat history.
 - The older onboarding surfaces now point at it too:
   - `QUICKSTART_AI_ONBOARDING.md` historical note,
   - `PGEN_USER_GUIDE.md` current-state companion-doc section.
-- `COMMIT.md` now also treats `RUST_CODEBASE_ANALYSIS.md` as part of the formal continuity/workflow surface:
+- `COMMIT.md` now also treats `docs/reference/RUST_CODEBASE_ANALYSIS.md` as part of the formal continuity/workflow surface:
   - review/update it when Rust architecture or the high-level Rust risk picture materially changes,
   - do not leave it stale across architecture-significant Rust commits.
 - The archival top-level redirects now point at it too:
   - `CURRENT_STATUS.md`
   - `PROJECT_OVERVIEW.md`
 - The roadmap/history side now points at it too:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` deferred engineering concerns,
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` deferred engineering concerns,
   - `rust/docs/TECHNICAL_ARCHITECTURE.md` historical redirect note.
 - The live Rust analysis doc itself is now more operational:
   - it includes task-oriented “where to start” guidance,
@@ -2023,7 +2036,7 @@ Use this file to resume work without replaying full chat history.
    - `LIVE_ACHIEVEMENT_STATUS.md`
    - `CHANGES.md`
    - `DEVELOPMENT_NOTES.md`
-   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+   - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 3. Confirm current policy in:
    - `rust/config/sota_exit_policy.env`
 4. Confirm untracked-policy files still untracked:
@@ -3693,7 +3706,7 @@ Use this file to resume work without replaying full chat history.
   - handwritten Phase S parsers count only as bootstrap/prototyping scaffolding,
   - current handwritten progress in `rtl_frontend` and `rtl_const_expr` remains useful but does not by itself satisfy final Phase S closure.
 - Phase S rationale documentation:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` now explains why Phase S exists,
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` now explains why Phase S exists,
   - it also explains why `rtl_const_expr` is needed for deterministic elaboration-time constant semantics,
   - and why `rtl_frontend` is needed as the synthesis-facing RTL/elaboration boundary before Liberty/SDC and later RTLSyn logic can bind meaningfully.
 - Live progress tracking policy:
@@ -6113,7 +6126,7 @@ Use this file to resume work without replaying full chat history.
     - parser-returned AST flow (`parseability_probe --parse-dump-ast*`) where adapter is available,
     - embedding API in-memory AST dump usage (`parse_systemverilog_*_ast_dump`),
     - regex onboarding via deterministic stimuli/coverage/gap loop.
-  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+  - updated `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
     - marked `Document AST dump workflows in user-facing docs` as complete.
 - Validation:
   - manual contract consistency pass across guide examples and implemented CLI/API surfaces.
@@ -6135,7 +6148,7 @@ Use this file to resume work without replaying full chat history.
   - updated docs/roadmap:
     - `rust/docs/EMBEDDING_API_CONTRACT.md`
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` (Phase R parser-returned dump item marked complete).
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` (Phase R parser-returned dump item marked complete).
 - Validation:
   - `cd rust && cargo test --lib embedding_api` passed.
   - `cd rust && cargo test --features generated_parsers --lib embedding_api` passed.
@@ -6151,7 +6164,7 @@ Use this file to resume work without replaying full chat history.
   - updated `rust/src/main.rs` to add explicit generation dump write-failure context (`failed to write generation-input AST JSON ...`) for reliable negative-path assertions.
   - synced docs/roadmap:
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - Validation:
   - `make -C rust SHELL=/bin/bash ast_dump_contract_gate` passed.
   - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` passed.
@@ -6168,7 +6181,7 @@ Use this file to resume work without replaying full chat history.
   - added unit tests for tail parsing, canonicalization, and truncation envelope emission.
   - synchronized docs and roadmap:
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - Validation:
   - `cargo test --manifest-path rust/Cargo.toml --bin parseability_probe --features generated_parsers` passed.
   - CLI smoke with oversized parser AST and `--max-bytes 256` produced truncation envelope (`kind=pgen_ast_dump_truncation`).
@@ -6186,7 +6199,7 @@ Use this file to resume work without replaying full chat history.
     - truncation diagnostics emission.
   - updated docs/roadmap:
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - Validation:
   - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline` passed.
   - bounded dump smoke confirmed `kind=pgen_ast_dump_truncation` when limit is exceeded.
@@ -6203,7 +6216,7 @@ Use this file to resume work without replaying full chat history.
     - fail fast in strict mode on probe failure with explicit probe-log path.
   - synchronized docs/roadmap:
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - Validation:
   - `bash -n rust/scripts/sv_preprocessor_reference_runner.sh` passed.
   - `bash -n rust/scripts/sv_preprocessor_quality_gate.sh` passed.
@@ -6225,7 +6238,7 @@ Use this file to resume work without replaying full chat history.
     - deterministic diagnostics emission (always JSON array).
   - synchronized docs/roadmap:
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - Validation:
   - `bash -n rust/scripts/sv_preprocessor_reference_runner.sh` passed.
   - failure-path smoke in local environment without `iverilog`/`verilator`:
@@ -6891,7 +6904,7 @@ Use this file to resume work without replaying full chat history.
     - `coverage_gap_initial`, `gap_replay`.
   - bumped `rust/test_data/grammar_quality/systemverilog_core_v0_contract.json` to `version: 4` and added `closed_loop` controls:
     - `enabled`, `gap_report_threshold`, `target_max_attempts`, `replay_sample_count`, `require_non_increasing_target_debt`.
-  - aligned `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_USER_GUIDE.md`, and `rust/Makefile` help text.
+  - aligned `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_USER_GUIDE.md`, and `rust/Makefile` help text.
 - Validation:
   - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
   - `PGEN_SV_STIMULI_QUALITY_COUNT=2 PGEN_SV_STIMULI_QUALITY_PARSE_FULL_MODE=auto make -C rust SHELL=/opt/homebrew/bin/bash sv_stimuli_quality_gate`
@@ -7055,7 +7068,7 @@ Use this file to resume work without replaying full chat history.
     - `kw_assert`
   - refreshed:
     - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
     - `PGEN_USER_GUIDE.md`
 - Validation:
   - unresolved-reference scan now returns empty.
@@ -7072,7 +7085,7 @@ Use this file to resume work without replaying full chat history.
     - unresolved-reference debt list (`block_item_declaration`, `checker_instantiation`, `class_item`, `kw_assert`, `modport_declaration`),
     - refresh procedure for keeping matrix executable-evidence aligned.
   - updated roadmap and UG pointers:
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
     - `PGEN_USER_GUIDE.md`
 - Validation:
   - `make -C rust SHELL=/bin/bash hdl_frontend_readiness`
@@ -7214,7 +7227,7 @@ Use this file to resume work without replaying full chat history.
   - preprocessor-first strategy needed an executable artifact before parser/stimuli/preprocess integration could be hardened.
 - Fix:
   - added `grammars/systemverilog_preprocessor.ebnf` with initial directive coverage (`define/undef/include/ifdef family/timescale/default_nettype/celldefine`) plus macro formal/default and token-paste/stringize body primitives.
-  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase Q first item to complete.
+  - updated `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` Phase Q first item to complete.
   - recorded implementation details in `CHANGES.md` and `DEVELOPMENT_NOTES.md`.
 - Validation:
   - `tools/ebnf_to_json.pl --pretty --quiet grammars/systemverilog_preprocessor.ebnf -o /tmp/systemverilog_preprocessor.json`
@@ -7226,7 +7239,7 @@ Use this file to resume work without replaying full chat history.
 - Root cause:
   - Nexsim-targeted SV closure needed explicit sequencing; parser/stimuli semantic closure without preprocessing closure would leave a major correctness gap.
 - Fix:
-  - updated `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with:
+  - updated `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with:
     - hard prerequisite contract: Phase P depends on Phase Q,
     - new `Phase Q` (`SystemVerilog Preprocessor Frontend Closure`) covering dedicated preprocessor grammar, preprocess execution stage, preprocessor quality gate, preprocess-aware stimuli modes, and staged gate policy promotion.
   - mirrored decision in:
@@ -7239,7 +7252,7 @@ Use this file to resume work without replaying full chat history.
 - Root cause:
   - roadmap needed an explicit execution phase for SOTA SystemVerilog parser/stimuli hardening where semantic correctness is a first-class acceptance contract, not parseability-only.
 - Fix:
-  - added Phase P in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
+  - added Phase P in `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`:
     - codified toolbox baseline (`systemverilog.ebnf`, `ebnf.ebnf`, return/semantic annotation grammars + generated parsers),
     - added explicit SV gate plan (`sv_stimuli_quality_gate`),
     - added syntax closure matrix requirement,
@@ -7302,7 +7315,7 @@ Use this file to resume work without replaying full chat history.
 - Root cause:
   - AST dump debug needs were identified for two surfaces (generator-input AST and generated-parser returned AST) but were not tracked as explicit roadmap deliverables.
 - Fix:
-  - Added `Phase R (AST Observability and Debug Artifacts)` in `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with planned work items for:
+  - Added `Phase R (AST Observability and Debug Artifacts)` in `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` with planned work items for:
     - generator-input AST dump (`gen_ast.json`) CLI support,
     - generated-parser returned-AST dump (`<grammar>_ast.json`) runtime/API support,
     - deterministic dump formatting/safety contracts,
@@ -8479,7 +8492,7 @@ Use this file to resume work without replaying full chat history.
   - `SESSION_BOOTSTRAP.md` is the intended new-session first step:
     - read `README.md` and all referenced `.md` files
     - analyze the Rust codebase thoroughly
-    - update `RUST_CODEBASE_ANALYSIS.md` if necessary
+    - update `docs/reference/RUST_CODEBASE_ANALYSIS.md` if necessary
     - then proceed with roadmap objectives
 - 2026-03-31: SystemVerilog-preprocessor directive-boundary refactor was a dead end.
   - attempted grammar change:
@@ -9687,8 +9700,8 @@ Use this file to resume work without replaying full chat history.
     - `LIVE_ACHIEVEMENT_STATUS.md`
     - `MEMORY.md`
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-    - `RUST_CODEBASE_ANALYSIS.md`
+    - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
     - `QUICKSTART_AI_ONBOARDING.md`
   - next wave:
     - move the remaining contract/spec/roadmap/matrix root docs under `docs/`

@@ -4,9 +4,9 @@ Last updated: 2026-03-25
 
 ## Current-State Companion Docs
 - Use `README.md` as the main navigation and command-entry document.
-- Use `RUST_CODEBASE_ANALYSIS.md` for the live Rust architecture/state assessment.
+- Use `docs/reference/RUST_CODEBASE_ANALYSIS.md` for the live Rust architecture/state assessment.
 - Use `LIVE_ACHIEVEMENT_STATUS.md` for the current closure/status snapshot.
-- Use `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` for the active roadmap contract.
+- Use `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` for the active roadmap contract.
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:
@@ -1371,7 +1371,7 @@ stmt = declaration | assignment ;
 
 ### 8.10 Steering Roadmap References
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### 8.11 Built-In vs Annotation Policy
 - Keep built-in behavior minimal and invariant-focused:

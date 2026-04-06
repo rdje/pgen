@@ -99,5 +99,5 @@ Any change to:
 is a contract change and MUST update:
 - this file,
 - `PGEN_USER_GUIDE.md`,
-- `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`,
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`,
 - associated parity gate tests/scripts.

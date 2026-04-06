@@ -3,7 +3,7 @@
 > Historical note
 > This file contains earlier onboarding material and mixed historical snapshots.
 > Current commands, gates, and contracts live in `README.md`, `PGEN_USER_GUIDE.md`,
-> `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `RUST_CODEBASE_ANALYSIS.md`, and
+> `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, and
 > `rust/docs/EMBEDDING_API_CONTRACT.md`.
 > For annotation-heavy work, start from the aggregate proof surfaces in `README.md`
 > / `PGEN_USER_GUIDE.md`: `annotation_contract_gate`, `semantic_full_contract_gate`,
@@ -177,7 +177,7 @@ ls -lah generated/
 #### Critical Documentation
 - `README.md` - Project objective, canonical flow, and current doc map
 - `PGEN_USER_GUIDE.md` - Operator-facing workflows and supported public surfaces
-- `RUST_CODEBASE_ANALYSIS.md` - Current Rust-first architecture and subsystem map
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` - Current Rust-first architecture and subsystem map
 - `LIVE_ACHIEVEMENT_STATUS.md` - Current closure truth and remaining gaps
 - `DEVELOPMENT_NOTES.md` - Key technical insights and lessons learned
 
@@ -270,7 +270,7 @@ pgen/
 
 ### Phase 1: Understand Current State (30 minutes)
 1. Run `make help` and `make status`
-2. Read `README.md`, `PGEN_USER_GUIDE.md`, and `RUST_CODEBASE_ANALYSIS.md`
+2. Read `README.md`, `PGEN_USER_GUIDE.md`, and `docs/reference/RUST_CODEBASE_ANALYSIS.md`
 3. Check `generated/` directory for parser files
 4. Try a focused maintained gate rather than an old bootstrap-only flow
 

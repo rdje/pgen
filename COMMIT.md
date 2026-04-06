@@ -28,7 +28,7 @@ Run this workflow after each completed task/activity.
   - Detailed technical notes: root cause, implementation, validation.
 - `MEMORY.md` (tracked)
   - Live continuity file for resume/handoff.
-- `RUST_CODEBASE_ANALYSIS.md` (tracked)
+- `docs/reference/RUST_CODEBASE_ANALYSIS.md` (tracked)
   - Live Rust architecture/state assessment.
   - Must be reviewed and updated whenever a task materially changes Rust architecture, major subsystem boundaries, public integration seams, or the current high-level risk/steering picture.
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md` (tracked)
@@ -55,12 +55,12 @@ Run this workflow after each completed task/activity.
    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
    - strict source lint must pass.
    - generated-parser lint runs too; set `PGEN_CLIPPY_GENERATED_STRICT=1` to fail on generated clippy debt.
-3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `RUST_CODEBASE_ANALYSIS.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
+3. Update tracked docs as needed (`CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, `README.md`, `LIVE_ACHIEVEMENT_STATUS.md`, others touched by task).
    - Treat markdown synchronization as systematic, not optional:
      - always review the tracked continuity/workflow markdown surface before commit,
      - always update every relevant tracked `.md` file touched by the task or affected by its workflow/policy/command/documentation impact,
      - do not leave a relevant markdown file stale just because code/tests already passed.
-   - `RUST_CODEBASE_ANALYSIS.md` review/update is mandatory before each commit when the task materially changes:
+   - `docs/reference/RUST_CODEBASE_ANALYSIS.md` review/update is mandatory before each commit when the task materially changes:
      - Rust architecture,
      - major subsystem boundaries,
      - public integration surfaces,

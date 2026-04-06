@@ -4,7 +4,7 @@
 > This document describes an older test-automation architecture centered on `sync_tests`.
 > It is preserved for context, but it is not the authoritative description of the current
 > Rust crate layout or CLI surface. For the active architecture, start with
-> `README.md`, `PGEN_USER_GUIDE.md`, `RUST_CODEBASE_ANALYSIS.md`, `rust/src/main.rs`, and
+> `README.md`, `PGEN_USER_GUIDE.md`, `docs/reference/RUST_CODEBASE_ANALYSIS.md`, `rust/src/main.rs`, and
 > `rust/src/lib.rs`.
 
 **Deep Dive into System Internals and Implementation Details**
