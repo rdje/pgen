@@ -203,4 +203,9 @@ The list below is the current high-signal markdown surface for active work. A 20
 
 The top-level `docs/*.md` surface has now been pruned down to the maintained active reference set. The full audit trail and removal rationale remain recorded in `DEVELOPMENT_NOTES.md`.
 
+Root markdown policy note:
+- the repository root should be reserved for entrypoint docs, live continuity docs, and tool/session-control docs
+- contracts, normative specs, roadmaps, matrices, and other reference deep-dives are candidates to live under `docs/` instead of remaining at the top level
+- a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
+
 Read SESSION_BOOTSTRAP.md and start from there.

@@ -9606,3 +9606,21 @@ Use this file to resume work without replaying full chat history.
     - `parser_architecture_evolution`
     - `RETURN_ANNOTATIONS_REFERENCE`
     - `TEST_INFRASTRUCTURE`
+- 2026-04-06: root `*.md` audit is now retained too.
+  - root markdown count:
+    - `32`
+  - retained root keep-set recommendation:
+    - `README.md`
+    - `SESSION_BOOTSTRAP.md`
+    - `COMMIT.md`
+    - `CHANGES.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `LIVE_ACHIEVEMENT_STATUS.md`
+    - `MEMORY.md`
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `RUST_CODEBASE_ANALYSIS.md`
+    - `QUICKSTART_AI_ONBOARDING.md`
+    - `WARP.md`
+  - next wave:
+    - move the remaining contract/spec/roadmap/matrix root docs under `docs/`

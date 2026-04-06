@@ -29463,3 +29463,62 @@ Architectural north star:
       - `docs/TEST_INFRASTRUCTURE.md`
   - cleanup state:
     - top-level `docs/*.md` pruning objective is complete
+- 2026-04-06: completed the follow-on audit for repository-root `*.md` files after the top-level `docs/*.md` cleanup.
+  - inventory:
+    - root markdown files:
+      - `32`
+    - practical problem identified:
+      - `README.md` currently mentions almost all of them
+      - so "keep only files mentioned in README" is not a meaningful filter in the current state
+  - better root policy retained:
+    - keep at repo root only:
+      - entrypoint docs
+      - live continuity docs
+      - tool/session-control docs
+    - move contracts/specs/roadmaps/matrices/reference deep-dives under `docs/`
+  - retained keep-at-root recommendation:
+    - `README.md`
+    - `SESSION_BOOTSTRAP.md`
+    - `COMMIT.md`
+    - `CHANGES.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `LIVE_ACHIEVEMENT_STATUS.md`
+    - `MEMORY.md`
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `RUST_CODEBASE_ANALYSIS.md`
+    - `QUICKSTART_AI_ONBOARDING.md`
+    - `WARP.md`
+  - retained move-under-`docs/` recommendation:
+    - contracts / downstream handoff docs:
+      - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+      - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+      - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+      - `PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+      - `PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+      - `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
+      - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+      - `PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
+      - `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+    - normative/spec/policy docs:
+      - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+      - `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+      - `PGEN_RELEASE_POLICY.md`
+      - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+    - roadmap/matrix/reference docs:
+      - `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+      - `SV_GRAMMAR_COVERAGE_MATRIX.md`
+      - `STRESS_TEST_STANDARDIZATION.md`
+  - retained move-to-archive/remove-later recommendation:
+    - `CURRENT_STATUS.md`
+    - `IMPLEMENTATION_GUIDE.md`
+    - `PROJECT_OVERVIEW.md`
+    - `REGEX_BOOTSTRAP_ARCHITECTURE.md`
+  - rationale notes:
+    - `WARP.md` should stay at root because tool discovery is path-sensitive
+    - `SESSION_BOOTSTRAP.md` and `COMMIT.md` should stay at root because they are operational control docs for new sessions and end-of-task workflow
+    - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and `RUST_CODEBASE_ANALYSIS.md` are still central enough to keep at root for now
+    - many `PGEN_*` files are genuinely active, but they do not need to live at the filesystem root to remain authoritative
+  - next root-doc cleanup wave:
+    - move the contract/spec/roadmap set under `docs/`
+    - then shrink README so it points to the new locations instead of over-advertising the root surface

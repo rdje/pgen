@@ -28093,3 +28093,50 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - the top-level `docs/*.md` cleanup is now complete
     - only the intentionally retained active reference set remains
+- 2026-04-06: completed a separate audit of the repository-root `*.md` surface after cleaning up top-level `docs/*.md`.
+  - audit scope:
+    - repository-root markdown files only
+    - `32` files total
+  - key finding:
+    - using "mentioned in README" is not a useful keep-at-root rule because `README.md` currently mentions almost every root markdown file already
+    - the better rule is role-based:
+      - keep only entrypoint docs, live continuity docs, and tool/session-control docs at repo root
+      - move contracts/specs/roadmaps/matrices/reference deep-dives under `docs/`
+  - retained root keep-set recommendation:
+    - `README.md`
+    - `SESSION_BOOTSTRAP.md`
+    - `COMMIT.md`
+    - `CHANGES.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `LIVE_ACHIEVEMENT_STATUS.md`
+    - `MEMORY.md`
+    - `PGEN_USER_GUIDE.md`
+    - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+    - `RUST_CODEBASE_ANALYSIS.md`
+    - `QUICKSTART_AI_ONBOARDING.md`
+    - `WARP.md`
+  - retained move-under-`docs/` bucket:
+    - `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+    - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+    - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+    - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+    - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+    - `PGEN_RELEASE_POLICY.md`
+    - `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+    - `PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+    - `PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+    - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+    - `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+    - `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
+    - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+    - `PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
+    - `SV_GRAMMAR_COVERAGE_MATRIX.md`
+    - `STRESS_TEST_STANDARDIZATION.md`
+  - retained move-to-archive/remove-later bucket:
+    - `CURRENT_STATUS.md`
+    - `IMPLEMENTATION_GUIDE.md`
+    - `PROJECT_OVERVIEW.md`
+    - `REGEX_BOOTSTRAP_ARCHITECTURE.md`
+  - honest current read:
+    - this wave is classification only, not the file-move wave
+    - the next root-doc cleanup should start by rehoming the contract/spec/roadmap surface under `docs/`
