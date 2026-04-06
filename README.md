@@ -158,7 +158,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 
 ## Documentation Structure
 - Project governance and status:
-  - `PROJECT_OVERVIEW.md`, `CURRENT_STATUS.md`, `PGEN_RELEASE_POLICY.md`, `WARP.md`
+  - `PROJECT_OVERVIEW.md`, `CURRENT_STATUS.md`, `PGEN_RELEASE_POLICY.md`
 - Rust architecture/state assessment:
   - `RUST_CODEBASE_ANALYSIS.md`
 - Core contracts and roadmaps:
@@ -205,6 +205,7 @@ The top-level `docs/*.md` surface has now been pruned down to the maintained act
 
 Root markdown policy note:
 - the repository root should be reserved for entrypoint docs, live continuity docs, and tool/session-control docs
+- tool-specific editor/assistant docs that no longer serve the active workflow should be removed rather than kept as root clutter
 - contracts, normative specs, roadmaps, matrices, and other reference deep-dives are candidates to live under `docs/` instead of remaining at the top level
 - a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
 

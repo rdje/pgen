@@ -28114,7 +28114,6 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
     - `RUST_CODEBASE_ANALYSIS.md`
     - `QUICKSTART_AI_ONBOARDING.md`
-    - `WARP.md`
   - retained move-under-`docs/` bucket:
     - `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
     - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
@@ -28140,3 +28139,13 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - this wave is classification only, not the file-move wave
     - the next root-doc cleanup should start by rehoming the contract/spec/roadmap surface under `docs/`
+- 2026-04-06: removed the no-longer-relevant tool-specific root doc `WARP.md`.
+  - rationale:
+    - it was specific to an older Warp.dev-centered workflow
+    - user confirmed that Warp is no longer part of the active toolchain
+    - keeping a tool-specific root markdown exception no longer added value and conflicted with the newly tightened root-doc policy
+  - follow-on documentation cleanup:
+    - removed `WARP.md` from the root keep-set recommendation captured in the root markdown audit
+    - removed it from `README.md`'s documentation-structure summary
+  - honest current read:
+    - this is a small root-surface hygiene fix, not a parser or proof-surface change

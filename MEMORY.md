@@ -9621,6 +9621,8 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
     - `RUST_CODEBASE_ANALYSIS.md`
     - `QUICKSTART_AI_ONBOARDING.md`
-    - `WARP.md`
   - next wave:
     - move the remaining contract/spec/roadmap/matrix root docs under `docs/`
+- 2026-04-06: removed `WARP.md`.
+  - user confirmed Warp.dev is no longer part of the active AI/dev workflow
+  - root keep-set is now one file smaller and more tool-agnostic

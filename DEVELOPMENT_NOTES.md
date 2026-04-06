@@ -29251,7 +29251,7 @@ Architectural north star:
     - `docs/parser_architecture_evolution.md`
       - still referenced by generator/bootstrap tooling
     - `docs/TEST_INFRASTRUCTURE.md`
-      - still referenced by `README.md` / `WARP.md`
+      - still referenced by `README.md`
     - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
       - still referenced by root docs and remains the best surviving return-annotation reference surface
   - landed immediate hygiene:
@@ -29488,7 +29488,6 @@ Architectural north star:
     - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
     - `RUST_CODEBASE_ANALYSIS.md`
     - `QUICKSTART_AI_ONBOARDING.md`
-    - `WARP.md`
   - retained move-under-`docs/` recommendation:
     - contracts / downstream handoff docs:
       - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
@@ -29515,10 +29514,26 @@ Architectural north star:
     - `PROJECT_OVERVIEW.md`
     - `REGEX_BOOTSTRAP_ARCHITECTURE.md`
   - rationale notes:
-    - `WARP.md` should stay at root because tool discovery is path-sensitive
     - `SESSION_BOOTSTRAP.md` and `COMMIT.md` should stay at root because they are operational control docs for new sessions and end-of-task workflow
     - `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, and `RUST_CODEBASE_ANALYSIS.md` are still central enough to keep at root for now
     - many `PGEN_*` files are genuinely active, but they do not need to live at the filesystem root to remain authoritative
   - next root-doc cleanup wave:
     - move the contract/spec/roadmap set under `docs/`
     - then shrink README so it points to the new locations instead of over-advertising the root surface
+- 2026-04-06: removed `WARP.md` from the repository root after the user confirmed Warp.dev is no longer part of the active workflow.
+  - rationale:
+    - `WARP.md` was a tool-specific assistant doc, not a project-wide entrypoint or continuity surface
+    - once Warp stopped being part of the active toolchain, it no longer justified occupying root-level space
+  - resulting root keep-set adjustment:
+    - the recommended root keep-set is now:
+      - `README.md`
+      - `SESSION_BOOTSTRAP.md`
+      - `COMMIT.md`
+      - `CHANGES.md`
+      - `DEVELOPMENT_NOTES.md`
+      - `LIVE_ACHIEVEMENT_STATUS.md`
+      - `MEMORY.md`
+      - `PGEN_USER_GUIDE.md`
+      - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+      - `RUST_CODEBASE_ANALYSIS.md`
+      - `QUICKSTART_AI_ONBOARDING.md`
