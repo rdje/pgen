@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-06 - Remove stale root overview/status/guidance docs
+### Achievement Summary
+Completed the next root-markdown cleanup wave by removing three stale root docs that were no longer helping navigation and were instead preserving outdated project framing: `CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, and `IMPLEMENTATION_GUIDE.md`. The remaining root markdown surface is now closer to the intended entrypoint / continuity / active-operator set.
+
+### Scope of Changes
+- Removed obsolete root docs:
+  - `CURRENT_STATUS.md`
+  - `PROJECT_OVERVIEW.md`
+  - `IMPLEMENTATION_GUIDE.md`
+- Updated onboarding/navigation surfaces:
+  - [README.md](README.md)
+  - [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Documentation-structure impact:
+  - root `*.md` count drops from `15` to `12`
+  - the stale historical trio is gone rather than merely banner-marked as archival
+- Status impact:
+  - no live-status row changed
+  - this is documentation-structure / onboarding-surface cleanup only
+
+### Validation
+- `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `12`
+- `find . -maxdepth 1 -type f \( -name 'CURRENT_STATUS.md' -o -name 'PROJECT_OVERVIEW.md' -o -name 'IMPLEMENTATION_GUIDE.md' \)`
+  - result: no output
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - local workflow parity passes with the stale trio removed from the tracked markdown surface
+- `git diff --check`
+
 ## 2026-04-06 - Rehome reference docs under docs/reference
 ### Achievement Summary
 Completed the second root-markdown rehome wave by moving the maintained spec / matrix / policy reference surface out of repo root and into a dedicated [docs/reference](docs/reference) directory. This keeps the root markdown layer focused on entrypoints, continuity docs, and a small set of truly top-level operator docs.
@@ -17,7 +50,7 @@ Completed the second root-markdown rehome wave by moving the maintained spec / m
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
   - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
-  - [CURRENT_STATUS.md](CURRENT_STATUS.md)
+  - `CURRENT_STATUS.md`
   - [docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
   - [docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
   - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
@@ -3278,8 +3311,8 @@ PGEN now points archival top-level docs at the live Rust architecture/state anal
 
 ### Scope of Changes
 - Updated:
-  - [CURRENT_STATUS.md](CURRENT_STATUS.md)
-  - [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
+  - `CURRENT_STATUS.md`
+  - `PROJECT_OVERVIEW.md`
   - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
   - [MEMORY.md](MEMORY.md)
 - The historical-note pointers in both archival top-level docs now include `RUST_CODEBASE_ANALYSIS.md`.

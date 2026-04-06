@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: root-reference-docs-rehome-wave-2)
+Last updated: 2026-04-06 (+0200, task: root-stale-trio-removal-wave-3)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,19 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained root stale-trio removal wave:
+  - removed from repo root:
+    - `CURRENT_STATUS.md`
+    - `PROJECT_OVERVIEW.md`
+    - `IMPLEMENTATION_GUIDE.md`
+  - repo-root markdown count is now `12`
+  - important continuity detail:
+    - these were removed outright, not moved, because they were genuinely stale and misleading rather than merely in the wrong directory
+    - [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md) now points new sessions at live Rust-first docs instead of those deleted historical files
+  - retained verification target:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up for the root cleanup track:
+    - review `REGEX_BOOTSTRAP_ARCHITECTURE.md` as the next obvious root residue candidate
 - Retained second root-markdown rehome wave:
   - created [docs/reference](docs/reference) as the dedicated home for maintained spec / matrix / policy docs
   - moved out of repo root:
@@ -29,7 +42,7 @@ Use this file to resume work without replaying full chat history.
   - retained verification target:
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - next best follow-up for the root cleanup track:
-    - decide whether the remaining root residue (`CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, `IMPLEMENTATION_GUIDE.md`, `REGEX_BOOTSTRAP_ARCHITECTURE.md`) should be archived, removed, or partially merged away
+    - decide whether the remaining root residue (`REGEX_BOOTSTRAP_ARCHITECTURE.md`) should be archived, removed, or partially merged away
 - Retained first root-markdown rehome wave:
   - created [docs/contracts](docs/contracts) as the dedicated home for downstream parser handoff/support docs
   - moved out of repo root:

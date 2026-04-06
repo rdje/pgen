@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Root markdown cleanup: remove stale overview/status/guidance trio
+### Context
+After the contract and reference rehome waves, the remaining root clutter was no longer “current docs in the wrong place.” It was a genuinely stale trio: `CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, and `IMPLEMENTATION_GUIDE.md`. All three still described older project framing or obsolete workflows, and keeping them at repo root was more likely to mislead a fresh session than to help one.
+
+### What Was Changed
+- Removed the stale root trio outright instead of keeping them with archival banners:
+  - `CURRENT_STATUS.md`
+  - `PROJECT_OVERVIEW.md`
+  - `IMPLEMENTATION_GUIDE.md`
+- Updated [README.md](README.md):
+  - removed those files from the root documentation map
+  - promoted `QUICKSTART_AI_ONBOARDING.md` and `SESSION_BOOTSTRAP.md` more clearly into the active root surface
+  - tightened the root policy note to state that stale historical root guidance has now been removed
+- Updated [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md):
+  - replaced references to the deleted stale docs with the actual live Rust-first entrypoints:
+    - `README.md`
+    - `PGEN_USER_GUIDE.md`
+    - `RUST_CODEBASE_ANALYSIS.md`
+    - `LIVE_ACHIEVEMENT_STATUS.md`
+- Updated continuity docs so the deletion wave is explicit and restart-safe:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- These files were no longer “secondary but useful”; they were actively stale enough to distort a new session’s mental model.
+- Removing them is better than leaving them at root with warnings because root docs implicitly advertise themselves as first-read material.
+- The remaining root markdown surface is now much closer to an intentional operator-facing set.
+
+### What Was Verified
+- Repo-root markdown count is lower again:
+  - `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `12`
+- The stale trio is gone from repo root:
+  - `find . -maxdepth 1 -type f \( -name 'CURRENT_STATUS.md' -o -name 'PROJECT_OVERVIEW.md' -o -name 'IMPLEMENTATION_GUIDE.md' \)`
+  - result: no output
+- Local workflow parity still accepts the slimmer markdown surface:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat the remaining root residue as:
+  - keep for now: `README.md`, `SESSION_BOOTSTRAP.md`, `QUICKSTART_AI_ONBOARDING.md`, `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `RUST_CODEBASE_ANALYSIS.md`, and continuity docs
+  - likely next review candidate: `REGEX_BOOTSTRAP_ARCHITECTURE.md`
+
 ## 2026-04-06 - Root markdown cleanup: second reference-doc rehome wave
 ### Context
 After the first root rehome wave moved the parser handoff/support docs into `docs/contracts/`, the next clean bucket still sitting at repo root was the maintained spec / matrix / policy surface. These files were still useful and current, but they were clearly deep-reference documents rather than repo-root entrypoints.
@@ -18,7 +65,7 @@ After the first root rehome wave moved the parser handoff/support docs into `doc
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
   - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
-  - [CURRENT_STATUS.md](CURRENT_STATUS.md)
+  - `CURRENT_STATUS.md`
   - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
   - the annotation-family contract docs under [docs/contracts](docs/contracts)
   - continuity docs and retained historical references
@@ -3042,9 +3089,9 @@ After surfacing `RUST_CODEBASE_ANALYSIS.md` across the main onboarding and archi
 After wiring `RUST_CODEBASE_ANALYSIS.md` into the main onboarding path, two archival top-level docs still redirected readers to the current authoritative set without mentioning the new live Rust architecture/state assessment.
 
 ### Implementation
-- Updated [CURRENT_STATUS.md](CURRENT_STATUS.md):
+- Updated `CURRENT_STATUS.md`:
   - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
-- Updated [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md):
+- Updated `PROJECT_OVERVIEW.md`:
   - extended the historical-note redirect list to include `RUST_CODEBASE_ANALYSIS.md`.
 - Updated [MEMORY.md](MEMORY.md):
   - recorded that the archival top-level redirect path now includes the Rust analysis doc too.

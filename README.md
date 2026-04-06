@@ -136,6 +136,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Current authoritative docs for the active Rust-first platform:
   - `README.md`
   - `PGEN_USER_GUIDE.md`
+  - `QUICKSTART_AI_ONBOARDING.md`
   - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
   - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
   - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
@@ -148,9 +149,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - Historical/reference docs are still tracked for context, but some describe superseded workflows or earlier project phases.
 - In particular, treat these as archival unless they are explicitly refreshed:
-  - `CURRENT_STATUS.md`
-  - `PROJECT_OVERVIEW.md`
-  - `QUICKSTART_AI_ONBOARDING.md`
+  - `REGEX_BOOTSTRAP_ARCHITECTURE.md`
   - `rust/docs/TECHNICAL_ARCHITECTURE.md`
   - `rust/docs/CLI_REFERENCE.md`
 - The complete markdown index below is a repository navigation index, not a claim that every listed document is equally current.
@@ -159,8 +158,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - post-commit user-facing reports must include the commit ID, exact commit message, the list of tracked files included in the commit, and the current live-status snapshot.
 
 ## Documentation Structure
-- Project governance and status:
-  - `PROJECT_OVERVIEW.md`, `CURRENT_STATUS.md`, `docs/reference/PGEN_RELEASE_POLICY.md`
+- Project governance, release policy, and live status:
+  - `docs/reference/PGEN_RELEASE_POLICY.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`
 - Rust architecture/state assessment:
   - `RUST_CODEBASE_ANALYSIS.md`
 - Core contracts and roadmaps:
@@ -172,18 +171,18 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Operational continuity:
   - `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `COMMIT.md`
 - User/developer onboarding:
-  - `PGEN_USER_GUIDE.md`, `QUICKSTART_AI_ONBOARDING.md`, `IMPLEMENTATION_GUIDE.md`, `docs/reference/STRESS_TEST_STANDARDIZATION.md`
+  - `SESSION_BOOTSTRAP.md`, `README.md`, `QUICKSTART_AI_ONBOARDING.md`, `PGEN_USER_GUIDE.md`, `docs/reference/STRESS_TEST_STANDARDIZATION.md`
 
 ## Active Markdown Index
 The list below is the current high-signal markdown surface for active work. A 2026-04-06 audit found that most top-level `docs/*.md` files are legacy implementation notes, historical status snapshots, or duplicate design writeups and should not be treated as equal-priority sources of truth.
 - `CHANGES.md`
 - `COMMIT.md`
-- `CURRENT_STATUS.md`
 - `DEVELOPMENT_NOTES.md`
 - `LIVE_ACHIEVEMENT_STATUS.md`
 - `MEMORY.md`
 - `PGEN_USER_GUIDE.md`
-- `IMPLEMENTATION_GUIDE.md`
+- `QUICKSTART_AI_ONBOARDING.md`
+- `SESSION_BOOTSTRAP.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
@@ -214,6 +213,7 @@ Root markdown policy note:
 - tool-specific editor/assistant docs that no longer serve the active workflow should be removed rather than kept as root clutter
 - the parser integration contract surface now lives under `docs/contracts/` instead of consuming repo-root markdown slots
 - the maintained spec / matrix / policy reference surface now also lives under `docs/reference/` instead of consuming repo-root markdown slots
+- stale historical root overview/status/guidance docs have now been removed instead of being kept as dead navigation noise
 - other reference deep-dives remain candidates to live under `docs/` instead of remaining at the top level
 - a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
 

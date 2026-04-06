@@ -175,8 +175,10 @@ ls -lah generated/
 - `generated/regex_parser.rs` - Generated regex parser (~172K)
 
 #### Critical Documentation
-- `PROJECT_OVERVIEW.md` - Architecture and data flow
-- `CURRENT_STATUS.md` - What works and what doesn't
+- `README.md` - Project objective, canonical flow, and current doc map
+- `PGEN_USER_GUIDE.md` - Operator-facing workflows and supported public surfaces
+- `RUST_CODEBASE_ANALYSIS.md` - Current Rust-first architecture and subsystem map
+- `LIVE_ACHIEVEMENT_STATUS.md` - Current closure truth and remaining gaps
 - `DEVELOPMENT_NOTES.md` - Key technical insights and lessons learned
 
 ## 🔧 Known Issues and Workarounds
@@ -268,9 +270,9 @@ pgen/
 
 ### Phase 1: Understand Current State (30 minutes)
 1. Run `make help` and `make status`
-2. Read `PROJECT_OVERVIEW.md` for architecture  
+2. Read `README.md`, `PGEN_USER_GUIDE.md`, and `RUST_CODEBASE_ANALYSIS.md`
 3. Check `generated/` directory for parser files
-4. Try `make return_parser` to see the flow work
+4. Try a focused maintained gate rather than an old bootstrap-only flow
 
 ### Phase 2: Identify Issues (1 hour)
 1. Try `make all_parser_tests` and note failures
