@@ -29398,3 +29398,37 @@ Architectural north star:
     - the remaining top-level docs are mostly the `7` intentionally kept active references plus the historical residue bucket
   - next docs-pruning target:
     - the continuity-only residue bucket
+- 2026-04-06: executed the third top-level docs-pruning wave and removed the status/report/roadmap slice of the continuity-only residue bucket.
+  - removed:
+    - `docs/AST_GENERATOR_MIGRATION.md`
+    - `docs/AST_TRANSFORM_REFACTOR_PLAN.md`
+    - `docs/CLEANUP_SUMMARY.md`
+    - `docs/DEVELOPMENT_NOTES.md`
+    - `docs/EBNF_IMPROVEMENT_ROADMAP.md`
+    - `docs/fully_featured_return_annotation_parsers_status.md`
+    - `docs/HDL_GRAMMAR_VALIDATION_REPORT.md`
+    - `docs/implementation_complete.md`
+    - `docs/PARSER_REGENERATION_SUMMARY.md`
+    - `docs/PROJECT_STATUS_REPORT.md`
+    - `docs/test_stability_plan.md`
+    - `docs/ultimate_return_annotation_parser_status.md`
+  - why this wave was safe:
+    - these files were primarily:
+      - old milestone reports
+      - roadmap snapshots
+      - cleanup summaries
+      - duplicated knowledge-base surfaces
+    - the substantive historical facts they carried are already preserved chronologically in the root continuity docs
+    - `docs/DEVELOPMENT_NOTES.md` in particular was a direct naming conflict with the real root continuity file and needed to disappear
+  - retained result:
+    - top-level `docs/*.md` count is now:
+      - `17`
+    - that leaves:
+      - the `7` active kept references
+      - `10` remaining historical technical-analysis docs still awaiting a final disposition wave
+  - next docs-pruning target:
+    - the smaller technical-analysis residue bucket:
+      - grouped-quantifier
+      - LinkedSpec
+      - semantic-annotation
+      - hybrid-architecture / feature-port notes

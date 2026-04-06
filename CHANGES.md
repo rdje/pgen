@@ -28032,3 +28032,33 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - the `7` active kept references
       - the continuity-only historical residue bucket
     - the next pruning wave should target that continuity-only residue explicitly
+- 2026-04-06: completed the third top-level docs-pruning wave by removing the status/summary/roadmap duplicate layer from the continuity-only residue bucket.
+  - removed in this wave:
+    - `docs/AST_GENERATOR_MIGRATION.md`
+    - `docs/AST_TRANSFORM_REFACTOR_PLAN.md`
+    - `docs/CLEANUP_SUMMARY.md`
+    - `docs/DEVELOPMENT_NOTES.md`
+    - `docs/EBNF_IMPROVEMENT_ROADMAP.md`
+    - `docs/fully_featured_return_annotation_parsers_status.md`
+    - `docs/HDL_GRAMMAR_VALIDATION_REPORT.md`
+    - `docs/implementation_complete.md`
+    - `docs/PARSER_REGENERATION_SUMMARY.md`
+    - `docs/PROJECT_STATUS_REPORT.md`
+    - `docs/test_stability_plan.md`
+    - `docs/ultimate_return_annotation_parser_status.md`
+  - rationale retained:
+    - these were all historical milestone snapshots, duplicate note surfaces, or design-era plans whose useful continuity value is already better carried by:
+      - `CHANGES.md`
+      - root `DEVELOPMENT_NOTES.md`
+      - `LIVE_ACHIEVEMENT_STATUS.md`
+      - `MEMORY.md`
+    - keeping a second `docs/DEVELOPMENT_NOTES.md` at the top level was especially misleading because it competed directly with the real root continuity doc
+  - surface reduction:
+    - top-level `docs/*.md` count moved from:
+      - `29`
+    - down to:
+      - `17`
+  - honest current read:
+    - the remaining top-level docs are now almost entirely:
+      - the `7` active kept references
+      - a much smaller historical technical-analysis residue bucket

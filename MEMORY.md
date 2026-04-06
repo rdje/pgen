@@ -9565,3 +9565,22 @@ Use this file to resume work without replaying full chat history.
     - `48 -> 29`
   - next rule:
     - only the active keep-set plus the continuity-only residue bucket remain at the top level
+- 2026-04-06: the third top-level docs-pruning wave is complete.
+  - removed:
+    - `docs/AST_GENERATOR_MIGRATION.md`
+    - `docs/AST_TRANSFORM_REFACTOR_PLAN.md`
+    - `docs/CLEANUP_SUMMARY.md`
+    - `docs/DEVELOPMENT_NOTES.md`
+    - `docs/EBNF_IMPROVEMENT_ROADMAP.md`
+    - `docs/fully_featured_return_annotation_parsers_status.md`
+    - `docs/HDL_GRAMMAR_VALIDATION_REPORT.md`
+    - `docs/implementation_complete.md`
+    - `docs/PARSER_REGENERATION_SUMMARY.md`
+    - `docs/PROJECT_STATUS_REPORT.md`
+    - `docs/test_stability_plan.md`
+    - `docs/ultimate_return_annotation_parser_status.md`
+  - top-level `docs/*.md` count:
+    - `29 -> 17`
+  - remaining shape:
+    - `7` active kept references
+    - `10` historical technical-analysis docs still to review/remove
