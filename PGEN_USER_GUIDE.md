@@ -1370,7 +1370,7 @@ stmt = declaration | assignment ;
 - Coverage also includes SC-04 steering precedence/runtime tests (`token_class`, `charset`, `pattern`) across parser and stimuli paths.
 
 ### 8.10 Steering Roadmap References
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 ### 8.11 Built-In vs Annotation Policy
@@ -1385,7 +1385,7 @@ stmt = declaration | assignment ;
   3. fallback defaults
 
 Return-annotation completeness reference (non-negotiable):
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` ("Return Annotation No-Compromise Contract")
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` ("Return Annotation No-Compromise Contract")
 - Return annotations remain critical-path AST-shaping behavior with no intentional feature compromise.
 
 ### 8.12 SC-07 Recovery Deep-Dive (Parser + Stimuli)
@@ -2348,7 +2348,7 @@ make -C rust SHELL=/bin/bash hdl_frontend_gate
     - `hdl_frontend_readiness_summary_csv`
     - the full readiness table with parser-backed parseability columns
 - SystemVerilog syntax-closure tracking artifact:
-  - `SV_GRAMMAR_COVERAGE_MATRIX.md`
+  - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
   - contains Annex-A-aligned anchor mapping, grouped per-rule coverage status, and explicit unresolved-reference closure debt for the current active grammar.
   - unresolved rule-reference debt in `grammars/systemverilog.ebnf` is zero; remaining closure work is parser-quality hardening and higher-level semantic legality.
 
@@ -2525,8 +2525,8 @@ HDL readiness tuning:
 
 Release policy references:
 - machine policy: `rust/config/sota_exit_policy.env`
-- release checklist/policy doc: `PGEN_RELEASE_POLICY.md`
-- stimuli-module normative contract: `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+- release checklist/policy doc: `docs/reference/PGEN_RELEASE_POLICY.md`
+- stimuli-module normative contract: `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 
 Optional robustness-gate tuning:
 - `PGEN_ANNOTATION_ROBUSTNESS_COUNT` (default `32`)
@@ -3599,7 +3599,7 @@ Contract docs:
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
-- `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 
 Local check:
 ```bash

@@ -676,34 +676,34 @@ audit_annotation_aggregate_contract_surface() {
     '@$(MAKE) -C $(RUST_DIR) return_parity_gate'
 
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust annotation_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust annotation_shared_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust annotation_robustness_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust semantic_runtime_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust semantic_ast_roundtrip_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust semantic_full_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust return_runtime_semantics_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust return_ast_roundtrip_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust return_full_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust annotation_stimuli_quality_gate`'
 
   assert_file_contains \
@@ -941,83 +941,83 @@ audit_annotation_semantic_contract_surface() {
     '@$(MAKE) -C $(RUST_DIR) sc13_contract_gate'
 
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc01_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc02_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc03_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc04_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc05_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc06_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc07_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc08_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc09_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc10_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc11_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc12_contract_gate`'
   assert_file_contains \
-    "PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md" \
     '`make -C rust sc13_contract_gate`'
 
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc01_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc02_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc03_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc04_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc05_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc06_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc07_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc08_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc09_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc10_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc11_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc12_contract'
   assert_file_contains \
-    "PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md" \
     'semantic_annotation_sc13_contract'
 
   assert_file_contains \

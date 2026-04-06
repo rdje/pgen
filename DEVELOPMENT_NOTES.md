@@ -1,4 +1,65 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Root markdown cleanup: second reference-doc rehome wave
+### Context
+After the first root rehome wave moved the parser handoff/support docs into `docs/contracts/`, the next clean bucket still sitting at repo root was the maintained spec / matrix / policy surface. These files were still useful and current, but they were clearly deep-reference documents rather than repo-root entrypoints.
+
+### What Was Changed
+- Created [docs/reference](docs/reference) as the dedicated home for maintained reference docs that are not parser-family handoff contracts.
+- Rehomed these tracked docs from repo root into [docs/reference](docs/reference):
+  - [docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md](docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md)
+  - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_RELEASE_POLICY.md](docs/reference/PGEN_RELEASE_POLICY.md)
+  - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md)
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/STRESS_TEST_STANDARDIZATION.md](docs/reference/STRESS_TEST_STANDARDIZATION.md)
+  - [docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md](docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md)
+- Rewrote tracked references across the repo so they now point at `docs/reference/...`, including:
+  - [README.md](README.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [CURRENT_STATUS.md](CURRENT_STATUS.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - the annotation-family contract docs under [docs/contracts](docs/contracts)
+  - continuity docs and retained historical references
+- Tightened README wording so the root markdown policy now reflects actual state:
+  - parser handoff/support docs live under `docs/contracts/`
+  - maintained specs / matrices / policy docs live under `docs/reference/`
+
+### Why It Matters
+- This is the second real reduction of root markdown clutter after the audit, not just another classification note.
+- It leaves repo root more clearly focused on:
+  - entrypoint docs,
+  - live continuity docs,
+  - a small set of active operator-facing root docs
+- It also gives the reference-heavy annotation/spec surface a stable home that matches how these docs are actually used: as maintained deep-reference material rather than first-read onboarding material.
+
+### What Was Verified
+- Repo-root markdown count is now lower again:
+  - `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `15`
+- The moved reference docs are no longer present at repo root:
+  - `find . -maxdepth 1 -type f \( -name 'PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md' -o -name 'PGEN_ANNOTATION_NORMATIVE_SPEC.md' -o -name 'PGEN_RELEASE_POLICY.md' -o -name 'PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md' -o -name 'PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md' -o -name 'STRESS_TEST_STANDARDIZATION.md' -o -name 'SV_GRAMMAR_COVERAGE_MATRIX.md' \)`
+  - result: no output
+- Local workflow parity still accepts the rehomed reference path surface:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Honest rerun nuance:
+  - the filtered local workflow replay cleared:
+    - markdown repo-path audit
+    - tracked workflow-surface audit
+    - embedding API / annotation / proof-surface static audits
+  - then entered the real `annotation-contract-gate` body under the exported worktree
+  - it was intentionally stopped there after a long quiet runtime so this wave does not claim a full filtered workflow pass
+- Important parity-gate nuance retained from the rerun:
+  - `ci_workflow_local_gate` exports the tracked worktree using `git ls-files`
+  - for rename/rehome waves like this one, stage the moves before running the gate or the export step will still try to copy the old indexed root paths
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat `docs/reference/` as the canonical home for maintained specs, matrices, and release/policy reference docs going forward.
+- The next root-markdown cleanup wave can now focus on the genuinely questionable root residue (`CURRENT_STATUS`, `PROJECT_OVERVIEW`, `IMPLEMENTATION_GUIDE`, `REGEX_BOOTSTRAP_ARCHITECTURE`) instead of reopening current maintained reference material.
+
 ## 2026-04-06 - Root markdown cleanup: first contract/protocol rehome wave
 ### Context
 The top-level `docs/*.md` cleanup was already complete, but the repository root still carried too many markdown files. The first clean move set identified by the root audit was the downstream parser handoff surface: parser-family integration contracts, the issue-reporting protocol, and the released-parser bug ledger. Those files were important and current, but they were reference deep-dives rather than true repo-root entrypoints.
@@ -1540,7 +1601,7 @@ The repo had already gained consumer-facing parser integration docs, but many ol
 - The remaining affected tracked Markdown files were:
   - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
   - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
-  - [STRESS_TEST_STANDARDIZATION.md](STRESS_TEST_STANDARDIZATION.md)
+  - [docs/reference/STRESS_TEST_STANDARDIZATION.md](docs/reference/STRESS_TEST_STANDARDIZATION.md)
   - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
   - [MEMORY.md](MEMORY.md)
   - [CHANGES.md](CHANGES.md)
@@ -2061,7 +2122,7 @@ The live Rust analysis doc already mapped the annotation proof spine, doc routin
 - Updated [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md):
   - under `Canonical Source-Of-Truth Map`, added explicit annotation proof ownership entries for:
     - aggregate annotation proof composition -> `rust/Makefile`
-    - annotation proof obligations and semantic intent -> [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md)
+    - annotation proof obligations and semantic intent -> [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md)
     - operator-facing annotation gate map -> [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - under `Public Contract Surface Map`, added an explicit `Aggregate annotation proof contract` entry covering:
     - `annotation_contract_gate`
@@ -2130,7 +2191,7 @@ The live Rust analysis doc already named the aggregate annotation proof spine, b
   - in `Rust-Facing Repo Doc Crosswalk`, clarified that:
     - [README.md](README.md) is the high-level entrypoint into aggregate annotation proof surfaces
     - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) is the operator-facing map of aggregate annotation / semantic / return local gates
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) carries the annotation proof obligations and gate targets behind aggregate annotation claims
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) carries the annotation proof obligations and gate targets behind aggregate annotation claims
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the aggregate annotation audit now also asserts those new crosswalk cues
 - Updated the continuity docs to record that the Rust-analysis doc-routing layer is now explicit for annotation proof questions.
@@ -2198,7 +2259,7 @@ After locking the aggregate annotation contract composition in local CI, the ope
     - `semantic_full_contract_gate`
     - `return_annotation_support_gate`
   - expanded the `annotation_contract_gate` description so it reads as the aggregate annotation contract spine rather than a vague bundle
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+- Updated [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
   - expanded the gate-target list to include the missing aggregate annotation / semantic / return entrypoints
   - updated the aggregate gate description to explicitly mention SC-01/SC-02, semantic-full-contract composition, return-full-contract composition, and annotation robustness
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
@@ -2221,7 +2282,7 @@ The repo had already hardened the individual SC semantic contract gates in local
     - `annotation_shared_contract_gate` still runs both return and semantic shared suites in bootstrap and generated modes
     - `semantic_runtime_contract_gate` and `semantic_full_contract_gate` still preserve the runtime + round-trip + regression composition
     - `return_runtime_semantics_gate` and `return_full_contract_gate` still preserve the runtime + round-trip + parity composition
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) still expose the main aggregate annotation gate entrypoints
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) still expose the main aggregate annotation gate entrypoints
 - Updated the continuity docs to record that the aggregate annotation contract layer now has its own local policy guard.
 
 ### Why This Matters
@@ -2236,8 +2297,8 @@ The local annotation semantic contract audit had already been extended through S
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc11_contract_gate` and `sc12_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc11_contract` and `semantic_annotation_sc12_contract`
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc11_contract` and `semantic_annotation_sc12_contract`
     - [sc11_contract_gate.sh](rust/scripts/sc11_contract_gate.sh) and [sc12_contract_gate.sh](rust/scripts/sc12_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
     - [sc11_contract.json](rust/test_data/semantic_annotation/sc11_contract.json) and [sc12_contract.json](rust/test_data/semantic_annotation/sc12_contract.json) still record pass/pass generated parity
@@ -2255,8 +2316,8 @@ The local annotation semantic contract audit had already been extended through S
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc09_contract_gate` and `sc10_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc09_contract` and `semantic_annotation_sc10_contract`
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc09_contract` and `semantic_annotation_sc10_contract`
     - [sc09_contract_gate.sh](rust/scripts/sc09_contract_gate.sh) and [sc10_contract_gate.sh](rust/scripts/sc10_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
     - [sc09_contract.json](rust/test_data/semantic_annotation/sc09_contract.json) and [sc10_contract.json](rust/test_data/semantic_annotation/sc10_contract.json) still record pass/pass generated parity
@@ -2274,8 +2335,8 @@ The local annotation semantic contract audit had already been extended through S
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc07_contract_gate` and `sc08_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc07_contract` and `semantic_annotation_sc08_contract`
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc07_contract` and `semantic_annotation_sc08_contract`
     - [sc07_contract_gate.sh](rust/scripts/sc07_contract_gate.sh) and [sc08_contract_gate.sh](rust/scripts/sc08_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
     - [sc07_contract.json](rust/test_data/semantic_annotation/sc07_contract.json) and [sc08_contract.json](rust/test_data/semantic_annotation/sc08_contract.json) still record pass/pass generated parity
@@ -2293,8 +2354,8 @@ The local annotation semantic contract audit had already been extended through S
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc05_contract_gate` and `sc06_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc05_contract` and `semantic_annotation_sc06_contract`
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc05_contract` and `semantic_annotation_sc06_contract`
     - [sc05_contract_gate.sh](rust/scripts/sc05_contract_gate.sh) and [sc06_contract_gate.sh](rust/scripts/sc06_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
     - [sc05_contract.json](rust/test_data/semantic_annotation/sc05_contract.json) and [sc06_contract.json](rust/test_data/semantic_annotation/sc06_contract.json) still record pass/pass generated parity
@@ -2312,8 +2373,8 @@ The annotation semantic contract audit had grown to cover SC-01, SC-02, and SC-1
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc03_contract_gate` and `sc04_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc03_contract` and `semantic_annotation_sc04_contract`
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc03_contract` and `semantic_annotation_sc04_contract`
     - [sc03_contract_gate.sh](rust/scripts/sc03_contract_gate.sh) and [sc04_contract_gate.sh](rust/scripts/sc04_contract_gate.sh) still target the correct suites and report paths
     - both gate scripts still require `total_cases > 0`
     - [sc03_contract.json](rust/test_data/semantic_annotation/sc03_contract.json) and [sc04_contract.json](rust/test_data/semantic_annotation/sc04_contract.json) still record pass/pass generated parity
@@ -2331,8 +2392,8 @@ The annotation semantic contract audit in local CI had been extended for SC-01 a
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - the annotation semantic contract audit now also asserts:
     - `rust/Makefile` still advertises and invokes `sc13_contract_gate`
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references `make -C rust sc13_contract_gate`
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc13_contract`
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references `make -C rust sc13_contract_gate`
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references `semantic_annotation_sc13_contract`
     - [sc13_contract_gate.sh](rust/scripts/sc13_contract_gate.sh) still targets the SC-13 suite and report path
     - [sc13_contract_gate.sh](rust/scripts/sc13_contract_gate.sh) still requires `total_cases > 0`
     - [sc13_contract.json](rust/test_data/semantic_annotation/sc13_contract.json) still records pass/pass generated parity
@@ -2373,8 +2434,8 @@ After adding dedicated SC-01 and SC-02 gates, the repo still lacked a local-CI s
   - that audit now asserts:
     - `rust/Makefile` still advertises `sc01_contract_gate` and `sc02_contract_gate`
     - `annotation_contract_gate` still invokes both
-    - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
-    - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references both shared contract suite names
+    - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) still references both gate entrypoints
+    - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) still references both shared contract suite names
     - `sc01_contract.json` still records the generated-parser `expected_fail` boundary
     - `sc02_contract.json` still records pass/pass parity for the generated-comparable named slice
 - Updated the continuity docs to record that this SC-01/SC-02 annotation policy layer is now guarded locally too.
@@ -2401,7 +2462,7 @@ The semantic steering matrix had already been calling SC-01 Tier-4, but the repo
 - Updated [rust/Makefile](rust/Makefile):
   - new `sc01_contract_gate` target
   - `annotation_contract_gate` now invokes the SC-01 gate
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
+- Updated [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
   - SC-01 is now documented as a dedicated Tier-4 gate-enforced seam, not just an implied cross-file capability
 
 ### Why This Matters
@@ -2429,7 +2490,7 @@ The semantic steering matrix still described SC-02 raw literal sample hints as o
 - Updated [rust/Makefile](rust/Makefile):
   - new `sc02_contract_gate` target
   - `annotation_contract_gate` now invokes the SC-02 gate
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
+- Updated [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) and [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md):
   - SC-02 is now documented as a Tier-4 gate-enforced contract
   - the literal-hint doctrine now explicitly matches current source behavior, including the current shared-suite/generated-parser comparability boundary
 
@@ -7748,7 +7809,7 @@ The user-set closure bar for `Done` is now explicit: no plausible proof gap is a
   - added postfix-text fallbacks for property/index access,
   - relaxed bootstrap spread parsing so valid generated forms like `$2::1**` survive fallback reparsing,
   - added focused regression coverage for that nested-spread shape.
-- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [README.md](README.md), [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md):
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md), [README.md](README.md), [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md), [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), and [MEMORY.md](MEMORY.md):
   - promoted `return_annotation` full Rust AST-pipeline support from `Mostly Done` to `Done`,
   - documented that the curated full-construct suite is now supplementary rather than the closure dependency.
 
@@ -7783,7 +7844,7 @@ The new `return_annotation_support_gate` materially improved the proof surface, 
   - added an explicit anti-drift rule forbidding `Done` when grammar-derived exhaustiveness is expected but the proof still depends on curated/manual construct lists,
   - demoted `return_annotation` full Rust AST-pipeline support from `Done` to `Mostly Done`,
   - made the remaining closure work explicit: auto-derived construct/proof extraction from `grammars/return_annotation.ebnf` plus parser/stimuli roundtrip/coverage proof.
-- Updated [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+- Updated [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
   - documented the formal closure rule for return-annotation support,
   - clarified that the current construct suite is useful evidence but not formal closure,
   - recorded the current-state note that this area remains `Mostly Done` until the proof becomes grammar-derived and exhaustiveness-safe.
@@ -7812,7 +7873,7 @@ The repo already had the ingredients for strong return-annotation confidence, bu
     - `cargo test --features generated_parsers --lib parser_registry --quiet`,
     - `make -C rust return_full_contract_gate`,
     - `make -C rust annotation_stimuli_quality_gate`.
-- Updated [README.md](README.md) and [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md):
+- Updated [README.md](README.md) and [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md):
   - documented the new gate as the focused aggregate proof for return-annotation closure.
 - Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - promoted `return_annotation` full Rust AST-pipeline support to `Done`,
@@ -7869,9 +7930,9 @@ The project doctrine was already clear at a high level, but the implementation s
   - feeds the existing generated return-corpus test so full-construct generated-pipeline coverage is checked through a tracked artifact rather than an informal list.
 - Clarified the annotation split in tracked docs:
   - [README.md](README.md) now states that return annotations shape returned AST and semantic annotations steer parser generation,
-  - [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) now records the no-compromise return-annotation completeness contract,
-  - [PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) now carries an explicit supported semantic-directive inventory sourced from `rust/src/ast_pipeline/semantic_directive_registry.rs`,
-  - and [README.md](README.md) plus [PGEN_ANNOTATION_NORMATIVE_SPEC.md](PGEN_ANNOTATION_NORMATIVE_SPEC.md) now explicitly record that `grammars/builtin_return_annotation.ebnf` and `grammars/builtin_semantic_annotation.ebnf` are the bootstrap-safe contracts used to generate the annotation parsers without circular self-dependence.
+  - [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) now records the no-compromise return-annotation completeness contract,
+  - [docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md](docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md) now carries an explicit supported semantic-directive inventory sourced from `rust/src/ast_pipeline/semantic_directive_registry.rs`,
+  - and [README.md](README.md) plus [docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md](docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md) now explicitly record that `grammars/builtin_return_annotation.ebnf` and `grammars/builtin_semantic_annotation.ebnf` are the bootstrap-safe contracts used to generate the annotation parsers without circular self-dependence.
 - Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
   - added an explicit annotation-status slice for `return_annotation` full support and cross-grammar return-AST shaping adoption,
   - recorded current return closed-loop evidence from the required annotation stimuli gate.
@@ -9972,7 +10033,7 @@ The observed SystemVerilog random-stimuli `parse_full` ratio was too low to be a
   - leaves closed-loop debt replay on raw generation for now because parser-in-loop replay increased target debt and would have invalidated that invariant.
 - Recorded the explicit policy that shared parser/stimuli fixes must remain EBNF-agnostic in:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `PGEN_RELEASE_POLICY.md`
+  - `docs/reference/PGEN_RELEASE_POLICY.md`
 
 ### Validation
 - Shared regex-contract regressions:
@@ -11885,7 +11946,7 @@ Updated:
     - explicit performance budgets,
     - deterministic reproducibility,
     - embedder-facing diagnostics and AST visibility.
-- `PGEN_RELEASE_POLICY.md`
+- `docs/reference/PGEN_RELEASE_POLICY.md`
   - added matching release-doctrine wording so these qualities are treated as required evidence categories rather than optional aspirations.
 - `MEMORY.md`
   - added handoff context for the doctrine so future work resumes with the same interpretation.
@@ -16550,7 +16611,7 @@ Observed:
 Phase P required a deterministic no-regression loop for syntax closure of `grammars/systemverilog.ebnf` so incremental clause additions are objectively gated.
 
 Before this increment:
-- unresolved-reference status and closure drift were primarily tracked manually (`SV_GRAMMAR_COVERAGE_MATRIX.md`) plus ad hoc checks.
+- unresolved-reference status and closure drift were primarily tracked manually (`docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`) plus ad hoc checks.
 
 ### Implementation
 Primary files:
@@ -17131,7 +17192,7 @@ Observed:
 
 ## 2026-02-27 - `systemverilog.ebnf` Internal Reference Hardening (Zero Unresolved Symbols)
 ### Context
-After publishing `SV_GRAMMAR_COVERAGE_MATRIX.md`, the unresolved-reference scan identified five missing symbols in the seed grammar:
+After publishing `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`, the unresolved-reference scan identified five missing symbols in the seed grammar:
 - `modport_declaration`
 - `class_item`
 - `block_item_declaration`
@@ -17143,7 +17204,7 @@ These were blocking clean syntax-consistency posture for Phase P syntax burn-dow
 ### Implementation
 Primary files:
 - `grammars/systemverilog.ebnf`
-- `SV_GRAMMAR_COVERAGE_MATRIX.md`
+- `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
@@ -17166,7 +17227,7 @@ Result:
 - no dangling symbol references remain in current grammar text.
 
 #### 2) Refreshed syntax-closure tracking artifacts
-- `SV_GRAMMAR_COVERAGE_MATRIX.md`:
+- `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`:
   - updated grouped section counts (items/declarations/instantiation/tokens),
   - updated unresolved-reference section to explicit zero-debt state.
 - roadmap/user guide synchronized to this new state.
@@ -17182,19 +17243,19 @@ Observed:
 - HDL readiness report remains stable (`systemverilog` pass, `vhdl` not ready),
 - SV stimuli quality gate still passes in skeleton mode with parse-full `auto` soft-fail behavior preserved.
 
-## 2026-02-27 - Phase P Syntax-Closure Artifact: `SV_GRAMMAR_COVERAGE_MATRIX.md`
+## 2026-02-27 - Phase P Syntax-Closure Artifact: `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 ### Context
 Phase P required an explicit, executable-adjacent syntax closure tracker mapped to IEEE anchors, not just ad-hoc notes in roadmap bullets. Without a matrix artifact, SystemVerilog grammar growth would be hard to audit and hard to prioritize against Annex-A coverage goals.
 
 ### Implementation
 Primary files:
-- `SV_GRAMMAR_COVERAGE_MATRIX.md`
+- `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Added dedicated coverage matrix artifact
 Created:
-- `SV_GRAMMAR_COVERAGE_MATRIX.md`
+- `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 
 Contents include:
 - status model:
@@ -17227,7 +17288,7 @@ These unresolved symbols are now called out as objective blockers for strict syn
   - marked the Phase P matrix item complete.
   - added explicit progress log entry for the new artifact.
 - `PGEN_USER_GUIDE.md`
-  - added explicit reference to `SV_GRAMMAR_COVERAGE_MATRIX.md` in the HDL readiness section, so operators have one canonical syntax-closure tracker.
+  - added explicit reference to `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md` in the HDL readiness section, so operators have one canonical syntax-closure tracker.
 
 ### Validation
 Executed:
@@ -18509,12 +18570,12 @@ The required closure points were:
 ### Implementation
 Primary files:
 - `PGEN_USER_GUIDE.md`
-- `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
 #### 1) Added dedicated normative stimuli-module contract spec
 File:
-- `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 
 Normative coverage includes:
 - required generated module constants and API shape,
@@ -18540,7 +18601,7 @@ Added:
     and deterministic module-mode default seed behavior,
   - cross-mode compatibility tuple requirements,
   - parity gate command reference.
-- references to `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md` in policy/docs map sections.
+- references to `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md` in policy/docs map sections.
 
 #### 3) Closed roadmap checkbox
 File:
@@ -19263,9 +19324,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc08_contract.json`
 - `rust/scripts/sc08_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-08 shared contract corpus
@@ -19315,9 +19376,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc05_contract.json`
 - `rust/scripts/sc05_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-05 shared contract corpus
@@ -19365,9 +19426,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc12_contract.json`
 - `rust/scripts/sc12_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-12 shared contract corpus
@@ -19415,9 +19476,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc11_contract.json`
 - `rust/scripts/sc11_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-11 shared contract corpus
@@ -19464,9 +19525,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc10_contract.json`
 - `rust/scripts/sc10_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-10 shared contract corpus
@@ -19514,9 +19575,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc09_contract.json`
 - `rust/scripts/sc09_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-09 shared contract corpus
@@ -19564,9 +19625,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc07_contract.json`
 - `rust/scripts/sc07_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-07 shared contract corpus
@@ -19619,9 +19680,9 @@ Primary files:
 - `rust/src/ast_pipeline/annotation_validator.rs`
 - `rust/src/ast_pipeline/semantic_directive_registry.rs`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-06 shared contract corpus
@@ -19761,9 +19822,9 @@ Given the no-compromise quality objective, this needed to be executable and pre-
 Primary files:
 - `rust/scripts/annotation_stimuli_quality_gate.sh`
 - `rust/Makefile`
-- `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+- `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) New strict gate script
@@ -19844,9 +19905,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc03_contract.json`
 - `rust/scripts/sc03_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Typed capability taxonomy hardening
@@ -19910,9 +19971,9 @@ Primary files:
 - `rust/test_data/semantic_annotation/sc04_contract.json`
 - `rust/scripts/sc04_contract_gate.sh`
 - `rust/Makefile`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) SC-04 contract corpus slice
@@ -19978,9 +20039,9 @@ That meant embedders had no parser-runtime control surface to:
 ### Implementation
 Primary files:
 - `rust/src/ast_pipeline/ast_based_generator.rs`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Generated parser runtime mode surface
@@ -20057,9 +20118,9 @@ Primary files:
 - `rust/src/ast_pipeline/annotation_validator.rs`
 - `rust/src/ast_pipeline/ast_based_generator.rs`
 - `rust/src/ast_pipeline/stimuli_generator.rs`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Typed SC-04 semantic parsers and capability promotion
@@ -20175,9 +20236,9 @@ That left asymmetry between parser and stimuli control surfaces for determinism 
 Primary files:
 - `rust/src/ast_pipeline/semantic_directive_registry.rs`
 - `rust/src/ast_pipeline/ast_based_generator.rs`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 #### 1) Directive capability promotion
@@ -20257,8 +20318,8 @@ Primary files:
 - `rust/src/ast_pipeline/annotation_validator.rs`
 - `rust/src/ast_pipeline/stimuli_generator.rs`
 - `rust/src/ast_pipeline/mod.rs`
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 
@@ -20620,8 +20681,8 @@ Primary file:
 #### 5) Living docs alignment
 - Updated:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - SC-09 status now includes non-structured nested reference extraction for stimuli relational checks.
 
@@ -20684,8 +20745,8 @@ Primary file:
 #### 5) Living docs alignment
 - Updated:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - SC-09 status now explicitly includes structured unsatisfiable diagnostics in stimuli runtime.
 
@@ -20738,8 +20799,8 @@ Primary file:
 #### 5) Living docs alignment
 - Updated:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - Status update:
   - SC-09 stimuli nested named/positional path synthesis is now implemented for structured capture payloads.
@@ -20801,9 +20862,9 @@ Primary files:
 
 #### 5) Living docs alignment
 - Updated:
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - SC-07 status now reflects dedicated stimuli modes as implemented baseline behavior.
 
@@ -20880,8 +20941,8 @@ Primary files:
 
 #### 5) Living docs alignment
 - Updated:
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `PGEN_USER_GUIDE.md`
 - UG SC-07 deep-dive now documents:
@@ -20951,8 +21012,8 @@ Primary file:
 #### 5) Living-doc status alignment
 - Updated:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - New status:
   - SC-09 now has parser+stimuli runtime baseline (`Tier 3` baseline), with nested named-path stimuli synthesis still tracked as hardening follow-up.
@@ -21023,8 +21084,8 @@ Primary file:
 #### 5) Living-doc/spec alignment
 - Updated:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - `PGEN_USER_GUIDE.md`
 - New declared status:
   - SC-09 promoted to parser runtime baseline (`Tier 2`) at this stage.
@@ -21232,9 +21293,9 @@ Primary file:
 ### Contract/Docs Updates
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added completed Phase K item and change-log entry for structured recovery reporting baseline.
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - updated `SC-07` status to include structured recovery event reporting in current baseline.
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - documented typed event reporting APIs and marker-kind contract.
 - `PGEN_USER_GUIDE.md`
   - documented parser-facing recovery event APIs and event payload shape.
@@ -21287,9 +21348,9 @@ Primary file:
 ### Contract/Docs Updates
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added completed Phase K item for SC-07 stimuli baseline.
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `SC-07` promoted to parser+stimuli baseline tier with explicit note on remaining advanced recovery-targeted generation.
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - added normative stimuli fallback semantics for recovery directives.
 - `PGEN_USER_GUIDE.md`
   - updated recovery behavior section with stimuli fallback details and remaining follow-on scope.
@@ -21351,9 +21412,9 @@ Primary file:
 ### Contract/Docs Updates
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - added Phase K item for executable recovery runtime baseline and completion log entry.
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `SC-07` promoted from Tier 1 (contract-only) to Tier 2 (parser runtime steering baseline).
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - documented runtime recovery semantics (`panic_until > sync` tie-break, EOF fallback, backtrack on no-progress).
 - `PGEN_USER_GUIDE.md`
   - replaced staged wording with current runtime baseline behavior and explicit remaining stimuli-side follow-on.
@@ -21956,7 +22017,7 @@ The agreed direction is:
 - push project/domain steering semantics into semantic annotations,
 - preserve a strict precedence contract so correctness/safety never becomes annotation-dependent.
 ### Implementation
-- Updated `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` with explicit balance policy:
+- Updated `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` with explicit balance policy:
   - layered model:
     - Layer A: built-in invariants (correctness/safety/diagnostics/return completeness),
     - Layer B: annotation policy controls (user-authored steering),
@@ -21984,7 +22045,7 @@ Semantic annotation grammar is intentionally richer than what the Rust AST pipel
 At the same time, return annotations are AST-shaping core functionality and must not be treated as an optional or partial feature surface.
 ### Implementation
 - Added a living steering inventory:
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 - Document includes:
   - capability tiers (`Tier 0..4`) to separate parse-only from gate-enforced steering,
   - control catalog (`SC-*`) across parser and stimuli domains,
@@ -22028,7 +22089,7 @@ We had an aggregate gate command, but release pass rules were still implicit in 
       - verifies `allowed_mismatches` is an array.
     - supports policy-aware informational-failure strictness (`PGEN_SOTA_ALLOW_INFORMATIONAL_FAILURES`).
 - Added release checklist/spec doc:
-  - `PGEN_RELEASE_POLICY.md`
+  - `docs/reference/PGEN_RELEASE_POLICY.md`
   - Defines:
     - required release checks,
     - branch protection expectations,
@@ -22223,7 +22284,7 @@ Semantic transform handling was implemented in multiple locations with slightly 
     - `semantic_usage_stimuli_noncanonical_transform_does_not_override_regex`.
 - Updated docs/roadmap:
   - `PGEN_USER_GUIDE.md` semantic leverage section updated with canonical/path-aware behavior and non-canonical fallback note.
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` updated with shared canonical parser contract.
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` updated with shared canonical parser contract.
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated to track completion.
 ### Validation
 - Ran:
@@ -22259,7 +22320,7 @@ There was ambiguity about whether semantic annotations currently steer parser ge
   - Updated:
     - `annotation_contract_gate` now includes `semantic_usage_gate` so semantic leverage checks run with normative annotation checks.
 - Specification/documentation contractization:
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
     - Added a dedicated "Semantic Leverage Contract (Parser + Stimuli)" section documenting current steering behavior and boundaries.
   - `PGEN_USER_GUIDE.md`
     - Expanded semantic section to state exactly what semantic annotations steer today and what remains non-steering.
@@ -22348,7 +22409,7 @@ The initial normative contract gate focused on bootstrap behavior plus validator
 - Extended existing gate:
   - `annotation_contract_gate` now invokes `annotation_shared_contract_gate` after validator + bootstrap-specific contract checks.
 - Updated contract docs/roadmap:
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` now distinguishes bootstrap-only and shared bootstrap/generated suites.
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` now distinguishes bootstrap-only and shared bootstrap/generated suites.
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` updated with completed shared-contract enforcement step.
 ### Validation
 - Ran:
@@ -22398,7 +22459,7 @@ With Phase E completed, the next roadmap item is Pillar 2 (Normative Annotation 
 Given PGEN’s bootstrap architecture constraints (annotation parsers must exist before fully self-hosted annotation parser generation), the built-in parser contracts must remain explicit and test-enforced.
 ### Implementation
 - Added a living normative contract document:
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - Document content structure:
   - contract layer model:
     - bootstrap parser layer,
@@ -25069,7 +25130,7 @@ Results:
 ### Plan Update
 - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - Phase K third checkbox marked complete.
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `SC-06` promoted to implemented branch-policy steering baseline.
   - `SC-07` promoted to typed contract-surface stage with staged runtime recovery follow-on.
 
@@ -27185,10 +27246,10 @@ Architectural north star:
   - `rust/scripts/sv_combined_telemetry_contract_gate.sh` now consumes those contract-side semantic-scope paths from SOTA, parity-checks them against the local status-contract sidecar, and re-emits them in its own `family_status_contract.systemverilog.proof_surfaces`
   - `rust/scripts/ci_workflow_local_gate.sh` now locks this exact seam on both the SOTA producer side and the SV combined-telemetry consumer/output side
 - 2026-03-26: Annotation-doc alignment audit:
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md` had real implementation drift in both bootstrap sections.
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` had real implementation drift in both bootstrap sections.
   - Fixed stale return-parser claims that still described the older pre-`trim_start()` arrow handling and permissive trailing-text/comma quirks.
   - Fixed stale semantic-parser claims that still described bootstrap semantic parsing as `TransformExpr | Raw`; current bootstrap behavior is `TransformExpr | Structured | Raw`.
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` was also incomplete relative to the current typed registry/runtime surface; it now includes `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate`, plus notes the `@profiles` parser-side leverage asymmetry and legacy non-registry `@stimulus` alias.
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md` was also incomplete relative to the current typed registry/runtime surface; it now includes `@emit_fact`, `@open_scope`, `@close_scope`, and `@predicate`, plus notes the `@profiles` parser-side leverage asymmetry and legacy non-registry `@stimulus` alias.
   - `grammars/builtin_semantic_annotation.ebnf` was refreshed as well, because the bootstrap compatibility grammar had the same stale transform-vs-raw-only assumption.
   - Also refreshed the matching builtin semantic contract-case prose in `rust/test_data/semantic_annotation/builtin_contract.json` so the contract corpus description no longer calls trimmed simple payloads "raw" when the current bootstrap parser classifies them as `Structured`.
 - 2026-03-26: Followed the doc-alignment fix with stronger executable bootstrap semantic coverage.
@@ -29553,14 +29614,14 @@ Architectural north star:
       - `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
       - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
     - normative/spec/policy docs:
-      - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-      - `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
-      - `PGEN_RELEASE_POLICY.md`
-      - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+      - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+      - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+      - `docs/reference/PGEN_RELEASE_POLICY.md`
+      - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
     - roadmap/matrix/reference docs:
-      - `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
-      - `SV_GRAMMAR_COVERAGE_MATRIX.md`
-      - `STRESS_TEST_STANDARDIZATION.md`
+      - `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+      - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
+      - `docs/reference/STRESS_TEST_STANDARDIZATION.md`
   - retained move-to-archive/remove-later recommendation:
     - `CURRENT_STATUS.md`
     - `IMPLEMENTATION_GUIDE.md`

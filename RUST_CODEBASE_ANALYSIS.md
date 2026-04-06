@@ -108,12 +108,12 @@ Operational rule:
     - current project doctrine
     - phase/closure expectations
     - deferred or still-open engineering directions
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - Use for:
     - return/semantic annotation meaning
     - typed-annotation intent that should constrain Rust-side parser/generator/runtime changes
     - annotation proof obligations and gate targets behind aggregate annotation claims
-- `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - Use for:
     - semantic-steering behavior expectations
     - understanding whether a semantic-runtime or stimuli/generator change still matches repo policy
@@ -495,7 +495,7 @@ Operational rule:
   - Canonical source: `rust/Makefile`
   - Use this first when the question is “which top-level annotation/semantic/return proof targets are supposed to run together?”
 - Annotation proof obligations and semantic intent
-  - Canonical source: `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - Canonical source: `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - Use this first when the question is “what annotation behavior and proof obligations are we actually claiming?”
 - Operator-facing annotation gate map
   - Canonical source: `PGEN_USER_GUIDE.md`
@@ -805,7 +805,7 @@ Operational rule:
     - `rust/scripts/ci_workflow_local_gate.sh`
     - `README.md`
     - `PGEN_USER_GUIDE.md`
-    - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+    - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
   - Aggregate proof spine:
     - `annotation_contract_gate`
       - validator + built-in bootstrap suites
@@ -890,7 +890,7 @@ Start here:
 
 Then usually inspect:
 - `rust/Makefile`
-- `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `PGEN_USER_GUIDE.md`
 
 And pick the nearest aggregate proof surface:

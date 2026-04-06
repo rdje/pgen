@@ -5,7 +5,7 @@
 > It is not the authoritative description of the current Rust-first PGEN workflow.
 > For current status and contracts, start with `README.md`, `PGEN_USER_GUIDE.md`,
 > `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `RUST_CODEBASE_ANALYSIS.md`,
-> `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, and `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`.
+> `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, and `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`.
 
 ## Repository
 **URL**: https://github.com/rdje/pgen

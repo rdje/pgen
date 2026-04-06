@@ -63,8 +63,8 @@ PGEN is a production-focused parser and stimuli generator platform.
 4. `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 5. `LIVE_ACHIEVEMENT_STATUS.md`
 6. `RUST_CODEBASE_ANALYSIS.md`
-7. `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-8. `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+7. `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+8. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 9. `CHANGES.md`
 10. `DEVELOPMENT_NOTES.md`
 11. `MEMORY.md`
@@ -84,6 +84,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `rust/test_data/grammar_quality/`: gate contracts, corpora, deterministic case manifests
 - `rust/docs/`: Rust-specific architecture/API/test docs
 - `docs/contracts/`: downstream parser integration contracts, issue-reporting protocol, and released-parser bug ledger
+- `docs/reference/`: normative specs, matrices, closure roadmaps, release policy, and other maintained deep-reference docs
 - `regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening; keeps immutable upstream snapshots separate from normalized corpus/oracle outputs, with maintained gates `make -C rust regex_corpus_bundle_contract_gate`, `make -C rust regex_pcre2_textsafe_corpus_gate`, and `make -C rust regex_pcre2_compile_oracle_gate`
 - `tools/`: conversion/extraction and support workflows
 - `perl/`: legacy/frontend EBNF-to-JSON path (`ebnf_to_json.pl`) still used in hybrid flow
@@ -142,8 +143,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `LIVE_ACHIEVEMENT_STATUS.md`
   - `RUST_CODEBASE_ANALYSIS.md`
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - Historical/reference docs are still tracked for context, but some describe superseded workflows or earlier project phases.
 - In particular, treat these as archival unless they are explicitly refreshed:
@@ -159,11 +160,11 @@ PGEN is a production-focused parser and stimuli generator platform.
 
 ## Documentation Structure
 - Project governance and status:
-  - `PROJECT_OVERVIEW.md`, `CURRENT_STATUS.md`, `PGEN_RELEASE_POLICY.md`
+  - `PROJECT_OVERVIEW.md`, `CURRENT_STATUS.md`, `docs/reference/PGEN_RELEASE_POLICY.md`
 - Rust architecture/state assessment:
   - `RUST_CODEBASE_ANALYSIS.md`
 - Core contracts and roadmaps:
-  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `SV_GRAMMAR_COVERAGE_MATRIX.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Downstream parser integration contracts:
   - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - Regex corpus acquisition and hardening:
@@ -171,7 +172,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Operational continuity:
   - `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `COMMIT.md`
 - User/developer onboarding:
-  - `PGEN_USER_GUIDE.md`, `QUICKSTART_AI_ONBOARDING.md`, `IMPLEMENTATION_GUIDE.md`, `STRESS_TEST_STANDARDIZATION.md`
+  - `PGEN_USER_GUIDE.md`, `QUICKSTART_AI_ONBOARDING.md`, `IMPLEMENTATION_GUIDE.md`, `docs/reference/STRESS_TEST_STANDARDIZATION.md`
 
 ## Active Markdown Index
 The list below is the current high-signal markdown surface for active work. A 2026-04-06 audit found that most top-level `docs/*.md` files are legacy implementation notes, historical status snapshots, or duplicate design writeups and should not be treated as equal-priority sources of truth.
@@ -183,6 +184,10 @@ The list below is the current high-signal markdown surface for active work. A 20
 - `MEMORY.md`
 - `PGEN_USER_GUIDE.md`
 - `IMPLEMENTATION_GUIDE.md`
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+- `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+- `docs/reference/PGEN_RELEASE_POLICY.md`
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
@@ -208,7 +213,8 @@ Root markdown policy note:
 - the repository root should be reserved for entrypoint docs, live continuity docs, and tool/session-control docs
 - tool-specific editor/assistant docs that no longer serve the active workflow should be removed rather than kept as root clutter
 - the parser integration contract surface now lives under `docs/contracts/` instead of consuming repo-root markdown slots
-- other contracts, normative specs, roadmaps, matrices, and reference deep-dives remain candidates to live under `docs/` instead of remaining at the top level
+- the maintained spec / matrix / policy reference surface now also lives under `docs/reference/` instead of consuming repo-root markdown slots
+- other reference deep-dives remain candidates to live under `docs/` instead of remaining at the top level
 - a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
 
 Read SESSION_BOOTSTRAP.md and start from there.

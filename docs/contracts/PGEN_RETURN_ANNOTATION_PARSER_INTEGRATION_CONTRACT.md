@@ -14,7 +14,7 @@ Define the current downstream integration contract for PGEN's `return_annotation
 - Public host API:
   - `rust/src/embedding_api.rs`
 - Normative semantic/contract doc:
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 
 ## Stable Integration Surface
 - Annotation family:

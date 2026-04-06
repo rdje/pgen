@@ -896,7 +896,7 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
 - [x] Reuse the dedicated SV-family aggregate contract gates from aggregate `sota_exit_gate` artifacts instead of rerunning heavy quality probes, and surface their summary paths directly in aggregate telemetry.
 
 ### Phase J (New): Semantic Steering Control Surface + Return Completeness
-- [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).
+- [x] Publish semantic steering control matrix with parser/stimuli control taxonomy, current support status, and target tiers (`docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`).
 - [x] Capture layered control architecture decision (minimal built-in invariants + annotation-driven policy surface + hard precedence rules).
 - [x] `P0` Implement typed semantic directive registry (name-based routing) and promote from parse-only to steering for selected directives.
 - [x] `P0` Implement unknown-directive handling policy modes (`warn` and `strict`) with stable diagnostics.
@@ -944,7 +944,7 @@ Recorded concerns from the 2026-03-17 full Rust codebase analysis:
 
 ### Phase L (New): Annotation 100% Closure (Return + Semantic)
 - [x] Publish dedicated zero-compromise closure roadmap mapped to full annotation grammars:
-  - `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+  - `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
 - [x] Implement annotation proof doctrine gates with uncompromising quality criteria:
   - full construct/alternative coverage manifests,
   - typed-AST no-fallback assertions in non-bootstrap mode,
@@ -1263,8 +1263,8 @@ Toolbox baseline to leverage end-to-end:
       - `systemverilog_roundtrip_replay_covered_reachable_rules=697`
       - `systemverilog_roundtrip_initial_covered_reachable_branches=22`
       - `systemverilog_roundtrip_replay_covered_reachable_branches=447`
-- [x] Add `SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
-  - Progress (2026-02-27): added `SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
+- [x] Add `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md` mapped to IEEE syntax anchors (Annex-A-aligned sections) and track per-rule implementation status.
+  - Progress (2026-02-27): added `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md` with Annex-A seed anchors, section-level status, full grouped per-rule inventory, and explicit unresolved-rule closure list for current `systemverilog.ebnf` seed.
   - Progress (2026-02-27): closed initial unresolved-symbol debt in `systemverilog.ebnf` (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed matrix counts/status.
 - [x] Add dual-LRM source ingestion tooling/workspaces for clause-based conversion (`PDF -> section txt -> section md -> grammar extraction`) targeting IEEE 1800-2023 and IEEE 1076-2019.
   - Progress (2026-02-27): added adapted scripts under `tools/` (`split_sections.py`, `txt_to_md_converter.py`, `extract_grammar.py`, `extract_grammar_v2.py`, `create_clean_grammar.py`, `ieee_lrm_converter.py`) and local workspaces under `docs/systemverilog/` and `docs/vhdl/`.
@@ -3488,8 +3488,8 @@ Why `rtl_frontend` exists:
 - 2026-02-27: Extended `sv_stimuli_quality_gate` semantic baseline from preprocess-only checks to contract-driven structural semantic checks (duplicate named-port binding detection + optional structural keyword-balance checks) and bumped `systemverilog_core_v0` contract to version `2`.
 - 2026-02-27: Added dual-LRM conversion tooling/workspaces for IEEE 1800-2023 and IEEE 1076-2019 (`PDF -> section txt -> section md -> grammar extraction`) under `tools/` + `docs/systemverilog`/`docs/vhdl`, with smoke-tested runs against local PDFs.
 - 2026-02-27: Wired HDL frontend readiness into aggregate SOTA policy as informational-first (`run=1`, `strict=0`) with explicit runtime/policy toggles, preserving non-blocking status while `vhdl.ebnf` closure is pending.
-- 2026-02-27: Hardened `systemverilog.ebnf` seed consistency by defining previously unresolved symbols (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed `SV_GRAMMAR_COVERAGE_MATRIX.md` to reflect zero unresolved reference debt.
-- 2026-02-27: Added `SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.
+- 2026-02-27: Hardened `systemverilog.ebnf` seed consistency by defining previously unresolved symbols (`modport_declaration`, `class_item`, `block_item_declaration`, `checker_instantiation`, `kw_assert`) and refreshed `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md` to reflect zero unresolved reference debt.
+- 2026-02-27: Added `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md` to operationalize Phase P syntax-closure tracking with Annex-A-aligned anchors, grouped per-rule status coverage, and explicit unresolved-reference debt for `systemverilog.ebnf`.
 - 2026-02-27: Wired dynamic build-time `systemverilog` parser-registry adapter path (`build.rs` + conditional module/registry entry) and upgraded `sv_stimuli_quality_gate` parse-full stage from adapter-skipped to executable in `auto` mode, with strict mode hard-fail behavior.
 - 2026-02-27: Started Phase Q/P parser-stimuli integration by adding `sv_stimuli_quality_gate` skeleton + initial `systemverilog_core_v0` contract manifest (`preprocess -> semantic baseline -> parse_full(optional)` with explicit stage accounting and auto/strict parse-full policy controls).
 - 2026-02-27: Implemented Phase Q preprocessor execution stage in Rust AST pipeline (`sv_preprocessor` module + `ast_pipeline --preprocess-systemverilog` CLI mode), delivering deterministic include/macro expansion baseline and source-map/event metadata outputs.
@@ -3506,7 +3506,7 @@ Why `rtl_frontend` exists:
 - 2026-02-22: Hardened non-bootstrap named semantic extraction policy: enforce generated parse-tree conversion for backend-validated named directives and keep compatibility fallback only for backend-rejected named payloads; added regression coverage and validated with `annotation_nonbootstrap_e2e_gate`.
 - 2026-02-22: Closed Phase L return typed-AST closure item by adding full generated-pass return corpus parity proof in `UnifiedReturnAST`, and advanced semantic typed-AST closure with a full generated-pass corpus conversion contract test in `UnifiedSemanticAST` (entry/direct parity + canonical reconstruction invariants + comparable bootstrap checks).
 - 2026-02-22: Completed Phase M parseability-promotion closure by adding `builtin_semantic_annotation` parser-registry parseability adapter aligned to builtin semantic parser behavior and promoting builtin semantic parseability to required in the non-annotation grammar-quality contract.
-- 2026-02-22: Completed Phase N documentation closure by expanding `PGEN_USER_GUIDE.md` with in-memory-vs-module usage guidance, concrete embedding/replay command examples, deterministic seed compatibility rules, and publishing dedicated normative stimuli-module contract spec in `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`.
+- 2026-02-22: Completed Phase N documentation closure by expanding `PGEN_USER_GUIDE.md` with in-memory-vs-module usage guidance, concrete embedding/replay command examples, deterministic seed compatibility rules, and publishing dedicated normative stimuli-module contract spec in `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`.
 - 2026-02-22: Closed Phase N parity gate wiring by adding `stimuli_module_parity_gate` (contract-driven in-memory vs module parity checks over samples/coverage/gap), promoting it into aggregate SOTA required-check policy (`rust/config/sota_exit_policy.env` + `rust/scripts/sota_exit_gate.sh`), and retaining parity artifacts under `rust/target/stimuli_module_parity_gate` in CI aggregate uploads.
 - 2026-02-22: Completed Phase N deterministic artifact contract closure by hardening `--generate-stimuli-module` output invariants (stable API version constant, deterministic default seed when omitted, non-optional entry-rule metadata), adding deterministic source regression tests in `ast_pipeline`, and explicitly marking opt-in stimuli-module generation while preserving default in-memory stimuli behavior.
 - 2026-02-21: Started Phase N by adding explicit `ast_pipeline --generate-stimuli-module` mode (JSON and EBNF frontend inputs) that emits Rust module artifacts with embedded generated sample corpus and metadata constants.
@@ -3531,7 +3531,7 @@ Why `rtl_frontend` exists:
 - 2026-02-18: Started Phase E by adding mismatch taxonomy + baseline closure tracking in differential mode and a regression-only gate (`make differential_regression_gate`) backed by tracked baseline snapshots under `rust/test_data/differential_baseline/`.
 - 2026-02-18: Added CI workflow `differential-regression-gate` to enforce `make differential_regression_gate` on PR/main and retain differential report artifacts.
 - 2026-02-18: Published initial comprehensive end-user guide in `PGEN_USER_GUIDE.md` and linked it from `README.md` (living document for onboarding + full feature usage).
-- 2026-02-18: Started Pillar 2 by publishing `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, adding bootstrap contract suites (`builtin_contract.json`), and wiring `make annotation_contract_gate`.
+- 2026-02-18: Started Pillar 2 by publishing `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, adding bootstrap contract suites (`builtin_contract.json`), and wiring `make annotation_contract_gate`.
 - 2026-02-18: Added CI workflow `annotation-contract-gate` to enforce `make annotation_contract_gate` on PR/main.
 - 2026-02-18: Added shared bootstrap/generated contract suites (`normative_shared_contract.json`) and extended `annotation_contract_gate` with `annotation_shared_contract_gate`.
 - 2026-02-18: Added semantic leverage contract coverage (`semantic_usage_*` tests) and wired `semantic_usage_gate` into `annotation_contract_gate`.
@@ -3540,8 +3540,8 @@ Why `rtl_frontend` exists:
 - 2026-02-19: Started Phase H by adding `make ebnf_frontend_readiness` / `make ebnf_frontend_gate` and script-backed reporting of current frontend status across `ebnf/json/regex` grammar flows.
 - 2026-02-19: Hardened Phase F with `make annotation_robustness_gate` (advanced bootstrap/generated annotation suites plus generated parseability+coverage/gap checks) and enforced it inside `annotation_contract_gate`.
 - 2026-02-19: Started Pillar 12/Phase I by adding aggregate `make sota_exit_gate`, script-backed run summaries under `rust/target/sota_exit_gate`, CI workflow `sota-exit-gate`, and refreshed tracked differential baselines so aggregate required checks run with explicit known-drift accounting.
-- 2026-02-19: Completed explicit aggregate release policy enforcement by adding tracked policy config (`rust/config/sota_exit_policy.env`), policy-driven required-check execution in `sota_exit_gate`, and release policy checklist doc (`PGEN_RELEASE_POLICY.md`).
-- 2026-02-19: Started Phase J by publishing semantic steering control matrix (`PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`) and codifying the no-compromise return-annotation completeness contract.
+- 2026-02-19: Completed explicit aggregate release policy enforcement by adding tracked policy config (`rust/config/sota_exit_policy.env`), policy-driven required-check execution in `sota_exit_gate`, and release policy checklist doc (`docs/reference/PGEN_RELEASE_POLICY.md`).
+- 2026-02-19: Started Phase J by publishing semantic steering control matrix (`docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`) and codifying the no-compromise return-annotation completeness contract.
 - 2026-02-19: Refined Phase J with explicit layered built-in-vs-annotation control decision and P0/P1 implementation priorities for semantic steering promotion.
 - 2026-02-19: Completed Phase J P0 directive-registry foundation: added typed semantic directive registry + unknown-directive warn/strict policy with stable diagnostics, and wired directive-aware steering routing in parser codegen and stimuli generation.
 - 2026-02-19: Completed Phase J P0 precedence/associativity steering baseline by adding semantic `priority/precedence` branch tie-break controls and `associativity` tie policy routing in parser codegen and stimuli branch selection.
@@ -3580,7 +3580,7 @@ Why `rtl_frontend` exists:
 - 2026-02-20: Started SC-04 token-class steering baseline by adding typed payload diagnostics (`W_SEM_INVALID_TOKEN_CLASS_PAYLOAD`, `W_SEM_INVALID_CHARSET_PAYLOAD`, `W_SEM_INVALID_PATTERN_PAYLOAD`), deterministic precedence contract warning (`W_SEM_TOKEN_STEERING_PRECEDENCE`), grammar-aware inactive steering warning (`W_SEM_TOKEN_STEERING_WITHOUT_REGEX_ATOM`), and parser/stimuli runtime steering (`@pattern > @charset > @token_class`) with semantic usage gate coverage.
 - 2026-02-20: Promoted SC-04 to Tier-4 by adding a dedicated gate (`sc04_contract_gate`) with explicit semantic token-steering contract slices (`semantic_annotation_sc04_contract`) and differential mismatch taxonomy parity checks, then wiring that gate into `annotation_contract_gate` so existing CI required checks enforce SC-04 contract closure.
 - 2026-02-20: Hardened SC-03 to Tier-4 by adding a dedicated gate (`sc03_contract_gate`) with explicit directive-routing contract slices (`semantic_annotation_sc03_contract`), strict unknown-directive/strict-warning policy checks, transform/literal named-routing coverage, and differential mismatch taxonomy parity checks; gate wired into `annotation_contract_gate` so CI required checks enforce SC-03 routing/strictness closure.
-- 2026-02-20: Added Phase L with a dedicated zero-compromise annotation closure plan (`PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`) targeting full return/semantic grammar support with objective proof gates.
+- 2026-02-20: Added Phase L with a dedicated zero-compromise annotation closure plan (`docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`) targeting full return/semantic grammar support with objective proof gates.
 - 2026-02-20: Strengthened Phase L with explicit annotation proof-doctrine requirements (construct coverage, typed-AST no-fallback, runtime intent conformance, determinism, and parity) as mandatory gate work.
 - 2026-02-20: Implemented `annotation_stimuli_quality_gate` and wired it into `annotation_contract_gate`; gate now enforces a strict deterministic closed-loop for return/semantic annotation grammars (baseline parseability+coverage+gap, gap-priority generation, target-driven generation, and final no-regression gap recompute with stage-level artifact/metric invariants).
 - 2026-02-20: Added Phase M non-annotation quality loop with contract-driven `make ebnf_stimuli_quality_gate` (strict `EBNF -> JSON`, parser generation, and closed-loop stimuli/coverage/gap invariants for tracked non-annotation grammars) and promoted it to required aggregate SOTA policy checks.

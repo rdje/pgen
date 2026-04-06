@@ -14,8 +14,8 @@ Define the current downstream integration contract for PGEN's `semantic_annotati
 - Public host API:
   - `rust/src/embedding_api.rs`
 - Normative semantic/contract docs:
-  - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-  - `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 
 ## Stable Integration Surface
 - Annotation family:
@@ -49,6 +49,6 @@ Define the current downstream integration contract for PGEN's `semantic_annotati
 
 ## Scope / Non-Goals
 - This contract covers parser-family selection, acceptance/rejection, diagnostics, and the current bootstrap/generated host surface.
-- Semantic-runtime meaning, steering leverage, and aggregate proof obligations are governed by `PGEN_ANNOTATION_NORMATIVE_SPEC.md` and `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, not by this file alone.
+- Semantic-runtime meaning, steering leverage, and aggregate proof obligations are governed by `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md` and `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, not by this file alone.
 - `semantic_annotation` does not currently have a separate top-level live-status row; track its maturity through the annotation proof spine and the docs above.
 - When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
