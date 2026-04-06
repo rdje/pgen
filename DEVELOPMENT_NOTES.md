@@ -29214,3 +29214,18 @@ Architectural north star:
     - RGX should continue the compiler-pass implementation for `(?x)` for now
     - parser-level `(?x)` remains architecturally possible in PGEN
     - but it would be a contract/AST-behavior change, not a simple bug fix under the current published regex contract that still preserves `whitespace_literal`
+- 2026-04-06: finished the same statefulness wording cleanup in the generic embedding API contract so the public docs no longer split on this nuance.
+  - remaining doc seam before this wave:
+    - `rust/docs/EMBEDDING_API_CONTRACT.md`
+      - still listed `parse_session_model=stateless_per_call`
+      - but without the new clarification already added to:
+        - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+        - `PGEN_USER_GUIDE.md`
+  - landed wording:
+    - `rust/docs/EMBEDDING_API_CONTRACT.md`
+      - now states that `stateless_per_call` is a host/session invariant only
+      - explicitly calls out that generated parser instances may still carry mutable per-instance parse state (`position`, memoization, recursion guards, semantic runtime) during the call
+      - explicitly tells callers to treat each public parse entrypoint invocation as an independent session
+  - retained result:
+    - the externally visible doc surface is now internally consistent on this point
+    - future RGX/PGEN discussions should not have to infer the distinction from implementation files alone

@@ -9484,3 +9484,15 @@ Use this file to resume work without replaying full chat history.
   - downstream policy retained:
     - RGX should keep the compiler-pass implementation for `(?x)` for now
     - parser-level `(?x)` in PGEN remains an optional future enhancement, not a current bug-fix obligation
+- 2026-04-06: propagated the same statefulness clarification into the generic embedding contract.
+  - touched:
+    - `rust/docs/EMBEDDING_API_CONTRACT.md`
+  - retained wording:
+    - `parse_session_model=stateless_per_call`
+      - is host-session semantics
+      - not a claim that generated parser internals are stateless
+  - current doc parity:
+    - regex contract
+    - user guide
+    - embedding API contract
+    - now all agree on the same distinction

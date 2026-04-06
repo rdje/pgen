@@ -91,6 +91,9 @@ Grammar parser API:
   - includes zero-copy/session invariants:
     - `input_ownership_model=borrowed_str`
     - `parse_session_model=stateless_per_call`
+      - this is a host-API/session guarantee, not a claim that the generated parser implementation is internally stateless
+      - generated parser instances remain stateful during a call and may carry mutable per-instance state such as parse cursor, memoization, recursion guards, and semantic-runtime state
+      - callers should still treat every public parse entrypoint invocation as an independent parse session
     - `zero_copy_input_boundary=true`
   - publishes stable parser diagnostic code set via `stable_diagnostic_codes`.
   - publishes regex downstream contract metadata:

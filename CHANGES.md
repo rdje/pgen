@@ -27918,3 +27918,14 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - this is documentation/contract clarification only
     - it does not widen regex capability and does not change the recommended near-term plan that RGX should continue handling `(?x)` via its compiler pass unless/until PGEN intentionally adopts parser-level free-spacing semantics
+- 2026-04-06: completed the same host-statefulness clarification in the generic embedding API contract so the broader public doc surface now matches the regex-specific wording.
+  - landed wording:
+    - `rust/docs/EMBEDDING_API_CONTRACT.md`
+      - now says `parse_session_model=stateless_per_call` is a host/session guarantee only
+      - explicitly notes that generated parser instances can still hold mutable per-instance parse state during a call
+  - honest current read:
+    - the public doc surface is now aligned across:
+      - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+      - `PGEN_USER_GUIDE.md`
+      - `rust/docs/EMBEDDING_API_CONTRACT.md`
+    - this remains documentation precision only, with no parser or host behavior change
