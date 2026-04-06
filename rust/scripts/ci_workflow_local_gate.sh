@@ -106,6 +106,43 @@ audit_markdown_repo_relative_paths() {
   fi
 }
 
+audit_root_markdown_surface() {
+  local -a expected_root_md=(
+    "CHANGES.md"
+    "COMMIT.md"
+    "DEVELOPMENT_NOTES.md"
+    "LIVE_ACHIEVEMENT_STATUS.md"
+    "MEMORY.md"
+    "PGEN_USER_GUIDE.md"
+    "QUICKSTART_AI_ONBOARDING.md"
+    "README.md"
+    "SESSION_BOOTSTRAP.md"
+  )
+  local -a actual_root_md=()
+  local expected_snapshot
+  local actual_snapshot
+  local line
+
+  note "auditing root markdown allowlist"
+  while IFS= read -r line; do
+    actual_root_md+=("$line")
+  done < <(
+    cd "$ROOT_DIR" &&
+      git ls-files -z |
+      perl -0ne 'for (split /\0/) { print "$_\n" if /\A[^\/]+\.md\z/ }' |
+      sort
+  )
+
+  expected_snapshot="$(printf '%s\n' "${expected_root_md[@]}")"
+  actual_snapshot="$(printf '%s\n' "${actual_root_md[@]}")"
+
+  if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
+    printf 'expected root markdown surface:\n%s\n' "$expected_snapshot" >&2
+    printf 'actual root markdown surface:\n%s\n' "$actual_snapshot" >&2
+    fail "root markdown allowlist drift detected; rehome stale root docs or update the tracked policy deliberately"
+  fi
+}
+
 audit_workflow_surface() {
   local workflow_file
   note "auditing tracked workflow surface"
@@ -2270,6 +2307,7 @@ main() {
   copy_tracked_worktree
   audit_static_include_paths
   audit_markdown_repo_relative_paths
+  audit_root_markdown_surface
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface

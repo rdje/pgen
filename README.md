@@ -218,5 +218,6 @@ Root markdown policy note:
 - stale historical root overview/status/guidance docs have now been removed instead of being kept as dead navigation noise
 - the remaining root markdown set is now the intentionally minimal entrypoint / continuity / active-operator surface, while deep-reference docs like the roadmap, Rust analysis, and regex bootstrap architecture live under `docs/reference/`
 - a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
+- `make -C rust SHELL=/bin/bash ci_workflow_local_gate` now audits the tracked root markdown allowlist so this surface does not silently drift
 
 Read SESSION_BOOTSTRAP.md and start from there.

@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-06 - Add root markdown allowlist audit
+### Achievement Summary
+Completed the follow-up hardening wave for the root markdown cleanup by teaching the local workflow parity gate to audit the tracked repo-root markdown allowlist directly. This turns the cleaned-up root surface into an enforced policy instead of a convention.
+
+### Scope of Changes
+- Added a git-aware root markdown allowlist audit to:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated root policy wording to state that the local workflow parity gate now enforces this surface:
+  - [README.md](README.md)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Documentation-structure impact:
+  - no file moved in this wave
+  - repo-root markdown count stays `9`
+  - future root drift now fails the local parity gate
+- Status impact:
+  - no live-status row changed
+  - this is documentation-policy and workflow-surface hardening only
+
+### Validation
+- `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `9`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - passed with the new `auditing root markdown allowlist` phase in the static checks
+- `git diff --check`
+
 ## 2026-04-06 - Rehome roadmap and Rust analysis under docs/reference
 ### Achievement Summary
 Completed the next root-markdown cleanup wave by moving the two last maintained deep-reference docs out of repo root and into [docs/reference](docs/reference): the active roadmap and the live Rust architecture/state assessment. This leaves repo root focused on entrypoint, continuity, and tool/session-control docs only.

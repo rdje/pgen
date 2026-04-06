@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Root markdown cleanup: enforce the root allowlist in local workflow parity
+### Context
+After the roadmap and Rust analysis rehome, repo root finally reached the intended minimal nine-file markdown surface. The next risk was not misclassification anymore, but silent drift: a later change could reintroduce root markdown clutter without anyone noticing unless a human remembered the policy.
+
+### What Was Changed
+- Added a git-aware `audit_root_markdown_surface()` check to [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh).
+- The audit now compares the tracked repo-root markdown surface against the intentional allowlist:
+  - `README.md`
+  - `SESSION_BOOTSTRAP.md`
+  - `QUICKSTART_AI_ONBOARDING.md`
+  - `PGEN_USER_GUIDE.md`
+  - `CHANGES.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `COMMIT.md`
+- Updated [README.md](README.md) so the root markdown policy note now says the local workflow parity gate enforces the allowlist.
+- Updated continuity docs so this hardening step is restart-safe:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- The root-doc cleanup is now protected by automation instead of relying on memory.
+- Because the check is git-aware, it only audits tracked repo-root markdown and does not care about unrelated local scratch files elsewhere.
+- This is the right “close the loop” step after a large documentation-surface cleanup.
+
+### What Was Verified
+- Repo-root markdown count remains:
+  - `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `9`
+- Local workflow parity now includes the new policy audit and still passes:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat the nine-file repo-root markdown allowlist as the enforced steady-state policy now, not just as guidance.
+- If a future change really needs a new root markdown file, update both:
+  - [README.md](README.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  in the same wave so the policy remains explicit and machine-checked.
+
 ## 2026-04-06 - Root markdown cleanup: rehome roadmap and Rust analysis under docs/reference
 ### Context
 After the regex bootstrap note moved under `docs/reference/`, the only remaining non-control docs still occupying repo-root markdown slots were `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` and `RUST_CODEBASE_ANALYSIS.md`. Both were still active and important, but they had clearly become maintained deep-reference docs rather than operator entrypoints. Keeping them at root was no longer buying enough discoverability to justify the extra root clutter.

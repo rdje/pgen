@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: root-roadmap-analysis-rehome-wave-5)
+Last updated: 2026-04-06 (+0200, task: root-markdown-allowlist-hardening-wave-6)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,26 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained root markdown allowlist hardening wave:
+  - no files moved in this wave
+  - repo-root markdown count remains `9`
+  - important continuity detail:
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now audits the tracked repo-root markdown allowlist directly
+    - the allowed root set is now machine-checked:
+      - `README.md`
+      - `SESSION_BOOTSTRAP.md`
+      - `QUICKSTART_AI_ONBOARDING.md`
+      - `PGEN_USER_GUIDE.md`
+      - `CHANGES.md`
+      - `DEVELOPMENT_NOTES.md`
+      - `MEMORY.md`
+      - `LIVE_ACHIEVEMENT_STATUS.md`
+      - `COMMIT.md`
+    - future root markdown changes should update the allowlist and README in the same commit
+  - retained verification target:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up for the docs cleanup track:
+    - none urgent; the root surface is now both slim and enforced
 - Retained root deep-reference rehome wave:
   - moved out of repo root:
     - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
