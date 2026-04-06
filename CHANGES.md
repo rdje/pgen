@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-04-06 - Release regex 1.1.5 for tagged embedded code blocks
+### Achievement Summary
+Closed RGX bug `PGEN-RGX-0008` against the published regex handoff. Language-tagged code blocks such as `(?{lua:return true})` now transport as real tagged blocks in the generated regex parser instead of being shadowed by the plain opaque code-block branch, and the published tagged surface now includes `rhai`, `native`, and `wasm`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - reordered `code_block` so `code_block_lang` is tried before `code_block_plain`
+  - widened `code_lang` to include `rhai`, `native`, and `wasm`
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - added AST regressions for tagged code-block classification and plain-vs-tagged separation
+  - widened the regex integration manifest expectation from `16` to `21` success samples
+  - bumped published regex contract/release constants to `1.1.5`
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - added plain/lua/rhai/native/wasm embedded-code success samples
+- Updated [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json):
+  - widened the contract corpus to cover tagged `lua`, `js`, `javascript`, `rhai`, `native`, and `wasm` forms
+  - added required/forbidden AST rule expectations so the gate now checks tagged-vs-plain classification, not only parse success
+- Updated [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh):
+  - added optional AST-shape assertions over `parseability_probe --parse-dump-ast-pretty`
+- Updated generated regex artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated published regex release surfaces and bug ledger:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - `regex` stays `Done`; this is a downstream maintenance release, not a family-status promotion
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_language_tagged_code_blocks --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_preserves_plain_code_blocks_as_plain --lib`
+- `make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+- `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0008/repro_input.txt /tmp/pgen_rgx_0008.fixed_ast.json --profile regex_default`
+
 ## 2026-04-06 - Release regex 1.1.4 for numeric angle subroutine refs
 ### Achievement Summary
 Closed RGX bug `PGEN-RGX-0007` against the published regex handoff. Numeric angle subroutine references such as `\g<1>` now transport as a real regex `backreference` containing `subroutine_ref` / `signed_digits` in the generated regex parser instead of degrading into `simple_escape("g")` plus literal `<`, `1`, `>`.

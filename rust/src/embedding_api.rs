@@ -18,10 +18,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.4";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.5";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.4";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.5";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2077,7 +2077,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 16);
+        assert_eq!(manifest.success_samples.len(), 21);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2097,6 +2097,30 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "numeric_angle_subroutine_ref")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "lua_embedded_code_block")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "rhai_embedded_code_block")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "native_embedded_code_block")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "wasm_embedded_code_block")
         );
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
         assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
@@ -2604,6 +2628,59 @@ mod tests {
         assert!(
             regex_rule_spans(&parsed, "literal").is_empty(),
             "numeric angle subroutine ref must not spill into literal atoms"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_classifies_language_tagged_code_blocks() {
+        for (tag, input) in [
+            ("lua", "(?{lua:return true})"),
+            ("js", "(?{js:return true;})"),
+            ("javascript", "(?{javascript:return true;})"),
+            ("rhai", "(?{rhai:let x = 1;})"),
+            ("native", "(?{native:callback_name})"),
+            ("wasm", "(?{wasm:module:function})"),
+        ] {
+            let parsed = regex_ast_dump_json(input);
+
+            assert_eq!(
+                regex_rule_spans(&parsed, "code_block_lang"),
+                vec![(0, input.len() as u64)],
+                "tagged code block '{}' must classify as code_block_lang",
+                input
+            );
+            assert_eq!(
+                regex_rule_spans(&parsed, "code_lang"),
+                vec![(3, (3 + tag.len()) as u64)],
+                "tagged code block '{}' must preserve the language tag span",
+                input
+            );
+            assert!(
+                regex_rule_spans(&parsed, "code_block_plain").is_empty(),
+                "tagged code block '{}' must not degrade into code_block_plain",
+                input
+            );
+        }
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_preserves_plain_code_blocks_as_plain() {
+        let input = "(?{payload})";
+        let parsed = regex_ast_dump_json(input);
+
+        assert_eq!(
+            regex_rule_spans(&parsed, "code_block_plain"),
+            vec![(0, input.len() as u64)]
+        );
+        assert!(
+            regex_rule_spans(&parsed, "code_block_lang").is_empty(),
+            "plain code blocks must not be misclassified as code_block_lang"
+        );
+        assert!(
+            regex_rule_spans(&parsed, "code_lang").is_empty(),
+            "plain code blocks must not synthesize a language tag"
         );
     }
 

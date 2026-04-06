@@ -9151,6 +9151,29 @@ Use this file to resume work without replaying full chat history.
       - `signed_digits 3..4`
       - no `escape`
       - no `literal`
+- 2026-04-06: regex downstream handoff `1.1.5` closes RGX issue `PGEN-RGX-0008`.
+  - fixed behavior:
+    - tagged code blocks such as `(?{lua:return true})` now transport as `code_block_lang` plus `code_lang`
+    - plain `(?{payload})` remains `code_block_plain`
+    - published tagged code-block support now includes `rhai`, `native`, and `wasm`
+  - landed files:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json)
+    - [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh)
+    - published regex release/docs surfaces now pin `1.1.5`
+  - retained proof:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_language_tagged_code_blocks --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_preserves_plain_code_blocks_as_plain --lib`
+    - `make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `/tmp/pgen_rgx_0008.fixed_ast.json` shows:
+      - `code_block_lang 0..20`
+      - `code_lang 3..6`
+      - no `code_block_plain`
 - 2026-04-06: the retained SV/UVM trace frontier moved forward again, but only modestly.
   - landed grammar tightening:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

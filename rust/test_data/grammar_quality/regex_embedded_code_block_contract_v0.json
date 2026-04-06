@@ -9,6 +9,8 @@
       "description": "Untagged code block is accepted as opaque generic payload.",
       "input": "(?{payload})",
       "expect_parse": true,
+      "required_rule_names": ["code_block_plain"],
+      "forbidden_rule_names": ["code_block_lang", "code_lang"],
       "tags": ["plain", "opaque-generic", "success"]
     },
     {
@@ -16,20 +18,62 @@
       "description": "Lua-tagged code block is accepted as opaque source-body payload.",
       "input": "(?{lua:return x + 1})",
       "expect_parse": true,
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"],
       "tags": ["lua", "opaque-source-body", "success"]
+    },
+    {
+      "name": "js_source_body_payload",
+      "description": "The js alias is accepted as a tagged source-body payload.",
+      "input": "(?{js:return x + 1;})",
+      "expect_parse": true,
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"],
+      "tags": ["js", "alias", "opaque-source-body", "success"]
     },
     {
       "name": "javascript_alias_source_body_payload",
       "description": "The javascript alias is accepted alongside js.",
       "input": "(?{javascript:return x + 1;})",
       "expect_parse": true,
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"],
       "tags": ["javascript", "alias", "opaque-source-body", "success"]
+    },
+    {
+      "name": "rhai_source_body_payload",
+      "description": "Rhai-tagged code block is accepted as a tagged source-body payload.",
+      "input": "(?{rhai:let x = 1;})",
+      "expect_parse": true,
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"],
+      "tags": ["rhai", "opaque-source-body", "success"]
+    },
+    {
+      "name": "native_reference_payload",
+      "description": "Native-tagged code block is accepted as a tagged reference-style payload.",
+      "input": "(?{native:callback_name})",
+      "expect_parse": true,
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"],
+      "tags": ["native", "reference-style", "success"]
+    },
+    {
+      "name": "wasm_reference_payload",
+      "description": "Wasm-tagged code block is accepted as a tagged reference-style payload.",
+      "input": "(?{wasm:module:function})",
+      "expect_parse": true,
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"],
+      "tags": ["wasm", "reference-style", "success"]
     },
     {
       "name": "balanced_braces_inside_opaque_payload",
       "description": "Balanced nested braces are preserved structurally inside opaque payloads.",
       "input": "(?{{ nested { braces } }})",
       "expect_parse": true,
+      "required_rule_names": ["code_block_plain"],
+      "forbidden_rule_names": ["code_block_lang", "code_lang"],
       "tags": ["plain", "balanced-braces", "success"]
     },
     {
@@ -37,6 +81,8 @@
       "description": "Double-quoted strings shield close braces structurally inside opaque payloads.",
       "input": "(?{\"} close brace inside double quotes\"})",
       "expect_parse": true,
+      "required_rule_names": ["code_block_plain"],
+      "forbidden_rule_names": ["code_block_lang", "code_lang"],
       "tags": ["plain", "double-quoted-string", "brace-shielding", "success"]
     },
     {
@@ -44,6 +90,8 @@
       "description": "Single-quoted strings shield close braces structurally inside opaque payloads.",
       "input": "(?{'} close brace inside single quotes'})",
       "expect_parse": true,
+      "required_rule_names": ["code_block_plain"],
+      "forbidden_rule_names": ["code_block_lang", "code_lang"],
       "tags": ["plain", "single-quoted-string", "brace-shielding", "success"]
     },
     {

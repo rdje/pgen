@@ -3696,9 +3696,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.4`
+  - `1.1.5`
 - integration contract version:
-  - `1.1.4`
+  - `1.1.5`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3809,6 +3809,9 @@ Accepted syntax families in the current published flavor:
   - language-tagged `(?{lua: ...})`
   - language-tagged `(?{js: ...})`
   - language-tagged `(?{javascript: ...})`
+  - language-tagged `(?{rhai: ...})`
+  - language-tagged `(?{native: ...})`
+  - language-tagged `(?{wasm: ...})`
 
 Representative accepted examples:
 - ``
@@ -3832,19 +3835,23 @@ Representative accepted examples:
 - `(?>ab|cd)`
 - `(?=abc)abc`
 - `(?{lua: return x + 1})`
+- `(?{rhai: let x = 1;})`
+- `(?{native:callback_name})`
+- `(?{wasm:module:function})`
 - `(?{javascript:return x + 1;})`
 
 Regex code-block handling:
 - embedded code blocks are parsed structurally
 - plain `(?{...})` is preserved as opaque generic payload
-- language tags `lua`, `js`, and `javascript` are preserved as opaque source-body payloads
+- language tags `lua`, `js`, `javascript`, and `rhai` are preserved as opaque source-body payloads
+- language tags `native` and `wasm` are preserved as tagged opaque/reference-style payloads
 - balanced braces inside code blocks are handled explicitly
 - double-quoted and single-quoted strings inside code blocks are handled explicitly
 - escaped characters inside code blocks are handled explicitly
 - this parser contract is about acceptance, AST transport, and diagnostics
-- this parser contract does not yet claim arbitrary valid Lua or JavaScript payload acceptance beyond those published structural forms
+- this parser contract does not yet claim arbitrary valid Lua, JavaScript, or Rhai payload acceptance beyond those published structural forms
 - JavaScript comment/template-literal shielding and Lua long-bracket shielding are the next explicit parser-layer follow-up, not a current published guarantee
-- this parser contract does not yet publish `native` or `wasm` tagged code blocks
+- this parser contract does not validate `native` or `wasm` reference payload formats on its own
 - it is not a promise about runtime execution semantics for those code blocks
 - dedicated structural proof for this slice lives at:
   - `make -C rust regex_embedded_code_block_contract_gate`
@@ -3867,7 +3874,9 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.4` specifically fixes one more accepted-tree transport bug while keeping that JSON schema version stable:
+- parser release `1.1.5` specifically fixes one more accepted-tree transport bug and widens tagged code-block support while keeping that JSON schema version stable:
+  - `(?{lua:return true})` now appears as `code_block_lang` plus `code_lang`, not `code_block_plain`
+  - `(?{rhai:...})`, `(?{native:...})`, and `(?{wasm:...})` are now accepted through the tagged code-block surface
   - `\g<1>` now appears as outer `backreference` plus inner `subroutine_ref` / `signed_digits`, not `simple_escape("g")` plus literal `<`, `1`, `>`
   - `\o{101}` now appears as outer `escape` plus inner `octal_escape` / `octal_digits`, not `simple_escape` plus counted `quantifier`
   - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`
@@ -3945,8 +3954,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.4`
-  - integration contract version `1.1.4`
+  - parser release version `1.1.5`
+  - integration contract version `1.1.5`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

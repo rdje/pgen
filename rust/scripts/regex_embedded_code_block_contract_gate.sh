@@ -85,6 +85,10 @@ jq -e '
         and (.input | type) == "string"
         and (.expect_parse | type) == "boolean"
         and ((.tags // []) | type) == "array"
+        and ((.required_rule_names // []) | type) == "array"
+        and ((.forbidden_rule_names // []) | type) == "array"
+        and all((.required_rule_names // [])[]; (type == "string") and (length > 0))
+        and all((.forbidden_rule_names // [])[]; (type == "string") and (length > 0))
     )
 ' "$MANIFEST_FILE" >/dev/null
 
@@ -119,6 +123,8 @@ for case_json in "${case_rows[@]}"; do
     case_input="$(jq -er '.input | strings' <<<"$case_json")"
     case_expect_parse="$(jq -r '.expect_parse' <<<"$case_json")"
     case_tags_json="$(jq -c '(.tags // [])' <<<"$case_json")"
+    case_required_rule_names_json="$(jq -c '(.required_rule_names // [])' <<<"$case_json")"
+    case_forbidden_rule_names_json="$(jq -c '(.forbidden_rule_names // [])' <<<"$case_json")"
 
     if [[ "$case_expect_parse" == "true" ]]; then
         expected_pass_total=$((expected_pass_total + 1))
@@ -167,11 +173,67 @@ for case_json in "${case_rows[@]}"; do
     status_matches=true
     if [[ "$expected_status" != "$observed_status" ]]; then
         status_matches=false
+    fi
+
+    ast_contract_matches=true
+    ast_contract_detail=""
+    ast_dump_file=""
+    ast_dump_log=""
+
+    required_rule_count="$(jq -r 'length' <<<"$case_required_rule_names_json")"
+    forbidden_rule_count="$(jq -r 'length' <<<"$case_forbidden_rule_names_json")"
+
+    if [[ "$observed_status" == "pass" ]] && (( required_rule_count > 0 || forbidden_rule_count > 0 )); then
+        ast_dump_file="$WORK_DIR/${case_name_key}.ast.json"
+        ast_label="case_${case_name_key}_ast_dump"
+        ast_dump_log="$LOG_DIR/${ast_label}.log"
+        set +e
+        run_optional_logged "$ast_label" \
+            "$PARSE_PROBE_BIN" --parse-dump-ast-pretty "$expected_parser_type" "$case_input_file" "$ast_dump_file" --profile "$expected_profile"
+        ast_rc=$?
+        set -e
+
+        if (( ast_rc != 0 )); then
+            ast_contract_matches=false
+            ast_contract_detail="ast dump generation failed"
+        else
+            missing_required_rules="$(
+                jq -r --argjson required "$case_required_rule_names_json" '
+                    def rule_names: [.. | objects | .rule_name? // empty];
+                    (rule_names) as $rules
+                    | [$required[]? as $rule | select(($rules | index($rule)) == null) | $rule]
+                    | join(",")
+                ' "$ast_dump_file"
+            )"
+            present_forbidden_rules="$(
+                jq -r --argjson forbidden "$case_forbidden_rule_names_json" '
+                    def rule_names: [.. | objects | .rule_name? // empty];
+                    (rule_names) as $rules
+                    | [$forbidden[]? as $rule | select(($rules | index($rule)) != null) | $rule]
+                    | join(",")
+                ' "$ast_dump_file"
+            )"
+
+            if [[ -n "$missing_required_rules" || -n "$present_forbidden_rules" ]]; then
+                ast_contract_matches=false
+                ast_contract_detail="missing_required_rules=${missing_required_rules:-<none>}; present_forbidden_rules=${present_forbidden_rules:-<none>}"
+            fi
+        fi
+    fi
+
+    case_matches=true
+    if [[ "$status_matches" != "true" || "$ast_contract_matches" != "true" ]]; then
+        case_matches=false
         mismatched_cases_total=$((mismatched_cases_total + 1))
         if [[ "$primary_mismatch_case" == "<none>" ]]; then
             primary_mismatch_case="$case_name"
-            primary_mismatch_expected="$expected_status"
-            primary_mismatch_observed="$observed_status"
+            if [[ "$status_matches" != "true" ]]; then
+                primary_mismatch_expected="$expected_status"
+                primary_mismatch_observed="$observed_status"
+            else
+                primary_mismatch_expected="ast_contract"
+                primary_mismatch_observed="$ast_contract_detail"
+            fi
         fi
     fi
 
@@ -185,9 +247,16 @@ for case_json in "${case_rows[@]}"; do
         --arg expected_status "$expected_status" \
         --arg observed_status "$observed_status" \
         --argjson status_matches "$status_matches" \
+        --argjson required_rule_names "$case_required_rule_names_json" \
+        --argjson forbidden_rule_names "$case_forbidden_rule_names_json" \
+        --argjson ast_contract_matches "$ast_contract_matches" \
+        --arg ast_contract_detail "$ast_contract_detail" \
+        --argjson case_matches "$case_matches" \
         --arg parser_error "$parser_error" \
         --arg input_file "$case_input_file" \
         --arg parse_log "$case_log" \
+        --arg ast_dump_file "$ast_dump_file" \
+        --arg ast_dump_log "$ast_dump_log" \
         '{
             name: $name,
             description: $description,
@@ -196,9 +265,16 @@ for case_json in "${case_rows[@]}"; do
             expected_status: $expected_status,
             observed_status: $observed_status,
             status_matches: $status_matches,
+            required_rule_names: $required_rule_names,
+            forbidden_rule_names: $forbidden_rule_names,
+            ast_contract_matches: $ast_contract_matches,
+            ast_contract_detail: (if $ast_contract_detail == "" then null else $ast_contract_detail end),
+            case_matches: $case_matches,
             parser_error: (if $parser_error == "" then null else $parser_error end),
             input_file: $input_file,
-            parse_log: $parse_log
+            parse_log: $parse_log,
+            ast_dump_file: (if $ast_dump_file == "" then null else $ast_dump_file end),
+            ast_dump_log: (if $ast_dump_log == "" then null else $ast_dump_log end)
         }' >>"$CASE_RESULTS_JSONL"
 done
 
@@ -267,7 +343,7 @@ jq -n \
     }' >"$SUMMARY_JSON"
 
 if (( mismatched_cases_total > 0 )); then
-    jq -c 'select(.status_matches == false)' "$CASE_RESULTS_JSONL" >&2 || true
+    jq -c 'select(.case_matches == false)' "$CASE_RESULTS_JSONL" >&2 || true
     exit 1
 fi
 

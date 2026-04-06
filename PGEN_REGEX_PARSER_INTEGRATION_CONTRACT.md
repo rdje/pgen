@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.4`
+  - `1.1.5`
 - Parser release version:
-  - `1.1.4`
+  - `1.1.5`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -28,28 +28,35 @@ This is the document downstream projects such as RGX should read first when deci
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
 
-## Release 1.1.4 Highlights
-- `1.1.4` is a targeted accepted-tree correctness maintenance patch over the `1.1.3` downstream handoff.
-- The headline change in `1.1.4` is closing RGX issue `PGEN-RGX-0007` on numeric angle-bracket subroutine references.
-- `1.1.4` fixes one real RGX-reported accepted-tree classification bug in the generated backend:
+## Release 1.1.5 Highlights
+- `1.1.5` is a targeted accepted-tree correctness and tagged-syntax widening patch over the `1.1.4` downstream handoff.
+- The headline change in `1.1.5` is closing RGX issue `PGEN-RGX-0008` on language-tagged embedded code blocks.
+- `1.1.5` fixes one real RGX-reported accepted-tree classification bug in the generated backend:
+  - tagged payloads such as `(?{lua:return true})` now transport as `code_block_lang` containing `code_lang` and `code_content` instead of being shadowed by `code_block_plain`
+- `1.1.5` also widens the published tagged code-block surface:
+  - `rhai` is now published alongside `lua`, `js`, and `javascript` as a structurally preserved tagged source-body form
+  - `native` and `wasm` are now published as structurally preserved tagged payload forms, while runtime/reference validation remains downstream-owned
+- `1.1.5` also strengthens the upstream regression surface:
+  - the dedicated embedded-code contract gate now checks tagged-vs-plain AST classification instead of only parse success
+- `1.1.5` carries forward the `1.1.4` accepted-tree fix:
   - numeric angle forms such as `\g<1>` now transport as `backreference` containing `subroutine_ref` / `signed_digits` instead of `simple_escape("g")` plus literal `<`, `1`, `>`
-- `1.1.4` carries forward the `1.1.3` accepted-tree and host-validation fixes:
+- `1.1.5` carries forward the `1.1.3` accepted-tree and host-validation fixes:
   - braced octal escapes such as `\o{101}` now transport as `escape` containing `octal_escape` / `octal_digits` instead of `simple_escape` plus counted quantifier
   - brace-style numeric escapes are skipped atomically during post-parse validation, so they are no longer re-read as counted quantifiers
-- `1.1.4` carries forward the `1.1.2` syntax unblock:
+- `1.1.5` carries forward the `1.1.2` syntax unblock:
   - named recursion conditions such as `(?(R&word)a|b)` now parse and transport as `conditional` plus `recursion_condition`
-- `1.1.4` also carries forward the `1.1.1` accepted-tree correctness fixes:
+- `1.1.5` also carries forward the `1.1.1` accepted-tree correctness fixes:
   - whole-pattern recursion `(?R)` now classifies as `subroutine_call` / `subroutine_target` instead of `inline_modifiers`
   - numeric backreferences such as `\1` now classify as `backreference` instead of generic `escape`
   - explicit conditional false branches such as `(?(1)a|b)` now preserve separate `yes_branch` and `no_branch` spans
   - trailing quantifiers now bind to the final literal atom instead of an entire preceding literal run, so `ab+` now transports as `a` plus `b+`, not `(ab)+`-style grouping
-- `1.1.4` also carries forward the `1.1.0` published syntax coverage:
+- `1.1.5` also carries forward the `1.1.0` published syntax coverage:
   - negated POSIX classes such as `[[:^alnum:]]`
   - braced named backreferences such as `\k{name}`
   - bare-name and signed numeric conditional references
   - named recursion conditions such as `R&name` inside conditionals
   - left-open counted quantifiers such as `{,4}` and comma-only counted form `{,}`
-- The generated regex host path in `1.1.4` also continues to enforce the compile-style validation contract added in `1.1.0`, so obvious compile-invalid forms no longer slip through as successful parses.
+- The generated regex host path in `1.1.5` also continues to enforce the compile-style validation contract added in `1.1.0`, so obvious compile-invalid forms no longer slip through as successful parses.
 - The release is additionally backed by the maintained PCRE2 compile-oracle lane documented in `PGEN_USER_GUIDE.md`.
 
 ## Supporting Documents
@@ -177,7 +184,9 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
-- Parser release `1.1.4` specifically fixes one more accepted-tree transport bug while keeping this JSON schema version stable:
+- Parser release `1.1.5` specifically fixes one more accepted-tree transport bug and widens tagged code-block transport while keeping this JSON schema version stable:
+  - `(?{lua:return true})` now transports as `code_block_lang` plus `code_lang`, not `code_block_plain`
+  - `(?{rhai:...})`, `(?{native:...})`, and `(?{wasm:...})` are now accepted through the same tagged code-block structure
   - `\g<1>` now transports as outer `backreference` plus inner `subroutine_ref` / `signed_digits`, not `simple_escape("g")` plus literal `<`, `1`, `>`
   - `\o{101}` now transports as outer `escape` plus inner `octal_escape` / `octal_digits`, not `simple_escape` plus counted `quantifier`
   - `(?R)` now transports as `subroutine_call`
@@ -230,7 +239,8 @@ This is the document downstream projects such as RGX should read first when deci
   - embedded code-block syntax such as `(?{...})` and language-tagged variants
 - Embedded code-block parser-layer contract:
   - plain `(?{...})` is preserved as opaque generic payload
-  - `lua`, `js`, and `javascript` payloads are preserved as opaque source-body payloads
+  - `lua`, `js`, `javascript`, and `rhai` payloads are preserved as opaque source-body payloads
+  - `native` and `wasm` payloads are preserved as tagged opaque/reference-style payloads
   - parser-layer structural handling currently guarantees:
     - balanced braces
     - single-quoted strings
@@ -251,15 +261,19 @@ This is the document downstream projects such as RGX should read first when deci
   - `ab+`
   - `\o{101}`
   - `\g<1>`
+  - `(?{lua:return true})`
+  - `(?{rhai:let x = 1;})`
+  - `(?{native:callback_name})`
+  - `(?{wasm:module:function})`
   - `(?R)`
   - `(a)\1`
   - `(?(1)a|b)`
   - `(?<A>foo)-\k{A}`
 - The current parser contract does not promise:
   - slash-delimited host literal parsing such as `/pattern/flags` as a dedicated wrapper syntax
-  - arbitrary valid Lua or JavaScript source acceptance beyond the structural forms listed above
+  - arbitrary valid Lua, JavaScript, or Rhai source acceptance beyond the structural forms listed above
   - JavaScript comment/template-literal shielding or Lua long-bracket shielding as part of the current published parser contract
-  - `native` or `wasm` tagged code blocks as part of the current published parser contract
+  - parser-owned validation of `native` / `wasm` reference payload formats
   - runtime execution semantics for embedded code blocks
   - semantic equivalence with every regex engine on earth
   - a stable typed Rust AST API beyond the JSON schema described above
@@ -329,7 +343,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.4");
+assert_eq!(contract.regex_parser_release_version, "1.1.5");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```
@@ -351,7 +365,7 @@ parse_regex_default_result(r"https?://[^\s]+")?;
 ## What This Does Not Promise
 - It does not promise stable internal generated parser types.
 - It does not promise runtime execution semantics for embedded code blocks such as `(?{...})`.
-- It does not promise arbitrary valid Lua/JavaScript payload acceptance beyond the explicitly published structural forms.
-- It does not promise `native` or `wasm` tagged embedded code blocks as part of the current published syntax.
+- It does not promise arbitrary valid Lua/JavaScript/Rhai payload acceptance beyond the explicitly published structural forms.
+- It does not promise parser-owned validation of `native` / `wasm` reference payload formats.
 - It does not promise every regex dialect already supported elsewhere in the ecosystem.
 - It does not promise that downstream consumers can ignore parser release versioning when depending on AST details.

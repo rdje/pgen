@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.4",
-  "parser_release_version": "1.1.4",
+  "integration_contract_version": "1.1.5",
+  "parser_release_version": "1.1.5",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -76,6 +76,26 @@
     {
       "name": "literal_quantifier_binding",
       "input": "ab+"
+    },
+    {
+      "name": "plain_embedded_code_block",
+      "input": "(?{payload})"
+    },
+    {
+      "name": "lua_embedded_code_block",
+      "input": "(?{lua:return x + 1})"
+    },
+    {
+      "name": "rhai_embedded_code_block",
+      "input": "(?{rhai:let x = 1;})"
+    },
+    {
+      "name": "native_embedded_code_block",
+      "input": "(?{native:callback_name})"
+    },
+    {
+      "name": "wasm_embedded_code_block",
+      "input": "(?{wasm:module:function})"
     },
     {
       "name": "javascript_embedded_code_block",

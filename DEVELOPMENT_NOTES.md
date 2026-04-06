@@ -28717,6 +28717,48 @@ Architectural north star:
   - live-status impact:
     - none
     - `regex` stays `Done`; this is a downstream maintenance patch, not a closure-status change
+- 2026-04-06: closed RGX regex report `PGEN-RGX-0008` and strengthened the upstream embedded-code regression surface.
+  - report summary:
+    - language-tagged code blocks such as `(?{lua:return true})` were being accepted but always misclassified as `code_block_plain`
+    - `code_lang` also omitted `rhai`, `native`, and `wasm`
+  - root cause:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+      - `code_block` tried `code_block_plain` before `code_block_lang`, so PEG ordering shadowed the tagged branch
+      - `code_lang` listed only `lua`, `js`, and `javascript`
+  - landed fix:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+      - reordered `code_block = code_block_lang | code_block_plain`
+      - widened `code_lang` to `lua | js | javascript | rhai | native | wasm`
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+      - bumped published regex release / integration contract to `1.1.5`
+      - added `regex_parser_integration_contract_classifies_language_tagged_code_blocks`
+      - added `regex_parser_integration_contract_preserves_plain_code_blocks_as_plain`
+      - raised the declared success-sample manifest count from `16` to `21`
+    - [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json)
+      - widened the contract corpus to cover tagged `lua`, `js`, `javascript`, `rhai`, `native`, and `wasm`
+      - added required/forbidden AST rule expectations per case
+    - [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh)
+      - upgraded the gate from pure pass/fail checking to AST rule-shape checking through `parseability_probe --parse-dump-ast-pretty`
+    - regeneration:
+      - [generated/regex.json](generated/regex.json)
+      - [generated/regex_parser.rs](generated/regex_parser.rs)
+  - focused proof:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_language_tagged_code_blocks --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_preserves_plain_code_blocks_as_plain --lib`
+    - `make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0008/repro_input.txt /tmp/pgen_rgx_0008.fixed_ast.json --profile regex_default`
+    - retained AST proof should now show:
+      - `code_block_lang` span `0..20`
+      - `code_lang` span `3..6`
+      - no `code_block_plain`
+  - release/docs result:
+    - published regex handoff is now `1.1.5`
+    - released-bug ledger row added:
+      - `REGEX-0008`
+  - live-status impact:
+    - none
+    - `regex` stays `Done`; this is a downstream maintenance patch, not a closure-status change
 - 2026-04-06: kept a narrow trace-guided SV/UVM grammar cleanup after proving it safe through the scratch-parser loop.
   - preserved starting point:
     - resumed from the committed `after10` semantics and the same later-UVM hotspot at:
