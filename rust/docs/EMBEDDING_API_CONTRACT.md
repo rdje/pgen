@@ -144,7 +144,7 @@ Grammar parser API:
 - Family-specific AST schema promises are defined in the matching family integration contract.
   - For regex specifically:
     - schema version is exposed as `parser_embedding_api_contract().regex_ast_dump_schema_version`
-    - the stable schema definition lives in `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+    - the stable schema definition lives in `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 
 ## Grammar Profile Contract (Host-Oriented)
 - Stable profile-aware parser entry points exist for host integration:

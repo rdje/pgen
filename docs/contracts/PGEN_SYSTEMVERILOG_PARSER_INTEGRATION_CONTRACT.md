@@ -1,4 +1,4 @@
-# PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md
+# docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md
 
 ## Purpose
 Define the current downstream integration contract for PGEN's main `systemverilog` parser family.
@@ -57,4 +57,4 @@ Define the current downstream integration contract for PGEN's main `systemverilo
 - The stable contract is the host-oriented embedding surface in `pgen::embedding_api`, not internal generated parser types.
 - Internal AST node types are not the downstream contract.
 - The current tracked sign-off bar is Nexsim-facing SystemVerilog parsing, not an open-ended promise for every imaginable SystemVerilog dialect or tool ecosystem.
-- When reporting downstream bugs, follow `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+- When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.

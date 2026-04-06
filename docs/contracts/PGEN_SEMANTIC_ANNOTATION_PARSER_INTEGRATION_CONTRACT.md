@@ -1,4 +1,4 @@
-# PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md
+# docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md
 
 ## Purpose
 Define the current downstream integration contract for PGEN's `semantic_annotation` parser family.
@@ -51,4 +51,4 @@ Define the current downstream integration contract for PGEN's `semantic_annotati
 - This contract covers parser-family selection, acceptance/rejection, diagnostics, and the current bootstrap/generated host surface.
 - Semantic-runtime meaning, steering leverage, and aggregate proof obligations are governed by `PGEN_ANNOTATION_NORMATIVE_SPEC.md` and `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, not by this file alone.
 - `semantic_annotation` does not currently have a separate top-level live-status row; track its maturity through the annotation proof spine and the docs above.
-- When reporting downstream bugs, follow `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+- When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.

@@ -3596,9 +3596,9 @@ Stable module:
 
 Contract docs:
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
-- `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
-- `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
-- `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+- `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+- `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
 
 Local check:
@@ -3666,9 +3666,9 @@ Host-oriented convenience AST dump entry points:
 Operator note:
 - the public embedding API now exposes regex through `regex_default`, even though `nexsim_parser_embedding_contract_gate` remains SV/VHDL-specific.
 - downstream projects should start from the root parser-family integration docs rather than only the generic embedding contract:
-  - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
-  - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
-  - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+  - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+  - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 
 Deterministic integration behavior:
 - grammar/profile mismatch returns `E_UNSUPPORTED_PROFILE`.
@@ -3909,13 +3909,13 @@ Current non-promises and boundaries:
 - downstream AST consumers should pin parser release version and rerun their own AST compatibility corpus on upgrade
 
 Downstream operational recommendation:
-- if another project needs the regex parser, start with `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+- if another project needs the regex parser, start with `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - use `parser_embedding_api_contract()` at startup to record:
   - `supports_regex_generated_backend`
   - `regex_parser_release_version`
   - `regex_integration_contract_version`
   - `regex_ast_dump_schema_version`
-- if something misbehaves, collect the structured outcome, AST dump when relevant, and trace bundle described in `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+- if something misbehaves, collect the structured outcome, AST dump when relevant, and trace bundle described in `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 
 ### Regex External Corpus Hardening
 

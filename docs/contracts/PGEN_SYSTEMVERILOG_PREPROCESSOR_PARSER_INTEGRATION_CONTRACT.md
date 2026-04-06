@@ -1,4 +1,4 @@
-# PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md
+# docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md
 
 ## Purpose
 Define the current downstream integration contract for PGEN's `systemverilog_preprocessor` frontend/parsing stage.
@@ -35,4 +35,4 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 ## Scope / Non-Goals
 - This document is intentionally explicit that `systemverilog_preprocessor` does not yet have the same published host-embedding shape as `systemverilog`, `vhdl`, or `regex`.
 - Downstream consumers should not couple themselves to internal generated parser modules as if they were already a stable public API.
-- If a downstream integrator still reports a reproducible preprocessor/runtime bug, use `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and log accepted released-parser issues in `PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+- If a downstream integrator still reports a reproducible preprocessor/runtime bug, use `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and log accepted released-parser issues in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.

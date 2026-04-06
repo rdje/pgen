@@ -1,4 +1,4 @@
-# PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md
+# docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md
 
 ## Purpose
 Define the current downstream integration contract for PGEN's `vhdl` parser family.
@@ -52,4 +52,4 @@ Define the current downstream integration contract for PGEN's `vhdl` parser fami
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
 - `vhdl` is still an `In Progress` family in the live tracker, so downstream integrators should treat the embedding surface as real but still pay attention to the current live blocker list in `LIVE_ACHIEVEMENT_STATUS.md`.
-- When reporting downstream bugs, follow `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+- When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.

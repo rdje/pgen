@@ -201,15 +201,15 @@ audit_embedding_api_surface() {
   assert_tracked "generated/regex_parser.rs"
   assert_tracked "rust/src/embedding_api.rs"
   assert_tracked "rust/docs/EMBEDDING_API_CONTRACT.md"
-  assert_tracked "PGEN_PARSER_INTEGRATION_CONTRACTS.md"
-  assert_tracked "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md"
-  assert_tracked "PGEN_RELEASED_PARSER_BUG_LEDGER.md"
-  assert_tracked "PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md"
-  assert_tracked "PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"
-  assert_tracked "PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md"
-  assert_tracked "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md"
-  assert_tracked "PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
-  assert_tracked "PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md"
+  assert_tracked "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md"
+  assert_tracked "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md"
+  assert_tracked "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+  assert_tracked "docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
   assert_tracked "rust/scripts/regex_parser_integration_contract_gate.sh"
   assert_tracked "rust/scripts/regex_embedded_code_block_contract_gate.sh"
   assert_tracked "rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json"
@@ -358,7 +358,7 @@ audit_embedding_api_surface() {
     'make -C rust regex_parser_integration_contract_gate'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
-    '`PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`'
+    '`docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     '### Regex Parser Flavor'
@@ -406,140 +406,140 @@ audit_embedding_api_surface() {
     '  - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`'
 
   assert_file_contains \
-    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     'Every current and future parser family that PGEN publishes for downstream consumption must have a tracked integration-contract document.'
   assert_file_contains \
-    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     'its family document must publish:'
   assert_file_contains \
-    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '- `Contract Identity`'
   assert_file_contains \
-    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '| `regex` | `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.7`. |'
+    "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    '| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.7`. |'
   assert_file_contains \
-    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
+    "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
   assert_file_contains \
-    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
     'Accepted reports should then be logged in:'
   assert_file_contains \
-    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
     'If one or more downstream consumer repos also track the same issue locally'
   assert_file_contains \
-    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
     'The parser family/profile is the primary tracking axis for released-parser support.'
   assert_file_contains \
-    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
     'for regex, copy `parser_embedding_api_contract().regex_parser_release_version`'
   assert_file_contains \
-    "PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
+    "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md" \
     'for regex, copy `parser_embedding_api_contract().regex_integration_contract_version`'
   assert_file_contains \
-    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     'Every downstream bug report against a released parser family must receive a stable report ID.'
   assert_file_contains \
-    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     '`Downstream Tracking Refs`'
   assert_file_contains \
-    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     '`Reported Against Parser Release`'
   assert_file_contains \
-    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     'The primary index for this ledger is `Parser Family/Profile`.'
   assert_file_contains \
-    "PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
+    "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md" \
     'the parser release version containing the fix'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'This is the document downstream projects such as RGX should read first when deciding how to embed the PGEN regex parser.'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '- Contract version:'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '- Parser release version:'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'make -C rust regex_parser_integration_contract_gate'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'Issue Reporting Quick Path'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'PGEN_TRACE_VERBOSITY=debug'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'Regex AST-dump schema version:'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'stable optional machine-localizable location object'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'Published Regex Flavor Summary'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '## Release 1.1.7 Highlights'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'raw regex bodies, not host-language delimiter wrappers'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'braced named backreferences such as `\k{name}`'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'subroutine-reference forms such as `\g{1}` and `\g<1>`'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'whole-pattern recursion `(?R)` now classifies as `subroutine_call` / `subroutine_target`'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'numeric backreferences such as `\1` now classify as `backreference` instead of generic `escape`'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'negated POSIX classes such as `[[:^alnum:]]`'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'explicit conditional false branches such as `(?(1)a|b)` now preserve separate `yes_branch` and `no_branch` spans'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'plain `(?{...})` is preserved as opaque generic payload'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     '`lua`, `js`, `javascript`, and `rhai` payloads are preserved as opaque source-body payloads'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'make -C rust regex_embedded_code_block_contract_gate'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'make -C rust regex_pcre2_compile_oracle_gate'
   assert_file_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
   assert_file_not_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'generated/regex.json'
   assert_file_not_contains \
-    "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'grammars/regex.ebnf'
   assert_file_contains \
-    "PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
+    "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     'local git-tracked records in PGEN plus zero-or-more downstream consumer repos are sufficient'
   assert_file_contains \
     "README.md" \
-    '`PGEN_PARSER_INTEGRATION_CONTRACTS.md`'
+    '`docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`'
   assert_file_contains \
     "README.md" \
-    '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
+    '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
   assert_file_contains \
     "README.md" \
-    '`PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
+    '`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
   assert_file_contains \
     "COMMIT.md" \
-    '`PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `PGEN_*_PARSER_INTEGRATION_CONTRACT.md`'
+    '`docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md`'
   assert_file_contains \
     "COMMIT.md" \
-    '`PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and `PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
+    '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
 
   assert_file_contains \
     "RUST_CODEBASE_ANALYSIS.md" \

@@ -31,10 +31,10 @@ Run this workflow after each completed task/activity.
 - `RUST_CODEBASE_ANALYSIS.md` (tracked)
   - Live Rust architecture/state assessment.
   - Must be reviewed and updated whenever a task materially changes Rust architecture, major subsystem boundaries, public integration seams, or the current high-level risk/steering picture.
-- `PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `PGEN_*_PARSER_INTEGRATION_CONTRACT.md` (tracked)
+- `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md` (tracked)
   - Versioned downstream handoff docs for parser families.
   - Must be reviewed and updated whenever a task changes a published parser family's stable integration surface, build/availability requirements, validation gate, or externally stated support boundary.
-- `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and `PGEN_RELEASED_PARSER_BUG_LEDGER.md` (tracked)
+- `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (tracked)
   - Downstream parser support/bug-tracking workflow.
   - Must be reviewed and updated whenever the required bug-report bundle, release-support process, or released-parser bug state changes.
 - `questions_keep_untracked.txt` (must remain untracked)

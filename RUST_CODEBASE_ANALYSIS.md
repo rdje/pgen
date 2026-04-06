@@ -84,17 +84,17 @@ Operational rule:
     - user-facing workflow framing
     - understanding which operational surfaces are meant to be consumed externally
     - operator-facing map of aggregate annotation / semantic / return local gates
-- `PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `PGEN_*_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md`
   - Use for:
     - downstream parser handoff
     - family-specific integration promises and caveats
     - build/availability checks a host project should perform before relying on a parser family
-- `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+- `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
   - Use for:
     - downstream parser bug-report bundles
     - exact repro artifacts PGEN expects back from host projects
     - trace / AST-dump / structured-outcome capture procedure for integration bugs
-- `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
   - Use for:
     - release-support continuity
     - tracking accepted downstream parser bugs through fix and release

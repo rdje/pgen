@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Root markdown cleanup: first contract/protocol rehome wave
+### Context
+The top-level `docs/*.md` cleanup was already complete, but the repository root still carried too many markdown files. The first clean move set identified by the root audit was the downstream parser handoff surface: parser-family integration contracts, the issue-reporting protocol, and the released-parser bug ledger. Those files were important and current, but they were reference deep-dives rather than true repo-root entrypoints.
+
+### What Was Changed
+- Created [docs/contracts](docs/contracts) as the dedicated home for the downstream handoff surface.
+- Rehomed these tracked docs from repo root into [docs/contracts](docs/contracts):
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+- Rewrote tracked references across the repo so they now point at `docs/contracts/...`, including:
+  - [README.md](README.md)
+  - [COMMIT.md](COMMIT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [RUST_CODEBASE_ANALYSIS.md](RUST_CODEBASE_ANALYSIS.md)
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - continuity docs and retained history references
+- Tightened README wording so the root markdown policy now reflects actual state:
+  - parser integration contracts are no longer merely “candidates” to move under `docs/`
+  - they now explicitly live under `docs/contracts/`
+
+### Why It Matters
+- This is the first real reduction of root markdown clutter after the audit, not just a planning note.
+- The move preserves the contract docs as tracked first-class artifacts while making repo root more obviously “entrypoint + continuity” rather than “everything.”
+- It also keeps the CI/workflow parity surface honest because `ci_workflow_local_gate` audits these exact files as tracked published contract surfaces.
+
+### What Was Verified
+- Repo-root markdown count is now lower:
+  - `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `22`
+- The moved contract/protocol/ledger docs are no longer present at repo root:
+  - `find . -maxdepth 1 -type f \( -name 'PGEN*_CONTRACT*.md' -o -name 'PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md' -o -name 'PGEN_RELEASED_PARSER_BUG_LEDGER.md' \)`
+  - result: no output
+- Local workflow parity still accepts the rehomed path surface:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Important parity-gate nuance retained from the rerun:
+  - `ci_workflow_local_gate` exports the tracked worktree using `git ls-files`
+  - for rename/rehome waves like this one, stage the moves before running the gate or the export step will still try to copy the old indexed root paths
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat `docs/contracts/` as the canonical home for downstream parser handoff docs going forward.
+- The next root-markdown cleanup waves can now focus on the remaining spec/roadmap/matrix files without reopening this contract surface.
+
 ## 2026-04-04 - Verilog-2005 extracted snapshot: restore parser-registry contract compatibility
 ### Context
 The canonical extracted Verilog-2005 snapshot was still frontend-valid, but it had drifted out of alignment with the repository-wide standalone return-annotation audit in [rust/src/parser_registry.rs](rust/src/parser_registry.rs). Two separate issues were involved:
@@ -1141,10 +1194,10 @@ RGX provided four precise generated-backend bug bundles under `../rgx/pgen-issue
 - Updated [rust/Cargo.toml](rust/Cargo.toml):
   - `regex_corpus_probe` is now an explicit `required-features = ["generated_parsers"]` binary, which matches how the probe is actually used and keeps the source-target clippy lane honest
 - Updated downstream handoff and support docs:
-  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
-  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
-  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) so local CI locks the `1.1.1` handoff and the four new regression hooks.
 
 ### Why This Matters
@@ -1173,16 +1226,16 @@ After the regex handoff bump to `1.1.0`, RGX re-reviewed the published downstrea
 The regex parser just picked up a real hardening slice driven by the PCRE2 compile-oracle lane, but the RGX-facing handoff surface was still publishing `1.0.0`. That mismatch would have made downstream adoption and bug reporting fuzzier than it needed to be.
 
 ### Implementation
-- Updated [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+- Updated [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
   - contract version `1.0.0 -> 1.1.0`
   - parser release version `1.0.0 -> 1.1.0`
   - added explicit `1.1.0` release highlights tied to the recent regex hardening slice
   - expanded the published flavor summary so RGX sees the newly supported syntax and the generated-host compile-contract rejection layer in one place
 - Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md) so the regex flavor section matches the new release identity and the currently published feature set.
 - Updated the shared parser handoff/support docs so parser release versions are treated as mandatory first-class downstream data for published families:
-  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
-  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
-  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
 - Updated exported metadata and fixtures:
   - `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION = "1.1.0"`
   - `REGEX_PARSER_RELEASE_VERSION = "1.1.0"`
@@ -1369,7 +1422,7 @@ Regex family closure is already `Done`, but RGX-facing downstream hardening stil
   - expected-fail manifest booleans were incorrectly read through `jq -e`
   - failure-log extraction was fragile under `set -euo pipefail`
 - Refreshed the downstream docs:
-  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
   - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
   - both now match the actually provable structural slice
 
@@ -1388,7 +1441,7 @@ Regex family closure is already `Done`, but RGX-facing downstream hardening stil
 After the first regex contract hardening pass, the RGX-facing doc still mixed downstream concerns with PGEN-internal provenance details. In particular, RGX does not need the integration handoff doc to talk about `generated/regex.json` or `grammars/regex.ebnf`; what RGX does need is a precise description of the published regex flavor and the measured operational baseline of the released parser.
 
 ### Implementation
-- Tightened [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+- Tightened [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
   - removed downstream-facing references to `generated/regex.json`
   - removed downstream-facing references to `grammars/regex.ebnf`
   - kept the contract centered on:
@@ -1412,7 +1465,7 @@ After the first regex contract hardening pass, the RGX-facing doc still mixed do
 
 ### Validation
 - `bash -n rust/scripts/ci_workflow_local_gate.sh`
-- `git diff --check -- PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md PGEN_USER_GUIDE.md rust/scripts/ci_workflow_local_gate.sh CHANGES.md DEVELOPMENT_NOTES.md MEMORY.md`
+- `git diff --check -- docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md PGEN_USER_GUIDE.md rust/scripts/ci_workflow_local_gate.sh CHANGES.md DEVELOPMENT_NOTES.md MEMORY.md`
 - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
 
 ### Why This Matters
@@ -1442,7 +1495,7 @@ RGX's complaint pass was accurate: the first regex handoff doc was useful, but s
   - regex parse failures through the generated backend now emit that structured location
   - `ParserEmbeddingApiContract` now publishes regex release/build/schema metadata instead of requiring downstreams to infer it from docs alone
 - Replaced the regex integration manifest with [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json).
-- Expanded [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
+- Expanded [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md):
   - added `Contract Identity`
   - made the build requirements explicit:
     - Cargo feature `generated_parsers`
@@ -1453,20 +1506,20 @@ RGX's complaint pass was accurate: the first regex handoff doc was useful, but s
   - embedded a bug-reporting quick path with the exact trace/AST capture commands RGX should run when possible
   - replaced non-portable regex gate command examples with portable `make -C rust ...` forms
 - Updated shared downstream-support docs:
-  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
     - now asks for parser release version and integration contract version when available
     - now explicitly preserves `ParseDiagnostic.location` in the structured bundle
-  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
     - now tracks `Reported Against Parser Release`
     - now tracks `Reported Against Contract Version`
-  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
     - now treats `Contract Identity` as part of the expected family-doc shape
     - now recommends contract version / parser release version / last-updated fields for actively consumed families
 - Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
   - local CI now locks the new regex release/version/schema/reporting surface instead of only the original regex host gate basics
 
 ### Validation
-- `git diff --check -- rust/src/embedding_api.rs rust/docs/EMBEDDING_API_CONTRACT.md PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md PGEN_RELEASED_PARSER_BUG_LEDGER.md PGEN_PARSER_INTEGRATION_CONTRACTS.md PGEN_USER_GUIDE.md RUST_CODEBASE_ANALYSIS.md rust/scripts/ci_workflow_local_gate.sh rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+- `git diff --check -- rust/src/embedding_api.rs rust/docs/EMBEDDING_API_CONTRACT.md docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md PGEN_USER_GUIDE.md RUST_CODEBASE_ANALYSIS.md rust/scripts/ci_workflow_local_gate.sh rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
 - `make -C rust SHELL=/opt/homebrew/bin/bash regex_parser_integration_contract_gate`
 - `make -C rust SHELL=/opt/homebrew/bin/bash embedding_api_gate`
 - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate bash rust/scripts/ci_workflow_local_gate.sh`
@@ -1522,7 +1575,7 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
 
 ### Implementation
 - Added a root parser-family contract index:
-  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
   - establishes the rule that every published parser family needs a tracked integration-contract document
   - lists the current family-doc set for:
     - `systemverilog`
@@ -1532,12 +1585,12 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
     - `return_annotation`
     - `semantic_annotation`
 - Added family-specific docs:
-  - [PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md](PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md](PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
-  - [PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md)
 - Added a dedicated regex host-contract gate:
   - [rust/scripts/regex_parser_integration_contract_gate.sh](rust/scripts/regex_parser_integration_contract_gate.sh)
   - wired into [rust/Makefile](rust/Makefile) and therefore also into `embedding_api_gate`
@@ -1547,7 +1600,7 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
   - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
   - captures representative success/failure samples for the downstream contract gate
 - Added release-support docs:
-  - [PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
+  - [docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md](docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md)
     - defines the exact bundle a downstream project should return:
       - parser identity
       - host identity
@@ -1555,7 +1608,7 @@ Regex had a real public embedding surface and a real closed-family proof stack, 
       - expected vs actual behavior
       - structured contract/outcome/AST artifacts
       - `parseability_probe --trace` bundle when available
-  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
     - live ledger for accepted released-parser bugs
     - defines stable bug states from `Reported` through `Released`
   - the release-support loop is now explicitly GitHub-optional:
@@ -28806,7 +28859,7 @@ Architectural north star:
   - landed fix:
     - updated the local workflow gate expectations for:
       - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
-      - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+      - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
   - retained rerun result:
     - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
       - cleared:
@@ -29182,7 +29235,7 @@ Architectural north star:
     - the intended outcome is to silence the GitHub Node 20 deprecation warning before the announced runner cutover becomes disruptive
 - 2026-04-06: clarified the regex downstream contract wording after a real RGX/PGEN discussion exposed an easy misread around parser statefulness.
   - triggering confusion:
-    - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+    - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
       - stable integration invariants included:
         - `parse_session_model=stateless_per_call`
     - that wording was being read as if PGEN’s generated parser implementation itself were stateless
@@ -29205,7 +29258,7 @@ Architectural north star:
     - rule-level semantic transactions:
       - `with_semantic_runtime_rule_transaction(...)`
   - landed wording fix:
-    - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+    - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
       - now says `stateless_per_call` is a host-surface guarantee only
       - explicitly states the generated parser remains stateful per parser instance during a call
     - `PGEN_USER_GUIDE.md`
@@ -29219,7 +29272,7 @@ Architectural north star:
     - `rust/docs/EMBEDDING_API_CONTRACT.md`
       - still listed `parse_session_model=stateless_per_call`
       - but without the new clarification already added to:
-        - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+        - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
         - `PGEN_USER_GUIDE.md`
   - landed wording:
     - `rust/docs/EMBEDDING_API_CONTRACT.md`
@@ -29490,15 +29543,15 @@ Architectural north star:
     - `QUICKSTART_AI_ONBOARDING.md`
   - retained move-under-`docs/` recommendation:
     - contracts / downstream handoff docs:
-      - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
-      - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
-      - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
-      - `PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
-      - `PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
-      - `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
-      - `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
-      - `PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
-      - `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+      - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+      - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+      - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+      - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+      - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+      - `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
+      - `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+      - `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
+      - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
     - normative/spec/policy docs:
       - `PGEN_ANNOTATION_NORMATIVE_SPEC.md`
       - `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`

@@ -1,4 +1,4 @@
-# PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md
+# docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md
 
 ## Purpose
 Define the current downstream integration contract for PGEN's `return_annotation` parser family.
@@ -49,4 +49,4 @@ Define the current downstream integration contract for PGEN's `return_annotation
 - The downstream contract is parser acceptance, diagnostics, and the annotation family/backend selection surface.
 - Internal typed AST conversion logic in the Rust AST pipeline is not itself the generic downstream parser contract.
 - `return_annotation` is currently a `Done` family for the tracked claim, but that claim is still defined by the repo’s current grammar and proof stack, not by informal future expectations.
-- When reporting downstream bugs, follow `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+- When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.

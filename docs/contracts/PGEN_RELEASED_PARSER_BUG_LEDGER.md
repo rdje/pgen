@@ -1,4 +1,4 @@
-# PGEN_RELEASED_PARSER_BUG_LEDGER.md
+# docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md
 
 ## Purpose
 Track every bug reported against a released PGEN parser family until it is either fixed, proven invalid, or explicitly deferred with a documented reason.
@@ -9,7 +9,7 @@ GitHub is optional. This ledger should be the canonical parser-side tracker insi
 
 ## Tracking Rule
 - Every downstream bug report against a released parser family must receive a stable report ID.
-- Every accepted report must link back to a reproducible artifact bundle captured using `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
+- Every accepted report must link back to a reproducible artifact bundle captured using `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
 - A bug is not considered fully closed until:
   - the root cause is identified,
   - the fix is landed,

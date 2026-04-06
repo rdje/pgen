@@ -1,4 +1,4 @@
-# PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md
+# docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md
 
 ## Purpose
 Define the exact reproduction bundle that downstream projects should provide when a PGEN-generated parser misbehaves after integration.
@@ -6,7 +6,7 @@ Define the exact reproduction bundle that downstream projects should provide whe
 The goal is simple: make the first bug report precise enough that PGEN can reproduce the issue immediately, instead of spending time reconstructing the environment, the parser contract, or the missing input artifact.
 
 Accepted reports should then be logged in:
-- `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 
 GitHub is optional. The required property is that both the report bundle and the resolution history are git-tracked somewhere stable, with PGEN retaining the canonical parser-side history.
 
@@ -190,7 +190,7 @@ It becomes high-quality and fast-to-fix if it also contains:
 - `parseability_probe` trace log at `PGEN_TRACE_VERBOSITY=debug`
 
 ## After Intake
-- Once a report is accepted as a real released-parser bug, PGEN should assign it a stable report ID, index it under the matching parser family/profile, and add it to `PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+- Once a report is accepted as a real released-parser bug, PGEN should assign it a stable report ID, index it under the matching parser family/profile, and add it to `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 - The parser family/profile is the primary tracking axis for released-parser support.
   - Examples:
     - `REGEX-0001`

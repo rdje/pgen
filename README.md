@@ -83,6 +83,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `rust/scripts/`: executable quality gates and policy runners
 - `rust/test_data/grammar_quality/`: gate contracts, corpora, deterministic case manifests
 - `rust/docs/`: Rust-specific architecture/API/test docs
+- `docs/contracts/`: downstream parser integration contracts, issue-reporting protocol, and released-parser bug ledger
 - `regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening; keeps immutable upstream snapshots separate from normalized corpus/oracle outputs, with maintained gates `make -C rust regex_corpus_bundle_contract_gate`, `make -C rust regex_pcre2_textsafe_corpus_gate`, and `make -C rust regex_pcre2_compile_oracle_gate`
 - `tools/`: conversion/extraction and support workflows
 - `perl/`: legacy/frontend EBNF-to-JSON path (`ebnf_to_json.pl`) still used in hybrid flow
@@ -134,10 +135,10 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Current authoritative docs for the active Rust-first platform:
   - `README.md`
   - `PGEN_USER_GUIDE.md`
-  - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
-  - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
-  - `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
-  - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+  - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+  - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `LIVE_ACHIEVEMENT_STATUS.md`
   - `RUST_CODEBASE_ANALYSIS.md`
@@ -164,7 +165,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Core contracts and roadmaps:
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Downstream parser integration contracts:
-  - `PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - Regex corpus acquisition and hardening:
   - `regex_corpus_bundle/README.md`, `regex_corpus_bundle/docs/regex_corpus_plan.md`, `regex_corpus_bundle/corpus/pcre2/invalid/README.md`, `regex_corpus_bundle/corpus/pcre2/quarantine/README.md`, `regex_corpus_bundle/oracle/pcre2/README.md`
 - Operational continuity:
@@ -182,9 +183,9 @@ The list below is the current high-signal markdown surface for active work. A 20
 - `MEMORY.md`
 - `PGEN_USER_GUIDE.md`
 - `IMPLEMENTATION_GUIDE.md`
-- `PGEN_PARSER_INTEGRATION_CONTRACTS.md`
-- `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
-- `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+- `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+- `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - `regex_corpus_bundle/README.md`
 - `regex_corpus_bundle/docs/regex_corpus_plan.md`
 - `regex_corpus_bundle/corpus/pcre2/invalid/README.md`
@@ -206,7 +207,8 @@ The top-level `docs/*.md` surface has now been pruned down to the maintained act
 Root markdown policy note:
 - the repository root should be reserved for entrypoint docs, live continuity docs, and tool/session-control docs
 - tool-specific editor/assistant docs that no longer serve the active workflow should be removed rather than kept as root clutter
-- contracts, normative specs, roadmaps, matrices, and other reference deep-dives are candidates to live under `docs/` instead of remaining at the top level
+- the parser integration contract surface now lives under `docs/contracts/` instead of consuming repo-root markdown slots
+- other contracts, normative specs, roadmaps, matrices, and reference deep-dives remain candidates to live under `docs/` instead of remaining at the top level
 - a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
 
 Read SESSION_BOOTSTRAP.md and start from there.

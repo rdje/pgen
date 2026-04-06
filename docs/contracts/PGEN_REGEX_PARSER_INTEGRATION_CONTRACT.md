@@ -1,4 +1,4 @@
-# PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md
+# docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md
 
 ## Purpose
 Define the downstream integration contract for PGEN's `regex` parser family.
@@ -78,9 +78,9 @@ This is the document downstream projects such as RGX should read first when deci
 - Published regex flavor and operator-facing guidance:
   - `PGEN_USER_GUIDE.md`
 - Shared issue-reporting protocol:
-  - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+  - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 - Canonical released-parser bug ledger:
-  - `PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - Family proof/status surfaces:
   - `LIVE_ACHIEVEMENT_STATUS.md`
   - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
@@ -307,8 +307,8 @@ This is the document downstream projects such as RGX should read first when deci
 6. Use `parse_regex_default_ast_dump(...)` only if JSON AST transport is genuinely needed.
 7. Treat `E_BACKEND_UNAVAILABLE`, `E_PARSE_FAILURE`, and `E_INPUT_TOO_LARGE` as first-class expected error modes.
 8. Keep a downstream-owned regex acceptance/rejection corpus and run it alongside PGEN's own gate stack.
-9. When reporting a bug, follow the quick path below and the full protocol in `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
-10. Once a real bug is confirmed, expect it to be tracked under the regex family/profile in `PGEN_RELEASED_PARSER_BUG_LEDGER.md` until the fix is released.
+9. When reporting a bug, follow the quick path below and the full protocol in `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
+10. Once a real bug is confirmed, expect it to be tracked under the regex family/profile in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` until the fix is released.
 
 ## Issue Reporting Quick Path
 - Every actionable regex parser bug report should include:
@@ -350,7 +350,7 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin par
   - `parser_embedding_api_contract().regex_integration_contract_version`
 - For a broader description of what the published regex parser is expected to accept, consult the regex-flavor section in `PGEN_USER_GUIDE.md`.
 - Full reporting procedure:
-  - `PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+  - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 
 ## Minimal Rust Example
 ```rust
