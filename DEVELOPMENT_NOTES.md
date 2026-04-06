@@ -29432,3 +29432,34 @@ Architectural north star:
       - LinkedSpec
       - semantic-annotation
       - hybrid-architecture / feature-port notes
+- 2026-04-06: executed the fourth and final top-level docs-pruning wave and removed the remaining historical technical-analysis residue bucket.
+  - removed:
+    - `docs/GROUPED_QUANTIFIER_FIXES_SUMMARY.md`
+    - `docs/GROUPING_QUANTIFIERS_ANALYSIS.md`
+    - `docs/HYBRID_AST_IMPLEMENTATION.md`
+    - `docs/LINKEDSPEC_DEEP_UNDERSTANDING.md`
+    - `docs/LINKEDSPEC_IMPROVEMENTS.md`
+    - `docs/MULTI_LANGUAGE_PARSER_VISION.md`
+    - `docs/QUANTIFIED_SEQUENCE_SERIALIZATION_FIX.md`
+    - `docs/RUST_AST_SEMANTIC_ANNOTATIONS.md`
+    - `docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md`
+    - `docs/STRING_GENERATOR_FEATURES_TO_PORT.md`
+  - why this wave was safe:
+    - active docs were no longer depending on these files
+    - the only remaining direct filename mentions were the audit classification itself plus two historical continuity references now rewritten to avoid broken file pointers
+    - the topics they covered are either:
+      - already reflected in the active kept docs
+      - or preserved adequately as chronology in the root continuity docs
+  - retained result:
+    - top-level `docs/*.md` count is now:
+      - `7`
+    - final intentionally retained top-level docs:
+      - `docs/AST_GENERATOR_ARCHITECTURE.md`
+      - `docs/ast_transformation_pipeline.md`
+      - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+      - `docs/EBNF_INCLUDE_SYSTEM.md`
+      - `docs/parser_architecture_evolution.md`
+      - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+      - `docs/TEST_INFRASTRUCTURE.md`
+  - cleanup state:
+    - top-level `docs/*.md` pruning objective is complete

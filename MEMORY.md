@@ -9584,3 +9584,25 @@ Use this file to resume work without replaying full chat history.
   - remaining shape:
     - `7` active kept references
     - `10` historical technical-analysis docs still to review/remove
+- 2026-04-06: the fourth top-level docs-pruning wave is complete too.
+  - removed:
+    - `docs/GROUPED_QUANTIFIER_FIXES_SUMMARY.md`
+    - `docs/GROUPING_QUANTIFIERS_ANALYSIS.md`
+    - `docs/HYBRID_AST_IMPLEMENTATION.md`
+    - `docs/LINKEDSPEC_DEEP_UNDERSTANDING.md`
+    - `docs/LINKEDSPEC_IMPROVEMENTS.md`
+    - `docs/MULTI_LANGUAGE_PARSER_VISION.md`
+    - `docs/QUANTIFIED_SEQUENCE_SERIALIZATION_FIX.md`
+    - `docs/RUST_AST_SEMANTIC_ANNOTATIONS.md`
+    - `docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md`
+    - `docs/STRING_GENERATOR_FEATURES_TO_PORT.md`
+  - top-level `docs/*.md` count:
+    - `17 -> 7`
+  - final remaining top-level docs:
+    - `AST_GENERATOR_ARCHITECTURE`
+    - `ast_transformation_pipeline`
+    - `BOOTSTRAP_MODE_SPECIFICATION`
+    - `EBNF_INCLUDE_SYSTEM`
+    - `parser_architecture_evolution`
+    - `RETURN_ANNOTATIONS_REFERENCE`
+    - `TEST_INFRASTRUCTURE`

@@ -201,6 +201,6 @@ The list below is the current high-signal markdown surface for active work. A 20
 - `docs/verilog/README.md`
 - `docs/vhdl/README.md`
 
-Legacy top-level `docs/*.md` files remain tracked for the moment, but the full keep/merge/remove classification now lives in `DEVELOPMENT_NOTES.md`. The long-term plan is to remove, merge, or rewrite most of them instead of continuing to advertise them from `README.md`.
+The top-level `docs/*.md` surface has now been pruned down to the maintained active reference set. The full audit trail and removal rationale remain recorded in `DEVELOPMENT_NOTES.md`.
 
 Read SESSION_BOOTSTRAP.md and start from there.

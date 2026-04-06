@@ -21272,7 +21272,7 @@ The fix demonstrates the power of conditional compilation in Rust for managing c
 
 ### Added Documentation
 - Created `docs/AST_GENERATOR_MIGRATION.md` - Comprehensive migration guide for transitioning from string-based to AST-based parser generation
-- Created `docs/STRING_GENERATOR_FEATURES_TO_PORT.md` - Detailed analysis of features that need to be ported from the string-based generator to maintain performance and functionality
+- Created a dedicated feature-port note capturing what still needed to move from the old string-based generator to the AST-based generator surface
 
 ### Pipeline Component Updates
 - Updated `rust/src/ast_pipeline.rs` - Core pipeline modifications for better AST handling
@@ -23846,7 +23846,7 @@ This enhancement completes the return annotation parser integration and resolves
 - ✅ **Complex Tokens**: Handles mixed string and array content in raw AST
 - ✅ **Integration**: Full pipeline processes annotations without errors
 
-This enhancement enables the Rust AST pipeline to work with the semantic annotation system, preserving critical context-sensitive parsing metadata through the transformation pipeline as described in the SEMANTIC_ANNOTATIONS_ANALYSIS.md document.
+This enhancement enables the Rust AST pipeline to work with the semantic annotation system, preserving critical context-sensitive parsing metadata through the transformation pipeline as described in the older semantic-annotation analysis notes retained at the time.
 
 ---
 
@@ -28062,3 +28062,34 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - the remaining top-level docs are now almost entirely:
       - the `7` active kept references
       - a much smaller historical technical-analysis residue bucket
+- 2026-04-06: completed the fourth and final top-level docs-pruning wave by removing the remaining historical technical-analysis residue bucket.
+  - removed in this wave:
+    - `docs/GROUPED_QUANTIFIER_FIXES_SUMMARY.md`
+    - `docs/GROUPING_QUANTIFIERS_ANALYSIS.md`
+    - `docs/HYBRID_AST_IMPLEMENTATION.md`
+    - `docs/LINKEDSPEC_DEEP_UNDERSTANDING.md`
+    - `docs/LINKEDSPEC_IMPROVEMENTS.md`
+    - `docs/MULTI_LANGUAGE_PARSER_VISION.md`
+    - `docs/QUANTIFIED_SEQUENCE_SERIALIZATION_FIX.md`
+    - `docs/RUST_AST_SEMANTIC_ANNOTATIONS.md`
+    - `docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md`
+    - `docs/STRING_GENERATOR_FEATURES_TO_PORT.md`
+  - rationale retained:
+    - these were still historical analysis or transition notes, not maintained reference docs
+    - active-source-of-truth material for the living system already resides in:
+      - `docs/AST_GENERATOR_ARCHITECTURE.md`
+      - `docs/ast_transformation_pipeline.md`
+      - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+      - `docs/EBNF_INCLUDE_SYSTEM.md`
+      - `docs/parser_architecture_evolution.md`
+      - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+      - `docs/TEST_INFRASTRUCTURE.md`
+      - plus the root continuity docs
+  - surface reduction:
+    - top-level `docs/*.md` count moved from:
+      - `17`
+    - down to:
+      - `7`
+  - honest current read:
+    - the top-level `docs/*.md` cleanup is now complete
+    - only the intentionally retained active reference set remains
