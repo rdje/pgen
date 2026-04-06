@@ -27929,3 +27929,33 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - `PGEN_USER_GUIDE.md`
       - `rust/docs/EMBEDDING_API_CONTRACT.md`
     - this remains documentation precision only, with no parser or host behavior change
+- 2026-04-06: completed a top-level `docs/*.md` audit and stopped `README.md` from advertising the entire historical markdown pile as if it were active source-of-truth material.
+  - audit scope:
+    - top-level `docs/*.md` only
+    - `55` files total
+    - none had been touched in `2026`; the whole set was effectively a retained `2025` historical surface
+  - landed documentation hygiene:
+    - `README.md`
+      - now exposes an `Active Markdown Index` instead of the old giant tracked-markdown dump
+      - only the actively useful top-level docs remain advertised there:
+        - `docs/AST_GENERATOR_ARCHITECTURE.md`
+        - `docs/ast_transformation_pipeline.md`
+        - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+        - `docs/EBNF_INCLUDE_SYSTEM.md`
+        - `docs/parser_architecture_evolution.md`
+        - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+        - `docs/TEST_INFRASTRUCTURE.md`
+    - continuity docs
+      - now retain the full keep/merge/remove matrix for the rest of the top-level `docs/*.md` surface
+  - decision buckets retained for follow-up execution:
+    - keep and amend:
+      - `7`
+    - merge into surviving reference docs, then remove:
+      - `7`
+    - merge historical residue into continuity docs, then remove:
+      - `22`
+    - remove outright as stale/superseded:
+      - `19`
+  - honest current read:
+    - this wave is a classification + README cleanup, not the full deletion pass
+    - the next removal wave should absorb the `merge` buckets first, then prune the rest in batches

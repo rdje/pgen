@@ -9496,3 +9496,28 @@ Use this file to resume work without replaying full chat history.
     - user guide
     - embedding API contract
     - now all agree on the same distinction
+- 2026-04-06: top-level `docs/*.md` audit is now retained as a continuity fact and `README.md` no longer advertises the whole stale markdown pile as active guidance.
+  - audit scope:
+    - top-level `docs/*.md` only
+    - `55` files total
+    - all last touched in `2025`
+  - retained decision summary:
+    - keep and amend:
+      - `7`
+    - merge into surviving active docs, then remove:
+      - `7`
+    - continuity-only residue to absorb into root live docs, then remove:
+      - `22`
+    - remove outright as stale/superseded:
+      - `19`
+  - surviving active top-level docs for now:
+    - `docs/AST_GENERATOR_ARCHITECTURE.md`
+    - `docs/ast_transformation_pipeline.md`
+    - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+    - `docs/EBNF_INCLUDE_SYSTEM.md`
+    - `docs/parser_architecture_evolution.md`
+    - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+    - `docs/TEST_INFRASTRUCTURE.md`
+  - practical rule:
+    - future sessions should treat the root continuity docs plus the curated README active index as the real starting surface
+    - do not re-promote the legacy top-level `docs/*.md` pile back into README wholesale

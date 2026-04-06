@@ -29229,3 +29229,102 @@ Architectural north star:
   - retained result:
     - the externally visible doc surface is now internally consistent on this point
     - future RGX/PGEN discussions should not have to infer the distinction from implementation files alone
+- 2026-04-06: completed a top-level `docs/*.md` audit after noticing that `README.md` was still advertising nearly the entire historical markdown pile as if it were active project guidance.
+  - scope:
+    - top-level `docs/*.md` only
+    - nested domain docs like:
+      - `docs/systemverilog/README.md`
+      - `docs/verilog/README.md`
+      - `docs/vhdl/README.md`
+      - were not part of the stale-markdown sweep
+  - inventory result:
+    - `55` top-level markdown files under `docs/`
+    - all were last touched in `2025`
+    - none had a `2026` mtime, which matches the practical observation that most are frozen snapshots rather than maintained docs
+  - strongest keep signals found during the audit:
+    - `docs/ast_transformation_pipeline.md`
+      - still directly referenced by:
+        - `tools/generate_parser.pl`
+        - `tools/ebnf_to_json.pl`
+        - generator tooling
+        - raw AST metadata
+    - `docs/parser_architecture_evolution.md`
+      - still referenced by generator/bootstrap tooling
+    - `docs/TEST_INFRASTRUCTURE.md`
+      - still referenced by `README.md` / `WARP.md`
+    - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+      - still referenced by root docs and remains the best surviving return-annotation reference surface
+  - landed immediate hygiene:
+    - `README.md`
+      - old `Complete Markdown Index (Tracked)` removed
+      - replaced with a curated `Active Markdown Index`
+      - README now stops presenting most legacy `docs/*.md` files as equal-priority current guidance
+  - retained classification matrix:
+    - keep and amend in place:
+      - `docs/AST_GENERATOR_ARCHITECTURE.md`
+      - `docs/ast_transformation_pipeline.md`
+      - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+      - `docs/EBNF_INCLUDE_SYSTEM.md`
+      - `docs/parser_architecture_evolution.md`
+      - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+      - `docs/TEST_INFRASTRUCTURE.md`
+    - merge into the surviving reference docs above, then remove:
+      - `docs/AST_BASED_GENERATOR.md`
+      - `docs/BOOTSTRAP_SYSTEM_COMPLETE.md`
+      - `docs/COMPLETE_AST_TRANSFORMATION_PIPELINE.md`
+      - `docs/RETURN_ANNOTATION_PARSER.md`
+      - `docs/return_annotation_self_hosting.md`
+      - `docs/universal_return_annotation_system.md`
+      - `docs/round_trip_testing_ideas.md`
+    - merge the only still-valuable historical residue into the root continuity docs, then remove:
+      - `docs/AST_GENERATOR_MIGRATION.md`
+      - `docs/AST_TRANSFORM_REFACTOR_PLAN.md`
+      - `docs/CLEANUP_SUMMARY.md`
+      - `docs/DEVELOPMENT_NOTES.md`
+      - `docs/EBNF_IMPROVEMENT_ROADMAP.md`
+      - `docs/fully_featured_return_annotation_parsers_status.md`
+      - `docs/GROUPED_QUANTIFIER_FIXES_SUMMARY.md`
+      - `docs/GROUPING_QUANTIFIERS_ANALYSIS.md`
+      - `docs/HDL_GRAMMAR_VALIDATION_REPORT.md`
+      - `docs/HYBRID_AST_IMPLEMENTATION.md`
+      - `docs/implementation_complete.md`
+      - `docs/LINKEDSPEC_DEEP_UNDERSTANDING.md`
+      - `docs/LINKEDSPEC_IMPROVEMENTS.md`
+      - `docs/MULTI_LANGUAGE_PARSER_VISION.md`
+      - `docs/PARSER_REGENERATION_SUMMARY.md`
+      - `docs/PROJECT_STATUS_REPORT.md`
+      - `docs/QUANTIFIED_SEQUENCE_SERIALIZATION_FIX.md`
+      - `docs/RUST_AST_SEMANTIC_ANNOTATIONS.md`
+      - `docs/SEMANTIC_ANNOTATIONS_ANALYSIS.md`
+      - `docs/STRING_GENERATOR_FEATURES_TO_PORT.md`
+      - `docs/test_stability_plan.md`
+      - `docs/ultimate_return_annotation_parser_status.md`
+    - remove outright as stale, superseded, or no longer aligned with the current Rust-centric repo shape:
+      - `docs/api_interfaces.md`
+      - `docs/DEBUGGING_STARTUP_GUIDE.md`
+      - `docs/EBNF_GENERATOR_ARCHITECTURE.md`
+      - `docs/EBNF_GRAMMAR_RULES.md`
+      - `docs/EBNF_PARSER_GENERATOR_GUIDE.md`
+      - `docs/EBNF_PARSER_GENERATOR.md`
+      - `docs/EBNF_QUICK_REFERENCE.md`
+      - `docs/ERROR_REPORTING_GUIDE.md`
+      - `docs/GROUPED_QUANTIFIER_DOCUMENTATION_INDEX.md`
+      - `docs/json_schemas.md`
+      - `docs/julia_parser_gen.md`
+      - `docs/multi_language_architecture.md`
+      - `docs/PERFORMANCE_GUIDE.md`
+      - `docs/python_ast_pipeline.md`
+      - `docs/python_syntactic_data_generator.md`
+      - `docs/rust_parser_gen.md`
+      - `docs/SYNTACTIC_DATA_GENERATOR.md`
+      - `docs/tools.md`
+      - `docs/ULTIMATE_DOT_NOTATION_DOCS.md`
+  - rationale notes retained for future execution:
+    - `docs/DEVELOPMENT_NOTES.md`
+      - should not survive alongside root `DEVELOPMENT_NOTES.md`; it is a direct continuity-surface duplicate/conflict
+    - most `status`, `summary`, `complete`, `plan`, and `analysis` named files are historical wave snapshots, not living references
+    - the multi-language / Julia / Python / generic syntactic-generator docs no longer describe the repo’s active Rust-first architecture faithfully enough to keep advertising them
+  - next execution plan:
+    - first merge the `merge-then-remove` bucket into the `7` surviving reference docs
+    - then prune the `continuity-only` and `remove outright` buckets in smaller reviewable waves
+    - keep `README.md` curated and never restore the old giant tracked-markdown dump
