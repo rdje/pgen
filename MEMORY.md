@@ -9540,3 +9540,28 @@ Use this file to resume work without replaying full chat history.
     - `55 -> 48`
   - next rule:
     - keep deleting in reviewable waves, with continuity notes first
+- 2026-04-06: the second top-level docs-pruning wave is now complete too.
+  - removed outright stale/superseded docs:
+    - `docs/api_interfaces.md`
+    - `docs/DEBUGGING_STARTUP_GUIDE.md`
+    - `docs/EBNF_GENERATOR_ARCHITECTURE.md`
+    - `docs/EBNF_GRAMMAR_RULES.md`
+    - `docs/EBNF_PARSER_GENERATOR_GUIDE.md`
+    - `docs/EBNF_PARSER_GENERATOR.md`
+    - `docs/EBNF_QUICK_REFERENCE.md`
+    - `docs/ERROR_REPORTING_GUIDE.md`
+    - `docs/GROUPED_QUANTIFIER_DOCUMENTATION_INDEX.md`
+    - `docs/json_schemas.md`
+    - `docs/julia_parser_gen.md`
+    - `docs/multi_language_architecture.md`
+    - `docs/PERFORMANCE_GUIDE.md`
+    - `docs/python_ast_pipeline.md`
+    - `docs/python_syntactic_data_generator.md`
+    - `docs/rust_parser_gen.md`
+    - `docs/SYNTACTIC_DATA_GENERATOR.md`
+    - `docs/tools.md`
+    - `docs/ULTIMATE_DOT_NOTATION_DOCS.md`
+  - top-level `docs/*.md` count:
+    - `48 -> 29`
+  - next rule:
+    - only the active keep-set plus the continuity-only residue bucket remain at the top level

@@ -29360,3 +29360,41 @@ Architectural north star:
   - next docs-pruning target:
     - the remaining `continuity-only` residue bucket
     - then the outright stale/superseded bucket
+- 2026-04-06: executed the second top-level docs-pruning wave and removed the entire bucket that had already been classified as outright stale/superseded.
+  - removed:
+    - `docs/api_interfaces.md`
+    - `docs/DEBUGGING_STARTUP_GUIDE.md`
+    - `docs/EBNF_GENERATOR_ARCHITECTURE.md`
+    - `docs/EBNF_GRAMMAR_RULES.md`
+    - `docs/EBNF_PARSER_GENERATOR_GUIDE.md`
+    - `docs/EBNF_PARSER_GENERATOR.md`
+    - `docs/EBNF_QUICK_REFERENCE.md`
+    - `docs/ERROR_REPORTING_GUIDE.md`
+    - `docs/GROUPED_QUANTIFIER_DOCUMENTATION_INDEX.md`
+    - `docs/json_schemas.md`
+    - `docs/julia_parser_gen.md`
+    - `docs/multi_language_architecture.md`
+    - `docs/PERFORMANCE_GUIDE.md`
+    - `docs/python_ast_pipeline.md`
+    - `docs/python_syntactic_data_generator.md`
+    - `docs/rust_parser_gen.md`
+    - `docs/SYNTACTIC_DATA_GENERATOR.md`
+    - `docs/tools.md`
+    - `docs/ULTIMATE_DOT_NOTATION_DOCS.md`
+  - why this bucket was safe to delete:
+    - active docs / README / WARP / implementation docs were not depending on these files
+    - the few surviving filename mentions were inside other stale docs such as:
+      - `docs/implementation_complete.md`
+      - `docs/CLEANUP_SUMMARY.md`
+    - which are already in the continuity-only residue bucket scheduled for later removal
+  - qualitative summary of what was removed:
+    - generic multi-language architecture narratives
+    - Perl-first / old generator workflow guides
+    - Python and Julia implementation docs that do not match the repo's current maintained surface
+    - stale quick references, schema docs, and one-off design explainer files
+  - retained result:
+    - top-level `docs/*.md` count is now:
+      - `29`
+    - the remaining top-level docs are mostly the `7` intentionally kept active references plus the historical residue bucket
+  - next docs-pruning target:
+    - the continuity-only residue bucket

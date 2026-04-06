@@ -27991,3 +27991,44 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - the next documentation-pruning waves should target:
       - continuity-only residue
       - outright stale/superseded files
+- 2026-04-06: completed the second top-level docs-pruning wave by removing the outright stale/superseded bucket with no active-source-of-truth references left to preserve.
+  - removed in this wave:
+    - `docs/api_interfaces.md`
+    - `docs/DEBUGGING_STARTUP_GUIDE.md`
+    - `docs/EBNF_GENERATOR_ARCHITECTURE.md`
+    - `docs/EBNF_GRAMMAR_RULES.md`
+    - `docs/EBNF_PARSER_GENERATOR_GUIDE.md`
+    - `docs/EBNF_PARSER_GENERATOR.md`
+    - `docs/EBNF_QUICK_REFERENCE.md`
+    - `docs/ERROR_REPORTING_GUIDE.md`
+    - `docs/GROUPED_QUANTIFIER_DOCUMENTATION_INDEX.md`
+    - `docs/json_schemas.md`
+    - `docs/julia_parser_gen.md`
+    - `docs/multi_language_architecture.md`
+    - `docs/PERFORMANCE_GUIDE.md`
+    - `docs/python_ast_pipeline.md`
+    - `docs/python_syntactic_data_generator.md`
+    - `docs/rust_parser_gen.md`
+    - `docs/SYNTACTIC_DATA_GENERATOR.md`
+    - `docs/tools.md`
+    - `docs/ULTIMATE_DOT_NOTATION_DOCS.md`
+  - rationale retained:
+    - these were all either:
+      - completely unreferenced by the active repo surface
+      - or referenced only by other stale historical docs already classified for later removal
+    - their content was dominated by:
+      - old multi-language architecture claims
+      - Perl-first tool guidance
+      - obsolete generator guides
+      - stale performance/error-reporting narratives
+      - one-off historical design documents no longer used as live reference
+  - surface reduction:
+    - top-level `docs/*.md` count moved from:
+      - `48`
+    - down to:
+      - `29`
+  - honest current read:
+    - the remaining top-level docs are now mostly:
+      - the `7` active kept references
+      - the continuity-only historical residue bucket
+    - the next pruning wave should target that continuity-only residue explicitly
