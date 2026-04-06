@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-06 - Enforce contract and reference docs allowlists
+### Achievement Summary
+Completed the next documentation hardening wave by teaching the local workflow parity gate to audit the curated `docs/contracts/*.md` and `docs/reference/*.md` surfaces directly. This turns those buckets into enforced repository structure rather than soft convention.
+
+### Scope of Changes
+- Added git-aware allowlist audits to:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - `docs/contracts/*.md`
+    - `docs/reference/*.md`
+- Updated docs-structure policy wording:
+  - [README.md](README.md)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Documentation-structure impact:
+  - no files moved in this wave
+  - `docs/contracts/*.md` count stays `9`
+  - `docs/reference/*.md` count stays `10`
+  - future contract/reference bucket drift now fails the local parity gate
+- Status impact:
+  - no live-status row changed
+  - this is documentation-policy and workflow-surface hardening only
+
+### Validation
+- `find docs/contracts -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `9`
+- `find docs/reference -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `10`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - passed with the new `auditing contract docs allowlist` and `auditing reference docs allowlist` phases in the static checks
+- `git diff --check`
+
 ## 2026-04-06 - Enforce top-level docs allowlist
 ### Achievement Summary
 Completed the follow-up hardening wave for the pruned top-level `docs/*.md` surface by teaching the local workflow parity gate to audit that seven-file allowlist directly. This turns the cleaned-up top-level docs surface into an enforced policy instead of a convention.

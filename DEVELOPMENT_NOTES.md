@@ -1,4 +1,61 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Docs cleanup hardening: enforce contract and reference docs allowlists in local workflow parity
+### Context
+After the root markdown surface and the pruned top-level `docs/*.md` surface were both machine-enforced, the next obvious structure-risk buckets were the two curated documentation directories created by the cleanup waves: `docs/contracts/` and `docs/reference/`. Both were deliberately shaped surfaces now, so they deserved the same protection against silent drift.
+
+### What Was Changed
+- Added git-aware `audit_contract_docs_surface()` and `audit_reference_docs_surface()` checks to [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh).
+- The contract-docs audit now enforces the nine-file downstream handoff bucket:
+  - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+  - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+  - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
+- The reference-docs audit now enforces the ten-file maintained deep-reference bucket:
+  - `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`
+  - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  - `docs/reference/PGEN_RELEASE_POLICY.md`
+  - `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+  - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`
+  - `docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md`
+  - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+  - `docs/reference/STRESS_TEST_STANDARDIZATION.md`
+  - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
+- Updated [README.md](README.md) so the docs-structure policy now says the local workflow parity gate enforces these curated buckets too.
+- Updated continuity docs so this hardening step is restart-safe:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- The curated docs directories are now protected against silent accretion, not just the repo root and top-level docs layer.
+- This makes the earlier cleanup waves durable and reviewable: if a future change really needs a new contract or reference doc in these buckets, that expansion must be deliberate.
+- The checks are still git-aware, so they audit only the tracked curated surfaces rather than unrelated markdown elsewhere in the repo.
+
+### What Was Verified
+- Curated bucket sizes remain:
+  - `find docs/contracts -maxdepth 1 -type f -name '*.md' | wc -l`
+    - result: `9`
+  - `find docs/reference -maxdepth 1 -type f -name '*.md' | wc -l`
+    - result: `10`
+- Local workflow parity now includes the new policy audits and still passes:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat `docs/contracts/*.md` and `docs/reference/*.md` as enforced curated buckets now, not open-ended catch-all directories.
+- If a future change really needs to add or remove a file in either bucket, update both:
+  - [README.md](README.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  in the same wave so the policy stays explicit and machine-checked.
+
 ## 2026-04-06 - Docs cleanup hardening: enforce the top-level docs allowlist in local workflow parity
 ### Context
 After the four-wave pruning track, top-level `docs/*.md` was down to the intended seven-file active reference set. Just like the repo-root markdown surface, that cleanup would still be vulnerable to silent drift unless the workflow surface checked it automatically.

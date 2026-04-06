@@ -178,6 +178,81 @@ audit_top_level_docs_surface() {
   fi
 }
 
+audit_contract_docs_surface() {
+  local -a expected_contract_docs=(
+    "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md"
+    "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md"
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md"
+    "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md"
+    "docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+    "docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
+    "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md"
+    "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"
+    "docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md"
+  )
+  local -a actual_contract_docs=()
+  local expected_snapshot
+  local actual_snapshot
+  local line
+
+  note "auditing contract docs allowlist"
+  while IFS= read -r line; do
+    actual_contract_docs+=("$line")
+  done < <(
+    cd "$ROOT_DIR" &&
+      git ls-files -z |
+      perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/contracts\/[^\/]+\.md\z/ }' |
+      sort
+  )
+
+  expected_snapshot="$(printf '%s\n' "${expected_contract_docs[@]}")"
+  actual_snapshot="$(printf '%s\n' "${actual_contract_docs[@]}")"
+
+  if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
+    printf 'expected contract docs surface:\n%s\n' "$expected_snapshot" >&2
+    printf 'actual contract docs surface:\n%s\n' "$actual_snapshot" >&2
+    fail "contract docs allowlist drift detected; rehome unexpected docs or update the tracked policy deliberately"
+  fi
+}
+
+audit_reference_docs_surface() {
+  local -a expected_reference_docs=(
+    "docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md"
+    "docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md"
+    "docs/reference/PGEN_RELEASE_POLICY.md"
+    "docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md"
+    "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md"
+    "docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md"
+    "docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md"
+    "docs/reference/RUST_CODEBASE_ANALYSIS.md"
+    "docs/reference/STRESS_TEST_STANDARDIZATION.md"
+    "docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md"
+  )
+  local -a actual_reference_docs=()
+  local expected_snapshot
+  local actual_snapshot
+  local line
+
+  note "auditing reference docs allowlist"
+  while IFS= read -r line; do
+    actual_reference_docs+=("$line")
+  done < <(
+    cd "$ROOT_DIR" &&
+      git ls-files -z |
+      perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/reference\/[^\/]+\.md\z/ }' |
+      sort
+  )
+
+  expected_snapshot="$(printf '%s\n' "${expected_reference_docs[@]}")"
+  actual_snapshot="$(printf '%s\n' "${actual_reference_docs[@]}")"
+
+  if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
+    printf 'expected reference docs surface:\n%s\n' "$expected_snapshot" >&2
+    printf 'actual reference docs surface:\n%s\n' "$actual_snapshot" >&2
+    fail "reference docs allowlist drift detected; rehome unexpected docs or update the tracked policy deliberately"
+  fi
+}
+
 audit_workflow_surface() {
   local workflow_file
   note "auditing tracked workflow surface"
@@ -2344,6 +2419,8 @@ main() {
   audit_markdown_repo_relative_paths
   audit_root_markdown_surface
   audit_top_level_docs_surface
+  audit_contract_docs_surface
+  audit_reference_docs_surface
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface

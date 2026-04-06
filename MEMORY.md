@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: top-level-docs-allowlist-hardening-wave-7)
+Last updated: 2026-04-06 (+0200, task: curated-doc-buckets-allowlist-hardening-wave-8)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,22 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained curated-doc-buckets allowlist hardening wave:
+  - no files moved in this wave
+  - `docs/contracts/*.md` count remains `9`
+  - `docs/reference/*.md` count remains `10`
+  - important continuity detail:
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now audits the tracked curated docs buckets directly:
+      - `docs/contracts/*.md`
+      - `docs/reference/*.md`
+    - both curated buckets are now machine-checked just like:
+      - repo-root markdown
+      - top-level `docs/*.md`
+    - future adds/removes in these buckets should update the allowlists and [README.md](README.md) in the same commit
+  - retained verification target:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up for the docs cleanup track:
+    - none urgent; the main curated markdown surfaces are now slim and enforced
 - Retained top-level docs allowlist hardening wave:
   - no files moved in this wave
   - top-level `docs/*.md` count remains `7`

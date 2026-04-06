@@ -209,6 +209,7 @@ The list below is the current high-signal markdown surface for active work. A 20
 
 The top-level `docs/*.md` surface has now been pruned down to the maintained active reference set. The full audit trail and removal rationale remain recorded in `DEVELOPMENT_NOTES.md`.
 - `make -C rust SHELL=/bin/bash ci_workflow_local_gate` now audits the tracked top-level `docs/*.md` allowlist so this surface does not silently drift back upward.
+- `make -C rust SHELL=/bin/bash ci_workflow_local_gate` now also audits the tracked `docs/contracts/*.md` and `docs/reference/*.md` allowlists so the curated contract/reference buckets do not silently drift.
 
 Root markdown policy note:
 - the repository root should be reserved for entrypoint docs, live continuity docs, and tool/session-control docs
