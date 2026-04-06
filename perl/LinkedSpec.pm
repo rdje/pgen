@@ -10,6 +10,19 @@ use 5.010;
 use re 'eval';
 use Data::Dumper;
 
+BEGIN {
+    require File::Basename;
+    require File::Spec;
+
+    my $module_dir = File::Basename::dirname(__FILE__);
+    my $repo_root = File::Basename::dirname($module_dir);
+    my $fx_perl_dir = File::Spec->catdir($repo_root, 'fx', 'perl');
+
+    if (-d $fx_perl_dir && !grep { $_ eq $fx_perl_dir } @INC) {
+        push @INC, $fx_perl_dir;
+    }
+}
+
 use PPlugin;
 use LinkedRE;
 

@@ -27852,3 +27852,28 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - no parser regression from the current checkout was reproduced locally from the attached evidence
     - the real fix in this wave is CI observability, so the next failure will surface the true underlying bootstrap stderr directly instead of another opaque `Error 2`
+- 2026-04-06: closed the follow-up `ebnf_frontend_dual_run_diff` CI regression exposed by the improved job-log surface.
+  - corrected attached log reviewed:
+    - `/Users/richarddje/Downloads/job-logs-pgen-ci-error.txt`
+  - real root cause:
+    - the failing bootstrap step was genuinely:
+      - `perl tools/ebnf_to_json.pl --pretty --quiet grammars/ebnf.ebnf -o .../bootstrap_ebnf.json`
+    - `tools/ebnf_to_json.pl` loads `perl/AST/Transform.pm`, which loads `perl/LinkedSpec.pm`
+    - `perl/LinkedSpec.pm` compile-loads `PathSearch`, but `PathSearch.pm` lives under `fx/perl`, not `perl`
+    - local shells were masking that repository-layout dependency through `PERL5LIB`, but clean GitHub runners were not
+    - the earlier diagnostic helper also had a secondary bug:
+      - it printed `exit code 0` on failure and let the script continue, because it captured `$?` through an `if ...; then` wrapper instead of preserving the raw command status
+  - landed fix:
+    - `perl/LinkedSpec.pm`
+      - now appends repo-local `fx/perl` into `@INC` automatically, so `PathSearch.pm` resolves without relying on caller environment
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+      - now preserves the real bootstrap command status before printing failure excerpts
+      - so future failures stop immediately and report the true nonzero exit code
+  - retained clean-environment proof:
+    - `env -u PERL5LIB perl tools/ebnf_to_json.pl --pretty --quiet grammars/ebnf.ebnf -o /tmp/ci_repro_bootstrap_ebnf.fixed.json`
+      - passes
+    - `env -u PERL5LIB make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+      - passes
+  - current honest read:
+    - the CI incident was a real repo-local dependency bug in the Perl bootstrap/reference lane, not a main parser regression
+    - `ebnf_to_json.pl` is still part of the repository’s differential-proof surface and must remain self-contained on clean runners

@@ -63,11 +63,12 @@ run_logged_or_dump() {
     local log_path="$2"
     shift 2
 
-    if "$@" >"$log_path" 2>&1; then
+    "$@" >"$log_path" 2>&1
+    local status=$?
+    if [[ "$status" -eq 0 ]]; then
         return 0
     fi
 
-    local status=$?
     print_log_excerpt_on_failure "$label" "$log_path" "$status"
     return "$status"
 }

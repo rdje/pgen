@@ -29101,3 +29101,51 @@ Architectural north star:
   - retained next-rule:
     - if GitHub repros this workflow again, the primary job log should now reveal the actual bootstrap failure without requiring artifact spelunking
     - do not claim a parser-family regression from this incident unless the new surfaced stderr points to one directly
+- 2026-04-06: investigated the corrected last PGEN CI error log, reproduced the failure in a clean environment, and closed it as a real repo-local Perl bootstrap dependency bug in the retained dual-run oracle lane rather than a Rust frontend regression.
+  - corrected attached evidence reviewed:
+    - `/Users/richarddje/Downloads/job-logs-pgen-ci-error.txt`
+  - clarified architecture fact:
+    - the active EBNF frontend direction is Rust
+    - but `ebnf_frontend_dual_run_diff` still intentionally keeps Perl alive as a reference oracle for frontend parity
+    - so this CI lane still runs:
+      - `perl tools/ebnf_to_json.pl ...`
+      - before comparing with the Rust-side parse/raw-AST results
+  - real root cause:
+    - GitHub runner failed in:
+      - `bootstrap Perl ebnf_to_json`
+    - surfaced stderr showed:
+      - `Can't locate PathSearch.pm in @INC`
+    - load chain:
+      - `tools/ebnf_to_json.pl`
+      - `perl/AST/Transform.pm`
+      - `perl/LinkedSpec.pm`
+      - `use PathSearch`
+    - `PathSearch.pm` exists only under:
+      - `fx/perl/PathSearch.pm`
+    - local shells were masking this with:
+      - `PERL5LIB=/Users/.../pgen/fx/perl:...`
+    - clean runners did not have that crutch, so the repository layout assumption finally surfaced
+  - secondary bug found in the new failure helper:
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+    - `run_logged_or_dump()` was preserving failure logs correctly but reporting `exit code 0` and continuing on failure because `$?` was captured through the `if "$@" ...; then` wrapper instead of from the raw command invocation
+  - landed fix:
+    - `perl/LinkedSpec.pm`
+      - now appends repo-local `fx/perl` into `@INC` automatically during module load
+      - this makes the retained Perl bootstrap lane self-contained on clean runners
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+      - now executes the logged command first, stores the real status, and only then decides whether to dump excerpts/return nonzero
+      - future failures should now stop immediately and print the true status
+  - retained proof:
+    - exact clean-environment bootstrap repro now passes:
+      - `env -u PERL5LIB perl tools/ebnf_to_json.pl --pretty --quiet grammars/ebnf.ebnf -o /tmp/ci_repro_bootstrap_ebnf.fixed.json`
+    - exact clean-environment CI target now passes:
+      - `env -u PERL5LIB make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+    - retained summary stays:
+      - `ebnf`: pass
+      - `json`: pass
+      - `regex`: pass
+      - overall:
+        - `✅ EBNF dual-run differential passed for all tracked grammars.`
+  - next rule:
+    - do not describe PGEN as “Perl-free” yet while `ebnf_frontend_dual_run_diff` still intentionally uses `ebnf_to_json.pl` as a differential oracle
+    - if/when that oracle lane is retired, then the repository can honestly claim a Rust-only EBNF frontend surface

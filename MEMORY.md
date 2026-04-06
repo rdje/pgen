@@ -9420,3 +9420,26 @@ Use this file to resume work without replaying full chat history.
   - honest resume rule:
     - if the workflow fails again, inspect the surfaced stderr in the primary GitHub job log first
     - do not assume a parser regression from this incident unless the newly exposed bootstrap stderr proves one
+- 2026-04-06: corrected last-PGEN CI log turned the previously opaque dual-run failure into a real clean-runner bootstrap bug, now fixed.
+  - attached log:
+    - `/Users/richarddje/Downloads/job-logs-pgen-ci-error.txt`
+  - retained architectural clarification:
+    - Rust is the active EBNF frontend
+    - but `ebnf_frontend_dual_run_diff` still retains Perl as a reference oracle and therefore still calls `tools/ebnf_to_json.pl`
+  - real root cause:
+    - `perl/LinkedSpec.pm` required `PathSearch.pm`
+    - `PathSearch.pm` lived only in `fx/perl`
+    - local `PERL5LIB` masked that repo-local dependency
+    - GitHub clean runners exposed it
+  - kept code fixes:
+    - `perl/LinkedSpec.pm`
+      - auto-appends repo-local `fx/perl` to `@INC`
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+      - now preserves the real bootstrap exit status instead of misreporting `0`
+  - retained proof:
+    - `env -u PERL5LIB perl tools/ebnf_to_json.pl --pretty --quiet grammars/ebnf.ebnf -o /tmp/ci_repro_bootstrap_ebnf.fixed.json`
+      - passes
+    - `env -u PERL5LIB make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+      - passes
+  - honest rule going forward:
+    - do not call the repo fully Rust-only on the EBNF frontend side while the dual-run Perl oracle lane is still intentionally retained
