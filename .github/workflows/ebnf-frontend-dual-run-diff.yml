@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -42,7 +42,7 @@ jobs:
 
       - name: Upload EBNF dual-run differential artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ebnf-frontend-dual-run-diff-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
           path: rust/target/ebnf_frontend_dual_run_gate

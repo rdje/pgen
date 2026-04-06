@@ -27877,3 +27877,28 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - current honest read:
     - the CI incident was a real repo-local dependency bug in the Perl bootstrap/reference lane, not a main parser regression
     - `ebnf_to_json.pl` is still part of the repository’s differential-proof surface and must remain self-contained on clean runners
+- 2026-04-06: removed the GitHub Actions Node.js deprecation warning from the tracked workflow surface by upgrading the repository’s JavaScript actions to Node-24-capable majors.
+  - motivation:
+    - the previous green CI run still emitted the GitHub-hosted warning that:
+      - `actions/checkout@v4`
+      - `actions/upload-artifact@v4`
+      - were running on deprecated Node 20
+  - landed repo-wide workflow maintenance:
+    - all tracked workflow files now use:
+      - `actions/checkout@v5`
+      - `actions/upload-artifact@v6`
+  - touched workflows:
+    - `.github/workflows/annotation-contract-gate.yml`
+    - `.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
+    - `.github/workflows/branch-protection-contract-gate.yml`
+    - `.github/workflows/differential-regression-gate.yml`
+    - `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+    - `.github/workflows/fixed-point-gate.yml`
+    - `.github/workflows/performance-gate.yml`
+    - `.github/workflows/sota-exit-gate.yml`
+  - retained hygiene:
+    - no `actions/checkout@v4` remain under `.github/workflows`
+    - no `actions/upload-artifact@v4` remain under `.github/workflows`
+  - honest current read:
+    - this is workflow/runtime maintenance only
+    - it does not change any parser-family capability or proof claim, but it keeps the CI surface aligned with GitHub’s announced Node 24 transition

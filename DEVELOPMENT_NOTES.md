@@ -29149,3 +29149,34 @@ Architectural north star:
   - next rule:
     - do not describe PGEN as “Perl-free” yet while `ebnf_frontend_dual_run_diff` still intentionally uses `ebnf_to_json.pl` as a differential oracle
     - if/when that oracle lane is retired, then the repository can honestly claim a Rust-only EBNF frontend surface
+- 2026-04-06: upgraded the repository’s tracked GitHub Actions workflow surface away from Node-20-based action majors after the latest green CI run still emitted the hosted-runner deprecation warning.
+  - user-facing trigger:
+    - CI was green again after commit `99d737f`
+    - but the run still showed GitHub’s warning that Node.js 20 actions are deprecated
+  - official maintenance decision:
+    - keep the workflow files themselves clean instead of relying on temporary environment toggles like:
+      - `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`
+      - `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true`
+    - prefer action-major upgrades to Node-24-capable releases
+  - landed workflow upgrades:
+    - every tracked `actions/checkout@v4` was upgraded to:
+      - `actions/checkout@v5`
+    - every tracked `actions/upload-artifact@v4` was upgraded to:
+      - `actions/upload-artifact@v6`
+  - touched workflow files:
+    - `.github/workflows/annotation-contract-gate.yml`
+    - `.github/workflows/annotation-nonbootstrap-e2e-gate.yml`
+    - `.github/workflows/branch-protection-contract-gate.yml`
+    - `.github/workflows/differential-regression-gate.yml`
+    - `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+    - `.github/workflows/fixed-point-gate.yml`
+    - `.github/workflows/performance-gate.yml`
+    - `.github/workflows/sota-exit-gate.yml`
+  - retained repo-local verification:
+    - grep confirms no remaining:
+      - `actions/checkout@v4`
+      - `actions/upload-artifact@v4`
+    - `git diff --check` stays clean after the workflow edits
+  - honest scope:
+    - this is CI runtime maintenance, not parser or proof-surface logic
+    - the intended outcome is to silence the GitHub Node 20 deprecation warning before the announced runner cutover becomes disruptive

@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -41,7 +41,7 @@ jobs:
 
       - name: Upload fixed-point drift artifacts (on failure)
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fixed-point-gate-drift-${{ github.run_id }}-${{ github.run_attempt }}
           path: rust/target/fixed_point_gate

@@ -9443,3 +9443,24 @@ Use this file to resume work without replaying full chat history.
       - passes
   - honest rule going forward:
     - do not call the repo fully Rust-only on the EBNF frontend side while the dual-run Perl oracle lane is still intentionally retained
+- 2026-04-06: after CI went green again, the remaining Node 20 GitHub Actions warning was treated as real maintenance debt and removed from the workflow surface.
+  - kept policy:
+    - prefer upgrading action majors over temporary runner env toggles
+  - landed upgrades:
+    - `actions/checkout@v4 -> actions/checkout@v5`
+    - `actions/upload-artifact@v4 -> actions/upload-artifact@v6`
+  - touched workflows:
+    - `annotation-contract-gate.yml`
+    - `annotation-nonbootstrap-e2e-gate.yml`
+    - `branch-protection-contract-gate.yml`
+    - `differential-regression-gate.yml`
+    - `ebnf-frontend-dual-run-diff.yml`
+    - `fixed-point-gate.yml`
+    - `performance-gate.yml`
+    - `sota-exit-gate.yml`
+  - retained hygiene:
+    - no remaining `checkout@v4`
+    - no remaining `upload-artifact@v4`
+  - honest scope:
+    - workflow/runtime maintenance only
+    - no parser-family status change
