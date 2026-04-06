@@ -27838,3 +27838,17 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - the next honest resume point is:
       - `/tmp/uvm_pkg_7642_after17.trace.log`
       - with `/tmp/sv_empty_call_return_probe_after_reserved.trace.log` as the minimal sidecar
+- 2026-04-06: hardened the `ebnf_frontend_dual_run_diff` CI failure surface after the pushed regex `1.1.7` wave produced an opaque GitHub Actions failure log with only top-level `make ... Error 2`.
+  - attached CI log reviewed:
+    - `/Users/richarddje/Downloads/job-logs-1.1.7-ci-error.log`
+  - retained finding:
+    - the failing workflow step was `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+    - the top-level job log did not expose the real bootstrap stderr because the script redirected the two critical subcommands into per-step log files
+    - a fresh local rerun of that exact target is green:
+      - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+  - landed hardening:
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh` now wraps the bootstrap Perl conversion and bootstrap parser-generation commands with a failure helper that prints the hidden log path plus a bounded head/tail excerpt on error
+    - this keeps success-path behavior unchanged while making the next CI failure self-diagnosing in the main GitHub log
+  - honest current read:
+    - no parser regression from the current checkout was reproduced locally from the attached evidence
+    - the real fix in this wave is CI observability, so the next failure will surface the true underlying bootstrap stderr directly instead of another opaque `Error 2`

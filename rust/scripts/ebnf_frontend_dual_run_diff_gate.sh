@@ -27,6 +27,51 @@ fi
 
 mkdir -p "$STATE_DIR" "$LOG_DIR" "$WORK_DIR"
 
+print_log_excerpt_on_failure() {
+    local label="$1"
+    local log_path="$2"
+    local status="$3"
+    local max_head_lines="${4:-120}"
+    local max_tail_lines="${5:-40}"
+
+    echo "error: ${label} failed with exit code ${status}" >&2
+    echo "log: ${log_path}" >&2
+    if [[ ! -f "$log_path" ]]; then
+        echo "(log file missing)" >&2
+        return
+    fi
+    if [[ ! -s "$log_path" ]]; then
+        echo "(log file is empty)" >&2
+        return
+    fi
+
+    local total_lines
+    total_lines=$(wc -l <"$log_path" | tr -d ' ')
+    echo "--- begin ${label} log ---" >&2
+    if [[ "$total_lines" -le "$max_head_lines" ]]; then
+        cat "$log_path" >&2
+    else
+        sed -n "1,${max_head_lines}p" "$log_path" >&2
+        echo "--- log truncated; showing last ${max_tail_lines} lines of ${total_lines} ---" >&2
+        tail -n "$max_tail_lines" "$log_path" >&2
+    fi
+    echo "--- end ${label} log ---" >&2
+}
+
+run_logged_or_dump() {
+    local label="$1"
+    local log_path="$2"
+    shift 2
+
+    if "$@" >"$log_path" 2>&1; then
+        return 0
+    fi
+
+    local status=$?
+    print_log_excerpt_on_failure "$label" "$log_path" "$status"
+    return "$status"
+}
+
 echo "==> Building ast_pipeline (ebnf_dual_run path)"
 (cd "$RUST_DIR" && cargo build --features ebnf_dual_run --bin ast_pipeline >/dev/null)
 
@@ -36,10 +81,14 @@ if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
 fi
 
 echo "==> Regenerating EBNF frontend artifacts for dual-run harness"
-perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$GRAMMARS_DIR/ebnf.ebnf" -o "$BOOTSTRAP_EBNF_JSON" \
-    >"$LOG_DIR/bootstrap_ebnf_to_json.log" 2>&1
-"$AST_PIPELINE_BIN" "$BOOTSTRAP_EBNF_JSON" --generate-parser --output "$BOOTSTRAP_EBNF_PARSER_RS" \
-    >"$LOG_DIR/bootstrap_generate_ebnf_parser.log" 2>&1
+run_logged_or_dump \
+    "bootstrap Perl ebnf_to_json" \
+    "$LOG_DIR/bootstrap_ebnf_to_json.log" \
+    perl "$TOOLS_DIR/ebnf_to_json.pl" --pretty --quiet "$GRAMMARS_DIR/ebnf.ebnf" -o "$BOOTSTRAP_EBNF_JSON"
+run_logged_or_dump \
+    "bootstrap EBNF parser generation" \
+    "$LOG_DIR/bootstrap_generate_ebnf_parser.log" \
+    "$AST_PIPELINE_BIN" "$BOOTSTRAP_EBNF_JSON" --generate-parser --output "$BOOTSTRAP_EBNF_PARSER_RS"
 
 echo "==> Building Rust dual-run report binary"
 (cd "$RUST_DIR" && PGEN_EBNF_PARSER_PATH="$BOOTSTRAP_EBNF_PARSER_RS" cargo build --features ebnf_dual_run --bin ebnf_dual_run_diff >/dev/null)

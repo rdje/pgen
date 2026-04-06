@@ -29061,3 +29061,43 @@ Architectural north star:
   - next regex hardening rule:
     - when a downstream regex report is accepted-tree-sensitive, first ask whether the existing manifest is asserting the correct AST shape and rule text before blaming stimuli randomness
     - constrained-random stimuli may still be useful later, but the current highest-value defense remains explicit contract samples for known semantic seams
+- 2026-04-06: investigated the GitHub Actions failure reported after pushing regex `1.1.7`, confirmed the exact `ebnf_frontend_dual_run_diff` target is green locally, and hardened the script so future CI failures dump the hidden bootstrap stderr directly into the job log.
+  - attached evidence reviewed:
+    - `/Users/richarddje/Downloads/job-logs-1.1.7-ci-error.log`
+  - retained CI finding:
+    - failing workflow:
+      - `.github/workflows/ebnf-frontend-dual-run-diff.yml`
+    - failing step:
+      - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+    - top-level CI log only showed:
+      - `make: *** [Makefile:527: ebnf_frontend_dual_run_diff] Error 2`
+    - the real bootstrap subcommand stderr was hidden because `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh` redirected:
+      - `perl tools/ebnf_to_json.pl ... -o target/.../bootstrap_ebnf.json`
+      - `ast_pipeline target/.../bootstrap_ebnf.json --generate-parser --output target/.../bootstrap_ebnf.rs`
+      - into:
+        - `bootstrap_ebnf_to_json.log`
+        - `bootstrap_generate_ebnf_parser.log`
+  - local reproduction result:
+    - fresh rerun of the exact report-mode target is green:
+      - `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+    - retained summary:
+      - `ebnf`: `pass`
+      - `json`: `pass`
+      - `regex`: `pass`
+      - overall:
+        - `✅ EBNF dual-run differential passed for all tracked grammars.`
+    - honest interpretation:
+      - no parser regression from the current checkout was reproduced from the attached log alone
+      - the actionable local defect was observability, not known parser breakage
+  - landed script hardening:
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`
+      - added `print_log_excerpt_on_failure()`
+      - added `run_logged_or_dump()`
+      - wrapped both hidden bootstrap commands so a future nonzero exit now prints:
+        - failing label
+        - log path
+        - bounded head/tail excerpt of the hidden log
+    - success-path behavior remains unchanged
+  - retained next-rule:
+    - if GitHub repros this workflow again, the primary job log should now reveal the actual bootstrap failure without requiring artifact spelunking
+    - do not claim a parser-family regression from this incident unless the new surfaced stderr points to one directly

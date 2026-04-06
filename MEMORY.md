@@ -9405,3 +9405,18 @@ Use this file to resume work without replaying full chat history.
       - `/tmp/sv_empty_call_return_probe_after_reserved.trace.log`
     - the same later helper-call zone remains the representative UVM hotspot
     - do not spend another wave on declaration-keyword compaction first; this pass already captured the big available win there
+- 2026-04-06: GitHub Actions failure after pushing regex `1.1.7` was investigated from the attached job log and did not reproduce locally as a parser regression; the kept fix is better CI observability for `ebnf_frontend_dual_run_diff`.
+  - attached log:
+    - `/Users/richarddje/Downloads/job-logs-1.1.7-ci-error.log`
+  - retained diagnosis:
+    - the failing CI step was `make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff`
+    - the job log only surfaced top-level `Error 2` because the script hid the failing bootstrap stderr in per-step log files
+    - a local rerun of that exact target is green
+  - kept change:
+    - `rust/scripts/ebnf_frontend_dual_run_diff_gate.sh` now dumps bounded excerpts from:
+      - `bootstrap_ebnf_to_json.log`
+      - `bootstrap_generate_ebnf_parser.log`
+      - whenever either bootstrap subcommand fails
+  - honest resume rule:
+    - if the workflow fails again, inspect the surfaced stderr in the primary GitHub job log first
+    - do not assume a parser regression from this incident unless the newly exposed bootstrap stderr proves one
