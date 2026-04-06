@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-04 (+0200, task: rtl-frontend-ebnf-bootstrap)
+Last updated: 2026-04-06 (+0200, task: regex-contract-ast-shape-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained regex integration-contract hardening:
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - published success samples can now optionally declare:
+      - `required_rule_names`
+      - `forbidden_rule_names`
+    - retained AST-sensitive published samples now use that schema for:
+      - `whole_pattern_recursion`
+      - `numeric_backreference`
+      - `numeric_angle_subroutine_ref`
+      - `braced_octal_escape`
+      - `plain_embedded_code_block`
+      - tagged `lua` / `rhai` / `native` / `wasm` / `javascript` embedded code blocks
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - regex integration-manifest case schema now deserializes those optional AST-rule lists
+    - new generic test:
+      - `regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples`
+    - important design point:
+      - this is intentionally manifest-driven contract hardening for already-published regex release `1.1.5`, not a new parser release
+- Fresh retained validation:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples --lib`
+    - passed
+- Important current limitation:
+  - plain `cargo test` / `make` verification can still hit the known local macOS launch stall where a libtest binary parks at `_dyld_start` before user code
+  - when that happens, use:
+    - `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh`
+- Immediate next best follow-up for this slice:
+  - keep adding manifest-level AST expectations whenever a published regex sample carries accepted-tree semantics that downstream consumers rely on
+  - do not treat raw stimuli randomness as the primary fix for accepted-tree transport bugs; prefer explicit AST-shape contracts first
+
 - Retained Phase S grammar bootstrap:
   - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
     - new standalone tracked bootstrap grammar for the current RTLSyn-facing synthesizable RTL subset

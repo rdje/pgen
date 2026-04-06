@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-04-06 - Harden regex integration contract AST-shape replay
+### Achievement Summary
+Strengthened the upstream regex regression surface without changing the published `1.1.5` parser handoff. The regex integration manifest now carries machine-readable AST-shape expectations for the already-published accepted-tree-sensitive samples, so previously fixed RGX transport bugs are protected by one generic manifest-driven check instead of only scattered bespoke tests.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - added `required_rule_names` / `forbidden_rule_names` to the accepted-tree-sensitive published samples
+  - covered the retained whole-pattern recursion, numeric backreference, numeric angle subroutine reference, braced octal escape, and plain-vs-tagged embedded code-block seams
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - extended the regex integration-manifest case schema with optional AST-rule requirements
+  - added one generic regression test that replays those manifest-declared AST invariants across all published success samples
+- Updated published/continuity docs:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - `regex` stays `Done`; this is a regression-hardening wave, not a new parser release
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples --lib`
+- `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+
 ## 2026-04-06 - Release regex 1.1.5 for tagged embedded code blocks
 ### Achievement Summary
 Closed RGX bug `PGEN-RGX-0008` against the published regex handoff. Language-tagged code blocks such as `(?{lua:return true})` now transport as real tagged blocks in the generated regex parser instead of being shadowed by the plain opaque code-block branch, and the published tagged surface now includes `rhai`, `native`, and `wasm`.

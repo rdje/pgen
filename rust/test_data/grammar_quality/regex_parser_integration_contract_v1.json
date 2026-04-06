@@ -43,15 +43,21 @@
     },
     {
       "name": "numeric_backreference",
-      "input": "(a)\\1"
+      "input": "(a)\\1",
+      "required_rule_names": ["backreference"],
+      "forbidden_rule_names": ["escape"]
     },
     {
       "name": "numeric_angle_subroutine_ref",
-      "input": "\\g<1>"
+      "input": "\\g<1>",
+      "required_rule_names": ["backreference", "subroutine_ref", "signed_digits"],
+      "forbidden_rule_names": ["escape", "literal"]
     },
     {
       "name": "braced_octal_escape",
-      "input": "\\o{101}"
+      "input": "\\o{101}",
+      "required_rule_names": ["escape", "octal_escape", "octal_digits"],
+      "forbidden_rule_names": ["simple_escape", "quantifier"]
     },
     {
       "name": "named_conditional",
@@ -67,7 +73,9 @@
     },
     {
       "name": "whole_pattern_recursion",
-      "input": "(?R)"
+      "input": "(?R)",
+      "required_rule_names": ["subroutine_call", "subroutine_target"],
+      "forbidden_rule_names": ["inline_modifiers"]
     },
     {
       "name": "left_open_counted_quantifier",
@@ -79,27 +87,39 @@
     },
     {
       "name": "plain_embedded_code_block",
-      "input": "(?{payload})"
+      "input": "(?{payload})",
+      "required_rule_names": ["code_block_plain"],
+      "forbidden_rule_names": ["code_block_lang", "code_lang"]
     },
     {
       "name": "lua_embedded_code_block",
-      "input": "(?{lua:return x + 1})"
+      "input": "(?{lua:return x + 1})",
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"]
     },
     {
       "name": "rhai_embedded_code_block",
-      "input": "(?{rhai:let x = 1;})"
+      "input": "(?{rhai:let x = 1;})",
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"]
     },
     {
       "name": "native_embedded_code_block",
-      "input": "(?{native:callback_name})"
+      "input": "(?{native:callback_name})",
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"]
     },
     {
       "name": "wasm_embedded_code_block",
-      "input": "(?{wasm:module:function})"
+      "input": "(?{wasm:module:function})",
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"]
     },
     {
       "name": "javascript_embedded_code_block",
-      "input": "(?{javascript:return x + 1;})"
+      "input": "(?{javascript:return x + 1;})",
+      "required_rule_names": ["code_block_lang", "code_lang"],
+      "forbidden_rule_names": ["code_block_plain"]
     }
   ],
   "failure_samples": [

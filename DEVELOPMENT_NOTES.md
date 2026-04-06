@@ -28759,6 +28759,35 @@ Architectural north star:
   - live-status impact:
     - none
     - `regex` stays `Done`; this is a downstream maintenance patch, not a closure-status change
+- 2026-04-06: hardened the upstream regex integration contract so published accepted-tree-sensitive samples now carry machine-readable AST-shape requirements.
+  - why this was worth doing:
+    - the recent RGX regex issues were not mainly “stimuli randomness missed a parse reject”
+    - they were accepted-tree transport bugs, which means parse-success-only gates are too weak an oracle
+    - broader random stimuli can help reach syntax, but it cannot by itself prove that a parsed sample landed on the right AST rule family
+  - landed change:
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+      - success samples now optionally carry:
+        - `required_rule_names`
+        - `forbidden_rule_names`
+      - retained AST-sensitive samples now use that shape for:
+        - `whole_pattern_recursion`
+        - `numeric_backreference`
+        - `numeric_angle_subroutine_ref`
+        - `braced_octal_escape`
+        - `plain_embedded_code_block`
+        - tagged `lua` / `rhai` / `native` / `wasm` / `javascript` embedded code blocks
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+      - extended `RegexParserIntegrationContractCase` to deserialize the new optional AST-rule lists
+      - added `regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples`
+      - the new test replays the manifest contract generically instead of relying only on bespoke one-off assertions
+  - retained proof:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples --lib`
+      - passed
+    - full gate should be run with the retained local runner workaround:
+      - `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - implementation steering takeaway:
+    - for regex accepted-tree regressions, the first-line fix should be a stronger manifest/gate oracle
+    - stimuli-generator randomness or coverage steering can still be widened later, but it is not the primary protection against AST transport drift
 - 2026-04-06: kept a narrow trace-guided SV/UVM grammar cleanup after proving it safe through the scratch-parser loop.
   - preserved starting point:
     - resumed from the committed `after10` semantics and the same later-UVM hotspot at:

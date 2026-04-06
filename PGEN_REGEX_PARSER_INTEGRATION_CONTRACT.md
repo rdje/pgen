@@ -38,6 +38,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `native` and `wasm` are now published as structurally preserved tagged payload forms, while runtime/reference validation remains downstream-owned
 - `1.1.5` also strengthens the upstream regression surface:
   - the dedicated embedded-code contract gate now checks tagged-vs-plain AST classification instead of only parse success
+  - the published regex integration manifest now carries machine-readable required/forbidden AST-rule expectations for the accepted-tree-sensitive release samples, and the generated-backend integration tests replay those expectations generically
 - `1.1.5` carries forward the `1.1.4` accepted-tree fix:
   - numeric angle forms such as `\g<1>` now transport as `backreference` containing `subroutine_ref` / `signed_digits` instead of `simple_escape("g")` plus literal `<`, `1`, `>`
 - `1.1.5` carries forward the `1.1.3` accepted-tree and host-validation fixes:

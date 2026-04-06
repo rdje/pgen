@@ -1580,6 +1580,10 @@ mod tests {
     struct RegexParserIntegrationContractCase {
         name: String,
         input: String,
+        #[serde(default)]
+        required_rule_names: Vec<String>,
+        #[serde(default)]
+        forbidden_rule_names: Vec<String>,
     }
 
     #[derive(Debug, Deserialize)]
@@ -2458,6 +2462,36 @@ mod tests {
                 panic!(
                     "expected regex success sample '{}' to parse, got {}: {}",
                     sample.name, diagnostic.code, diagnostic.message
+                );
+            }
+        }
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples() {
+        let manifest = regex_parser_integration_contract_manifest();
+
+        for sample in &manifest.success_samples {
+            if sample.required_rule_names.is_empty() && sample.forbidden_rule_names.is_empty() {
+                continue;
+            }
+
+            let parsed = regex_ast_dump_json(&sample.input);
+            for rule_name in &sample.required_rule_names {
+                assert!(
+                    !regex_rule_spans(&parsed, rule_name).is_empty(),
+                    "expected regex success sample '{}' to contain AST rule '{}'",
+                    sample.name,
+                    rule_name
+                );
+            }
+            for rule_name in &sample.forbidden_rule_names {
+                assert!(
+                    regex_rule_spans(&parsed, rule_name).is_empty(),
+                    "expected regex success sample '{}' to forbid AST rule '{}'",
+                    sample.name,
+                    rule_name
                 );
             }
         }
