@@ -27902,3 +27902,19 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - this is workflow/runtime maintenance only
     - it does not change any parser-family capability or proof claim, but it keeps the CI surface aligned with GitHub’s announced Node 24 transition
+- 2026-04-06: clarified the published regex host contract after downstream confusion about “stateless per call” versus the generated parser’s internal runtime model.
+  - issue clarified:
+    - RGX-side discussion had started conflating:
+      - host-contract invariant:
+        - `parse_session_model=stateless_per_call`
+      - with internal implementation structure:
+        - generated parser instances are still stateful while parsing
+  - landed contract clarification:
+    - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+      - now states explicitly that `stateless_per_call` is a host-surface guarantee only
+      - and that generated Rust parser instances remain stateful per instance during a parse call (`position`, memoization, recursion guard, semantic runtime)
+    - `PGEN_USER_GUIDE.md`
+      - now mirrors the same distinction under the embedding metadata/invariants section
+  - honest current read:
+    - this is documentation/contract clarification only
+    - it does not widen regex capability and does not change the recommended near-term plan that RGX should continue handling `(?x)` via its compiler pass unless/until PGEN intentionally adopts parser-level free-spacing semantics

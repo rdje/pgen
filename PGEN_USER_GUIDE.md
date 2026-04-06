@@ -3639,6 +3639,8 @@ Current stable surfaces:
   - includes integration invariants:
     - `input_ownership_model=borrowed_str`
     - `parse_session_model=stateless_per_call`
+      - this means the public host API behaves as an independent parse session per call
+      - it does not mean the internally generated parser object is stateless; generated parsers still keep mutable per-instance state such as cursor, memoization, and semantic-runtime state during parsing
     - `zero_copy_input_boundary=true`
     - `stable_diagnostic_codes=[E_BACKEND_UNAVAILABLE,E_INPUT_TOO_LARGE,E_INVALID_ARGUMENT,E_INVALID_LIMITS,E_PARSE_FAILURE,E_UNSUPPORTED_PROFILE]`
 

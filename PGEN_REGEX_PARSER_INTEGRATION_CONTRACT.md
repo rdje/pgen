@@ -126,6 +126,9 @@ This is the document downstream projects such as RGX should read first when deci
 - Stable integration invariants:
   - `input_ownership_model=borrowed_str`
   - `parse_session_model=stateless_per_call`
+    - this is a host-surface guarantee, not a claim that the generated parser implementation is internally stateless
+    - the generated Rust parser remains stateful per parser instance during a call, carrying parse cursor, memoization, recursion-guard, and semantic-runtime state
+    - downstream consumers should treat each public parse API call as an independent session and should not rely on cross-call parser state
   - `zero_copy_input_boundary=true`
   - deterministic by default
 

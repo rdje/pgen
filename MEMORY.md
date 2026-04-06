@@ -9464,3 +9464,23 @@ Use this file to resume work without replaying full chat history.
   - honest scope:
     - workflow/runtime maintenance only
     - no parser-family status change
+- 2026-04-06: clarified the published regex contract around parser statefulness after downstream confusion in RGX discussion.
+  - retained distinction:
+    - `parse_session_model=stateless_per_call`
+      - means host calls are independent parse sessions
+    - it does not mean the generated parser implementation is stateless
+  - implementation reality retained:
+    - generated parsers are stateful per parser instance during a parse
+    - examples in `generated/regex_parser.rs`:
+      - `position`
+      - `memo`
+      - `recursion_guard`
+      - `semantic_runtime_state`
+      - `parse(&mut self)`
+  - kept docs change:
+    - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+    - `PGEN_USER_GUIDE.md`
+    - both now spell out the host-contract-vs-internal-implementation distinction
+  - downstream policy retained:
+    - RGX should keep the compiler-pass implementation for `(?x)` for now
+    - parser-level `(?x)` in PGEN remains an optional future enhancement, not a current bug-fix obligation

@@ -29180,3 +29180,37 @@ Architectural north star:
   - honest scope:
     - this is CI runtime maintenance, not parser or proof-surface logic
     - the intended outcome is to silence the GitHub Node 20 deprecation warning before the announced runner cutover becomes disruptive
+- 2026-04-06: clarified the regex downstream contract wording after a real RGX/PGEN discussion exposed an easy misread around parser statefulness.
+  - triggering confusion:
+    - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+      - stable integration invariants included:
+        - `parse_session_model=stateless_per_call`
+    - that wording was being read as if PGEN’s generated parser implementation itself were stateless
+    - repo truth is narrower:
+      - public host calls are independent parse sessions
+      - internally generated parser instances are still stateful during a parse
+  - retained implementation evidence:
+    - generated regex parser struct:
+      - `generated/regex_parser.rs`
+      - stateful fields include:
+        - `position`
+        - `memo`
+        - `recursion_guard`
+        - `semantic_runtime_state`
+    - parse entry surface:
+      - `pub fn parse(&mut self)`
+      - `pub fn parse_full(&mut self)`
+    - speculative parse / rollback:
+      - `try_parse(...)`
+    - rule-level semantic transactions:
+      - `with_semantic_runtime_rule_transaction(...)`
+  - landed wording fix:
+    - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+      - now says `stateless_per_call` is a host-surface guarantee only
+      - explicitly states the generated parser remains stateful per parser instance during a call
+    - `PGEN_USER_GUIDE.md`
+      - mirrors the same clarification in the embedding metadata section
+  - practical policy retained:
+    - RGX should continue the compiler-pass implementation for `(?x)` for now
+    - parser-level `(?x)` remains architecturally possible in PGEN
+    - but it would be a contract/AST-behavior change, not a simple bug fix under the current published regex contract that still preserves `whitespace_literal`
