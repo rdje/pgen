@@ -143,6 +143,41 @@ audit_root_markdown_surface() {
   fi
 }
 
+audit_top_level_docs_surface() {
+  local -a expected_top_level_docs=(
+    "docs/AST_GENERATOR_ARCHITECTURE.md"
+    "docs/ast_transformation_pipeline.md"
+    "docs/BOOTSTRAP_MODE_SPECIFICATION.md"
+    "docs/EBNF_INCLUDE_SYSTEM.md"
+    "docs/parser_architecture_evolution.md"
+    "docs/RETURN_ANNOTATIONS_REFERENCE.md"
+    "docs/TEST_INFRASTRUCTURE.md"
+  )
+  local -a actual_top_level_docs=()
+  local expected_snapshot
+  local actual_snapshot
+  local line
+
+  note "auditing top-level docs allowlist"
+  while IFS= read -r line; do
+    actual_top_level_docs+=("$line")
+  done < <(
+    cd "$ROOT_DIR" &&
+      git ls-files -z |
+      perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/[^\/]+\.md\z/ }' |
+      sort
+  )
+
+  expected_snapshot="$(printf '%s\n' "${expected_top_level_docs[@]}")"
+  actual_snapshot="$(printf '%s\n' "${actual_top_level_docs[@]}")"
+
+  if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
+    printf 'expected top-level docs surface:\n%s\n' "$expected_snapshot" >&2
+    printf 'actual top-level docs surface:\n%s\n' "$actual_snapshot" >&2
+    fail "top-level docs allowlist drift detected; prune stale docs or update the tracked policy deliberately"
+  fi
+}
+
 audit_workflow_surface() {
   local workflow_file
   note "auditing tracked workflow surface"
@@ -2308,6 +2343,7 @@ main() {
   audit_static_include_paths
   audit_markdown_repo_relative_paths
   audit_root_markdown_surface
+  audit_top_level_docs_surface
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface

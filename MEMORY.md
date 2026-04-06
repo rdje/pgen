@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: root-markdown-allowlist-hardening-wave-6)
+Last updated: 2026-04-06 (+0200, task: top-level-docs-allowlist-hardening-wave-7)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,24 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained top-level docs allowlist hardening wave:
+  - no files moved in this wave
+  - top-level `docs/*.md` count remains `7`
+  - important continuity detail:
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now audits the tracked top-level `docs/*.md` allowlist directly
+    - the allowed top-level docs set is now machine-checked:
+      - `docs/AST_GENERATOR_ARCHITECTURE.md`
+      - `docs/ast_transformation_pipeline.md`
+      - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+      - `docs/EBNF_INCLUDE_SYSTEM.md`
+      - `docs/parser_architecture_evolution.md`
+      - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+      - `docs/TEST_INFRASTRUCTURE.md`
+    - future top-level docs changes should update the allowlist and README in the same commit
+  - retained verification target:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up for the docs cleanup track:
+    - none urgent; both the root markdown surface and the top-level docs surface are now slim and enforced
 - Retained root markdown allowlist hardening wave:
   - no files moved in this wave
   - repo-root markdown count remains `9`

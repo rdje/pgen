@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Docs cleanup hardening: enforce the top-level docs allowlist in local workflow parity
+### Context
+After the four-wave pruning track, top-level `docs/*.md` was down to the intended seven-file active reference set. Just like the repo-root markdown surface, that cleanup would still be vulnerable to silent drift unless the workflow surface checked it automatically.
+
+### What Was Changed
+- Added a git-aware `audit_top_level_docs_surface()` check to [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh).
+- The audit now compares the tracked top-level `docs/*.md` surface against the intentional allowlist:
+  - `docs/AST_GENERATOR_ARCHITECTURE.md`
+  - `docs/ast_transformation_pipeline.md`
+  - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+  - `docs/EBNF_INCLUDE_SYSTEM.md`
+  - `docs/parser_architecture_evolution.md`
+  - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+  - `docs/TEST_INFRASTRUCTURE.md`
+- Updated [README.md](README.md) so the top-level docs policy now says the local workflow parity gate enforces that pruned surface.
+- Updated continuity docs so this hardening step is restart-safe:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- The top-level `docs/*.md` cleanup is now protected by automation instead of relying on memory or manual review.
+- Because the check is git-aware, it only audits the tracked top-level docs set and ignores unrelated nested markdown elsewhere in the repo.
+- This closes the loop on the earlier four-wave top-level docs pruning work.
+
+### What Was Verified
+- Top-level `docs/*.md` count remains:
+  - `find docs -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `7`
+- Local workflow parity now includes the new policy audit and still passes:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat the seven-file top-level `docs/*.md` allowlist as the enforced steady-state policy now, not just as guidance.
+- If a future change really needs a new top-level `docs/*.md` file, update both:
+  - [README.md](README.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  in the same wave so the policy remains explicit and machine-checked.
+
 ## 2026-04-06 - Root markdown cleanup: enforce the root allowlist in local workflow parity
 ### Context
 After the roadmap and Rust analysis rehome, repo root finally reached the intended minimal nine-file markdown surface. The next risk was not misclassification anymore, but silent drift: a later change could reintroduce root markdown clutter without anyone noticing unless a human remembered the policy.
