@@ -388,7 +388,7 @@ audit_embedding_api_surface() {
     'plain `(?{...})` is preserved as opaque generic payload'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
-    'language tags `lua`, `js`, and `javascript` are preserved as opaque source-body payloads'
+    'language tags `lua`, `js`, `javascript`, and `rhai` are preserved as opaque source-body payloads'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
     'make -C rust regex_embedded_code_block_contract_gate'
@@ -506,7 +506,7 @@ audit_embedding_api_surface() {
     'plain `(?{...})` is preserved as opaque generic payload'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    '`lua`, `js`, and `javascript` payloads are preserved as opaque source-body payloads'
+    '`lua`, `js`, `javascript`, and `rhai` payloads are preserved as opaque source-body payloads'
   assert_file_contains \
     "PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'make -C rust regex_embedded_code_block_contract_gate'

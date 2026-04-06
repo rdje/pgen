@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: regex-code-block-span-fix)
+Last updated: 2026-04-06 (+0200, task: workflow-parity-doc-surface-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,29 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained local workflow parity cleanup:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - now expects the widened regex code-block wording already published in the docs:
+      - `lua`, `js`, `javascript`, and `rhai`
+    - this fixed the second honest parity drift after the regex `1.1.6` wave
+  - [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), and [MEMORY.md](MEMORY.md)
+    - retained command examples no longer embed the local absolute checkout path
+    - repo-path policy is back to tracked-export-safe markdown
+  - retained rerun result:
+    - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - passed the markdown repo-path policy and tracked workflow-surface audits
+      - passed:
+        - `annotation-contract-gate`
+        - `annotation-nonbootstrap-e2e-gate`
+        - `branch-protection-contract-gate`
+        - `differential-regression-gate`
+        - `ebnf-frontend-dual-run-diff`
+        - `fixed-point-gate`
+        - `performance-gate`
+      - then re-entered `sota-exit-gate` and was intentionally stopped rather than left running
+  - immediate next best follow-up for this slice:
+    - if we want a fully retained green parity proof later, resume directly from rerunning `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - the known workflow-surface drifts from this pass are already fixed
 - Retained regex downstream handoff `1.1.6`:
   - [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs)
     - quoted-literal decoding now explicitly handles `\f` and `\v`
@@ -8678,8 +8701,8 @@ Use this file to resume work without replaying full chat history.
     - counts => `0`
     - values => `<none>`
   - verified cheap commands:
-    - `env PGEN_SOTA_POLICY_FILE=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env ... bash rust/scripts/sota_exit_gate.sh`
-    - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate_entry_context_refresh PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_svpp_done_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+    - `env PGEN_SOTA_POLICY_FILE=rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env ... bash rust/scripts/sota_exit_gate.sh`
+    - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate_entry_context_refresh PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_svpp_done_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - practical rule:
     - do not force a fresh main-SV aggregate rebuild solely to populate those new keys in downstream summaries
     - only rebuild when the main-SV aggregate surface itself is the object under test

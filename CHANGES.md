@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-04-06 - Repair local workflow parity doc surface
+### Achievement Summary
+Closed two local workflow-parity drifts in the tracked docs. The first drift was markdown examples that embedded the absolute local checkout path, which broke the exported-tree repo-path policy check. The second drift was a stale `ci_workflow_local_gate` expectation that still asserted the pre-`rhai` regex code-block wording instead of the currently published `1.1.6` docs.
+
+### Scope of Changes
+- Updated [CHANGES.md](CHANGES.md), [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md), and [MEMORY.md](MEMORY.md):
+  - normalized retained command examples from absolute checkout paths to repo-relative paths
+  - recorded the honest workflow-parity rerun checkpoint after the fix
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - aligned the tracked regex code-block wording checks with the current published docs
+  - `PGEN_USER_GUIDE.md` now expects `lua`, `js`, `javascript`, and `rhai`
+  - `PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` now expects the same widened source-body wording
+- Status impact:
+  - no live-status row changed
+  - this is workflow/continuity hardening only
+
+### Validation
+- `rg -n '<absolute-checkout-path>' -g '*.md'`
+  - no tracked markdown still embeds the local checkout path after normalization
+- `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - cleared the markdown repo-path audit and workflow-surface audits
+  - progressed through `annotation-contract-gate`, `annotation-nonbootstrap-e2e-gate`, `branch-protection-contract-gate`, `differential-regression-gate`, `ebnf-frontend-dual-run-diff`, `fixed-point-gate`, and `performance-gate`
+  - then re-entered the heavier `sota-exit-gate` stack and was intentionally stopped there rather than left running in the background
+
 ## 2026-04-06 - Release regex 1.1.6 for tagged code-block span integrity
 ### Achievement Summary
 Closed RGX bug `PGEN-RGX-0009` against the published regex handoff. Language-tagged embedded code blocks such as `(?{native:validate_word})` now preserve the full `code_content` span instead of dropping the first payload byte, and the upstream regression surface now checks tagged code-block rule text directly instead of relying only on parse success or rule-name shape.
@@ -27033,8 +27057,8 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
       - value fields => `<none>`
     - `sv_combined_telemetry_contract_gate.sh` now uses the same defaults when reading older aggregate summaries and when comparing against older SOTA summaries
   - verified cheap refresh commands:
-    - `env PGEN_SOTA_POLICY_FILE=/Users/richarddje/Documents/github/pgen/rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env PGEN_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_entry_context_refresh PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_quality_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_aggregate_contract_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_reachability_closure_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_preprocessor_formal_exhaustive_closure_gate PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_failure_context_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_roundtrip_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_gate PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_parser_family_status_contract_gate bash rust/scripts/sota_exit_gate.sh`
-    - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sv_combined_telemetry_contract_gate_entry_context_refresh PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=/Users/richarddje/Documents/github/pgen/rust/target/sota_exit_gate_svpp_done_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
+    - `env PGEN_SOTA_POLICY_FILE=rust/test_data/grammar_quality/systemverilog_combined_telemetry_lightweight_v0.env PGEN_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_entry_context_refresh PGEN_SOTA_EXISTING_SV_PREPROCESSOR_QUALITY_STATE_DIR=rust/target/sv_preprocessor_quality_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_preprocessor_aggregate_contract_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_REACHABILITY_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_reachability_closure_gate PGEN_SOTA_EXISTING_SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_STATE_DIR=rust/target/sv_preprocessor_formal_exhaustive_closure_gate PGEN_SOTA_EXISTING_SV_STIMULI_QUALITY_STATE_DIR=rust/target/sv_stimuli_quality_gate PGEN_SOTA_EXISTING_SV_PARSER_AGGREGATE_CONTRACT_STATE_DIR=rust/target/sv_parser_aggregate_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_FAILURE_CONTEXT_CONTRACT_STATE_DIR=rust/target/sv_failure_context_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_ROUNDTRIP_CONTRACT_STATE_DIR=rust/target/sv_roundtrip_contract_gate_json_proof PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_STATE_DIR=rust/target/sv_parser_family_status_gate PGEN_SOTA_EXISTING_SV_PARSER_FAMILY_STATUS_CONTRACT_STATE_DIR=rust/target/sv_parser_family_status_contract_gate bash rust/scripts/sota_exit_gate.sh`
+    - `env PGEN_SV_COMBINED_TELEMETRY_CONTRACT_STATE_DIR=rust/target/sv_combined_telemetry_contract_gate_entry_context_refresh PGEN_SV_COMBINED_TELEMETRY_EXISTING_SOTA_EXIT_STATE_DIR=rust/target/sota_exit_gate_svpp_done_refresh bash rust/scripts/sv_combined_telemetry_contract_gate.sh`
   - practical retained consequence:
     - future proof-stack refreshes do not need a forced main-SV aggregate rebuild just because the aggregate summary predates the new entry-context keys
 - 2026-04-02: rejected a narrow main-`systemverilog` generator heuristic that forced a newline before any non-line-start `//...` segment.

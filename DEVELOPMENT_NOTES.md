@@ -27669,7 +27669,7 @@ Architectural north star:
       - `timeunit`
   - exact adapter-backed repro path used for evaluation:
     - rebuild `ast_pipeline` with:
-      - `PGEN_SYSTEMVERILOG_PARSER_PATH=/Users/richarddje/Documents/github/pgen/rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
+      - `PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/sv_stimuli_quality_gate/work/systemverilog_parser.rs`
       - `cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`
     - then run:
       - `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2023 --enforce-word-boundary-spacing --count 8 --seed 712001 --entry-rule systemverilog_file --max-depth 20 --max-repeat 2 --recovery-stimuli-mode baseline --output /tmp/sv_target_drive_probe.sv --target-max-attempts 200 --target-report-input rust/target/sv_stimuli_quality_gate/work/profile_2023_initial_gap.json --validate-parseability --parseability-report-json /tmp/sv_target_drive_probe_report.json`
@@ -28788,6 +28788,42 @@ Architectural north star:
   - implementation steering takeaway:
     - for regex accepted-tree regressions, the first-line fix should be a stronger manifest/gate oracle
     - stimuli-generator randomness or coverage steering can still be widened later, but it is not the primary protection against AST transport drift
+- 2026-04-06: repaired the tracked local workflow parity surface after the regex `1.1.6` release wave.
+  - first detected drift:
+    - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - failed immediately at markdown repo-path policy because retained docs still contained the local absolute checkout path
+  - landed fix:
+    - normalized those retained examples back to repo-relative form in:
+      - [CHANGES.md](CHANGES.md)
+      - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+      - [MEMORY.md](MEMORY.md)
+  - second detected drift on rerun:
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+      - still expected the older regex code-block wording:
+        - `lua`, `js`, and `javascript`
+      - but the published docs now correctly say:
+        - `lua`, `js`, `javascript`, and `rhai`
+  - landed fix:
+    - updated the local workflow gate expectations for:
+      - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+      - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - retained rerun result:
+    - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - cleared:
+        - markdown repo-path policy
+        - tracked workflow surface
+        - `annotation-contract-gate`
+        - `annotation-nonbootstrap-e2e-gate`
+        - `branch-protection-contract-gate`
+        - `differential-regression-gate`
+        - `ebnf-frontend-dual-run-diff`
+        - `fixed-point-gate`
+        - `performance-gate`
+      - then re-entered the heavier `sota-exit-gate` stack
+      - the run was intentionally stopped there rather than left running in the background
+  - live-status impact:
+    - none
+    - this was workflow parity hardening only
 - 2026-04-06: closed RGX regex report `PGEN-RGX-0009`, promoted the published regex handoff to `1.1.6`, and tightened the embedded-code oracle from AST rule names to AST rule text.
   - report summary:
     - tagged code blocks such as `(?{native:validate_word})` were still classifying as `code_block_lang`, but `code_content` started one byte late and dropped the leading `v`
