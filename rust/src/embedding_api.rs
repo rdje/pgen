@@ -18,10 +18,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.6";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.7";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.6";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.7";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2095,7 +2095,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 21);
+        assert_eq!(manifest.success_samples.len(), 23);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2103,6 +2103,18 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "named_recursion_conditional")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "bare_recursion_conditional")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "numeric_recursion_conditional")
         );
         assert!(
             manifest
@@ -2769,12 +2781,46 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
     fn regex_parser_integration_contract_accepts_named_recursion_conditionals() {
-        let parsed = regex_ast_dump_json("(?(R&word)a|b)");
+        let input = "(?(R&word)a|b)";
+        let parsed = regex_ast_dump_json(input);
 
         assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(0, 14)]);
         assert_eq!(regex_rule_spans(&parsed, "recursion_condition"), vec![(3, 9)]);
+        assert_eq!(regex_rule_texts(input, &parsed, "recursion_condition"), vec!["R&word"]);
+        assert_eq!(regex_rule_texts(input, &parsed, "name"), vec!["word"]);
         assert_eq!(regex_rule_spans(&parsed, "yes_branch"), vec![(10, 11)]);
         assert_eq!(regex_rule_spans(&parsed, "no_branch"), vec![(12, 13)]);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_bare_recursion_conditionals() {
+        let input = "(?(R)a|b)";
+        let parsed = regex_ast_dump_json(input);
+
+        assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(0, 9)]);
+        assert_eq!(regex_rule_spans(&parsed, "recursion_condition"), vec![(3, 4)]);
+        assert_eq!(regex_rule_texts(input, &parsed, "recursion_condition"), vec!["R"]);
+        assert!(
+            regex_rule_spans(&parsed, "name").is_empty(),
+            "bare recursion conditionals must not fall back to name"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_numeric_recursion_conditionals() {
+        let input = "(a)(?(R1)b|c)";
+        let parsed = regex_ast_dump_json(input);
+
+        assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(3, 13)]);
+        assert_eq!(regex_rule_spans(&parsed, "recursion_condition"), vec![(6, 8)]);
+        assert_eq!(regex_rule_texts(input, &parsed, "recursion_condition"), vec!["R1"]);
+        assert_eq!(regex_rule_texts(input, &parsed, "digits"), vec!["1"]);
+        assert!(
+            regex_rule_spans(&parsed, "name").is_empty(),
+            "numeric recursion conditionals must not fall back to name"
+        );
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]

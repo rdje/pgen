@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: workflow-parity-doc-surface-fix)
+Last updated: 2026-04-06 (+0200, task: regex-rgx-0010-recursion-conditional-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,36 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained regex downstream handoff `1.1.7`:
+  - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - `condition` now prefers `recursion_condition` before bare `name`
+    - this is the real parser-side fix for RGX issue `PGEN-RGX-0010`
+    - important nuance:
+      - bare/numeric recursion tests like `(?(R)a|b)` and `(?(R1)b|c)` must forbid fallback `name`
+      - named recursion tests like `(?(R&word)a|b)` still legitimately contain nested `name = "word"` under `recursion_condition`
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - published regex release / integration contract is now `1.1.7`
+    - new focused proofs cover:
+      - `regex_parser_integration_contract_accepts_bare_recursion_conditionals`
+      - `regex_parser_integration_contract_accepts_numeric_recursion_conditionals`
+    - retained named recursion proof now also asserts:
+      - `recursion_condition = "R&word"`
+      - nested `name = "word"`
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - published success surface now includes:
+      - `bare_recursion_conditional = (?(R)a|b)`
+      - `numeric_recursion_conditional = (a)(?(R1)b|c)`
+    - important oracle lesson:
+      - the real gap was not pseudo-randomness alone
+      - the older manifest did not assert the accepted-tree distinction between `recursion_condition` and fallback `name`
+      - stronger AST-shape / rule-text contracts are the right first-line defense for this bug class
+  - retained fixed downstream repro:
+    - `/Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0010/repro_input.txt`
+    - `/tmp/pgen_rgx_0010.fixed_ast.json`
+    - honest fixed signal:
+      - `conditional` spans `3..13`
+      - `recursion_condition` spans `6..8`
+      - no `name` node exists at `6..8`
 - Retained local workflow parity cleanup:
   - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
     - now expects the widened regex code-block wording already published in the docs:

@@ -29008,3 +29008,56 @@ Architectural north star:
       - `/tmp/uvm_pkg_7642_after17.trace.log`
       - `/tmp/sv_empty_call_return_probe_after_reserved.trace.log`
     - if continuing trace-guided SV/UVM work, attack the remaining helper-call hotspot directly from this cleaner baseline rather than reopening declaration-identifier compaction again
+- 2026-04-06: closed RGX regex report `PGEN-RGX-0010`, promoted the published regex handoff to `1.1.7`, and hardened the recursion-conditional oracle so accepted-tree ambiguity of this class is now tracked explicitly.
+  - report summary:
+    - RGX repro:
+      - `(a)(?(R1)b|c)`
+    - broken accepted tree before fix:
+      - `condition -> name("R1")`
+    - expected accepted tree:
+      - `condition -> recursion_condition("R1")`
+  - root cause:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+      - `condition` used ordered PEG choice with:
+        - `... | name_ref | name | signed_digits | digits | recursion_condition`
+      - because `name` accepted `R1`, `recursion_condition` was unreachable for the numeric recursion case
+    - important nuance:
+      - this was not a parser rejection bug
+      - the parser accepted the input and returned the wrong AST shape
+  - landed fix:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+      - reordered:
+        - `condition = define_condition | condition_assertion | name_ref | recursion_condition | name | signed_digits | digits`
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+      - bumped published regex release / integration contract to `1.1.7`
+      - added focused bare and numeric recursion-conditional regressions
+      - strengthened the retained named recursion regression to assert nested `name = "word"` explicitly
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+      - added:
+        - `bare_recursion_conditional`
+        - `numeric_recursion_conditional`
+      - corrected the named recursion contract so it requires nested `name` rather than forbidding it
+  - why the old stimuli/gates missed it:
+    - this was primarily an oracle gap, not just a randomness gap
+    - the parser already accepted the relevant inputs, so a parse-success-only stimulus lane could stay green forever
+    - the retained fix is to publish explicit AST-shape / rule-text expectations for the accepted-tree-sensitive success samples
+  - retained verification:
+    - focused Rust tests green:
+      - `regex_parser_integration_contract_accepts_named_recursion_conditionals`
+      - `regex_parser_integration_contract_accepts_bare_recursion_conditionals`
+      - `regex_parser_integration_contract_accepts_numeric_recursion_conditionals`
+      - `regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples`
+    - gates green:
+      - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+      - `make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+    - real RGX repro green:
+      - `/Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0010/repro_input.txt`
+      - `parseability_probe --parse-dump-ast-pretty`
+      - fixed AST shows:
+        - `conditional` at `3..13`
+        - `recursion_condition` at `6..8`
+        - nested `digits` at `7..8`
+        - no `name` node at `6..8`
+  - next regex hardening rule:
+    - when a downstream regex report is accepted-tree-sensitive, first ask whether the existing manifest is asserting the correct AST shape and rule text before blaming stimuli randomness
+    - constrained-random stimuli may still be useful later, but the current highest-value defense remains explicit contract samples for known semantic seams

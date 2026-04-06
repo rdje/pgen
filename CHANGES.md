@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-04-06 - Release regex 1.1.7 for recursion conditional disambiguation
+### Achievement Summary
+Closed RGX bug `PGEN-RGX-0010` against the published regex handoff. Conditional recursion tests now transport correctly as `recursion_condition` instead of falling through to bare `name`, so forms such as `(?(R)a|b)` and `(a)(?(R1)b|c)` no longer require downstream text reparsing.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - reordered `condition` so `recursion_condition` is tried before `name`
+  - this preserves named recursion forms like `R&word` while fixing the bare/numeric `R` / `R1` ambiguity
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - bumped published regex contract/release constants to `1.1.7`
+  - added focused bare and numeric recursion-conditional regressions
+  - strengthened the named recursion-conditional regression so it explicitly preserves nested `name = "word"` under `recursion_condition`
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - bumped published regex contract/release metadata to `1.1.7`
+  - added published success samples for bare and numeric recursion conditionals
+  - hardened the AST-shape oracle so:
+    - `(?(R)a|b)` and `(?(R1)b|c)` require `recursion_condition` and forbid fallback `name`
+    - `(?(R&word)a|b)` still requires nested `name = "word"` under `recursion_condition`
+- Updated generated regex artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated published regex release surfaces and bug ledger:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - `regex` stays `Done`; this is a downstream maintenance release plus oracle hardening, not a family-status promotion
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_named_recursion_conditionals --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_bare_recursion_conditionals --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_accepts_numeric_recursion_conditionals --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples --lib`
+- `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+- `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+- `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0010/repro_input.txt /tmp/pgen_rgx_0010.fixed_ast.json --profile regex_default`
+  - the fixed RGX repro now emits `recursion_condition` at span `6..8`
+  - there is no fallback `name` node at span `6..8`
+
 ## 2026-04-06 - Repair local workflow parity doc surface
 ### Achievement Summary
 Closed two local workflow-parity drifts in the tracked docs. The first drift was markdown examples that embedded the absolute local checkout path, which broke the exported-tree repo-path policy check. The second drift was a stale `ci_workflow_local_gate` expectation that still asserted the pre-`rhai` regex code-block wording instead of the currently published `1.1.6` docs.

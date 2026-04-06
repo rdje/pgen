@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.6",
-  "parser_release_version": "1.1.6",
+  "integration_contract_version": "1.1.7",
+  "parser_release_version": "1.1.7",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -61,15 +61,43 @@
     },
     {
       "name": "named_conditional",
-      "input": "(?<A>a)?(?(A)b|c)"
+      "input": "(?<A>a)?(?(A)b|c)",
+      "required_rule_names": ["name"],
+      "forbidden_rule_names": ["recursion_condition"]
     },
     {
       "name": "numeric_conditional",
-      "input": "(?(1)a|b)"
+      "input": "(?(1)a|b)",
+      "required_rule_names": ["digits"],
+      "forbidden_rule_names": ["recursion_condition", "name"]
+    },
+    {
+      "name": "bare_recursion_conditional",
+      "input": "(?(R)a|b)",
+      "required_rule_names": ["recursion_condition"],
+      "forbidden_rule_names": ["name"],
+      "expected_rule_texts": {
+        "recursion_condition": ["R"]
+      }
+    },
+    {
+      "name": "numeric_recursion_conditional",
+      "input": "(a)(?(R1)b|c)",
+      "required_rule_names": ["recursion_condition", "digits"],
+      "forbidden_rule_names": ["name"],
+      "expected_rule_texts": {
+        "recursion_condition": ["R1"],
+        "digits": ["1"]
+      }
     },
     {
       "name": "named_recursion_conditional",
-      "input": "(?(R&word)a|b)"
+      "input": "(?(R&word)a|b)",
+      "required_rule_names": ["recursion_condition", "name"],
+      "expected_rule_texts": {
+        "recursion_condition": ["R&word"],
+        "name": ["word"]
+      }
     },
     {
       "name": "whole_pattern_recursion",

@@ -261,7 +261,7 @@ conditional       = "(?(" condition ")" yes_branch ("|" no_branch)? ")"
 yes_branch        = conditional_branch
 no_branch         = conditional_branch
 conditional_branch = piece*
-condition         = define_condition | condition_assertion | name_ref | name | signed_digits | digits | recursion_condition
+condition         = define_condition | condition_assertion | name_ref | recursion_condition | name | signed_digits | digits
 define_condition  = "DEFINE"
 condition_assertion = "?=" pattern
                     | "?!" pattern
