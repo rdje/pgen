@@ -28788,6 +28788,57 @@ Architectural north star:
   - implementation steering takeaway:
     - for regex accepted-tree regressions, the first-line fix should be a stronger manifest/gate oracle
     - stimuli-generator randomness or coverage steering can still be widened later, but it is not the primary protection against AST transport drift
+- 2026-04-06: closed RGX regex report `PGEN-RGX-0009`, promoted the published regex handoff to `1.1.6`, and tightened the embedded-code oracle from AST rule names to AST rule text.
+  - report summary:
+    - tagged code blocks such as `(?{native:validate_word})` were still classifying as `code_block_lang`, but `code_content` started one byte late and dropped the leading `v`
+    - the initial downstream suspicion pointed at `ws?` in `code_block_lang`, but the actual bug was lower in the EBNF frontend
+  - root cause:
+    - [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs)
+      - `decode_quoted_literal_body(...)` handled `\n`, `\r`, and `\t`, but not `\f` / `\v`
+      - that meant the regex grammar whitespace rule entry for `'\v'` was decoded as literal `"v"` in the generated parser surface
+      - once widened tagged code blocks landed in `1.1.5`, `ws?` in `code_block_lang = "(?{" code_lang ":" ws? code_content "})"` could legitimately consume the first payload byte of `validate_word`
+  - landed fix:
+    - [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs)
+      - added explicit decoding for `\f` and `\v`
+      - added focused tests:
+        - `tokenizes_quoted_literals_with_decoded_escape_sequences`
+        - `parses_ebnf_text_into_raw_ast_with_decoded_terminal_escapes`
+    - regeneration:
+      - [generated/regex.json](generated/regex.json)
+      - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+      - bumped published regex release / integration contract to `1.1.6`
+      - widened the generic manifest replay so success samples can also declare `expected_rule_texts`
+      - retained tagged-code-block proofs now assert both rule family and extracted text
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+      - embedded-code success samples now declare expected `code_lang` / `code_content` text
+    - [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json)
+      - embedded-code contract cases now declare expected `code_lang` / `code_content` text
+    - [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh)
+      - added generic `expected_rule_texts` enforcement
+      - fixed the jq rule-text extractor to bind traversal to the AST root instead of the reduce accumulator, which was the reason the first shell-gate attempt falsely observed empty arrays
+  - focused proof:
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/regex.ebnf --generate-parser --emit-raw-ast-json generated/regex.json --output generated/regex_parser.rs`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_language_tagged_code_blocks --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run tokenizes_quoted_literals_with_decoded_escape_sequences --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run parses_ebnf_text_into_raw_ast_with_decoded_terminal_escapes --lib`
+    - `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+    - `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - retained behavior:
+    - tagged payloads such as `(?{native:validate_word})` now preserve:
+      - `code_lang = "native"`
+      - `code_content = "validate_word"`
+    - the broader implementation lesson still holds:
+      - parse-success-only or even rule-name-only regressions are too weak for accepted-tree transport bugs
+      - for downstream-sensitive regex seams, the preferred oracle is now manifest-driven AST rule text when spans matter
+  - release/docs result:
+    - published regex handoff is now `1.1.6`
+    - released-bug ledger row added:
+      - `REGEX-0009`
+  - live-status impact:
+    - none
+    - `regex` stays `Done`; this is a downstream maintenance patch and oracle-hardening wave, not a closure-status change
 - 2026-04-06: kept a narrow trace-guided SV/UVM grammar cleanup after proving it safe through the scratch-parser loop.
   - preserved starting point:
     - resumed from the committed `after10` semantics and the same later-UVM hotspot at:

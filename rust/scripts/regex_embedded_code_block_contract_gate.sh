@@ -87,8 +87,16 @@ jq -e '
         and ((.tags // []) | type) == "array"
         and ((.required_rule_names // []) | type) == "array"
         and ((.forbidden_rule_names // []) | type) == "array"
+        and ((.expected_rule_texts // {}) | type) == "object"
         and all((.required_rule_names // [])[]; (type == "string") and (length > 0))
         and all((.forbidden_rule_names // [])[]; (type == "string") and (length > 0))
+        and all(
+            (.expected_rule_texts // {}) | to_entries[];
+            (.key | type) == "string"
+            and (.key | length) > 0
+            and (.value | type) == "array"
+            and all(.value[]; (type == "string"))
+        )
     )
 ' "$MANIFEST_FILE" >/dev/null
 
@@ -125,6 +133,7 @@ for case_json in "${case_rows[@]}"; do
     case_tags_json="$(jq -c '(.tags // [])' <<<"$case_json")"
     case_required_rule_names_json="$(jq -c '(.required_rule_names // [])' <<<"$case_json")"
     case_forbidden_rule_names_json="$(jq -c '(.forbidden_rule_names // [])' <<<"$case_json")"
+    case_expected_rule_texts_json="$(jq -c '(.expected_rule_texts // {})' <<<"$case_json")"
 
     if [[ "$case_expect_parse" == "true" ]]; then
         expected_pass_total=$((expected_pass_total + 1))
@@ -182,8 +191,10 @@ for case_json in "${case_rows[@]}"; do
 
     required_rule_count="$(jq -r 'length' <<<"$case_required_rule_names_json")"
     forbidden_rule_count="$(jq -r 'length' <<<"$case_forbidden_rule_names_json")"
+    expected_rule_text_count="$(jq -r 'length' <<<"$case_expected_rule_texts_json")"
+    observed_rule_texts_json="{}"
 
-    if [[ "$observed_status" == "pass" ]] && (( required_rule_count > 0 || forbidden_rule_count > 0 )); then
+    if [[ "$observed_status" == "pass" ]] && (( required_rule_count > 0 || forbidden_rule_count > 0 || expected_rule_text_count > 0 )); then
         ast_dump_file="$WORK_DIR/${case_name_key}.ast.json"
         ast_label="case_${case_name_key}_ast_dump"
         ast_dump_log="$LOG_DIR/${ast_label}.log"
@@ -213,10 +224,53 @@ for case_json in "${case_rows[@]}"; do
                     | join(",")
                 ' "$ast_dump_file"
             )"
+            observed_rule_texts_json="$(
+                jq -c --arg input "$case_input" --argjson expected "$case_expected_rule_texts_json" '
+                    . as $ast |
+                    def collected_texts($target):
+                        [
+                            $ast | .. | objects
+                            | select(.rule_name? == $target)
+                            | .span? // empty
+                            | select((.start | type) == "number" and (.end | type) == "number")
+                            | . as $span
+                            | $input[$span.start:$span.end]
+                        ];
+                    reduce ($expected | keys_unsorted[]) as $rule ({};
+                        . + {($rule): collected_texts($rule)}
+                    )
+                ' "$ast_dump_file"
+            )"
+            mismatched_rule_texts="$(
+                jq -r --arg input "$case_input" --argjson expected "$case_expected_rule_texts_json" '
+                    . as $ast |
+                    def collected_texts($target):
+                        [
+                            $ast | .. | objects
+                            | select(.rule_name? == $target)
+                            | .span? // empty
+                            | select((.start | type) == "number" and (.end | type) == "number")
+                            | . as $span
+                            | $input[$span.start:$span.end]
+                        ];
+                    [
+                        $expected
+                        | keys_unsorted[]
+                        | {
+                            rule: .,
+                            expected: $expected[.],
+                            observed: collected_texts(.)
+                        }
+                        | select(.expected != .observed)
+                        | "\(.rule)=expected:\(.expected | tojson),observed:\(.observed | tojson)"
+                    ]
+                    | join("; ")
+                ' "$ast_dump_file"
+            )"
 
-            if [[ -n "$missing_required_rules" || -n "$present_forbidden_rules" ]]; then
+            if [[ -n "$missing_required_rules" || -n "$present_forbidden_rules" || -n "$mismatched_rule_texts" ]]; then
                 ast_contract_matches=false
-                ast_contract_detail="missing_required_rules=${missing_required_rules:-<none>}; present_forbidden_rules=${present_forbidden_rules:-<none>}"
+                ast_contract_detail="missing_required_rules=${missing_required_rules:-<none>}; present_forbidden_rules=${present_forbidden_rules:-<none>}; mismatched_rule_texts=${mismatched_rule_texts:-<none>}"
             fi
         fi
     fi
@@ -249,6 +303,8 @@ for case_json in "${case_rows[@]}"; do
         --argjson status_matches "$status_matches" \
         --argjson required_rule_names "$case_required_rule_names_json" \
         --argjson forbidden_rule_names "$case_forbidden_rule_names_json" \
+        --argjson expected_rule_texts "$case_expected_rule_texts_json" \
+        --argjson observed_rule_texts "$observed_rule_texts_json" \
         --argjson ast_contract_matches "$ast_contract_matches" \
         --arg ast_contract_detail "$ast_contract_detail" \
         --argjson case_matches "$case_matches" \
@@ -267,6 +323,8 @@ for case_json in "${case_rows[@]}"; do
             status_matches: $status_matches,
             required_rule_names: $required_rule_names,
             forbidden_rule_names: $forbidden_rule_names,
+            expected_rule_texts: $expected_rule_texts,
+            observed_rule_texts: $observed_rule_texts,
             ast_contract_matches: $ast_contract_matches,
             ast_contract_detail: (if $ast_contract_detail == "" then null else $ast_contract_detail end),
             case_matches: $case_matches,

@@ -3696,9 +3696,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.5`
+  - `1.1.6`
 - integration contract version:
-  - `1.1.5`
+  - `1.1.6`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3874,7 +3874,8 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.5` specifically fixes one more accepted-tree transport bug and widens tagged code-block support while keeping that JSON schema version stable:
+- parser release `1.1.6` specifically fixes one more accepted-tree transport/span bug while keeping that JSON schema version stable:
+  - `(?{native:validate_word})` now preserves `code_content = "validate_word"` instead of starting one byte late
   - `(?{lua:return true})` now appears as `code_block_lang` plus `code_lang`, not `code_block_plain`
   - `(?{rhai:...})`, `(?{native:...})`, and `(?{wasm:...})` are now accepted through the tagged code-block surface
   - `\g<1>` now appears as outer `backreference` plus inner `subroutine_ref` / `signed_digits`, not `simple_escape("g")` plus literal `<`, `1`, `>`
@@ -3954,8 +3955,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.5`
-  - integration contract version `1.1.5`
+  - parser release version `1.1.6`
+  - integration contract version `1.1.6`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

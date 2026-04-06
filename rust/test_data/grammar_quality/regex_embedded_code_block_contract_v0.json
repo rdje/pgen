@@ -11,6 +11,9 @@
       "expect_parse": true,
       "required_rule_names": ["code_block_plain"],
       "forbidden_rule_names": ["code_block_lang", "code_lang"],
+      "expected_rule_texts": {
+        "code_content": ["payload"]
+      },
       "tags": ["plain", "opaque-generic", "success"]
     },
     {
@@ -20,6 +23,10 @@
       "expect_parse": true,
       "required_rule_names": ["code_block_lang", "code_lang"],
       "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["lua"],
+        "code_content": ["return x + 1"]
+      },
       "tags": ["lua", "opaque-source-body", "success"]
     },
     {
@@ -29,6 +36,10 @@
       "expect_parse": true,
       "required_rule_names": ["code_block_lang", "code_lang"],
       "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["js"],
+        "code_content": ["return x + 1;"]
+      },
       "tags": ["js", "alias", "opaque-source-body", "success"]
     },
     {
@@ -38,6 +49,10 @@
       "expect_parse": true,
       "required_rule_names": ["code_block_lang", "code_lang"],
       "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["javascript"],
+        "code_content": ["return x + 1;"]
+      },
       "tags": ["javascript", "alias", "opaque-source-body", "success"]
     },
     {
@@ -47,6 +62,10 @@
       "expect_parse": true,
       "required_rule_names": ["code_block_lang", "code_lang"],
       "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["rhai"],
+        "code_content": ["let x = 1;"]
+      },
       "tags": ["rhai", "opaque-source-body", "success"]
     },
     {
@@ -56,6 +75,10 @@
       "expect_parse": true,
       "required_rule_names": ["code_block_lang", "code_lang"],
       "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["native"],
+        "code_content": ["callback_name"]
+      },
       "tags": ["native", "reference-style", "success"]
     },
     {
@@ -65,6 +88,10 @@
       "expect_parse": true,
       "required_rule_names": ["code_block_lang", "code_lang"],
       "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["wasm"],
+        "code_content": ["module:function"]
+      },
       "tags": ["wasm", "reference-style", "success"]
     },
     {

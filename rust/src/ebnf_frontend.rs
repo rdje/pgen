@@ -698,6 +698,8 @@ fn decode_quoted_literal_body(body: &str) -> String {
                 Some('n') => output.push('\n'),
                 Some('r') => output.push('\r'),
                 Some('t') => output.push('\t'),
+                Some('f') => output.push('\u{000C}'),
+                Some('v') => output.push('\u{000B}'),
                 Some('\\') => output.push('\\'),
                 Some('\'') => output.push('\''),
                 Some('"') => output.push('"'),
@@ -948,11 +950,13 @@ mod tests {
 
     #[test]
     fn tokenizes_quoted_literals_with_decoded_escape_sequences() {
-        let tokens = tokenize_rule_expression(r#""\\d" "\\b" "\\""#)
+        let tokens = tokenize_rule_expression("\"\\\\d\" \"\\\\b\" \"\\f\" \"\\v\" \"\\\\\"")
             .expect("quoted literal tokenization should decode escapes");
         let rendered = serde_json::to_string(&tokens).expect("json");
         assert!(rendered.contains("[\"quoted_string\",\"\\\\d\"]"));
         assert!(rendered.contains("[\"quoted_string\",\"\\\\b\"]"));
+        assert!(rendered.contains("[\"quoted_string\",\"\\f\"]"));
+        assert!(rendered.contains("[\"quoted_string\",\"\\u000b\"]"));
         assert!(rendered.contains("[\"quoted_string\",\"\\\\\"]"));
     }
 
@@ -1049,7 +1053,7 @@ entry := "a" -> {type: "node"}
     #[test]
     fn parses_ebnf_text_into_raw_ast_with_decoded_terminal_escapes() {
         let input = r#"
-entry := "\\d" "\\b" "\\"
+entry := "\\d" "\\b" "\f" "\v" "\\"
 "#;
         let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "escaped", None)
             .expect("frontend parse should succeed");
@@ -1067,6 +1071,16 @@ entry := "\\d" "\\b" "\\"
         assert!(
             first_rule.contains("[\"quoted_string\",\"\\\\b\"]"),
             "expected decoded \\\\b terminal in raw_ast, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"quoted_string\",\"\\f\"]"),
+            "expected decoded \\\\f terminal in raw_ast, got: {}",
+            first_rule
+        );
+        assert!(
+            first_rule.contains("[\"quoted_string\",\"\\u000b\"]"),
+            "expected decoded \\\\v terminal in raw_ast, got: {}",
             first_rule
         );
         assert!(

@@ -18,10 +18,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.5";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.6";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.5";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.6";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -1584,6 +1584,8 @@ mod tests {
         required_rule_names: Vec<String>,
         #[serde(default)]
         forbidden_rule_names: Vec<String>,
+        #[serde(default)]
+        expected_rule_texts: std::collections::BTreeMap<String, Vec<String>>,
     }
 
     #[derive(Debug, Deserialize)]
@@ -1676,6 +1678,18 @@ mod tests {
         let mut spans = Vec::new();
         collect_rule_spans(node, rule_name, &mut spans);
         spans
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    fn regex_rule_texts(input: &str, node: &serde_json::Value, rule_name: &str) -> Vec<String> {
+        regex_rule_spans(node, rule_name)
+            .into_iter()
+            .map(|(start, end)| {
+                input.get(start as usize..end as usize)
+                    .expect("regex AST dump span must map back to original input")
+                    .to_string()
+            })
+            .collect()
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
@@ -2473,7 +2487,10 @@ mod tests {
         let manifest = regex_parser_integration_contract_manifest();
 
         for sample in &manifest.success_samples {
-            if sample.required_rule_names.is_empty() && sample.forbidden_rule_names.is_empty() {
+            if sample.required_rule_names.is_empty()
+                && sample.forbidden_rule_names.is_empty()
+                && sample.expected_rule_texts.is_empty()
+            {
                 continue;
             }
 
@@ -2490,6 +2507,15 @@ mod tests {
                 assert!(
                     regex_rule_spans(&parsed, rule_name).is_empty(),
                     "expected regex success sample '{}' to forbid AST rule '{}'",
+                    sample.name,
+                    rule_name
+                );
+            }
+            for (rule_name, expected_texts) in &sample.expected_rule_texts {
+                assert_eq!(
+                    regex_rule_texts(&sample.input, &parsed, rule_name),
+                    *expected_texts,
+                    "expected regex success sample '{}' to preserve exact text for AST rule '{}'",
                     sample.name,
                     rule_name
                 );
@@ -2668,13 +2694,13 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
     fn regex_parser_integration_contract_classifies_language_tagged_code_blocks() {
-        for (tag, input) in [
-            ("lua", "(?{lua:return true})"),
-            ("js", "(?{js:return true;})"),
-            ("javascript", "(?{javascript:return true;})"),
-            ("rhai", "(?{rhai:let x = 1;})"),
-            ("native", "(?{native:callback_name})"),
-            ("wasm", "(?{wasm:module:function})"),
+        for (tag, body, input) in [
+            ("lua", "return true", "(?{lua:return true})"),
+            ("js", "return true;", "(?{js:return true;})"),
+            ("javascript", "return true;", "(?{javascript:return true;})"),
+            ("rhai", "let x = 1;", "(?{rhai:let x = 1;})"),
+            ("native", "callback_name", "(?{native:callback_name})"),
+            ("wasm", "module:function", "(?{wasm:module:function})"),
         ] {
             let parsed = regex_ast_dump_json(input);
 
@@ -2688,6 +2714,18 @@ mod tests {
                 regex_rule_spans(&parsed, "code_lang"),
                 vec![(3, (3 + tag.len()) as u64)],
                 "tagged code block '{}' must preserve the language tag span",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "code_lang"),
+                vec![tag.to_string()],
+                "tagged code block '{}' must preserve the language tag text",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "code_content"),
+                vec![body.to_string()],
+                "tagged code block '{}' must preserve the full code body text",
                 input
             );
             assert!(

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.5",
-  "parser_release_version": "1.1.5",
+  "integration_contract_version": "1.1.6",
+  "parser_release_version": "1.1.6",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -89,37 +89,60 @@
       "name": "plain_embedded_code_block",
       "input": "(?{payload})",
       "required_rule_names": ["code_block_plain"],
-      "forbidden_rule_names": ["code_block_lang", "code_lang"]
+      "forbidden_rule_names": ["code_block_lang", "code_lang"],
+      "expected_rule_texts": {
+        "code_content": ["payload"]
+      }
     },
     {
       "name": "lua_embedded_code_block",
       "input": "(?{lua:return x + 1})",
       "required_rule_names": ["code_block_lang", "code_lang"],
-      "forbidden_rule_names": ["code_block_plain"]
+      "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["lua"],
+        "code_content": ["return x + 1"]
+      }
     },
     {
       "name": "rhai_embedded_code_block",
       "input": "(?{rhai:let x = 1;})",
       "required_rule_names": ["code_block_lang", "code_lang"],
-      "forbidden_rule_names": ["code_block_plain"]
+      "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["rhai"],
+        "code_content": ["let x = 1;"]
+      }
     },
     {
       "name": "native_embedded_code_block",
       "input": "(?{native:callback_name})",
       "required_rule_names": ["code_block_lang", "code_lang"],
-      "forbidden_rule_names": ["code_block_plain"]
+      "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["native"],
+        "code_content": ["callback_name"]
+      }
     },
     {
       "name": "wasm_embedded_code_block",
       "input": "(?{wasm:module:function})",
       "required_rule_names": ["code_block_lang", "code_lang"],
-      "forbidden_rule_names": ["code_block_plain"]
+      "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["wasm"],
+        "code_content": ["module:function"]
+      }
     },
     {
       "name": "javascript_embedded_code_block",
       "input": "(?{javascript:return x + 1;})",
       "required_rule_names": ["code_block_lang", "code_lang"],
-      "forbidden_rule_names": ["code_block_plain"]
+      "forbidden_rule_names": ["code_block_plain"],
+      "expected_rule_texts": {
+        "code_lang": ["javascript"],
+        "code_content": ["return x + 1;"]
+      }
     }
   ],
   "failure_samples": [

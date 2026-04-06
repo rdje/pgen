@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: regex-contract-ast-shape-hardening)
+Last updated: 2026-04-06 (+0200, task: regex-code-block-span-fix)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,37 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained regex downstream handoff `1.1.6`:
+  - [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs)
+    - quoted-literal decoding now explicitly handles `\f` and `\v`
+    - this was the real root-cause fix for RGX issue `PGEN-RGX-0009`
+    - important nuance:
+      - the regex grammar rule `code_block_lang = "(?{" code_lang ":" ws? code_content "})"` was not itself wrong
+      - the generated whitespace rule had silently become too broad because `'\v'` was decoded as literal `v`
+    - retained focused frontend proofs:
+      - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run tokenizes_quoted_literals_with_decoded_escape_sequences --lib`
+      - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run parses_ebnf_text_into_raw_ast_with_decoded_terminal_escapes --lib`
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - published regex release / integration contract is now `1.1.6`
+    - published success samples can now also declare:
+      - `expected_rule_texts`
+    - generic manifest replay now checks those expected texts directly
+  - [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh)
+    - embedded-code shell gate now validates extracted `code_lang` / `code_content` text
+    - important continuity detail:
+      - the first attempt falsely observed empty text arrays because jq was traversing the reduce accumulator instead of the AST root
+      - the retained fix is the `$ast | .. | objects` binding
+  - retained rule-text seams now covered:
+    - tagged `lua`
+    - tagged `js`
+    - tagged `javascript`
+    - tagged `rhai`
+    - tagged `native`
+    - tagged `wasm`
+    - plain opaque `(?{payload})`
+  - important design point:
+    - regex accepted-tree regressions are still primarily an oracle problem, not a pseudo-randomness problem
+    - constrained-random stimuli may still be worth exploring later, but AST rule-text contracts are the current first-line defense when downstream spans matter
 - Retained regex integration-contract hardening:
   - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
     - published success samples can now optionally declare:
@@ -9203,6 +9234,27 @@ Use this file to resume work without replaying full chat history.
       - `code_block_lang 0..20`
       - `code_lang 3..6`
       - no `code_block_plain`
+- 2026-04-06: regex downstream handoff `1.1.6` closes RGX issue `PGEN-RGX-0009`.
+  - fixed behavior:
+    - tagged payloads such as `(?{native:validate_word})` now preserve the full `code_content` text instead of dropping the leading byte
+    - embedded-code regressions now prove `code_lang` / `code_content` text directly, not just parse success or rule-family shape
+  - landed files:
+    - [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json)
+    - [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh)
+    - published regex release/docs surfaces now pin `1.1.6`
+  - retained proof:
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/regex.ebnf --generate-parser --emit-raw-ast-json generated/regex.json --output generated/regex_parser.rs`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_language_tagged_code_blocks --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run tokenizes_quoted_literals_with_decoded_escape_sequences --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run parses_ebnf_text_into_raw_ast_with_decoded_terminal_escapes --lib`
+    - `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+    - `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
 - 2026-04-06: the retained SV/UVM trace frontier moved forward again, but only modestly.
   - landed grammar tightening:
     - [grammars/systemverilog.ebnf](grammars/systemverilog.ebnf)

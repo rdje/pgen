@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-04-06 - Release regex 1.1.6 for tagged code-block span integrity
+### Achievement Summary
+Closed RGX bug `PGEN-RGX-0009` against the published regex handoff. Language-tagged embedded code blocks such as `(?{native:validate_word})` now preserve the full `code_content` span instead of dropping the first payload byte, and the upstream regression surface now checks tagged code-block rule text directly instead of relying only on parse success or rule-name shape.
+
+### Scope of Changes
+- Updated [rust/src/ebnf_frontend.rs](rust/src/ebnf_frontend.rs):
+  - fixed quoted-literal decoding for `\f` and `\v`
+  - added focused frontend tests for decoded terminal escape handling in both tokenization and raw-AST conversion
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - bumped published regex contract/release constants to `1.1.6`
+  - extended the generic regex integration-manifest replay to assert `expected_rule_texts`
+  - strengthened tagged embedded-code regressions so `code_lang` and `code_content` text are checked directly
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - bumped published regex contract/release metadata to `1.1.6`
+  - added `expected_rule_texts` for the published embedded-code samples
+- Updated [rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json](rust/test_data/grammar_quality/regex_embedded_code_block_contract_v0.json):
+  - added `expected_rule_texts` for the dedicated embedded-code contract cases
+- Updated [rust/scripts/regex_embedded_code_block_contract_gate.sh](rust/scripts/regex_embedded_code_block_contract_gate.sh):
+  - upgraded the shell gate from AST rule-name checks to AST rule-text checks for `code_lang` / `code_content`
+  - fixed the jq traversal so it anchors rule-text extraction to the AST root instead of the reduce accumulator
+- Updated generated regex artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated published regex release surfaces and bug ledger:
+  - [PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [PGEN_PARSER_INTEGRATION_CONTRACTS.md](PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [PGEN_RELEASED_PARSER_BUG_LEDGER.md](PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - `regex` stays `Done`; this is a downstream maintenance release plus oracle hardening, not a family-status promotion
+
+### Validation
+- `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/regex.ebnf --generate-parser --emit-raw-ast-json generated/regex.json --output generated/regex_parser.rs`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parser_integration_contract_classifies_language_tagged_code_blocks --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run tokenizes_quoted_literals_with_decoded_escape_sequences --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features ebnf_dual_run parses_ebnf_text_into_raw_ast_with_decoded_terminal_escapes --lib`
+- `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_embedded_code_block_contract_gate`
+- `CARGO_TARGET_AARCH64_APPLE_DARWIN_RUNNER=/tmp/pgen_cargo_runner.sh make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+
 ## 2026-04-06 - Harden regex integration contract AST-shape replay
 ### Achievement Summary
 Strengthened the upstream regex regression surface without changing the published `1.1.5` parser handoff. The regex integration manifest now carries machine-readable AST-shape expectations for the already-published accepted-tree-sensitive samples, so previously fixed RGX transport bugs are protected by one generic manifest-driven check instead of only scattered bespoke tests.
