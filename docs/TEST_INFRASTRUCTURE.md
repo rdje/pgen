@@ -225,6 +225,17 @@ Add new normalizers by extending the `Normalizer` enum and implementing normaliz
 - ✅ **Extensible**: Easy to add parsers, tests, and normalizers
 - ✅ **Production Tested**: Validates real parser functionality
 
+## Testing Philosophy
+
+This document now subsumes the useful core of `docs/round_trip_testing_ideas.md`.
+
+The retained practical lessons are:
+
+- Prefer round-trip or replay-style proofs whenever the parser surface has a meaningful unparse/contract surface.
+- Parse success alone is often too weak; AST-shape assertions and contract invariants are needed for downstream-facing parser releases.
+- Keep test data declarative and version-controlled so new regressions can be added without inventing bespoke code for every case.
+- Treat round-trip infrastructure as one tool in the larger proof stack, not as the only correctness oracle.
+
 ## Framework Status
 
 **✅ PRODUCTION READY**: The round-trip testing framework provides mathematical validation of parser correctness with professional tooling and comprehensive error reporting.

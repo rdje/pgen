@@ -27959,3 +27959,35 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - honest current read:
     - this wave is a classification + README cleanup, not the full deletion pass
     - the next removal wave should absorb the `merge` buckets first, then prune the rest in batches
+- 2026-04-06: completed the first actual top-level docs-pruning wave by merging the duplicate reference docs into the surviving active references and removing the redundant files.
+  - merged and removed:
+    - `docs/AST_BASED_GENERATOR.md`
+    - `docs/BOOTSTRAP_SYSTEM_COMPLETE.md`
+    - `docs/COMPLETE_AST_TRANSFORMATION_PIPELINE.md`
+    - `docs/RETURN_ANNOTATION_PARSER.md`
+    - `docs/return_annotation_self_hosting.md`
+    - `docs/universal_return_annotation_system.md`
+    - `docs/round_trip_testing_ideas.md`
+  - surviving docs amended in this wave:
+    - `docs/AST_GENERATOR_ARCHITECTURE.md`
+      - now carries the retained migration/integration notes
+    - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+      - now carries the absorbed bootstrap architecture summary and clarifies that `--bootstrap-mode` still exists even though automatic fallback is the normal path
+    - `docs/ast_transformation_pipeline.md`
+      - now explicitly scopes the retained multi-language examples as background while affirming the repo is Rust-first in production
+    - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+      - now reflects the feature as implemented rather than merely "under active development"
+      - now points at current grammar / proof / test-spine locations
+      - now retains the useful historical self-hosting / universal-semantics context in one place
+    - `docs/TEST_INFRASTRUCTURE.md`
+      - now absorbs the still-useful testing-philosophy notes from the old ideas document
+  - surface reduction:
+    - top-level `docs/*.md` count moved from:
+      - `55`
+    - down to:
+      - `48`
+  - honest current read:
+    - this wave removed only the duplicate-reference bucket
+    - the next documentation-pruning waves should target:
+      - continuity-only residue
+      - outright stale/superseded files

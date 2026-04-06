@@ -9521,3 +9521,22 @@ Use this file to resume work without replaying full chat history.
   - practical rule:
     - future sessions should treat the root continuity docs plus the curated README active index as the real starting surface
     - do not re-promote the legacy top-level `docs/*.md` pile back into README wholesale
+- 2026-04-06: the first actual top-level docs-pruning wave is now complete.
+  - removed after merge:
+    - `docs/AST_BASED_GENERATOR.md`
+    - `docs/BOOTSTRAP_SYSTEM_COMPLETE.md`
+    - `docs/COMPLETE_AST_TRANSFORMATION_PIPELINE.md`
+    - `docs/RETURN_ANNOTATION_PARSER.md`
+    - `docs/return_annotation_self_hosting.md`
+    - `docs/universal_return_annotation_system.md`
+    - `docs/round_trip_testing_ideas.md`
+  - retained active docs strengthened in place:
+    - `docs/AST_GENERATOR_ARCHITECTURE.md`
+    - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+    - `docs/ast_transformation_pipeline.md`
+    - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+    - `docs/TEST_INFRASTRUCTURE.md`
+  - top-level `docs/*.md` count:
+    - `55 -> 48`
+  - next rule:
+    - keep deleting in reviewable waves, with continuity notes first

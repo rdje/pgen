@@ -29328,3 +29328,35 @@ Architectural north star:
     - first merge the `merge-then-remove` bucket into the `7` surviving reference docs
     - then prune the `continuity-only` and `remove outright` buckets in smaller reviewable waves
     - keep `README.md` curated and never restore the old giant tracked-markdown dump
+- 2026-04-06: executed the first top-level docs-pruning wave from that audit and removed the duplicate-reference bucket after absorbing the useful residue into the surviving docs.
+  - removed in this wave:
+    - `docs/AST_BASED_GENERATOR.md`
+    - `docs/BOOTSTRAP_SYSTEM_COMPLETE.md`
+    - `docs/COMPLETE_AST_TRANSFORMATION_PIPELINE.md`
+    - `docs/RETURN_ANNOTATION_PARSER.md`
+    - `docs/return_annotation_self_hosting.md`
+    - `docs/universal_return_annotation_system.md`
+    - `docs/round_trip_testing_ideas.md`
+  - surviving docs amended to absorb the useful residue:
+    - `docs/AST_GENERATOR_ARCHITECTURE.md`
+      - now explicitly retains the practical migration/integration notes from the removed AST-based generator doc
+    - `docs/BOOTSTRAP_MODE_SPECIFICATION.md`
+      - now retains the three-level bootstrap architecture summary and critical files
+      - also now states the honest current nuance:
+        - automatic fallback is the normal path
+        - `--bootstrap-mode` still exists as a forcing/debug path
+    - `docs/ast_transformation_pipeline.md`
+      - now explicitly says the old complete-pipeline multi-language write-up has been merged and that Rust is the active production implementation
+    - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+      - status wording updated from design-era "active development" language to implemented-feature language
+      - stale test/file-location pointers corrected
+      - historical self-hosting/universal-composition context retained in one place
+    - `docs/TEST_INFRASTRUCTURE.md`
+      - now keeps the useful round-trip testing philosophy without preserving the extra standalone ideas document
+  - retained result:
+    - top-level `docs/*.md` count is now:
+      - `48`
+    - README active index remains curated and unchanged by file-path churn because it had already stopped advertising the removed docs
+  - next docs-pruning target:
+    - the remaining `continuity-only` residue bucket
+    - then the outright stale/superseded bucket

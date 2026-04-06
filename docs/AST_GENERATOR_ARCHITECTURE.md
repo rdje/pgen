@@ -244,6 +244,15 @@ Build GUI tools for grammar development:
 - Real-time AST preview
 - Interactive debugging
 
+## Migration and Integration Notes
+
+This document subsumes the older `docs/AST_BASED_GENERATOR.md` write-up. The practical integration points worth retaining are:
+
+- Prefer the `UnifiedGenerator` / backend-selection surface instead of wiring experimental generator internals directly.
+- Treat `syn`, `quote`, and `proc-macro2` as the AST-generation dependency spine.
+- Keep generated-parser verification in the workflow: the real confidence signal is still "generate, compile, and run the surrounding proof gates", not architecture prose alone.
+- Historical mentions of future config toggles such as `use_ast_generator` are design-era notes, not the current source-of-truth API contract.
+
 ## Troubleshooting Guide
 
 ### Common Issues and Solutions

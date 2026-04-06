@@ -72,7 +72,7 @@ Despite limitations, bootstrap mode handles the majority of common annotation pa
 
 ### Bootstrap Mode Activation - Automatic Fallback
 
-**Important**: Bootstrap mode is **NOT** activated via command-line flags. It operates as an **automatic fallback mechanism**:
+**Important**: Bootstrap mode normally operates as an **automatic fallback mechanism**, but the CLI still exposes `--bootstrap-mode` as a forcing/debug path for regeneration workflows and proof gates.
 
 1. **Primary Attempt**: AST pipeline first tries to use external annotation parsers
 2. **Automatic Fallback**: When external parsers fail/unavailable, bootstrap mode activates automatically
@@ -81,6 +81,39 @@ Despite limitations, bootstrap mode handles the majority of common annotation pa
    ```
    Warning: External return parser failed, falling back to bootstrap mode: {...}
    ```
+
+## Bootstrap Architecture Notes
+
+This document now also absorbs the useful architecture residue from the retired `docs/BOOTSTRAP_SYSTEM_COMPLETE.md`.
+
+### Three-Level Bootstrap Shape
+
+1. **Built-in Rust fallback parsers**
+   - small semantic / return-annotation support used when generated parsers are unavailable
+2. **Generated special parsers**
+   - `grammars/semantic_annotation.ebnf`
+   - `grammars/return_annotation.ebnf`
+3. **Everything else**
+   - the wider grammar surface generated once the special parsers are available again
+
+### Critical Files
+
+- `rust/src/ast_pipeline/mod.rs`
+  - bootstrap-mode configuration and fallback flow
+- `rust/src/ast_pipeline/unified_return_ast.rs`
+  - bootstrap return-annotation parsing support
+- `grammars/semantic_annotation.ebnf`
+  - semantic-annotation grammar used by the generated path
+- `grammars/return_annotation.ebnf`
+  - return-annotation grammar used by the generated path
+
+### Practical Build Summary
+
+1. Start from a clean state or placeholder-generated state.
+2. Build the Rust AST pipeline.
+3. Use bootstrap fallback or explicit `--bootstrap-mode` where needed to regenerate the special parsers.
+4. Rebuild with the real generated parsers available.
+5. Regenerate the wider parser surface and verify it through the retained proof gates.
 
 ### Bootstrap Detection
 ```rust

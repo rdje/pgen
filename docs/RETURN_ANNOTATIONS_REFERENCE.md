@@ -2,7 +2,7 @@
 
 > **The definitive guide to return annotations in pgen parser generator**
 
-**Status:** This document describes features under active development. The syntax and semantics are being designed and refined.
+**Status:** Return annotations are implemented in the Rust AST pipeline and fully supported by the tracked return-annotation proof stack. Broad cross-grammar adoption still varies by parser family, but the feature itself is no longer just a design-stage concept.
 
 Return annotations are a powerful feature that allows you to transform the raw parse tree into meaningful data structures. This document serves as the complete reference for understanding, writing, and debugging return annotations.
 
@@ -542,9 +542,25 @@ statement := 'if' '(' condition ')' block 'else' block -> {
 
 ## File Locations
 
+- **Grammar**: `grammars/return_annotation.ebnf`
 - **Implementation**: `rust/src/ast_pipeline/unified_return_ast.rs`
-- **Tests**: `tests/test_universal_return_annotations.pl`
+- **Proof gate**: `rust/scripts/return_annotation_support_gate.sh`
+- **Round-trip / parser test spine**: `rust/src/test_runner/round_trip_tests.rs`
 - **Bootstrap parser**: `rust/src/ast_pipeline/unified_return_ast.rs`
+
+## Historical Architecture Notes
+
+This document now subsumes the most useful surviving content from:
+
+- `docs/RETURN_ANNOTATION_PARSER.md`
+- `docs/return_annotation_self_hosting.md`
+- `docs/universal_return_annotation_system.md`
+
+The important retained takeaways are:
+
+- PGEN did prove out self-hosted return-annotation parsing historically, but the active implementation surface is now the Rust AST pipeline plus `grammars/return_annotation.ebnf`.
+- The old Perl wrapper/generated-parser split is historical background, not the modern integration contract.
+- The notation itself remains intentionally language-agnostic at the semantic level (`$N`, arrays, objects, extraction, spreading), even though the maintained implementation and proof surface are now Rust-first.
 
 ---
 

@@ -43,6 +43,10 @@ Failure to recognize both formats resulted in logging annotations leaking into g
 
 🎯 **For Language Implementers** - Complete guide to implementing the AST transformation pipeline in your target language.
 
+## Scope Note
+
+This document now subsumes the old `docs/COMPLETE_AST_TRANSFORMATION_PIPELINE.md` write-up. The algorithmic content here is still valuable, but the repository's active production implementation is Rust-first. Historical multi-language examples remain as explanatory background, not as a statement that every previously discussed target-language generator is still a live project priority.
+
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
