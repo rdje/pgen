@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-06 - Rehome regex bootstrap architecture note under docs/reference
+### Achievement Summary
+Completed the next root-markdown cleanup wave by moving `REGEX_BOOTSTRAP_ARCHITECTURE.md` out of repo root and into [docs/reference](docs/reference). This keeps the historical regex bootstrap context available without spending one of the last root markdown slots on it.
+
+### Scope of Changes
+- Rehomed historical regex bootstrap note:
+  - [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md)
+- Updated root navigation / continuity surfaces:
+  - [README.md](README.md)
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Documentation-structure impact:
+  - root `*.md` count drops from `12` to `11`
+  - the root markdown surface is now down to the intended steady-state set
+- Status impact:
+  - no live-status row changed
+  - this is documentation-structure cleanup only
+
+### Validation
+- `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `11`
+- `find . -maxdepth 1 -type f -name 'REGEX_BOOTSTRAP_ARCHITECTURE.md'`
+  - result: no output
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - local workflow parity passes with the final root-doc cleanup
+- `git diff --check`
+
 ## 2026-04-06 - Remove stale root overview/status/guidance docs
 ### Achievement Summary
 Completed the next root-markdown cleanup wave by removing three stale root docs that were no longer helping navigation and were instead preserving outdated project framing: `CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, and `IMPLEMENTATION_GUIDE.md`. The remaining root markdown surface is now closer to the intended entrypoint / continuity / active-operator set.

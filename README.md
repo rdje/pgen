@@ -149,7 +149,6 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `rust/docs/EMBEDDING_API_CONTRACT.md`
 - Historical/reference docs are still tracked for context, but some describe superseded workflows or earlier project phases.
 - In particular, treat these as archival unless they are explicitly refreshed:
-  - `REGEX_BOOTSTRAP_ARCHITECTURE.md`
   - `rust/docs/TECHNICAL_ARCHITECTURE.md`
   - `rust/docs/CLI_REFERENCE.md`
 - The complete markdown index below is a repository navigation index, not a claim that every listed document is equally current.
@@ -214,7 +213,7 @@ Root markdown policy note:
 - the parser integration contract surface now lives under `docs/contracts/` instead of consuming repo-root markdown slots
 - the maintained spec / matrix / policy reference surface now also lives under `docs/reference/` instead of consuming repo-root markdown slots
 - stale historical root overview/status/guidance docs have now been removed instead of being kept as dead navigation noise
-- other reference deep-dives remain candidates to live under `docs/` instead of remaining at the top level
+- the remaining root markdown set is now the intended steady-state entrypoint / continuity / active-operator surface, while historical deep-reference notes like regex bootstrap architecture live under `docs/reference/`
 - a separate root `*.md` audit/classification now also lives in `DEVELOPMENT_NOTES.md`
 
 Read SESSION_BOOTSTRAP.md and start from there.

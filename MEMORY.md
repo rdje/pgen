@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: root-stale-trio-removal-wave-3)
+Last updated: 2026-04-06 (+0200, task: root-regex-bootstrap-note-rehome-wave-4)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,18 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained final obvious root-doc cleanup wave:
+  - moved out of repo root:
+    - [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md)
+  - repo-root markdown count is now `11`
+  - important continuity detail:
+    - this was the last obvious historical residue at root
+    - it was preserved under `docs/reference/` because RGX is actively using the regex parser and the bootstrap background may still be useful as context
+    - the remaining root markdown surface should now be treated as the intentional steady-state set, not as an in-progress cleanup queue
+  - retained verification target:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up for the docs cleanup track:
+    - none urgent on root markdown; if revisited later, treat it as a fresh new audit rather than continuing a stale cleanup queue
 - Retained root stale-trio removal wave:
   - removed from repo root:
     - `CURRENT_STATUS.md`
@@ -20,7 +32,7 @@ Use this file to resume work without replaying full chat history.
   - retained verification target:
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - next best follow-up for the root cleanup track:
-    - review `REGEX_BOOTSTRAP_ARCHITECTURE.md` as the next obvious root residue candidate
+    - now superseded by the later regex-bootstrap-note removal wave above
 - Retained second root-markdown rehome wave:
   - created [docs/reference](docs/reference) as the dedicated home for maintained spec / matrix / policy docs
   - moved out of repo root:
@@ -42,7 +54,7 @@ Use this file to resume work without replaying full chat history.
   - retained verification target:
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - next best follow-up for the root cleanup track:
-    - decide whether the remaining root residue (`REGEX_BOOTSTRAP_ARCHITECTURE.md`) should be archived, removed, or partially merged away
+    - now superseded by the later regex-bootstrap-note removal wave above
 - Retained first root-markdown rehome wave:
   - created [docs/contracts](docs/contracts) as the dedicated home for downstream parser handoff/support docs
   - moved out of repo root:

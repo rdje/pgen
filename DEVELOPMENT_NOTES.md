@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-06 - Root markdown cleanup: rehome regex bootstrap note under docs/reference
+### Context
+After the stale trio removal, the only remaining obvious root residue was `REGEX_BOOTSTRAP_ARCHITECTURE.md`. It was a historical regex bootstrap explanation, not an active contract or operator guide, but because RGX is actively consuming the regex parser it was still worth retaining as background context rather than deleting outright.
+
+### What Was Changed
+- Rehomed `REGEX_BOOTSTRAP_ARCHITECTURE.md` from repo root into [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md).
+- Updated [README.md](README.md):
+  - clarified that historical deep-reference notes like regex bootstrap architecture live under `docs/reference/`
+  - tightened the root markdown policy note to reflect that the remaining root docs are now the intended steady-state surface
+- Updated continuity docs so the deletion wave is explicit:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- This file was not useful enough to keep at repo root, but it still carries some historical value for understanding the regex parser bootstrap story.
+- Rehoming it preserves that context without touching any active contract, roadmap, or user-facing operational doc.
+- The remaining root markdown surface is now compact enough to be treated as the real steady-state entrypoint set instead of an in-progress cleanup project.
+
+### What Was Verified
+- Repo-root markdown count is now:
+  - `find . -maxdepth 1 -type f -name '*.md' | wc -l`
+  - result: `11`
+- The old regex bootstrap note is gone from repo root:
+  - `find . -maxdepth 1 -type f -name 'REGEX_BOOTSTRAP_ARCHITECTURE.md'`
+  - result: no output
+- Local workflow parity still accepts the final root-doc surface:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat the root markdown cleanup track as effectively closed for now.
+- The remaining root set is:
+  - `README.md`
+  - `SESSION_BOOTSTRAP.md`
+  - `QUICKSTART_AI_ONBOARDING.md`
+  - `PGEN_USER_GUIDE.md`
+  - `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+  - `RUST_CODEBASE_ANALYSIS.md`
+  - `CHANGES.md`
+  - `DEVELOPMENT_NOTES.md`
+  - `MEMORY.md`
+  - `LIVE_ACHIEVEMENT_STATUS.md`
+  - `COMMIT.md`
+- Historical regex bootstrap background, if needed later, now lives under [docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md](docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md).
+
 ## 2026-04-06 - Root markdown cleanup: remove stale overview/status/guidance trio
 ### Context
 After the contract and reference rehome waves, the remaining root clutter was no longer “current docs in the wrong place.” It was a genuinely stale trio: `CURRENT_STATUS.md`, `PROJECT_OVERVIEW.md`, and `IMPLEMENTATION_GUIDE.md`. All three still described older project framing or obsolete workflows, and keeping them at repo root was more likely to mislead a fresh session than to help one.
@@ -44,7 +92,7 @@ After the contract and reference rehome waves, the remaining root clutter was no
 ### Steering
 - Treat the remaining root residue as:
   - keep for now: `README.md`, `SESSION_BOOTSTRAP.md`, `QUICKSTART_AI_ONBOARDING.md`, `PGEN_USER_GUIDE.md`, `PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `RUST_CODEBASE_ANALYSIS.md`, and continuity docs
-  - likely next review candidate: `REGEX_BOOTSTRAP_ARCHITECTURE.md`
+  - no obvious additional root cleanup candidate remains after the regex bootstrap note removal
 
 ## 2026-04-06 - Root markdown cleanup: second reference-doc rehome wave
 ### Context
