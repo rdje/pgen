@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-07 - Regex proof hardening: lock parser-registry Unicode and deep-nesting guarantees
+### Context
+Regex handoff `1.1.8` already closed the three RGX reports in the grammar, generated backend, embedding API, and direct `parseability_probe` replays. The remaining trust gap was narrower: the parser-registry tests themselves did not yet explicitly assert that the registry boolean parseability lane and the registry AST-JSON lane both preserved those same Unicode and `50`-level nesting guarantees.
+
+### What Was Changed
+- Added focused generated-parser registry tests to [rust/src/parser_registry.rs](rust/src/parser_registry.rs):
+  - `regex_parseability_adapter_accepts_unicode_literals_and_deep_nested_groups`
+  - `regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups`
+- The new tests explicitly cover:
+  - `🎉`
+  - `café`
+  - `50` nested capturing groups around `a`
+
+### Why It Matters
+- `1.1.8` was already green at the manifest/embedding and direct repro layers.
+- This wave closes the remaining local proof gap on the registry surface that backs:
+  - `parse_sample("regex", ...)`
+  - `parse_sample_ast_json("regex", ...)`
+  - the `parseability_probe`-style host path through the registry adapters
+- That means the retained Unicode and deep-nesting guarantees now exist in all three places:
+  - published regex contract / embedding tests
+  - direct `parseability_probe` repros against RGX artifacts
+  - parser-registry unit tests
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parseability_adapter_accepts_unicode_literals_and_deep_nested_groups --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups --lib`
+- `git diff --check`
+
+### Status Impact
+- No live-status row changed.
+- This is a proof-surface hardening wave on top of regex release `1.1.8`, not a new regex-family capability claim.
+
 ## 2026-04-07 - Docs cleanup hardening: enforce active docs rehome paths in local workflow parity
 ### Context
 After the root, top-level docs, and curated docs buckets were all machine-enforced, the next subtle risk was not extra files but stale links: active operator/reference docs could gradually reintroduce the old root-era paths for documents that had already been rehomed into `docs/contracts/` and `docs/reference/`.

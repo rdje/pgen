@@ -839,6 +839,37 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "(?{\"unterminated})"), Some(false));
     }
 
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_parseability_adapter_accepts_unicode_literals_and_deep_nested_groups() {
+        let deep_nested = format!("{}a{}", "(".repeat(50), ")".repeat(50));
+
+        assert_eq!(parse_sample("regex", "🎉"), Some(true));
+        assert_eq!(parse_sample("regex", "café"), Some(true));
+        assert_eq!(parse_sample("regex", &deep_nested), Some(true));
+    }
+
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups() {
+        let deep_nested = format!("{}a{}", "(".repeat(50), ")".repeat(50));
+
+        let unicode_ast = parse_sample_ast_json("regex", "🎉").expect("regex ast adapter");
+        assert!(unicode_ast.is_ok(), "regex AST JSON adapter should serialize emoji literal");
+
+        let mixed_ast = parse_sample_ast_json("regex", "café").expect("regex ast adapter");
+        assert!(
+            mixed_ast.is_ok(),
+            "regex AST JSON adapter should serialize mixed ASCII/Unicode literal runs"
+        );
+
+        let deep_ast = parse_sample_ast_json("regex", &deep_nested).expect("regex ast adapter");
+        assert!(
+            deep_ast.is_ok(),
+            "regex AST JSON adapter should serialize 50-level nested capturing groups"
+        );
+    }
+
     #[test]
     fn tracked_grammars_expose_parseable_standalone_return_annotations() {
         let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-04-07 - Harden regex registry proof surface
+### Achievement Summary
+Locked the new regex `1.1.8` seams into the parser-registry proof surface too. The registry adapters that back `parseability_probe` now have focused generated-parser tests proving Unicode literals, mixed ASCII/UTF-8 literal runs, and `50` nested capturing groups survive both the boolean parseability lane and the AST-JSON lane.
+
+### Scope of Changes
+- Added focused generated-parser registry tests to:
+  - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is regex proof-surface hardening on top of the already-published `1.1.8` maintenance release
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parseability_adapter_accepts_unicode_literals_and_deep_nested_groups --lib`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups --lib`
+- `git diff --check`
+
 ## 2026-04-07 - Release regex 1.1.8 Unicode and nesting fixes
 ### Achievement Summary
 Closed three same-day RGX parser reports in one regex release wave. The published generated regex backend now accepts non-ASCII literal atoms like `🎉`, mixed ASCII/UTF-8 literal runs like `café`, and moderate nested-group depth such as `50` nested capturing groups.

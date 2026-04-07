@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-07 (+0200, task: rtl-frontend-bootstrap-verifier-closure)
+Last updated: 2026-04-07 (+0200, task: regex-registry-proof-hardening)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -9842,5 +9842,15 @@ Use this file to resume work without replaying full chat history.
       - `unicode_emoji_literal`
       - `unicode_accented_literal`
       - `nested_capturing_groups_50`
+  - status truth:
+    - this is a regex maintenance-release wave on top of the already-closed regex family row, not a live-status promotion
+- 2026-04-07: the parser-registry regex proof surface now explicitly locks the same `1.1.8` guarantees too.
+  - landed:
+    - `rust/src/parser_registry.rs`
+      - added `regex_parseability_adapter_accepts_unicode_literals_and_deep_nested_groups`
+      - added `regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups`
+  - verified:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_parseability_adapter_accepts_unicode_literals_and_deep_nested_groups --lib`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups --lib`
   - status truth:
     - this is a regex maintenance-release wave on top of the already-closed regex family row, not a live-status promotion
