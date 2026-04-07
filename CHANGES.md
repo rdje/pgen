@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-04-07 - Enforce active docs rehome paths
+### Achievement Summary
+Completed the next documentation hardening wave by teaching the local workflow parity gate to audit active operator/reference docs for stale pre-rehome path mentions. This keeps the live docs pinned to the canonical `docs/contracts/...` and `docs/reference/...` locations instead of drifting back toward the old root-era paths.
+
+### Scope of Changes
+- Added a git-aware active-docs path-drift audit to:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated docs-structure policy wording:
+  - [README.md](README.md)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Documentation-structure impact:
+  - no files moved in this wave
+  - no curated bucket sizes changed
+  - future stale root-era path references in active docs now fail the local parity gate
+- Status impact:
+  - no live-status row changed
+  - this is documentation-policy and workflow-surface hardening only
+
+### Validation
+- targeted active-surface rehome-path search returned no matches before the audit was added
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - passed with the new `auditing active docs rehome paths` phase in the static checks
+- `git diff --check`
+
 ## 2026-04-06 - Enforce contract and reference docs allowlists
 ### Achievement Summary
 Completed the next documentation hardening wave by teaching the local workflow parity gate to audit the curated `docs/contracts/*.md` and `docs/reference/*.md` surfaces directly. This turns those buckets into enforced repository structure rather than soft convention.

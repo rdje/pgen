@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-06 (+0200, task: curated-doc-buckets-allowlist-hardening-wave-8)
+Last updated: 2026-04-07 (+0200, task: active-docs-rehome-path-hardening-wave-9)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,20 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained active-docs rehome-path hardening wave:
+  - no files moved in this wave
+  - important continuity detail:
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) now audits the active operator/reference docs for stale pre-rehome path mentions
+    - this covers the current canonical rehomes into:
+      - `docs/contracts/...`
+      - `docs/reference/...`
+    - the repo now machine-checks both:
+      - structural doc-bucket allowlists
+      - live-doc path correctness for the active operator/reference surface
+  - retained verification target:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up for the docs cleanup track:
+    - none urgent; the main markdown structure and active-path surfaces are now both slim and enforced
 - Retained curated-doc-buckets allowlist hardening wave:
   - no files moved in this wave
   - `docs/contracts/*.md` count remains `9`

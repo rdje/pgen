@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-07 - Docs cleanup hardening: enforce active docs rehome paths in local workflow parity
+### Context
+After the root, top-level docs, and curated docs buckets were all machine-enforced, the next subtle risk was not extra files but stale links: active operator/reference docs could gradually reintroduce the old root-era paths for documents that had already been rehomed into `docs/contracts/` and `docs/reference/`.
+
+### What Was Changed
+- Added a git-aware `audit_active_docs_rehome_paths()` check to [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh).
+- The audit now rejects stale pre-rehome path mentions in the active docs surface, covering:
+  - [README.md](README.md)
+  - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)
+  - [QUICKSTART_AI_ONBOARDING.md](QUICKSTART_AI_ONBOARDING.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [COMMIT.md](COMMIT.md)
+  - [rust/docs/TECHNICAL_ARCHITECTURE.md](rust/docs/TECHNICAL_ARCHITECTURE.md)
+  - [rust/docs/EMBEDDING_API_CONTRACT.md](rust/docs/EMBEDDING_API_CONTRACT.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - the key contract/reference docs that are supposed to keep using canonical rehomed paths
+- Updated [README.md](README.md) so the docs-structure policy now says the local workflow parity gate enforces stale-path drift protection too.
+- Updated continuity docs so this hardening step is restart-safe:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- The cleaned-up docs structure can now stay correct even when people edit the active docs by hand later.
+- This protects the onboarding and operator surfaces from slowly sliding back toward obsolete root-era paths.
+- It complements the allowlist audits: the repo now checks both “which files exist” and “which canonical paths the live docs use.”
+
+### What Was Verified
+- The targeted active-surface search for stale rehome-path drift returned no matches before the new audit was added.
+- Local workflow parity now includes the new path-drift audit and still passes:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=ebnf-frontend-dual-run-diff make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Patch hygiene:
+  - `git diff --check`
+
+### Steering
+- Treat stale pre-rehome path mentions in active docs as policy violations now, not cosmetic drift.
+- If a future rehome happens again, update both:
+  - [README.md](README.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  in the same wave so the active-doc path contract stays explicit and machine-checked.
+
 ## 2026-04-06 - Docs cleanup hardening: enforce contract and reference docs allowlists in local workflow parity
 ### Context
 After the root markdown surface and the pruned top-level `docs/*.md` surface were both machine-enforced, the next obvious structure-risk buckets were the two curated documentation directories created by the cleanup waves: `docs/contracts/` and `docs/reference/`. Both were deliberately shaped surfaces now, so they deserved the same protection against silent drift.

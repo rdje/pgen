@@ -253,6 +253,36 @@ audit_reference_docs_surface() {
   fi
 }
 
+audit_active_docs_rehome_paths() {
+  note "auditing active docs rehome paths"
+  if (
+    cd "$ROOT_DIR" &&
+      rg -n \
+        '(^|[^/])PGEN_SOTA_IMPLEMENTATION_ROADMAP\.md|(^|[^/])RUST_CODEBASE_ANALYSIS\.md|(^|[^/])PGEN_PARSER_INTEGRATION_CONTRACTS\.md|(^|[^/])PGEN_PARSER_ISSUE_REPORTING_PROTOCOL\.md|(^|[^/])PGEN_RELEASED_PARSER_BUG_LEDGER\.md|(^|[^/])PGEN_REGEX_PARSER_INTEGRATION_CONTRACT\.md|(^|[^/])PGEN_ANNOTATION_NORMATIVE_SPEC\.md|(^|[^/])PGEN_RELEASE_POLICY\.md|(^|[^/])PGEN_SEMANTIC_STEERING_CONTROL_MATRIX\.md|(^|[^/])PGEN_STIMULI_MODULE_NORMATIVE_SPEC\.md' \
+        README.md \
+        SESSION_BOOTSTRAP.md \
+        QUICKSTART_AI_ONBOARDING.md \
+        PGEN_USER_GUIDE.md \
+        COMMIT.md \
+        rust/docs/TECHNICAL_ARCHITECTURE.md \
+        rust/docs/EMBEDDING_API_CONTRACT.md \
+        rust/scripts/ci_workflow_local_gate.sh \
+        docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md \
+        docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md \
+        docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md \
+        docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md \
+        docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md \
+        docs/reference/PGEN_RELEASE_POLICY.md \
+        docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md \
+        docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md \
+        docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md \
+        docs/reference/RUST_CODEBASE_ANALYSIS.md \
+        >/dev/null 2>&1
+  ); then
+    fail "active docs path drift detected; update live docs to use rehomed docs/contracts and docs/reference paths"
+  fi
+}
+
 audit_workflow_surface() {
   local workflow_file
   note "auditing tracked workflow surface"
@@ -2421,6 +2451,7 @@ main() {
   audit_top_level_docs_surface
   audit_contract_docs_surface
   audit_reference_docs_surface
+  audit_active_docs_rehome_paths
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface
