@@ -700,6 +700,21 @@ mod tests {
         assert_eq!(parse_sample("ebnf", ":::not-ebnf:::"), Some(false));
     }
 
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn ebnf_parseability_adapter_accepts_inline_lookahead_in_sequence() {
+        let sample = r#"ports := direction item ( "," !direction item )*
+direction := "input" | "output"
+item := identifier
+identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
+        assert_eq!(parse_sample("ebnf", sample), Some(true));
+        let ast_json = parse_sample_ast_json("ebnf", sample).expect("ebnf ast adapter should exist");
+        assert!(
+            ast_json.is_ok(),
+            "ebnf AST JSON adapter should serialize inline lookahead sample"
+        );
+    }
+
     #[cfg(has_generated_json_parser)]
     #[test]
     fn json_parseability_adapter_accepts_valid_json_and_rejects_garbage() {

@@ -27567,6 +27567,27 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - Rust-side generation emitted:
       - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
     - so this wave closes the missing generated-path wiring, not the deeper proof/parity closure story yet
+- 2026-04-07: closed the retained Rust-frontend verifier gap behind the `rtl_frontend` bootstrap caveat.
+  - changed:
+    - `grammars/ebnf.ebnf`
+    - `generated/ebnf.json`
+    - `generated/ebnf.rs`
+    - `rust/src/parser_registry.rs`
+  - root cause:
+    - the self-hosting EBNF source already declared `lookahead_assertion`, but `primary_element` had stopped admitting it, so inline lookahead inside real grammar sequences could parse partially under the Rust frontend and then leave trailing input
+    - that is why `ast_pipeline` had retained:
+      - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
+  - verified:
+    - `rust/target/debug/ebnf_dual_run_diff --input /tmp/ebnf_lookahead_min.ebnf --output /tmp/ebnf_lookahead_min_after_rebuild.json`
+      - passed with `parse_full.ok=true`
+    - `rust/target/debug/ebnf_dual_run_diff --input grammars/rtl_frontend.ebnf --output /tmp/rtl_frontend_ebnf_dual_run_final.json`
+      - passed with `parse_full.ok=true`
+    - `rust/target/debug/ast_pipeline grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json /tmp/rtl_frontend_regen_final.json --output /tmp/rtl_frontend_regen_final.rs`
+      - wrote both outputs cleanly
+      - no retained `position 3411` verification-skip warning
+  - retained consequence:
+    - the generated `rtl_frontend` path is now cleanly self-hosted under the Rust EBNF frontend
+    - the honest remaining `rtl_frontend` work is parity/proof closure against the handwritten baseline, not bootstrap verifier repair
 - 2026-04-04: recorded a future PNR parser backlog note without starting implementation.
   - retained downstream demand:
     - sibling PNR work will need parser families for:

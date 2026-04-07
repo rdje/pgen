@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-07 (+0200, task: active-docs-rehome-path-hardening-wave-9)
+Last updated: 2026-04-07 (+0200, task: rtl-frontend-bootstrap-verifier-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,29 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` bootstrap verifier-closure wave:
+  - changed:
+    - [grammars/ebnf.ebnf](grammars/ebnf.ebnf)
+    - [generated/ebnf.json](generated/ebnf.json)
+    - [generated/ebnf.rs](generated/ebnf.rs)
+    - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+  - important continuity detail:
+    - the retained `rtl_frontend` generation caveat was caused by the tracked self-hosting EBNF parser, not by `grammars/rtl_frontend.ebnf` itself
+    - `lookahead_assertion` was still declared in the EBNF dialect, but `primary_element` had stopped accepting it
+    - restoring that branch and regenerating the tracked EBNF parser removed the old:
+      - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
+    - focused registry proof now exists for inline lookahead:
+      - `ebnf_parseability_adapter_accepts_inline_lookahead_in_sequence`
+  - retained proof surface:
+    - `/tmp/ebnf_lookahead_min_after_rebuild.json`
+      - `parse_full.ok=true`
+    - `/tmp/rtl_frontend_ebnf_dual_run_final.json`
+      - `parse_full.ok=true`
+    - `rust/target/debug/ast_pipeline grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json /tmp/rtl_frontend_regen_final.json --output /tmp/rtl_frontend_regen_final.rs`
+      - writes both outputs cleanly without the old verifier-skip warning
+  - next best follow-up:
+    - treat `rtl_frontend` as bootstrap-verified now
+    - continue parity/proof closure against the handwritten `rtl_frontend` crate rather than spending more time on self-hosting EBNF repair
 - Retained active-docs rehome-path hardening wave:
   - no files moved in this wave
   - important continuity detail:

@@ -237,7 +237,9 @@ impl<'input> EbnfParser<'input> {
     }
     pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
         let parsed = self.parse()?;
-        self.consume_layout_for_terminal("<EOF>");
+        if true {
+            self.consume_layout_for_terminal("<EOF>");
+        }
         if self.position == self.input.len() {
             Ok(parsed)
         } else {
@@ -276,6 +278,12 @@ impl<'input> EbnfParser<'input> {
         self.semantic_runtime_state
             .transaction_for_rule(&self.semantic_runtime_annotations, rule_name)
     }
+    fn semantic_predicate_debug_label(
+        &self,
+        spec: &crate::ast_pipeline::SemanticPredicateSpec,
+    ) -> String {
+        format!("{} {:?}", spec.name, spec.args)
+    }
     pub fn with_semantic_runtime_rule_transaction<F>(
         &mut self,
         rule_name: &str,
@@ -300,6 +308,21 @@ impl<'input> EbnfParser<'input> {
                 {
                     Some(true) => {}
                     Some(false) => {
+                        if self.logger.is_enabled() {
+                            if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                spec,
+                            ) = directive {
+                                self.logger
+                                    .log_info(
+                                        file!(),
+                                        line!(),
+                                        &format!(
+                                            "🚫 Rule '{}' rejected by pre predicate '{}'", rule_name,
+                                            self.semantic_predicate_debug_label(spec),
+                                        ),
+                                    );
+                            }
+                        }
                         predicate_blocked = true;
                         break;
                     }
@@ -332,6 +355,7 @@ impl<'input> EbnfParser<'input> {
                         )?;
                 }
                 let mut post_predicate_blocked = false;
+                let mut blocked_post_predicate: Option<String> = None;
                 for directive in self
                     .semantic_runtime_annotations
                     .post_predicates_for_rule(rule_name)
@@ -357,6 +381,9 @@ impl<'input> EbnfParser<'input> {
                             {
                                 Some(true) => {}
                                 Some(false) => {
+                                    blocked_post_predicate = Some(
+                                        self.semantic_predicate_debug_label(&resolved_spec),
+                                    );
                                     post_predicate_blocked = true;
                                     break;
                                 }
@@ -372,6 +399,17 @@ impl<'input> EbnfParser<'input> {
                     }
                 }
                 if post_predicate_blocked {
+                    if self.logger.is_enabled() {
+                        self.logger
+                            .log_info(
+                                file!(),
+                                line!(),
+                                &format!(
+                                    "🚫 Rule '{}' rejected by post predicate '{}'", rule_name,
+                                    blocked_post_predicate.as_deref().unwrap_or("<unknown>"),
+                                ),
+                            );
+                    }
                     Err(ParseError::Backtrack {
                         position: node.span.start,
                     })
@@ -1021,9 +1059,18 @@ impl<'input> EbnfParser<'input> {
                                                                     }
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
+                                                                let mut blocked_branch_predicate: Option<String> = None;
                                                                 for directive in parser
                                                                     .semantic_runtime_annotations
                                                                     .branch_predicates_for_rule("grammar_file")
+                                                                    .chain(
+                                                                        parser
+                                                                            .semantic_runtime_annotations
+                                                                            .branch_predicates_for_rule_branch(
+                                                                                "grammar_file",
+                                                                                current_branch_index,
+                                                                            ),
+                                                                    )
                                                                 {
                                                                     match directive {
                                                                         crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -1036,6 +1083,9 @@ impl<'input> EbnfParser<'input> {
                                                                                     &raw_content,
                                                                                     &transformed,
                                                                                 )? else {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             };
@@ -1049,6 +1099,9 @@ impl<'input> EbnfParser<'input> {
                                                                             {
                                                                                 Some(true) => {}
                                                                                 Some(false) => {
+                                                                                    blocked_branch_predicate = Some(
+                                                                                        parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                    );
                                                                                     branch_predicate_blocked = true;
                                                                                     break;
                                                                                 }
@@ -1132,8 +1185,9 @@ impl<'input> EbnfParser<'input> {
                                                                             "generated/ebnf.rs",
                                                                             0,
                                                                             &format!(
-                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                                1usize, 5usize, "grammar_file", candidate_end
+                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                                1usize, 5usize, "grammar_file", blocked_branch_predicate
+                                                                                .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                             ),
                                                                         );
                                                                 }
@@ -1198,9 +1252,18 @@ impl<'input> EbnfParser<'input> {
                                                                     content
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
+                                                                let mut blocked_branch_predicate: Option<String> = None;
                                                                 for directive in parser
                                                                     .semantic_runtime_annotations
                                                                     .branch_predicates_for_rule("grammar_file")
+                                                                    .chain(
+                                                                        parser
+                                                                            .semantic_runtime_annotations
+                                                                            .branch_predicates_for_rule_branch(
+                                                                                "grammar_file",
+                                                                                current_branch_index,
+                                                                            ),
+                                                                    )
                                                                 {
                                                                     match directive {
                                                                         crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -1213,6 +1276,9 @@ impl<'input> EbnfParser<'input> {
                                                                                     &raw_content,
                                                                                     &transformed,
                                                                                 )? else {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             };
@@ -1226,6 +1292,9 @@ impl<'input> EbnfParser<'input> {
                                                                             {
                                                                                 Some(true) => {}
                                                                                 Some(false) => {
+                                                                                    blocked_branch_predicate = Some(
+                                                                                        parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                    );
                                                                                     branch_predicate_blocked = true;
                                                                                     break;
                                                                                 }
@@ -1309,8 +1378,9 @@ impl<'input> EbnfParser<'input> {
                                                                             "generated/ebnf.rs",
                                                                             0,
                                                                             &format!(
-                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                                2usize, 5usize, "grammar_file", candidate_end
+                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                                2usize, 5usize, "grammar_file", blocked_branch_predicate
+                                                                                .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                             ),
                                                                         );
                                                                 }
@@ -1375,9 +1445,18 @@ impl<'input> EbnfParser<'input> {
                                                                     content
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
+                                                                let mut blocked_branch_predicate: Option<String> = None;
                                                                 for directive in parser
                                                                     .semantic_runtime_annotations
                                                                     .branch_predicates_for_rule("grammar_file")
+                                                                    .chain(
+                                                                        parser
+                                                                            .semantic_runtime_annotations
+                                                                            .branch_predicates_for_rule_branch(
+                                                                                "grammar_file",
+                                                                                current_branch_index,
+                                                                            ),
+                                                                    )
                                                                 {
                                                                     match directive {
                                                                         crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -1390,6 +1469,9 @@ impl<'input> EbnfParser<'input> {
                                                                                     &raw_content,
                                                                                     &transformed,
                                                                                 )? else {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             };
@@ -1403,6 +1485,9 @@ impl<'input> EbnfParser<'input> {
                                                                             {
                                                                                 Some(true) => {}
                                                                                 Some(false) => {
+                                                                                    blocked_branch_predicate = Some(
+                                                                                        parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                    );
                                                                                     branch_predicate_blocked = true;
                                                                                     break;
                                                                                 }
@@ -1486,8 +1571,9 @@ impl<'input> EbnfParser<'input> {
                                                                             "generated/ebnf.rs",
                                                                             0,
                                                                             &format!(
-                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                                3usize, 5usize, "grammar_file", candidate_end
+                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                                3usize, 5usize, "grammar_file", blocked_branch_predicate
+                                                                                .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                             ),
                                                                         );
                                                                 }
@@ -1552,9 +1638,18 @@ impl<'input> EbnfParser<'input> {
                                                                     content
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
+                                                                let mut blocked_branch_predicate: Option<String> = None;
                                                                 for directive in parser
                                                                     .semantic_runtime_annotations
                                                                     .branch_predicates_for_rule("grammar_file")
+                                                                    .chain(
+                                                                        parser
+                                                                            .semantic_runtime_annotations
+                                                                            .branch_predicates_for_rule_branch(
+                                                                                "grammar_file",
+                                                                                current_branch_index,
+                                                                            ),
+                                                                    )
                                                                 {
                                                                     match directive {
                                                                         crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -1567,6 +1662,9 @@ impl<'input> EbnfParser<'input> {
                                                                                     &raw_content,
                                                                                     &transformed,
                                                                                 )? else {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             };
@@ -1580,6 +1678,9 @@ impl<'input> EbnfParser<'input> {
                                                                             {
                                                                                 Some(true) => {}
                                                                                 Some(false) => {
+                                                                                    blocked_branch_predicate = Some(
+                                                                                        parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                    );
                                                                                     branch_predicate_blocked = true;
                                                                                     break;
                                                                                 }
@@ -1663,8 +1764,9 @@ impl<'input> EbnfParser<'input> {
                                                                             "generated/ebnf.rs",
                                                                             0,
                                                                             &format!(
-                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                                4usize, 5usize, "grammar_file", candidate_end
+                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                                4usize, 5usize, "grammar_file", blocked_branch_predicate
+                                                                                .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                             ),
                                                                         );
                                                                 }
@@ -1729,9 +1831,18 @@ impl<'input> EbnfParser<'input> {
                                                                     content
                                                                 };
                                                                 let mut branch_predicate_blocked = false;
+                                                                let mut blocked_branch_predicate: Option<String> = None;
                                                                 for directive in parser
                                                                     .semantic_runtime_annotations
                                                                     .branch_predicates_for_rule("grammar_file")
+                                                                    .chain(
+                                                                        parser
+                                                                            .semantic_runtime_annotations
+                                                                            .branch_predicates_for_rule_branch(
+                                                                                "grammar_file",
+                                                                                current_branch_index,
+                                                                            ),
+                                                                    )
                                                                 {
                                                                     match directive {
                                                                         crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -1744,6 +1855,9 @@ impl<'input> EbnfParser<'input> {
                                                                                     &raw_content,
                                                                                     &transformed,
                                                                                 )? else {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             };
@@ -1757,6 +1871,9 @@ impl<'input> EbnfParser<'input> {
                                                                             {
                                                                                 Some(true) => {}
                                                                                 Some(false) => {
+                                                                                    blocked_branch_predicate = Some(
+                                                                                        parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                    );
                                                                                     branch_predicate_blocked = true;
                                                                                     break;
                                                                                 }
@@ -1840,8 +1957,9 @@ impl<'input> EbnfParser<'input> {
                                                                             "generated/ebnf.rs",
                                                                             0,
                                                                             &format!(
-                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                                5usize, 5usize, "grammar_file", candidate_end
+                                                                                "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                                5usize, 5usize, "grammar_file", blocked_branch_predicate
+                                                                                .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                             ),
                                                                         );
                                                                 }
@@ -2209,9 +2327,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -2224,6 +2351,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -2237,6 +2367,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -2320,8 +2453,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "include_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "include_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -2386,9 +2521,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -2401,6 +2545,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -2414,6 +2561,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -2497,8 +2647,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "include_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "include_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -2563,9 +2715,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -2578,6 +2739,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -2591,6 +2755,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -2674,8 +2841,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "include_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "include_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -3566,9 +3735,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_short_form")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_short_form",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -3581,6 +3759,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -3594,6 +3775,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -3677,8 +3861,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "include_short_form", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "include_short_form",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -3803,9 +3989,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_short_form")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_short_form",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -3818,6 +4013,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -3831,6 +4029,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -3914,8 +4115,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "include_short_form", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "include_short_form",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -4040,9 +4243,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_short_form")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_short_form",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -4055,6 +4267,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -4068,6 +4283,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -4151,8 +4369,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "include_short_form", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "include_short_form",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -4754,9 +4974,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_item")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_item",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -4769,6 +4998,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -4782,6 +5014,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -4865,8 +5100,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 2usize, "include_item", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 2usize, "include_item", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -4946,9 +5182,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("include_item")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "include_item",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -4961,6 +5206,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -4974,6 +5222,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -5057,8 +5308,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 2usize, "include_item", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 2usize, "include_item", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -6589,9 +6841,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("rule_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "rule_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -6604,6 +6865,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -6617,6 +6881,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -6700,8 +6967,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 4usize, "rule_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 4usize, "rule_operator", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -6765,9 +7033,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("rule_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "rule_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -6780,6 +7057,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -6793,6 +7073,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -6876,8 +7159,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 4usize, "rule_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 4usize, "rule_operator", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -6941,9 +7225,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("rule_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "rule_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -6956,6 +7249,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -6969,6 +7265,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -7052,8 +7351,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 4usize, "rule_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 4usize, "rule_operator", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -7117,9 +7417,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("rule_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "rule_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -7132,6 +7441,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -7145,6 +7457,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -7228,8 +7543,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 4usize, "rule_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 4usize, "rule_operator", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -8293,9 +8609,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("sequence_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "sequence_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -8308,6 +8633,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -8321,6 +8649,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -8404,8 +8735,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "sequence_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "sequence_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -8470,9 +8802,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("sequence_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "sequence_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -8485,6 +8826,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -8498,6 +8842,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -8581,8 +8928,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "sequence_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "sequence_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -8647,9 +8995,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("sequence_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "sequence_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -8662,6 +9019,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -8675,6 +9035,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -8758,8 +9121,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "sequence_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "sequence_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -9404,14 +9768,14 @@ impl<'input> EbnfParser<'input> {
                                     parser
                                         .deterministic_partition_offset_runtime(
                                             &deterministic_partition_effective_group,
-                                            5usize,
+                                            6usize,
                                         )
                                 } else {
                                     0usize
                                 };
-                                let mut evaluation_order: Vec<usize> = (0..5usize)
+                                let mut evaluation_order: Vec<usize> = (0..6usize)
                                     .collect();
-                                if deterministic_partition_effective_enabled && 5usize > 1
+                                if deterministic_partition_effective_enabled && 6usize > 1
                                     && deterministic_partition_offset > 0
                                 {
                                     evaluation_order
@@ -9434,7 +9798,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        1usize, 5usize, "primary_element", parser.position
+                                                                        1usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -9449,7 +9813,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        1usize, 5usize, "primary_element", parser.position
+                                                                        1usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -9481,9 +9845,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("primary_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "primary_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -9496,6 +9869,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -9509,6 +9885,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -9592,8 +9971,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 5usize, "primary_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 6usize, "primary_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -9605,7 +9985,7 @@ impl<'input> EbnfParser<'input> {
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                1usize, 5usize, "primary_element", parser.position
+                                                                1usize, 6usize, "primary_element", parser.position
                                                             ),
                                                         );
                                                 }
@@ -9626,7 +10006,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        2usize, 5usize, "primary_element", parser.position
+                                                                        2usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -9641,7 +10021,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        2usize, 5usize, "primary_element", parser.position
+                                                                        2usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -9658,9 +10038,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("primary_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "primary_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -9673,6 +10062,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -9686,6 +10078,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -9769,8 +10164,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 5usize, "primary_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 6usize, "primary_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -9782,7 +10178,7 @@ impl<'input> EbnfParser<'input> {
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                2usize, 5usize, "primary_element", parser.position
+                                                                2usize, 6usize, "primary_element", parser.position
                                                             ),
                                                         );
                                                 }
@@ -9803,7 +10199,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        3usize, 5usize, "primary_element", parser.position
+                                                                        3usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -9818,7 +10214,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        3usize, 5usize, "primary_element", parser.position
+                                                                        3usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -9835,9 +10231,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("primary_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "primary_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -9850,6 +10255,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -9863,6 +10271,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -9946,8 +10357,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 5usize, "primary_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 6usize, "primary_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -9959,7 +10371,7 @@ impl<'input> EbnfParser<'input> {
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                3usize, 5usize, "primary_element", parser.position
+                                                                3usize, 6usize, "primary_element", parser.position
                                                             ),
                                                         );
                                                 }
@@ -9980,7 +10392,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        4usize, 5usize, "primary_element", parser.position
+                                                                        4usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -9995,7 +10407,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        4usize, 5usize, "primary_element", parser.position
+                                                                        4usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -10012,9 +10424,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("primary_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "primary_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -10027,6 +10448,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -10040,6 +10464,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -10123,8 +10550,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 5usize, "primary_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 6usize, "primary_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -10136,7 +10564,7 @@ impl<'input> EbnfParser<'input> {
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                4usize, 5usize, "primary_element", parser.position
+                                                                4usize, 6usize, "primary_element", parser.position
                                                             ),
                                                         );
                                                 }
@@ -10157,12 +10585,12 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "🚪 Entering branch {}/{} for rule '{}' at position {}",
-                                                                        5usize, 5usize, "primary_element", parser.position
+                                                                        5usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
                                                         let result = ParseContent::Alternative(
-                                                            Box::new(parser.parse_epsilon()?),
+                                                            Box::new(parser.parse_lookahead_assertion()?),
                                                         );
                                                         if parser.logger.is_enabled() {
                                                             parser
@@ -10172,7 +10600,7 @@ impl<'input> EbnfParser<'input> {
                                                                     0,
                                                                     &format!(
                                                                         "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
-                                                                        5usize, 5usize, "primary_element", parser.position
+                                                                        5usize, 6usize, "primary_element", parser.position
                                                                     ),
                                                                 );
                                                         }
@@ -10189,9 +10617,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("primary_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "primary_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -10204,6 +10641,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -10217,6 +10657,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -10300,8 +10743,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    5usize, 5usize, "primary_element", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    5usize, 6usize, "primary_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -10313,7 +10757,200 @@ impl<'input> EbnfParser<'input> {
                                                             0,
                                                             &format!(
                                                                 "❌ Branch {}/{} for rule '{}' failed at position {}",
-                                                                5usize, 5usize, "primary_element", parser.position
+                                                                5usize, 6usize, "primary_element", parser.position
+                                                            ),
+                                                        );
+                                                }
+                                            }
+                                        }
+                                        5usize => {
+                                            if "longest_match" == "ordered" && best_content.is_some()
+                                            {} else {
+                                                parser.position = parse_start;
+                                                if let Some(content) = parser
+                                                    .try_parse(|p| {
+                                                        let parser = p;
+                                                        if parser.logger.is_enabled() {
+                                                            parser
+                                                                .logger
+                                                                .log_info(
+                                                                    "generated/ebnf.rs",
+                                                                    0,
+                                                                    &format!(
+                                                                        "🚪 Entering branch {}/{} for rule '{}' at position {}",
+                                                                        6usize, 6usize, "primary_element", parser.position
+                                                                    ),
+                                                                );
+                                                        }
+                                                        let result = ParseContent::Alternative(
+                                                            Box::new(parser.parse_epsilon()?),
+                                                        );
+                                                        if parser.logger.is_enabled() {
+                                                            parser
+                                                                .logger
+                                                                .log_info(
+                                                                    "generated/ebnf.rs",
+                                                                    0,
+                                                                    &format!(
+                                                                        "✅ Leaving branch {}/{} for rule '{}' at position {} (success)",
+                                                                        6usize, 6usize, "primary_element", parser.position
+                                                                    ),
+                                                                );
+                                                        }
+                                                        Ok(result)
+                                                    })
+                                                {
+                                                    let candidate_end = parser.position;
+                                                    parser.position = parse_start;
+                                                    let candidate_priority: i64 = 0i64;
+                                                    let current_branch_index: usize = 5usize;
+                                                    let raw_content = content;
+                                                    let transformed = {
+                                                        let content = raw_content.clone();
+                                                        content
+                                                    };
+                                                    let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
+                                                    for directive in parser
+                                                        .semantic_runtime_annotations
+                                                        .branch_predicates_for_rule("primary_element")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "primary_element",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
+                                                    {
+                                                        match directive {
+                                                            crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                                spec,
+                                                            ) if spec.phase
+                                                                == crate::ast_pipeline::SemanticPredicatePhase::Branch => {
+                                                                let Some(resolved_spec) = parser
+                                                                    .try_resolve_semantic_predicate_spec_against_content(
+                                                                        spec,
+                                                                        &raw_content,
+                                                                        &transformed,
+                                                                    )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
+                                                                    branch_predicate_blocked = true;
+                                                                    break;
+                                                                };
+                                                                match parser
+                                                                    .semantic_runtime_state
+                                                                    .evaluate_content_aware_predicate(
+                                                                        &resolved_spec,
+                                                                        &raw_content,
+                                                                        &transformed,
+                                                                    )
+                                                                {
+                                                                    Some(true) => {}
+                                                                    Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
+                                                                        branch_predicate_blocked = true;
+                                                                        break;
+                                                                    }
+                                                                    None => {}
+                                                                }
+                                                            }
+                                                            crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                                                _,
+                                                            )
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
+                                                            | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
+                                                                _,
+                                                            ) => {}
+                                                        }
+                                                    }
+                                                    let should_take = if branch_predicate_blocked {
+                                                        false
+                                                    } else if "longest_match" == "ordered" {
+                                                        best_content.is_none()
+                                                    } else if "longest_match" == "priority_first" {
+                                                        if best_content.is_none() {
+                                                            true
+                                                        } else if candidate_priority > best_priority {
+                                                            true
+                                                        } else if candidate_priority < best_priority {
+                                                            false
+                                                        } else if candidate_end > best_end {
+                                                            true
+                                                        } else if candidate_end < best_end {
+                                                            false
+                                                        } else {
+                                                            match "left" {
+                                                                "right" => current_branch_index > best_branch_index,
+                                                                "nonassoc" => {
+                                                                    if current_branch_index != best_branch_index {
+                                                                        nonassoc_tie = true;
+                                                                    }
+                                                                    false
+                                                                }
+                                                                _ => false,
+                                                            }
+                                                        }
+                                                    } else if best_content.is_none() {
+                                                        true
+                                                    } else if candidate_end > best_end {
+                                                        true
+                                                    } else if candidate_end < best_end {
+                                                        false
+                                                    } else if candidate_priority > best_priority {
+                                                        true
+                                                    } else if candidate_priority < best_priority {
+                                                        false
+                                                    } else {
+                                                        match "left" {
+                                                            "right" => current_branch_index > best_branch_index,
+                                                            "nonassoc" => {
+                                                                if current_branch_index != best_branch_index {
+                                                                    nonassoc_tie = true;
+                                                                }
+                                                                false
+                                                            }
+                                                            _ => false,
+                                                        }
+                                                    };
+                                                    if should_take {
+                                                        best_end = candidate_end;
+                                                        best_priority = candidate_priority;
+                                                        best_branch_index = current_branch_index;
+                                                        best_branch = 6usize;
+                                                        if semantic_capture_raw_for_post {
+                                                            best_raw_content = Some(raw_content.clone());
+                                                        }
+                                                        best_content = Some(transformed);
+                                                    } else if branch_predicate_blocked
+                                                        && parser.logger.is_enabled()
+                                                    {
+                                                        parser
+                                                            .logger
+                                                            .log_info(
+                                                                "generated/ebnf.rs",
+                                                                0,
+                                                                &format!(
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    6usize, 6usize, "primary_element", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
+                                                                ),
+                                                            );
+                                                    }
+                                                } else if parser.logger.is_enabled() {
+                                                    parser
+                                                        .logger
+                                                        .log_info(
+                                                            "generated/ebnf.rs",
+                                                            0,
+                                                            &format!(
+                                                                "❌ Branch {}/{} for rule '{}' failed at position {}",
+                                                                6usize, 6usize, "primary_element", parser.position
                                                             ),
                                                         );
                                                 }
@@ -10337,7 +10974,7 @@ impl<'input> EbnfParser<'input> {
                                                 0,
                                                 &format!(
                                                     "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
-                                                    "primary_element", best_branch, 5usize, best_end
+                                                    "primary_element", best_branch, 6usize, best_end
                                                     .saturating_sub(parse_start), best_priority, "left",
                                                     "longest_match"
                                                 ),
@@ -10624,9 +11261,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -10639,6 +11285,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -10652,6 +11301,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -10735,8 +11387,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "quantifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "quantifier", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -10801,9 +11454,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -10816,6 +11478,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -10829,6 +11494,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -10912,8 +11580,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "quantifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "quantifier", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -10978,9 +11647,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -10993,6 +11671,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -11006,6 +11687,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -11089,8 +11773,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "quantifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "quantifier", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -11420,9 +12105,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("simple_quantifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "simple_quantifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -11435,6 +12129,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -11448,6 +12145,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -11531,8 +12231,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "simple_quantifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "simple_quantifier",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -11596,9 +12298,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("simple_quantifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "simple_quantifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -11611,6 +12322,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -11624,6 +12338,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -11707,8 +12424,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "simple_quantifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "simple_quantifier",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -11772,9 +12491,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("simple_quantifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "simple_quantifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -11787,6 +12515,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -11800,6 +12531,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -11883,8 +12617,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "simple_quantifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "simple_quantifier",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -12434,9 +13170,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantifier_bounds")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantifier_bounds",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -12449,6 +13194,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -12462,6 +13210,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -12545,8 +13296,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 4usize, "quantifier_bounds", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 4usize, "quantifier_bounds",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -12611,9 +13364,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantifier_bounds")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantifier_bounds",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -12626,6 +13388,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -12639,6 +13404,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -12722,8 +13490,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 4usize, "quantifier_bounds", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 4usize, "quantifier_bounds",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -12788,9 +13558,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantifier_bounds")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantifier_bounds",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -12803,6 +13582,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -12816,6 +13598,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -12899,8 +13684,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 4usize, "quantifier_bounds", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 4usize, "quantifier_bounds",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -12965,9 +13752,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantifier_bounds")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantifier_bounds",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -12980,6 +13776,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -12993,6 +13792,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -13076,8 +13878,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 4usize, "quantifier_bounds", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 4usize, "quantifier_bounds",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -14454,9 +15258,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("terminal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "terminal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -14469,6 +15282,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -14482,6 +15298,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -14565,8 +15384,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 5usize, "terminal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 5usize, "terminal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -14631,9 +15451,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("terminal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "terminal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -14646,6 +15475,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -14659,6 +15491,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -14742,8 +15577,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 5usize, "terminal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 5usize, "terminal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -14808,9 +15644,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("terminal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "terminal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -14823,6 +15668,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -14836,6 +15684,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -14919,8 +15770,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 5usize, "terminal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 5usize, "terminal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -14985,9 +15837,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("terminal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "terminal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -15000,6 +15861,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -15013,6 +15877,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -15096,8 +15963,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 5usize, "terminal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 5usize, "terminal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -15162,9 +16030,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("terminal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "terminal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -15177,6 +16054,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -15190,6 +16070,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -15273,8 +16156,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    5usize, 5usize, "terminal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    5usize, 5usize, "terminal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -15597,9 +16481,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quoted_string")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quoted_string",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -15612,6 +16505,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -15625,6 +16521,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -15708,8 +16607,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "quoted_string", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "quoted_string", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -15774,9 +16674,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quoted_string")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quoted_string",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -15789,6 +16698,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -15802,6 +16714,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -15885,8 +16800,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "quoted_string", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "quoted_string", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -15951,9 +16867,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quoted_string")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quoted_string",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -15966,6 +16891,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -15979,6 +16907,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -16062,8 +16993,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "quoted_string", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "quoted_string", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -18262,9 +19194,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("character_class_item")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "character_class_item",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -18277,6 +19218,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -18290,6 +19234,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -18373,8 +19320,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "character_class_item", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "character_class_item",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -18439,9 +19388,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("character_class_item")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "character_class_item",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -18454,6 +19412,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -18467,6 +19428,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -18550,8 +19514,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "character_class_item", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "character_class_item",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -18616,9 +19582,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("character_class_item")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "character_class_item",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -18631,6 +19606,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -18644,6 +19622,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -18727,8 +19708,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "character_class_item", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "character_class_item",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -19459,9 +20442,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("special_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "special_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -19474,6 +20466,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -19487,6 +20482,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -19570,8 +20568,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "special_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "special_character",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -19636,9 +20636,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("special_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "special_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -19651,6 +20660,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -19664,6 +20676,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -19747,8 +20762,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "special_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "special_character",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -19813,9 +20830,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("special_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "special_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -19828,6 +20854,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -19841,6 +20870,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -19924,8 +20956,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "special_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "special_character",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -20617,9 +21651,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -20632,6 +21675,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -20645,6 +21691,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -20728,8 +21777,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -20793,9 +21843,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -20808,6 +21867,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -20821,6 +21883,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -20904,8 +21969,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -20969,9 +22035,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -20984,6 +22059,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -20997,6 +22075,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -21080,8 +22161,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -21145,9 +22227,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -21160,6 +22251,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -21173,6 +22267,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -21256,8 +22353,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -21321,9 +22419,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -21336,6 +22443,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -21349,6 +22459,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -21432,8 +22545,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    5usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    5usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -21497,9 +22611,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -21512,6 +22635,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -21525,6 +22651,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -21608,8 +22737,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    6usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    6usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -21673,9 +22803,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -21688,6 +22827,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -21701,6 +22843,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -21784,8 +22929,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    7usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    7usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -21849,9 +22995,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -21864,6 +23019,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -21877,6 +23035,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -21960,8 +23121,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    8usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    8usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -22025,9 +23187,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -22040,6 +23211,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -22053,6 +23227,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -22136,8 +23313,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    9usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    9usize, 12usize, "named_character", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -22201,9 +23379,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -22216,6 +23403,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -22229,6 +23419,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -22312,8 +23505,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    10usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    10usize, 12usize, "named_character",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -22377,9 +23572,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -22392,6 +23596,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -22405,6 +23612,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -22488,8 +23698,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    11usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    11usize, 12usize, "named_character",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -22553,9 +23765,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("named_character")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "named_character",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -22568,6 +23789,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -22581,6 +23805,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -22664,8 +23891,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    12usize, 12usize, "named_character", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    12usize, 12usize, "named_character",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -23790,9 +25019,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("epsilon")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "epsilon",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -23805,6 +25043,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -23818,6 +25059,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -23901,8 +25145,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 4usize, "epsilon", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 4usize, "epsilon", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -23966,9 +25211,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("epsilon")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "epsilon",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -23981,6 +25235,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -23994,6 +25251,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -24077,8 +25337,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 4usize, "epsilon", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 4usize, "epsilon", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -24142,9 +25403,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("epsilon")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "epsilon",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -24157,6 +25427,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -24170,6 +25443,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -24253,8 +25529,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 4usize, "epsilon", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 4usize, "epsilon", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -24318,9 +25595,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("epsilon")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "epsilon",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -24333,6 +25619,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -24346,6 +25635,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -24429,8 +25721,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 4usize, "epsilon", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 4usize, "epsilon", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -24963,9 +26256,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("return_expression")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "return_expression",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -24978,6 +26280,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -24991,6 +26296,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -25074,8 +26382,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 5usize, "return_expression", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 5usize, "return_expression",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -25140,9 +26450,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("return_expression")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "return_expression",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -25155,6 +26474,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -25168,6 +26490,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -25251,8 +26576,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 5usize, "return_expression", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 5usize, "return_expression",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -25317,9 +26644,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("return_expression")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "return_expression",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -25332,6 +26668,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -25345,6 +26684,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -25428,8 +26770,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 5usize, "return_expression", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 5usize, "return_expression",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -25494,9 +26838,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("return_expression")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "return_expression",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -25509,6 +26862,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -25522,6 +26878,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -25605,8 +26964,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 5usize, "return_expression", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 5usize, "return_expression",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -25671,9 +27032,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("return_expression")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "return_expression",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -25686,6 +27056,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -25699,6 +27072,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -25782,8 +27158,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    5usize, 5usize, "return_expression", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    5usize, 5usize, "return_expression",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -26106,9 +27484,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("scalar_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "scalar_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -26121,6 +27508,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -26134,6 +27524,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -26217,8 +27610,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "scalar_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "scalar_return", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -26283,9 +27677,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("scalar_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "scalar_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -26298,6 +27701,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -26311,6 +27717,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -26394,8 +27803,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "scalar_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "scalar_return", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -26460,9 +27870,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("scalar_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "scalar_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -26475,6 +27894,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -26488,6 +27910,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -26571,8 +27996,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "scalar_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "scalar_return", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -27324,9 +28750,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("literal_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "literal_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -27339,6 +28774,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -27352,6 +28790,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -27435,8 +28876,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "literal_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "literal_return", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -27501,9 +28943,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("literal_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "literal_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -27516,6 +28967,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -27529,6 +28983,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -27612,8 +29069,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "literal_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "literal_return", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -27678,9 +29136,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("literal_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "literal_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -27693,6 +29160,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -27706,6 +29176,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -27789,8 +29262,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "literal_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "literal_return", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -28461,9 +29935,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("array_element_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "array_element_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -28476,6 +29959,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -28489,6 +29975,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -28572,8 +30061,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "array_element_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "array_element_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -28638,9 +30129,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("array_element_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "array_element_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -28653,6 +30153,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -28666,6 +30169,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -28749,8 +30255,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "array_element_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "array_element_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -28815,9 +30323,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("array_element_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "array_element_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -28830,6 +30347,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -28843,6 +30363,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -28926,8 +30449,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "array_element_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "array_element_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -29462,9 +30987,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantified_marker")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantified_marker",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -29477,6 +31011,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -29490,6 +31027,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -29573,8 +31113,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "quantified_marker", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "quantified_marker",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -29638,9 +31180,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantified_marker")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantified_marker",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -29653,6 +31204,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -29666,6 +31220,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -29749,8 +31306,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "quantified_marker", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "quantified_marker",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -29814,9 +31373,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("quantified_marker")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "quantified_marker",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -29829,6 +31397,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -29842,6 +31413,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -29925,8 +31499,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "quantified_marker", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "quantified_marker",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -30807,9 +32383,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("object_property_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "object_property_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -30822,6 +32407,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -30835,6 +32423,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -30918,8 +32509,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "object_property_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "object_property_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -30984,9 +32577,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("object_property_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "object_property_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -30999,6 +32601,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -31012,6 +32617,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -31095,8 +32703,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "object_property_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "object_property_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -31161,9 +32771,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("object_property_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "object_property_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -31176,6 +32795,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -31189,6 +32811,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -31272,8 +32897,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "object_property_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "object_property_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -32294,9 +33921,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("property_name")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "property_name",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -32309,6 +33945,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -32322,6 +33961,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -32405,8 +34047,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 2usize, "property_name", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 2usize, "property_name", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -32471,9 +34114,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("property_name")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "property_name",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -32486,6 +34138,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -32499,6 +34154,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -32582,8 +34240,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 2usize, "property_name", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 2usize, "property_name", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -32906,9 +34565,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("expression_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "expression_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -32921,6 +34589,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -32934,6 +34605,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -33017,8 +34691,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 4usize, "expression_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 4usize, "expression_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -33083,9 +34759,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("expression_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "expression_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -33098,6 +34783,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -33111,6 +34799,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -33194,8 +34885,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 4usize, "expression_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 4usize, "expression_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -33260,9 +34953,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("expression_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "expression_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -33275,6 +34977,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -33288,6 +34993,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -33371,8 +35079,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 4usize, "expression_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 4usize, "expression_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -33437,9 +35147,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("expression_return")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "expression_return",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -33452,6 +35171,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -33465,6 +35187,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -33548,8 +35273,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 4usize, "expression_return", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 4usize, "expression_return",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -34100,9 +35827,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("arithmetic_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "arithmetic_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -34115,6 +35851,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -34128,6 +35867,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -34211,8 +35953,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 6usize, "arithmetic_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 6usize, "arithmetic_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -34276,9 +36020,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("arithmetic_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "arithmetic_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -34291,6 +36044,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -34304,6 +36060,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -34387,8 +36146,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 6usize, "arithmetic_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 6usize, "arithmetic_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -34452,9 +36213,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("arithmetic_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "arithmetic_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -34467,6 +36237,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -34480,6 +36253,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -34563,8 +36339,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 6usize, "arithmetic_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 6usize, "arithmetic_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -34628,9 +36406,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("arithmetic_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "arithmetic_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -34643,6 +36430,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -34656,6 +36446,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -34739,8 +36532,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 6usize, "arithmetic_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 6usize, "arithmetic_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -34804,9 +36599,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("arithmetic_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "arithmetic_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -34819,6 +36623,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -34832,6 +36639,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -34915,8 +36725,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    5usize, 6usize, "arithmetic_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    5usize, 6usize, "arithmetic_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -34980,9 +36792,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("arithmetic_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "arithmetic_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -34995,6 +36816,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -35008,6 +36832,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -35091,8 +36918,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    6usize, 6usize, "arithmetic_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    6usize, 6usize, "arithmetic_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -36628,9 +38457,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("numeric_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "numeric_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -36643,6 +38481,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -36656,6 +38497,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -36739,8 +38583,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 6usize, "numeric_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 6usize, "numeric_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -36805,9 +38650,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("numeric_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "numeric_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -36820,6 +38674,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -36833,6 +38690,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -36916,8 +38776,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 6usize, "numeric_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 6usize, "numeric_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -36982,9 +38843,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("numeric_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "numeric_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -36997,6 +38867,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -37010,6 +38883,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -37093,8 +38969,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 6usize, "numeric_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 6usize, "numeric_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -37159,9 +39036,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("numeric_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "numeric_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -37174,6 +39060,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -37187,6 +39076,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -37270,8 +39162,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 6usize, "numeric_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 6usize, "numeric_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -37336,9 +39229,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("numeric_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "numeric_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -37351,6 +39253,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -37364,6 +39269,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -37447,8 +39355,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    5usize, 6usize, "numeric_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    5usize, 6usize, "numeric_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -37513,9 +39422,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("numeric_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "numeric_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -37528,6 +39446,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -37541,6 +39462,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -37624,8 +39548,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    6usize, 6usize, "numeric_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    6usize, 6usize, "numeric_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -39037,9 +40962,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("boolean_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "boolean_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -39052,6 +40986,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -39065,6 +41002,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -39148,8 +41088,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 2usize, "boolean_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 2usize, "boolean_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -39213,9 +41154,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("boolean_literal")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "boolean_literal",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -39228,6 +41178,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -39241,6 +41194,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -39324,8 +41280,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 2usize, "boolean_literal", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 2usize, "boolean_literal", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -40594,9 +42551,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("lookahead_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "lookahead_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -40609,6 +42575,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -40622,6 +42591,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -40705,8 +42677,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 2usize, "lookahead_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 2usize, "lookahead_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -40770,9 +42744,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("lookahead_operator")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "lookahead_operator",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -40785,6 +42768,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -40798,6 +42784,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -40881,8 +42870,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 2usize, "lookahead_operator", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 2usize, "lookahead_operator",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -41415,9 +43406,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("case_modifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "case_modifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -41430,6 +43430,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -41443,6 +43446,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -41526,8 +43532,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 2usize, "case_modifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 2usize, "case_modifier", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -41591,9 +43598,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("case_modifier")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "case_modifier",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -41606,6 +43622,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -41619,6 +43638,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -41702,8 +43724,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 2usize, "case_modifier", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 2usize, "case_modifier", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -42462,9 +44485,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("comment")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "comment",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -42477,6 +44509,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -42490,6 +44525,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -42573,8 +44611,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "comment", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "comment", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -42639,9 +44678,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("comment")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "comment",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -42654,6 +44702,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -42667,6 +44718,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -42750,8 +44804,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "comment", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "comment", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -42816,9 +44871,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("comment")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "comment",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -42831,6 +44895,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -42844,6 +44911,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -42927,8 +44997,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "comment", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "comment", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -43261,9 +45332,18 @@ impl<'input> EbnfParser<'input> {
                                                                 }
                                                             };
                                                             let mut branch_predicate_blocked = false;
+                                                            let mut blocked_branch_predicate: Option<String> = None;
                                                             for directive in parser
                                                                 .semantic_runtime_annotations
                                                                 .branch_predicates_for_rule("line_comment")
+                                                                .chain(
+                                                                    parser
+                                                                        .semantic_runtime_annotations
+                                                                        .branch_predicates_for_rule_branch(
+                                                                            "line_comment",
+                                                                            current_branch_index,
+                                                                        ),
+                                                                )
                                                             {
                                                                 match directive {
                                                                     crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -43276,6 +45356,9 @@ impl<'input> EbnfParser<'input> {
                                                                                 &raw_content,
                                                                                 &transformed,
                                                                             )? else {
+                                                                            blocked_branch_predicate = Some(
+                                                                                parser.semantic_predicate_debug_label(spec),
+                                                                            );
                                                                             branch_predicate_blocked = true;
                                                                             break;
                                                                         };
@@ -43289,6 +45372,9 @@ impl<'input> EbnfParser<'input> {
                                                                         {
                                                                             Some(true) => {}
                                                                             Some(false) => {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             }
@@ -43372,8 +45458,9 @@ impl<'input> EbnfParser<'input> {
                                                                         "generated/ebnf.rs",
                                                                         0,
                                                                         &format!(
-                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                            1usize, 2usize, "line_comment", candidate_end
+                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                            1usize, 2usize, "line_comment", blocked_branch_predicate
+                                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                         ),
                                                                     );
                                                             }
@@ -43437,9 +45524,18 @@ impl<'input> EbnfParser<'input> {
                                                                 content
                                                             };
                                                             let mut branch_predicate_blocked = false;
+                                                            let mut blocked_branch_predicate: Option<String> = None;
                                                             for directive in parser
                                                                 .semantic_runtime_annotations
                                                                 .branch_predicates_for_rule("line_comment")
+                                                                .chain(
+                                                                    parser
+                                                                        .semantic_runtime_annotations
+                                                                        .branch_predicates_for_rule_branch(
+                                                                            "line_comment",
+                                                                            current_branch_index,
+                                                                        ),
+                                                                )
                                                             {
                                                                 match directive {
                                                                     crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -43452,6 +45548,9 @@ impl<'input> EbnfParser<'input> {
                                                                                 &raw_content,
                                                                                 &transformed,
                                                                             )? else {
+                                                                            blocked_branch_predicate = Some(
+                                                                                parser.semantic_predicate_debug_label(spec),
+                                                                            );
                                                                             branch_predicate_blocked = true;
                                                                             break;
                                                                         };
@@ -43465,6 +45564,9 @@ impl<'input> EbnfParser<'input> {
                                                                         {
                                                                             Some(true) => {}
                                                                             Some(false) => {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             }
@@ -43548,8 +45650,9 @@ impl<'input> EbnfParser<'input> {
                                                                         "generated/ebnf.rs",
                                                                         0,
                                                                         &format!(
-                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                            2usize, 2usize, "line_comment", candidate_end
+                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                            2usize, 2usize, "line_comment", blocked_branch_predicate
+                                                                            .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                         ),
                                                                     );
                                                             }
@@ -44541,9 +46644,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("documentation_comment")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "documentation_comment",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -44556,6 +46668,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -44569,6 +46684,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -44652,8 +46770,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 2usize, "documentation_comment", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 2usize, "documentation_comment",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -44748,9 +46868,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("documentation_comment")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "documentation_comment",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -44763,6 +46892,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -44776,6 +46908,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -44859,8 +46994,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 2usize, "documentation_comment", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 2usize, "documentation_comment",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -47248,9 +49385,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("type_argument")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "type_argument",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -47263,6 +49409,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -47276,6 +49425,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -47359,8 +49511,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "type_argument", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "type_argument", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -47425,9 +49578,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("type_argument")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "type_argument",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -47440,6 +49602,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -47453,6 +49618,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -47536,8 +49704,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "type_argument", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "type_argument", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -47602,9 +49771,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("type_argument")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "type_argument",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -47617,6 +49795,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -47630,6 +49811,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -47713,8 +49897,9 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "type_argument", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "type_argument", blocked_branch_predicate
+                                                                    .as_deref().unwrap_or("<unknown>"), candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -49101,9 +51286,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -49116,6 +51310,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -49129,6 +51326,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -49212,8 +51412,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -49277,9 +51479,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -49292,6 +51503,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -49305,6 +51519,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -49388,8 +51605,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -49453,9 +51672,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -49468,6 +51696,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -49481,6 +51712,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -49564,8 +51798,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -49629,9 +51865,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -49644,6 +51889,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -49657,6 +51905,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -49740,8 +51991,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    4usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    4usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -49805,9 +52058,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -49820,6 +52082,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -49833,6 +52098,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -49916,8 +52184,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    5usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    5usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -49981,9 +52251,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -49996,6 +52275,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -50009,6 +52291,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -50092,8 +52377,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    6usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    6usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -50157,9 +52444,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -50172,6 +52468,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -50185,6 +52484,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -50268,8 +52570,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    7usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    7usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -50333,9 +52637,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -50348,6 +52661,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -50361,6 +52677,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -50444,8 +52763,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    8usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    8usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -50509,9 +52830,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_directive")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_directive",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -50524,6 +52854,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -50537,6 +52870,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -50620,8 +52956,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    9usize, 9usize, "optimization_directive", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    9usize, 9usize, "optimization_directive",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -51242,9 +53580,18 @@ impl<'input> EbnfParser<'input> {
                                                         }
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_parameter")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_parameter",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -51257,6 +53604,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -51270,6 +53620,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -51353,8 +53706,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    1usize, 3usize, "optimization_parameter", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    1usize, 3usize, "optimization_parameter",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -51419,9 +53774,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_parameter")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_parameter",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -51434,6 +53798,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -51447,6 +53814,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -51530,8 +53900,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    2usize, 3usize, "optimization_parameter", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    2usize, 3usize, "optimization_parameter",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -51596,9 +53968,18 @@ impl<'input> EbnfParser<'input> {
                                                         content
                                                     };
                                                     let mut branch_predicate_blocked = false;
+                                                    let mut blocked_branch_predicate: Option<String> = None;
                                                     for directive in parser
                                                         .semantic_runtime_annotations
                                                         .branch_predicates_for_rule("optimization_parameter")
+                                                        .chain(
+                                                            parser
+                                                                .semantic_runtime_annotations
+                                                                .branch_predicates_for_rule_branch(
+                                                                    "optimization_parameter",
+                                                                    current_branch_index,
+                                                                ),
+                                                        )
                                                     {
                                                         match directive {
                                                             crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -51611,6 +53992,9 @@ impl<'input> EbnfParser<'input> {
                                                                         &raw_content,
                                                                         &transformed,
                                                                     )? else {
+                                                                    blocked_branch_predicate = Some(
+                                                                        parser.semantic_predicate_debug_label(spec),
+                                                                    );
                                                                     branch_predicate_blocked = true;
                                                                     break;
                                                                 };
@@ -51624,6 +54008,9 @@ impl<'input> EbnfParser<'input> {
                                                                 {
                                                                     Some(true) => {}
                                                                     Some(false) => {
+                                                                        blocked_branch_predicate = Some(
+                                                                            parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                        );
                                                                         branch_predicate_blocked = true;
                                                                         break;
                                                                     }
@@ -51707,8 +54094,10 @@ impl<'input> EbnfParser<'input> {
                                                                 "generated/ebnf.rs",
                                                                 0,
                                                                 &format!(
-                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                    3usize, 3usize, "optimization_parameter", candidate_end
+                                                                    "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                    3usize, 3usize, "optimization_parameter",
+                                                                    blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                    candidate_end
                                                                 ),
                                                             );
                                                     }
@@ -52269,9 +54658,18 @@ impl<'input> EbnfParser<'input> {
                                                                 }
                                                             };
                                                             let mut branch_predicate_blocked = false;
+                                                            let mut blocked_branch_predicate: Option<String> = None;
                                                             for directive in parser
                                                                 .semantic_runtime_annotations
                                                                 .branch_predicates_for_rule("error_recovery_action")
+                                                                .chain(
+                                                                    parser
+                                                                        .semantic_runtime_annotations
+                                                                        .branch_predicates_for_rule_branch(
+                                                                            "error_recovery_action",
+                                                                            current_branch_index,
+                                                                        ),
+                                                                )
                                                             {
                                                                 match directive {
                                                                     crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -52284,6 +54682,9 @@ impl<'input> EbnfParser<'input> {
                                                                                 &raw_content,
                                                                                 &transformed,
                                                                             )? else {
+                                                                            blocked_branch_predicate = Some(
+                                                                                parser.semantic_predicate_debug_label(spec),
+                                                                            );
                                                                             branch_predicate_blocked = true;
                                                                             break;
                                                                         };
@@ -52297,6 +54698,9 @@ impl<'input> EbnfParser<'input> {
                                                                         {
                                                                             Some(true) => {}
                                                                             Some(false) => {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             }
@@ -52380,8 +54784,10 @@ impl<'input> EbnfParser<'input> {
                                                                         "generated/ebnf.rs",
                                                                         0,
                                                                         &format!(
-                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                            1usize, 3usize, "error_recovery_action", candidate_end
+                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                            1usize, 3usize, "error_recovery_action",
+                                                                            blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                            candidate_end
                                                                         ),
                                                                     );
                                                             }
@@ -52446,9 +54852,18 @@ impl<'input> EbnfParser<'input> {
                                                                 content
                                                             };
                                                             let mut branch_predicate_blocked = false;
+                                                            let mut blocked_branch_predicate: Option<String> = None;
                                                             for directive in parser
                                                                 .semantic_runtime_annotations
                                                                 .branch_predicates_for_rule("error_recovery_action")
+                                                                .chain(
+                                                                    parser
+                                                                        .semantic_runtime_annotations
+                                                                        .branch_predicates_for_rule_branch(
+                                                                            "error_recovery_action",
+                                                                            current_branch_index,
+                                                                        ),
+                                                                )
                                                             {
                                                                 match directive {
                                                                     crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -52461,6 +54876,9 @@ impl<'input> EbnfParser<'input> {
                                                                                 &raw_content,
                                                                                 &transformed,
                                                                             )? else {
+                                                                            blocked_branch_predicate = Some(
+                                                                                parser.semantic_predicate_debug_label(spec),
+                                                                            );
                                                                             branch_predicate_blocked = true;
                                                                             break;
                                                                         };
@@ -52474,6 +54892,9 @@ impl<'input> EbnfParser<'input> {
                                                                         {
                                                                             Some(true) => {}
                                                                             Some(false) => {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             }
@@ -52557,8 +54978,10 @@ impl<'input> EbnfParser<'input> {
                                                                         "generated/ebnf.rs",
                                                                         0,
                                                                         &format!(
-                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                            2usize, 3usize, "error_recovery_action", candidate_end
+                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                            2usize, 3usize, "error_recovery_action",
+                                                                            blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                            candidate_end
                                                                         ),
                                                                     );
                                                             }
@@ -52623,9 +55046,18 @@ impl<'input> EbnfParser<'input> {
                                                                 content
                                                             };
                                                             let mut branch_predicate_blocked = false;
+                                                            let mut blocked_branch_predicate: Option<String> = None;
                                                             for directive in parser
                                                                 .semantic_runtime_annotations
                                                                 .branch_predicates_for_rule("error_recovery_action")
+                                                                .chain(
+                                                                    parser
+                                                                        .semantic_runtime_annotations
+                                                                        .branch_predicates_for_rule_branch(
+                                                                            "error_recovery_action",
+                                                                            current_branch_index,
+                                                                        ),
+                                                                )
                                                             {
                                                                 match directive {
                                                                     crate::ast_pipeline::SemanticRuntimeDirective::Predicate(
@@ -52638,6 +55070,9 @@ impl<'input> EbnfParser<'input> {
                                                                                 &raw_content,
                                                                                 &transformed,
                                                                             )? else {
+                                                                            blocked_branch_predicate = Some(
+                                                                                parser.semantic_predicate_debug_label(spec),
+                                                                            );
                                                                             branch_predicate_blocked = true;
                                                                             break;
                                                                         };
@@ -52651,6 +55086,9 @@ impl<'input> EbnfParser<'input> {
                                                                         {
                                                                             Some(true) => {}
                                                                             Some(false) => {
+                                                                                blocked_branch_predicate = Some(
+                                                                                    parser.semantic_predicate_debug_label(&resolved_spec),
+                                                                                );
                                                                                 branch_predicate_blocked = true;
                                                                                 break;
                                                                             }
@@ -52734,8 +55172,10 @@ impl<'input> EbnfParser<'input> {
                                                                         "generated/ebnf.rs",
                                                                         0,
                                                                         &format!(
-                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate at position {}",
-                                                                            3usize, 3usize, "error_recovery_action", candidate_end
+                                                                            "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
+                                                                            3usize, 3usize, "error_recovery_action",
+                                                                            blocked_branch_predicate.as_deref().unwrap_or("<unknown>"),
+                                                                            candidate_end
                                                                         ),
                                                                     );
                                                             }
@@ -54648,7 +57088,9 @@ impl<'input> EbnfParser<'input> {
             || (i + 1 <= len && bytes[i] == b'=')
     }
     fn match_string(&mut self, expected: &str) -> ParseResult<&'input str> {
-        self.consume_layout_for_terminal(expected);
+        if true {
+            self.consume_layout_for_terminal(expected);
+        }
         let start = self.position;
         let expected_bytes = expected.as_bytes();
         let end = start + expected_bytes.len();
@@ -54725,7 +57167,7 @@ impl<'input> EbnfParser<'input> {
                         &format!("Invalid regex pattern '{}': {}", pattern, e),
                     )
             })?;
-        if skip_leading_whitespace {
+        if skip_leading_whitespace && true {
             let can_match_empty = re
                 .find("")
                 .map(|m| m.start() == 0 && m.end() == 0)

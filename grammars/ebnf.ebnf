@@ -133,6 +133,7 @@ primary_element := (
     non_terminal |
     grouped_expression |
     optional_element |
+    lookahead_assertion |
     epsilon
 ) -> $1
 

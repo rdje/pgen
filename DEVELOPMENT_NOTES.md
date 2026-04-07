@@ -30017,3 +30017,42 @@ Architectural north star:
   - scope truth:
     - this closes the missing generated-path wiring described in the live docs
     - it does not yet close `rtl_frontend` parity/proof normalization against the handwritten frontend baseline
+- 2026-04-07: closed the retained Rust-frontend verifier gap behind the `rtl_frontend` bootstrap caveat.
+  - root cause:
+    - the self-hosting EBNF grammar still declared:
+      - `lookahead_assertion := lookahead_operator primary_element`
+    - but `primary_element` had stopped including `lookahead_assertion`
+    - that meant inline negative/positive lookahead inside a larger sequence could be represented in the source grammar yet fail to full-parse under the tracked Rust EBNF frontend
+    - the visible symptom was the retained `rtl_frontend` generation warning:
+      - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
+      - mapped into `grammars/rtl_frontend.ebnf` at the inline `!port_direction_token` guard inside `port_group`
+  - changed:
+    - `grammars/ebnf.ebnf`
+      - restored `lookahead_assertion` as a legal `primary_element`
+    - `generated/ebnf.json`
+    - `generated/ebnf.rs`
+      - regenerated after rebuilding `ast_pipeline`, so the tracked generated parser now actually emits the `parse_lookahead_assertion()` branch inside `parse_primary_element`
+    - `rust/src/parser_registry.rs`
+      - added focused registry proof:
+        - `ebnf_parseability_adapter_accepts_inline_lookahead_in_sequence`
+  - proof surface:
+    - reduced proof:
+      - `/tmp/ebnf_lookahead_min.ebnf`
+      - `rust/target/debug/ebnf_dual_run_diff --input /tmp/ebnf_lookahead_min.ebnf --output /tmp/ebnf_lookahead_min_after_rebuild.json`
+      - result:
+        - `parse.ok=true`
+        - `parse_full.ok=true`
+    - real tracked grammar:
+      - `rust/target/debug/ebnf_dual_run_diff --input grammars/rtl_frontend.ebnf --output /tmp/rtl_frontend_ebnf_dual_run_final.json`
+      - result:
+        - `parse.ok=true`
+        - `parse_full.ok=true`
+        - `unconsumed_start=null`
+    - fresh generation replay:
+      - `rust/target/debug/ast_pipeline grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json /tmp/rtl_frontend_regen_final.json --output /tmp/rtl_frontend_regen_final.rs`
+      - result:
+        - wrote the raw-AST envelope and scratch parser cleanly
+        - did not emit the old verifier-skip warning
+  - continuity consequence:
+    - the retained `rtl_frontend` blocker is no longer “bootstrap verifier cannot fully parse the grammar”
+    - the next honest work is now parity/proof closure against the handwritten `rtl_frontend` crate
