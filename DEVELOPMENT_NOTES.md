@@ -29990,3 +29990,30 @@ Architectural north star:
       - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
       - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
       - `QUICKSTART_AI_ONBOARDING.md`
+- 2026-04-07: wired the tracked `rtl_frontend` grammar into the generated-parser path.
+  - generation command:
+    - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+  - generation result:
+    - wrote:
+      - `generated/rtl_frontend_parser.rs`
+      - `generated/rtl_frontend.json`
+    - retained warning:
+      - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
+  - build/runtime integration:
+    - `rust/build.rs`
+      - added `has_generated_rtl_frontend_parser`
+      - resolves `PGEN_RTL_FRONTEND_PARSER_PATH`
+    - `rust/src/lib.rs`
+      - exposes generated module `generated_parsers::rtl_frontend`
+    - `rust/src/parser_registry.rs`
+      - registers grammar `rtl_frontend`
+      - adds parse/detail/AST-JSON adapters using `parse_full_rtl_frontend_file()`
+      - adds focused registry coverage
+  - focused validation:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers registry_exposes_rtl_frontend_when_generated_parser_present --lib`
+      - passed
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_parseability_adapter_accepts_valid_module_and_rejects_garbage --lib`
+      - passed
+  - scope truth:
+    - this closes the missing generated-path wiring described in the live docs
+    - it does not yet close `rtl_frontend` parity/proof normalization against the handwritten frontend baseline

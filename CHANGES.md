@@ -27550,6 +27550,23 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
   - retained consequence:
     - `rtl_frontend` is no longer grammar-less at the tracked-doc level
     - the next Phase S step is generating and wiring `generated/rtl_frontend_parser.rs`, not inventing the grammar from scratch
+- 2026-04-07: wired the tracked `rtl_frontend` grammar into the generated-parser path without changing any live-status row.
+  - generated:
+    - `generated/rtl_frontend_parser.rs`
+    - `generated/rtl_frontend.json`
+  - integrated:
+    - `rust/build.rs`
+    - `rust/src/lib.rs`
+    - `rust/src/parser_registry.rs`
+  - verified:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers registry_exposes_rtl_frontend_when_generated_parser_present --lib`
+      - passed
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_parseability_adapter_accepts_valid_module_and_rejects_garbage --lib`
+      - passed
+  - retained caveat:
+    - Rust-side generation emitted:
+      - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
+    - so this wave closes the missing generated-path wiring, not the deeper proof/parity closure story yet
 - 2026-04-04: recorded a future PNR parser backlog note without starting implementation.
   - retained downstream demand:
     - sibling PNR work will need parser families for:

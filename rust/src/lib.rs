@@ -63,6 +63,10 @@ pub mod generated_parsers {
     pub mod rtl_const_expr {
         include!(env!("PGEN_RTL_CONST_EXPR_PARSER_PATH_RESOLVED"));
     }
+    #[cfg(has_generated_rtl_frontend_parser)]
+    pub mod rtl_frontend {
+        include!(env!("PGEN_RTL_FRONTEND_PARSER_PATH_RESOLVED"));
+    }
 }
 
 #[cfg(feature = "generated_parsers")]

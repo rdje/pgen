@@ -9776,3 +9776,17 @@ Use this file to resume work without replaying full chat history.
 - 2026-04-06: removed `WARP.md`.
   - user confirmed Warp.dev is no longer part of the active AI/dev workflow
   - root keep-set is now one file smaller and more tool-agnostic
+- 2026-04-07: the tracked `rtl_frontend` grammar is now wired into the generated-parser path too.
+  - landed:
+    - `generated/rtl_frontend_parser.rs`
+    - `generated/rtl_frontend.json`
+    - `rust/build.rs` generated include wiring
+    - `rust/src/lib.rs` generated module exposure
+    - `rust/src/parser_registry.rs` registry/detail/AST adapters plus focused tests
+  - verified:
+    - `registry_exposes_rtl_frontend_when_generated_parser_present`
+    - `rtl_frontend_parseability_adapter_accepts_valid_module_and_rejects_garbage`
+  - retained caution:
+    - Rust-side generation reported:
+      - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
+    - so future sessions should treat this as "generated path landed" rather than "rtl_frontend proof stack closed"

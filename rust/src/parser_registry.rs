@@ -11,6 +11,8 @@ use crate::generated_parsers::json::JsonParser;
 use crate::generated_parsers::regex::RegexParser;
 #[cfg(has_generated_rtl_const_expr_parser)]
 use crate::generated_parsers::rtl_const_expr::RtlConstExprParser;
+#[cfg(has_generated_rtl_frontend_parser)]
+use crate::generated_parsers::rtl_frontend::RtlFrontendParser;
 #[cfg(has_generated_systemverilog_parser)]
 use crate::generated_parsers::systemverilog::SystemverilogParser;
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
@@ -233,6 +235,30 @@ fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String>
     parse_node_to_json(&parsed)
 }
 
+#[cfg(has_generated_rtl_frontend_parser)]
+fn parse_with_rtl_frontend(sample: &str) -> bool {
+    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    parser.parse_full_rtl_frontend_file().is_ok()
+}
+
+#[cfg(has_generated_rtl_frontend_parser)]
+fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
+    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    parser
+        .parse_full_rtl_frontend_file()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
+}
+
+#[cfg(has_generated_rtl_frontend_parser)]
+fn parse_with_rtl_frontend_ast_json(sample: &str) -> Result<JsonValue, String> {
+    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    let parsed = parser
+        .parse_full_rtl_frontend_file()
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog(sample: &str) -> bool {
     parse_with_systemverilog_profile(sample, None)
@@ -386,6 +412,11 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "rtl_const_expr",
         parse_sample: parse_with_rtl_const_expr,
     },
+    #[cfg(has_generated_rtl_frontend_parser)]
+    GeneratedParserRegistryEntry {
+        grammar_name: "rtl_frontend",
+        parse_sample: parse_with_rtl_frontend,
+    },
     #[cfg(has_generated_systemverilog_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog",
@@ -455,6 +486,8 @@ pub fn parse_sample_detail_with_profile(
         "regex" => Some(parse_with_regex_detail(sample)),
         #[cfg(has_generated_rtl_const_expr_parser)]
         "rtl_const_expr" => Some(parse_with_rtl_const_expr_detail(sample)),
+        #[cfg(has_generated_rtl_frontend_parser)]
+        "rtl_frontend" => Some(parse_with_rtl_frontend_detail(sample)),
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_detail_profile(
             sample,
@@ -495,6 +528,8 @@ pub fn parse_sample_ast_json_with_profile(
         "regex" => Some(parse_with_regex_ast_json(sample)),
         #[cfg(has_generated_rtl_const_expr_parser)]
         "rtl_const_expr" => Some(parse_with_rtl_const_expr_ast_json(sample)),
+        #[cfg(has_generated_rtl_frontend_parser)]
+        "rtl_frontend" => Some(parse_with_rtl_frontend_ast_json(sample)),
         #[cfg(has_generated_systemverilog_parser)]
         "systemverilog" => Some(parse_with_systemverilog_ast_json_profile(
             sample,
@@ -559,6 +594,13 @@ mod tests {
     fn registry_exposes_rtl_const_expr_when_generated_parser_present() {
         let grammars = registered_grammars();
         assert!(grammars.contains(&"rtl_const_expr"));
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    #[test]
+    fn registry_exposes_rtl_frontend_when_generated_parser_present() {
+        let grammars = registered_grammars();
+        assert!(grammars.contains(&"rtl_frontend"));
     }
 
     #[cfg(has_generated_systemverilog_parser)]
@@ -829,6 +871,25 @@ mod tests {
         assert_eq!(parse_sample("rtl_const_expr", "A ? : B"), Some(false));
         let ast_json = parse_sample_ast_json("rtl_const_expr", "WIDTH + 4")
             .expect("rtl_const_expr adapter should exist");
+        assert!(ast_json.is_ok());
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    #[test]
+    fn rtl_frontend_parseability_adapter_accepts_valid_module_and_rejects_garbage() {
+        assert_eq!(
+            parse_sample(
+                "rtl_frontend",
+                "module m(input logic clk); assign clk = clk; endmodule"
+            ),
+            Some(true)
+        );
+        assert_eq!(parse_sample("rtl_frontend", "module m("), Some(false));
+        let ast_json = parse_sample_ast_json(
+            "rtl_frontend",
+            "module m(input logic clk); endmodule",
+        )
+        .expect("rtl_frontend adapter should exist");
         assert!(ast_json.is_ok());
     }
 }
