@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fmt;
 use std::str::FromStr;
+#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
 
 /// Stable embedding API contract version.
 ///
@@ -18,10 +20,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.7";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.8";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.7";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.8";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -1486,16 +1488,18 @@ fn parse_generated_vhdl_ast_json(input: &str) -> Result<JsonValue, ParseDiagnost
 fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     {
-        use crate::generated_parsers::regex::RegexParser;
-        let mut parser = RegexParser::new(
-            input,
-            crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
-        );
-        parser
-            .parse_full_regex()
-            .map_err(|err| generated_parse_failure_diagnostic("regex", input, err))?;
-        return validate_regex_compile_contract(input)
-            .map_err(|err| regex_compile_contract_diagnostic(input, err));
+        return run_generated_regex_on_dedicated_stack(input, |owned_input| {
+            use crate::generated_parsers::regex::RegexParser;
+            let mut parser = RegexParser::new(
+                &owned_input,
+                crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
+            );
+            parser
+                .parse_full_regex()
+                .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;
+            validate_regex_compile_contract(&owned_input)
+                .map_err(|err| regex_compile_contract_diagnostic(&owned_input, err))
+        });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
     {
@@ -1509,18 +1513,23 @@ fn parse_generated_regex(input: &str) -> Result<(), ParseDiagnostic> {
 fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnostic> {
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     {
-        use crate::generated_parsers::regex::RegexParser;
-        let mut parser = RegexParser::new(
-            input,
-            crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
-        );
-        let parsed = parser
-            .parse_full_regex()
-            .map_err(|err| generated_parse_failure_diagnostic("regex", input, err))?;
-        validate_regex_compile_contract(input)
-            .map_err(|err| regex_compile_contract_diagnostic(input, err))?;
-        return serde_json::to_value(parsed).map_err(|err| {
-            parse_failure_diagnostic(format!("generated regex AST serialization failed: {}", err))
+        return run_generated_regex_on_dedicated_stack(input, |owned_input| {
+            use crate::generated_parsers::regex::RegexParser;
+            let mut parser = RegexParser::new(
+                &owned_input,
+                crate::ast_pipeline::runtime_logger_box("embedding.generated.regex"),
+            );
+            let parsed = parser
+                .parse_full_regex()
+                .map_err(|err| generated_parse_failure_diagnostic("regex", &owned_input, err))?;
+            validate_regex_compile_contract(&owned_input)
+                .map_err(|err| regex_compile_contract_diagnostic(&owned_input, err))?;
+            serde_json::to_value(parsed).map_err(|err| {
+                parse_failure_diagnostic(format!(
+                    "generated regex AST serialization failed: {}",
+                    err
+                ))
+            })
         });
     }
     #[cfg(not(all(feature = "generated_parsers", has_generated_regex_parser)))]
@@ -1530,6 +1539,31 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
             "regex parser backend requires `generated_parsers` and generated/regex_parser.rs",
         ))
     }
+}
+
+#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+fn run_generated_regex_on_dedicated_stack<T, F>(
+    input: &str,
+    f: F,
+) -> Result<T, ParseDiagnostic>
+where
+    T: Send + 'static,
+    F: FnOnce(String) -> Result<T, ParseDiagnostic> + Send + 'static,
+{
+    let owned_input = input.to_string();
+    let handle = std::thread::Builder::new()
+        .name("pgen-generated-regex".to_string())
+        .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)
+        .spawn(move || f(owned_input))
+        .map_err(|err| {
+            parse_failure_diagnostic(format!(
+                "failed to spawn generated regex worker thread: {}",
+                err
+            ))
+        })?;
+    handle
+        .join()
+        .map_err(|_| parse_failure_diagnostic("generated regex worker thread panicked"))?
 }
 
 #[cfg(feature = "generated_parsers")]
@@ -1616,15 +1650,7 @@ mod tests {
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     fn regex_ast_dump_json(input: &str) -> serde_json::Value {
-        let outcome = parse_regex_default_ast_dump(input, &AstDumpOptions::default());
-        assert_eq!(
-            outcome.status,
-            ParseStatus::Success,
-            "expected '{}' to parse successfully",
-            input
-        );
-        let ast_dump = outcome.ast_dump.expect("ast dump payload");
-        serde_json::from_str(&ast_dump.dump_json).expect("dump json")
+        parse_generated_regex_ast_json(input).expect("generated regex ast json")
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
@@ -2095,7 +2121,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 23);
+        assert_eq!(manifest.success_samples.len(), 26);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2127,6 +2153,24 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "numeric_angle_subroutine_ref")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "unicode_emoji_literal")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "unicode_accented_literal")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "nested_capturing_groups_50")
         );
         assert!(
             manifest
@@ -2833,6 +2877,45 @@ mod tests {
         assert!(
             !regex_rule_spans(&parsed, "literal").contains(&(0, 2)),
             "multi-character literal runs must not absorb the quantified suffix"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_unicode_emoji_literal() {
+        let input = "🎉";
+        let parsed = regex_ast_dump_json(input);
+
+        assert_eq!(regex_rule_spans(&parsed, "literal"), vec![(0, input.len() as u64)]);
+        assert_eq!(regex_rule_texts(input, &parsed, "literal"), vec!["🎉"]);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_mixed_ascii_unicode_literal_run() {
+        let input = "café";
+        let parsed = regex_ast_dump_json(input);
+
+        assert_eq!(regex_rule_spans(&parsed, "literal"), vec![(0, 1), (1, 2), (2, 3), (3, 5)]);
+        assert_eq!(regex_rule_texts(input, &parsed, "literal"), vec!["c", "a", "f", "é"]);
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_50_nested_capturing_groups() {
+        let input = format!("{}a{}", "(".repeat(50), ")".repeat(50));
+        let parsed = regex_ast_dump_json(&input);
+
+        assert_eq!(
+            regex_rule_spans(&parsed, "capturing_group").len(),
+            50,
+            "expected 50 nested capturing_group nodes"
+        );
+        assert_eq!(regex_rule_texts(&input, &parsed, "literal"), vec!["a"]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "capturing_group")[0],
+            (0, input.len() as u64),
+            "outermost capturing group should span the full input"
         );
     }
 

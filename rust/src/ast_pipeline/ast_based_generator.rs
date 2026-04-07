@@ -23,6 +23,8 @@ use quote::{ToTokens, format_ident, quote};
 use std::collections::{HashMap, HashSet};
 use syn::Ident;
 
+const GENERATED_RECURSION_GUARD_MAX_DEPTH: usize = 512;
+
 macro_rules! eprintln {
     ($($arg:tt)*) => {
         crate::pgen_trace_debug!($($arg)*)
@@ -528,6 +530,7 @@ impl AstBasedGenerator {
     fn generate_constructor(&self) -> Result<TokenStream> {
         let compiled_semantic_runtime_annotations =
             self.generate_compiled_semantic_runtime_annotations_tokens()?;
+        let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
 
         Ok(quote! {
             pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
@@ -535,7 +538,7 @@ impl AstBasedGenerator {
                     input,
                     position: 0,
                     memo: HashMap::new(),
-                    recursion_guard: RecursionGuard::new(100),
+                    recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     grammar_profile: None,
                     recovery_events: Vec::new(),
                     recovery_counts: HashMap::new(),
@@ -1248,6 +1251,7 @@ impl AstBasedGenerator {
         let deterministic_partition_group = deterministic_partition_policy
             .group_label
             .unwrap_or_else(|| format!("rule.{}", rule_name));
+        let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
         let rule_profiles = self.rule_profiles(rule_name);
         let profile_guard = if rule_profiles.is_empty() {
             quote! {}
@@ -1289,7 +1293,7 @@ impl AstBasedGenerator {
                             position,
                         });
                     }
-                    CycleType::MutualRecursive { depth, ref rules } if depth >= 100 => {
+                    CycleType::MutualRecursive { depth, ref rules } if depth >= #recursion_guard_max_depth => {
                         if self.logger.is_enabled() {
                             self.logger.log_error(#filename, 0, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
                         }

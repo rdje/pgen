@@ -30056,3 +30056,93 @@ Architectural north star:
   - continuity consequence:
     - the retained `rtl_frontend` blocker is no longer “bootstrap verifier cannot fully parse the grammar”
     - the next honest work is now parity/proof closure against the handwritten `rtl_frontend` crate
+- 2026-04-07: closed RGX regex reports `PGEN-RGX-0011`, `PGEN-RGX-0012`, and `PGEN-RGX-0013` in one downstream release wave (`1.1.8`).
+  - report facts:
+    - `PGEN-RGX-0011`
+      - pattern:
+        - `🎉`
+      - prior failure:
+        - `parse_full rejected ... position 0`
+    - `PGEN-RGX-0012`
+      - pattern:
+        - `café`
+      - prior failure:
+        - `parse_full rejected ... position 3`
+    - `PGEN-RGX-0013`
+      - pattern:
+        - `50` nested capturing groups around `a`
+      - prior failure:
+        - `parse_full rejected ... position 0`
+  - Unicode literal root cause:
+    - `grammars/regex.ebnf`
+      - `literal_char` and nearby literal-bearing surfaces still only admitted ASCII terminals
+    - consequence:
+      - pure non-ASCII literals such as `🎉` failed immediately
+      - mixed ASCII/UTF-8 runs such as `café` parsed the ASCII prefix then stopped at the first multibyte literal byte
+  - nesting root cause:
+    - direct depth probes showed:
+      - depth `11`
+        - last green before the first failure
+      - depth `12`
+        - first reproducible failure
+    - retained trace:
+      - `/tmp/regex_depth12.trace.log`
+      - key line:
+        - `Recursion depth exceeded in rule 'concatenation' at position 12 (depth: 100)`
+    - conclusion:
+      - this was generated-parser recursion-guard headroom, not regex grammar semantics
+  - implementation:
+    - `grammars/regex.ebnf`
+      - added:
+        - `unicode_char = /([^\x00-\x7F])/`
+      - threaded `unicode_char` through:
+        - `literal_char`
+        - `class_literal`
+        - `comment_char`
+        - `directive_payload_char`
+        - `extended_class_regular`
+        - `code_regular_char`
+        - `code_not_quote_or_backslash`
+        - `code_not_squote_or_backslash`
+        - `any_char`
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+      - added:
+        - `const GENERATED_RECURSION_GUARD_MAX_DEPTH: usize = 512;`
+      - emitted numeric `512` into generated parser constructors and depth checks
+      - important repair:
+        - the first generator patch emitted the constant name into generated code rather than the numeric literal
+        - fixed by interpolating a local `recursion_guard_max_depth` into `quote!`
+    - `rust/src/embedding_api.rs`
+      - regex public parse / AST-dump entrypoints now execute the generated backend on a dedicated worker thread with a larger stack
+      - reason:
+        - the original guard-only widening let the parser accept the nested pattern on the main thread, but the contract test thread could still overflow its smaller default stack before the parse completed
+    - `rust/src/parser_registry.rs`
+      - the parser-registry regex detail / AST-JSON adapters now use the same dedicated larger-stack worker thread
+      - consequence:
+        - direct `parseability_probe` replays and the public embedding path now share the same nesting-resilient runtime surface
+    - regenerated:
+      - `generated/regex.json`
+      - `generated/regex_parser.rs`
+    - contracts/tests/docs:
+      - version bumped to `1.1.8`
+      - manifest gained:
+        - `unicode_emoji_literal`
+        - `unicode_accented_literal`
+        - `nested_capturing_groups_50`
+      - embedding tests gained:
+        - `regex_parser_integration_contract_accepts_unicode_emoji_literal`
+        - `regex_parser_integration_contract_accepts_mixed_ascii_unicode_literal_run`
+        - `regex_parser_integration_contract_accepts_50_nested_capturing_groups`
+  - proof replay:
+    - rebuilt probe:
+      - `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+    - direct RGX repros:
+      - `parseability_probe --parse regex .../PGEN-RGX-0011/repro_input.txt --profile regex_default`
+        - `parse_full passed`
+      - `parseability_probe --parse regex .../PGEN-RGX-0012/repro_input.txt --profile regex_default`
+        - `parse_full passed`
+      - `parseability_probe --parse regex .../PGEN-RGX-0013/repro_input.txt --profile regex_default`
+        - `parse_full passed`
+  - release truth:
+    - this is a downstream regex maintenance release, not a regex-family status promotion
+    - the `regex` row remains `Done`; `1.1.8` is a no-regression trust-widening wave on that closed family surface

@@ -56,6 +56,7 @@ literal_char   = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k'
                | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
                | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
                | '!' | '"' | '#' | '%' | '&' | '\'' | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | ']' | '_' | '`' | '~'
+               | unicode_char
 
 # Dot
 dot            = "."
@@ -116,7 +117,7 @@ class_range    = class_atom "-" class_atom
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}
 @optimize: group_literals_for_switch($1)
-class_literal  = letter | digit | whitespace | class_safe_special
+class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
 
 class_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
@@ -229,7 +230,7 @@ python_named_group   = "(?P<" name ">" pattern? ")"
 atomic_group         = "(?>" pattern? ")"
 comment_group        = "(?#" comment_text? ")"
 comment_text         = comment_char*
-comment_char         = letter | digit | whitespace | comment_special
+comment_char         = letter | digit | whitespace | comment_special | unicode_char
 comment_special      = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
 lookaround           = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg
@@ -277,7 +278,7 @@ directive_named   = directive_name directive_payload_suffix?
 directive_mark_shorthand = ":" directive_payload_simple?
 directive_payload_suffix = ":" directive_payload_simple? | "=" directive_payload_simple?
 directive_payload_simple = directive_payload_char*
-directive_payload_char = letter | digit | whitespace | directive_special
+directive_payload_char = letter | digit | whitespace | directive_special | unicode_char
 directive_name    = directive_name_start directive_name_continue*
 directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'
@@ -290,7 +291,7 @@ extended_class_element = extended_class_nested
                        | escape
                        | extended_class_regular
 extended_class_nested = "[" extended_class_content "]"
-extended_class_regular = letter | digit | whitespace | extended_class_special
+extended_class_regular = letter | digit | whitespace | extended_class_special | unicode_char
 extended_class_special = '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '^' | '_' | '`' | '{' | '|' | '}' | '~'
 
 # Embedded code blocks for rgx hooks
@@ -330,11 +331,11 @@ code_balanced_braces = "{" code_content "}"
 code_escaped_char = "\\" any_char
 
 # Regular characters (anything except special chars)
-code_regular_char = letter | digit | whitespace | code_safe_special
+code_regular_char = letter | digit | whitespace | code_safe_special | unicode_char
 
 # Characters safe to use in code blocks (excluding braces, quotes, and backslash)
-code_not_quote_or_backslash = letter | digit | whitespace | code_safe_special | '\'' | '{' | '}'
-code_not_squote_or_backslash = letter | digit | whitespace | code_safe_special | '"' | '{' | '}'
+code_not_quote_or_backslash = letter | digit | whitespace | code_safe_special | unicode_char | '\'' | '{' | '}'
+code_not_squote_or_backslash = letter | digit | whitespace | code_safe_special | unicode_char | '"' | '{' | '}'
 code_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '[' | ']' | '|' | ':' | ';' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
 # Basic character building blocks
@@ -349,8 +350,9 @@ hex_digit      = digit | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | '
 octal_digit    = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
 
 whitespace     = ' ' | '\t' | '\n' | '\r' | '\f' | '\v'
+unicode_char   = /([^\x00-\x7F])/
 
-any_char       = letter | digit | whitespace | special_char
+any_char       = letter | digit | whitespace | special_char | unicode_char
 
 special_char   = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~'
 

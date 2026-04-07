@@ -3698,9 +3698,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.7`
+  - `1.1.8`
 - integration contract version:
-  - `1.1.7`
+  - `1.1.8`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3753,6 +3753,7 @@ Accepted syntax families in the current published flavor:
   - `_`
   - backtick
   - `~`
+- non-ASCII literal characters such as accented Latin letters, CJK codepoints, and emoji
 - anchors:
   - `^`
   - `$`
@@ -3818,6 +3819,8 @@ Accepted syntax families in the current published flavor:
 Representative accepted examples:
 - ``
 - `a|b`
+- `café`
+- `🎉`
 - `ab+`
 - `https?://[^\\s]+`
 - `^abc$`
@@ -3838,6 +3841,7 @@ Representative accepted examples:
 - `a{,4}`
 - `(?>ab|cd)`
 - `(?=abc)abc`
+- `((((((((((((((((((((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))))))))))))))))))))`
 - `(?{lua: return x + 1})`
 - `(?{rhai: let x = 1;})`
 - `(?{native:callback_name})`
@@ -3878,7 +3882,11 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.7` specifically fixes one more accepted-tree transport bug while keeping that JSON schema version stable:
+- parser release `1.1.8` specifically adds Unicode literal support and deeper nested-group headroom while keeping that JSON schema version stable:
+  - `🎉` now emits a single `literal` node spanning the full UTF-8 codepoint
+  - `café` now emits four `literal` nodes, preserving `é` as the final multibyte atom
+  - nested capturing groups remain accepted at least through `50` levels
+  - regex host entrypoints now run the generated backend on a dedicated larger-stack worker thread while keeping recursion guard depth bounded
   - `(?(R)a|b)` now emits `recursion_condition` inside the `conditional`
   - `(a)(?(R1)b|c)` now emits `recursion_condition` instead of fallback `name`
   - `(?{native:validate_word})` now preserves `code_content = "validate_word"` instead of starting one byte late
@@ -3961,8 +3969,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.7`
-  - integration contract version `1.1.7`
+  - parser release version `1.1.8`
+  - integration contract version `1.1.8`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

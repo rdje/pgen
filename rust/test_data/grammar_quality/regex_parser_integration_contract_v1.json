@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.7",
-  "parser_release_version": "1.1.7",
+  "integration_contract_version": "1.1.8",
+  "parser_release_version": "1.1.8",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -52,6 +52,30 @@
       "input": "\\g<1>",
       "required_rule_names": ["backreference", "subroutine_ref", "signed_digits"],
       "forbidden_rule_names": ["escape", "literal"]
+    },
+    {
+      "name": "unicode_emoji_literal",
+      "input": "🎉",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["🎉"]
+      }
+    },
+    {
+      "name": "unicode_accented_literal",
+      "input": "café",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["c", "a", "f", "é"]
+      }
+    },
+    {
+      "name": "nested_capturing_groups_50",
+      "input": "((((((((((((((((((((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "required_rule_names": ["capturing_group", "literal"],
+      "expected_rule_texts": {
+        "literal": ["a"]
+      }
     },
     {
       "name": "braced_octal_escape",

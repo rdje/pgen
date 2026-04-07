@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-04-07 - Release regex 1.1.8 Unicode and nesting fixes
+### Achievement Summary
+Closed three same-day RGX parser reports in one regex release wave. The published generated regex backend now accepts non-ASCII literal atoms like `🎉`, mixed ASCII/UTF-8 literal runs like `café`, and moderate nested-group depth such as `50` nested capturing groups.
+
+### Scope of Changes
+- Fixed the regex grammar's literal/code/class surfaces to admit non-ASCII literal codepoints:
+  - [grammars/regex.ebnf](grammars/regex.ebnf)
+- Raised the generated parser recursion-guard ceiling from the old retained depth `100` to a materially safer global generated-parser headroom:
+  - [rust/src/ast_pipeline/ast_based_generator.rs](rust/src/ast_pipeline/ast_based_generator.rs)
+- Hardened the regex host entrypoints so generated regex parsing runs on a dedicated larger-stack worker thread in both the public embedding API and the parser-registry / `parseability_probe` path:
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+- Regenerated published regex artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Bumped published regex handoff versioning and expanded manifest/test coverage for the new RGX repros:
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+- Updated downstream contract/release docs and gate expectations:
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is a published regex maintenance-release wave on top of the already-closed regex family row
+
+### Validation
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0011/repro_input.txt --profile regex_default`
+  - `parse_full passed`
+- `parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0012/repro_input.txt --profile regex_default`
+  - `parse_full passed`
+- `parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0013/repro_input.txt --profile regex_default`
+  - `parse_full passed`
+- focused generated-backend tests and the regex integration-contract gate were rerun in this wave
+- `git diff --check`
+
 ## 2026-04-07 - Enforce active docs rehome paths
 ### Achievement Summary
 Completed the next documentation hardening wave by teaching the local workflow parity gate to audit active operator/reference docs for stale pre-rehome path mentions. This keeps the live docs pinned to the canonical `docs/contracts/...` and `docs/reference/...` locations instead of drifting back toward the old root-era paths.

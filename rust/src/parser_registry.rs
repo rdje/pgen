@@ -24,6 +24,8 @@ use crate::generated_parsers::{
 };
 use crate::regex_compile_validation::validate_regex_compile_contract;
 use serde_json::Value as JsonValue;
+#[cfg(has_generated_regex_parser)]
+const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
 
 type ParseSampleFn = fn(&str) -> bool;
 
@@ -194,18 +196,39 @@ fn parse_with_regex(sample: &str) -> bool {
 }
 
 #[cfg(has_generated_regex_parser)]
+fn run_generated_regex_on_dedicated_stack<T, F>(sample: &str, f: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce(String) -> Result<T, String> + Send + 'static,
+{
+    let owned_sample = sample.to_string();
+    let handle = std::thread::Builder::new()
+        .name("pgen-generated-regex".to_string())
+        .stack_size(GENERATED_REGEX_WORKER_STACK_BYTES)
+        .spawn(move || f(owned_sample))
+        .map_err(|err| format!("failed to spawn generated.regex worker thread: {}", err))?;
+    handle
+        .join()
+        .map_err(|_| "generated.regex worker thread panicked".to_string())?
+}
+
+#[cfg(has_generated_regex_parser)]
 fn parse_with_regex_detail(sample: &str) -> Result<(), String> {
-    let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
-    parser.parse_full_regex().map_err(|err| err.to_string())?;
-    validate_regex_compile_contract(sample).map_err(|err| err.message)
+    run_generated_regex_on_dedicated_stack(sample, |owned_sample| {
+        let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        parser.parse_full_regex().map_err(|err| err.to_string())?;
+        validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)
+    })
 }
 
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
-    let mut parser = RegexParser::new(sample, runtime_logger_box("generated.regex"));
-    let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
-    validate_regex_compile_contract(sample).map_err(|err| err.message)?;
-    parse_node_to_json(&parsed)
+    run_generated_regex_on_dedicated_stack(sample, |owned_sample| {
+        let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
+        validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)?;
+        parse_node_to_json(&parsed)
+    })
 }
 
 #[cfg(has_generated_rtl_const_expr_parser)]

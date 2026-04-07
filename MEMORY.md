@@ -9813,3 +9813,34 @@ Use this file to resume work without replaying full chat history.
     - Rust-side generation reported:
       - `generated-parser verification skipped for 'rtl_frontend': Parser did not consume full input at position 3411`
     - so future sessions should treat this as "generated path landed" rather than "rtl_frontend proof stack closed"
+- 2026-04-07: regex handoff `1.1.8` closes RGX reports `PGEN-RGX-0011`, `PGEN-RGX-0012`, and `PGEN-RGX-0013`.
+  - root causes:
+    - regex literal/code/class surfaces were still ASCII-only, so pure Unicode literals like `🎉` failed at byte `0` and mixed runs like `café` failed at the first multibyte byte
+    - generated parser recursion guard depth `100` was too small for moderate nested-group patterns; the retained trace on `12` nested groups already showed `Recursion depth exceeded in rule 'concatenation'`
+  - landed:
+    - `grammars/regex.ebnf`
+      - added `unicode_char` and threaded it through literal/class/comment/directive/code-char surfaces
+    - `rust/src/ast_pipeline/ast_based_generator.rs`
+      - raised generated recursion-guard headroom to `512`
+    - `rust/src/embedding_api.rs`
+      - regex public host entrypoints now run generated regex parsing on a dedicated larger-stack worker thread
+    - `rust/src/parser_registry.rs`
+      - parser-registry / `parseability_probe` regex path now uses the same dedicated larger-stack worker thread
+    - regenerated:
+      - `generated/regex.json`
+      - `generated/regex_parser.rs`
+    - contracts/tests/docs:
+      - `rust/src/embedding_api.rs`
+      - `rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+      - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+      - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+      - `PGEN_USER_GUIDE.md`
+      - `rust/scripts/ci_workflow_local_gate.sh`
+  - verified:
+    - direct RGX repros under `pgen-issues/artifacts/PGEN-RGX-0011`, `0012`, and `0013` now all `parse_full passed`
+    - added manifest/test coverage:
+      - `unicode_emoji_literal`
+      - `unicode_accented_literal`
+      - `nested_capturing_groups_50`
+  - status truth:
+    - this is a regex maintenance-release wave on top of the already-closed regex family row, not a live-status promotion
