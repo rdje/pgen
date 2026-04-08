@@ -1,0 +1,37 @@
+name: rtl-frontend-generated-contract-gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  rtl-frontend-generated-contract-gate:
+    name: rtl-frontend-generated-contract-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Run rtl_frontend generated contract gate
+        run: make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate
+
+      - name: Upload rtl_frontend generated contract artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: rtl-frontend-generated-contract-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/rtl_frontend_generated_contract_gate
+          if-no-files-found: warn
+          retention-days: 14

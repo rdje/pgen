@@ -9885,3 +9885,22 @@ Use this file to resume work without replaying full chat history.
     - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups --lib`
   - status truth:
     - this is a regex maintenance-release wave on top of the already-closed regex family row, not a live-status promotion
+- 2026-04-08: the curated `rtl_frontend` generated contract is now a first-class gate/workflow surface.
+  - landed:
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+    - `rust/scripts/rtl_frontend_generated_contract_gate.sh`
+    - `.github/workflows/rtl-frontend-generated-contract-gate.yml`
+    - `rust/Makefile`
+      - added `rtl_frontend_generated_contract_gate`
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - audits the full `rtl_frontend` generated-contract surface
+      - replays the dedicated workflow under `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate`
+      - also now reflects the current regex compile-validation call spellings again
+    - `README.md`
+      - points at the dedicated gate / filtered parity replay commands
+  - verified:
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - status truth:
+    - this closes a focused `rtl_frontend` generated-contract proof gap
+    - the live `rtl_frontend` row still stays `In Progress` because handwritten-baseline parity/proof closure is still open

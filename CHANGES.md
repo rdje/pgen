@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-04-08 - Add rtl_frontend generated contract gate
+### Achievement Summary
+Turned the new self-contained `rtl_frontend` generated-parser contract into a real executable proof surface. The repository now carries a dedicated probe binary, Make target, local workflow-parity replay path, and GitHub workflow for the curated `rtl_frontend` generated contract, so this focused surface is no longer just documented in tests and manifests.
+
+### Scope of Changes
+- Added a dedicated generated-contract probe binary for `rtl_frontend`:
+  - [rust/src/bin/rtl_frontend_generated_contract_probe.rs](rust/src/bin/rtl_frontend_generated_contract_probe.rs)
+  - validates:
+    - contract metadata
+    - curated parseability expectations
+    - AST-JSON availability for the marked samples
+- Added a dedicated local gate script and Make target:
+  - [rust/scripts/rtl_frontend_generated_contract_gate.sh](rust/scripts/rtl_frontend_generated_contract_gate.sh)
+  - [rust/Makefile](rust/Makefile)
+- Added a dedicated GitHub workflow:
+  - [.github/workflows/rtl-frontend-generated-contract-gate.yml](.github/workflows/rtl-frontend-generated-contract-gate.yml)
+- Extended the tracked local workflow parity surface:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - now audits:
+    - the new `rtl_frontend` generated-contract workflow/gate/probe surface
+    - the active `README.md` command-path references for that gate
+  - also synced two stale retained regex compile-validation string expectations so the filtered parity replay reflects the current implementation again
+- Updated active operator docs:
+  - [README.md](README.md)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this closes a real proof-surface gap around the generated `rtl_frontend` contract, but does not claim full handwritten-baseline parity
+
+### Validation
+- Direct gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity replay:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - result:
+    - audits cleared
+    - exported tracked-tree replay passed the new workflow command
+- `git diff --check`
+
 ## 2026-04-08 - Advance rtl_frontend generated contract surface
 ### Achievement Summary
 Closed two real `rtl_frontend` generated-parser false negatives and turned the follow-up proof surface into a self-contained tracked contract. The `rtl_frontend` grammar now accepts `<=` through the generated path correctly, no longer misreads untyped parameter headers like `parameter DEPTH = 4` as typed declarations, and the repository now carries a curated generated-parser contract for the focused `rtl_frontend` samples that were locally derived from handwritten-baseline replay without introducing an external sibling-crate dependency into `pgen` itself.

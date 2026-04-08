@@ -729,6 +729,53 @@ audit_embedding_api_surface() {
     'dedicated downstream integration contract doc plus a regex-specific host contract gate'
 }
 
+audit_rtl_frontend_generated_contract_surface() {
+  note "auditing rtl_frontend generated contract surface"
+
+  assert_tracked ".github/workflows/rtl-frontend-generated-contract-gate.yml"
+  assert_tracked "generated/rtl_frontend.json"
+  assert_tracked "generated/rtl_frontend_parser.rs"
+  assert_tracked "grammars/rtl_frontend.ebnf"
+  assert_tracked "rust/src/bin/rtl_frontend_generated_contract_probe.rs"
+  assert_tracked "rust/src/parser_registry.rs"
+  assert_tracked "rust/scripts/rtl_frontend_generated_contract_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json"
+
+  assert_file_contains \
+    "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
+    'rtl_frontend_generated_parity_contract_v0.json'
+  assert_file_contains \
+    "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
+    'parse_sample("rtl_frontend", &sample.sample)'
+  assert_file_contains \
+    "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
+    'parse_sample_ast_json("rtl_frontend", &sample.sample)'
+  assert_file_contains \
+    "rust/src/parser_registry.rs" \
+    'fn rtl_frontend_generated_contract_metadata_is_stable() {'
+  assert_file_contains \
+    "rust/src/parser_registry.rs" \
+    'fn rtl_frontend_generated_contract_samples_hold() {'
+  assert_file_contains \
+    "rust/scripts/rtl_frontend_generated_contract_gate.sh" \
+    'cargo run --features generated_parsers --bin rtl_frontend_generated_contract_probe'
+  assert_file_contains \
+    ".github/workflows/rtl-frontend-generated-contract-gate.yml" \
+    'make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate'
+  assert_file_contains \
+    ".github/workflows/rtl-frontend-generated-contract-gate.yml" \
+    'path: rust/target/rtl_frontend_generated_contract_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    'rtl_frontend_generated_contract_gate - Validate curated generated rtl_frontend parseability/AST contract samples'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/rtl_frontend_generated_contract_gate.sh'
+  assert_file_contains \
+    "README.md" \
+    '`make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`'
+}
+
 audit_annotation_aggregate_contract_surface() {
   note "auditing aggregate annotation contract gate surface"
 
@@ -2003,10 +2050,10 @@ audit_regex_pcre2_compile_oracle_surface() {
     'pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileValidationError> {'
   assert_file_contains \
     "rust/src/parser_registry.rs" \
-    'validate_regex_compile_contract(sample).map_err(|err| err.message)'
+    'validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'validate_regex_compile_contract(input)'
+    'validate_regex_compile_contract(&owned_input)'
 
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
@@ -2455,6 +2502,7 @@ main() {
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface
+  audit_rtl_frontend_generated_contract_surface
   audit_annotation_aggregate_contract_surface
   audit_annotation_semantic_contract_surface
   audit_sota_json_consumption_surface
@@ -2498,6 +2546,11 @@ main() {
     ".github/workflows/ebnf-frontend-dual-run-diff.yml" \
     "make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff" \
     "make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_diff"
+  run_workflow \
+    "rtl-frontend-generated-contract-gate" \
+    ".github/workflows/rtl-frontend-generated-contract-gate.yml" \
+    "make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate" \
+    "make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate"
   run_workflow \
     "fixed-point-gate" \
     ".github/workflows/fixed-point-gate.yml" \

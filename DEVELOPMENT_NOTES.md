@@ -30247,3 +30247,60 @@ Architectural north star:
   - release truth:
     - this is a downstream regex maintenance release, not a regex-family status promotion
     - the `regex` row remains `Done`; `1.1.8` is a no-regression trust-widening wave on that closed family surface
+- 2026-04-08: the new self-contained `rtl_frontend` generated contract is now executable as a dedicated gate/workflow surface too.
+  - motivation:
+    - the previous wave had already established a curated self-contained manifest at:
+      - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - but the surface was still mostly locked through parser-registry tests and continuity docs rather than a dedicated operator-facing contract gate
+  - landed:
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+      - reads the tracked manifest directly
+      - asserts stable contract metadata:
+        - `contract_version`
+        - `grammar_name`
+        - `purpose`
+        - `provenance`
+      - replays each curated sample through:
+        - parser-registry boolean parseability
+        - parser-registry AST-JSON export where `require_ast_json=true`
+    - `rust/scripts/rtl_frontend_generated_contract_gate.sh`
+      - emits a retained report directory under:
+        - `rust/target/rtl_frontend_generated_contract_gate`
+    - `rust/Makefile`
+      - added:
+        - `rtl_frontend_generated_contract_gate`
+    - `.github/workflows/rtl-frontend-generated-contract-gate.yml`
+      - dedicated push / pull-request workflow
+      - uploads the retained contract-gate report artifact
+    - `README.md`
+      - now points operators at the dedicated gate and the matching filtered local workflow replay
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - now audits the whole new `rtl_frontend` generated-contract surface:
+        - tracked workflow
+        - dedicated gate script
+        - dedicated probe binary
+        - manifest / grammar / generated artifacts / registry tests
+      - also repaired two stale retained regex compile-validation string checks so the parity harness matches current implementation spellings again
+  - proof replay:
+    - direct gate:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - result:
+        - `pass: rtl_frontend_generated_contract_probe`
+        - gate passed
+    - filtered workflow parity replay:
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - result:
+        - all audits cleared, including:
+          - `auditing rtl_frontend generated contract surface`
+        - the exported tracked-tree workflow replay ran:
+          - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+        - summary recorded:
+          - `ok rtl-frontend-generated-contract-gate`
+          - `all selected local workflow commands passed`
+  - continuity consequence:
+    - the `rtl_frontend` generated contract is now no longer just “curated and locally replayable”
+    - it is also:
+      - Make-addressable
+      - workflow-addressable
+      - local-CI-parity-addressable
+    - status still stays `In Progress` because the remaining work is broader handwritten-baseline parity/proof closure, not this focused generated-contract gate

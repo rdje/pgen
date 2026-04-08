@@ -314,6 +314,7 @@ help:
 	@echo "  regression_gate - Run whitespace+dotted-identifier regression suites (bootstrap + generated)"
 	@echo "  embedding_api_gate - Validate stable embedding API contract/tests (bootstrap + generated)"
 	@echo "  nexsim_parser_embedding_contract_gate - Validate Nexsim parser-profile embedding contract (SV/VHDL profiles + diagnostics)"
+	@echo "  rtl_frontend_generated_contract_gate - Validate curated generated rtl_frontend parseability/AST contract samples"
 	@echo "  regex_parser_integration_contract_gate - Validate regex parser integration contract (consumer-facing convenience API + diagnostics)"
 	@echo "  regex_embedded_code_block_contract_gate - Validate regex embedded code-block structural contract over the checked-in synthetic corpus"
 	@echo "  regex_corpus_bundle_contract_gate - Validate the tracked PCRE2-first regex corpus acquisition bundle contract"
@@ -1123,6 +1124,12 @@ nexsim_parser_embedding_contract_gate:
 	@echo "🧪 Running Nexsim parser embedding profile contract gate..."
 	cd $(RUST_DIR) && ./scripts/nexsim_parser_embedding_contract_gate.sh
 	@echo "✅ Nexsim parser embedding profile contract gate passed."
+
+.PHONY: rtl_frontend_generated_contract_gate
+rtl_frontend_generated_contract_gate:
+	@echo "🧪 Running rtl_frontend generated contract gate..."
+	cd $(RUST_DIR) && ./scripts/rtl_frontend_generated_contract_gate.sh
+	@echo "✅ rtl_frontend generated contract gate passed."
 
 .PHONY: regex_parser_integration_contract_gate
 regex_parser_integration_contract_gate:
