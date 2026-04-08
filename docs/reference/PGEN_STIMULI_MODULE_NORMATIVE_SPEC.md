@@ -1,6 +1,6 @@
 # PGEN Stimuli Module Normative Specification (Living)
 
-Last updated: 2026-02-22
+Last updated: 2026-04-08
 
 ## Purpose
 This document defines the normative contract for generated Rust stimuli-module artifacts (`generated/<grammar>_stimuli.rs`) and their compatibility with in-memory stimuli generation.
@@ -90,6 +90,79 @@ Use the exported metadata constants as compatibility guardrails:
 ## Non-Goals (Current Contract Boundary)
 - This contract does not require zero parser rejects for arbitrary grammars unless parseability validation is explicitly enabled.
 - This contract does not mandate semantic meaning of stimuli content beyond grammar-valid generation and gate-verified parity outcomes.
+
+## Non-Normative Strategic Guidance (Verbatim, 2026-04-08)
+This section intentionally preserves the full strategic guidance from the 2026-04-08 stimuli-generation discussion so future sessions do not have to reconstruct the steering from chat history. The prose below is preserved in full; only interactive file-link formatting was normalized to repo-local path references for repository readability.
+
+> Yes, I think your updated read is right.
+>
+> PGEN’s real advantage is not “random input generation.” It is that we already have a grammar-aware engine in `rust/src/ast_pipeline/stimuli_generator.rs`, plus coverage/gap/replay machinery in `rust/src/main.rs`. That is a much better foundation than starting from generic fuzz crates and trying to claw grammar-awareness back afterward.
+>
+> If we want to make it meaningfully stronger, these are the highest-value upgrades:
+>
+> 1. Add grammar-aware mutation, not just fresh generation.
+> A very strong next step is to mutate existing valid samples while preserving local structure:
+> - swap one alternative for another
+> - perturb quantifier counts
+> - splice subtrees from other valid samples
+> - rename identifiers consistently within a sample
+> - keep delimiters balanced while stressing nearby syntax
+>
+> 2. Add a real constrained-random layer.
+> Your SystemVerilog-style instinct was good. PGEN could let grammars or profiles express preferences like:
+> - bias toward rarely hit branches
+> - force mixed forms such as “named + positional”
+> - cap or encourage nesting
+> - require certain rule families to co-occur
+> - steer toward parser-history hotspots
+>
+> 3. Get better at negative generation.
+> Today the strongest bugs often come from “almost valid” inputs. PGEN should generate:
+> - single-token deletions
+> - trailing separators
+> - wrong-closing delimiters
+> - off-by-one quantifier forms
+> - scope/flag mismatches
+> - near-sync recovery probes
+>
+> 4. Add metamorphic invariants.
+> This is very SOTA and fits PGEN well. Example checks:
+> - parse -> pretty/normalize -> parse should preserve key AST facts
+> - alpha-renaming should not change structure
+> - whitespace/comment injection should preserve shape where grammar says it should
+> - minimized counterexamples should still fail for the same reason family
+>
+> 5. Promote coverage-guided replay into a first-class corpus system.
+> The existing coverage-guided fuzz loop is already promising. I’d build on it by making it easy to:
+> - export minimized seed corpora
+> - tag seeds with rule/branch novelty
+> - promote good seeds into contract suites
+> - replay exact corpora deterministically in CI
+>
+> 6. Add better shrinkers.
+> Shrinking is where a lot of value appears. PGEN can do better than generic byte minimization because it knows grammar structure. Shrink by:
+> - dropping optional nodes
+> - collapsing alternations
+> - reducing repetition counts
+> - pruning whole subtrees while preserving the failing property
+>
+> 7. Add oracle-strength, not just stimulus-strength.
+> A lot of recent regex misses were accepted-tree shape bugs, not parse/no-parse bugs. So stronger stimuli should be paired with stronger checks:
+> - required/forbidden rule names
+> - retained rule texts
+> - targeted AST-shape locks
+> - parser-registry and embedding-path parity
+>
+> So yes: the EBNF-based stimuli generator was a very good idea. I do agree. It was the right architectural move, because it gives PGEN something generic fuzzing alone does not: valid structure, replayability, and grammar-specific steering.
+>
+> If I were prioritizing, I’d do:
+> 1. grammar-aware mutation
+> 2. constrained-random steering
+> 3. stronger near-valid negative generation
+> 4. corpus export/promotion
+> 5. smarter shrinkers
+>
+> That path gives you a genuinely stronger PGEN-native fuzz/stimuli system without needing `libfuzzer-sys` or `arbitrary` right now.
 
 ## Change Control
 Any change to:

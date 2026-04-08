@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-02
+Last updated: 2026-04-08
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -57,6 +57,16 @@ Execution preference for this roadmap:
   - primary-entry parser rejections are the tracked family blocker
   - alternate-entry probe failures are helper-rule exploration telemetry
   - target-drive counterexample capture should therefore stay primary-entry-only when the goal is to triage full-entry parser debt
+
+Tracker note (2026-04-08): stimuli-generation strengthening now has an explicit deferred implementation order and should no longer depend on chat recall. The preserved strategic guidance lives in [PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md); the planned future execution order is:
+- `1.` grammar-aware mutation
+- `2.` constrained-random steering
+- `3.` stronger near-valid negative generation
+- `4.` corpus export/promotion
+- `5.` smarter shrinkers
+Execution rule:
+- treat this as a future platform-strengthening queue, not as a justification to deprioritize the current active closure work
+- when the stimuli track is resumed, start from the preserved guidance in the stimuli spec and this ordered roadmap note rather than reopening the generic-fuzz-crates debate from scratch
 
 Tracker note (2026-03-30): the next retained `systemverilog_preprocessor` reduction was stimuli-only, not a shared parser narrowing. [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) now steers `directive_tail` with `@sample: " tail"` so the quality lane stops inventing fake same-line directive tails while parser acceptance stays unchanged. Fresh proof on the focused preprocessor seam now records `parseability_attempts_total=39`, `parseability_accepted_total=33`, `parseability_rejected_total=6`, `parseability_parser_rejections_total=6`, `parseability_counterexamples_captured_total=6`, `stage0_target_count=22`, and `final_targets=0` in [sv_preprocessor_aggregate_contract_gate](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh). Future work should keep this classification straight:
 - keep stimuli-only steering fixes like this one in the grammar/annotation layer when they improve the quality lane without narrowing the parser surface

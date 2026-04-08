@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: rtl-frontend-generated-contract-advance)
+Last updated: 2026-04-08 (+0200, task: stimuli-strategy-guidance-capture)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained stimuli-generation strategy guidance capture:
+  - changed:
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - important continuity detail:
+    - the exact 2026-04-08 strategic guidance on strengthening PGEN’s stimuli system is now preserved in the stimuli reference doc itself under:
+      - `Non-Normative Strategic Guidance (Verbatim, 2026-04-08)`
+    - the ordered future implementation queue is now also explicit in the roadmap:
+      1. grammar-aware mutation
+      2. constrained-random steering
+      3. stronger near-valid negative generation
+      4. corpus export/promotion
+      5. smarter shrinkers
+    - the preserved steering explicitly says:
+      - the EBNF-based stimuli generator was the right architectural move
+      - PGEN should prioritize grammar-aware mutation, constrained-random steering, stronger near-valid negatives, corpus export/promotion, and smarter shrinkers
+      - `libfuzzer-sys` / `arbitrary` are not the best immediate next investment for the core platform
+  - next best follow-up:
+    - when the stimuli track resumes, start from the preserved strategy note in the stimuli spec rather than re-opening the same architecture debate from scratch
 - Retained `rtl_frontend` generated-contract advance wave:
   - changed:
     - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)

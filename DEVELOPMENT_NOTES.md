@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - Stimuli-generation strategy capture: preserve the exact hybrid-strengthening guidance
+### Context
+The project had just revisited whether generic fuzz crates such as `libfuzzer-sys` and `arbitrary` should become the next major stimuli investment. The key conclusion was that PGEN already owns the more valuable differentiator: grammar-aware valid generation plus coverage/gap/replay machinery. What we needed was not a half-remembered chat conclusion but a durable reference that future sessions could pick up without re-deriving the strategy.
+
+### What Was Changed
+- Updated [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md):
+  - refreshed `Last updated` to `2026-04-08`
+  - added `Non-Normative Strategic Guidance (Verbatim, 2026-04-08)`
+  - preserved the full working guidance on:
+    - why PGEN’s EBNF-based stimuli generation was the right architectural move
+    - why generic fuzz crates are not the highest-priority next step
+    - which upgrades should come first instead:
+      - grammar-aware mutation
+      - constrained-random steering
+      - stronger near-valid negative generation
+      - corpus export/promotion
+      - smarter shrinkers
+      - stronger oracle checks
+- Updated [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md):
+  - refreshed `Last updated` to `2026-04-08`
+  - recorded the ordered deferred stimuli-work queue explicitly:
+    1. grammar-aware mutation
+    2. constrained-random steering
+    3. stronger near-valid negative generation
+    4. corpus export/promotion
+    5. smarter shrinkers
+- Updated continuity docs so future sessions can discover that preserved guidance quickly:
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- The stimuli strategy is now restart-safe instead of depending on remembered chat context.
+- Future implementation work can reuse a single preserved steering note rather than reopening the same “should we adopt generic fuzz crates?” debate from scratch.
+- The guidance is captured in the most natural reference home for this topic:
+  - the stimuli normative spec remains the contract surface
+  - the new section inside it is explicitly non-normative strategic direction
+
+### Steering
+- Treat the preserved note in [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md) as the current canonical implementation steering for stimuli-generation strengthening.
+- Treat the ordered queue in [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md) as the current planned future execution order for this track.
+- The current priority order remains:
+  1. grammar-aware mutation
+  2. constrained-random steering
+  3. stronger near-valid negative generation
+  4. corpus export/promotion
+  5. smarter shrinkers
+- Revisit `libfuzzer-sys` or `arbitrary` only if PGEN later wants an optional external execution backend or typed non-source fuzz harnesses; do not let those crates displace the PGEN-native grammar-aware path.
+
 ## 2026-04-08 - rtl_frontend parity debugging: close two generated false negatives and keep the proof surface self-contained
 ### Context
 After the self-hosting EBNF verifier gap was repaired, the next honest `rtl_frontend` task was no longer bootstrap survival but generated-vs-handwritten behavior. The immediate goal was to push beyond "parser wired up" into focused parity evidence without poisoning `pgen`'s own build graph with a sibling checkout dependency on `../rtl_frontend`.

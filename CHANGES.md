@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-08 - Preserve stimuli-generation strategy guidance in the live docs
+### Achievement Summary
+Captured the full 2026-04-08 strategic guidance on how to strengthen PGEN’s EBNF-based stimuli generation without depending on `libfuzzer-sys` or `arbitrary`. The exact steering is now preserved in the stimuli reference spec instead of living only in chat history.
+
+### Scope of Changes
+- Updated the canonical stimuli reference doc:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - refreshed `Last updated`
+  - added a clearly marked non-normative strategy section that preserves the full guidance verbatim (with only repo-local path normalization)
+- Updated the roadmap so the preferred future stimuli-work order is explicit:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - now records the deferred implementation order:
+    - grammar-aware mutation
+    - constrained-random steering
+    - stronger near-valid negative generation
+    - corpus export/promotion
+    - smarter shrinkers
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is guidance capture for future implementation steering, not a new parser-family capability claim
+
+### Validation
+- `git diff --check`
+
 ## 2026-04-08 - Expand rtl_frontend generate-for samples
 ### Achievement Summary
 Widened the curated `rtl_frontend` generated contract with a realistic `generate for` sample. The focused manifest now also locks a looped generate region with a `genvar` declaration, named instantiation, named port connections, and downstream continuous dataflow, which broadens the retained coverage beyond the earlier `generate if` lane.

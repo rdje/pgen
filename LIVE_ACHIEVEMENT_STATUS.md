@@ -29,6 +29,8 @@ This file is the authoritative live tracking view for "where we are now".
 
 ## Live Snapshot
 
+Tracker note (2026-04-08): the current stimuli-generation implementation strategy is now explicitly preserved in [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md) and the deferred execution order is now explicitly planned in [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md), without changing any live label. The retained preferred upgrade order is: grammar-aware mutation, constrained-random steering, stronger near-valid negative generation, corpus export/promotion, and smarter shrinkers.
+
 ### Major Roadmap Phases
 
 Phase completion tracks whether a roadmap phase delivered its stated contract. It does not automatically mean every parser family touched by those phases is equally mature; parser-family maturity is normalized separately below.
