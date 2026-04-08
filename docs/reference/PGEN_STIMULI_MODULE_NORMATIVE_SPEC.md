@@ -52,6 +52,7 @@ The replay identity tuple for stimuli generation is:
 - `max_depth`,
 - `max_repeat`,
 - `recovery_stimuli_mode`,
+- `stimuli_constraint_profile`,
 - `stimuli_mutation_mode`,
 - parseability policy (`--validate-parseability` on/off),
 - coverage merge input (`--coverage-input`, if any).
@@ -62,6 +63,25 @@ Implications:
 - Cross-mode deterministic replay requires explicitly matching all tuple fields above.
 - The replay identity tuple is intentionally larger than the exported module metadata constant set.
 - Consumers that need exact replay under non-default stimuli controls MUST retain the full invocation config out of band rather than relying only on generated module constants.
+
+## Current Constrained-Random Steering Contract (2026-04-09)
+- `--stimuli-constraint-profile baseline` preserves the existing weighting behavior.
+- `--stimuli-constraint-profile rare_branch_biased` increases pressure toward under-hit OR branches, especially when they still have:
+  - zero or low success counts
+  - zero or low selection counts
+  - remaining target deficit
+  - uncovered referenced-rule debt
+- `--stimuli-constraint-profile deep_nesting_biased` biases generation toward deeper structures by:
+  - preferring higher quantifier repeat counts
+  - boosting branches that keep recursive or nested structure alive when depth budget still allows it
+- The currently landed steering slice is intentionally bounded:
+  - it is global profile steering, not a full rule-specific constraint DSL yet
+  - it composes with the existing stimuli generator rather than replacing it
+  - it is validated through bounded real-family replay on:
+    - `regex`
+    - `vhdl`
+    - `systemverilog`
+- This should be treated as the second executed item from the preserved stimuli-strengthening backlog, not as the finished end-state of constrained-random support.
 
 ## Current Mutation Contract (2026-04-09)
 - `--stimuli-mutation-mode baseline` preserves the existing stimuli behavior.
@@ -199,7 +219,7 @@ Any change to:
 - exported module constant names/types,
 - seed default behavior,
 - parity equivalence semantics,
-- replay identity tuple fields or active mutation semantics,
+- replay identity tuple fields or active steering/mutation semantics,
 is a contract change and MUST update:
 - this file,
 - `PGEN_USER_GUIDE.md`,

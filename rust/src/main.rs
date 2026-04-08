@@ -5,8 +5,8 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
-    RecoveryStimuliMode, StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics,
-    StimuliGenerator, StimuliMutationMode, TargetDriveFilterContext,
+    RecoveryStimuliMode, StimuliConfig, StimuliConstraintProfile, StimuliCoverageGapReport,
+    StimuliCoverageMetrics, StimuliGenerator, StimuliMutationMode, TargetDriveFilterContext,
     TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
@@ -128,6 +128,14 @@ struct Args {
         value_parser = ["baseline", "recovery_biased", "near_sync_negative"]
     )]
     recovery_stimuli_mode: String,
+
+    /// Stimuli constrained-random steering profile: baseline, rare_branch_biased, deep_nesting_biased
+    #[arg(
+        long,
+        default_value = "baseline",
+        value_parser = ["baseline", "rare_branch_biased", "deep_nesting_biased"]
+    )]
+    stimuli_constraint_profile: String,
 
     /// Stimuli mutation mode: baseline, grammar_aware_local
     #[arg(
@@ -570,11 +578,12 @@ fn main() -> Result<()> {
             || args.gap_report_text.is_some()
             || args.gap_report_threshold != 1
             || args.recovery_stimuli_mode != "baseline"
+            || args.stimuli_constraint_profile != "baseline"
             || args.stimuli_mutation_mode != "baseline"
             || args.enforce_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--stimuli-constraint-profile/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -790,6 +799,8 @@ fn main() -> Result<()> {
             );
         }
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
+        let constraint_profile =
+            parse_stimuli_constraint_profile(&args.stimuli_constraint_profile)?;
         let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
         let stimuli_config = StimuliConfig {
             seed: Some(effective_seed),
@@ -798,6 +809,7 @@ fn main() -> Result<()> {
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
             mutation_mode,
+            constraint_profile,
             enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
@@ -884,6 +896,7 @@ fn main() -> Result<()> {
                     max_rule_visits: args.max_depth.max(2),
                     recovery_mode,
                     mutation_mode,
+                    constraint_profile,
                     enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
                     trace_verbosity,
                 },
@@ -920,6 +933,8 @@ fn main() -> Result<()> {
             dump_gen_ast_max_bytes,
         )?;
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
+        let constraint_profile =
+            parse_stimuli_constraint_profile(&args.stimuli_constraint_profile)?;
         let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
         let stimuli_config = StimuliConfig {
             seed: args.seed,
@@ -928,6 +943,7 @@ fn main() -> Result<()> {
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
             mutation_mode,
+            constraint_profile,
             enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
@@ -1767,6 +1783,18 @@ fn parse_recovery_stimuli_mode(value: &str) -> Result<RecoveryStimuliMode> {
         "near_sync_negative" => Ok(RecoveryStimuliMode::NearSyncNegative),
         other => Err(anyhow::anyhow!(
             "Unsupported recovery stimuli mode '{}'. Supported values: baseline, recovery_biased, near_sync_negative",
+            other
+        )),
+    }
+}
+
+fn parse_stimuli_constraint_profile(value: &str) -> Result<StimuliConstraintProfile> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "baseline" => Ok(StimuliConstraintProfile::Baseline),
+        "rare_branch_biased" => Ok(StimuliConstraintProfile::RareBranchBiased),
+        "deep_nesting_biased" => Ok(StimuliConstraintProfile::DeepNestingBiased),
+        other => Err(anyhow::anyhow!(
+            "Unsupported stimuli constraint profile '{}'. Supported values: baseline, rare_branch_biased, deep_nesting_biased",
             other
         )),
     }
@@ -2667,7 +2695,8 @@ mod tests {
         extract_parse_error_position, generate_stimuli_module_source, is_ebnf_input_path,
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
         parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
-        parse_recovery_stimuli_mode, parse_stimuli_mutation_mode,
+        parse_recovery_stimuli_mode, parse_stimuli_constraint_profile,
+        parse_stimuli_mutation_mode,
         resolve_parseability_max_attempts,
         resolve_stimuli_module_seed, supported_generated_parseability_grammars,
         supports_generated_parseability, write_parseability_report, FuzzCorpusCandidate,
@@ -2675,8 +2704,8 @@ mod tests {
         TargetDriveParseabilityTelemetry,
     };
     use pgen::ast_pipeline::stimuli_generator::{
-        BranchCoverageGroup, RecoveryStimuliMode, StimuliMutationMode,
-        TargetDriveValidationSummary,
+        BranchCoverageGroup, RecoveryStimuliMode, StimuliConstraintProfile,
+        StimuliMutationMode, TargetDriveValidationSummary,
     };
     use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
     use std::collections::{HashMap, HashSet};
@@ -3317,6 +3346,37 @@ mod tests {
         assert!(
             message.contains("Unsupported stimuli mutation mode"),
             "unexpected mutation mode parse error message: {}",
+            message
+        );
+    }
+
+    #[test]
+    fn parses_stimuli_constraint_profile_values() {
+        assert!(matches!(
+            parse_stimuli_constraint_profile("baseline")
+                .expect("baseline constraint profile should parse"),
+            StimuliConstraintProfile::Baseline
+        ));
+        assert!(matches!(
+            parse_stimuli_constraint_profile("rare_branch_biased")
+                .expect("rare-branch-biased profile should parse"),
+            StimuliConstraintProfile::RareBranchBiased
+        ));
+        assert!(matches!(
+            parse_stimuli_constraint_profile("deep_nesting_biased")
+                .expect("deep-nesting-biased profile should parse"),
+            StimuliConstraintProfile::DeepNestingBiased
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_stimuli_constraint_profile_values() {
+        let err = parse_stimuli_constraint_profile("constraint_chaos")
+            .expect_err("unknown constraint profile must be rejected");
+        let message = err.to_string();
+        assert!(
+            message.contains("Unsupported stimuli constraint profile"),
+            "unexpected constraint profile parse error message: {}",
             message
         );
     }

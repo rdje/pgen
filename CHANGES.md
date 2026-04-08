@@ -1,4 +1,62 @@
 # CHANGES.md
+## 2026-04-09 - Add constrained-random stimuli steering
+### Achievement Summary
+Landed the second planned stimuli-platform strengthening step from the preserved roadmap: constrained-random steering. The stimuli engine now supports bounded steering profiles via `--stimuli-constraint-profile`, with initial shipped profiles for under-hit branch bias and deeper-nesting bias.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConstraintProfile`
+  - extended `StimuliConfig` with `constraint_profile`
+  - added bounded steering profiles:
+    - `RareBranchBiased`
+    - `DeepNestingBiased`
+  - integrated profile steering into:
+    - OR-branch weighting
+    - quantifier-repeat preference ordering
+  - added focused tests for:
+    - rare-branch multiplier boost
+    - deep-nesting repeat bias
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-constraint-profile`
+  - wired constraint profile through both:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added focused parse/validation tests for supported constraint-profile values
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is shared stimuli-platform strengthening, not a parser-family label promotion
+  - the next deferred stimuli backlog item is now:
+    - stronger near-valid negative generation
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib stimuli_generator --no-run`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parses_stimuli_constraint_profile_values --no-run`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline rejects_unknown_stimuli_constraint_profile_values --no-run`
+- `cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --seed 13 --max-depth 10 --max-repeat 2 --output /tmp/regex_stimuli_constraint_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --seed 13 --max-depth 10 --max-repeat 2 --stimuli-constraint-profile deep_nesting_biased --output /tmp/regex_stimuli_constraint_deep.txt`
+- `rust/target/debug/ast_pipeline grammars/vhdl.ebnf --generate-stimuli --count 4 --seed 13 --max-depth 10 --max-repeat 2 --output /tmp/vhdl_stimuli_constraint_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/vhdl.ebnf --generate-stimuli --count 4 --seed 13 --max-depth 10 --max-repeat 2 --stimuli-constraint-profile deep_nesting_biased --output /tmp/vhdl_stimuli_constraint_deep.txt`
+- `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 2 --seed 13 --max-depth 8 --max-repeat 1 --output /tmp/systemverilog_stimuli_constraint_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 2 --seed 13 --max-depth 8 --max-repeat 1 --stimuli-constraint-profile deep_nesting_biased --output /tmp/systemverilog_stimuli_constraint_deep.txt`
+- `git diff --check`
+- retained proof facts:
+  - all three families generated successfully in both baseline and deep-nesting-steered modes
+  - baseline vs deep-nesting-steered outputs differed for:
+    - `regex`
+    - `vhdl`
+    - `systemverilog`
+
 ## 2026-04-09 - Land initial grammar-aware stimuli mutation
 ### Achievement Summary
 Landed the first planned stimuli-platform strengthening step from the preserved roadmap: grammar-aware mutation. The stimuli engine can now replay a valid baseline generation path and locally perturb one grammar decision via `--stimuli-mutation-mode grammar_aware_local`, with the initial landed scope limited to alternate OR-branch selection and alternate quantifier repeat counts.

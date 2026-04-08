@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: stimuli-grammar-aware-mutation)
+Last updated: 2026-04-09 (+0200, task: stimuli-constrained-random-steering)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained initial constrained-random steering wave:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - important continuity detail:
+    - the second queued stimuli-platform upgrade is now landed:
+      - constrained-random steering
+    - new CLI control:
+      - `--stimuli-constraint-profile baseline|rare_branch_biased|deep_nesting_biased`
+    - current shipped steering profiles:
+      - `rare_branch_biased`
+      - `deep_nesting_biased`
+    - current implementation shape:
+      - OR selection can now receive additional deterministic profile multipliers
+      - quantifier repeat preference can now be profile-biased before replay/fallback ordering
+    - real bounded cross-family proof now retained:
+      - `regex` baseline vs deep-nesting-steered outputs differ
+      - `vhdl` baseline vs deep-nesting-steered outputs differ
+      - `systemverilog` baseline vs deep-nesting-steered outputs differ
+      - all three families generated successfully in both modes
+    - replay-contract nuance now logged in docs:
+      - `stimuli_constraint_profile` is part of replay identity
+      - exact replay under non-default generation controls still requires retaining the full invocation config, not just the smaller metadata subset exported by generated stimuli modules
+  - next best follow-up:
+    - continue the preserved stimuli backlog from item `3`:
+      - stronger near-valid negative generation
 - Retained initial grammar-aware stimuli mutation wave:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

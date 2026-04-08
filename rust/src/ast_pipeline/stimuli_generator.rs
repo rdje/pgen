@@ -47,6 +47,19 @@ impl Default for StimuliMutationMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StimuliConstraintProfile {
+    Baseline,
+    RareBranchBiased,
+    DeepNestingBiased,
+}
+
+impl Default for StimuliConstraintProfile {
+    fn default() -> Self {
+        Self::Baseline
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct StimuliConfig {
     pub seed: Option<u64>,
@@ -55,6 +68,7 @@ pub struct StimuliConfig {
     pub max_rule_visits: usize,
     pub recovery_mode: RecoveryStimuliMode,
     pub mutation_mode: StimuliMutationMode,
+    pub constraint_profile: StimuliConstraintProfile,
     pub enforce_word_boundary_spacing: bool,
     pub trace_verbosity: TraceVerbosity,
 }
@@ -68,6 +82,7 @@ impl Default for StimuliConfig {
             max_rule_visits: 8,
             recovery_mode: RecoveryStimuliMode::Baseline,
             mutation_mode: StimuliMutationMode::Baseline,
+            constraint_profile: StimuliConstraintProfile::Baseline,
             enforce_word_boundary_spacing: false,
             trace_verbosity: global_trace_verbosity(),
         }
@@ -2665,9 +2680,18 @@ impl<'a> StimuliGenerator<'a> {
                             *global_idx,
                             prepared.len(),
                         );
+                        let constraint_multiplier = self.constraint_profile_branch_multiplier(
+                            current_rule,
+                            node_path,
+                            *global_idx,
+                            &prepared[*global_idx].1,
+                            depth,
+                            call_stack,
+                        );
                         u64::from(base_weights[local_idx])
                             .saturating_mul(adjusted_multiplier)
                             .saturating_mul(semantic_multiplier)
+                            .saturating_mul(constraint_multiplier)
                     })
                     .collect();
 
@@ -3053,10 +3077,12 @@ impl<'a> StimuliGenerator<'a> {
         } else if depth >= self.config.max_depth.saturating_sub(1) {
             vec![min_repeat]
         } else {
-            let preferred = self.rng.gen_range(min_repeat..=bounded_max);
+            let preferred =
+                self.select_preferred_quantifier_repeat(min_repeat, bounded_max)?;
             let mut candidates = Vec::with_capacity(bounded_max.saturating_sub(min_repeat) + 1);
             candidates.push(preferred);
-            for repeat in min_repeat..=bounded_max {
+            let remainder_order = self.quantifier_remainder_order(min_repeat, bounded_max);
+            for repeat in remainder_order {
                 if repeat != preferred {
                     candidates.push(repeat);
                 }
@@ -3303,6 +3329,45 @@ impl<'a> StimuliGenerator<'a> {
         Ok(weights)
     }
 
+    fn select_preferred_quantifier_repeat(
+        &mut self,
+        min_repeat: usize,
+        bounded_max: usize,
+    ) -> Result<usize> {
+        if min_repeat == bounded_max {
+            return Ok(min_repeat);
+        }
+
+        match self.config.constraint_profile {
+            StimuliConstraintProfile::Baseline | StimuliConstraintProfile::RareBranchBiased => {
+                Ok(self.rng.gen_range(min_repeat..=bounded_max))
+            }
+            StimuliConstraintProfile::DeepNestingBiased => {
+                let weights: Vec<u64> = (min_repeat..=bounded_max)
+                    .map(|repeat| {
+                        let bias = repeat.saturating_sub(min_repeat).saturating_add(1);
+                        u64::try_from(bias.saturating_mul(bias)).unwrap_or(1)
+                    })
+                    .collect();
+                let dist = WeightedIndex::new(&weights).with_context(|| {
+                    format!(
+                        "Invalid quantifier weights for range {}..={}: {:?}",
+                        min_repeat, bounded_max, weights
+                    )
+                })?;
+                Ok(min_repeat + dist.sample(&mut self.rng))
+            }
+        }
+    }
+
+    fn quantifier_remainder_order(&self, min_repeat: usize, bounded_max: usize) -> Vec<usize> {
+        let mut repeats: Vec<usize> = (min_repeat..=bounded_max).collect();
+        if self.config.constraint_profile == StimuliConstraintProfile::DeepNestingBiased {
+            repeats.sort_by(|left, right| right.cmp(left));
+        }
+        repeats
+    }
+
     fn count_rule_references(&self, node: &ASTNode, current_rule: &str) -> usize {
         match node {
             ASTNode::Or { alternatives } => alternatives
@@ -3499,6 +3564,82 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         multiplier
+    }
+
+    fn constraint_profile_branch_multiplier(
+        &self,
+        current_rule: &str,
+        node_path: &str,
+        branch_idx: usize,
+        branch_node: &ASTNode,
+        depth: usize,
+        call_stack: &[String],
+    ) -> u64 {
+        match self.config.constraint_profile {
+            StimuliConstraintProfile::Baseline => 1,
+            StimuliConstraintProfile::RareBranchBiased => {
+                let group_key = format!("{}::{}", current_rule, node_path);
+                let success_hits = self.branch_success_hits(&group_key, branch_idx);
+                let selected_hits = self.branch_selected_hits(&group_key, branch_idx);
+                let target_deficit = self.branch_target_deficit(&group_key, branch_idx);
+                let uncovered_rule_refs = self.count_uncovered_rule_references(branch_node);
+
+                let mut multiplier = 1u64;
+                if success_hits == 0 {
+                    multiplier = multiplier.saturating_mul(12);
+                } else if success_hits <= 2 {
+                    multiplier = multiplier.saturating_mul(4);
+                } else if success_hits <= 8 {
+                    multiplier = multiplier.saturating_mul(2);
+                }
+
+                if selected_hits == 0 {
+                    multiplier = multiplier.saturating_mul(3);
+                } else if selected_hits <= 2 {
+                    multiplier = multiplier.saturating_mul(2);
+                }
+
+                if target_deficit > 0 {
+                    multiplier = multiplier
+                        .saturating_mul(1 + u64::try_from(target_deficit.min(6)).unwrap_or(1));
+                }
+
+                if uncovered_rule_refs > 0 {
+                    multiplier = multiplier.saturating_mul(
+                        1 + u64::try_from(uncovered_rule_refs.min(4)).unwrap_or(1),
+                    );
+                }
+
+                multiplier.max(1)
+            }
+            StimuliConstraintProfile::DeepNestingBiased => {
+                let mut refs = HashSet::new();
+                self.collect_rule_references(branch_node, &mut refs);
+                if refs.is_empty() {
+                    return 1;
+                }
+
+                let remaining_depth = self.config.max_depth.saturating_sub(depth);
+                let is_recursive = refs.iter().any(|rule_name| {
+                    call_stack
+                        .iter()
+                        .any(|active_rule| active_rule == rule_name.as_str())
+                });
+
+                let mut multiplier = 2u64;
+                if remaining_depth > 2 {
+                    multiplier = multiplier.saturating_mul(2);
+                }
+                if remaining_depth > 4 {
+                    multiplier = multiplier.saturating_mul(2);
+                }
+                if is_recursive && remaining_depth > 2 {
+                    multiplier = multiplier.saturating_mul(3);
+                }
+
+                multiplier.max(1)
+            }
+        }
     }
 
     fn target_branch_failure_throttle(selected_hits: u64, success_hits: u64) -> u64 {
@@ -5647,11 +5788,12 @@ mod tests {
         rule_order: &'a [String],
         seed: u64,
     ) -> StimuliGenerator<'a> {
-        simple_generator_with_mutation_mode(
+        simple_generator_with_profiles(
             grammar_tree,
             rule_order,
             seed,
             StimuliMutationMode::Baseline,
+            StimuliConstraintProfile::Baseline,
         )
     }
 
@@ -5660,6 +5802,22 @@ mod tests {
         rule_order: &'a [String],
         seed: u64,
         mutation_mode: StimuliMutationMode,
+    ) -> StimuliGenerator<'a> {
+        simple_generator_with_profiles(
+            grammar_tree,
+            rule_order,
+            seed,
+            mutation_mode,
+            StimuliConstraintProfile::Baseline,
+        )
+    }
+
+    fn simple_generator_with_profiles<'a>(
+        grammar_tree: &'a HashMap<String, ASTNode>,
+        rule_order: &'a [String],
+        seed: u64,
+        mutation_mode: StimuliMutationMode,
+        constraint_profile: StimuliConstraintProfile,
     ) -> StimuliGenerator<'a> {
         StimuliGenerator::new(
             "test".to_string(),
@@ -5673,6 +5831,7 @@ mod tests {
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode,
+                constraint_profile,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5697,6 +5856,7 @@ mod tests {
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5722,6 +5882,7 @@ mod tests {
                 max_rule_visits: 4,
                 recovery_mode,
                 mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5760,6 +5921,100 @@ mod tests {
         let count_a = a.iter().filter(|v| v.as_str() == "A").count();
         let count_b = a.iter().filter(|v| v.as_str() == "B").count();
         assert!(count_a > count_b, "70/30 weighting should bias toward A");
+    }
+
+    #[test]
+    fn rare_branch_profile_boosts_uncovered_branch_multiplier() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "common"), token("quoted_string", "rare")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = simple_generator_with_profiles(
+            &grammar_tree,
+            &rule_order,
+            4410,
+            StimuliMutationMode::Baseline,
+            StimuliConstraintProfile::RareBranchBiased,
+        );
+        for _ in 0..8 {
+            generator
+                .coverage
+                .record_branch_selected("start::root", "start", "root", 2, 0);
+            generator
+                .coverage
+                .record_branch_success("start::root", "start", "root", 2, 0);
+        }
+
+        let common_multiplier = generator.constraint_profile_branch_multiplier(
+            "start",
+            "root",
+            0,
+            &token("quoted_string", "common"),
+            0,
+            &[],
+        );
+        let rare_multiplier = generator.constraint_profile_branch_multiplier(
+            "start",
+            "root",
+            1,
+            &token("quoted_string", "rare"),
+            0,
+            &[],
+        );
+
+        assert!(
+            rare_multiplier > common_multiplier,
+            "rare-branch profile should boost under-hit branch multiplier (rare={}, common={})",
+            rare_multiplier,
+            common_multiplier
+        );
+    }
+
+    #[test]
+    fn deep_nesting_profile_biases_preferred_quantifier_repeat_upward() {
+        let grammar_tree = HashMap::new();
+        let rule_order: Vec<String> = Vec::new();
+
+        let mut baseline = simple_generator_with_profiles(
+            &grammar_tree,
+            &rule_order,
+            4411,
+            StimuliMutationMode::Baseline,
+            StimuliConstraintProfile::Baseline,
+        );
+        let mut deep = simple_generator_with_profiles(
+            &grammar_tree,
+            &rule_order,
+            4411,
+            StimuliMutationMode::Baseline,
+            StimuliConstraintProfile::DeepNestingBiased,
+        );
+
+        let baseline_total: usize = (0..64)
+            .map(|_| {
+                baseline
+                    .select_preferred_quantifier_repeat(0, 4)
+                    .expect("baseline repeat choice should succeed")
+            })
+            .sum();
+        let deep_total: usize = (0..64)
+            .map(|_| {
+                deep.select_preferred_quantifier_repeat(0, 4)
+                    .expect("deep-nesting repeat choice should succeed")
+            })
+            .sum();
+
+        assert!(
+            deep_total > baseline_total,
+            "deep-nesting profile should bias preferred repeats upward (deep_total={}, baseline_total={})",
+            deep_total,
+            baseline_total
+        );
     }
 
     #[test]
@@ -6155,6 +6410,7 @@ mod tests {
                 max_rule_visits: 2,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6268,6 +6524,7 @@ mod tests {
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6320,6 +6577,7 @@ mod tests {
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6657,6 +6915,7 @@ mod tests {
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },

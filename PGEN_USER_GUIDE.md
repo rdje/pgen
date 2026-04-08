@@ -245,6 +245,7 @@ High-value stimuli flags:
 - `--entry-rule`
 - `--max-depth`
 - `--max-repeat`
+- `--stimuli-constraint-profile` (`baseline`, `rare_branch_biased`, `deep_nesting_biased`)
 - `--stimuli-mutation-mode` (`baseline`, `grammar_aware_local`)
 - `--dump-gen-ast [PATH]`
 - `--dump-gen-ast-pretty`
@@ -669,11 +670,12 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
   - `max_depth`,
   - `max_repeat`,
   - `recovery_stimuli_mode`,
+  - `stimuli_constraint_profile`,
   - `stimuli_mutation_mode`,
   - parseability filter setting,
   - parseability attempt budget (when parseability validation is enabled),
   - coverage merge input (if used).
-- The generated stimuli-module metadata constants are a useful replay baseline, but they do not encode every non-default stimuli control; retain the full invocation config if you need exact replay of non-default mutation or recovery settings.
+- The generated stimuli-module metadata constants are a useful replay baseline, but they do not encode every non-default stimuli control; retain the full invocation config if you need exact replay of non-default steering, mutation, or recovery settings.
 - Cross-mode parity (samples + coverage + gap) is enforced by:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate
@@ -766,6 +768,28 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast
   --seed 42 \
   --stimuli-mutation-mode grammar_aware_local \
   --output /tmp/grammar_aware_mutated_samples.txt
+```
+
+### H) Constrained-random steering profiles
+```bash
+# Rare-branch-biased steering increases pressure toward under-hit OR branches.
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 50 \
+  --seed 42 \
+  --stimuli-constraint-profile rare_branch_biased \
+  --output /tmp/rare_branch_biased_samples.txt
+
+# Deep-nesting-biased steering prefers higher quantifier counts and structurally
+# nested branches while staying inside the normal max-depth / max-repeat budgets.
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 50 \
+  --seed 42 \
+  --stimuli-constraint-profile deep_nesting_biased \
+  --output /tmp/deep_nesting_biased_samples.txt
 ```
 
 ## 7) Return Annotation Features

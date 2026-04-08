@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - Initial constrained-random stimuli steering landed
+### Context
+The next deferred stimuli-platform item after grammar-aware mutation was constrained-random steering. The strongest bounded first slice was not a whole new DSL; it was to reuse the existing generator’s branch-weighting and quantifier-choice seams and add explicit profile-level steering that is still deterministic under replay.
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliConstraintProfile::{Baseline, RareBranchBiased, DeepNestingBiased}`
+  - extended `StimuliConfig` with `constraint_profile`
+  - integrated profile steering into OR weighting through:
+    - `constraint_profile_branch_multiplier(...)`
+  - integrated profile steering into quantifier-repeat preference through:
+    - `select_preferred_quantifier_repeat(...)`
+    - `quantifier_remainder_order(...)`
+  - current bounded profiles:
+    - `RareBranchBiased`
+      - boosts under-hit OR branches, especially when success/selection counts are still low or target/uncovered-rule debt remains
+    - `DeepNestingBiased`
+      - biases toward higher quantifier counts
+      - boosts recursive / nested branches while depth budget still allows them
+  - added focused tests for:
+    - rare-branch multiplier boost
+    - deep-nesting repeat bias
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-constraint-profile baseline|rare_branch_biased|deep_nesting_biased`
+  - wired the new profile through both stimuli entrypoints:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added focused parser tests for accepted and rejected constraint-profile values
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+
+### Why It Matters
+- This lands the second preserved stimuli backlog item without leaving the PGEN-native generator model.
+- The steering stays inside the generator’s replayable decision model:
+  - same grammar
+  - same seed
+  - same depth/repeat budget
+  - same steering profile
+  - same output determinism assumptions
+- The cross-family bounded proof stayed honest again:
+  - `regex` baseline vs deep-nesting-steered output differed
+  - `vhdl` baseline vs deep-nesting-steered output differed
+  - `systemverilog` baseline vs deep-nesting-steered output differed
+  - all three families stayed generation-successful in both modes
+
+### Steering
+- Treat this as the second landed backlog item, not as finished constrained-random support.
+- Current deliberate boundary:
+  - global profile-level steering only
+  - no rule-specific constraint DSL yet
+  - current shipped profiles:
+    - `rare_branch_biased`
+    - `deep_nesting_biased`
+- Important replay-contract nuance preserved in docs:
+  - `stimuli_constraint_profile` is now part of replay identity
+  - exact replay under non-default generation controls still depends on retaining the full invocation config, not just the limited metadata constants exported by generated stimuli modules
+- The next deferred stimuli-platform step is now clearly:
+  - stronger near-valid negative generation
+
 ## 2026-04-09 - Initial grammar-aware stimuli mutation landed
 ### Context
 The stimuli backlog was already explicitly ordered, and the first queued item was grammar-aware mutation rather than more generic fuzz-crate debate. The important implementation bar was not “emit different text somehow”; it was “stay grammar-valid, remain replayable, and prove the behavior across real parser families instead of a toy grammar only.”

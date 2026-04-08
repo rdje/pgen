@@ -58,7 +58,7 @@ Execution preference for this roadmap:
   - alternate-entry probe failures are helper-rule exploration telemetry
   - target-drive counterexample capture should therefore stay primary-entry-only when the goal is to triage full-entry parser debt
 
-Tracker note (2026-04-09): the first queued stimuli-platform strengthening step is now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
+Tracker note (2026-04-09): the first two queued stimuli-platform strengthening steps are now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
 - OR-branch selection
 - quantifier repeat counts
 while preserving bounded cross-family proof on:
@@ -66,15 +66,27 @@ while preserving bounded cross-family proof on:
 - `vhdl`
 - `regex`
 
+Constrained-random steering now also exists behind `--stimuli-constraint-profile`, with the current bounded profiles:
+- `rare_branch_biased`
+- `deep_nesting_biased`
+
+The current bounded steering slice:
+- increases pressure toward under-hit OR branches when the rare-branch profile is active
+- biases toward higher quantifier counts and structurally recursive/nested branches when the deep-nesting profile is active
+- preserves the same bounded cross-family proof doctrine on:
+  - `systemverilog`
+  - `vhdl`
+  - `regex`
+
 The remaining planned execution order is now:
-- `2.` constrained-random steering
 - `3.` stronger near-valid negative generation
 - `4.` corpus export/promotion
 - `5.` smarter shrinkers
 
 Execution rule:
-- treat the landed mutation slice as shared platform infrastructure, not as a grammar-local experiment
+- treat the landed mutation and steering slices as shared platform infrastructure, not as grammar-local experiments
 - do not treat the current local mutation slice as “finished mutation support”; it is deliberately bounded and should widen only with retained deterministic replay and shared proof
+- do not treat the current steering profiles as “finished constrained-random support”; they are deliberately bounded profile-level controls, not yet a full rule-specific constraint system
 - the current mutation slice is intentionally baseline-recovery-only; non-baseline recovery modes keep their existing semantics until a later deliberate widening says otherwise
 - when the remaining stimuli track is resumed, start from the preserved guidance in the stimuli spec and this ordered roadmap note rather than reopening the generic-fuzz-crates debate from scratch
 - major stimuli-generator upgrades should be validated across both active and closed parser families, with at least:
