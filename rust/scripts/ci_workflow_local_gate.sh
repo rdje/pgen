@@ -399,10 +399,10 @@ audit_embedding_api_surface() {
     'pub const EMBEDDING_API_VERSION: &str = "1.2.0";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.8";'
+    'pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.9";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
-    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.8";'
+    'pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.9";'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;'
@@ -448,6 +448,9 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'fn regex_parser_integration_contract_classifies_whole_pattern_recursion_as_subroutine_call() {'
+  assert_file_contains \
+    "rust/src/embedding_api.rs" \
+    'fn regex_parser_integration_contract_classifies_returned_capture_subroutine() {'
   assert_file_contains \
     "rust/src/embedding_api.rs" \
     'fn regex_parser_integration_contract_classifies_numeric_backreferences() {'
@@ -558,6 +561,9 @@ audit_embedding_api_surface() {
     '`a{,4}`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
+    '`(?1(1))`'
+  assert_file_contains \
+    "PGEN_USER_GUIDE.md" \
     '`(?{lua: return x + 1})`'
   assert_file_contains \
     "PGEN_USER_GUIDE.md" \
@@ -595,7 +601,7 @@ audit_embedding_api_surface() {
     '- `Contract Identity`'
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
-    '| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.8`. |'
+    '| `regex` | `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` | Downstream-ready regex contract for RGX and other regex consumers; current published release `1.1.9`. |'
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
@@ -658,10 +664,13 @@ audit_embedding_api_surface() {
     'Published Regex Flavor Summary'
   assert_file_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
-    '## Release 1.1.8 Highlights'
+    '## Release 1.1.9 Highlights'
   assert_file_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'raw regex bodies, not host-language delimiter wrappers'
+  assert_file_contains \
+    "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
+    '`(?1(1))`'
   assert_file_contains \
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md" \
     'braced named backreferences such as `\k{name}`'

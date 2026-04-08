@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: shared-stimuli-wrapper-summary-json)
+Last updated: 2026-04-08 (+0200, task: regex-1.1.9-returned-capture-subroutines)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained regex `1.1.9` returned-capture-subroutine wave:
+  - changed:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - important continuity detail:
+    - this closes RGX feature request:
+      - `PGEN-RGX-0015`
+    - published regex release / contract version is now:
+      - `1.1.9`
+    - parenthesized subroutine-call forms now admit returned-capture grouplists, with explicit AST transport:
+      - `subroutine_call`
+      - `returned_capture_subroutine`
+      - `subroutine_target`
+      - `returned_capture_group_list`
+      - `returned_capture_group`
+    - retained proof examples now include:
+      - numeric:
+        - `(?1(1))`
+      - named / mixed:
+        - `(?&callee(+1,<cap>,'alt'))`
+    - deterministic local proof that is already green:
+      - `cargo test --manifest-path rust/Cargo.toml --lib regex_parser_integration_contract_ --no-run`
+      - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_ --no-run`
+      - `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+      - `rust/target/debug/parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0015/repro_input.txt --profile regex_default`
+      - `rust/target/debug/parseability_probe --parse-dump-ast-pretty regex /tmp/pgen_rgx_0015_named_sample.txt /tmp/pgen_rgx_0015_named_ast.json --profile regex_default`
+    - retained local caveat:
+      - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+      - still entered the familiar quiet local harness state after `Running unittests src/lib.rs`
+      - stack sample showed the spawned test binary idling at `_dyld_start`
+      - treat that as local runtime/test-harness debt, not as evidence against the returned-capture feature itself
+  - next best follow-up:
+    - if this lane needs more local hardening later, debug the regex contract runtime harness separately; the feature work itself is closed and published at the grammar / manifest / docs level
 - Retained shared stimuli wrapper summary-json wave:
   - changed:
     - [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh)

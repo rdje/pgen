@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.8",
-  "parser_release_version": "1.1.8",
+  "integration_contract_version": "1.1.9",
+  "parser_release_version": "1.1.9",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -127,6 +127,49 @@
       "name": "whole_pattern_recursion",
       "input": "(?R)",
       "required_rule_names": ["subroutine_call", "subroutine_target"],
+      "forbidden_rule_names": ["inline_modifiers"]
+    },
+    {
+      "name": "returned_capture_numeric_subroutine",
+      "input": "(?1(1))",
+      "required_rule_names": [
+        "subroutine_call",
+        "returned_capture_subroutine",
+        "subroutine_target",
+        "returned_capture_group_list",
+        "returned_capture_group",
+        "signed_digits"
+      ],
+      "expected_rule_texts": {
+        "returned_capture_subroutine": ["1(1)"],
+        "subroutine_target": ["1"],
+        "returned_capture_group_list": ["(1)"],
+        "returned_capture_group": ["1"],
+        "signed_digits": ["1", "1"]
+      },
+      "forbidden_rule_names": ["inline_modifiers"]
+    },
+    {
+      "name": "returned_capture_named_subroutine",
+      "input": "(?&callee(+1,<cap>,'alt'))",
+      "required_rule_names": [
+        "subroutine_call",
+        "returned_capture_subroutine",
+        "subroutine_target",
+        "returned_capture_group_list",
+        "returned_capture_group",
+        "signed_digits",
+        "name_ref",
+        "name"
+      ],
+      "expected_rule_texts": {
+        "subroutine_target": ["&callee"],
+        "returned_capture_group_list": ["(+1,<cap>,'alt')"],
+        "returned_capture_group": ["+1", "<cap>", "'alt'"],
+        "signed_digits": ["+1"],
+        "name_ref": ["<cap>", "'alt'"],
+        "name": ["callee", "cap", "alt"]
+      },
       "forbidden_rule_names": ["inline_modifiers"]
     },
     {

@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - Regex `1.1.9`: returned-capture subroutine transport for RGX
+### Context
+RGX feature request `PGEN-RGX-0015` was not a correctness regression in an old syntax branch; it was a true syntax-widening request for newly published PCRE2 `10.47+` returned-capture subroutine forms. The minimal RGX repro `(?1(1))` previously failed at byte `0`, so the right response was to publish a real transport shape rather than teaching downstreams to special-case the new form by string inspection.
+
+### What Was Changed
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - widened `subroutine_call` so parenthesized subroutine-call forms can now carry a returned-capture grouplist
+  - added explicit transport rules:
+    - `returned_capture_subroutine`
+    - `returned_capture_group_list`
+    - `returned_capture_group`
+- Regenerated tracked parser artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated the published regex contract manifest in [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - bumped contract / release versions:
+    - `1.1.8 -> 1.1.9`
+  - added retained success samples for:
+    - `(?1(1))`
+    - `(?&callee(+1,<cap>,'alt'))`
+  - locked required/forbidden rule names and expected texts for the new AST family
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - bumped published regex release metadata to `1.1.9`
+  - added focused AST-shape proof:
+    - `regex_parser_integration_contract_classifies_returned_capture_subroutine`
+  - updated manifest metadata stability assertions for the widened sample count
+- Updated published consumer docs:
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+
+### Why It Matters
+- RGX can now rely on a real parser-owned AST shape for returned-capture subroutine syntax instead of treating it as out-of-band syntax debt.
+- The new syntax is transported structurally, not flattened:
+  - `subroutine_call`
+  - `returned_capture_subroutine`
+  - `subroutine_target`
+  - `returned_capture_group_list`
+  - `returned_capture_group`
+- Both the minimal numeric form and a named/mixed-selector form are now retained in the published contract, which lowers the chance of the feature drifting back out during future regex grammar work.
+
+### Steering
+- Keep returned-capture subroutine support framed as a published downstream feature request closure:
+  - `PGEN-RGX-0015`
+  - regex release `1.1.9`
+- Preserve the AST family names above; downstream consumers now have a concrete transport shape to depend on.
+- Important local-proof nuance:
+  - `cargo test ... regex_parser_integration_contract_ --no-run` is green in both bootstrap and generated modes
+  - direct `parseability_probe` replays are green for both numeric and named forms
+  - the runtime wrapper `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate` still fell into the familiar quiet local harness state after `Running unittests src/lib.rs`
+  - if this lane needs more local hardening later, treat that as test-harness/runtime hygiene, not as evidence against the returned-capture grammar change itself
+
 ## 2026-04-08 - Shared stimuli wrapper proof surface: aggregate `summary.json`
 ### Context
 The bounded cross-family stimuli wrapper was now locally green, but its proof artifact surface still lagged behind the stronger aggregate gates: it only emitted a text summary. That made the wrapper harder to consume mechanically in future SOTA rollups, CI artifact triage, and downstream proof-surface reuse.

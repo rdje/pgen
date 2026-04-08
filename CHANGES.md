@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-04-08 - Release regex 1.1.9 returned-capture subroutines
+### Achievement Summary
+Published regex maintenance release `1.1.9` for RGX feature request `PGEN-RGX-0015`. The regex grammar and generated backend now accept PCRE2 `10.47+` returned-capture subroutine syntax, so `(?1(1))` and `(?&callee(+1,<cap>,'alt'))` no longer reject at position `0`; they now transport through explicit AST rules `returned_capture_subroutine`, `subroutine_target`, `returned_capture_group_list`, and `returned_capture_group`.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - widened `subroutine_call`
+  - added:
+    - `returned_capture_subroutine`
+    - `returned_capture_group_list`
+    - `returned_capture_group`
+- Regenerated tracked parser artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated the published regex manifest and host metadata to `1.1.9`:
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+- Added retained proof cases for:
+  - numeric returned-capture form:
+    - `(?1(1))`
+  - named returned-capture form:
+    - `(?&callee(+1,<cap>,'alt'))`
+- Updated published docs / workflow parity surfaces:
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - `regex` remains `Done`
+  - this is a syntax-widening downstream handoff release, not a parser-maturity promotion
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib regex_parser_integration_contract_ --no-run`
+- `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_ --no-run`
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `rust/target/debug/parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0015/repro_input.txt --profile regex_default`
+- `rust/target/debug/parseability_probe --parse-dump-ast-pretty regex /tmp/pgen_rgx_0015_named_sample.txt /tmp/pgen_rgx_0015_named_ast.json --profile regex_default`
+- `git diff --check`
+- continuity note:
+  - the local runtime wrapper `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate` still fell into the familiar quiet `cargo test` harness state after `Running unittests src/lib.rs`
+  - compile-proof plus direct `parseability_probe` replays were therefore used as the deterministic local closure signal for this wave
+
 ## 2026-04-08 - Emit shared stimuli wrapper summary.json
 ### Achievement Summary
 Extended the bounded cross-family stimuli wrapper with a machine-readable aggregate proof artifact. The wrapper no longer stops at `summary.txt`; it now emits [rust/target/stimuli_cross_family_platform_gate/summary.json](rust/target/stimuli_cross_family_platform_gate/summary.json) with the bounded regex, VHDL, and SystemVerilog family-slice metrics that the local and CI replay lanes actually executed.

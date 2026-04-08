@@ -238,7 +238,11 @@ lookahead_pos        = "(?=" pattern ")"
 lookahead_neg        = "(?!" pattern ")"
 lookbehind_pos       = "(?<=" pattern ")"
 lookbehind_neg       = "(?<!" pattern ")"
-subroutine_call      = "(?" subroutine_target ")"
+subroutine_call      = "(?" returned_capture_subroutine ")"
+                    | "(?" subroutine_target ")"
+returned_capture_subroutine = subroutine_target returned_capture_group_list
+returned_capture_group_list = "(" returned_capture_group ("," returned_capture_group)* ")"
+returned_capture_group = signed_digits | name_ref
 subroutine_target    = "&" name
                     | "P>" name
                     | "R" digits?

@@ -3698,9 +3698,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.8`
+  - `1.1.9`
 - integration contract version:
-  - `1.1.8`
+  - `1.1.9`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3783,6 +3783,7 @@ Accepted syntax families in the current published flavor:
   - named forms such as `\k<name>`, `\k'name'`, and `\k{name}`
   - numeric forms are preserved as `backreference` constructs rather than generic escapes in the AST dump
   - subroutine-reference forms such as `\g{1}` and `\g<1>` are transported through `backreference` / `subroutine_ref`
+  - parenthesized returned-capture subroutine forms such as `(?1(1))` and `(?&callee(+1,<cap>,'alt'))` are transported through `subroutine_call` / `returned_capture_subroutine`
 - character classes:
   - simple classes such as `[abc]`
   - negated classes such as `[^abc]`
@@ -3832,6 +3833,8 @@ Representative accepted examples:
 - `(a)\\1`
 - `\\o{101}`
 - `\\g<1>`
+- `(?1(1))`
+- `(?&callee(+1,<cap>,'alt'))`
 - `(?(1)a|b)`
 - `(?(R)a|b)`
 - `(a)(?(R1)b|c)`
@@ -3882,7 +3885,9 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.8` specifically adds Unicode literal support and deeper nested-group headroom while keeping that JSON schema version stable:
+- parser release `1.1.9` specifically adds returned-capture subroutine syntax while carrying forward Unicode literal support and deeper nested-group headroom, all while keeping that JSON schema version stable:
+  - `(?1(1))` now appears as `subroutine_call` plus `returned_capture_subroutine`, preserving both the target and the returned-capture grouplist
+  - `(?&callee(+1,<cap>,'alt'))` now preserves mixed numeric/named returned-capture grouplist entries without degrading into `inline_modifiers`
   - `🎉` now emits a single `literal` node spanning the full UTF-8 codepoint
   - `café` now emits four `literal` nodes, preserving `é` as the final multibyte atom
   - nested capturing groups remain accepted at least through `50` levels
@@ -3969,8 +3974,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.8`
-  - integration contract version `1.1.8`
+  - parser release version `1.1.9`
+  - integration contract version `1.1.9`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-07T13:28:53.230085+00:00",
+    "generated_at": "2026-04-08T21:29:22.516014+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "grammars/regex.ebnf",
@@ -3428,11 +3428,97 @@
       ],
       [
         "rule_reference",
+        "returned_capture_subroutine"
+      ],
+      [
+        "quoted_string",
+        ")"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "(?"
+      ],
+      [
+        "rule_reference",
         "subroutine_target"
       ],
       [
         "quoted_string",
         ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "returned_capture_subroutine"
+      ],
+      [
+        "rule_reference",
+        "subroutine_target"
+      ],
+      [
+        "rule_reference",
+        "returned_capture_group_list"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "returned_capture_group_list"
+      ],
+      [
+        "quoted_string",
+        "("
+      ],
+      [
+        "rule_reference",
+        "returned_capture_group"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "quoted_string",
+        ","
+      ],
+      [
+        "rule_reference",
+        "returned_capture_group"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "*"
+      ],
+      [
+        "quoted_string",
+        ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "returned_capture_group"
+      ],
+      [
+        "rule_reference",
+        "signed_digits"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "name_ref"
       ]
     ],
     [

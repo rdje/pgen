@@ -20,10 +20,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.8";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.9";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.8";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.9";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2121,7 +2121,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 26);
+        assert_eq!(manifest.success_samples.len(), 28);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2141,6 +2141,18 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "numeric_recursion_conditional")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "returned_capture_numeric_subroutine")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "returned_capture_named_subroutine")
         );
         assert!(
             manifest
@@ -2696,6 +2708,36 @@ mod tests {
         assert!(
             regex_rule_spans(&parsed, "inline_modifiers").is_empty(),
             "whole-pattern recursion must not be misclassified as inline modifiers"
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_classifies_returned_capture_subroutine() {
+        let input = "(?1(1))";
+        let parsed = regex_ast_dump_json(input);
+
+        assert_eq!(regex_rule_spans(&parsed, "subroutine_call"), vec![(0, 7)]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "returned_capture_subroutine"),
+            vec![(2, 6)]
+        );
+        assert_eq!(regex_rule_spans(&parsed, "subroutine_target"), vec![(2, 3)]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "returned_capture_group_list"),
+            vec![(3, 6)]
+        );
+        assert_eq!(
+            regex_rule_texts(input, &parsed, "returned_capture_group"),
+            vec!["1"]
+        );
+        assert_eq!(
+            regex_rule_texts(input, &parsed, "signed_digits"),
+            vec!["1", "1"]
+        );
+        assert!(
+            regex_rule_spans(&parsed, "inline_modifiers").is_empty(),
+            "returned-capture subroutine must not be misclassified as inline modifiers"
         );
     }
 

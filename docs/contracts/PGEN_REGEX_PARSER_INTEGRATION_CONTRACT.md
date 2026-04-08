@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.8`
+  - `1.1.9`
 - Parser release version:
-  - `1.1.8`
+  - `1.1.9`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-04-07`
+  - `2026-04-08`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -28,17 +28,33 @@ This is the document downstream projects such as RGX should read first when deci
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
 
-## Release 1.1.8 Highlights
-- `1.1.8` is a syntax and depth-resilience patch over the `1.1.7` downstream handoff.
-- The headline changes in `1.1.8` are closing RGX issues `PGEN-RGX-0011`, `PGEN-RGX-0012`, and `PGEN-RGX-0013`.
-- `1.1.8` fixes three real RGX-reported parse blockers in the generated backend:
+## Release 1.1.9 Highlights
+- `1.1.9` is a syntax-widening patch over the `1.1.8` downstream handoff.
+- The headline change in `1.1.9` is publishing PCRE2 `10.47+` returned-capture subroutine syntax requested in RGX feature request `PGEN-RGX-0015`.
+- `1.1.9` adds support for parenthesized subroutine-return forms such as:
+  - `(?1(1))`
+  - `(?&callee(+1,<cap>,'alt'))`
+- `1.1.9` transports those forms structurally as:
+  - `subroutine_call`
+  - `returned_capture_subroutine`
+  - `subroutine_target`
+  - `returned_capture_group_list`
+  - `returned_capture_group`
+- `1.1.9` strengthens the upstream regression surface for that widening:
+  - the published regex integration manifest now explicitly includes:
+    - a numeric returned-capture subroutine sample
+    - a named-target returned-capture subroutine sample with mixed numeric/named grouplist entries
+  - the generated-backend integration tests now assert:
+    - correct returned-capture spans for `(?1(1))`
+    - absence of `inline_modifiers` misclassification on the widened subroutine surface
+- `1.1.9` carries forward the `1.1.8` syntax and depth-resilience fixes:
   - non-ASCII literal atoms such as `🎉` now parse as real `literal` nodes instead of rejecting at byte `0`
   - mixed ASCII/UTF-8 literal runs such as `café` now preserve `literal = ["c", "a", "f", "é"]` instead of stopping at the first multibyte codepoint
   - nested capturing groups now accept at least `50` levels cleanly instead of tripping the generated parser's overly conservative recursion guard around depth `12`
-- `1.1.8` also hardens the public regex host path for that nesting fix:
+- `1.1.9` also carries forward the public regex host hardening from `1.1.8`:
   - generated regex entrypoints now execute on a dedicated larger-stack worker thread
   - the generated recursion guard is widened but still bounded (`512`)
-- `1.1.8` also strengthens the upstream regression surface:
+- `1.1.9` also carries forward the `1.1.8` regression-surface strengthening:
   - the published regex integration manifest now explicitly includes:
     - a pure Unicode literal sample (`🎉`)
     - a mixed ASCII/Unicode literal sample (`café`)
@@ -46,33 +62,33 @@ This is the document downstream projects such as RGX should read first when deci
   - the generated-backend integration tests now assert:
     - exact literal text preservation for Unicode samples
     - exact nested capturing-group count for the `50`-level sample
-- `1.1.8` carries forward the `1.1.7` accepted-tree disambiguation fix:
+- `1.1.9` carries forward the `1.1.7` accepted-tree disambiguation fix:
   - `(?(R)a|b)` and `(a)(?(R1)b|c)` now transport `condition` through `recursion_condition` instead of falling back to bare `name`
-- `1.1.8` carries forward the `1.1.6` accepted-tree span-integrity fix:
+- `1.1.9` carries forward the `1.1.6` accepted-tree span-integrity fix:
   - tagged payloads such as `(?{native:validate_word})` now preserve `code_content = "validate_word"` instead of dropping the first payload byte and transporting `"alidate_word"`
-- `1.1.8` carries forward the `1.1.5` accepted-tree fix and tagged-syntax widening:
+- `1.1.9` carries forward the `1.1.5` accepted-tree fix and tagged-syntax widening:
   - tagged payloads such as `(?{lua:return true})` now transport as `code_block_lang` containing `code_lang` and `code_content` instead of being shadowed by `code_block_plain`
   - `rhai` is now published alongside `lua`, `js`, and `javascript` as a structurally preserved tagged source-body form
   - `native` and `wasm` are now published as structurally preserved tagged payload forms, while runtime/reference validation remains downstream-owned
-- `1.1.8` carries forward the `1.1.4` accepted-tree fix:
+- `1.1.9` carries forward the `1.1.4` accepted-tree fix:
   - numeric angle forms such as `\g<1>` now transport as `backreference` containing `subroutine_ref` / `signed_digits` instead of `simple_escape("g")` plus literal `<`, `1`, `>`
-- `1.1.8` carries forward the `1.1.3` accepted-tree and host-validation fixes:
+- `1.1.9` carries forward the `1.1.3` accepted-tree and host-validation fixes:
   - braced octal escapes such as `\o{101}` now transport as `escape` containing `octal_escape` / `octal_digits` instead of `simple_escape` plus counted quantifier
   - brace-style numeric escapes are skipped atomically during post-parse validation, so they are no longer re-read as counted quantifiers
-- `1.1.8` carries forward the `1.1.2` syntax unblock:
+- `1.1.9` carries forward the `1.1.2` syntax unblock:
   - named recursion conditions such as `(?(R&word)a|b)` now parse and transport as `conditional` plus `recursion_condition`
-- `1.1.8` also carries forward the `1.1.1` accepted-tree correctness fixes:
+- `1.1.9` also carries forward the `1.1.1` accepted-tree correctness fixes:
   - whole-pattern recursion `(?R)` now classifies as `subroutine_call` / `subroutine_target` instead of `inline_modifiers`
   - numeric backreferences such as `\1` now classify as `backreference` instead of generic `escape`
   - explicit conditional false branches such as `(?(1)a|b)` now preserve separate `yes_branch` and `no_branch` spans
   - trailing quantifiers now bind to the final literal atom instead of an entire preceding literal run, so `ab+` now transports as `a` plus `b+`, not `(ab)+`-style grouping
-- `1.1.8` also carries forward the `1.1.0` published syntax coverage:
+- `1.1.9` also carries forward the `1.1.0` published syntax coverage:
   - negated POSIX classes such as `[[:^alnum:]]`
   - braced named backreferences such as `\k{name}`
   - bare-name and signed numeric conditional references
   - named recursion conditions such as `R&name` inside conditionals
   - left-open counted quantifiers such as `{,4}` and comma-only counted form `{,}`
-- The generated regex host path in `1.1.8` also continues to enforce the compile-style validation contract added in `1.1.0`, so obvious compile-invalid forms no longer slip through as successful parses.
+- The generated regex host path in `1.1.9` also continues to enforce the compile-style validation contract added in `1.1.0`, so obvious compile-invalid forms no longer slip through as successful parses.
 - The release is additionally backed by the maintained PCRE2 compile-oracle lane documented in `PGEN_USER_GUIDE.md`.
 
 ## Supporting Documents
@@ -203,7 +219,9 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
-- Parser release `1.1.8` specifically adds Unicode literal support and deeper nested-group headroom while keeping this JSON schema version stable:
+- Parser release `1.1.9` specifically adds returned-capture subroutine syntax while carrying forward Unicode literal support and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `(?1(1))` now transports as `subroutine_call` containing `returned_capture_subroutine`, `subroutine_target`, `returned_capture_group_list`, and `returned_capture_group`
+  - `(?&callee(+1,<cap>,'alt'))` now preserves mixed numeric and named returned-capture grouplist entries without falling back to `inline_modifiers`
   - `🎉` now transports as a single `literal` node spanning the full UTF-8 codepoint
   - `café` now transports as four `literal` nodes, preserving `é` as the final multibyte atom
   - nested capturing groups remain accepted at least through `50` levels
@@ -241,6 +259,7 @@ This is the document downstream projects such as RGX should read first when deci
   - raw regex bodies, not host-language delimiter wrappers
   - alternation and concatenation
   - whole-pattern recursion `(?R)`
+  - returned-capture subroutine calls such as `(?1(1))` and `(?&name(+1,<cap>))`
   - capturing, noncapturing, named, and atomic groups
   - lookahead and lookbehind assertions
   - greedy, lazy, and possessive quantifiers
@@ -251,6 +270,7 @@ This is the document downstream projects such as RGX should read first when deci
   - anchors including `^`, `$`, `\A`, `\Z`, `\z`, `\b`, `\B`, and `\G`
   - backreferences including `\1`, `\k<name>`, `\k'name'`, and `\k{name}`, with numeric forms preserved as backreference constructs rather than generic escapes
   - subroutine-reference forms such as `\g{1}` and `\g<1>`, with numeric angle form preserved as `backreference` plus `subroutine_ref`
+  - parenthesized returned-capture subroutine forms that preserve a comma-separated return grouplist
   - inline modifiers and scoped modifiers
   - conditional regex forms whose condition may be:
     - a lookaround assertion
@@ -286,6 +306,8 @@ This is the document downstream projects such as RGX should read first when deci
   - `ab+`
   - `\o{101}`
   - `\g<1>`
+  - `(?1(1))`
+  - `(?&callee(+1,<cap>,'alt'))`
   - `(?{lua:return true})`
   - `(?{rhai:let x = 1;})`
   - `(?{native:callback_name})`
@@ -368,7 +390,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.8");
+assert_eq!(contract.regex_parser_release_version, "1.1.9");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```
