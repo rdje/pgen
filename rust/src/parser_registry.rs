@@ -600,7 +600,38 @@ mod tests {
         label: String,
         expected_parse_ok: bool,
         require_ast_json: bool,
+        #[serde(default)]
+        required_rule_names: Vec<String>,
+        #[serde(default)]
+        forbidden_rule_names: Vec<String>,
         sample: String,
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    fn collect_rule_names(node: &serde_json::Value, names: &mut Vec<String>) {
+        match node {
+            serde_json::Value::Array(values) => {
+                for value in values {
+                    collect_rule_names(value, names);
+                }
+            }
+            serde_json::Value::Object(map) => {
+                if let Some(serde_json::Value::String(rule_name)) = map.get("rule_name") {
+                    names.push(rule_name.clone());
+                }
+                for value in map.values() {
+                    collect_rule_names(value, names);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    fn rtl_frontend_ast_contains_rule(ast_json: &serde_json::Value, rule_name: &str) -> bool {
+        let mut names = Vec::new();
+        collect_rule_names(ast_json, &mut names);
+        names.iter().any(|candidate| candidate == rule_name)
     }
 
     #[cfg(has_generated_rtl_frontend_parser)]
@@ -1033,11 +1064,23 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             if sample.require_ast_json {
                 let ast_json = parse_sample_ast_json("rtl_frontend", &sample.sample)
                     .expect("rtl_frontend ast adapter should exist");
-                assert!(
-                    ast_json.is_ok(),
-                    "generated rtl_frontend AST JSON adapter should serialize curated sample '{}'",
-                    sample.label
-                );
+                let ast_json = ast_json.expect("rtl_frontend AST JSON adapter should serialize curated sample");
+                for rule_name in &sample.required_rule_names {
+                    assert!(
+                        rtl_frontend_ast_contains_rule(&ast_json, rule_name),
+                        "generated rtl_frontend AST JSON for sample '{}' is missing required rule '{}'",
+                        sample.label,
+                        rule_name
+                    );
+                }
+                for rule_name in &sample.forbidden_rule_names {
+                    assert!(
+                        !rtl_frontend_ast_contains_rule(&ast_json, rule_name),
+                        "generated rtl_frontend AST JSON for sample '{}' unexpectedly contains forbidden rule '{}'",
+                        sample.label,
+                        rule_name
+                    );
+                }
             }
         }
     }

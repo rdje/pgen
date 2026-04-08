@@ -5,6 +5,7 @@ use std::process::ExitCode;
 use anyhow::{Context, Result, bail};
 use pgen::parser_registry::{parse_sample, parse_sample_ast_json};
 use serde::Deserialize;
+use serde_json::Value;
 
 #[derive(Debug, Deserialize)]
 struct RtlFrontendGeneratedContract {
@@ -20,7 +21,36 @@ struct RtlFrontendGeneratedSample {
     label: String,
     expected_parse_ok: bool,
     require_ast_json: bool,
+    #[serde(default)]
+    required_rule_names: Vec<String>,
+    #[serde(default)]
+    forbidden_rule_names: Vec<String>,
     sample: String,
+}
+
+fn collect_rule_names(node: &Value, names: &mut Vec<String>) {
+    match node {
+        Value::Array(values) => {
+            for value in values {
+                collect_rule_names(value, names);
+            }
+        }
+        Value::Object(map) => {
+            if let Some(Value::String(rule_name)) = map.get("rule_name") {
+                names.push(rule_name.clone());
+            }
+            for value in map.values() {
+                collect_rule_names(value, names);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn ast_contains_rule(ast_json: &Value, rule_name: &str) -> bool {
+    let mut names = Vec::new();
+    collect_rule_names(ast_json, &mut names);
+    names.iter().any(|candidate| candidate == rule_name)
 }
 
 fn load_contract() -> Result<RtlFrontendGeneratedContract> {
@@ -69,11 +99,29 @@ fn run() -> Result<()> {
         if sample.require_ast_json {
             let ast_json = parse_sample_ast_json("rtl_frontend", &sample.sample)
                 .with_context(|| format!("generated rtl_frontend AST adapter missing for '{}'", sample.label))?;
-            if ast_json.is_err() {
-                bail!(
+            let ast_json = ast_json.map_err(|_| {
+                anyhow::anyhow!(
                     "generated rtl_frontend AST JSON adapter rejected curated sample '{}'",
                     sample.label
-                );
+                )
+            })?;
+            for rule_name in &sample.required_rule_names {
+                if !ast_contains_rule(&ast_json, rule_name) {
+                    bail!(
+                        "generated rtl_frontend AST JSON for sample '{}' is missing required rule '{}'",
+                        sample.label,
+                        rule_name
+                    );
+                }
+            }
+            for rule_name in &sample.forbidden_rule_names {
+                if ast_contains_rule(&ast_json, rule_name) {
+                    bail!(
+                        "generated rtl_frontend AST JSON for sample '{}' unexpectedly contains forbidden rule '{}'",
+                        sample.label,
+                        rule_name
+                    );
+                }
             }
         }
 

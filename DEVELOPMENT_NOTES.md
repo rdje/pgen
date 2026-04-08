@@ -30304,3 +30304,81 @@ Architectural north star:
       - workflow-addressable
       - local-CI-parity-addressable
     - status still stays `In Progress` because the remaining work is broader handwritten-baseline parity/proof closure, not this focused generated-contract gate
+- 2026-04-08: the curated `rtl_frontend` generated contract now also enforces retained AST shape, not just parseability plus AST-dump availability.
+  - motivation:
+    - the previous wave proved that the curated samples:
+      - still parse
+      - still serialize through the AST-JSON adapter
+    - but that still left room for accepted-tree drift of the same kind RGX exposed earlier on the regex side
+  - retained AST-shape picks:
+    - `always_ff_well_formed`
+      - requires:
+        - `rtl_frontend_file`
+        - `module_declaration`
+        - `kw_always_ff`
+        - `procedural_block`
+        - `assignment_target`
+        - `assignment_operator`
+    - `unpacked_array_ports_and_nets`
+      - requires:
+        - `module_declaration`
+        - `parameter_declaration_sequence`
+        - `parameter_declaration_group`
+        - `net_declaration`
+        - `packed_range`
+        - `unpacked_dimension`
+    - `header_imported_enum_typedef_port`
+      - requires:
+        - `package_declaration`
+        - `typedef_declaration`
+        - `enum_type`
+        - `import_declaration`
+        - `module_declaration`
+      - forbids:
+        - `struct_type`
+    - `unpacked_array_struct_member_actual`
+      - requires:
+        - `module_declaration`
+        - `parameter_declaration_sequence`
+        - `struct_type`
+        - `struct_union_field`
+        - `instance_item`
+        - `port_connection`
+        - `unpacked_dimension`
+      - forbids:
+        - `typedef_declaration`
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `required_rule_names`
+        - `forbidden_rule_names`
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+      - now walks the AST JSON tree and enforces the manifest-declared rule presence/absence
+    - `rust/src/parser_registry.rs`
+      - the retained `rtl_frontend_generated_contract_samples_hold` proof now enforces the same AST-shape expectations
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - now audits that the manifest and dedicated probe still carry the new AST-shape fields
+  - proof replay:
+    - direct gate:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - result:
+        - passed with the stronger AST-shape contract active
+    - filtered workflow parity replay:
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - result:
+        - audits cleared
+        - exported tracked-tree workflow replay passed
+    - focused registry-side compile proof:
+      - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_generated_contract_samples_hold --lib --no-run`
+      - result:
+        - built cleanly
+    - retained caveat:
+      - the full runtime `cargo test ... rtl_frontend_generated_contract_samples_hold --lib` still entered the previously observed local quiet state after:
+        - `Running unittests src/lib.rs`
+      - so this wave does not overclaim that lib-test runtime as green
+  - continuity consequence:
+    - the curated `rtl_frontend` contract is now closer to the published regex contract style:
+      - parseability
+      - AST-JSON availability
+      - retained AST-shape expectations
+    - the live `rtl_frontend` row still stays `In Progress` because the larger handwritten-baseline parity/proof backlog remains

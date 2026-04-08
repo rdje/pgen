@@ -8,24 +8,62 @@
       "label": "always_ff_well_formed",
       "expected_parse_ok": true,
       "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "kw_always_ff",
+        "procedural_block",
+        "assignment_target",
+        "assignment_operator"
+      ],
       "sample": "module top (\n    input logic clk,\n    input logic rst_n,\n    input logic d,\n    output logic q\n);\nalways_ff @(posedge clk or negedge rst_n) begin\n    if (!rst_n)\n        q <= 0;\n    else\n        q <= d;\nend\nendmodule\n"
     },
     {
       "label": "unpacked_array_ports_and_nets",
       "expected_parse_ok": true,
       "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "parameter_declaration_group",
+        "net_declaration",
+        "packed_range",
+        "unpacked_dimension"
+      ],
       "sample": "module top #(\n    parameter DEPTH = 4\n) (\n    input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y\n);\nlogic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];\nendmodule\n"
     },
     {
       "label": "header_imported_enum_typedef_port",
       "expected_parse_ok": true,
       "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "enum_type",
+        "import_declaration",
+        "module_declaration"
+      ],
+      "forbidden_rule_names": [
+        "struct_type"
+      ],
       "sample": "package state_pkg;\n    typedef enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    } state_t;\nendpackage\n\nmodule top import state_pkg::state_t; (\n    input state_t state,\n    output logic y\n);\nendmodule\n"
     },
     {
       "label": "unpacked_array_struct_member_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "struct_type",
+        "struct_union_field",
+        "instance_item",
+        "port_connection",
+        "unpacked_dimension"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration"
+      ],
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
     },
     {

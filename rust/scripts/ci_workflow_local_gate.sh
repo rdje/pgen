@@ -751,11 +751,23 @@ audit_rtl_frontend_generated_contract_surface() {
     "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
     'parse_sample_ast_json("rtl_frontend", &sample.sample)'
   assert_file_contains \
+    "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
+    'required_rule_names'
+  assert_file_contains \
+    "rust/src/bin/rtl_frontend_generated_contract_probe.rs" \
+    'forbidden_rule_names'
+  assert_file_contains \
     "rust/src/parser_registry.rs" \
     'fn rtl_frontend_generated_contract_metadata_is_stable() {'
   assert_file_contains \
     "rust/src/parser_registry.rs" \
     'fn rtl_frontend_generated_contract_samples_hold() {'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
+    '"required_rule_names"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json" \
+    '"forbidden_rule_names"'
   assert_file_contains \
     "rust/scripts/rtl_frontend_generated_contract_gate.sh" \
     'cargo run --features generated_parsers --bin rtl_frontend_generated_contract_probe'

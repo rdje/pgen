@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-08 - Harden rtl_frontend contract AST shape
+### Achievement Summary
+Strengthened the curated `rtl_frontend` generated contract from "parseable and AST-dumpable" to "parseable with specific retained AST shape." The focused manifest now declares required and forbidden rule names for the positive samples, and both the dedicated probe and the parser-registry-side contract test enforce those expectations.
+
+### Scope of Changes
+- Expanded the curated `rtl_frontend` generated-contract manifest:
+  - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - added:
+    - `required_rule_names`
+    - `forbidden_rule_names`
+  - for the retained positive samples:
+    - `always_ff_well_formed`
+    - `unpacked_array_ports_and_nets`
+    - `header_imported_enum_typedef_port`
+    - `unpacked_array_struct_member_actual`
+- Hardened the dedicated gate probe:
+  - [rust/src/bin/rtl_frontend_generated_contract_probe.rs](rust/src/bin/rtl_frontend_generated_contract_probe.rs)
+  - now traverses AST JSON and enforces manifest-declared rule presence/absence
+- Hardened the parser-registry-side proof:
+  - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+  - the retained `rtl_frontend_generated_contract_samples_hold` test now enforces the same required/forbidden rule names
+- Extended the local workflow parity audit so drift in the new AST-shape fields is visible:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is focused `rtl_frontend` generated-contract proof hardening, not broader handwritten-baseline parity closure
+
+### Validation
+- Direct gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity replay:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Focused registry-side compile proof:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_generated_contract_samples_hold --lib --no-run`
+- The full `cargo test ... rtl_frontend_generated_contract_samples_hold --lib` execution still reached the same "quiet after Running unittests src/lib.rs" behavior previously seen in this desktop exec environment, so this wave does not claim that runtime as green.
+- `git diff --check`
+
 ## 2026-04-08 - Add rtl_frontend generated contract gate
 ### Achievement Summary
 Turned the new self-contained `rtl_frontend` generated-parser contract into a real executable proof surface. The repository now carries a dedicated probe binary, Make target, local workflow-parity replay path, and GitHub workflow for the curated `rtl_frontend` generated contract, so this focused surface is no longer just documented in tests and manifests.

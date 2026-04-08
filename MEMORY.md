@@ -9904,3 +9904,23 @@ Use this file to resume work without replaying full chat history.
   - status truth:
     - this closes a focused `rtl_frontend` generated-contract proof gap
     - the live `rtl_frontend` row still stays `In Progress` because handwritten-baseline parity/proof closure is still open
+- 2026-04-08: the curated `rtl_frontend` generated contract now locks AST shape too.
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `required_rule_names`
+        - `forbidden_rule_names`
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+      - now checks rule presence/absence in AST JSON
+    - `rust/src/parser_registry.rs`
+      - `rtl_frontend_generated_contract_samples_hold` now checks the same AST-shape expectations
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - now audits the manifest/probe for the new AST-shape fields
+  - verified:
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_generated_contract_samples_hold --lib --no-run`
+  - retained caveat:
+    - the full runtime `cargo test ... rtl_frontend_generated_contract_samples_hold --lib` still entered the previously seen local quiet state after `Running unittests src/lib.rs`, so this wave only claims compile proof for that registry-side test path
+  - status truth:
+    - this is focused proof-surface hardening, not a live-status promotion
