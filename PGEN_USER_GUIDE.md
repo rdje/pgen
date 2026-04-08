@@ -4,6 +4,7 @@ Last updated: 2026-04-09
 
 ## Current-State Companion Docs
 - Use `README.md` as the main navigation and command-entry document.
+- Use `docs/book/` as the curated live `mdBook` mastery surface for layered user/developer reading.
 - Use `docs/reference/RUST_CODEBASE_ANALYSIS.md` for the live Rust architecture/state assessment.
 - Use `LIVE_ACHIEVEMENT_STATUS.md` for the current closure/status snapshot.
 - Use `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` for the active roadmap contract.

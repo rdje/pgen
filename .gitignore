@@ -238,6 +238,9 @@ Session.vim
 .DS_Store
 Thumbs.db
 
+# mdBook generated output
+docs/book-html/
+
 # Logs
 *.log
 debug.log

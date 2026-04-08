@@ -1,0 +1,21 @@
+[book]
+title = "Mastering PGEN"
+authors = ["PGEN contributors"]
+description = "Live user and developer book for the PGEN parser and stimuli generation platform."
+language = "en"
+src = "src"
+
+[build]
+build-dir = "../book-html"
+create-missing = false
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/richarddje/pgen"
+edit-url-template = "https://github.com/richarddje/pgen/edit/main/{path}"
+smart-punctuation = true
+
+[output.html.fold]
+enable = true
+level = 2

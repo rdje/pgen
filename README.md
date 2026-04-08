@@ -58,17 +58,18 @@ PGEN is a production-focused parser and stimuli generator platform.
 
 ## Fast Ramp-Up (Read In This Order)
 1. `README.md` (this file)
-2. `QUICKSTART_AI_ONBOARDING.md`
-3. `PGEN_USER_GUIDE.md`
-4. `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-5. `LIVE_ACHIEVEMENT_STATUS.md`
-6. `docs/reference/RUST_CODEBASE_ANALYSIS.md`
-7. `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-8. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-9. `CHANGES.md`
-10. `DEVELOPMENT_NOTES.md`
-11. `MEMORY.md`
-12. `COMMIT.md`
+2. `docs/book/` (`mdBook` live mastery surface)
+3. `QUICKSTART_AI_ONBOARDING.md`
+4. `PGEN_USER_GUIDE.md`
+5. `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+6. `LIVE_ACHIEVEMENT_STATUS.md`
+7. `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+8. `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+9. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+10. `CHANGES.md`
+11. `DEVELOPMENT_NOTES.md`
+12. `MEMORY.md`
+13. `COMMIT.md`
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
@@ -145,9 +146,22 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust regex_pcre2_textsafe_corpus_gate`
   - `make -C rust regex_pcre2_compile_oracle_gate`
 
+## Documentation Book
+- The curated live book source is under:
+  - `docs/book/`
+- Build it locally with:
+  - `mdbook build docs/book`
+- Serve it locally with live reload:
+  - `mdbook serve docs/book --open`
+- Intent:
+  - the book is the layered mastery surface for users and developers,
+  - continuity docs remain the live operational truth,
+  - contracts/reference docs remain the deep authoritative detail behind the book.
+
 ## Documentation Status
 - Current authoritative docs for the active Rust-first platform:
   - `README.md`
+  - `docs/book/`
   - `PGEN_USER_GUIDE.md`
   - `QUICKSTART_AI_ONBOARDING.md`
   - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
@@ -170,6 +184,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - post-commit user-facing reports must include the commit ID, exact commit message, the list of tracked files included in the commit, and the current live-status snapshot.
 
 ## Documentation Structure
+- Curated live mastery book:
+  - `docs/book/`
 - Project governance, release policy, and live status:
   - `docs/reference/PGEN_RELEASE_POLICY.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`
 - Rust architecture/state assessment:
@@ -195,6 +211,8 @@ The list below is the current high-signal markdown surface for active work. A 20
 - `PGEN_USER_GUIDE.md`
 - `QUICKSTART_AI_ONBOARDING.md`
 - `SESSION_BOOTSTRAP.md`
+- `docs/book/book.toml`
+- `docs/book/src/SUMMARY.md`
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`

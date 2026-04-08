@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - Live mdBook surface scaffolded
+### Context
+The repository has accumulated enough user-facing, contract, reference, and operational documentation that a flat markdown map is no longer the best learning surface. The goal of this wave was not to replace the continuity docs or instantly migrate every deep doc into rendered chapters; it was to establish a real curated book product that can evolve in place and become the stable mastery path for future users and contributors.
+
+### What Was Changed
+- Added a buildable `mdBook` scaffold under `docs/book/`:
+  - `book.toml`
+  - `src/SUMMARY.md`
+  - initial curated chapter set covering:
+    - orientation
+    - reading guidance
+    - platform overview
+    - getting started
+    - user-facing surfaces
+    - parser families
+    - stimuli and quality
+    - contracts and support
+    - developer architecture
+    - operations and governance
+    - source-doc mapping
+- Updated [README.md](README.md):
+  - promoted the book into the ramp-up order
+  - added `mdbook build docs/book` and `mdbook serve docs/book --open`
+  - documented the intended split between:
+    - the book as curated mastery surface
+    - continuity docs as live operational truth
+    - contracts/reference docs as deep authoritative detail
+- Updated [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md):
+  - added the book as a companion docs surface
+- Updated [`.gitignore`](.gitignore):
+  - ignored `docs/book-html/` so local builds do not create source-control noise
+
+### Why It Matters
+- PGEN now has a real documentation product for layered learning rather than only a repo-wide markdown sprawl.
+- The book is intentionally live:
+  - chapters can be added, split, merged, or rewritten as the project changes
+  - the source map chapter gives future sessions an explicit migration bridge from raw docs into curated book chapters
+- The design deliberately preserves the current operational doctrine:
+  - continuity docs stay authoritative for live state
+  - the book stays curated and teachable
+  - deep contracts/reference docs remain canonical for low-level details
+
+### Steering
+- Treat this as the first real book-platform slice, not as finished documentation migration.
+- Immediate expectation going forward:
+  - when major user-facing or developer-facing surfaces change, update the relevant book chapter in the same wave
+- Important current boundary:
+  - the book is curated prose plus source mapping, not yet a full rendered migration of every active markdown file
+  - that is deliberate to avoid brittle duplication and broken navigation drift
+- Verification stayed concrete:
+  - `mdbook v0.5.2` is present locally
+  - initial build succeeded after trimming one unsupported config field (`multilingual`)
+
 ## 2026-04-09 - Initial stimuli corpus bundle export landed
 ### Context
 The next deferred stimuli-platform item after near-valid negative generation was corpus export / promotion. The important bar for the first slice was not “invent a complete promotion workflow”; it was “export a deterministic machine-readable bundle that preserves the replay-relevant generation shape and enough minimized-corpus metadata that later promotion and shrinking work will not have to reconstruct context from loose text samples.”

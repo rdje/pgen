@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: stimuli-corpus-bundle-export)
+Last updated: 2026-04-09 (+0200, task: docs-mdbook-surface)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,55 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained initial live `mdBook` documentation wave:
+  - changed:
+    - [`.gitignore`](.gitignore)
+    - [README.md](README.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/book.toml](docs/book/book.toml)
+    - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+    - [docs/book/src/index.md](docs/book/src/index.md)
+    - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+    - [docs/book/src/platform-overview.md](docs/book/src/platform-overview.md)
+    - [docs/book/src/getting-started.md](docs/book/src/getting-started.md)
+    - [docs/book/src/user-facing-surfaces.md](docs/book/src/user-facing-surfaces.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/book/src/contracts-and-support.md](docs/book/src/contracts-and-support.md)
+    - [docs/book/src/developer-architecture.md](docs/book/src/developer-architecture.md)
+    - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+    - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - important continuity detail:
+    - the repo now has a real curated book surface under:
+      - `docs/book/`
+    - current book intent:
+      - live mastery path for both users and developers
+      - layered progression from overview through operations
+      - explicit source-map bridge to the current canonical docs
+    - current chapter set:
+      - welcome
+      - how to use this book
+      - platform overview
+      - getting started
+      - user-facing surfaces
+      - parser families
+      - stimuli and quality
+      - contracts and support
+      - developer architecture
+      - operations and governance
+      - source map
+    - important split now logged in repo docs:
+      - book = curated mastery surface
+      - continuity docs = live operational truth
+      - contracts/reference docs = deep authoritative detail
+    - local build proof retained:
+      - `mdbook v0.5.2` is installed
+      - `mdbook build docs/book` succeeded
+    - important implementation nuance:
+      - the first build failed because `mdbook v0.5.2` rejects unsupported `book.toml` key `multilingual`
+      - removing that field fixed the build cleanly
+  - next best follow-up:
+    - start incrementally deepening high-value book chapters when user-facing or developer-facing surfaces change, instead of treating the scaffold as frozen
 - Retained initial stimuli corpus-bundle export wave:
   - changed:
     - [rust/src/main.rs](rust/src/main.rs)

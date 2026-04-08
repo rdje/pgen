@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-04-09 - Scaffold live mdBook documentation surface
+### Achievement Summary
+Introduced a buildable `mdBook` documentation surface under `docs/book/` so PGEN now has a curated, book-like mastery path for both users and developers. This is intentionally a live documentation product: the chapter map is expected to evolve with the project rather than freeze it.
+
+### Scope of Changes
+- Added `mdBook` scaffold:
+  - `docs/book/book.toml`
+  - `docs/book/src/SUMMARY.md`
+  - chapter set:
+    - `index.md`
+    - `how-to-use-this-book.md`
+    - `platform-overview.md`
+    - `getting-started.md`
+    - `user-facing-surfaces.md`
+    - `parser-families.md`
+    - `stimuli-and-quality.md`
+    - `contracts-and-support.md`
+    - `developer-architecture.md`
+    - `operations-and-governance.md`
+    - `source-map.md`
+- Updated repo entry docs:
+  - [README.md](README.md)
+    - promoted `docs/book/` into the ramp-up order
+    - added local build / serve commands
+    - documented the intended split between book, continuity docs, and deep reference docs
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - added the book as a current-state companion surface
+- Updated ignore policy:
+  - [`.gitignore`](.gitignore)
+    - ignore generated `mdBook` HTML output at `docs/book-html/`
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is documentation-platform strengthening, not a parser-family closure promotion
+
+### Validation
+- `mdbook --version`
+- `mdbook build docs/book`
+- `git diff --check`
+- retained proof facts:
+  - the `mdBook` scaffold is locally buildable on this checkout
+  - generated HTML stays out of git via `docs/book-html/`
+  - repo entry docs now surface the book as an intended live documentation layer rather than a hidden sidecar
+
 ## 2026-04-09 - Add stimuli corpus bundle export
 ### Achievement Summary
 Landed the fourth planned stimuli-platform strengthening step from the preserved roadmap: corpus export / promotion groundwork. The stimuli engine now supports `--stimuli-corpus-json`, which emits a deterministic machine-readable corpus bundle for direct generation, generated stimuli modules, and minimized coverage-guided fuzz output.
