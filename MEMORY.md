@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: stimuli-cross-family-platform-gate)
+Last updated: 2026-04-08 (+0200, task: sv-stimuli-adapter-build-collapse)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,21 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained SystemVerilog stimuli adapter-build collapse:
+  - changed:
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+  - important continuity detail:
+    - the new bounded cross-family stimuli wrapper exposed a practical cost seam:
+      - `sv_stimuli_quality_gate.sh` was rebuilding `ast_pipeline` and `parseability_probe` separately under the same generated-parser adapter path
+    - that redundancy is now removed
+    - the gate now uses one combined step:
+      - `build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter`
+      - `env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+    - intent:
+      - keep the bounded shared stimuli gate honest by still using the real SV family machinery
+      - reduce avoidable compile duplication without weakening the actual replay/proof work
+  - next best follow-up:
+    - when revisiting the bounded shared stimuli wrapper, re-measure the SV leg after this combined-build change before deciding whether any further contract-budget trimming is necessary
 - Retained stimuli cross-family platform gate:
   - changed:
     - [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh)

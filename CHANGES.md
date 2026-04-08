@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-04-08 - Trim redundant SV adapter builds in stimuli gates
+### Achievement Summary
+Reduced avoidable compile churn in the heavy SystemVerilog stimuli-quality path. The gate no longer builds `ast_pipeline` and `parseability_probe` in two separate generated-adapter passes; it now builds both together in one shared adapter build, matching the leaner VHDL pattern.
+
+### Scope of Changes
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - replaced:
+    - `build_ast_pipeline_with_systemverilog_adapter`
+    - `build_parseability_probe_with_systemverilog_adapter`
+  - with:
+    - `build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter`
+  - the new single step runs:
+    - `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+    - under the same `PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out"` adapter environment
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is stimuli-proof runtime hygiene, not a parser-family capability change
+
+### Validation
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `env PGEN_SYSTEMVERILOG_PARSER_PATH=rust/target/stimuli_cross_family_platform_gate/systemverilog/work/systemverilog_parser.rs cargo build --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+- `git diff --check`
+
 ## 2026-04-08 - Add cross-family stimuli platform gate
 ### Achievement Summary
 Turned the newly logged stimuli cross-family validation policy into a real executable proof lane. Major future stimuli-generator upgrades are no longer only documented as needing `regex`, `vhdl`, and `systemverilog` replay; there is now a dedicated bounded gate that reuses those family-quality lanes directly.

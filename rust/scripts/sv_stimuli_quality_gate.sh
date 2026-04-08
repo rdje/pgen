@@ -1734,19 +1734,15 @@ run_logged "generate_sv_parser" \
     --output "$parser_out"
 require_nonempty_file "$parser_out"
 
-run_logged_rust "build_ast_pipeline_with_systemverilog_adapter" \
+run_logged_rust "build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter" \
     env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
-    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
-if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
-    echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after adapter build" >&2
-    exit 1
-fi
-
-run_logged_rust "build_parseability_probe_with_systemverilog_adapter" \
-    env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
-    cargo build --features generated_parsers --bin parseability_probe
+    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe
 if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
     echo "error: parseability_probe binary is missing at '$PARSE_PROBE_BIN' after adapter build" >&2
+    exit 1
+fi
+if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
+    echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after adapter build" >&2
     exit 1
 fi
 

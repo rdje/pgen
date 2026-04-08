@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - Stimuli runtime hygiene: collapse duplicate SystemVerilog adapter builds
+### Context
+The new bounded cross-family stimuli gate proved the right structural idea, but local replay also exposed a practical cost seam: the SystemVerilog quality path was still rebuilding `ast_pipeline` and `parseability_probe` in two separate generated-adapter passes. That duplicated compile work every time the shared stimuli wrapper hit the SV lane.
+
+### What Was Changed
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - removed the two-step adapter rebuild sequence:
+    - `build_ast_pipeline_with_systemverilog_adapter`
+    - `build_parseability_probe_with_systemverilog_adapter`
+  - replaced it with one combined step:
+    - `build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter`
+  - the new step now builds both binaries together under the same generated-parser environment:
+    - `env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe`
+
+### Why It Matters
+- The SV quality lane now matches the lower-churn VHDL pattern more closely.
+- The bounded cross-family stimuli wrapper still exercises the real SV family machinery, but with less redundant adapter-build work.
+- This does not solve every cost in the SV leg; the generated parser itself is still large. It does remove one avoidable duplication point that the shared-gate dry run made visible.
+
+### Steering
+- Keep using combined adapter builds when multiple generated-parser-aware binaries are needed under the same grammar-path environment.
+- Treat this as runtime hygiene for the shared stimuli proof surface, not as a justification to weaken the substantive SV replay/proof stages themselves.
+
 ## 2026-04-08 - Stimuli-platform policy hardening: turn the cross-family replay rule into an executable gate
 ### Context
 The stimuli strategy was already preserved and the minimum future validation set was already clear: `systemverilog`, `vhdl`, and `regex` must all benefit from major generator upgrades. The remaining gap was operational, not conceptual. Without a dedicated gate, that rule still depended on human memory and ad hoc reruns.
