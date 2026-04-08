@@ -113,6 +113,12 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
   - focused workflow-parity replay example:
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Cross-family stimuli platform gate:
+  - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+  - bounded shared replay over:
+    - regex via the regex-only EBNF stimuli contract
+    - VHDL via bounded closed-loop replay
+    - SystemVerilog via bounded single-profile (`2017`) closed-loop replay
 - SV quality gate:
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - bounded replay rerun example:

@@ -294,6 +294,7 @@ audit_workflow_surface() {
     .github/workflows/ebnf-frontend-dual-run-diff.yml \
     .github/workflows/fixed-point-gate.yml \
     .github/workflows/performance-gate.yml \
+    .github/workflows/stimuli-cross-family-platform-gate.yml \
     .github/workflows/sota-exit-gate.yml; do
     assert_tracked "$workflow_file"
   done
@@ -320,7 +321,8 @@ audit_workflow_surface() {
     .github/workflows/branch-protection-contract-gate.yml \
     .github/workflows/differential-regression-gate.yml \
     .github/workflows/fixed-point-gate.yml \
-    .github/workflows/performance-gate.yml; do
+    .github/workflows/performance-gate.yml \
+    .github/workflows/stimuli-cross-family-platform-gate.yml; do
     assert_workflow_not_contains "$workflow_file" "Verify Perl runtime"
   done
 }
@@ -792,6 +794,62 @@ audit_rtl_frontend_generated_contract_surface() {
   assert_file_contains \
     "README.md" \
     '`make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`'
+}
+
+audit_stimuli_cross_family_platform_surface() {
+  note "auditing cross-family stimuli platform surface"
+
+  assert_tracked ".github/workflows/stimuli-cross-family-platform-gate.yml"
+  assert_tracked "rust/scripts/stimuli_cross_family_platform_gate.sh"
+  assert_tracked "rust/scripts/ebnf_stimuli_quality_gate.sh"
+  assert_tracked "rust/scripts/vhdl_stimuli_quality_gate.sh"
+  assert_tracked "rust/scripts/sv_stimuli_quality_gate.sh"
+  assert_tracked "rust/test_data/grammar_quality/regex_family_stimuli_contract.json"
+  assert_tracked "rust/test_data/grammar_quality/vhdl_stimuli_cross_family_platform_contract_v0.json"
+  assert_tracked "rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json"
+
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_EBNF_STIMULI_QUALITY_CONTRACT="${REGEX_CONTRACT_FILE}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_EBNF_STIMULI_QUALITY_COUNT="${REGEX_COUNT}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_EBNF_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="${REGEX_TARGET_MAX_ATTEMPTS}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_VHDL_STIMULI_QUALITY_CONTRACT="${VHDL_CONTRACT_FILE}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_VHDL_STIMULI_CARGO_TARGET_DIR=target'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="${VHDL_TARGET_MAX_ATTEMPTS}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_SV_STIMULI_QUALITY_CONTRACT="${SV_CONTRACT_FILE}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_SV_STIMULI_QUALITY_LRM_PROFILES="${SV_LRM_PROFILES}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="${SV_TARGET_MAX_ATTEMPTS}"'
+  assert_file_contains \
+    ".github/workflows/stimuli-cross-family-platform-gate.yml" \
+    'make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate'
+  assert_file_contains \
+    ".github/workflows/stimuli-cross-family-platform-gate.yml" \
+    'path: rust/target/stimuli_cross_family_platform_gate'
+  assert_file_contains \
+    "rust/Makefile" \
+    'stimuli_cross_family_platform_gate - Validate bounded shared stimuli-platform replay across regex, VHDL, and SystemVerilog'
+  assert_file_contains \
+    "rust/Makefile" \
+    'cd $(RUST_DIR) && ./scripts/stimuli_cross_family_platform_gate.sh'
+  assert_file_contains \
+    "README.md" \
+    '`make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`'
 }
 
 audit_annotation_aggregate_contract_surface() {
@@ -2521,6 +2579,7 @@ main() {
   audit_ebnf_frontend_conversion_surface
   audit_embedding_api_surface
   audit_rtl_frontend_generated_contract_surface
+  audit_stimuli_cross_family_platform_surface
   audit_annotation_aggregate_contract_surface
   audit_annotation_semantic_contract_surface
   audit_sota_json_consumption_surface
@@ -2569,6 +2628,11 @@ main() {
     ".github/workflows/rtl-frontend-generated-contract-gate.yml" \
     "make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate" \
     "make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate"
+  run_workflow \
+    "stimuli-cross-family-platform-gate" \
+    ".github/workflows/stimuli-cross-family-platform-gate.yml" \
+    "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate" \
+    "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate"
   run_workflow \
     "fixed-point-gate" \
     ".github/workflows/fixed-point-gate.yml" \

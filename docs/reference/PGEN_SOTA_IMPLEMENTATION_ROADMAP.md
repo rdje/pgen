@@ -71,6 +71,9 @@ Execution rule:
   - `systemverilog`
   - `vhdl`
   - `regex`
+- the current executable bounded enforcement surface for that policy is:
+  - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+  - this intentionally reuses the shipped regex / VHDL / SystemVerilog family-quality lanes under lighter shared settings rather than introducing a separate toy generator harness
 - use that cross-family replay requirement to prove two things at once:
   - the upgraded generator improves useful stress capability on active families
   - the upgraded generator does not silently regress already-closed families that depend on shared stimuli infrastructure

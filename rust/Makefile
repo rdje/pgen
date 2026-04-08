@@ -277,6 +277,7 @@ help:
 	@echo "  sv_declared_shadow_promotion_gate - Run strict declared-shadow promotion trials and emit runtime-enforcement readiness report"
 	@echo "  sv_parse_full_ratio_promotion_gate - Run strict parse-full ratio promotion trials and emit threshold-ratchet readiness report"
 	@echo "  vhdl_stimuli_quality_gate - Enforce deterministic VHDL closed-loop stimuli quality gate (coverage/gap/replay -> parse_full)"
+	@echo "  stimuli_cross_family_platform_gate - Validate bounded shared stimuli-platform replay across regex, VHDL, and SystemVerilog"
 	@echo "  vhdl_strict_promotion_gate - Run deterministic VHDL strict-promotion trials and emit required-mode readiness report"
 	@echo "  sv_syntax_closure_gate - Enforce deterministic SystemVerilog syntax-closure burn-down no-regression contract"
 	@echo "  sv_preprocessor_syntax_closure_gate - Enforce deterministic SystemVerilog preprocessor syntax-closure burn-down no-regression contract"
@@ -916,6 +917,12 @@ stimuli_module_parity_gate:
 	@echo "🧪 Running stimuli-module parity gate..."
 	cd $(RUST_DIR) && ./scripts/stimuli_module_parity_gate.sh
 	@echo "✅ Stimuli-module parity gate passed."
+
+.PHONY: stimuli_cross_family_platform_gate
+stimuli_cross_family_platform_gate:
+	@echo "🧪 Running stimuli cross-family platform gate..."
+	cd $(RUST_DIR) && ./scripts/stimuli_cross_family_platform_gate.sh
+	@echo "✅ Stimuli cross-family platform gate passed."
 
 .PHONY: annotation_nonbootstrap_e2e_gate
 annotation_nonbootstrap_e2e_gate:

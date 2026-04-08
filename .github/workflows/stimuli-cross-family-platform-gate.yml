@@ -1,0 +1,37 @@
+name: stimuli-cross-family-platform-gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  stimuli-cross-family-platform-gate:
+    name: stimuli-cross-family-platform-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Run bounded cross-family stimuli platform gate
+        run: make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate
+
+      - name: Upload cross-family stimuli gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: stimuli-cross-family-platform-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/stimuli_cross_family_platform_gate
+          if-no-files-found: warn
+          retention-days: 14

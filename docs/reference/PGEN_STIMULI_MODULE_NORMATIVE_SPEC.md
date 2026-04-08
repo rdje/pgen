@@ -169,6 +169,9 @@ This section intentionally preserves the full strategic guidance from the 2026-0
 >   - `vhdl`
 >   - `regex`
 > - active families should benefit from the stronger generator, and already-closed families should serve as regression sentinels
+> - the current executable cross-family enforcement surface for that policy is:
+>   - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+>   - this bounded gate intentionally reuses the real family lanes instead of inventing a separate toy harness
 >
 > That path gives you a genuinely stronger PGEN-native fuzz/stimuli system without needing `libfuzzer-sys` or `arbitrary` right now.
 

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "description": "Bounded cross-family VHDL stimuli contract for shared stimuli-platform validation.",
+  "grammar_name": "vhdl",
+  "ebnf_path": "grammars/vhdl.ebnf",
+  "entry_rule": "vhdl_file",
+  "sample_count": 1,
+  "seed_base": 22001,
+  "closed_loop": {
+    "enabled": true,
+    "gap_report_threshold": 1,
+    "target_max_attempts": 200,
+    "replay_sample_count": 1,
+    "require_non_increasing_target_debt": true,
+    "parseability_shadow_enabled": true
+  },
+  "parseability_generation": {
+    "enabled": true,
+    "max_attempts_per_sample": 50
+  },
+  "realistic_corpus": {
+    "enforce": true,
+    "cases_path": "rust/test_data/grammar_quality/vhdl_realistic_corpus_v0.json",
+    "max_parse_full_ms_per_case": 15000,
+    "max_sample_bytes": 131072
+  }
+}

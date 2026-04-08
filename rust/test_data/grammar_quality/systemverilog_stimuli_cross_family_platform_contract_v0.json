@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "description": "Bounded cross-family SystemVerilog stimuli contract for shared stimuli-platform validation.",
+  "grammar_name": "systemverilog",
+  "ebnf_path": "grammars/systemverilog.ebnf",
+  "sample_count": 1,
+  "seed_base": 12001,
+  "lrm_profiles": {
+    "default_profile": "2017",
+    "supported_profiles": ["2017", "2023"],
+    "required_profiles": ["2017"]
+  },
+  "stimuli_modes": {
+    "default_mode": "sv_file",
+    "supported_modes": ["sv_file", "sv_parseable_file", "sv_snippet", "sv_pp_file", "sv_pp_snippet", "sv_semantic_file"],
+    "profiles": {
+      "sv_file": {
+        "entry_rule": "systemverilog_file",
+        "closed_loop_enabled": true,
+        "parse_full_eligible": true,
+        "max_depth": 20,
+        "max_repeat": 2,
+        "recovery_stimuli_mode": "baseline",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": true
+        }
+      },
+      "sv_parseable_file": {
+        "entry_rule": "systemverilog_parseable_file",
+        "closed_loop_enabled": true,
+        "parse_full_eligible": true,
+        "recovery_stimuli_mode": "baseline",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": false,
+          "require_declared_identifiers_before_use": false,
+          "require_package_qualification_resolution": false,
+          "require_width_compatibility_simple": false,
+          "require_context_legality_basic": false
+        }
+      },
+      "sv_snippet": {
+        "entry_rule": "source_item",
+        "closed_loop_enabled": false,
+        "parse_full_eligible": false,
+        "recovery_stimuli_mode": "near_sync_negative",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": false
+        }
+      },
+      "sv_pp_file": {
+        "entry_rule": "systemverilog_file",
+        "closed_loop_enabled": true,
+        "parse_full_eligible": true,
+        "recovery_stimuli_mode": "recovery_biased",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": true,
+          "require_no_preprocess_errors": true
+        }
+      },
+      "sv_pp_snippet": {
+        "entry_rule": "source_item",
+        "closed_loop_enabled": false,
+        "parse_full_eligible": false,
+        "recovery_stimuli_mode": "near_sync_negative",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": false,
+          "require_no_preprocess_errors": true
+        }
+      },
+      "sv_semantic_file": {
+        "entry_rule": "systemverilog_file",
+        "closed_loop_enabled": true,
+        "parse_full_eligible": true,
+        "recovery_stimuli_mode": "baseline",
+        "semantic_overrides": {
+          "require_port_binding_legality_basic": true,
+          "require_declared_identifiers_before_use": true,
+          "require_declared_identifiers_parseable_only": true,
+          "require_package_qualification_resolution": true,
+          "require_width_compatibility_simple": true,
+          "require_context_legality_basic": true
+        }
+      }
+    }
+  },
+  "closed_loop": {
+    "enabled": true,
+    "gap_report_threshold": 1,
+    "target_max_attempts": 200,
+    "replay_sample_count": 1,
+    "require_non_increasing_target_debt": true,
+    "parseability_shadow_enabled": true
+  },
+  "failure_replay": {
+    "enabled": true,
+    "shrink_semantic_failures": true,
+    "shrink_parse_full_failures": true,
+    "shrink_max_iterations": 24
+  },
+  "preprocess": {
+    "include_max_depth": 64,
+    "include_path_policy": "allow_absolute",
+    "macro_redefine_policy": "warn",
+    "conditional_symbol_policy": "assume_false_warn",
+    "conditional_expr_policy": "identifier_or_defined",
+    "strict_warning_codes": "none"
+  },
+  "semantic_contracts": {
+    "declared_identifier_suite_path": "rust/test_data/grammar_quality/systemverilog_declared_identifier_contract_cases.json",
+    "enforce_declared_identifier_suite": true,
+    "width_compatibility_suite_path": "rust/test_data/grammar_quality/systemverilog_width_compatibility_contract_cases.json",
+    "enforce_width_compatibility_suite": true,
+    "port_binding_legality_suite_path": "rust/test_data/grammar_quality/systemverilog_port_binding_legality_contract_cases.json",
+    "enforce_port_binding_legality_suite": true,
+    "package_qualification_suite_path": "rust/test_data/grammar_quality/systemverilog_package_qualification_contract_cases.json",
+    "enforce_package_qualification_suite": true,
+    "context_legality_suite_path": "rust/test_data/grammar_quality/systemverilog_context_legality_contract_cases.json",
+    "enforce_context_legality_suite": true
+  },
+  "performance_budgets": {
+    "enforce": true,
+    "max_generate_ms_per_sample": 10000,
+    "max_preprocess_ms_per_sample": 10000,
+    "max_parse_full_ms_per_sample": 15000,
+    "max_sample_bytes": 1048576,
+    "max_preprocessed_bytes": 1048576
+  },
+  "nexsim_realistic_corpus": {
+    "enforce": true,
+    "cases_path": "rust/test_data/grammar_quality/systemverilog_nexsim_realistic_corpus_v0.json",
+    "max_preprocess_ms_per_case": 10000,
+    "max_parse_full_ms_per_case": 15000,
+    "max_sample_bytes": 131072,
+    "max_preprocessed_bytes": 131072,
+    "require_no_preprocess_errors": true
+  },
+  "parse_full_quality": {
+    "enforce_min_pass_ratio": false,
+    "min_pass_ratio": 10
+  },
+  "semantic_promotion": {
+    "declared_identifier_shadow_enabled": true,
+    "declared_identifier_shadow_strict": false
+  },
+  "semantic_baseline": {
+    "require_nonempty_preprocessed_output": true,
+    "require_no_preprocess_errors": true,
+    "require_balanced_structural_keywords": false,
+    "require_unique_named_port_bindings": true,
+    "require_port_binding_legality_basic": false,
+    "require_declared_identifiers_before_use": false,
+    "require_declared_identifiers_parseable_only": false,
+    "require_package_qualification_resolution": false,
+    "require_width_compatibility_simple": false,
+    "require_context_legality_basic": false
+  }
+}

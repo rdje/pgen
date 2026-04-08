@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-04-08 - Add cross-family stimuli platform gate
+### Achievement Summary
+Turned the newly logged stimuli cross-family validation policy into a real executable proof lane. Major future stimuli-generator upgrades are no longer only documented as needing `regex`, `vhdl`, and `systemverilog` replay; there is now a dedicated bounded gate that reuses those family-quality lanes directly.
+
+### Scope of Changes
+- Added a dedicated bounded shared stimuli-platform gate:
+  - [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh)
+  - runs:
+    - regex through [rust/scripts/ebnf_stimuli_quality_gate.sh](rust/scripts/ebnf_stimuli_quality_gate.sh) with [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](rust/test_data/grammar_quality/regex_family_stimuli_contract.json)
+    - VHDL through [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh) with bounded replay settings
+    - SystemVerilog through [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh) with bounded single-profile (`2017`) replay settings
+- Added a tracked GitHub workflow:
+  - [.github/workflows/stimuli-cross-family-platform-gate.yml](.github/workflows/stimuli-cross-family-platform-gate.yml)
+- Added a tracked Make target and help surface:
+  - [rust/Makefile](rust/Makefile)
+  - new target:
+    - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+- Extended local workflow parity enforcement:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - now audits the new workflow/script surface and can replay it through:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=stimuli-cross-family-platform-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Updated active reference docs:
+  - [README.md](README.md)
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is executable stimuli-platform proof-surface hardening, not a parser-family label change
+
+### Validation
+- `bash -n rust/scripts/stimuli_cross_family_platform_gate.sh`
+- `jq -e . rust/test_data/grammar_quality/vhdl_stimuli_cross_family_platform_contract_v0.json`
+- `jq -e . rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json`
+- `env PGEN_EBNF_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_stimuli_platform_regex PGEN_EBNF_STIMULI_QUALITY_CONTRACT=rust/test_data/grammar_quality/regex_family_stimuli_contract.json bash rust/scripts/ebnf_stimuli_quality_gate.sh`
+- `env PGEN_VHDL_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_stimuli_platform_vhdl PGEN_VHDL_STIMULI_QUALITY_COUNT=1 PGEN_VHDL_STIMULI_QUALITY_PARSE_FULL_MODE=0 PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MODE=0 PGEN_VHDL_STIMULI_REALISTIC_CORPUS_MAX_CASES=0 PGEN_VHDL_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=200 bash rust/scripts/vhdl_stimuli_quality_gate.sh`
+- wiring/reference audit via `rg -n "stimuli_cross_family_platform_gate|stimuli-cross-family-platform-gate|vhdl_stimuli_cross_family_platform_contract_v0|systemverilog_stimuli_cross_family_platform_contract_v0" ...`
+- `git diff --check`
+- Honest caveat:
+  - the new top-level wrapper `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate` reached `sv_stimuli_quality_bounded` and the bounded SV leg proved its contract settings in the emitted summary/log surface, but I am not claiming a clean full-green local wrapper replay in this desktop thread because the generated-SV adapter rebuild remained very heavy and was intentionally stopped rather than left running indefinitely.
+
 ## 2026-04-08 - Preserve stimuli-generation strategy guidance in the live docs
 ### Achievement Summary
 Captured the full 2026-04-08 strategic guidance on how to strengthen PGEN’s EBNF-based stimuli generation without depending on `libfuzzer-sys` or `arbitrary`. The exact steering is now preserved in the stimuli reference spec instead of living only in chat history.

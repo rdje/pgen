@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: stimuli-strategy-guidance-capture)
+Last updated: 2026-04-08 (+0200, task: stimuli-cross-family-platform-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained stimuli cross-family platform gate:
+  - changed:
+    - [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh)
+    - [.github/workflows/stimuli-cross-family-platform-gate.yml](.github/workflows/stimuli-cross-family-platform-gate.yml)
+    - [rust/Makefile](rust/Makefile)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - important continuity detail:
+    - the earlier “major generator upgrades must replay against `systemverilog`, `vhdl`, and `regex`” rule is now executable, not just documented
+    - the dedicated minimum lane is:
+      - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+    - that wrapper intentionally reuses the shipped family-quality gates instead of inventing a parallel harness:
+      - regex through the regex-only EBNF stimuli contract
+      - VHDL through a bounded one-sample, no-parse-full, no-realistic-corpus replay
+      - SystemVerilog through a bounded one-sample, single-`2017`-profile, no-parse-full, no-diff, no-realistic-corpus replay
+    - steering:
+      - treat this as the minimum shared platform proof for future stimuli-generator upgrades
+      - do not confuse it with the deeper full family gates; it is intentionally lighter and representative
+    - retained verification caveat:
+      - shell syntax, JSON validity, path wiring, and clean diff are all green
+      - direct bounded regex and VHDL proof slices were exercised during this wave
+      - the full wrapper reached `sv_stimuli_quality_bounded`, but a clean full-green local wrapper completion was not claimed in this desktop thread because the generated-SV adapter rebuild remained very heavy and was intentionally stopped
+  - next best follow-up:
+    - once the new gate is verified end to end in this checkout, use it as the default shared replay surface when grammar-aware mutation / constrained steering / stronger negatives / corpus promotion / shrinker work lands
 - Retained stimuli-generation strategy guidance capture:
   - changed:
     - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)

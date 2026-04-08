@@ -1,4 +1,59 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - Stimuli-platform policy hardening: turn the cross-family replay rule into an executable gate
+### Context
+The stimuli strategy was already preserved and the minimum future validation set was already clear: `systemverilog`, `vhdl`, and `regex` must all benefit from major generator upgrades. The remaining gap was operational, not conceptual. Without a dedicated gate, that rule still depended on human memory and ad hoc reruns.
+
+### What Was Changed
+- Added [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh):
+  - a bounded cross-family wrapper that reuses the existing real family-quality lanes instead of introducing a parallel toy harness
+  - regex is exercised through:
+    - [rust/scripts/ebnf_stimuli_quality_gate.sh](rust/scripts/ebnf_stimuli_quality_gate.sh)
+    - [rust/test_data/grammar_quality/regex_family_stimuli_contract.json](rust/test_data/grammar_quality/regex_family_stimuli_contract.json)
+  - VHDL is exercised through:
+    - [rust/scripts/vhdl_stimuli_quality_gate.sh](rust/scripts/vhdl_stimuli_quality_gate.sh)
+    - bounded settings:
+      - `count=1`
+      - `parse_full_mode=0`
+      - `realistic_corpus_mode=0`
+      - `target_max_attempts=200`
+  - SystemVerilog is exercised through:
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - bounded settings:
+      - `count=1`
+      - `parse_full_mode=0`
+      - `realistic_corpus_mode=0`
+      - `diff_mode=0`
+      - `perf_budget_mode=0`
+      - `semantic_closure_mode=0`
+      - `target_max_attempts=200`
+      - `lrm_profiles=2017`
+- Added [rust/Makefile](rust/Makefile) target:
+  - `stimuli_cross_family_platform_gate`
+- Added [.github/workflows/stimuli-cross-family-platform-gate.yml](.github/workflows/stimuli-cross-family-platform-gate.yml):
+  - this turns the cross-family stimuli policy into a first-class GitHub CI lane
+- Extended [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - audits the new workflow/script surface
+  - replays the workflow locally through:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=stimuli-cross-family-platform-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Updated active docs:
+  - [README.md](README.md)
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+
+### Why It Matters
+- The “major stimuli upgrades must prove themselves on `systemverilog`, `vhdl`, and `regex`” rule is now executable instead of advisory.
+- The new gate stays honest by reusing the real family-quality lanes already trusted by the repo.
+- The shared profile is intentionally lighter than the full family gates so it can act as a platform check without pretending to replace the deeper family proof surfaces.
+- The retained practical caveat is now explicit too:
+  - regex and VHDL bounded proofs were exercised directly while wiring this wave
+  - the full wrapper reached the bounded SV leg and emitted the expected bounded-contract summary/log surface
+  - but a clean end-to-end local wrapper completion was not claimed in this desktop thread because the generated-SV adapter rebuild remained expensive enough that it was intentionally stopped rather than left running indefinitely
+
+### Steering
+- Treat `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate` as the minimum executable cross-family replay surface for future major stimuli-generator upgrades.
+- Do not weaken the full family gates to satisfy this shared policy lane; instead, keep the shared gate bounded and representative.
+- If a future generator change needs stronger cross-family proof, evolve this gate by widening bounded settings deliberately rather than bypassing the family-quality lanes.
+
 ## 2026-04-08 - Stimuli-generation strategy capture: preserve the exact hybrid-strengthening guidance
 ### Context
 The project had just revisited whether generic fuzz crates such as `libfuzzer-sys` and `arbitrary` should become the next major stimuli investment. The key conclusion was that PGEN already owns the more valuable differentiator: grammar-aware valid generation plus coverage/gap/replay machinery. What we needed was not a half-remembered chat conclusion but a durable reference that future sessions could pick up without re-deriving the strategy.
