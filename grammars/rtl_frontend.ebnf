@@ -72,11 +72,15 @@ parameter_declaration_sequence := parameter_declaration_group ( comma parameter_
 
 parameter_declaration_group := parameter_declaration_head ( comma parameter_declaration_tail )*
 
-parameter_declaration_head := parameter_flavor data_type? identifier ( equals rtl_expr )?
+@branch_policy: priority_first
+parameter_declaration_head := parameter_flavor &( data_type identifier ) data_type identifier ( equals rtl_expr )?
+                            | parameter_flavor identifier ( equals rtl_expr )?
 
 @branch_policy: priority_first
-parameter_declaration_tail := parameter_declaration_head
-                            | data_type? identifier ( equals rtl_expr )?
+parameter_declaration_tail := parameter_flavor &( data_type identifier ) data_type identifier ( equals rtl_expr )?
+                            | parameter_flavor identifier ( equals rtl_expr )?
+                            | &( data_type identifier ) data_type identifier ( equals rtl_expr )?
+                            | identifier ( equals rtl_expr )?
 
 parameter_flavor := kw_parameter | kw_localparam
 
@@ -158,7 +162,7 @@ bit_or_expr := bit_xor_expr ( bit_or bit_xor_expr )*
 bit_xor_expr := bit_and_expr ( bit_xor bit_and_expr )*
 bit_and_expr := equality_expr ( bit_and equality_expr )*
 equality_expr := relational_expr ( ( eqeq | ne ) relational_expr )*
-relational_expr := shift_expr ( ( le | lt | ge | gt ) shift_expr )*
+relational_expr := shift_expr ( ( less_equal | lt | ge | gt ) shift_expr )*
 shift_expr := additive_expr ( ( shl | shr ) additive_expr )*
 additive_expr := multiplicative_expr ( ( plus | minus ) multiplicative_expr )*
 multiplicative_expr := unary_expr ( ( star | slash | percent ) unary_expr )*
@@ -305,7 +309,7 @@ bit_xor := trivia "^"
 bit_and := trivia "&"
 eqeq := trivia "=="
 ne := trivia "!="
-le := trivia "<="
+less_equal := trivia "<="
 lt := trivia "<"
 ge := trivia ">="
 gt := trivia ">"

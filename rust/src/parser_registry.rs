@@ -577,10 +577,39 @@ pub fn registered_grammars() -> Vec<&'static str> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(has_generated_rtl_frontend_parser)]
+    use serde::Deserialize;
     use std::fs;
     use std::path::PathBuf;
 
     use super::{parse_sample, parse_sample_ast_json, registered_grammars, supports_grammar};
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    #[derive(Debug, Deserialize)]
+    struct RtlFrontendGeneratedContract {
+        contract_version: String,
+        grammar_name: String,
+        purpose: String,
+        provenance: String,
+        samples: Vec<RtlFrontendGeneratedSample>,
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    #[derive(Debug, Deserialize)]
+    struct RtlFrontendGeneratedSample {
+        label: String,
+        expected_parse_ok: bool,
+        require_ast_json: bool,
+        sample: String,
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    fn rtl_frontend_generated_contract() -> RtlFrontendGeneratedContract {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json");
+        let raw = fs::read_to_string(&path).expect("read rtl_frontend generated contract");
+        serde_json::from_str(&raw).expect("parse rtl_frontend generated contract")
+    }
 
     #[test]
     fn registry_exposes_expected_annotation_grammars() {
@@ -960,5 +989,56 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         )
         .expect("rtl_frontend adapter should exist");
         assert!(ast_json.is_ok());
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    #[test]
+    fn rtl_frontend_generated_contract_metadata_is_stable() {
+        let contract = rtl_frontend_generated_contract();
+        assert_eq!(contract.contract_version, "0.1.0");
+        assert_eq!(contract.grammar_name, "rtl_frontend");
+        assert!(
+            contract
+                .purpose
+                .contains("Curated generated rtl_frontend syntax contract"),
+            "unexpected contract purpose: {}",
+            contract.purpose
+        );
+        assert!(
+            contract
+                .provenance
+                .contains("local handwritten rtl_frontend::parse_design replay"),
+            "unexpected contract provenance: {}",
+            contract.provenance
+        );
+        assert!(
+            !contract.samples.is_empty(),
+            "rtl_frontend generated contract must contain samples"
+        );
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    #[test]
+    fn rtl_frontend_generated_contract_samples_hold() {
+        let contract = rtl_frontend_generated_contract();
+
+        for sample in contract.samples {
+            assert_eq!(
+                parse_sample("rtl_frontend", &sample.sample),
+                Some(sample.expected_parse_ok),
+                "generated rtl_frontend parseability drifted for curated sample '{}'",
+                sample.label
+            );
+
+            if sample.require_ast_json {
+                let ast_json = parse_sample_ast_json("rtl_frontend", &sample.sample)
+                    .expect("rtl_frontend ast adapter should exist");
+                assert!(
+                    ast_json.is_ok(),
+                    "generated rtl_frontend AST JSON adapter should serialize curated sample '{}'",
+                    sample.label
+                );
+            }
+        }
     }
 }

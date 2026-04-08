@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-07 (+0200, task: regex-registry-proof-hardening)
+Last updated: 2026-04-08 (+0200, task: rtl-frontend-generated-contract-advance)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,37 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` generated-contract advance wave:
+  - changed:
+    - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
+    - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+    - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+    - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/Cargo.toml](rust/Cargo.toml)
+  - important continuity detail:
+    - two real generated-parser false negatives were removed:
+      - `<=` token/rule drift (`le` vs `less_equal`)
+      - untyped parameter-header ambiguity around `parameter DEPTH = 4`
+    - the tracked contract surface is intentionally self-contained inside `pgen`
+    - local handwritten replay against the sibling `rtl_frontend` crate was used only to curate/provenance-tag the retained samples
+    - the attempted tracked Cargo dependency on `../rtl_frontend` was intentionally removed because GitHub CI for `pgen` cannot rely on that sibling checkout
+  - retained proof surface:
+    - positive reduced generated replays now pass for:
+      - `/tmp/rtl_frontend_always_ff_well_formed.sv`
+      - `/tmp/rtl_frontend_param_header_min.sv`
+      - `/tmp/rtl_frontend_unpacked_port_only.sv`
+      - `/tmp/rtl_frontend_no_param_same_ports.sv`
+      - `/tmp/rtl_frontend_header_imported_enum_typedef_port.sv`
+      - `/tmp/rtl_frontend_unpacked_array_struct_member_actual.sv`
+    - negative reduced replay still rejects as intended:
+      - `/tmp/rtl_frontend_truncated_module_header.sv`
+    - local handwritten baseline replay stayed green on the four retained positive contract samples via a temporary offline probe
+  - retained caveat:
+    - focused `cargo test --manifest-path rust/Cargo.toml --features generated_parsers ... --lib` attempts compiled and launched `src/lib.rs` tests, then went locally inert again in this desktop-thread environment after `Running unittests src/lib.rs`
+    - treat the current proof claim as direct generated-parser evidence plus curated-contract hardening, not a clean local lib-test-harness pass
+  - next best follow-up:
+    - continue `rtl_frontend` parity/proof closure against the handwritten subset without reintroducing external sibling-crate dependencies into the tracked `pgen` build graph
 - Retained `rtl_frontend` bootstrap verifier-closure wave:
   - changed:
     - [grammars/ebnf.ebnf](grammars/ebnf.ebnf)

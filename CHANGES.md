@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-04-08 - Advance rtl_frontend generated contract surface
+### Achievement Summary
+Closed two real `rtl_frontend` generated-parser false negatives and turned the follow-up proof surface into a self-contained tracked contract. The `rtl_frontend` grammar now accepts `<=` through the generated path correctly, no longer misreads untyped parameter headers like `parameter DEPTH = 4` as typed declarations, and the repository now carries a curated generated-parser contract for the focused `rtl_frontend` samples that were locally derived from handwritten-baseline replay without introducing an external sibling-crate dependency into `pgen` itself.
+
+### Scope of Changes
+- Fixed two real `rtl_frontend` grammar defects:
+  - aligned the generated-parser token/rule surface for `<=` in [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
+  - narrowed typed-vs-untyped parameter declaration ambiguity in [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf) with explicit lookahead-based branch selection
+- Regenerated tracked `rtl_frontend` parser artifacts:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Added a self-contained curated generated-parser contract for `rtl_frontend`:
+  - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+- Extended the parser-registry proof surface for `rtl_frontend`:
+  - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+  - added metadata and curated-sample generated-contract coverage without depending on the external handwritten sibling crate
+- Removed the attempted repo-local parity-probe/dependency wiring that would have required a non-tracked `../rtl_frontend` checkout on CI:
+  - [rust/Cargo.toml](rust/Cargo.toml)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is a real `rtl_frontend` grammar/proof-surface advance, but not full handwritten-baseline parity closure
+
+### Validation
+- Direct generated-parser replay remained green on the focused reduced samples:
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_always_ff_well_formed.sv`
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_param_header_min.sv`
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_port_only.sv`
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_no_param_same_ports.sv`
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_header_imported_enum_typedef_port.sv`
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_unpacked_array_struct_member_actual.sv`
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_truncated_module_header.sv`
+    - retains the expected rejection
+- The handwritten baseline was replayed locally through a temporary offline probe while curating the contract samples; that replay stayed positive on the four retained positive samples.
+- Targeted `cargo test --manifest-path rust/Cargo.toml --features generated_parsers ... --lib` replays compiled and launched the `pgen` lib-test binary but remained locally inert after `Running unittests src/lib.rs` in this desktop exec environment, so this wave does not claim those lib-test commands as green.
+- `git diff --check`
+
 ## 2026-04-07 - Harden regex registry proof surface
 ### Achievement Summary
 Locked the new regex `1.1.8` seams into the parser-registry proof surface too. The registry adapters that back `parseability_probe` now have focused generated-parser tests proving Unicode literals, mixed ASCII/UTF-8 literal runs, and `50` nested capturing groups survive both the boolean parseability lane and the AST-JSON lane.

@@ -72,6 +72,4 @@ generated_parsers = []
 ebnf_dual_run = []
 
 [dev-dependencies]
-
-
 serde_json = "1.0"

@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-07T12:08:02.730037+00:00",
+    "generated_at": "2026-04-07T23:56:51.211981+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "grammars/rtl_frontend.ebnf",
@@ -718,16 +718,71 @@
         "parameter_declaration_head"
       ],
       [
+        "semantic_annotation",
+        [
+          "branch_policy",
+          "priority_first"
+        ]
+      ],
+      [
         "rule_reference",
         "parameter_flavor"
+      ],
+      [
+        "operator",
+        "&"
+      ],
+      [
+        "group_open",
+        "("
       ],
       [
         "rule_reference",
         "data_type"
       ],
       [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "rule_reference",
+        "data_type"
+      ],
+      [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "equals"
+      ],
+      [
+        "rule_reference",
+        "rtl_expr"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
         "operator",
         "?"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "parameter_flavor"
       ],
       [
         "rule_reference",
@@ -768,7 +823,55 @@
       ],
       [
         "rule_reference",
-        "parameter_declaration_head"
+        "parameter_flavor"
+      ],
+      [
+        "operator",
+        "&"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "data_type"
+      ],
+      [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "rule_reference",
+        "data_type"
+      ],
+      [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "equals"
+      ],
+      [
+        "rule_reference",
+        "rtl_expr"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "?"
       ],
       [
         "operator",
@@ -776,11 +879,87 @@
       ],
       [
         "rule_reference",
-        "data_type"
+        "parameter_flavor"
+      ],
+      [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "equals"
+      ],
+      [
+        "rule_reference",
+        "rtl_expr"
+      ],
+      [
+        "group_close",
+        ")"
       ],
       [
         "operator",
         "?"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "operator",
+        "&"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "data_type"
+      ],
+      [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "rule_reference",
+        "data_type"
+      ],
+      [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "equals"
+      ],
+      [
+        "rule_reference",
+        "rtl_expr"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "operator",
+        "|"
       ],
       [
         "rule_reference",
@@ -2127,7 +2306,7 @@
       ],
       [
         "rule_reference",
-        "le"
+        "less_equal"
       ],
       [
         "operator",
@@ -4430,7 +4609,7 @@
     [
       [
         "rule",
-        "le"
+        "less_equal"
       ],
       [
         "rule_reference",

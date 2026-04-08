@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - rtl_frontend parity debugging: close two generated false negatives and keep the proof surface self-contained
+### Context
+After the self-hosting EBNF verifier gap was repaired, the next honest `rtl_frontend` task was no longer bootstrap survival but generated-vs-handwritten behavior. The immediate goal was to push beyond "parser wired up" into focused parity evidence without poisoning `pgen`'s own build graph with a sibling checkout dependency on `../rtl_frontend`.
+
+### What Was Changed
+- Closed a real token/rule drift bug in [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - `assignment_operator` and the relational surface were still naming `less_equal` even though the tracked token rule had been spelled `le`
+  - the generated parser therefore carried an unresolved `parse_less_equal()` stub/backtrack path
+  - the grammar now consistently uses `less_equal`
+- Closed a real parameter-header ambiguity in [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - untyped forms like `parameter DEPTH = 4` were being stolen by the optional `data_type? identifier` path
+  - the fix was not broad heuristic churn but explicit lookahead:
+    - typed parameter branches now require `&( data_type identifier )`
+    - untyped parameter branches now stay available for ordinary identifier-led headers
+- Regenerated the tracked parser artifacts:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Added a curated tracked generated-contract manifest:
+  - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - this contract is intentionally self-contained inside `pgen`
+  - its provenance explicitly records that the retained samples were curated from local handwritten `rtl_frontend::parse_design` replay during this wave
+- Extended [rust/src/parser_registry.rs](rust/src/parser_registry.rs):
+  - `rtl_frontend_generated_contract_metadata_is_stable`
+  - `rtl_frontend_generated_contract_samples_hold`
+  - these tests now lock the generated parseability/AST-JSON expectations for the curated sample set without importing the sibling handwritten crate
+- Removed the attempted tracked parity-probe/dependency route:
+  - [rust/Cargo.toml](rust/Cargo.toml) no longer points at `../rtl_frontend`
+  - the repo does not now depend on a sibling checkout being present on CI
+
+### Why It Matters
+- `rtl_frontend` now has real focused generated-parser proof beyond simple "module m(...)" smoke tests.
+- The retained grammar bugs were genuine parse failures, not just cost issues:
+  - `<=` could disappear behind token-name drift
+  - parameterized module headers with untyped parameters could fail before the real declarator
+- The new proof surface is safe for GitHub CI because it does not assume that a separate handwritten-frontend repository exists adjacent to `pgen`.
+- The local handwritten replay still mattered, but only as curation/provenance:
+  - it guided which focused samples belong in the tracked generated contract
+  - it is not being misrepresented as a tracked in-repo dependency
+
+### Focused Evidence
+- Direct generated parseability replays stayed green for the retained positives:
+  - `/tmp/rtl_frontend_always_ff_well_formed.sv`
+  - `/tmp/rtl_frontend_param_header_min.sv`
+  - `/tmp/rtl_frontend_unpacked_port_only.sv`
+  - `/tmp/rtl_frontend_no_param_same_ports.sv`
+  - `/tmp/rtl_frontend_header_imported_enum_typedef_port.sv`
+  - `/tmp/rtl_frontend_unpacked_array_struct_member_actual.sv`
+- The malformed retained negative still rejects as expected:
+  - `/tmp/rtl_frontend_truncated_module_header.sv`
+- A temporary offline handwritten probe against the sibling `rtl_frontend` crate stayed green on the four retained positive samples while this contract was being curated.
+
+### Validation
+- `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+- direct `parseability_probe --parse rtl_frontend ...` replays on the retained reduced samples listed above
+- `git diff --check`
+
+### Caveat
+- The focused lib-test commands for the new `rtl_frontend` registry tests (`cargo test --manifest-path rust/Cargo.toml --features generated_parsers ... --lib`) compiled and reached `Running unittests src/lib.rs`, then went locally inert again in this desktop-thread environment. That behavior matches the earlier `rtl_frontend` harness quirk and is being treated as a local harness/execution issue rather than as contrary parser evidence.
+- Because of that, this wave should be read as:
+  - real grammar repair
+  - real self-contained generated-contract hardening
+  - not yet a clean "all targeted lib-test invocations are green in this environment" claim
+
+### Status Impact
+- No live-status row changed.
+- `rtl_frontend` remains `In Progress`.
+- The remaining honest gap is broader parity/proof closure against the handwritten baseline and the rest of the handwritten subset surface, not the old `<=` / parameter-header false negatives.
+
 ## 2026-04-07 - Regex proof hardening: lock parser-registry Unicode and deep-nesting guarantees
 ### Context
 Regex handoff `1.1.8` already closed the three RGX reports in the grammar, generated backend, embedding API, and direct `parseability_probe` replays. The remaining trust gap was narrower: the parser-registry tests themselves did not yet explicitly assert that the registry boolean parseability lane and the registry AST-JSON lane both preserved those same Unicode and `50`-level nesting guarantees.
