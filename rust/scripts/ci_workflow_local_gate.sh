@@ -813,6 +813,9 @@ audit_stimuli_cross_family_platform_surface() {
     'PGEN_EBNF_STIMULI_QUALITY_CONTRACT="${REGEX_CONTRACT_FILE}"'
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'CARGO_BUILD_JOBS="${CROSS_FAMILY_CARGO_BUILD_JOBS}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
     'PGEN_EBNF_STIMULI_QUALITY_COUNT="${REGEX_COUNT}"'
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
@@ -832,6 +835,12 @@ audit_stimuli_cross_family_platform_surface() {
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
     'PGEN_SV_STIMULI_QUALITY_LRM_PROFILES="${SV_LRM_PROFILES}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'PGEN_SV_STIMULI_CARGO_BUILD_JOBS="${CROSS_FAMILY_CARGO_BUILD_JOBS}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'CROSS_FAMILY_CARGO_BUILD_JOBS="${PGEN_STIMULI_CROSS_FAMILY_PLATFORM_CARGO_BUILD_JOBS:-1}"'
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
     'PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS="${SV_TARGET_MAX_ATTEMPTS}"'

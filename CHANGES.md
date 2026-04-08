@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-04-08 - Tame shared stimuli gate runtime spikes
+### Achievement Summary
+Hardened the bounded cross-family stimuli wrapper against local Cargo resource spikes and cut the shared SystemVerilog replay budget to a more realistic platform-lane size. The wrapper now forces single-job Cargo builds across its family slices, the bounded SV slice explicitly records that build throttle, and the shared SV replay budget is trimmed from `200` to `50` attempts.
+
+### Scope of Changes
+- Updated [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh):
+  - added shared wrapper throttle:
+    - `PGEN_STIMULI_CROSS_FAMILY_PLATFORM_CARGO_BUILD_JOBS`
+    - default: `1`
+  - passes `CARGO_BUILD_JOBS="${CROSS_FAMILY_CARGO_BUILD_JOBS}"` into the regex, VHDL, and SystemVerilog family stages
+  - reduced the bounded shared SystemVerilog replay budget:
+    - `SV_TARGET_MAX_ATTEMPTS`: `200 -> 50`
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - added explicit family-gate override:
+    - `PGEN_SV_STIMULI_CARGO_BUILD_JOBS`
+  - both tracked Cargo rebuild phases now honor that override:
+    - `build_ast_pipeline_for_sv_generation`
+    - `build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter`
+  - the emitted gate summary now records:
+    - `cargo_build_jobs`
+- Updated [rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json](rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json):
+  - aligned bounded shared `closed_loop.target_max_attempts` to `50`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - the cross-family stimuli audit now enforces the shared Cargo-build throttle wiring and the new shared bounded-SV settings
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is shared stimuli-platform runtime tuning, not a parser-family closure promotion
+
+### Validation
+- `bash -n rust/scripts/stimuli_cross_family_platform_gate.sh`
+- `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
+- `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+  - updated local evidence is stronger than before:
+    - regex bounded slice passed
+    - VHDL bounded slice passed
+    - the bounded SV slice now clears:
+      - `build_ast_pipeline_for_sv_generation`
+      - `generate_sv_parser`
+      - `build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter`
+      - `profile_2017_closed_loop_initial`
+      - `profile_2017_closed_loop_initial_replay`
+    - the retained remaining cost seam is the bounded SV `profile_2017_closed_loop_replay` stage itself, so I am still not claiming a clean full-green local wrapper completion in this desktop thread
+
 ## 2026-04-08 - Trim redundant SV adapter builds in stimuli gates
 ### Achievement Summary
 Reduced avoidable compile churn in the heavy SystemVerilog stimuli-quality path. The gate no longer builds `ast_pipeline` and `parseability_probe` in two separate generated-adapter passes; it now builds both together in one shared adapter build, matching the leaner VHDL pattern.

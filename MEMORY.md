@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: sv-stimuli-adapter-build-collapse)
+Last updated: 2026-04-08 (+0200, task: shared-stimuli-wrapper-runtime-tuning)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained shared stimuli wrapper runtime-tuning wave:
+  - changed:
+    - [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh)
+    - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)
+    - [rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json](rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - important continuity detail:
+    - the bounded cross-family wrapper was no longer blocked mainly by vague “SV is heavy” intuition
+    - concrete reruns showed:
+      - regex could still hit Cargo kills during the dual-run rebuild
+      - the bounded SV slice could clear contract suites and parser builds, but the wrapper still spent too much time in shared replay cost
+    - the wrapper now forces:
+      - `PGEN_STIMULI_CROSS_FAMILY_PLATFORM_CARGO_BUILD_JOBS=1`
+      - across regex, VHDL, and SystemVerilog
+    - the bounded SV slice now also records and honors:
+      - `PGEN_SV_STIMULI_CARGO_BUILD_JOBS`
+    - the shared bounded SV replay budget is now:
+      - `closed_loop.target_max_attempts=50`
+      - down from `200`
+    - latest local evidence after these changes:
+      - regex bounded slice passed
+      - VHDL bounded slice passed
+      - bounded SV slice cleared:
+        - `build_ast_pipeline_for_sv_generation`
+        - `generate_sv_parser`
+        - `build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter`
+        - `profile_2017_closed_loop_initial`
+        - `profile_2017_closed_loop_initial_replay`
+      - the retained remaining local cost seam is:
+        - `profile_2017_closed_loop_replay`
+  - next best follow-up:
+    - if the shared wrapper needs to go fully green locally, tune the bounded SV replay stage itself next rather than revisiting Cargo-build plumbing again
 - Retained SystemVerilog stimuli adapter-build collapse:
   - changed:
     - [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh)

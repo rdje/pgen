@@ -17,6 +17,7 @@ PARSE_FULL_ENFORCE_MIN_PASS_RATIO_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_ENFORCE_MI
 SAMPLE_COUNT_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_COUNT:-}"
 SEED_BASE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_SEED_BASE:-}"
 TARGET_MAX_ATTEMPTS_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS:-}"
+CARGO_BUILD_JOBS_OVERRIDE="${PGEN_SV_STIMULI_CARGO_BUILD_JOBS:-}"
 LRM_PROFILE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILE:-}"
 LRM_PROFILES_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_LRM_PROFILES:-}"
 STIMULI_MODE_OVERRIDE="${PGEN_SV_STIMULI_QUALITY_MODE:-}"
@@ -720,6 +721,14 @@ run_logged_rust() {
     fi
 }
 
+run_sv_cargo_build() {
+    if [[ -n "$CARGO_BUILD_JOBS_OVERRIDE" ]]; then
+        env CARGO_BUILD_JOBS="$CARGO_BUILD_JOBS_OVERRIDE" "$@"
+    else
+        "$@"
+    fi
+}
+
 run_declared_identifier_contract_suite() {
     local suite_file="$1"
     local enforce="$2"
@@ -1248,6 +1257,12 @@ if ! [[ "$DIFF_MAX_SAMPLES" =~ ^[0-9]+$ ]] || [[ "$DIFF_MAX_SAMPLES" -lt 1 ]]; t
     echo "error: PGEN_SV_STIMULI_DIFF_MAX_SAMPLES must be an integer >= 1" >&2
     exit 2
 fi
+if [[ -n "$CARGO_BUILD_JOBS_OVERRIDE" ]]; then
+    if ! [[ "$CARGO_BUILD_JOBS_OVERRIDE" =~ ^[0-9]+$ ]] || [[ "$CARGO_BUILD_JOBS_OVERRIDE" -lt 1 ]]; then
+        echo "error: PGEN_SV_STIMULI_CARGO_BUILD_JOBS must be an integer >= 1 when set" >&2
+        exit 2
+    fi
+fi
 if ! [[ "$REALISTIC_CORPUS_MAX_CASES" =~ ^[0-9]+$ ]] || [[ "$REALISTIC_CORPUS_MAX_CASES" -lt 0 ]]; then
     echo "error: PGEN_SV_STIMULI_REALISTIC_CORPUS_MAX_CASES must be an integer >= 0" >&2
     exit 2
@@ -1652,6 +1667,7 @@ echo "closed_loop_effective_enabled: $closed_loop_effective_enabled"
 echo "closed_loop_gap_report_threshold: $gap_report_threshold"
 echo "closed_loop_target_max_attempts: $target_max_attempts"
 echo "closed_loop_target_max_attempts_source: $target_max_attempts_source"
+echo "cargo_build_jobs: ${CARGO_BUILD_JOBS_OVERRIDE:-<default>}"
 echo "closed_loop_replay_sample_count: $replay_sample_count"
 echo "closed_loop_require_non_increasing_target_debt: $require_non_increasing_target_debt"
 echo "closed_loop_parseability_shadow_contract_enabled: $parseability_shadow_contract_enabled"
@@ -1715,7 +1731,7 @@ run_logged "context_legality_contract_suite" \
 echo "profile,sample,seed,coverage_gap_initial,gap_replay,stimuli_generate,parseability_attempts,parseability_accepted,parseability_rejected,parseability_parser_rejections,parseability_generation_errors,parseability_empty_generations,parseability_acceptance_rate_percent,preprocess,semantic_validate,parse_full,warnings,errors,status,notes" >"$SUMMARY_CSV"
 
 run_logged_rust "build_ast_pipeline_for_sv_generation" \
-    cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+    run_sv_cargo_build cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
 
 if [[ ! -x "$AST_PIPELINE_BIN" ]]; then
     echo "error: ast_pipeline binary is missing at '$AST_PIPELINE_BIN' after build" >&2
@@ -1735,7 +1751,7 @@ run_logged "generate_sv_parser" \
 require_nonempty_file "$parser_out"
 
 run_logged_rust "build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter" \
-    env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
+    run_sv_cargo_build env PGEN_SYSTEMVERILOG_PARSER_PATH="$parser_out" \
     cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline --bin parseability_probe
 if [[ ! -x "$PARSE_PROBE_BIN" ]]; then
     echo "error: parseability_probe binary is missing at '$PARSE_PROBE_BIN' after adapter build" >&2

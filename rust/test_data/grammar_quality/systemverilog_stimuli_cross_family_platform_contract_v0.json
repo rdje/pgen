@@ -86,7 +86,7 @@
   "closed_loop": {
     "enabled": true,
     "gap_report_threshold": 1,
-    "target_max_attempts": 200,
+    "target_max_attempts": 50,
     "replay_sample_count": 1,
     "require_non_increasing_target_debt": true,
     "parseability_shadow_enabled": true

@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - Shared stimuli wrapper runtime tuning: throttle Cargo and trim bounded SV replay
+### Context
+The first bounded cross-family replay wrapper was structurally right but still too close to full family-gate cost in local practice. The earlier SystemVerilog adapter-build collapse removed one duplication point, but the next concrete reruns showed two more shared-wrapper problems: regex could still hit a Cargo kill during the dual-run rebuild, and even after the build seam was fixed the bounded SV replay budget remained expensive enough to dominate the whole wrapper.
+
+### What Was Changed
+- Updated [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh):
+  - introduced shared wrapper-level Cargo throttling:
+    - `PGEN_STIMULI_CROSS_FAMILY_PLATFORM_CARGO_BUILD_JOBS`
+    - default: `1`
+  - propagates `CARGO_BUILD_JOBS` into all three family slices:
+    - regex
+    - VHDL
+    - SystemVerilog
+  - reduced the shared bounded SystemVerilog replay budget:
+    - `SV_TARGET_MAX_ATTEMPTS`: `200 -> 50`
+- Updated [rust/scripts/sv_stimuli_quality_gate.sh](rust/scripts/sv_stimuli_quality_gate.sh):
+  - introduced explicit gate-side override:
+    - `PGEN_SV_STIMULI_CARGO_BUILD_JOBS`
+  - both tracked Cargo build phases now honor that override and report it in the gate summary
+- Updated [rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json](rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json):
+  - aligned the bounded shared `closed_loop.target_max_attempts` setting to `50`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - the local workflow audit now enforces the shared throttle wiring and the new bounded SV setting
+
+### Why It Matters
+- The cross-family platform lane now treats Cargo parallelism as a wrapper-level resource budget instead of leaving each family slice to spike independently.
+- The bounded shared SV leg is more honestly a platform proof lane now:
+  - it still uses the real SV family machinery
+  - but it no longer pretends that a `200`-attempt replay search is necessary just to validate a shared stimuli change
+- The local evidence did improve materially:
+  - regex bounded slice passed
+  - VHDL bounded slice passed
+  - the SV slice now clears both Cargo rebuild phases and reaches real `profile_2017_closed_loop_replay` work
+- The retained caveat is narrower and more honest:
+  - the remaining local cost seam is no longer Cargo setup
+  - it is the bounded SV replay stage itself
+
+### Steering
+- Treat shared wrapper-level resource throttles as legitimate platform engineering, not as weakening of the underlying family gates.
+- Keep deep SV replay/search cost in the real SV family lane; keep the cross-family wrapper representative but intentionally lighter.
+- If the shared gate needs more tuning later, prefer wrapper-budget changes like this over mutating the full family-quality contracts.
+
 ## 2026-04-08 - Stimuli runtime hygiene: collapse duplicate SystemVerilog adapter builds
 ### Context
 The new bounded cross-family stimuli gate proved the right structural idea, but local replay also exposed a practical cost seam: the SystemVerilog quality path was still rebuilding `ast_pipeline` and `parseability_probe` in two separate generated-adapter passes. That duplicated compile work every time the shared stimuli wrapper hit the SV lane.
