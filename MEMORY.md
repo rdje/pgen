@@ -21,6 +21,13 @@ Use this file to resume work without replaying full chat history.
       3. stronger near-valid negative generation
       4. corpus export/promotion
       5. smarter shrinkers
+    - the minimum future validation set for major stimuli-generator upgrades is now explicit too:
+      - `systemverilog`
+      - `vhdl`
+      - `regex`
+    - intent:
+      - active families should benefit from the stronger generator
+      - closed families should serve as regression sentinels
     - the preserved steering explicitly says:
       - the EBNF-based stimuli generator was the right architectural move
       - PGEN should prioritize grammar-aware mutation, constrained-random steering, stronger near-valid negatives, corpus export/promotion, and smarter shrinkers

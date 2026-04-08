@@ -67,6 +67,13 @@ Tracker note (2026-04-08): stimuli-generation strengthening now has an explicit 
 Execution rule:
 - treat this as a future platform-strengthening queue, not as a justification to deprioritize the current active closure work
 - when the stimuli track is resumed, start from the preserved guidance in the stimuli spec and this ordered roadmap note rather than reopening the generic-fuzz-crates debate from scratch
+- major stimuli-generator upgrades should be validated across both active and closed parser families, with at least:
+  - `systemverilog`
+  - `vhdl`
+  - `regex`
+- use that cross-family replay requirement to prove two things at once:
+  - the upgraded generator improves useful stress capability on active families
+  - the upgraded generator does not silently regress already-closed families that depend on shared stimuli infrastructure
 
 Tracker note (2026-03-30): the next retained `systemverilog_preprocessor` reduction was stimuli-only, not a shared parser narrowing. [grammars/systemverilog_preprocessor.ebnf](grammars/systemverilog_preprocessor.ebnf) now steers `directive_tail` with `@sample: " tail"` so the quality lane stops inventing fake same-line directive tails while parser acceptance stays unchanged. Fresh proof on the focused preprocessor seam now records `parseability_attempts_total=39`, `parseability_accepted_total=33`, `parseability_rejected_total=6`, `parseability_parser_rejections_total=6`, `parseability_counterexamples_captured_total=6`, `stage0_target_count=22`, and `final_targets=0` in [sv_preprocessor_aggregate_contract_gate](rust/scripts/sv_preprocessor_aggregate_contract_gate.sh). Future work should keep this classification straight:
 - keep stimuli-only steering fixes like this one in the grammar/annotation layer when they improve the quality lane without narrowing the parser surface

@@ -16,6 +16,12 @@ Captured the full 2026-04-08 strategic guidance on how to strengthen PGEN’s EB
     - stronger near-valid negative generation
     - corpus export/promotion
     - smarter shrinkers
+- Extended that preserved/planned guidance with an explicit validation policy:
+  - major stimuli-generator upgrades should be stressed against at least:
+    - `systemverilog`
+    - `vhdl`
+    - `regex`
+  - active families should benefit from the stronger generator, while already-closed families should act as regression sentinels
 - Synced continuity / live tracker docs:
   - [CHANGES.md](CHANGES.md)
   - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)

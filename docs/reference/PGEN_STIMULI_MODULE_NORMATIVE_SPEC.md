@@ -162,6 +162,14 @@ This section intentionally preserves the full strategic guidance from the 2026-0
 > 4. corpus export/promotion
 > 5. smarter shrinkers
 >
+> Validation policy for that future work:
+> - treat stimuli-generator upgrades as shared platform changes, not grammar-local experiments
+> - major generator improvements should be exercised against at least:
+>   - `systemverilog`
+>   - `vhdl`
+>   - `regex`
+> - active families should benefit from the stronger generator, and already-closed families should serve as regression sentinels
+>
 > That path gives you a genuinely stronger PGEN-native fuzz/stimuli system without needing `libfuzzer-sys` or `arbitrary` right now.
 
 ## Change Control

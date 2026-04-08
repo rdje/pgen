@@ -25,6 +25,13 @@ The project had just revisited whether generic fuzz crates such as `libfuzzer-sy
     3. stronger near-valid negative generation
     4. corpus export/promotion
     5. smarter shrinkers
+  - recorded the cross-family validation rule explicitly too:
+    - major generator upgrades should be exercised against at least:
+      - `systemverilog`
+      - `vhdl`
+      - `regex`
+    - active families should benefit from the stronger generator
+    - closed families should act as regression sentinels
 - Updated continuity docs so future sessions can discover that preserved guidance quickly:
   - [CHANGES.md](CHANGES.md)
   - [MEMORY.md](MEMORY.md)
@@ -46,6 +53,7 @@ The project had just revisited whether generic fuzz crates such as `libfuzzer-sy
   3. stronger near-valid negative generation
   4. corpus export/promotion
   5. smarter shrinkers
+- Treat `systemverilog`, `vhdl`, and `regex` as the minimum required cross-family replay set for any major stimuli-generator upgrade.
 - Revisit `libfuzzer-sys` or `arbitrary` only if PGEN later wants an optional external execution backend or typed non-source fuzz harnesses; do not let those crates displace the PGEN-native grammar-aware path.
 
 ## 2026-04-08 - rtl_frontend parity debugging: close two generated false negatives and keep the proof surface self-contained
