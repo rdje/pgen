@@ -141,6 +141,12 @@
       "sample": "module leaf #(\n    parameter WIDTH = 8\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [WIDTH-1:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] b,\n    input logic en,\n    output logic [7:0] y\n);\nlogic [7:0] mid;\nassign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};\ngenerate\n    if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end\nendgenerate\nendmodule\n"
     },
     {
+      "label": "generate_if_named_port_trailing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module leaf #(\n    parameter WIDTH = 8\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [WIDTH-1:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] b,\n    input logic en,\n    output logic [7:0] y\n);\nlogic [7:0] mid;\nassign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};\ngenerate\n    if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y),);\n    end\nendgenerate\nendmodule\n"
+    },
+    {
       "label": "truncated_module_header",
       "expected_parse_ok": false,
       "require_ast_json": false,

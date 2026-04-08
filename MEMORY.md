@@ -9960,3 +9960,17 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - status truth:
     - this is focused proof-surface widening, not a live-status promotion
+- 2026-04-08: the curated `rtl_frontend` generated contract now includes a nearby malformed generate/dataflow reject too.
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `generate_if_named_port_trailing_comma`
+  - retained reject:
+    - same overall generate/dataflow frame as the accepted sample
+    - malformed named-port connection list ending with a trailing comma
+  - verified:
+    - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_generate_dataflow_bad_named_port.sv`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - status truth:
+    - this is focused rejected-surface widening, not a live-status promotion

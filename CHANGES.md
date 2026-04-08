@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-08 - Expand rtl_frontend rejection samples
+### Achievement Summary
+Widened the curated `rtl_frontend` rejected surface around the new generate/dataflow lane. The manifest now also locks a malformed named-port instantiation variant with a trailing comma inside the generated `leaf` instantiation, so the focused contract proves that the positive combined generate/dataflow sample is accepted while the nearby malformed named-port form is still rejected.
+
+### Scope of Changes
+- Expanded the curated `rtl_frontend` generated-contract manifest:
+  - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - added:
+    - `generate_if_named_port_trailing_comma`
+- The new retained rejection sample:
+  - stays adjacent in shape to `generate_if_with_dataflow_and_named_instantiation`
+  - keeps the same overall generate/dataflow frame
+  - intentionally uses:
+    - `leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y),);`
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is focused rejected-surface widening inside the curated generated contract, not broader parity closure
+
+### Validation
+- Focused repro:
+  - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_generate_dataflow_bad_named_port.sv`
+  - result:
+    - `parse_full rejected`
+- Direct gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity replay:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-08 - Expand rtl_frontend generated contract sample set
 ### Achievement Summary
 Widened the curated `rtl_frontend` generated contract with a realistic combined generate/dataflow sample. The focused manifest now also locks a small `generate if` plus continuous-dataflow plus named-instantiation surface, which is closer to the still-open mixed-expression/procedural/dataflow debt called out by the live row without trying to overclaim broader handwritten-baseline parity.

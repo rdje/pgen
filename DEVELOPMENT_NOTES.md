@@ -30489,3 +30489,40 @@ Architectural north star:
   - continuity consequence:
     - the curated `rtl_frontend` contract is now slightly closer to the open live gap rather than only replaying the earlier reduced seams
     - this is still a focused proof-surface widening wave, not broader handwritten-baseline parity closure
+- 2026-04-08: the curated `rtl_frontend` contract now also has a nearby malformed rejection sample for the generate/dataflow lane.
+  - motivation:
+    - the previous wave added a realistic accepted sample combining:
+      - continuous ternary dataflow
+      - concatenations
+      - `generate if`
+      - named parameter override
+      - named port instantiation
+    - that positive sample is stronger when paired with a nearby malformed negative rather than only the older generic `module top (` reject
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `generate_if_named_port_trailing_comma`
+    - retained malformed shape:
+      - the same overall generate/dataflow frame as the accepted sample
+      - but the named-port instantiation ends with:
+        - `.a(mid), .y(y),`
+      - which should remain rejected because `port_connection_list := port_connection ( comma port_connection )*` does not admit a trailing comma
+  - proof replay:
+    - focused repro:
+      - `parseability_probe --parse rtl_frontend /tmp/rtl_frontend_generate_dataflow_bad_named_port.sv`
+      - result:
+        - `parse_full rejected`
+    - direct gate:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - result:
+        - passed on the widened positive/negative set
+    - filtered workflow parity replay:
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - result:
+        - audits cleared
+        - exported tracked-tree workflow replay passed
+  - continuity consequence:
+    - the curated `rtl_frontend` contract now proves both sides of this focused generate/dataflow seam:
+      - the realistic accepted form
+      - the adjacent malformed named-port trailing-comma reject
+    - this is still focused generated-contract widening, not broader handwritten-baseline parity closure
