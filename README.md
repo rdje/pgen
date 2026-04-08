@@ -119,6 +119,9 @@ PGEN is a production-focused parser and stimuli generator platform.
     - regex via the regex-only EBNF stimuli contract
     - VHDL via bounded closed-loop replay
     - SystemVerilog via bounded single-profile (`2017`) `sv_parseable_file` closed-loop replay
+  - emits:
+    - `rust/target/stimuli_cross_family_platform_gate/summary.txt`
+    - `rust/target/stimuli_cross_family_platform_gate/summary.json`
 - SV quality gate:
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - bounded replay rerun example:

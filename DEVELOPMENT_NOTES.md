@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - Shared stimuli wrapper proof surface: aggregate `summary.json`
+### Context
+The bounded cross-family stimuli wrapper was now locally green, but its proof artifact surface still lagged behind the stronger aggregate gates: it only emitted a text summary. That made the wrapper harder to consume mechanically in future SOTA rollups, CI artifact triage, and downstream proof-surface reuse.
+
+### What Was Changed
+- Updated [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh):
+  - added wrapper-level `summary.json`
+  - aggregates the real child family outputs instead of inventing a parallel synthetic report:
+    - regex metrics from the regex stimuli CSV/summary
+    - VHDL metrics from the bounded VHDL summary surface
+    - SystemVerilog metrics from the bounded SV summary surface
+  - records:
+    - wrapper config
+    - child stage logs
+    - child summary paths
+    - bounded family metrics, including the retained shared SV mode `sv_parseable_file`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - the local audit now locks this machine-readable proof surface instead of only the shell wiring
+
+### Why It Matters
+- The shared stimuli lane is now easier to consume as a real proof artifact instead of a human-only log bundle.
+- This lowers the friction for future:
+  - top-level summary aggregation
+  - CI artifact inspection
+  - cross-family stimuli-regression comparisons
+- It also makes the bounded shared lane feel more like the other serious proof gates in the repo, which already emit `summary.json`.
+
+### Steering
+- Keep the wrapper summary aggregated from the real child gate outputs rather than duplicating their logic.
+- If future stimuli-generator upgrades widen this wrapper, reflect the new proof surface in the shared `summary.json` first so the change remains machine-auditable.
+
 ## 2026-04-08 - Shared stimuli wrapper closure: switch bounded SV slice to `sv_parseable_file`
 ### Context
 The shared cross-family wrapper had already been fixed at the build/runtime level, but the remaining local long pole was still the bounded SV replay search itself. The crucial discovery from a focused probe was that the shared wrapper was using the `sv_file` default mode, which started from an enormous `2693`-target initial gap even with just one sample. That was too much search debt for a platform-validation lane.

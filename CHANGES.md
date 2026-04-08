@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-08 - Emit shared stimuli wrapper summary.json
+### Achievement Summary
+Extended the bounded cross-family stimuli wrapper with a machine-readable aggregate proof artifact. The wrapper no longer stops at `summary.txt`; it now emits [rust/target/stimuli_cross_family_platform_gate/summary.json](rust/target/stimuli_cross_family_platform_gate/summary.json) with the bounded regex, VHDL, and SystemVerilog family-slice metrics that the local and CI replay lanes actually executed.
+
+### Scope of Changes
+- Updated [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh):
+  - added top-level machine-readable proof output:
+    - `SUMMARY_JSON="$REPORT_DIR/summary.json"`
+  - records:
+    - wrapper config (`cargo_build_jobs`, bounded target budgets, SV mode/profile surface)
+    - per-stage log and summary paths
+    - per-family replay metrics extracted from the real child gate summaries
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - the cross-family stimuli audit now enforces that the wrapper emits and reports `summary.json`
+- Updated [README.md](README.md):
+  - documents both emitted wrapper summary artifacts:
+    - `summary.txt`
+    - `summary.json`
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is proof-surface strengthening for the shared stimuli platform lane, not a parser-family maturity change
+
+### Validation
+- `bash -n rust/scripts/stimuli_cross_family_platform_gate.sh`
+- `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+- `jq -e '.gate == "stimuli_cross_family_platform_gate" and .status == "pass" and .families.systemverilog.stimuli_mode == "sv_parseable_file"' rust/target/stimuli_cross_family_platform_gate/summary.json`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=stimuli-cross-family-platform-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-08 - Close bounded cross-family stimuli wrapper locally
 ### Achievement Summary
 Promoted the bounded cross-family stimuli wrapper from “partially proven but caveated” to a clean local green replay. The key final change was to switch the shared SystemVerilog slice onto `sv_parseable_file`, which collapses the initial bounded target surface from the old `2693`-target `sv_file` shape down to `53` targets while still exercising the real SV family gate and its semantic contract suites.

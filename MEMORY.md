@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: shared-stimuli-wrapper-green-closure)
+Last updated: 2026-04-08 (+0200, task: shared-stimuli-wrapper-summary-json)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained shared stimuli wrapper summary-json wave:
+  - changed:
+    - [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+  - important continuity detail:
+    - the bounded shared stimuli wrapper now emits:
+      - `rust/target/stimuli_cross_family_platform_gate/summary.txt`
+      - `rust/target/stimuli_cross_family_platform_gate/summary.json`
+    - the new machine-readable wrapper summary aggregates the real child gate outputs instead of inventing a parallel reporting path:
+      - regex metrics from the regex stimuli summary CSV / text surface
+      - VHDL metrics from the bounded VHDL gate summary
+      - SystemVerilog metrics from the bounded SV gate summary
+    - the retained key bounded SV facts are now visible directly in the wrapper JSON:
+      - `stimuli_mode=sv_parseable_file`
+      - `closed_loop_initial_targets_total=53`
+      - `closed_loop_replay_targets_total=21`
+  - next best follow-up:
+    - if future top-level proof rollups need a shared stimuli-platform dependency, prefer consuming this wrapper `summary.json` instead of scraping `summary.txt`
 - Retained shared stimuli wrapper green-closure wave:
   - changed:
     - [rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json](rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json)

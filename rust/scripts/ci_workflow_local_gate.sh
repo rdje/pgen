@@ -816,7 +816,16 @@ audit_stimuli_cross_family_platform_surface() {
 
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'SUMMARY_JSON="${REPORT_DIR}/summary.json"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
     'PGEN_EBNF_STIMULI_QUALITY_CONTRACT="${REGEX_CONTRACT_FILE}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'echo "generated_at_utc: ${generated_at_utc}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'echo "summary_json: ${SUMMARY_JSON}"'
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
     'CARGO_BUILD_JOBS="${CROSS_FAMILY_CARGO_BUILD_JOBS}"'
@@ -844,6 +853,12 @@ audit_stimuli_cross_family_platform_surface() {
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
     'PGEN_SV_STIMULI_CARGO_BUILD_JOBS="${CROSS_FAMILY_CARGO_BUILD_JOBS}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    '--arg summary_json "${SUMMARY_JSON}"'
+  assert_file_contains \
+    "rust/scripts/stimuli_cross_family_platform_gate.sh" \
+    'summary_json: $summary_json'
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \
     'CROSS_FAMILY_CARGO_BUILD_JOBS="${PGEN_STIMULI_CROSS_FAMILY_PLATFORM_CARGO_BUILD_JOBS:-1}"'
