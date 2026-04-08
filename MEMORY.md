@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: stimuli-near-valid-negative-generation)
+Last updated: 2026-04-09 (+0200, task: stimuli-corpus-bundle-export)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,49 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained initial stimuli corpus-bundle export wave:
+  - changed:
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - important continuity detail:
+    - the fourth queued stimuli-platform upgrade is now landed:
+      - corpus export / promotion groundwork
+    - new CLI control:
+      - `--stimuli-corpus-json PATH`
+    - current shipped bundle surface:
+      - direct generation export
+      - generated stimuli module export
+      - minimized coverage-guided fuzz export
+    - replay / provenance surface retained in the bundle now includes:
+      - emitted samples
+      - generation config / replay identity
+      - coverage summary
+      - parseability summary / counterexamples when available
+      - coverage-guided fuzz replay metadata when available
+    - minimized fuzz bundle members now preserve:
+      - source seed
+      - parseability
+      - new rule hits
+      - new branch hits
+      - normalized coverage tokens
+    - important module-surface contract retained:
+      - when `--generate-stimuli-module` is run without `--seed`, exported bundles preserve:
+        - `requested_seed = null`
+        - `effective_seed = 1`
+    - real bounded cross-family proof now retained:
+      - direct bundle export works for `regex`
+      - direct bundle export works for `vhdl`
+      - direct bundle export works for `systemverilog`
+      - module-surface bundle export works for `regex`
+      - minimized coverage-guided fuzz bundle export works for `regex`
+    - important local-proof nuance:
+      - direct `.ebnf` runtime replays require the feature-built `ast_pipeline` binary
+      - a plain non-feature `cargo build --bin ast_pipeline` will overwrite `rust/target/debug/ast_pipeline` and remove `.ebnf` runtime support until the feature build is repeated
+  - next best follow-up:
+    - continue the preserved stimuli backlog from item `5`:
+      - smarter shrinkers
 - Retained initial near-valid negative-generation wave:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)

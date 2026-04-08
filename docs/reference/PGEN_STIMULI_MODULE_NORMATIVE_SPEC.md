@@ -122,6 +122,58 @@ Implications:
   - `systemverilog`
 - This should be treated as the third executed item from the preserved stimuli-strengthening backlog, not as the finished end-state of negative generation support.
 
+## Current Corpus Export Contract (2026-04-09)
+- `--stimuli-corpus-json PATH` emits a deterministic machine-readable corpus bundle for:
+  - `--generate-stimuli`
+  - `--generate-stimuli-module`
+- The emitted bundle is canonicalized JSON and currently includes:
+  - grammar identity:
+    - `grammar_name`
+    - optional `grammar_profile`
+    - `entry_rule`
+  - generation identity:
+    - `generation_surface`
+      - `generate_stimuli`
+      - `generate_stimuli_module`
+    - `corpus_origin_mode`
+      - `direct_generation`
+      - `parseability_filtered_generation`
+      - `gap_priority_generation`
+      - `target_driven_generation`
+      - `coverage_guided_fuzz_minimized`
+  - requested/generated sample counts
+  - replay-relevant stimuli config:
+    - requested/effective seed
+    - deterministic-replay flag
+    - depth/repeat/rule-visit budgets
+    - recovery / negative / constraint / mutation profiles
+    - parseability settings
+    - coverage-guided fuzz round/seed-start settings
+  - emitted sample corpus
+  - merged coverage metrics
+  - optional parseability summary / target-drive validation / counterexamples
+  - optional coverage-guided fuzz replay report
+- Module-mode seed contract:
+  - `requested_seed` may be absent
+  - `effective_seed` still records the deterministic module default `1`
+- Coverage-guided fuzz promotion contract:
+  - when `corpus_origin_mode = coverage_guided_fuzz_minimized`, exported samples retain bounded promotion metadata:
+    - `source_seed`
+    - `new_rule_hits`
+    - `new_branch_hits`
+    - `coverage_tokens`
+  - this is the first landed bridge between minimized replay corpora and future checked-in contract promotion
+- This bounded slice is validated through:
+  - direct corpus export on:
+    - `regex`
+    - `vhdl`
+    - `systemverilog`
+  - module-surface corpus export on:
+    - `regex`
+  - coverage-guided minimized corpus export on:
+    - `regex`
+- This should be treated as the fourth executed item from the preserved stimuli-strengthening backlog, not as the finished end-state of corpus promotion support.
+
 ## In-Memory vs Module Parity Contract
 When in-memory and module modes run with matched replay identity tuple:
 - generated sample corpus MUST be equivalent,
@@ -148,6 +200,7 @@ mod foolang_stimuli;
 Use the exported metadata constants as compatibility guardrails:
 - check `STIMULI_MODULE_API_VERSION` before consuming fields,
 - use `GENERATION_SEED`/`ENTRY_RULE`/`REQUESTED_SAMPLE_COUNT` for deterministic replay in CI/debug flows.
+- when you need the full replay-relevant invocation shape plus emitted corpus, prefer `--stimuli-corpus-json` over reconstructing context from module constants alone.
 
 ## Non-Goals (Current Contract Boundary)
 - This contract does not require zero parser rejects for arbitrary grammars unless parseability validation is explicitly enabled.

@@ -28,6 +28,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 const STIMULI_MODULE_API_VERSION: u32 = 1;
+const STIMULI_CORPUS_BUNDLE_VERSION: u32 = 1;
 const DEFAULT_STIMULI_MODULE_SEED: u64 = 1;
 
 #[derive(Parser)]
@@ -176,6 +177,10 @@ struct Args {
     /// Write merged stimuli coverage metrics JSON to this path
     #[arg(long)]
     coverage_output: Option<String>,
+
+    /// Write deterministic machine-readable stimuli corpus bundle JSON
+    #[arg(long)]
+    stimuli_corpus_json: Option<String>,
 
     /// Write detailed coverage gap report JSON (reachable/unreachable rules+branches and target plan)
     #[arg(long)]
@@ -392,6 +397,68 @@ struct ParseableStimuliOutcome {
     counterexamples: Vec<ParseabilityCounterexample>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct StimuliCorpusBundleSample {
+    ordinal: usize,
+    sample: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_seed: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parseable: Option<bool>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    new_rule_hits: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    new_branch_hits: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    coverage_tokens: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct StimuliCorpusGenerationConfig {
+    requested_seed: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    effective_seed: Option<u64>,
+    deterministic_replay_possible: bool,
+    max_depth: usize,
+    max_repeat: usize,
+    max_rule_visits: usize,
+    recovery_stimuli_mode: String,
+    stimuli_negative_profile: String,
+    stimuli_constraint_profile: String,
+    stimuli_mutation_mode: String,
+    enforce_word_boundary_spacing: bool,
+    validate_parseability: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parseability_max_attempts: Option<usize>,
+    coverage_guided_fuzz_rounds: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    coverage_guided_fuzz_seed_start: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StimuliCorpusBundle {
+    pgen_stimuli_corpus_bundle_version: u32,
+    grammar_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    grammar_profile: Option<String>,
+    generation_surface: String,
+    corpus_origin_mode: String,
+    entry_rule: String,
+    requested_sample_count: usize,
+    generated_sample_count: usize,
+    generation_config: StimuliCorpusGenerationConfig,
+    samples: Vec<StimuliCorpusBundleSample>,
+    coverage: StimuliCoverageMetrics,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parseability_summary: Option<ParseabilitySummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    target_drive_validation: Option<TargetDriveParseabilityTelemetry>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    parseability_counterexamples: Vec<ParseabilityCounterexample>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    coverage_guided_fuzz_replay: Option<CoverageGuidedFuzzReplayReport>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct TargetDriveParseabilityTelemetry {
     primary_entry_attempts: usize,
@@ -547,6 +614,7 @@ impl CoverageGuidedFuzzReplayReport {
 #[derive(Debug, Clone)]
 struct CoverageGuidedFuzzOutcome {
     minimized_samples: Vec<String>,
+    minimized_bundle_samples: Vec<StimuliCorpusBundleSample>,
     merged_coverage: StimuliCoverageMetrics,
     replay_report: CoverageGuidedFuzzReplayReport,
 }
@@ -554,6 +622,10 @@ struct CoverageGuidedFuzzOutcome {
 #[derive(Debug, Clone)]
 struct FuzzCorpusCandidate {
     sample: String,
+    seed: u64,
+    parseable: Option<bool>,
+    new_rule_hits: Vec<String>,
+    new_branch_hits: Vec<String>,
     coverage_tokens: HashSet<String>,
 }
 
@@ -582,6 +654,7 @@ fn main() -> Result<()> {
             || args.parseability_max_attempts.is_some()
             || args.coverage_input.is_some()
             || args.coverage_output.is_some()
+            || args.stimuli_corpus_json.is_some()
             || args.gap_report_json.is_some()
             || args.gap_report_text.is_some()
             || args.gap_report_threshold != 1
@@ -592,7 +665,7 @@ fn main() -> Result<()> {
             || args.enforce_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--stimuli-negative-profile/--stimuli-constraint-profile/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--stimuli-corpus-json/--gap-report-*/--recovery-stimuli-mode/--stimuli-negative-profile/--stimuli-constraint-profile/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -830,7 +903,7 @@ fn main() -> Result<()> {
             &grammar.grammar_tree,
             &grammar.rule_order,
             grammar.annotations.as_ref(),
-            stimuli_config,
+            stimuli_config.clone(),
         );
         if let Some(coverage_input_path) = args.coverage_input.as_deref() {
             let existing_coverage = load_coverage_metrics(coverage_input_path)?;
@@ -847,6 +920,8 @@ fn main() -> Result<()> {
                 resolved_entry_rule.as_str(),
             )?;
         }
+        let mut parseability_summary: Option<ParseabilitySummary> = None;
+        let mut parseability_counterexamples = Vec::new();
         let samples = if args.validate_parseability {
             let outcome = generate_parseable_stimuli(
                 &grammar.grammar_name,
@@ -856,6 +931,8 @@ fn main() -> Result<()> {
                 Some(resolved_entry_rule.as_str()),
                 args.parseability_max_attempts,
             )?;
+            parseability_summary = Some(outcome.summary.clone());
+            parseability_counterexamples = outcome.counterexamples.clone();
             if let Some(report_path) = args.parseability_report_json.as_deref() {
                 write_parseability_report(
                     report_path,
@@ -894,6 +971,35 @@ fn main() -> Result<()> {
             let coverage_json = serde_json::to_string_pretty(&merged_coverage)?;
             std::fs::write(coverage_output_path, coverage_json)?;
             println!("Wrote stimuli coverage metrics to {}", coverage_output_path);
+        }
+        if let Some(corpus_output_path) = args.stimuli_corpus_json.as_deref() {
+            let corpus_bundle = build_stimuli_corpus_bundle(
+                &grammar.grammar_name,
+                args.grammar_profile.as_deref(),
+                "generate_stimuli_module",
+                if args.validate_parseability {
+                    "parseability_filtered_generation"
+                } else {
+                    "direct_generation"
+                },
+                resolved_entry_rule.as_str(),
+                args.count,
+                args.seed,
+                Some(effective_seed),
+                &stimuli_config,
+                args.validate_parseability,
+                args.parseability_max_attempts,
+                0,
+                None,
+                direct_bundle_samples(&samples),
+                &merged_coverage,
+                parseability_summary.as_ref(),
+                None,
+                &parseability_counterexamples,
+                None,
+            );
+            write_stimuli_corpus_bundle(corpus_output_path, &corpus_bundle)?;
+            println!("Wrote stimuli corpus bundle to {}", corpus_output_path);
         }
         if args.gap_report_json.is_some() || args.gap_report_text.is_some() {
             let mut gap_generator = StimuliGenerator::new(
@@ -1003,6 +1109,7 @@ fn main() -> Result<()> {
         let mut parseability_target_drive_validation: Option<TargetDriveParseabilityTelemetry> =
             None;
         let mut parseability_counterexamples = Vec::new();
+        let mut corpus_samples: Option<Vec<StimuliCorpusBundleSample>> = None;
 
         let mut samples = if args.coverage_guided_fuzz_rounds > 0 {
             let seed_start = args
@@ -1052,6 +1159,7 @@ fn main() -> Result<()> {
                     .take(MAX_PARSEABILITY_COUNTEREXAMPLES)
                     .collect();
             }
+            corpus_samples = Some(fuzz_outcome.minimized_bundle_samples.clone());
             replay_report = Some(fuzz_outcome.replay_report);
             fuzz_outcome.minimized_samples
         } else if let Some(priority_report_input_path) = args.gap_priority_report_input.as_deref() {
@@ -1208,6 +1316,19 @@ fn main() -> Result<()> {
             parseability_summary = Some(summary);
         }
 
+        let corpus_origin_mode = if args.coverage_guided_fuzz_rounds > 0 {
+            "coverage_guided_fuzz_minimized"
+        } else if args.target_report_input.is_some() {
+            "target_driven_generation"
+        } else if args.gap_priority_report_input.is_some() {
+            "gap_priority_generation"
+        } else if args.validate_parseability {
+            "parseability_filtered_generation"
+        } else {
+            "direct_generation"
+        };
+        let corpus_samples = corpus_samples.unwrap_or_else(|| direct_bundle_samples(&samples));
+
         if let Some(report_path) = args.parseability_report_json.as_deref() {
             let Some(summary) = parseability_summary.as_ref() else {
                 return Err(anyhow::anyhow!(
@@ -1258,6 +1379,37 @@ fn main() -> Result<()> {
                 "Wrote coverage-guided fuzz replay report to {}",
                 replay_output_path
             );
+        }
+
+        if let Some(corpus_output_path) = args.stimuli_corpus_json.as_deref() {
+            let effective_seed = if args.coverage_guided_fuzz_rounds > 0 {
+                args.coverage_guided_fuzz_seed_start.or(args.seed).or(Some(1))
+            } else {
+                args.seed
+            };
+            let corpus_bundle = build_stimuli_corpus_bundle(
+                &grammar.grammar_name,
+                args.grammar_profile.as_deref(),
+                "generate_stimuli",
+                corpus_origin_mode,
+                resolved_entry_rule.as_str(),
+                args.count,
+                args.seed,
+                effective_seed,
+                &stimuli_config,
+                args.validate_parseability,
+                args.parseability_max_attempts,
+                args.coverage_guided_fuzz_rounds,
+                args.coverage_guided_fuzz_seed_start,
+                corpus_samples,
+                &merged_coverage,
+                parseability_summary.as_ref(),
+                parseability_target_drive_validation.as_ref(),
+                &parseability_counterexamples,
+                replay_report.as_ref(),
+            );
+            write_stimuli_corpus_bundle(corpus_output_path, &corpus_bundle)?;
+            println!("Wrote stimuli corpus bundle to {}", corpus_output_path);
         }
 
         if args.gap_report_json.is_some() || args.gap_report_text.is_some() {
@@ -1746,6 +1898,117 @@ fn resolve_stimuli_module_seed(seed: Option<u64>) -> u64 {
     seed.unwrap_or(DEFAULT_STIMULI_MODULE_SEED)
 }
 
+fn recovery_stimuli_mode_name(mode: RecoveryStimuliMode) -> &'static str {
+    match mode {
+        RecoveryStimuliMode::Baseline => "baseline",
+        RecoveryStimuliMode::RecoveryBiased => "recovery_biased",
+        RecoveryStimuliMode::NearSyncNegative => "near_sync_negative",
+    }
+}
+
+fn stimuli_negative_profile_name(profile: StimuliNegativeProfile) -> &'static str {
+    match profile {
+        StimuliNegativeProfile::Baseline => "baseline",
+        StimuliNegativeProfile::NearValidLocal => "near_valid_local",
+    }
+}
+
+fn stimuli_constraint_profile_name(profile: StimuliConstraintProfile) -> &'static str {
+    match profile {
+        StimuliConstraintProfile::Baseline => "baseline",
+        StimuliConstraintProfile::RareBranchBiased => "rare_branch_biased",
+        StimuliConstraintProfile::DeepNestingBiased => "deep_nesting_biased",
+    }
+}
+
+fn stimuli_mutation_mode_name(mode: StimuliMutationMode) -> &'static str {
+    match mode {
+        StimuliMutationMode::Baseline => "baseline",
+        StimuliMutationMode::GrammarAwareLocal => "grammar_aware_local",
+    }
+}
+
+fn direct_bundle_samples(samples: &[String]) -> Vec<StimuliCorpusBundleSample> {
+    samples
+        .iter()
+        .enumerate()
+        .map(|(idx, sample)| StimuliCorpusBundleSample {
+            ordinal: idx + 1,
+            sample: sample.clone(),
+            source_seed: None,
+            parseable: None,
+            new_rule_hits: Vec::new(),
+            new_branch_hits: Vec::new(),
+            coverage_tokens: Vec::new(),
+        })
+        .collect()
+}
+
+fn build_stimuli_corpus_bundle(
+    grammar_name: &str,
+    grammar_profile: Option<&str>,
+    generation_surface: &str,
+    corpus_origin_mode: &str,
+    entry_rule: &str,
+    requested_sample_count: usize,
+    requested_seed: Option<u64>,
+    effective_seed: Option<u64>,
+    config: &StimuliConfig,
+    validate_parseability: bool,
+    parseability_max_attempts: Option<usize>,
+    coverage_guided_fuzz_rounds: usize,
+    coverage_guided_fuzz_seed_start: Option<u64>,
+    samples: Vec<StimuliCorpusBundleSample>,
+    coverage: &StimuliCoverageMetrics,
+    parseability_summary: Option<&ParseabilitySummary>,
+    target_drive_validation: Option<&TargetDriveParseabilityTelemetry>,
+    parseability_counterexamples: &[ParseabilityCounterexample],
+    coverage_guided_fuzz_replay: Option<&CoverageGuidedFuzzReplayReport>,
+) -> StimuliCorpusBundle {
+    StimuliCorpusBundle {
+        pgen_stimuli_corpus_bundle_version: STIMULI_CORPUS_BUNDLE_VERSION,
+        grammar_name: grammar_name.to_string(),
+        grammar_profile: grammar_profile.map(str::to_string),
+        generation_surface: generation_surface.to_string(),
+        corpus_origin_mode: corpus_origin_mode.to_string(),
+        entry_rule: entry_rule.to_string(),
+        requested_sample_count,
+        generated_sample_count: samples.len(),
+        generation_config: StimuliCorpusGenerationConfig {
+            requested_seed,
+            effective_seed,
+            deterministic_replay_possible: effective_seed.is_some(),
+            max_depth: config.max_depth,
+            max_repeat: config.max_repeat,
+            max_rule_visits: config.max_rule_visits,
+            recovery_stimuli_mode: recovery_stimuli_mode_name(config.recovery_mode).to_string(),
+            stimuli_negative_profile: stimuli_negative_profile_name(config.negative_profile)
+                .to_string(),
+            stimuli_constraint_profile: stimuli_constraint_profile_name(config.constraint_profile)
+                .to_string(),
+            stimuli_mutation_mode: stimuli_mutation_mode_name(config.mutation_mode).to_string(),
+            enforce_word_boundary_spacing: config.enforce_word_boundary_spacing,
+            validate_parseability,
+            parseability_max_attempts,
+            coverage_guided_fuzz_rounds,
+            coverage_guided_fuzz_seed_start,
+        },
+        samples,
+        coverage: coverage.clone(),
+        parseability_summary: parseability_summary.cloned(),
+        target_drive_validation: target_drive_validation.cloned(),
+        parseability_counterexamples: parseability_counterexamples.to_vec(),
+        coverage_guided_fuzz_replay: coverage_guided_fuzz_replay.cloned(),
+    }
+}
+
+fn write_stimuli_corpus_bundle(path: &str, bundle: &StimuliCorpusBundle) -> Result<()> {
+    ensure_parent_dir_exists(path)?;
+    let json = encode_canonical_json(bundle, true)?;
+    std::fs::write(path, json)?;
+    Ok(())
+}
+
 fn generate_stimuli_module_source(
     grammar_name: &str,
     seed: u64,
@@ -2157,6 +2420,7 @@ fn run_coverage_guided_fuzz_loop(
     if rounds == 0 {
         return Ok(CoverageGuidedFuzzOutcome {
             minimized_samples: Vec::new(),
+            minimized_bundle_samples: Vec::new(),
             merged_coverage: initial_coverage,
             replay_report: CoverageGuidedFuzzReplayReport {
                 grammar_name: grammar_name.to_string(),
@@ -2265,6 +2529,10 @@ fn run_coverage_guided_fuzz_loop(
                 }
                 corpus_candidates.push(FuzzCorpusCandidate {
                     sample: sample_text.clone(),
+                    seed,
+                    parseable,
+                    new_rule_hits: new_rule_hits.clone(),
+                    new_branch_hits: new_branch_hits.clone(),
                     coverage_tokens,
                 });
             }
@@ -2284,10 +2552,28 @@ fn run_coverage_guided_fuzz_loop(
     }
 
     let minimized_indices = minimize_fuzz_corpus_cases(&corpus_candidates);
-    let minimized_samples = minimized_indices
+    let minimized_bundle_samples = minimized_indices
         .into_iter()
-        .map(|idx| corpus_candidates[idx].sample.clone())
-        .collect::<Vec<String>>();
+        .enumerate()
+        .map(|(ordinal, idx)| {
+            let candidate = &corpus_candidates[idx];
+            let mut coverage_tokens = candidate.coverage_tokens.iter().cloned().collect::<Vec<_>>();
+            coverage_tokens.sort();
+            StimuliCorpusBundleSample {
+                ordinal: ordinal + 1,
+                sample: candidate.sample.clone(),
+                source_seed: Some(candidate.seed),
+                parseable: candidate.parseable,
+                new_rule_hits: candidate.new_rule_hits.clone(),
+                new_branch_hits: candidate.new_branch_hits.clone(),
+                coverage_tokens,
+            }
+        })
+        .collect::<Vec<_>>();
+    let minimized_samples = minimized_bundle_samples
+        .iter()
+        .map(|sample| sample.sample.clone())
+        .collect::<Vec<_>>();
     let minimized_case_count = minimized_samples.len();
     let accepted_cases = replay_cases.iter().filter(|case| case.accepted).count();
     let rejected_cases = replay_cases.len().saturating_sub(accepted_cases);
@@ -2302,6 +2588,7 @@ fn run_coverage_guided_fuzz_loop(
 
     Ok(CoverageGuidedFuzzOutcome {
         minimized_samples,
+        minimized_bundle_samples,
         merged_coverage,
         replay_report: CoverageGuidedFuzzReplayReport {
             grammar_name: grammar_name.to_string(),
@@ -2717,21 +3004,21 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        canonicalize_json_value, coverage_branch_hit_delta, default_parser_output_path,
-        default_stimuli_module_output_path, ensure_generated_parseability_entry_rule_supported,
-        extract_parse_error_position, generate_stimuli_module_source, is_ebnf_input_path,
-        maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
-        parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
-        parse_recovery_stimuli_mode, parse_stimuli_constraint_profile,
-        parse_stimuli_mutation_mode, parse_stimuli_negative_profile,
-        resolve_parseability_max_attempts,
+        build_stimuli_corpus_bundle, canonicalize_json_value, coverage_branch_hit_delta,
+        default_parser_output_path, default_stimuli_module_output_path, direct_bundle_samples,
+        ensure_generated_parseability_entry_rule_supported, extract_parse_error_position,
+        generate_stimuli_module_source, is_ebnf_input_path, maybe_dump_generation_ast,
+        minimize_failing_input, minimize_fuzz_corpus_cases, parse_error_context_excerpt,
+        parse_error_line_column, parse_error_line_excerpt, parse_recovery_stimuli_mode,
+        parse_stimuli_constraint_profile, parse_stimuli_mutation_mode,
+        parse_stimuli_negative_profile, resolve_parseability_max_attempts,
         resolve_stimuli_module_seed, supported_generated_parseability_grammars,
         supports_generated_parseability, write_parseability_report, FuzzCorpusCandidate,
-        LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary, StimuliCoverageMetrics,
-        TargetDriveParseabilityTelemetry,
+        LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
+        StimuliCorpusBundleSample, StimuliCoverageMetrics, TargetDriveParseabilityTelemetry,
     };
     use pgen::ast_pipeline::stimuli_generator::{
-        BranchCoverageGroup, RecoveryStimuliMode, StimuliConstraintProfile,
+        BranchCoverageGroup, RecoveryStimuliMode, StimuliConfig, StimuliConstraintProfile,
         StimuliMutationMode, StimuliNegativeProfile, TargetDriveValidationSummary,
     };
     use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
@@ -3048,14 +3335,26 @@ mod tests {
         let cases = vec![
             FuzzCorpusCandidate {
                 sample: "alpha".to_string(),
+                seed: 1,
+                parseable: Some(true),
+                new_rule_hits: vec!["a".to_string()],
+                new_branch_hits: Vec::new(),
                 coverage_tokens: c0_tokens,
             },
             FuzzCorpusCandidate {
                 sample: "beta".to_string(),
+                seed: 2,
+                parseable: Some(true),
+                new_rule_hits: vec!["b".to_string()],
+                new_branch_hits: Vec::new(),
                 coverage_tokens: c1_tokens,
             },
             FuzzCorpusCandidate {
                 sample: "both".to_string(),
+                seed: 3,
+                parseable: Some(true),
+                new_rule_hits: vec!["a".to_string(), "b".to_string()],
+                new_branch_hits: Vec::new(),
                 coverage_tokens: c2_tokens,
             },
         ];
@@ -3069,14 +3368,26 @@ mod tests {
         let cases = vec![
             FuzzCorpusCandidate {
                 sample: "longer".to_string(),
+                seed: 1,
+                parseable: None,
+                new_rule_hits: Vec::new(),
+                new_branch_hits: Vec::new(),
                 coverage_tokens: HashSet::new(),
             },
             FuzzCorpusCandidate {
                 sample: "x".to_string(),
+                seed: 2,
+                parseable: None,
+                new_rule_hits: Vec::new(),
+                new_branch_hits: Vec::new(),
                 coverage_tokens: HashSet::new(),
             },
             FuzzCorpusCandidate {
                 sample: "mid".to_string(),
+                seed: 3,
+                parseable: None,
+                new_rule_hits: Vec::new(),
+                new_branch_hits: Vec::new(),
                 coverage_tokens: HashSet::new(),
             },
         ];
@@ -3320,6 +3631,131 @@ mod tests {
     fn stimuli_module_seed_defaults_to_contract_seed_when_unspecified() {
         assert_eq!(resolve_stimuli_module_seed(None), 1);
         assert_eq!(resolve_stimuli_module_seed(Some(99)), 99);
+    }
+
+    #[test]
+    fn stimuli_corpus_bundle_tracks_module_effective_seed_and_direct_samples() {
+        let config = StimuliConfig {
+            seed: None,
+            max_depth: 12,
+            max_repeat: 3,
+            max_rule_visits: 12,
+            recovery_mode: RecoveryStimuliMode::Baseline,
+            mutation_mode: StimuliMutationMode::Baseline,
+            constraint_profile: StimuliConstraintProfile::Baseline,
+            negative_profile: StimuliNegativeProfile::Baseline,
+            enforce_word_boundary_spacing: false,
+            ..StimuliConfig::default()
+        };
+        let coverage = StimuliCoverageMetrics {
+            grammar_name: "regex".to_string(),
+            total_rules: 0,
+            total_branch_groups: 0,
+            total_branches: 0,
+            sample_attempts: 0,
+            sample_successes: 0,
+            sample_errors: 0,
+            rule_success_hits: HashMap::new(),
+            branch_groups: HashMap::new(),
+        };
+        let bundle = build_stimuli_corpus_bundle(
+            "regex",
+            None,
+            "generate_stimuli_module",
+            "direct_generation",
+            "regex",
+            2,
+            None,
+            Some(1),
+            &config,
+            false,
+            None,
+            0,
+            None,
+            direct_bundle_samples(&["a".to_string(), "b".to_string()]),
+            &coverage,
+            None,
+            None,
+            &[],
+            None,
+        );
+        assert_eq!(bundle.generation_surface, "generate_stimuli_module");
+        assert_eq!(bundle.corpus_origin_mode, "direct_generation");
+        assert_eq!(bundle.generated_sample_count, 2);
+        assert_eq!(bundle.generation_config.requested_seed, None);
+        assert_eq!(bundle.generation_config.effective_seed, Some(1));
+        assert!(bundle.generation_config.deterministic_replay_possible);
+        assert_eq!(bundle.samples[0].ordinal, 1);
+        assert_eq!(bundle.samples[0].sample, "a");
+        assert_eq!(bundle.samples[1].ordinal, 2);
+        assert_eq!(bundle.samples[1].sample, "b");
+    }
+
+    #[test]
+    fn stimuli_corpus_bundle_preserves_fuzz_promotion_metadata() {
+        let config = StimuliConfig {
+            seed: Some(7),
+            max_depth: 10,
+            max_repeat: 2,
+            max_rule_visits: 10,
+            recovery_mode: RecoveryStimuliMode::Baseline,
+            mutation_mode: StimuliMutationMode::GrammarAwareLocal,
+            constraint_profile: StimuliConstraintProfile::RareBranchBiased,
+            negative_profile: StimuliNegativeProfile::NearValidLocal,
+            enforce_word_boundary_spacing: false,
+            ..StimuliConfig::default()
+        };
+        let coverage = StimuliCoverageMetrics {
+            grammar_name: "regex".to_string(),
+            total_rules: 0,
+            total_branch_groups: 0,
+            total_branches: 0,
+            sample_attempts: 0,
+            sample_successes: 0,
+            sample_errors: 0,
+            rule_success_hits: HashMap::new(),
+            branch_groups: HashMap::new(),
+        };
+        let bundle = build_stimuli_corpus_bundle(
+            "regex",
+            Some("regex_default"),
+            "generate_stimuli",
+            "coverage_guided_fuzz_minimized",
+            "regex",
+            4,
+            Some(7),
+            Some(7),
+            &config,
+            true,
+            Some(200),
+            6,
+            Some(7),
+            vec![StimuliCorpusBundleSample {
+                ordinal: 1,
+                sample: "(a|b)".to_string(),
+                source_seed: Some(9),
+                parseable: Some(true),
+                new_rule_hits: vec!["alternation".to_string()],
+                new_branch_hits: vec!["branch::regex::alt#1".to_string()],
+                coverage_tokens: vec![
+                    "branch::regex::alt#1".to_string(),
+                    "rule::alternation".to_string(),
+                ],
+            }],
+            &coverage,
+            Some(&ParseabilitySummary::from_filter(6, 4, 2)),
+            None,
+            &[],
+            None,
+        );
+        assert_eq!(bundle.corpus_origin_mode, "coverage_guided_fuzz_minimized");
+        assert_eq!(bundle.generation_config.coverage_guided_fuzz_rounds, 6);
+        assert_eq!(bundle.samples[0].source_seed, Some(9));
+        assert_eq!(bundle.samples[0].new_rule_hits, vec!["alternation"]);
+        assert_eq!(
+            bundle.samples[0].coverage_tokens,
+            vec!["branch::regex::alt#1", "rule::alternation"]
+        );
     }
 
     #[test]

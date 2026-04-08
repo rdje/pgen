@@ -1,4 +1,74 @@
 # CHANGES.md
+## 2026-04-09 - Add stimuli corpus bundle export
+### Achievement Summary
+Landed the fourth planned stimuli-platform strengthening step from the preserved roadmap: corpus export / promotion groundwork. The stimuli engine now supports `--stimuli-corpus-json`, which emits a deterministic machine-readable corpus bundle for direct generation, generated stimuli modules, and minimized coverage-guided fuzz output.
+
+### Scope of Changes
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-corpus-json`
+  - enforced that the new flag is only valid with:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added first-class machine-readable corpus bundle structs for:
+    - exported samples
+    - generation config / replay identity
+    - coverage summary
+    - parseability summary / counterexamples when available
+    - coverage-guided fuzz replay metadata when available
+  - wired bundle export through both stimuli surfaces:
+    - direct / filtered `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - preserved module-surface default-seed reality explicitly:
+    - `requested_seed = null`
+    - `effective_seed = 1`
+  - extended the minimized coverage-guided fuzz path so accepted/minimized corpus members now retain promotion metadata including:
+    - source seed
+    - parseability
+    - new rule hits
+    - new branch hits
+    - normalized coverage tokens
+  - added focused bundle-construction tests for:
+    - module effective-seed export
+    - preserved fuzz promotion metadata
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is shared stimuli-platform strengthening, not a parser-family label promotion
+  - the next deferred stimuli backlog item is now:
+    - smarter shrinkers
+
+### Validation
+- `cargo build --manifest-path rust/Cargo.toml --bin ast_pipeline`
+- `cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline stimuli_corpus_bundle --no-run`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --seed 23 --max-depth 10 --max-repeat 2 --stimuli-corpus-json /tmp/regex_stimuli_corpus_bundle.json --output /tmp/regex_stimuli_corpus_bundle.txt`
+- `rust/target/debug/ast_pipeline grammars/vhdl.ebnf --generate-stimuli --count 4 --seed 23 --max-depth 10 --max-repeat 2 --stimuli-corpus-json /tmp/vhdl_stimuli_corpus_bundle.json --output /tmp/vhdl_stimuli_corpus_bundle.txt`
+- `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 2 --seed 23 --max-depth 8 --max-repeat 1 --stimuli-corpus-json /tmp/systemverilog_stimuli_corpus_bundle.json --output /tmp/systemverilog_stimuli_corpus_bundle.txt`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli-module --count 2 --stimuli-corpus-json /tmp/regex_module_corpus_bundle.json --output /tmp/regex_stimuli_bundle.rs`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --coverage-guided-fuzz-rounds 6 --coverage-guided-fuzz-seed-start 100 --stimuli-corpus-json /tmp/regex_fuzz_corpus_bundle.json --output /tmp/regex_fuzz_corpus_bundle.txt`
+- `jq -e '.pgen_stimuli_corpus_bundle_version == 1 and .generation_surface == "generate_stimuli" and .corpus_origin_mode == "direct_generation" and .grammar_name == "regex" and .generated_sample_count == 4 and .generation_config.requested_seed == 23 and .generation_config.effective_seed == 23 and .generation_config.deterministic_replay_possible == true' /tmp/regex_stimuli_corpus_bundle.json`
+- `jq -e '.grammar_name == "vhdl" and .generation_surface == "generate_stimuli" and .generated_sample_count == 4 and .corpus_origin_mode == "direct_generation"' /tmp/vhdl_stimuli_corpus_bundle.json`
+- `jq -e '.grammar_name == "systemverilog" and .generation_surface == "generate_stimuli" and .generated_sample_count == 2 and .corpus_origin_mode == "direct_generation"' /tmp/systemverilog_stimuli_corpus_bundle.json`
+- `jq -e '.generation_surface == "generate_stimuli_module" and .generation_config.requested_seed == null and .generation_config.effective_seed == 1 and .generation_config.deterministic_replay_possible == true and .generated_sample_count == 2' /tmp/regex_module_corpus_bundle.json`
+- `jq -e '.generation_surface == "generate_stimuli" and .corpus_origin_mode == "coverage_guided_fuzz_minimized" and .generation_config.coverage_guided_fuzz_rounds == 6 and .coverage_guided_fuzz_replay.rounds == 6 and .generated_sample_count == 5 and any(.samples[]; (.coverage_tokens | length) > 0) and any(.samples[]; .source_seed != null)' /tmp/regex_fuzz_corpus_bundle.json`
+- `git diff --check`
+- retained proof facts:
+  - direct machine-readable corpus bundle export now works for:
+    - `regex`
+    - `vhdl`
+    - `systemverilog`
+  - module-surface corpus bundle export now preserves the deterministic default-seed reality when `--seed` is omitted
+  - coverage-guided minimized corpus bundle export now retains enough metadata to support later promotion/shrinking work without relying on ad hoc text-only sample capture
+
 ## 2026-04-09 - Add near-valid stimuli negative profile
 ### Achievement Summary
 Landed the third planned stimuli-platform strengthening step from the preserved roadmap: stronger near-valid negative generation. The stimuli engine now supports bounded negative shaping profiles via `--stimuli-negative-profile`, with the initial shipped non-baseline profile `near_valid_local`.

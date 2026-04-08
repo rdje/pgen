@@ -93,17 +93,40 @@ The current bounded negative slice:
   - `vhdl`
   - `regex`
 
+The fourth preserved stimuli backlog item is now also landed:
+- `--stimuli-corpus-json`
+
+The current bounded corpus-export slice:
+- emits a canonical machine-readable corpus bundle for both:
+  - `--generate-stimuli`
+  - `--generate-stimuli-module`
+- records the replay-relevant invocation shape alongside:
+  - emitted samples
+  - merged coverage
+  - optional parseability telemetry
+  - optional coverage-guided fuzz replay telemetry
+- retains bounded promotion metadata for minimized coverage-guided fuzz corpora:
+  - `source_seed`
+  - `new_rule_hits`
+  - `new_branch_hits`
+  - `coverage_tokens`
+- preserves the same bounded cross-family proof doctrine on:
+  - `systemverilog`
+  - `vhdl`
+  - `regex`
+
 The remaining planned execution order is now:
-- `4.` corpus export/promotion
 - `5.` smarter shrinkers
 
 Execution rule:
-- treat the landed mutation, steering, and negative slices as shared platform infrastructure, not as grammar-local experiments
+- treat the landed mutation, steering, negative, and corpus-export slices as shared platform infrastructure, not as grammar-local experiments
 - do not treat the current local mutation slice as “finished mutation support”; it is deliberately bounded and should widen only with retained deterministic replay and shared proof
 - do not treat the current steering profiles as “finished constrained-random support”; they are deliberately bounded profile-level controls, not yet a full rule-specific constraint system
 - do not treat the current near-valid profile as “finished negative generation support”; it is deliberately bounded profile-level shaping, not yet a full invalid-sample DSL
+- do not treat the current corpus bundle as “finished promotion support”; it is deliberately the first export/provenance slice, not yet an automatic checked-in contract promotion workflow
 - the current mutation slice is intentionally baseline-recovery-only; non-baseline recovery modes keep their existing semantics until a later deliberate widening says otherwise
 - the current near-valid slice can compose with semantic `@invalid_case` and still falls back to deterministic negative-marker suffix behavior when no stronger local corruption candidate exists
+- the current corpus bundle should be preferred over ad hoc sample/text-only captures whenever later work needs to preserve both emitted stimuli and the replay-relevant invocation shape
 - when the remaining stimuli track is resumed, start from the preserved guidance in the stimuli spec and this ordered roadmap note rather than reopening the generic-fuzz-crates debate from scratch
 - major stimuli-generator upgrades should be validated across both active and closed parser families, with at least:
   - `systemverilog`

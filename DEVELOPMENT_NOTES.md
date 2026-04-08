@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - Initial stimuli corpus bundle export landed
+### Context
+The next deferred stimuli-platform item after near-valid negative generation was corpus export / promotion. The important bar for the first slice was not “invent a complete promotion workflow”; it was “export a deterministic machine-readable bundle that preserves the replay-relevant generation shape and enough minimized-corpus metadata that later promotion and shrinking work will not have to reconstruct context from loose text samples.”
+
+### What Was Changed
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-corpus-json`
+  - enforced that it only applies with:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added first-class bundle types for:
+    - corpus samples
+    - generation config / replay identity
+    - coverage
+    - parseability summaries and counterexamples
+    - coverage-guided fuzz replay summaries
+  - wired bundle export through both stimuli entrypoints
+  - preserved the module default-seed contract explicitly in exported bundles:
+    - `requested_seed = null`
+    - `effective_seed = 1`
+  - extended the minimized coverage-guided fuzz path so minimized bundle samples now preserve:
+    - source seed
+    - parseability
+    - new rule hits
+    - new branch hits
+    - normalized coverage tokens
+  - added focused tests for:
+    - direct bundle construction with module effective seed
+    - preserved fuzz promotion metadata
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+
+### Why It Matters
+- This lands the fourth preserved stimuli backlog item without leaving the PGEN-native generator model.
+- The exported bundle is now the preferred machine-readable replay surface when later work needs both:
+  - emitted stimuli
+  - replay-relevant invocation shape
+- The first bounded export slice is already useful across three distinct sources:
+  - direct generation
+  - generated stimuli modules
+  - minimized coverage-guided fuzz output
+- Real bounded proof stayed cross-family and concrete:
+  - direct bundle export works for `regex`
+  - direct bundle export works for `vhdl`
+  - direct bundle export works for `systemverilog`
+  - module-surface bundle export preserves the deterministic default-seed reality
+  - minimized fuzz bundle export retains promotion metadata rather than collapsing everything down to raw sample text
+
+### Steering
+- Treat this as the fourth landed backlog item, not as finished automatic promotion support.
+- Current deliberate boundary:
+  - bundle export is landed
+  - checked-in contract promotion / shrink automation is not yet landed
+  - the current export slice is provenance-first rather than workflow-complete
+- Important replay-contract nuance now preserved in docs:
+  - the bundle should be preferred over ad hoc sample capture whenever later work needs replay identity
+  - non-default generation controls still require the full generation-config surface, not only text samples or module constants
+- Important implementation nuance:
+  - direct `rust/target/debug/ast_pipeline` EBNF replays require the feature-built binary after `cargo build --features ebnf_dual_run --bin ast_pipeline`
+  - a plain non-feature `cargo build --bin ast_pipeline` will overwrite that binary and remove `.ebnf` runtime support
+- The next deferred stimuli-platform step is now clearly:
+  - smarter shrinkers
+
 ## 2026-04-09 - Initial near-valid stimuli negative generation landed
 ### Context
 The next deferred stimuli-platform item after constrained-random steering was stronger near-valid negative generation. The important implementation bar was not “make invalid samples noisier”; it was “prefer bounded structural corruption that still looks plausibly close to valid syntax, while staying deterministic and reusable across grammar families.”

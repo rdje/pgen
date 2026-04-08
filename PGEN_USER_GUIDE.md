@@ -248,6 +248,7 @@ High-value stimuli flags:
 - `--stimuli-constraint-profile` (`baseline`, `rare_branch_biased`, `deep_nesting_biased`)
 - `--stimuli-mutation-mode` (`baseline`, `grammar_aware_local`)
 - `--stimuli-negative-profile` (`baseline`, `near_valid_local`)
+- `--stimuli-corpus-json`
 - `--dump-gen-ast [PATH]`
 - `--dump-gen-ast-pretty`
 - `--dump-gen-ast-max-bytes`
@@ -595,6 +596,10 @@ cargo run --manifest-path rust/Cargo.toml --features "generated_parsers ebnf_dua
   - you need a reusable, checked-in/attached Rust artifact for embedding,
   - you want explicit metadata constants (`SEED`, `ENTRY_RULE`, counts) in the artifact,
   - you need deterministic replay defaults even when caller omits `--seed` (defaults to `1` in module mode).
+- Use `--stimuli-corpus-json` when:
+  - you need a machine-readable export of the emitted corpus,
+  - you want the replay-relevant invocation shape captured with the samples,
+  - you want coverage-guided minimized corpora to retain novelty metadata for later promotion.
 
 ### Embedding Workflow Examples (`generated/<grammar>_stimuli.rs`)
 1. Generate module from EBNF (frontend + module artifact):
@@ -678,6 +683,7 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
   - parseability attempt budget (when parseability validation is enabled),
   - coverage merge input (if used).
 - The generated stimuli-module metadata constants are a useful replay baseline, but they do not encode every non-default stimuli control; retain the full invocation config if you need exact replay of non-default steering, mutation, or recovery settings.
+- `--stimuli-corpus-json` is now the preferred machine-readable replay/export surface when you need the emitted corpus plus the replay-relevant invocation shape in one artifact.
 - Cross-mode parity (samples + coverage + gap) is enforced by:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate
@@ -813,6 +819,42 @@ Current boundary:
 - `near_valid_local` is deterministic and bounded; it is not yet a full invalid-sample DSL
 - the profile composes with semantic `@invalid_case`
 - when semantic `@negative` is also active, near-valid mutation runs before the retained negative-marker suffix step
+
+### J) Stimuli corpus bundle export
+```bash
+# Export a canonical machine-readable corpus bundle for direct generation.
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 50 \
+  --seed 42 \
+  --stimuli-corpus-json /tmp/semantic_corpus_bundle.json \
+  --output /tmp/semantic_samples.txt
+
+# Export a corpus bundle for minimized coverage-guided fuzz output.
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --coverage-guided-fuzz-rounds 12 \
+  --coverage-guided-fuzz-seed-start 100 \
+  --stimuli-corpus-json /tmp/semantic_fuzz_corpus_bundle.json \
+  --output /tmp/semantic_fuzz_samples.txt
+```
+
+Bundle highlights:
+- records:
+  - grammar/profile/entry identity
+  - replay-relevant generation config
+  - emitted samples
+  - merged coverage
+  - optional parseability telemetry
+  - optional coverage-guided fuzz replay telemetry
+- module-mode bundles retain the deterministic default `effective_seed = 1` even when `requested_seed` is absent
+- coverage-guided minimized bundles retain bounded promotion metadata per sample:
+  - `source_seed`
+  - `new_rule_hits`
+  - `new_branch_hits`
+  - `coverage_tokens`
 
 ## 7) Return Annotation Features
 
