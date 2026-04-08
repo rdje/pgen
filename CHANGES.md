@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-08 - Expand rtl_frontend generated contract sample set
+### Achievement Summary
+Widened the curated `rtl_frontend` generated contract with a realistic combined generate/dataflow sample. The focused manifest now also locks a small `generate if` plus continuous-dataflow plus named-instantiation surface, which is closer to the still-open mixed-expression/procedural/dataflow debt called out by the live row without trying to overclaim broader handwritten-baseline parity.
+
+### Scope of Changes
+- Expanded the curated `rtl_frontend` generated-contract manifest:
+  - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - added:
+    - `generate_if_with_dataflow_and_named_instantiation`
+- The new retained sample locks:
+  - required rule names for:
+    - `continuous_assign`
+    - `conditional_expr`
+    - `concatenation_expr`
+    - `generate_region`
+    - `generate_if`
+    - `instance_item`
+    - `parameter_override`
+    - `port_connection`
+  - a small forbidden rule surface:
+    - `procedural_block`
+  - normalized exact texts for:
+    - the continuous assign
+    - the named parameter override
+    - the named port connections
+    - both concatenation expressions
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is a focused proof-surface widening wave, not broader parity closure
+
+### Validation
+- Direct gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity replay:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-08 - Lock rtl_frontend contract rule texts
 ### Achievement Summary
 Strengthened the curated `rtl_frontend` generated contract again by locking a small set of retained rule texts for the positive samples. The focused contract now proves not only that specific AST rules are present or absent, but that they still preserve the intended trimmed surface text for key constructs like `always_ff`, `<=`, `import state_pkg::state_t;`, enum items, parameter headers, net items, struct fields, and named port connections.

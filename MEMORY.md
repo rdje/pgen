@@ -9944,3 +9944,19 @@ Use this file to resume work without replaying full chat history.
     - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_generated_contract_samples_hold --lib --no-run`
   - status truth:
     - this is focused generated-contract proof hardening, not a live-status promotion
+- 2026-04-08: the curated `rtl_frontend` generated contract now includes a combined generate/dataflow sample too.
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `generate_if_with_dataflow_and_named_instantiation`
+  - retained sample proves:
+    - continuous ternary assign with concatenations
+    - `generate if`
+    - named parameter override
+    - named port connections
+    - no `procedural_block` on that sample
+  - verified:
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - status truth:
+    - this is focused proof-surface widening, not a live-status promotion

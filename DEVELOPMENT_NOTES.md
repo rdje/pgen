@@ -30432,3 +30432,60 @@ Architectural north star:
       - retained rule presence/absence
       - retained normalized rule text
     - this is still focused generated-contract hardening, not closure of the larger handwritten-baseline parity backlog
+- 2026-04-08: the curated `rtl_frontend` generated contract now also covers a realistic combined generate/dataflow sample.
+  - motivation:
+    - the live `rtl_frontend` row still explicitly calls out remaining mixed-expression / procedural / dataflow debt
+    - the existing curated manifest was already strong on:
+      - `always_ff`
+      - parameterized unpacked ports/nets
+      - imported enum typedef ports
+      - struct-member actuals
+    - but it still lacked a retained sample that combined:
+      - continuous dataflow
+      - ternary expression routing
+      - concatenation expressions
+      - `generate if`
+      - named parameter override
+      - named port instantiation
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `generate_if_with_dataflow_and_named_instantiation`
+    - retained sample shape:
+      - local `logic [7:0] mid;`
+      - `assign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};`
+      - `generate`
+      - `if (SEL) begin : gen_true`
+      - `leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));`
+      - `endgenerate`
+    - retained contract expectations:
+      - required rules:
+        - `continuous_assign`
+        - `conditional_expr`
+        - `concatenation_expr`
+        - `generate_region`
+        - `generate_if`
+        - `instance_item`
+        - `parameter_override`
+        - `port_connection`
+      - forbidden:
+        - `procedural_block`
+      - normalized exact texts:
+        - the full `assign mid = ...;`
+        - `.WIDTH(8)`
+        - `.a(mid)`
+        - `.y(y)`
+        - both concatenations
+  - proof replay:
+    - direct gate:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - result:
+        - passed with the widened sample set
+    - filtered workflow parity replay:
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - result:
+        - audits cleared
+        - exported tracked-tree workflow replay passed
+  - continuity consequence:
+    - the curated `rtl_frontend` contract is now slightly closer to the open live gap rather than only replaying the earlier reduced seams
+    - this is still a focused proof-surface widening wave, not broader handwritten-baseline parity closure
