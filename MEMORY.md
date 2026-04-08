@@ -9974,3 +9974,21 @@ Use this file to resume work without replaying full chat history.
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - status truth:
     - this is focused rejected-surface widening, not a live-status promotion
+- 2026-04-08: the curated `rtl_frontend` generated contract now includes a `generate for` positive too.
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `generate_for_named_instantiation_and_dataflow`
+  - retained sample proves:
+    - `genvar` declaration
+    - looped `generate for`
+    - named instantiation
+    - named port connections
+    - downstream continuous assigns
+    - no `procedural_block` on that sample
+  - verified:
+    - `parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_generate_for_sample.sv /tmp/rtl_frontend_generate_for_sample_ast.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - status truth:
+    - this is focused proof-surface widening, not a live-status promotion

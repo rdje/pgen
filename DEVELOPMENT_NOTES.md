@@ -30526,3 +30526,62 @@ Architectural north star:
       - the realistic accepted form
       - the adjacent malformed named-port trailing-comma reject
     - this is still focused generated-contract widening, not broader handwritten-baseline parity closure
+- 2026-04-08: the curated `rtl_frontend` generated contract now also covers a realistic `generate for` lane.
+  - motivation:
+    - the grammar has long claimed:
+      - `generate if`
+      - `generate for`
+    - but the curated contract had only just started covering generate structure through the `generate_if_with_dataflow_and_named_instantiation` sample
+    - the next low-risk widening was to retain one looped-generate sample rather than jump straight to broader handwritten-baseline parity claims
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `generate_for_named_instantiation_and_dataflow`
+    - retained sample shape:
+      - `genvar i;`
+      - local unpacked array:
+        - `logic [7:0] ys [0:1];`
+      - `generate`
+      - `for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop`
+      - `leaf u_leaf (.a(a), .y(ys[i]));`
+      - downstream:
+        - `assign y0 = ys[0];`
+        - `assign y1 = ys[1];`
+    - retained contract expectations:
+      - required rules:
+        - `genvar_declaration`
+        - `generate_region`
+        - `generate_for`
+        - `module_instantiation`
+        - `instance_item`
+        - `port_connection`
+        - `continuous_assign`
+      - forbidden:
+        - `procedural_block`
+      - normalized exact texts:
+        - `genvar i;`
+        - the full `generate for` body
+        - `.a(a)`
+        - `.y(ys[i])`
+        - `assign y0 = ys[0];`
+        - `assign y1 = ys[1];`
+  - proof replay:
+    - focused AST replay:
+      - `parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_generate_for_sample.sv /tmp/rtl_frontend_generate_for_sample_ast.json`
+      - result:
+        - `parse_full passed`
+    - direct gate:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - result:
+        - passed on the widened sample set
+    - filtered workflow parity replay:
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - result:
+        - audits cleared
+        - exported tracked-tree workflow replay passed
+  - continuity consequence:
+    - the curated `rtl_frontend` contract now covers:
+      - `generate if`
+      - a nearby malformed named-port reject
+      - `generate for`
+    - this is still focused generated-contract widening, not broader handwritten-baseline parity closure

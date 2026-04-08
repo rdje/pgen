@@ -147,6 +147,41 @@
       "sample": "module leaf #(\n    parameter WIDTH = 8\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [WIDTH-1:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] b,\n    input logic en,\n    output logic [7:0] y\n);\nlogic [7:0] mid;\nassign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};\ngenerate\n    if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y),);\n    end\nendgenerate\nendmodule\n"
     },
     {
+      "label": "generate_for_named_instantiation_and_dataflow",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "genvar_declaration",
+        "generate_region",
+        "generate_for",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "continuous_assign"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block"
+      ],
+      "expected_rule_texts": {
+        "genvar_declaration": [
+          "genvar i;"
+        ],
+        "generate_for": [
+          "for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end"
+        ],
+        "port_connection": [
+          ".a(a)",
+          ".y(ys[i])"
+        ],
+        "continuous_assign": [
+          "assign y0 = ys[0];",
+          "assign y1 = ys[1];"
+        ]
+      },
+      "sample": "module leaf (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top (\n    input logic [7:0] a,\n    output logic [7:0] y0,\n    output logic [7:0] y1\n);\ngenvar i;\nlogic [7:0] ys [0:1];\ngenerate\n    for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end\nendgenerate\nassign y0 = ys[0];\nassign y1 = ys[1];\nendmodule\n"
+    },
+    {
       "label": "truncated_module_header",
       "expected_parse_ok": false,
       "require_ast_json": false,

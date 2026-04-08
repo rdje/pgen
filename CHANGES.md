@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-04-08 - Expand rtl_frontend generate-for samples
+### Achievement Summary
+Widened the curated `rtl_frontend` generated contract with a realistic `generate for` sample. The focused manifest now also locks a looped generate region with a `genvar` declaration, named instantiation, named port connections, and downstream continuous dataflow, which broadens the retained coverage beyond the earlier `generate if` lane.
+
+### Scope of Changes
+- Expanded the curated `rtl_frontend` generated-contract manifest:
+  - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - added:
+    - `generate_for_named_instantiation_and_dataflow`
+- The new retained positive sample locks:
+  - required rule names for:
+    - `genvar_declaration`
+    - `generate_region`
+    - `generate_for`
+    - `module_instantiation`
+    - `instance_item`
+    - `port_connection`
+    - `continuous_assign`
+  - a small forbidden rule surface:
+    - `procedural_block`
+  - normalized exact texts for:
+    - `genvar i;`
+    - the full `generate for` body
+    - both named port connections
+    - both downstream continuous assigns
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is focused proof-surface widening inside the curated generated contract, not broader parity closure
+
+### Validation
+- Direct gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity replay:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-08 - Expand rtl_frontend rejection samples
 ### Achievement Summary
 Widened the curated `rtl_frontend` rejected surface around the new generate/dataflow lane. The manifest now also locks a malformed named-port instantiation variant with a trailing comma inside the generated `leaf` instantiation, so the focused contract proves that the positive combined generate/dataflow sample is accepted while the nearby malformed named-port form is still rejected.
