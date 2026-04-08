@@ -1,6 +1,6 @@
 # PGEN User Guide
 
-Last updated: 2026-03-25
+Last updated: 2026-04-09
 
 ## Current-State Companion Docs
 - Use `README.md` as the main navigation and command-entry document.
@@ -247,6 +247,7 @@ High-value stimuli flags:
 - `--max-repeat`
 - `--stimuli-constraint-profile` (`baseline`, `rare_branch_biased`, `deep_nesting_biased`)
 - `--stimuli-mutation-mode` (`baseline`, `grammar_aware_local`)
+- `--stimuli-negative-profile` (`baseline`, `near_valid_local`)
 - `--dump-gen-ast [PATH]`
 - `--dump-gen-ast-pretty`
 - `--dump-gen-ast-max-bytes`
@@ -672,6 +673,7 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
   - `recovery_stimuli_mode`,
   - `stimuli_constraint_profile`,
   - `stimuli_mutation_mode`,
+  - `stimuli_negative_profile`,
   - parseability filter setting,
   - parseability attempt budget (when parseability validation is enabled),
   - coverage merge input (if used).
@@ -791,6 +793,26 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast
   --stimuli-constraint-profile deep_nesting_biased \
   --output /tmp/deep_nesting_biased_samples.txt
 ```
+
+### I) Near-valid negative generation
+```bash
+# Near-valid local negative shaping prefers deterministic structural corruption
+# such as closing-delimiter damage, separator duplication/trailing, or small
+# interior local deletions before falling back to generic negative suffixes.
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 50 \
+  --seed 42 \
+  --stimuli-negative-profile near_valid_local \
+  --output /tmp/near_valid_negative_samples.txt
+```
+
+Current boundary:
+- `baseline` preserves the prior negative-generation behavior
+- `near_valid_local` is deterministic and bounded; it is not yet a full invalid-sample DSL
+- the profile composes with semantic `@invalid_case`
+- when semantic `@negative` is also active, near-valid mutation runs before the retained negative-marker suffix step
 
 ## 7) Return Annotation Features
 

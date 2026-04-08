@@ -60,6 +60,18 @@ impl Default for StimuliConstraintProfile {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StimuliNegativeProfile {
+    Baseline,
+    NearValidLocal,
+}
+
+impl Default for StimuliNegativeProfile {
+    fn default() -> Self {
+        Self::Baseline
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct StimuliConfig {
     pub seed: Option<u64>,
@@ -69,6 +81,7 @@ pub struct StimuliConfig {
     pub recovery_mode: RecoveryStimuliMode,
     pub mutation_mode: StimuliMutationMode,
     pub constraint_profile: StimuliConstraintProfile,
+    pub negative_profile: StimuliNegativeProfile,
     pub enforce_word_boundary_spacing: bool,
     pub trace_verbosity: TraceVerbosity,
 }
@@ -83,6 +96,7 @@ impl Default for StimuliConfig {
             recovery_mode: RecoveryStimuliMode::Baseline,
             mutation_mode: StimuliMutationMode::Baseline,
             constraint_profile: StimuliConstraintProfile::Baseline,
+            negative_profile: StimuliNegativeProfile::Baseline,
             enforce_word_boundary_spacing: false,
             trace_verbosity: global_trace_verbosity(),
         }
@@ -4490,20 +4504,152 @@ impl<'a> StimuliGenerator<'a> {
 
     fn apply_negative_case_policy(&self, rule_name: &str, sample: String) -> String {
         let policy = self.rule_negative_case_policy(rule_name);
-        if !policy.invalid_case {
+        let should_apply_near_valid = policy.invalid_case
+            || self.config.negative_profile == StimuliNegativeProfile::NearValidLocal;
+        if !should_apply_near_valid {
             return sample;
         }
 
-        if policy.negative {
+        let mutated = self.apply_near_valid_negative_profile(rule_name, &sample);
+        if policy.invalid_case && policy.negative {
+            format!("{}{}", mutated, Self::negative_case_suffix(rule_name))
+        } else {
+            mutated
+        }
+    }
+
+    fn apply_near_valid_negative_profile(&self, rule_name: &str, sample: &str) -> String {
+        let mut candidates = self.near_valid_negative_candidates(sample);
+        if candidates.is_empty() {
             return format!("{}{}", sample, Self::negative_case_suffix(rule_name));
         }
+        candidates.sort();
+        candidates.dedup();
+        let selected = self
+            .deterministic_negative_candidate_index(rule_name, sample, candidates.len());
+        candidates.swap_remove(selected)
+    }
 
-        let mut chars: Vec<char> = sample.chars().collect();
+    fn near_valid_negative_candidates(&self, sample: &str) -> Vec<String> {
+        let chars: Vec<char> = sample.chars().collect();
+        if chars.is_empty() {
+            return Vec::new();
+        }
+
+        let mut candidates = Vec::new();
+
+        if let Some((idx, ch)) = chars
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, ch)| Self::is_closing_delimiter(**ch))
+        {
+            let mut removed = chars.clone();
+            removed.remove(idx);
+            let removed_candidate: String = removed.into_iter().collect();
+            if removed_candidate != sample {
+                candidates.push(removed_candidate);
+            }
+
+            if let Some(replacement) = Self::mismatched_closing_delimiter(*ch) {
+                let mut swapped = chars.clone();
+                swapped[idx] = replacement;
+                let swapped_candidate: String = swapped.into_iter().collect();
+                if swapped_candidate != sample {
+                    candidates.push(swapped_candidate);
+                }
+            }
+        }
+
+        if let Some((idx, ch)) = chars
+            .iter()
+            .enumerate()
+            .find(|(_, ch)| Self::is_separator_candidate(**ch))
+        {
+            let mut duplicated = chars.clone();
+            duplicated.insert(idx, *ch);
+            let duplicated_candidate: String = duplicated.into_iter().collect();
+            if duplicated_candidate != sample {
+                candidates.push(duplicated_candidate);
+            }
+
+            if !sample.ends_with(*ch) {
+                let mut appended = sample.to_string();
+                appended.push(*ch);
+                if appended != sample {
+                    candidates.push(appended);
+                }
+            }
+        }
+
+        if let Some((idx, _)) = chars
+            .iter()
+            .enumerate()
+            .find(|(_, ch)| !ch.is_whitespace() && !Self::is_delimiter_candidate(**ch))
+        {
+            let mut removed = chars.clone();
+            removed.remove(idx);
+            let removed_candidate: String = removed.into_iter().collect();
+            if removed_candidate != sample && !removed_candidate.is_empty() {
+                candidates.push(removed_candidate);
+            }
+        }
+
         if chars.len() > 1 {
-            chars.pop();
-            chars.into_iter().collect()
-        } else {
-            format!("{}{}", sample, Self::negative_case_suffix(rule_name))
+            let mid_idx = chars.len() / 2;
+            let mut removed = chars.clone();
+            removed.remove(mid_idx);
+            let removed_candidate: String = removed.into_iter().collect();
+            if removed_candidate != sample && !removed_candidate.is_empty() {
+                candidates.push(removed_candidate);
+            }
+        }
+
+        candidates
+    }
+
+    fn deterministic_negative_candidate_index(
+        &self,
+        rule_name: &str,
+        sample: &str,
+        candidate_count: usize,
+    ) -> usize {
+        if candidate_count <= 1 {
+            return 0;
+        }
+
+        let base_seed = self.config.seed.unwrap_or(0);
+        let mut state = base_seed ^ 0xA24B_AED4_963E_E407;
+        for byte in rule_name.as_bytes() {
+            state ^= *byte as u64;
+            state = state.wrapping_mul(1_099_511_628_211);
+        }
+        for byte in sample.as_bytes() {
+            state ^= (*byte as u64).wrapping_add(0x9E37_79B9);
+            state = state.wrapping_mul(1_099_511_628_211);
+        }
+        (state as usize) % candidate_count
+    }
+
+    fn is_closing_delimiter(ch: char) -> bool {
+        matches!(ch, ')' | ']' | '}' | '>')
+    }
+
+    fn is_separator_candidate(ch: char) -> bool {
+        matches!(ch, ',' | ';' | ':')
+    }
+
+    fn is_delimiter_candidate(ch: char) -> bool {
+        matches!(ch, '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | ',' | ';' | ':')
+    }
+
+    fn mismatched_closing_delimiter(ch: char) -> Option<char> {
+        match ch {
+            ')' => Some(']'),
+            ']' => Some('}'),
+            '}' => Some(')'),
+            '>' => Some(')'),
+            _ => None,
         }
     }
 
@@ -5832,6 +5978,7 @@ mod tests {
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode,
                 constraint_profile,
+                negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5857,6 +6004,7 @@ mod tests {
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5883,6 +6031,7 @@ mod tests {
                 recovery_mode,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6014,6 +6163,50 @@ mod tests {
             "deep-nesting profile should bias preferred repeats upward (deep_total={}, baseline_total={})",
             deep_total,
             baseline_total
+        );
+    }
+
+    #[test]
+    fn near_valid_negative_profile_prefers_structural_delimiter_corruption() {
+        let grammar_tree = HashMap::new();
+        let rule_order: Vec<String> = Vec::new();
+
+        let generator = simple_generator_with_profiles(
+            &grammar_tree,
+            &rule_order,
+            4412,
+            StimuliMutationMode::Baseline,
+            StimuliConstraintProfile::Baseline,
+        );
+        let mutated = generator.apply_near_valid_negative_profile("start", "call(arg)");
+
+        assert_ne!(mutated, "call(arg)");
+        assert!(
+            mutated == "call(arg" || mutated == "call(arg]",
+            "near-valid negative profile should prefer closing-delimiter corruption, got {:?}",
+            mutated
+        );
+    }
+
+    #[test]
+    fn near_valid_negative_profile_can_append_or_duplicate_separator() {
+        let grammar_tree = HashMap::new();
+        let rule_order: Vec<String> = Vec::new();
+
+        let generator = simple_generator_with_profiles(
+            &grammar_tree,
+            &rule_order,
+            4413,
+            StimuliMutationMode::Baseline,
+            StimuliConstraintProfile::Baseline,
+        );
+        let mutated = generator.apply_near_valid_negative_profile("start", "a,b,c");
+
+        assert_ne!(mutated, "a,b,c");
+        assert!(
+            mutated == "a,,b,c" || mutated == "a,b,c,",
+            "near-valid negative profile should create separator-local corruption, got {:?}",
+            mutated
         );
     }
 
@@ -6411,6 +6604,7 @@ mod tests {
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6525,6 +6719,7 @@ mod tests {
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6578,6 +6773,7 @@ mod tests {
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6916,6 +7112,7 @@ mod tests {
                 recovery_mode: RecoveryStimuliMode::Baseline,
                 mutation_mode: StimuliMutationMode::Baseline,
                 constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },

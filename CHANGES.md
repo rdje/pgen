@@ -1,4 +1,75 @@
 # CHANGES.md
+## 2026-04-09 - Add near-valid stimuli negative profile
+### Achievement Summary
+Landed the third planned stimuli-platform strengthening step from the preserved roadmap: stronger near-valid negative generation. The stimuli engine now supports bounded negative shaping profiles via `--stimuli-negative-profile`, with the initial shipped non-baseline profile `near_valid_local`.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliNegativeProfile`
+  - extended `StimuliConfig` with `negative_profile`
+  - replaced the old truncation-heavy invalid-case fallback with bounded deterministic local corruption candidates
+  - current landed candidate classes:
+    - closing-delimiter removal
+    - closing-delimiter mismatch
+    - separator duplication
+    - separator append
+    - small interior local deletion
+    - deterministic suffix fallback when no stronger local candidate exists
+  - semantic interaction contract:
+    - `@invalid_case` still activates negative shaping
+    - `near_valid_local` can also be selected globally
+    - when `@negative` is also active, local near-valid mutation runs before the retained negative-marker suffix append
+  - added focused tests for:
+    - delimiter corruption preference
+    - separator duplication/trailing behavior
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-negative-profile`
+  - wired negative profile through both:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added focused parse/validation tests for supported negative-profile values
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is shared stimuli-platform strengthening, not a parser-family label promotion
+  - the next deferred stimuli backlog item is now:
+    - corpus export/promotion
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib stimuli_generator --no-run`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parses_stimuli_negative_profile_values --no-run`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline rejects_unknown_stimuli_negative_profile_values --no-run`
+- `cargo build --manifest-path rust/Cargo.toml --bin ast_pipeline`
+- `cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --seed 17 --max-depth 10 --max-repeat 2 --output /tmp/regex_stimuli_negative_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --seed 17 --max-depth 10 --max-repeat 2 --stimuli-negative-profile near_valid_local --output /tmp/regex_stimuli_negative_near_valid.txt`
+- `rust/target/debug/ast_pipeline grammars/vhdl.ebnf --generate-stimuli --count 4 --seed 17 --max-depth 10 --max-repeat 2 --output /tmp/vhdl_stimuli_negative_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/vhdl.ebnf --generate-stimuli --count 4 --seed 17 --max-depth 10 --max-repeat 2 --stimuli-negative-profile near_valid_local --output /tmp/vhdl_stimuli_negative_near_valid.txt`
+- `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 4 --seed 17 --max-depth 10 --max-repeat 2 --output /tmp/systemverilog_stimuli_negative_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 4 --seed 17 --max-depth 10 --max-repeat 2 --stimuli-negative-profile near_valid_local --output /tmp/systemverilog_stimuli_negative_near_valid.txt`
+- `cmp -s /tmp/regex_stimuli_negative_baseline.txt /tmp/regex_stimuli_negative_near_valid.txt`
+- `cmp -s /tmp/vhdl_stimuli_negative_baseline.txt /tmp/vhdl_stimuli_negative_near_valid.txt`
+- `cmp -s /tmp/systemverilog_stimuli_negative_baseline.txt /tmp/systemverilog_stimuli_negative_near_valid.txt`
+- `cargo test --manifest-path rust/Cargo.toml --lib near_valid_negative_profile_prefers_structural_delimiter_corruption -- --exact --nocapture`
+- `cargo test --manifest-path rust/Cargo.toml --lib near_valid_negative_profile_can_append_or_duplicate_separator -- --exact --nocapture`
+- `git diff --check`
+- retained proof facts:
+  - all three families generated successfully in both baseline and near-valid negative modes
+  - baseline vs near-valid negative outputs differed for:
+    - `regex`
+    - `vhdl`
+    - `systemverilog`
+  - focused runtime `cargo test --lib <near-valid-test>` invocations still entered the familiar quiet local harness state after `Running unittests src/lib.rs`, so compile proof plus direct CLI replay remains the honest local closure signal for this wave
+
 ## 2026-04-09 - Add constrained-random stimuli steering
 ### Achievement Summary
 Landed the second planned stimuli-platform strengthening step from the preserved roadmap: constrained-random steering. The stimuli engine now supports bounded steering profiles via `--stimuli-constraint-profile`, with initial shipped profiles for under-hit branch bias and deeper-nesting bias.

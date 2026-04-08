@@ -1,4 +1,69 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - Initial near-valid stimuli negative generation landed
+### Context
+The next deferred stimuli-platform item after constrained-random steering was stronger near-valid negative generation. The important implementation bar was not “make invalid samples noisier”; it was “prefer bounded structural corruption that still looks plausibly close to valid syntax, while staying deterministic and reusable across grammar families.”
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliNegativeProfile::{Baseline, NearValidLocal}`
+  - extended `StimuliConfig` with `negative_profile`
+  - replaced the old truncation-heavy invalid-case shaping with bounded deterministic local corruption selection
+  - current landed local corruption targets are:
+    - closing-delimiter removal
+    - closing-delimiter mismatch
+    - separator duplication
+    - separator append
+    - small interior character deletion
+    - deterministic negative-suffix fallback when no stronger local candidate exists
+  - semantic interaction shape:
+    - semantic `@invalid_case` still activates negative shaping
+    - `near_valid_local` can also be selected globally through CLI/profile choice
+    - when semantic `@negative` is also active, local near-valid mutation runs before the retained negative-marker suffix append
+  - added focused tests for:
+    - delimiter-corruption preference
+    - separator duplication/trailing behavior
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-negative-profile baseline|near_valid_local`
+  - wired the new profile through both stimuli entrypoints:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added focused parser tests for accepted and rejected negative-profile values
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+
+### Why It Matters
+- This lands the third preserved stimuli backlog item without leaving the PGEN-native generator model.
+- The new negative shaping is still deterministic under matched replay identity:
+  - same grammar
+  - same seed
+  - same depth/repeat budget
+  - same recovery mode
+  - same negative profile
+  - same output determinism assumptions
+- The cross-family bounded proof stayed honest again:
+  - `regex` baseline vs near-valid-negative output differed
+  - `vhdl` baseline vs near-valid-negative output differed
+  - `systemverilog` baseline vs near-valid-negative output differed
+  - all three families stayed generation-successful in both modes
+
+### Steering
+- Treat this as the third landed backlog item, not as finished negative generation support.
+- Current deliberate boundary:
+  - profile-level shaping only
+  - no grammar-specific invalid-sample DSL yet
+  - no shrink/promote/export corpus layer yet
+- Important replay-contract nuance preserved in docs:
+  - `stimuli_negative_profile` is now part of replay identity
+  - exact replay under non-default generation controls still depends on retaining the full invocation config, not just the limited metadata constants exported by generated stimuli modules
+- Important local-proof nuance:
+  - focused runtime `cargo test --lib <near-valid-test>` runs still entered the familiar quiet local harness state after `Running unittests src/lib.rs`
+  - compile / `--no-run` proof plus direct CLI generation replays are therefore still the reliable local closure signal for this wave
+- The next deferred stimuli-platform step is now clearly:
+  - corpus export/promotion
+
 ## 2026-04-09 - Initial constrained-random stimuli steering landed
 ### Context
 The next deferred stimuli-platform item after grammar-aware mutation was constrained-random steering. The strongest bounded first slice was not a whole new DSL; it was to reuse the existing generator’s branch-weighting and quantifier-choice seams and add explicit profile-level steering that is still deterministic under replay.

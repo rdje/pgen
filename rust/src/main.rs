@@ -6,8 +6,8 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
     RecoveryStimuliMode, StimuliConfig, StimuliConstraintProfile, StimuliCoverageGapReport,
-    StimuliCoverageMetrics, StimuliGenerator, StimuliMutationMode, TargetDriveFilterContext,
-    TargetDriveValidationSummary,
+    StimuliCoverageMetrics, StimuliGenerator, StimuliMutationMode, StimuliNegativeProfile,
+    TargetDriveFilterContext, TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
@@ -128,6 +128,14 @@ struct Args {
         value_parser = ["baseline", "recovery_biased", "near_sync_negative"]
     )]
     recovery_stimuli_mode: String,
+
+    /// Stimuli near-valid negative generation profile: baseline, near_valid_local
+    #[arg(
+        long,
+        default_value = "baseline",
+        value_parser = ["baseline", "near_valid_local"]
+    )]
+    stimuli_negative_profile: String,
 
     /// Stimuli constrained-random steering profile: baseline, rare_branch_biased, deep_nesting_biased
     #[arg(
@@ -578,12 +586,13 @@ fn main() -> Result<()> {
             || args.gap_report_text.is_some()
             || args.gap_report_threshold != 1
             || args.recovery_stimuli_mode != "baseline"
+            || args.stimuli_negative_profile != "baseline"
             || args.stimuli_constraint_profile != "baseline"
             || args.stimuli_mutation_mode != "baseline"
             || args.enforce_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--stimuli-constraint-profile/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--stimuli-negative-profile/--stimuli-constraint-profile/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -799,6 +808,8 @@ fn main() -> Result<()> {
             );
         }
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
+        let negative_profile =
+            parse_stimuli_negative_profile(&args.stimuli_negative_profile)?;
         let constraint_profile =
             parse_stimuli_constraint_profile(&args.stimuli_constraint_profile)?;
         let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
@@ -810,6 +821,7 @@ fn main() -> Result<()> {
             recovery_mode,
             mutation_mode,
             constraint_profile,
+            negative_profile,
             enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
@@ -897,6 +909,7 @@ fn main() -> Result<()> {
                     recovery_mode,
                     mutation_mode,
                     constraint_profile,
+                    negative_profile,
                     enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
                     trace_verbosity,
                 },
@@ -933,6 +946,8 @@ fn main() -> Result<()> {
             dump_gen_ast_max_bytes,
         )?;
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
+        let negative_profile =
+            parse_stimuli_negative_profile(&args.stimuli_negative_profile)?;
         let constraint_profile =
             parse_stimuli_constraint_profile(&args.stimuli_constraint_profile)?;
         let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
@@ -944,6 +959,7 @@ fn main() -> Result<()> {
             recovery_mode,
             mutation_mode,
             constraint_profile,
+            negative_profile,
             enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
@@ -1783,6 +1799,17 @@ fn parse_recovery_stimuli_mode(value: &str) -> Result<RecoveryStimuliMode> {
         "near_sync_negative" => Ok(RecoveryStimuliMode::NearSyncNegative),
         other => Err(anyhow::anyhow!(
             "Unsupported recovery stimuli mode '{}'. Supported values: baseline, recovery_biased, near_sync_negative",
+            other
+        )),
+    }
+}
+
+fn parse_stimuli_negative_profile(value: &str) -> Result<StimuliNegativeProfile> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "baseline" => Ok(StimuliNegativeProfile::Baseline),
+        "near_valid_local" => Ok(StimuliNegativeProfile::NearValidLocal),
+        other => Err(anyhow::anyhow!(
+            "Unsupported stimuli negative profile '{}'. Supported values: baseline, near_valid_local",
             other
         )),
     }
@@ -2696,7 +2723,7 @@ mod tests {
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
         parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
         parse_recovery_stimuli_mode, parse_stimuli_constraint_profile,
-        parse_stimuli_mutation_mode,
+        parse_stimuli_mutation_mode, parse_stimuli_negative_profile,
         resolve_parseability_max_attempts,
         resolve_stimuli_module_seed, supported_generated_parseability_grammars,
         supports_generated_parseability, write_parseability_report, FuzzCorpusCandidate,
@@ -2705,7 +2732,7 @@ mod tests {
     };
     use pgen::ast_pipeline::stimuli_generator::{
         BranchCoverageGroup, RecoveryStimuliMode, StimuliConstraintProfile,
-        StimuliMutationMode, TargetDriveValidationSummary,
+        StimuliMutationMode, StimuliNegativeProfile, TargetDriveValidationSummary,
     };
     use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
     use std::collections::{HashMap, HashSet};
@@ -3377,6 +3404,32 @@ mod tests {
         assert!(
             message.contains("Unsupported stimuli constraint profile"),
             "unexpected constraint profile parse error message: {}",
+            message
+        );
+    }
+
+    #[test]
+    fn parses_stimuli_negative_profile_values() {
+        assert!(matches!(
+            parse_stimuli_negative_profile("baseline")
+                .expect("baseline negative profile should parse"),
+            StimuliNegativeProfile::Baseline
+        ));
+        assert!(matches!(
+            parse_stimuli_negative_profile("near_valid_local")
+                .expect("near-valid-local negative profile should parse"),
+            StimuliNegativeProfile::NearValidLocal
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_stimuli_negative_profile_values() {
+        let err = parse_stimuli_negative_profile("chaotic_negative")
+            .expect_err("unknown negative profile must be rejected");
+        let message = err.to_string();
+        assert!(
+            message.contains("Unsupported stimuli negative profile"),
+            "unexpected negative profile parse error message: {}",
             message
         );
     }

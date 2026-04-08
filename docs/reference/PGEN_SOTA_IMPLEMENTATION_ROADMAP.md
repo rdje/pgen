@@ -78,16 +78,32 @@ The current bounded steering slice:
   - `vhdl`
   - `regex`
 
+The third preserved stimuli backlog item is now also landed:
+- `--stimuli-negative-profile near_valid_local`
+
+The current bounded negative slice:
+- prefers deterministic local near-valid corruption over blunt truncation-only shaping
+- currently focuses on:
+  - closing-delimiter removal or mismatch
+  - duplicated or trailing separators
+  - small interior local deletions
+- stays replay-deterministic under matched invocation config
+- preserves the same bounded cross-family proof doctrine on:
+  - `systemverilog`
+  - `vhdl`
+  - `regex`
+
 The remaining planned execution order is now:
-- `3.` stronger near-valid negative generation
 - `4.` corpus export/promotion
 - `5.` smarter shrinkers
 
 Execution rule:
-- treat the landed mutation and steering slices as shared platform infrastructure, not as grammar-local experiments
+- treat the landed mutation, steering, and negative slices as shared platform infrastructure, not as grammar-local experiments
 - do not treat the current local mutation slice as “finished mutation support”; it is deliberately bounded and should widen only with retained deterministic replay and shared proof
 - do not treat the current steering profiles as “finished constrained-random support”; they are deliberately bounded profile-level controls, not yet a full rule-specific constraint system
+- do not treat the current near-valid profile as “finished negative generation support”; it is deliberately bounded profile-level shaping, not yet a full invalid-sample DSL
 - the current mutation slice is intentionally baseline-recovery-only; non-baseline recovery modes keep their existing semantics until a later deliberate widening says otherwise
+- the current near-valid slice can compose with semantic `@invalid_case` and still falls back to deterministic negative-marker suffix behavior when no stronger local corruption candidate exists
 - when the remaining stimuli track is resumed, start from the preserved guidance in the stimuli spec and this ordered roadmap note rather than reopening the generic-fuzz-crates debate from scratch
 - major stimuli-generator upgrades should be validated across both active and closed parser families, with at least:
   - `systemverilog`

@@ -98,6 +98,30 @@ Implications:
   - `systemverilog`
 - This should be treated as the first executed item from the preserved stimuli-strengthening backlog, not as the finished end-state of mutation support.
 
+## Current Negative Contract (2026-04-09)
+- `--stimuli-negative-profile baseline` preserves the existing negative-generation behavior.
+- `--stimuli-negative-profile near_valid_local` prefers deterministic local near-valid corruption over blunt truncation-only shaping.
+- The currently landed near-valid local corruption candidates are intentionally bounded:
+  - remove a closing delimiter when present
+  - replace a closing delimiter with a mismatched sibling when present
+  - duplicate a separator candidate such as `,`, `;`, or `:`
+  - append a separator candidate at end when one is already present in the sample
+  - remove one interior non-whitespace, non-delimiter character
+  - fall back to deterministic negative-marker suffix behavior only when no stronger local candidate exists
+- Semantic interaction contract:
+  - semantic `@invalid_case` still activates negative shaping
+  - `near_valid_local` can also be activated globally through CLI/profile selection
+  - when semantic `@negative` is also active, near-valid mutation runs before the retained negative-marker suffix step
+- The currently landed negative slice is intentionally bounded:
+  - it is deterministic under matched replay identity
+  - it is profile-level shaping, not yet a full grammar-aware invalid-sample DSL
+  - it prefers local structural corruption, not arbitrary byte noise
+- This bounded slice is validated through real-family replay on:
+  - `regex`
+  - `vhdl`
+  - `systemverilog`
+- This should be treated as the third executed item from the preserved stimuli-strengthening backlog, not as the finished end-state of negative generation support.
+
 ## In-Memory vs Module Parity Contract
 When in-memory and module modes run with matched replay identity tuple:
 - generated sample corpus MUST be equivalent,

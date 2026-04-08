@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: stimuli-constrained-random-steering)
+Last updated: 2026-04-09 (+0200, task: stimuli-near-valid-negative-generation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained initial near-valid negative-generation wave:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - important continuity detail:
+    - the third queued stimuli-platform upgrade is now landed:
+      - stronger near-valid negative generation
+    - new CLI control:
+      - `--stimuli-negative-profile baseline|near_valid_local`
+    - current shipped non-baseline profile:
+      - `near_valid_local`
+    - current implementation shape:
+      - deterministic local corruption candidate selection now prefers:
+        - closing-delimiter removal
+        - closing-delimiter mismatch
+        - separator duplication
+        - separator append
+        - small interior local deletion
+      - deterministic negative-marker suffix behavior is retained only as fallback when no stronger local candidate exists
+    - semantic interaction contract now retained:
+      - semantic `@invalid_case` still activates negative shaping
+      - `near_valid_local` can also be selected globally
+      - when semantic `@negative` is also active, local near-valid mutation runs before the retained negative-marker suffix append
+    - real bounded cross-family proof now retained:
+      - `regex` baseline vs near-valid-negative outputs differ
+      - `vhdl` baseline vs near-valid-negative outputs differ
+      - `systemverilog` baseline vs near-valid-negative outputs differ
+      - all three families generated successfully in both modes
+    - retained local-proof nuance:
+      - focused `cargo test --lib <near-valid-test>` runtime runs still entered the familiar quiet local harness state after `Running unittests src/lib.rs`
+      - compile / `--no-run` proof plus direct CLI generation replays are therefore the reliable local closure signal for this wave
+    - replay-contract nuance now logged in docs:
+      - `stimuli_negative_profile` is part of replay identity
+      - exact replay under non-default generation controls still requires retaining the full invocation config, not just the smaller metadata subset exported by generated stimuli modules
+  - next best follow-up:
+    - continue the preserved stimuli backlog from item `4`:
+      - corpus export/promotion
 - Retained initial constrained-random steering wave:
   - changed:
     - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
