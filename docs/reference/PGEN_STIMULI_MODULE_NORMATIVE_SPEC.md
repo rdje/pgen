@@ -1,6 +1,6 @@
 # PGEN Stimuli Module Normative Specification (Living)
 
-Last updated: 2026-04-08
+Last updated: 2026-04-09
 
 ## Purpose
 This document defines the normative contract for generated Rust stimuli-module artifacts (`generated/<grammar>_stimuli.rs`) and their compatibility with in-memory stimuli generation.
@@ -52,6 +52,7 @@ The replay identity tuple for stimuli generation is:
 - `max_depth`,
 - `max_repeat`,
 - `recovery_stimuli_mode`,
+- `stimuli_mutation_mode`,
 - parseability policy (`--validate-parseability` on/off),
 - coverage merge input (`--coverage-input`, if any).
 
@@ -59,6 +60,23 @@ Implications:
 - `--generate-stimuli` without `--seed` is entropy-based and not replay-stable.
 - `--generate-stimuli-module` without `--seed` remains replay-stable via default seed `1`.
 - Cross-mode deterministic replay requires explicitly matching all tuple fields above.
+- The replay identity tuple is intentionally larger than the exported module metadata constant set.
+- Consumers that need exact replay under non-default stimuli controls MUST retain the full invocation config out of band rather than relying only on generated module constants.
+
+## Current Mutation Contract (2026-04-09)
+- `--stimuli-mutation-mode baseline` preserves the existing stimuli behavior.
+- `--stimuli-mutation-mode grammar_aware_local` performs one local grammar-aware trace/replay perturbation over an otherwise valid sample.
+- The currently landed local mutation sites are:
+  - alternate OR-branch selection
+  - alternate quantifier repeat counts
+- The current grammar-aware mutation slice is intentionally bounded:
+  - it activates only when `--recovery-stimuli-mode baseline` is in effect
+  - non-baseline recovery modes retain their existing recovery semantics
+- This first landed slice is validated through bounded real-family replay on:
+  - `regex`
+  - `vhdl`
+  - `systemverilog`
+- This should be treated as the first executed item from the preserved stimuli-strengthening backlog, not as the finished end-state of mutation support.
 
 ## In-Memory vs Module Parity Contract
 When in-memory and module modes run with matched replay identity tuple:
@@ -181,6 +199,7 @@ Any change to:
 - exported module constant names/types,
 - seed default behavior,
 - parity equivalence semantics,
+- replay identity tuple fields or active mutation semantics,
 is a contract change and MUST update:
 - this file,
 - `PGEN_USER_GUIDE.md`,

@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - Initial grammar-aware stimuli mutation landed
+### Context
+The stimuli backlog was already explicitly ordered, and the first queued item was grammar-aware mutation rather than more generic fuzz-crate debate. The important implementation bar was not “emit different text somehow”; it was “stay grammar-valid, remain replayable, and prove the behavior across real parser families instead of a toy grammar only.”
+
+### What Was Changed
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliMutationMode::{Baseline, GrammarAwareLocal}`
+  - extended `StimuliConfig` with `mutation_mode`
+  - added a trace/replay mutation path:
+    - run a baseline generation once
+    - record local OR/quantifier decisions
+    - pick one viable alternate local decision
+    - replay from the same baseline RNG / coverage / deterministic-partition state with one forced perturbation
+  - current landed local mutation targets are:
+    - OR-branch selection
+    - quantifier repeat counts
+  - added focused tests for:
+    - alternate OR replay
+    - alternate quantifier replay
+    - fallback when no local mutation site exists
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-mutation-mode baseline|grammar_aware_local`
+  - wired the new mode through both stimuli entrypoints:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added focused parser tests for accepted and rejected CLI values
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+
+### Why It Matters
+- This is the first landed step toward a stronger PGEN-native structured fuzz/stimuli strategy, not just another random-generation knob.
+- The mutation path stays grammar-aware because it perturbs decisions during generation, not by post-hoc byte corruption.
+- The replay shape is intentionally bounded and auditable:
+  - the same seed can now produce either the baseline path or one locally mutated path depending on `stimuli_mutation_mode`
+  - the mutation is still deterministic under matched replay identity
+- The cross-family bounded proof stayed honest:
+  - `regex` baseline vs mutated output differed
+  - `vhdl` baseline vs mutated output differed
+  - `systemverilog` baseline vs mutated output differed
+  - all three families stayed generation-successful in both modes
+
+### Steering
+- Treat this as the first landed backlog item, not as finished mutation support.
+- Current deliberate boundary:
+  - local mutation only
+  - baseline recovery mode only
+  - current local mutation sites:
+    - OR branches
+    - quantifier counts
+- The next deferred stimuli-platform step is now clearly:
+  - constrained-random steering
+- Important replay-contract nuance preserved in docs:
+  - `stimuli_mutation_mode` is now part of replay identity
+  - exact replay under non-default generation controls still depends on retaining the full invocation config, not just the limited metadata constants exported by generated stimuli modules
+- Important local-proof nuance:
+  - direct CLI smoke replays on `regex`, `vhdl`, and `systemverilog` are the trustworthy local closure signal for this wave
+  - the focused `cargo test --bin ast_pipeline <mutation-test>` runtime path still entered the familiar quiet local harness state after `Running unittests src/main.rs`
+  - use `--no-run` compilation plus direct CLI generation replays until that harness behavior is debugged separately
+
 ## 2026-04-08 - Regex `1.1.9`: returned-capture subroutine transport for RGX
 ### Context
 RGX feature request `PGEN-RGX-0015` was not a correctness regression in an old syntax branch; it was a true syntax-widening request for newly published PCRE2 `10.47+` returned-capture subroutine forms. The minimal RGX repro `(?1(1))` previously failed at byte `0`, so the right response was to publish a real transport shape rather than teaching downstreams to special-case the new form by string inspection.

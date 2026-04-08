@@ -245,6 +245,7 @@ High-value stimuli flags:
 - `--entry-rule`
 - `--max-depth`
 - `--max-repeat`
+- `--stimuli-mutation-mode` (`baseline`, `grammar_aware_local`)
 - `--dump-gen-ast [PATH]`
 - `--dump-gen-ast-pretty`
 - `--dump-gen-ast-max-bytes`
@@ -668,9 +669,11 @@ When `--validate-parseability` is combined with `--target-report-input`, target-
   - `max_depth`,
   - `max_repeat`,
   - `recovery_stimuli_mode`,
+  - `stimuli_mutation_mode`,
   - parseability filter setting,
   - parseability attempt budget (when parseability validation is enabled),
   - coverage merge input (if used).
+- The generated stimuli-module metadata constants are a useful replay baseline, but they do not encode every non-default stimuli control; retain the full invocation config if you need exact replay of non-default mutation or recovery settings.
 - Cross-mode parity (samples + coverage + gap) is enforced by:
 ```bash
 make -C rust SHELL=/bin/bash stimuli_module_parity_gate
@@ -749,6 +752,20 @@ cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast
   --count 50 \
   --recovery-stimuli-mode near_sync_negative \
   --output /tmp/near_sync_negative_samples.txt
+```
+
+### G) Grammar-aware local mutation
+```bash
+# Grammar-aware local mutation preserves a valid baseline sample shape while
+# perturbing one local grammar decision (currently OR branches or quantifier counts).
+# The initial landed slice is intentionally bounded to baseline recovery mode.
+cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin ast_pipeline -- \
+  generated/semantic_annotation.json \
+  --generate-stimuli \
+  --count 50 \
+  --seed 42 \
+  --stimuli-mutation-mode grammar_aware_local \
+  --output /tmp/grammar_aware_mutated_samples.txt
 ```
 
 ## 7) Return Annotation Features

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: regex-1.1.9-returned-capture-subroutines)
+Last updated: 2026-04-09 (+0200, task: stimuli-grammar-aware-mutation)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,44 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained initial grammar-aware stimuli mutation wave:
+  - changed:
+    - [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs)
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - important continuity detail:
+    - the first queued stimuli-platform upgrade is now landed:
+      - grammar-aware mutation
+    - new CLI control:
+      - `--stimuli-mutation-mode baseline|grammar_aware_local`
+    - current landed mutation scope:
+      - local OR-branch perturbation
+      - local quantifier-repeat perturbation
+    - current deliberate boundary:
+      - mutation is only activated for:
+        - `recovery_stimuli_mode=baseline`
+      - non-baseline recovery modes keep their prior semantics for now
+    - implementation shape:
+      - baseline generate once
+      - record local decisions
+      - pick one viable alternate local site
+      - replay from the same RNG / coverage / deterministic-partition state with one forced perturbation
+    - real bounded cross-family proof now retained:
+      - `regex` baseline vs mutation outputs differ
+      - `vhdl` baseline vs mutation outputs differ
+      - `systemverilog` baseline vs mutation outputs differ
+      - all three families generated successfully in both modes
+    - retained local-proof nuance:
+      - focused `cargo test --bin ast_pipeline <mutation-test>` runtime runs still entered the familiar quiet local harness state after `Running unittests src/main.rs`
+      - compile / `--no-run` proof plus direct CLI generation replays are therefore the reliable local closure signal for this wave
+    - replay-contract nuance now logged in docs:
+      - `stimuli_mutation_mode` is part of replay identity
+      - exact replay under non-default generation controls still requires retaining the full invocation config, not just the smaller metadata subset exported by generated stimuli modules
+  - next best follow-up:
+    - continue the preserved stimuli backlog from item `2`:
+      - constrained-random steering
 - Retained regex `1.1.9` returned-capture-subroutine wave:
   - changed:
     - [grammars/regex.ebnf](grammars/regex.ebnf)

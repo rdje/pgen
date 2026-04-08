@@ -6,7 +6,8 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
     RecoveryStimuliMode, StimuliConfig, StimuliCoverageGapReport, StimuliCoverageMetrics,
-    StimuliGenerator, TargetDriveFilterContext, TargetDriveValidationSummary,
+    StimuliGenerator, StimuliMutationMode, TargetDriveFilterContext,
+    TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
@@ -127,6 +128,14 @@ struct Args {
         value_parser = ["baseline", "recovery_biased", "near_sync_negative"]
     )]
     recovery_stimuli_mode: String,
+
+    /// Stimuli mutation mode: baseline, grammar_aware_local
+    #[arg(
+        long,
+        default_value = "baseline",
+        value_parser = ["baseline", "grammar_aware_local"]
+    )]
+    stimuli_mutation_mode: String,
 
     /// Append a delimiter space after terminal word-boundary regex samples (for example `keyword\\b`) to reduce merged-token stimuli
     #[arg(long)]
@@ -561,10 +570,11 @@ fn main() -> Result<()> {
             || args.gap_report_text.is_some()
             || args.gap_report_threshold != 1
             || args.recovery_stimuli_mode != "baseline"
+            || args.stimuli_mutation_mode != "baseline"
             || args.enforce_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--gap-report-*/--recovery-stimuli-mode/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -780,12 +790,14 @@ fn main() -> Result<()> {
             );
         }
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
+        let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
         let stimuli_config = StimuliConfig {
             seed: Some(effective_seed),
             max_depth: args.max_depth,
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
+            mutation_mode,
             enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
@@ -871,6 +883,7 @@ fn main() -> Result<()> {
                     max_repeat: args.max_repeat,
                     max_rule_visits: args.max_depth.max(2),
                     recovery_mode,
+                    mutation_mode,
                     enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
                     trace_verbosity,
                 },
@@ -907,12 +920,14 @@ fn main() -> Result<()> {
             dump_gen_ast_max_bytes,
         )?;
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
+        let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
         let stimuli_config = StimuliConfig {
             seed: args.seed,
             max_depth: args.max_depth,
             max_repeat: args.max_repeat,
             max_rule_visits: args.max_depth.max(2),
             recovery_mode,
+            mutation_mode,
             enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
             trace_verbosity,
         };
@@ -1752,6 +1767,17 @@ fn parse_recovery_stimuli_mode(value: &str) -> Result<RecoveryStimuliMode> {
         "near_sync_negative" => Ok(RecoveryStimuliMode::NearSyncNegative),
         other => Err(anyhow::anyhow!(
             "Unsupported recovery stimuli mode '{}'. Supported values: baseline, recovery_biased, near_sync_negative",
+            other
+        )),
+    }
+}
+
+fn parse_stimuli_mutation_mode(value: &str) -> Result<StimuliMutationMode> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "baseline" => Ok(StimuliMutationMode::Baseline),
+        "grammar_aware_local" => Ok(StimuliMutationMode::GrammarAwareLocal),
+        other => Err(anyhow::anyhow!(
+            "Unsupported stimuli mutation mode '{}'. Supported values: baseline, grammar_aware_local",
             other
         )),
     }
@@ -2641,14 +2667,16 @@ mod tests {
         extract_parse_error_position, generate_stimuli_module_source, is_ebnf_input_path,
         maybe_dump_generation_ast, minimize_failing_input, minimize_fuzz_corpus_cases,
         parse_error_context_excerpt, parse_error_line_column, parse_error_line_excerpt,
-        parse_recovery_stimuli_mode, resolve_parseability_max_attempts,
+        parse_recovery_stimuli_mode, parse_stimuli_mutation_mode,
+        resolve_parseability_max_attempts,
         resolve_stimuli_module_seed, supported_generated_parseability_grammars,
         supports_generated_parseability, write_parseability_report, FuzzCorpusCandidate,
         LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary, StimuliCoverageMetrics,
         TargetDriveParseabilityTelemetry,
     };
     use pgen::ast_pipeline::stimuli_generator::{
-        BranchCoverageGroup, RecoveryStimuliMode, TargetDriveValidationSummary,
+        BranchCoverageGroup, RecoveryStimuliMode, StimuliMutationMode,
+        TargetDriveValidationSummary,
     };
     use pgen::ast_pipeline::{ASTNode, ASTValue, TokenValue};
     use std::collections::{HashMap, HashSet};
@@ -3264,6 +3292,31 @@ mod tests {
         assert!(
             message.contains("Unsupported recovery stimuli mode"),
             "unexpected recovery mode parse error message: {}",
+            message
+        );
+    }
+
+    #[test]
+    fn parses_stimuli_mutation_mode_values() {
+        assert!(matches!(
+            parse_stimuli_mutation_mode("baseline").expect("baseline mutation mode should parse"),
+            StimuliMutationMode::Baseline
+        ));
+        assert!(matches!(
+            parse_stimuli_mutation_mode("grammar_aware_local")
+                .expect("grammar-aware mutation mode should parse"),
+            StimuliMutationMode::GrammarAwareLocal
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_stimuli_mutation_mode_values() {
+        let err = parse_stimuli_mutation_mode("mutate_everything")
+            .expect_err("unknown mutation mode must be rejected");
+        let message = err.to_string();
+        assert!(
+            message.contains("Unsupported stimuli mutation mode"),
+            "unexpected mutation mode parse error message: {}",
             message
         );
     }

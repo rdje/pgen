@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-04-09 - Land initial grammar-aware stimuli mutation
+### Achievement Summary
+Landed the first planned stimuli-platform strengthening step from the preserved roadmap: grammar-aware mutation. The stimuli engine can now replay a valid baseline generation path and locally perturb one grammar decision via `--stimuli-mutation-mode grammar_aware_local`, with the initial landed scope limited to alternate OR-branch selection and alternate quantifier repeat counts.
+
+### Scope of Changes
+- Updated [rust/src/ast_pipeline/stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
+  - added `StimuliMutationMode`
+  - extended `StimuliConfig` with `mutation_mode`
+  - added local trace/replay mutation support for:
+    - OR-branch selection
+    - quantifier repeat counts
+  - added focused tests for:
+    - alternate OR replay
+    - alternate quantifier replay
+    - no-site fallback
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added CLI flag:
+    - `--stimuli-mutation-mode`
+  - wired mutation mode through both:
+    - `--generate-stimuli`
+    - `--generate-stimuli-module`
+  - added focused parse/validation tests for supported mutation-mode values
+- Updated active docs:
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is shared stimuli-platform strengthening, not a parser-family label promotion
+  - the next deferred stimuli backlog item is now:
+    - constrained-random steering
+
+### Validation
+- `cargo test --manifest-path rust/Cargo.toml --lib stimuli_generator --no-run`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline parses_stimuli_mutation_mode_values --no-run`
+- `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline rejects_unknown_stimuli_mutation_mode_values --no-run`
+- `cargo build --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --seed 11 --max-depth 10 --max-repeat 2 --output /tmp/regex_stimuli_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/regex.ebnf --generate-stimuli --count 4 --seed 11 --max-depth 10 --max-repeat 2 --stimuli-mutation-mode grammar_aware_local --output /tmp/regex_stimuli_mutated.txt`
+- `rust/target/debug/ast_pipeline grammars/vhdl.ebnf --generate-stimuli --count 4 --seed 11 --max-depth 10 --max-repeat 2 --output /tmp/vhdl_stimuli_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/vhdl.ebnf --generate-stimuli --count 4 --seed 11 --max-depth 10 --max-repeat 2 --stimuli-mutation-mode grammar_aware_local --output /tmp/vhdl_stimuli_mutated.txt`
+- `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 2 --seed 11 --max-depth 8 --max-repeat 1 --output /tmp/systemverilog_stimuli_baseline.txt`
+- `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --count 2 --seed 11 --max-depth 8 --max-repeat 1 --stimuli-mutation-mode grammar_aware_local --output /tmp/systemverilog_stimuli_mutated.txt`
+- `git diff --check`
+- retained proof facts:
+  - all three families generated successfully in both modes
+  - baseline vs mutated outputs differed for:
+    - `regex`
+    - `vhdl`
+    - `systemverilog`
+
 ## 2026-04-08 - Release regex 1.1.9 returned-capture subroutines
 ### Achievement Summary
 Published regex maintenance release `1.1.9` for RGX feature request `PGEN-RGX-0015`. The regex grammar and generated backend now accept PCRE2 `10.47+` returned-capture subroutine syntax, so `(?1(1))` and `(?&callee(+1,<cap>,'alt'))` no longer reject at position `0`; they now transport through explicit AST rules `returned_capture_subroutine`, `subroutine_target`, `returned_capture_group_list`, and `returned_capture_group`.

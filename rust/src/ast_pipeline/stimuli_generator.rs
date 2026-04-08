@@ -35,6 +35,18 @@ impl Default for RecoveryStimuliMode {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StimuliMutationMode {
+    Baseline,
+    GrammarAwareLocal,
+}
+
+impl Default for StimuliMutationMode {
+    fn default() -> Self {
+        Self::Baseline
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct StimuliConfig {
     pub seed: Option<u64>,
@@ -42,6 +54,7 @@ pub struct StimuliConfig {
     pub max_repeat: usize,
     pub max_rule_visits: usize,
     pub recovery_mode: RecoveryStimuliMode,
+    pub mutation_mode: StimuliMutationMode,
     pub enforce_word_boundary_spacing: bool,
     pub trace_verbosity: TraceVerbosity,
 }
@@ -54,6 +67,7 @@ impl Default for StimuliConfig {
             max_repeat: 4,
             max_rule_visits: 8,
             recovery_mode: RecoveryStimuliMode::Baseline,
+            mutation_mode: StimuliMutationMode::Baseline,
             enforce_word_boundary_spacing: false,
             trace_verbosity: global_trace_verbosity(),
         }
@@ -752,6 +766,47 @@ struct StimuliTokenSteeringPolicy {
     explicit_pattern: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+enum GrammarMutationCandidateKind {
+    Or {
+        alternative_branches: Vec<usize>,
+    },
+    Quantifier {
+        alternative_repeats: Vec<usize>,
+    },
+}
+
+#[derive(Debug, Clone)]
+struct GrammarMutationCandidate {
+    site_key: String,
+    kind: GrammarMutationCandidateKind,
+}
+
+#[derive(Debug, Clone, Default)]
+struct StimuliDecisionTrace {
+    or_choices: HashMap<String, usize>,
+    quantifier_repeats: HashMap<String, usize>,
+    mutation_candidates: Vec<GrammarMutationCandidate>,
+}
+
+#[derive(Debug, Clone)]
+enum GrammarMutationSelection {
+    Or {
+        site_key: String,
+        forced_branch: usize,
+    },
+    Quantifier {
+        site_key: String,
+        forced_repeats: usize,
+    },
+}
+
+#[derive(Debug, Clone)]
+struct ActiveGrammarMutationReplay {
+    baseline_trace: StimuliDecisionTrace,
+    selection: GrammarMutationSelection,
+}
+
 pub struct StimuliGenerator<'a> {
     grammar_name: String,
     grammar_tree: &'a HashMap<String, ASTNode>,
@@ -763,6 +818,9 @@ pub struct StimuliGenerator<'a> {
     target_plan: ActiveTargetPlan,
     target_drive_validation_active: bool,
     deterministic_partition_counters: HashMap<String, u64>,
+    mutation_trace: Option<StimuliDecisionTrace>,
+    mutation_replay: Option<ActiveGrammarMutationReplay>,
+    mutation_site_visit_counters: HashMap<String, u64>,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -817,6 +875,9 @@ impl<'a> StimuliGenerator<'a> {
             target_plan: ActiveTargetPlan::default(),
             target_drive_validation_active: false,
             deterministic_partition_counters: HashMap::new(),
+            mutation_trace: None,
+            mutation_replay: None,
+            mutation_site_visit_counters: HashMap::new(),
         }
     }
 
@@ -2007,17 +2068,10 @@ impl<'a> StimuliGenerator<'a> {
             ),
         );
         self.activate_deterministic_partition_for_entry(entry_rule);
-        let mut call_stack = Vec::new();
-        let result = match self.config.recovery_mode {
-            RecoveryStimuliMode::Baseline => self.generate_rule(entry_rule, 0, &mut call_stack),
-            RecoveryStimuliMode::RecoveryBiased => {
-                self.generate_recovery_biased_entry(entry_rule, &mut call_stack)
-            }
-            RecoveryStimuliMode::NearSyncNegative => {
-                self.generate_near_sync_negative_entry(entry_rule, &mut call_stack)
-            }
-        }
-        .map(|sample| self.apply_negative_case_policy(entry_rule, sample));
+        self.reset_mutation_runtime_state();
+        let result = self
+            .generate_entry_with_configured_modes(entry_rule)
+            .map(|sample| self.apply_negative_case_policy(entry_rule, sample));
         self.coverage.record_sample_attempt(result.is_ok());
         match &result {
             Ok(sample) => self.trace(
@@ -2038,6 +2092,230 @@ impl<'a> StimuliGenerator<'a> {
             ),
         }
         result
+    }
+
+    fn generate_entry_with_configured_modes(&mut self, entry_rule: &str) -> Result<String> {
+        if self.config.mutation_mode == StimuliMutationMode::GrammarAwareLocal
+            && self.config.recovery_mode == RecoveryStimuliMode::Baseline
+        {
+            return self.generate_entry_with_local_grammar_mutation(entry_rule);
+        }
+
+        let mut call_stack = Vec::new();
+        self.generate_entry_core(entry_rule, &mut call_stack)
+    }
+
+    fn generate_entry_core(
+        &mut self,
+        entry_rule: &str,
+        call_stack: &mut Vec<String>,
+    ) -> Result<String> {
+        match self.config.recovery_mode {
+            RecoveryStimuliMode::Baseline => self.generate_rule(entry_rule, 0, call_stack),
+            RecoveryStimuliMode::RecoveryBiased => {
+                self.generate_recovery_biased_entry(entry_rule, call_stack)
+            }
+            RecoveryStimuliMode::NearSyncNegative => {
+                self.generate_near_sync_negative_entry(entry_rule, call_stack)
+            }
+        }
+    }
+
+    fn generate_entry_with_local_grammar_mutation(&mut self, entry_rule: &str) -> Result<String> {
+        let coverage_before = self.coverage.clone();
+        let deterministic_counters_after_activation = self.deterministic_partition_counters.clone();
+        let rng_after_activation = self.rng.clone();
+
+        self.reset_mutation_runtime_state();
+        self.mutation_trace = Some(StimuliDecisionTrace::default());
+
+        let mut baseline_call_stack = Vec::new();
+        let baseline_result = self.generate_entry_core(entry_rule, &mut baseline_call_stack);
+        let baseline_coverage_after = self.coverage.clone();
+        let baseline_rng_after = self.rng.clone();
+        let baseline_trace = self.mutation_trace.take().unwrap_or_default();
+        self.mutation_replay = None;
+        self.mutation_site_visit_counters.clear();
+
+        let baseline_sample = match baseline_result {
+            Ok(sample) => sample,
+            Err(err) => {
+                self.mutation_replay = None;
+                return Err(err);
+            }
+        };
+
+        let mut selections = self.build_grammar_mutation_selections(&baseline_trace);
+        if selections.is_empty() {
+            return Ok(baseline_sample);
+        }
+
+        let mut selection_rng = baseline_rng_after.clone();
+        selections.shuffle(&mut selection_rng);
+
+        for selection in selections {
+            self.coverage = coverage_before.clone();
+            self.deterministic_partition_counters = deterministic_counters_after_activation.clone();
+            self.rng = rng_after_activation.clone();
+            self.mutation_site_visit_counters.clear();
+            self.mutation_replay = Some(ActiveGrammarMutationReplay {
+                baseline_trace: baseline_trace.clone(),
+                selection,
+            });
+
+            let mut replay_call_stack = Vec::new();
+            let replay_result = self.generate_entry_core(entry_rule, &mut replay_call_stack);
+            self.mutation_replay = None;
+            self.mutation_site_visit_counters.clear();
+
+            if let Ok(mutated_sample) = replay_result {
+                if mutated_sample != baseline_sample {
+                    return Ok(mutated_sample);
+                }
+            }
+        }
+
+        self.coverage = baseline_coverage_after;
+        self.deterministic_partition_counters = deterministic_counters_after_activation;
+        self.rng = baseline_rng_after;
+        Ok(baseline_sample)
+    }
+
+    fn build_grammar_mutation_selections(
+        &self,
+        trace: &StimuliDecisionTrace,
+    ) -> Vec<GrammarMutationSelection> {
+        let mut selections = Vec::new();
+        for candidate in &trace.mutation_candidates {
+            match &candidate.kind {
+                GrammarMutationCandidateKind::Or {
+                    alternative_branches,
+                    ..
+                } => {
+                    for branch in alternative_branches {
+                        selections.push(GrammarMutationSelection::Or {
+                            site_key: candidate.site_key.clone(),
+                            forced_branch: *branch,
+                        });
+                    }
+                }
+                GrammarMutationCandidateKind::Quantifier {
+                    alternative_repeats,
+                    ..
+                } => {
+                    for repeats in alternative_repeats {
+                        selections.push(GrammarMutationSelection::Quantifier {
+                            site_key: candidate.site_key.clone(),
+                            forced_repeats: *repeats,
+                        });
+                    }
+                }
+            }
+        }
+        selections
+    }
+
+    fn reset_mutation_runtime_state(&mut self) {
+        self.mutation_trace = None;
+        self.mutation_replay = None;
+        self.mutation_site_visit_counters.clear();
+    }
+
+    fn next_mutation_site_key(
+        &mut self,
+        current_rule: &str,
+        node_path: &str,
+        kind: &str,
+    ) -> String {
+        let base_key = format!("{}::{}::{}", current_rule, node_path, kind);
+        let ordinal = {
+            let counter = self
+                .mutation_site_visit_counters
+                .entry(base_key.clone())
+                .or_insert(0);
+            let current = *counter;
+            *counter = counter.saturating_add(1);
+            current
+        };
+        format!("{}#{}", base_key, ordinal)
+    }
+
+    fn forced_or_branch_for_site(&self, site_key: &str) -> Option<(usize, Option<usize>)> {
+        let replay = self.mutation_replay.as_ref()?;
+        let baseline = replay.baseline_trace.or_choices.get(site_key).copied();
+        match &replay.selection {
+            GrammarMutationSelection::Or {
+                site_key: selected_site_key,
+                forced_branch,
+            } if selected_site_key == site_key => Some((*forced_branch, baseline)),
+            _ => baseline.map(|branch| (branch, baseline)),
+        }
+    }
+
+    fn forced_quantifier_repeats_for_site(
+        &self,
+        site_key: &str,
+    ) -> Option<(usize, Option<usize>)> {
+        let replay = self.mutation_replay.as_ref()?;
+        let baseline = replay.baseline_trace.quantifier_repeats.get(site_key).copied();
+        match &replay.selection {
+            GrammarMutationSelection::Quantifier {
+                site_key: selected_site_key,
+                forced_repeats,
+            } if selected_site_key == site_key => Some((*forced_repeats, baseline)),
+            _ => baseline.map(|repeats| (repeats, baseline)),
+        }
+    }
+
+    fn record_or_mutation_choice(
+        &mut self,
+        site_key: &str,
+        selected_branch: usize,
+        candidate_indices: &[usize],
+    ) {
+        let Some(trace) = self.mutation_trace.as_mut() else {
+            return;
+        };
+        trace.or_choices.insert(site_key.to_string(), selected_branch);
+        let alternative_branches: Vec<usize> = candidate_indices
+            .iter()
+            .copied()
+            .filter(|branch| *branch != selected_branch)
+            .collect();
+        if !alternative_branches.is_empty() {
+            trace.mutation_candidates.push(GrammarMutationCandidate {
+                site_key: site_key.to_string(),
+                kind: GrammarMutationCandidateKind::Or {
+                    alternative_branches,
+                },
+            });
+        }
+    }
+
+    fn record_quantifier_mutation_choice(
+        &mut self,
+        site_key: &str,
+        chosen_repeats: usize,
+        min_repeat: usize,
+        bounded_max: usize,
+    ) {
+        let Some(trace) = self.mutation_trace.as_mut() else {
+            return;
+        };
+        trace
+            .quantifier_repeats
+            .insert(site_key.to_string(), chosen_repeats);
+        let alternative_repeats: Vec<usize> = (min_repeat..=bounded_max)
+            .filter(|repeats| *repeats != chosen_repeats)
+            .collect();
+        if !alternative_repeats.is_empty() {
+            trace.mutation_candidates.push(GrammarMutationCandidate {
+                site_key: site_key.to_string(),
+                kind: GrammarMutationCandidateKind::Quantifier {
+                    alternative_repeats,
+                },
+            });
+        }
     }
 
     fn generate_recovery_biased_entry(
@@ -2282,9 +2560,38 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         let group_key = format!("{}::{}", current_rule, node_path);
+        let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "or");
         let (branch_policy, associativity, branch_priorities) =
             self.rule_branch_controls(current_rule, prepared.len());
-        let attempt_order: Vec<usize> = match branch_policy {
+        let attempt_order: Vec<usize> = if let Some((preferred_global, baseline_global)) =
+            self.forced_or_branch_for_site(&mutation_site_key)
+        {
+            let mut ordered = Vec::with_capacity(candidate_indices.len());
+            if let Some(local_idx) = candidate_indices
+                .iter()
+                .position(|global_idx| *global_idx == preferred_global)
+            {
+                ordered.push(local_idx);
+            }
+            if let Some(baseline_global) = baseline_global {
+                if baseline_global != preferred_global {
+                    if let Some(local_idx) = candidate_indices
+                        .iter()
+                        .position(|global_idx| *global_idx == baseline_global)
+                    {
+                        if !ordered.contains(&local_idx) {
+                            ordered.push(local_idx);
+                        }
+                    }
+                }
+            }
+            for local_idx in 0..candidate_indices.len() {
+                if !ordered.contains(&local_idx) {
+                    ordered.push(local_idx);
+                }
+            }
+            ordered
+        } else { match branch_policy {
             SemanticBranchPolicy::Ordered => (0..candidate_indices.len()).collect(),
             SemanticBranchPolicy::PriorityFirst => {
                 let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
@@ -2378,7 +2685,7 @@ impl<'a> StimuliGenerator<'a> {
                 }
                 ordered
             }
-        };
+        }};
         self.trace(
             TraceLevel::Debug,
             format_args!(
@@ -2405,13 +2712,18 @@ impl<'a> StimuliGenerator<'a> {
             self.trace(
                 TraceLevel::High,
                 format_args!(
-                    "Trying OR branch: rule='{}' path='{}' local_branch={} global_branch={}",
-                    current_rule, node_path, local_idx, selected_global
+                    "Trying OR branch: rule='{}' path='{}' site='{}' local_branch={} global_branch={}",
+                    current_rule, node_path, mutation_site_key, local_idx, selected_global
                 ),
             );
             let alt_path = format!("{}/o{}", node_path, selected_global);
             match self.generate_node(&selected_node, current_rule, depth, call_stack, &alt_path) {
                 Ok(output) => {
+                    self.record_or_mutation_choice(
+                        &mutation_site_key,
+                        selected_global,
+                        &candidate_indices,
+                    );
                     self.coverage.record_branch_success(
                         &group_key,
                         current_rule,
@@ -2713,7 +3025,30 @@ impl<'a> StimuliGenerator<'a> {
     ) -> Result<String> {
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
-        let repeat_candidates: Vec<usize> = if min_repeat == bounded_max {
+        let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "quantifier");
+        let repeat_candidates: Vec<usize> =
+            if let Some((preferred_repeats, baseline_repeats)) =
+                self.forced_quantifier_repeats_for_site(&mutation_site_key)
+            {
+                let mut candidates = Vec::new();
+                if preferred_repeats >= min_repeat && preferred_repeats <= bounded_max {
+                    candidates.push(preferred_repeats);
+                }
+                if let Some(baseline_repeats) = baseline_repeats {
+                    if baseline_repeats >= min_repeat
+                        && baseline_repeats <= bounded_max
+                        && !candidates.contains(&baseline_repeats)
+                    {
+                        candidates.push(baseline_repeats);
+                    }
+                }
+                for repeat in min_repeat..=bounded_max {
+                    if !candidates.contains(&repeat) {
+                        candidates.push(repeat);
+                    }
+                }
+                candidates
+            } else if min_repeat == bounded_max {
             vec![min_repeat]
         } else if depth >= self.config.max_depth.saturating_sub(1) {
             vec![min_repeat]
@@ -2731,9 +3066,10 @@ impl<'a> StimuliGenerator<'a> {
         self.trace(
             TraceLevel::High,
             format_args!(
-                "Quantifier decision: rule='{}' path='{}' quantifier='{}' min={} max={} candidates={:?}",
+                "Quantifier decision: rule='{}' path='{}' site='{}' quantifier='{}' min={} max={} candidates={:?}",
                 current_rule,
                 node_path,
+                mutation_site_key,
                 quantifier,
                 min_repeat,
                 bounded_max,
@@ -2774,6 +3110,12 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
             if !failed {
+                self.record_quantifier_mutation_choice(
+                    &mutation_site_key,
+                    repeats,
+                    min_repeat,
+                    bounded_max,
+                );
                 self.trace(
                     TraceLevel::Debug,
                     format_args!(
@@ -5305,6 +5647,20 @@ mod tests {
         rule_order: &'a [String],
         seed: u64,
     ) -> StimuliGenerator<'a> {
+        simple_generator_with_mutation_mode(
+            grammar_tree,
+            rule_order,
+            seed,
+            StimuliMutationMode::Baseline,
+        )
+    }
+
+    fn simple_generator_with_mutation_mode<'a>(
+        grammar_tree: &'a HashMap<String, ASTNode>,
+        rule_order: &'a [String],
+        seed: u64,
+        mutation_mode: StimuliMutationMode,
+    ) -> StimuliGenerator<'a> {
         StimuliGenerator::new(
             "test".to_string(),
             grammar_tree,
@@ -5316,6 +5672,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5339,6 +5696,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5363,6 +5721,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode,
+                mutation_mode: StimuliMutationMode::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5401,6 +5760,120 @@ mod tests {
         let count_a = a.iter().filter(|v| v.as_str() == "A").count();
         let count_b = a.iter().filter(|v| v.as_str() == "B").count();
         assert!(count_a > count_b, "70/30 weighting should bias toward A");
+    }
+
+    #[test]
+    fn grammar_aware_mutation_replays_with_alternate_or_branch() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "pre"),
+                    ASTNode::Or {
+                        alternatives: vec![
+                            token("quoted_string", "left"),
+                            token("quoted_string", "right"),
+                        ],
+                    },
+                    token("quoted_string", "post"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut baseline_generator = simple_generator(&grammar_tree, &rule_order, 4401);
+        let baseline = baseline_generator
+            .generate_many(1, Some("start"))
+            .expect("baseline generation should succeed");
+
+        let mut mutation_generator = simple_generator_with_mutation_mode(
+            &grammar_tree,
+            &rule_order,
+            4401,
+            StimuliMutationMode::GrammarAwareLocal,
+        );
+        let mutated = mutation_generator
+            .generate_many(1, Some("start"))
+            .expect("grammar-aware mutation should succeed");
+
+        assert_ne!(
+            baseline[0], mutated[0],
+            "mutation mode should perturb the local OR choice"
+        );
+        assert!(
+            mutated[0] == "preleftpost" || mutated[0] == "prerightpost",
+            "mutated OR sample should stay grammar-valid, got {:?}",
+            mutated[0]
+        );
+    }
+
+    #[test]
+    fn grammar_aware_mutation_replays_with_alternate_quantifier_count() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "["),
+                    ASTNode::Quantified {
+                        element: Box::new(token("quoted_string", "x")),
+                        quantifier: "1,3".to_string(),
+                    },
+                    token("quoted_string", "]"),
+                ],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut baseline_generator = simple_generator(&grammar_tree, &rule_order, 4402);
+        let baseline = baseline_generator
+            .generate_many(1, Some("start"))
+            .expect("baseline generation should succeed");
+
+        let mut mutation_generator = simple_generator_with_mutation_mode(
+            &grammar_tree,
+            &rule_order,
+            4402,
+            StimuliMutationMode::GrammarAwareLocal,
+        );
+        let mutated = mutation_generator
+            .generate_many(1, Some("start"))
+            .expect("grammar-aware mutation should succeed");
+
+        let regex = Regex::new(r"^\[x{1,3}\]$").expect("valid regex");
+        assert_ne!(
+            baseline[0], mutated[0],
+            "mutation mode should perturb the quantifier repeat count"
+        );
+        assert!(
+            regex.is_match(&mutated[0]),
+            "mutated quantifier sample should stay grammar-valid, got {:?}",
+            mutated[0]
+        );
+    }
+
+    #[test]
+    fn grammar_aware_mutation_falls_back_when_no_local_site_exists() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "ok"));
+        let rule_order = vec!["start".to_string()];
+
+        let mut mutation_generator = simple_generator_with_mutation_mode(
+            &grammar_tree,
+            &rule_order,
+            4403,
+            StimuliMutationMode::GrammarAwareLocal,
+        );
+        let values = mutation_generator
+            .generate_many(2, Some("start"))
+            .expect("mutation fallback generation should succeed");
+
+        assert!(
+            values.iter().all(|value| value == "ok"),
+            "no-site mutation fallback should preserve the baseline sample, got {:?}",
+            values
+        );
     }
 
     #[test]
@@ -5681,6 +6154,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 2,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5793,6 +6267,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -5844,6 +6319,7 @@ mod tests {
                 max_repeat: 2,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
             },
@@ -6180,6 +6656,7 @@ mod tests {
                 max_repeat: 4,
                 max_rule_visits: 4,
                 recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
             },

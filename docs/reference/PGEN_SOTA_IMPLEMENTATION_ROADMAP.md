@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-08
+Last updated: 2026-04-09
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -58,15 +58,25 @@ Execution preference for this roadmap:
   - alternate-entry probe failures are helper-rule exploration telemetry
   - target-drive counterexample capture should therefore stay primary-entry-only when the goal is to triage full-entry parser debt
 
-Tracker note (2026-04-08): stimuli-generation strengthening now has an explicit deferred implementation order and should no longer depend on chat recall. The preserved strategic guidance lives in [Stimuli Module Normative Spec](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md); the planned future execution order is:
-- `1.` grammar-aware mutation
+Tracker note (2026-04-09): the first queued stimuli-platform strengthening step is now landed in initial form. Grammar-aware mutation now exists behind `--stimuli-mutation-mode grammar_aware_local`, using a local trace/replay strategy that can perturb:
+- OR-branch selection
+- quantifier repeat counts
+while preserving bounded cross-family proof on:
+- `systemverilog`
+- `vhdl`
+- `regex`
+
+The remaining planned execution order is now:
 - `2.` constrained-random steering
 - `3.` stronger near-valid negative generation
 - `4.` corpus export/promotion
 - `5.` smarter shrinkers
+
 Execution rule:
-- treat this as a future platform-strengthening queue, not as a justification to deprioritize the current active closure work
-- when the stimuli track is resumed, start from the preserved guidance in the stimuli spec and this ordered roadmap note rather than reopening the generic-fuzz-crates debate from scratch
+- treat the landed mutation slice as shared platform infrastructure, not as a grammar-local experiment
+- do not treat the current local mutation slice as “finished mutation support”; it is deliberately bounded and should widen only with retained deterministic replay and shared proof
+- the current mutation slice is intentionally baseline-recovery-only; non-baseline recovery modes keep their existing semantics until a later deliberate widening says otherwise
+- when the remaining stimuli track is resumed, start from the preserved guidance in the stimuli spec and this ordered roadmap note rather than reopening the generic-fuzz-crates debate from scratch
 - major stimuli-generator upgrades should be validated across both active and closed parser families, with at least:
   - `systemverilog`
   - `vhdl`
