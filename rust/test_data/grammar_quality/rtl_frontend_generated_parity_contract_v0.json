@@ -16,6 +16,15 @@
         "assignment_target",
         "assignment_operator"
       ],
+      "expected_rule_texts": {
+        "kw_always_ff": [
+          "always_ff"
+        ],
+        "assignment_operator": [
+          "<=",
+          "<="
+        ]
+      },
       "sample": "module top (\n    input logic clk,\n    input logic rst_n,\n    input logic d,\n    output logic q\n);\nalways_ff @(posedge clk or negedge rst_n) begin\n    if (!rst_n)\n        q <= 0;\n    else\n        q <= d;\nend\nendmodule\n"
     },
     {
@@ -30,6 +39,15 @@
         "packed_range",
         "unpacked_dimension"
       ],
+      "expected_rule_texts": {
+        "parameter_declaration_head": [
+          "parameter DEPTH = 4"
+        ],
+        "net_item": [
+          "bank0 [0:DEPTH-1]",
+          "bank1 [1:DEPTH]"
+        ]
+      },
       "sample": "module top #(\n    parameter DEPTH = 4\n) (\n    input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y\n);\nlogic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];\nendmodule\n"
     },
     {
@@ -46,6 +64,15 @@
       "forbidden_rule_names": [
         "struct_type"
       ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import state_pkg::state_t;"
+        ],
+        "enum_item": [
+          "IDLE = 0",
+          "BUSY = 1"
+        ]
+      },
       "sample": "package state_pkg;\n    typedef enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    } state_t;\nendpackage\n\nmodule top import state_pkg::state_t; (\n    input state_t state,\n    output logic y\n);\nendmodule\n"
     },
     {
@@ -64,6 +91,16 @@
       "forbidden_rule_names": [
         "typedef_declaration"
       ],
+      "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "port_connection": [
+          ".a(cfgs[IDX].data)",
+          ".y(y)"
+        ]
+      },
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
     },
     {

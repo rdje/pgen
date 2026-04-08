@@ -9924,3 +9924,23 @@ Use this file to resume work without replaying full chat history.
     - the full runtime `cargo test ... rtl_frontend_generated_contract_samples_hold --lib` still entered the previously seen local quiet state after `Running unittests src/lib.rs`, so this wave only claims compile proof for that registry-side test path
   - status truth:
     - this is focused proof-surface hardening, not a live-status promotion
+- 2026-04-08: the curated `rtl_frontend` generated contract now locks normalized rule text too.
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `expected_rule_texts`
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+      - now maps retained rule spans back to sample text and compares trimmed exact text
+    - `rust/src/parser_registry.rs`
+      - the retained generated-contract proof now checks the same normalized rule texts
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - now audits the `expected_rule_texts` surface too
+  - retained nuance:
+    - raw span text was slightly too trivia-sensitive for this grammar family (`assignment_operator` initially came back as `" <="`)
+    - the final contract uses outer-whitespace-normalized exact text instead
+  - verified:
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_generated_contract_samples_hold --lib --no-run`
+  - status truth:
+    - this is focused generated-contract proof hardening, not a live-status promotion

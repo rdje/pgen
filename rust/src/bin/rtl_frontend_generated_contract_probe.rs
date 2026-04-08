@@ -6,6 +6,7 @@ use anyhow::{Context, Result, bail};
 use pgen::parser_registry::{parse_sample, parse_sample_ast_json};
 use serde::Deserialize;
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Deserialize)]
 struct RtlFrontendGeneratedContract {
@@ -25,6 +26,8 @@ struct RtlFrontendGeneratedSample {
     required_rule_names: Vec<String>,
     #[serde(default)]
     forbidden_rule_names: Vec<String>,
+    #[serde(default)]
+    expected_rule_texts: BTreeMap<String, Vec<String>>,
     sample: String,
 }
 
@@ -51,6 +54,48 @@ fn ast_contains_rule(ast_json: &Value, rule_name: &str) -> bool {
     let mut names = Vec::new();
     collect_rule_names(ast_json, &mut names);
     names.iter().any(|candidate| candidate == rule_name)
+}
+
+fn collect_rule_spans(node: &Value, rule_name: &str, spans: &mut Vec<(usize, usize)>) {
+    match node {
+        Value::Array(values) => {
+            for value in values {
+                collect_rule_spans(value, rule_name, spans);
+            }
+        }
+        Value::Object(map) => {
+            if let Some(Value::String(candidate)) = map.get("rule_name") {
+                if candidate == rule_name {
+                    if let Some(Value::Object(span)) = map.get("span") {
+                        if let (Some(Value::Number(start)), Some(Value::Number(end))) =
+                            (span.get("start"), span.get("end"))
+                        {
+                            if let (Some(start), Some(end)) = (start.as_u64(), end.as_u64()) {
+                                spans.push((start as usize, end as usize));
+                            }
+                        }
+                    }
+                }
+            }
+            for value in map.values() {
+                collect_rule_spans(value, rule_name, spans);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn ast_rule_texts(sample: &str, ast_json: &Value, rule_name: &str) -> Result<Vec<String>> {
+    let mut spans = Vec::new();
+    collect_rule_spans(ast_json, rule_name, &mut spans);
+    spans.into_iter()
+        .map(|(start, end)| {
+            sample
+                .get(start..end)
+                .map(|text| text.trim().to_string())
+                .ok_or_else(|| anyhow::anyhow!("invalid span {}..{} for rule '{}'", start, end, rule_name))
+        })
+        .collect()
 }
 
 fn load_contract() -> Result<RtlFrontendGeneratedContract> {
@@ -120,6 +165,18 @@ fn run() -> Result<()> {
                         "generated rtl_frontend AST JSON for sample '{}' unexpectedly contains forbidden rule '{}'",
                         sample.label,
                         rule_name
+                    );
+                }
+            }
+            for (rule_name, expected_texts) in &sample.expected_rule_texts {
+                let actual_texts = ast_rule_texts(&sample.sample, &ast_json, rule_name)?;
+                if &actual_texts != expected_texts {
+                    bail!(
+                        "generated rtl_frontend AST JSON for sample '{}' preserved unexpected texts for rule '{}': expected {:?}, got {:?}",
+                        sample.label,
+                        rule_name,
+                        expected_texts,
+                        actual_texts
                     );
                 }
             }

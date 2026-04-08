@@ -30382,3 +30382,53 @@ Architectural north star:
       - AST-JSON availability
       - retained AST-shape expectations
     - the live `rtl_frontend` row still stays `In Progress` because the larger handwritten-baseline parity/proof backlog remains
+- 2026-04-08: the curated `rtl_frontend` generated contract now also locks a small retained rule-text surface.
+  - motivation:
+    - AST rule presence/absence was already stronger than plain parseability
+    - but it still left room for accepted-tree drift where the right rule names survived while the exact retained subtree text moved
+  - landed:
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - added:
+        - `expected_rule_texts`
+      - retained examples now lock normalized rule text for:
+        - `kw_always_ff`
+        - `assignment_operator`
+        - `parameter_declaration_head`
+        - `net_item`
+        - `import_declaration`
+        - `enum_item`
+        - `struct_union_field`
+        - `port_connection`
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+      - now collects rule spans from the AST JSON tree
+      - maps them back onto the original sample text
+      - compares outer-whitespace-trimmed rule texts against the manifest
+    - `rust/src/parser_registry.rs`
+      - the retained `rtl_frontend_generated_contract_samples_hold` proof now enforces the same normalized rule-text expectations
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - now audits that `expected_rule_texts` remains present in both the manifest and the dedicated probe surface
+  - retained nuance:
+    - the first raw-text replay exposed that some `rtl_frontend` rule spans intentionally include leading trivia, e.g. `assignment_operator` came back as `" <="`
+    - the final contract therefore uses outer-whitespace-normalized exact text rather than raw byte-exact span text
+    - this keeps the check semantically useful without turning it into a trivia-fragile false-positive lane
+  - proof replay:
+    - direct gate:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - result:
+        - passed with the stronger normalized rule-text checks enabled
+    - filtered workflow parity replay:
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - result:
+        - audits cleared
+        - exported tracked-tree workflow replay passed
+    - focused registry-side compile proof:
+      - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_generated_contract_samples_hold --lib --no-run`
+      - result:
+        - built cleanly
+  - continuity consequence:
+    - the curated `rtl_frontend` contract now covers:
+      - parseability
+      - AST-JSON availability
+      - retained rule presence/absence
+      - retained normalized rule text
+    - this is still focused generated-contract hardening, not closure of the larger handwritten-baseline parity backlog

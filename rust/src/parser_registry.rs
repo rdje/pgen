@@ -604,6 +604,8 @@ mod tests {
         required_rule_names: Vec<String>,
         #[serde(default)]
         forbidden_rule_names: Vec<String>,
+        #[serde(default)]
+        expected_rule_texts: std::collections::BTreeMap<String, Vec<String>>,
         sample: String,
     }
 
@@ -632,6 +634,62 @@ mod tests {
         let mut names = Vec::new();
         collect_rule_names(ast_json, &mut names);
         names.iter().any(|candidate| candidate == rule_name)
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    fn collect_rule_spans(
+        node: &serde_json::Value,
+        rule_name: &str,
+        spans: &mut Vec<(usize, usize)>,
+    ) {
+        match node {
+            serde_json::Value::Array(values) => {
+                for value in values {
+                    collect_rule_spans(value, rule_name, spans);
+                }
+            }
+            serde_json::Value::Object(map) => {
+                if let Some(serde_json::Value::String(candidate)) = map.get("rule_name") {
+                    if candidate == rule_name {
+                        if let Some(serde_json::Value::Object(span)) = map.get("span") {
+                            if let (
+                                Some(serde_json::Value::Number(start)),
+                                Some(serde_json::Value::Number(end)),
+                            ) = (span.get("start"), span.get("end"))
+                            {
+                                if let (Some(start), Some(end)) = (start.as_u64(), end.as_u64()) {
+                                    spans.push((start as usize, end as usize));
+                                }
+                            }
+                        }
+                    }
+                }
+                for value in map.values() {
+                    collect_rule_spans(value, rule_name, spans);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[cfg(has_generated_rtl_frontend_parser)]
+    fn rtl_frontend_ast_rule_texts(
+        sample: &str,
+        ast_json: &serde_json::Value,
+        rule_name: &str,
+    ) -> Vec<String> {
+        let mut spans = Vec::new();
+        collect_rule_spans(ast_json, rule_name, &mut spans);
+        spans
+            .into_iter()
+            .map(|(start, end)| {
+                sample
+                    .get(start..end)
+                    .unwrap_or_else(|| panic!("invalid span {}..{} for rule '{}'", start, end, rule_name))
+                    .trim()
+                    .to_string()
+            })
+            .collect()
     }
 
     #[cfg(has_generated_rtl_frontend_parser)]
@@ -1077,6 +1135,15 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
                     assert!(
                         !rtl_frontend_ast_contains_rule(&ast_json, rule_name),
                         "generated rtl_frontend AST JSON for sample '{}' unexpectedly contains forbidden rule '{}'",
+                        sample.label,
+                        rule_name
+                    );
+                }
+                for (rule_name, expected_texts) in &sample.expected_rule_texts {
+                    assert_eq!(
+                        rtl_frontend_ast_rule_texts(&sample.sample, &ast_json, rule_name),
+                        *expected_texts,
+                        "generated rtl_frontend AST JSON for sample '{}' preserved unexpected texts for rule '{}'",
                         sample.label,
                         rule_name
                     );

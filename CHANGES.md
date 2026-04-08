@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-04-08 - Lock rtl_frontend contract rule texts
+### Achievement Summary
+Strengthened the curated `rtl_frontend` generated contract again by locking a small set of retained rule texts for the positive samples. The focused contract now proves not only that specific AST rules are present or absent, but that they still preserve the intended trimmed surface text for key constructs like `always_ff`, `<=`, `import state_pkg::state_t;`, enum items, parameter headers, net items, struct fields, and named port connections.
+
+### Scope of Changes
+- Expanded the curated `rtl_frontend` generated-contract manifest:
+  - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - added:
+    - `expected_rule_texts`
+- Hardened the dedicated gate probe:
+  - [rust/src/bin/rtl_frontend_generated_contract_probe.rs](rust/src/bin/rtl_frontend_generated_contract_probe.rs)
+  - now:
+    - walks retained rule spans
+    - extracts the corresponding source text
+    - compares outer-whitespace-normalized rule texts against the manifest
+- Hardened the parser-registry-side contract proof:
+  - [rust/src/parser_registry.rs](rust/src/parser_registry.rs)
+  - the retained generated-contract test now checks the same normalized rule texts
+- Extended the local workflow parity audit so the new exact-text contract field cannot silently disappear:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is focused generated-contract proof hardening, not full handwritten-baseline parity closure
+
+### Validation
+- Direct gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity replay:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Focused registry-side compile proof:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers rtl_frontend_generated_contract_samples_hold --lib --no-run`
+- `git diff --check`
+
 ## 2026-04-08 - Harden rtl_frontend contract AST shape
 ### Achievement Summary
 Strengthened the curated `rtl_frontend` generated contract from "parseable and AST-dumpable" to "parseable with specific retained AST shape." The focused manifest now declares required and forbidden rule names for the positive samples, and both the dedicated probe and the parser-registry-side contract test enforce those expectations.
