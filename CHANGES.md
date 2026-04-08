@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-08 - Close bounded cross-family stimuli wrapper locally
+### Achievement Summary
+Promoted the bounded cross-family stimuli wrapper from “partially proven but caveated” to a clean local green replay. The key final change was to switch the shared SystemVerilog slice onto `sv_parseable_file`, which collapses the initial bounded target surface from the old `2693`-target `sv_file` shape down to `53` targets while still exercising the real SV family gate and its semantic contract suites.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json](rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json):
+  - changed bounded shared default mode:
+    - `default_mode: "sv_file" -> "sv_parseable_file"`
+- Updated active docs:
+  - [README.md](README.md)
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - the cross-family stimuli audit now locks the shared contract’s `sv_parseable_file` default and bounded `50`-attempt SV replay budget
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is closure of the shared stimuli-platform proof lane, not a parser-family maturity change
+
+### Validation
+- `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+  - full local wrapper is now green:
+    - regex bounded slice passed
+    - VHDL bounded slice passed
+    - bounded SystemVerilog slice passed under:
+      - `stimuli_mode=sv_parseable_file`
+      - `closed_loop_target_max_attempts=50`
+      - `cargo_build_jobs=1`
+- focused confirming probe:
+  - `env PGEN_SV_STIMULI_QUALITY_STATE_DIR=/tmp/pgen_sv_platform_probe ... PGEN_SV_STIMULI_QUALITY_MODE=sv_parseable_file PGEN_SV_STIMULI_QUALITY_TARGET_MAX_ATTEMPTS=50 PGEN_SV_STIMULI_CARGO_BUILD_JOBS=1 bash rust/scripts/sv_stimuli_quality_gate.sh`
+  - key measured result:
+    - `closed_loop_initial_targets_total: 53`
+    - `closed_loop_replay_targets_total: 21`
+    - versus the old `sv_file` shared slice’s `2693` initial targets
+
 ## 2026-04-08 - Tame shared stimuli gate runtime spikes
 ### Achievement Summary
 Hardened the bounded cross-family stimuli wrapper against local Cargo resource spikes and cut the shared SystemVerilog replay budget to a more realistic platform-lane size. The wrapper now forces single-job Cargo builds across its family slices, the bounded SV slice explicitly records that build throttle, and the shared SV replay budget is trimmed from `200` to `50` attempts.
@@ -36,16 +75,17 @@ Hardened the bounded cross-family stimuli wrapper against local Cargo resource s
 - `bash -n rust/scripts/stimuli_cross_family_platform_gate.sh`
 - `bash -n rust/scripts/sv_stimuli_quality_gate.sh`
 - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
-  - updated local evidence is stronger than before:
+  - at the time of this tuning wave, local evidence improved to:
     - regex bounded slice passed
     - VHDL bounded slice passed
-    - the bounded SV slice now clears:
+    - the bounded SV slice cleared:
       - `build_ast_pipeline_for_sv_generation`
       - `generate_sv_parser`
       - `build_ast_pipeline_and_parseability_probe_with_systemverilog_adapter`
       - `profile_2017_closed_loop_initial`
       - `profile_2017_closed_loop_initial_replay`
-    - the retained remaining cost seam is the bounded SV `profile_2017_closed_loop_replay` stage itself, so I am still not claiming a clean full-green local wrapper completion in this desktop thread
+  - the final full-green local wrapper closure was landed in the follow-up wave:
+    - `Close bounded cross-family stimuli wrapper locally`
 
 ## 2026-04-08 - Trim redundant SV adapter builds in stimuli gates
 ### Achievement Summary

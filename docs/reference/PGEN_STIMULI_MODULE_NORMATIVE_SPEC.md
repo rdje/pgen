@@ -172,6 +172,7 @@ This section intentionally preserves the full strategic guidance from the 2026-0
 > - the current executable cross-family enforcement surface for that policy is:
 >   - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
 >   - this bounded gate intentionally reuses the real family lanes instead of inventing a separate toy harness
+>   - the current bounded SystemVerilog slice in that wrapper uses `sv_parseable_file` rather than the much heavier `sv_file` surface, so the shared platform lane stays representative without drifting into full-family replay cost
 >
 > That path gives you a genuinely stronger PGEN-native fuzz/stimuli system without needing `libfuzzer-sys` or `arbitrary` right now.
 

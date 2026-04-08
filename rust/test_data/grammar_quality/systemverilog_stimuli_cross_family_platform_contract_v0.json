@@ -11,7 +11,7 @@
     "required_profiles": ["2017"]
   },
   "stimuli_modes": {
-    "default_mode": "sv_file",
+    "default_mode": "sv_parseable_file",
     "supported_modes": ["sv_file", "sv_parseable_file", "sv_snippet", "sv_pp_file", "sv_pp_snippet", "sv_semantic_file"],
     "profiles": {
       "sv_file": {

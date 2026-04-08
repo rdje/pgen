@@ -807,6 +807,12 @@ audit_stimuli_cross_family_platform_surface() {
   assert_tracked "rust/test_data/grammar_quality/regex_family_stimuli_contract.json"
   assert_tracked "rust/test_data/grammar_quality/vhdl_stimuli_cross_family_platform_contract_v0.json"
   assert_tracked "rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json"
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json" \
+    '"default_mode": "sv_parseable_file"'
+  assert_file_contains \
+    "rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json" \
+    '"target_max_attempts": 50'
 
   assert_file_contains \
     "rust/scripts/stimuli_cross_family_platform_gate.sh" \

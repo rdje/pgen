@@ -118,7 +118,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - bounded shared replay over:
     - regex via the regex-only EBNF stimuli contract
     - VHDL via bounded closed-loop replay
-    - SystemVerilog via bounded single-profile (`2017`) closed-loop replay
+    - SystemVerilog via bounded single-profile (`2017`) `sv_parseable_file` closed-loop replay
 - SV quality gate:
   - `make -C rust SHELL=/bin/bash sv_stimuli_quality_gate`
   - bounded replay rerun example:

@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-08 - Shared stimuli wrapper closure: switch bounded SV slice to `sv_parseable_file`
+### Context
+The shared cross-family wrapper had already been fixed at the build/runtime level, but the remaining local long pole was still the bounded SV replay search itself. The crucial discovery from a focused probe was that the shared wrapper was using the `sv_file` default mode, which started from an enormous `2693`-target initial gap even with just one sample. That was too much search debt for a platform-validation lane.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json](rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json):
+  - changed the bounded shared default mode:
+    - `sv_file` -> `sv_parseable_file`
+- Updated active docs:
+  - [README.md](README.md)
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - the local audit now locks the bounded shared contract to:
+    - `default_mode="sv_parseable_file"`
+    - `target_max_attempts=50`
+
+### Why It Matters
+- The shared wrapper still uses the real `sv_stimuli_quality_gate`, but it now does so with a genuinely platform-sized SV slice.
+- The focused proof delta is dramatic and objective:
+  - old shared `sv_file` slice:
+    - `closed_loop_initial_targets_total=2693`
+  - new shared `sv_parseable_file` slice:
+    - `closed_loop_initial_targets_total=53`
+    - `closed_loop_replay_targets_total=21`
+- That reduction is what finally allowed the full wrapper to go locally green end to end instead of getting stuck in the bounded SV replay stage.
+
+### Steering
+- Keep the deep `sv_file` / full-family replay burden in the main SV quality lane.
+- Keep the shared cross-family wrapper representative but smaller:
+  - real family gates
+  - realistic shared contracts
+  - bounded search debt
+- If the shared wrapper needs future widening, do it deliberately from this `sv_parseable_file` baseline rather than drifting back toward the full-family `sv_file` search surface by accident.
+
 ## 2026-04-08 - Shared stimuli wrapper runtime tuning: throttle Cargo and trim bounded SV replay
 ### Context
 The first bounded cross-family replay wrapper was structurally right but still too close to full family-gate cost in local practice. The earlier SystemVerilog adapter-build collapse removed one duplication point, but the next concrete reruns showed two more shared-wrapper problems: regex could still hit a Cargo kill during the dual-run rebuild, and even after the build seam was fixed the bounded SV replay budget remained expensive enough to dominate the whole wrapper.

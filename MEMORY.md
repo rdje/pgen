@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-08 (+0200, task: shared-stimuli-wrapper-runtime-tuning)
+Last updated: 2026-04-08 (+0200, task: shared-stimuli-wrapper-green-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained shared stimuli wrapper green-closure wave:
+  - changed:
+    - [rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json](rust/test_data/grammar_quality/systemverilog_stimuli_cross_family_platform_contract_v0.json)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [README.md](README.md)
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - important continuity detail:
+    - the decisive last change for the shared wrapper was not more Cargo tuning
+    - it was switching the bounded shared SystemVerilog slice from:
+      - `sv_file`
+      - to:
+      - `sv_parseable_file`
+    - objective focused proof:
+      - old shared `sv_file` initial target surface:
+        - `closed_loop_initial_targets_total=2693`
+      - new shared `sv_parseable_file` focused probe:
+        - `closed_loop_initial_targets_total=53`
+        - `closed_loop_replay_targets_total=21`
+    - full local wrapper proof is now green:
+      - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+      - regex bounded slice passed
+      - VHDL bounded slice passed
+      - bounded SystemVerilog slice passed under:
+        - `stimuli_mode=sv_parseable_file`
+        - `closed_loop_target_max_attempts=50`
+        - `cargo_build_jobs=1`
+  - next best follow-up:
+    - keep this shared-wrapper baseline stable while future stimuli-generator upgrades land, and only widen it deliberately if the platform lane starts feeling too thin
 - Retained shared stimuli wrapper runtime-tuning wave:
   - changed:
     - [rust/scripts/stimuli_cross_family_platform_gate.sh](rust/scripts/stimuli_cross_family_platform_gate.sh)

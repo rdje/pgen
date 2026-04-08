@@ -58,7 +58,7 @@ Execution preference for this roadmap:
   - alternate-entry probe failures are helper-rule exploration telemetry
   - target-drive counterexample capture should therefore stay primary-entry-only when the goal is to triage full-entry parser debt
 
-Tracker note (2026-04-08): stimuli-generation strengthening now has an explicit deferred implementation order and should no longer depend on chat recall. The preserved strategic guidance lives in [PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md); the planned future execution order is:
+Tracker note (2026-04-08): stimuli-generation strengthening now has an explicit deferred implementation order and should no longer depend on chat recall. The preserved strategic guidance lives in [Stimuli Module Normative Spec](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md); the planned future execution order is:
 - `1.` grammar-aware mutation
 - `2.` constrained-random steering
 - `3.` stronger near-valid negative generation
@@ -74,6 +74,7 @@ Execution rule:
 - the current executable bounded enforcement surface for that policy is:
   - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
   - this intentionally reuses the shipped regex / VHDL / SystemVerilog family-quality lanes under lighter shared settings rather than introducing a separate toy generator harness
+  - the current shared SystemVerilog slice there is intentionally `sv_parseable_file`, not the much heavier `sv_file` surface, so the wrapper remains a real platform proof lane instead of quietly becoming a second full-family SV gate
 - use that cross-family replay requirement to prove two things at once:
   - the upgraded generator improves useful stress capability on active families
   - the upgraded generator does not silently regress already-closed families that depend on shared stimuli infrastructure
