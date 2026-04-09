@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-09 - Expand rtl_frontend instance-array proof
+### Achievement Summary
+Strengthened the generated `rtl_frontend` contract again by adding a retained instance-array plus wildcard-port sample. This keeps marching the generated contract toward handwritten-baseline parity without changing the live family label.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `instance_array_with_wildcard_ports`
+  - the sample locks:
+    - `module_instantiation`
+    - `instance_item`
+    - `unpacked_dimension`
+    - wildcard `port_connection`
+    - normalized exact texts for `child lanes[1:0] (.*);`, `lanes[1:0] (.*)`, `[1:0]`, and `.*`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - the retained proof surface is broader and closer to parity with the handwritten baseline
+
+### Validation
+- `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_instance_array_wildcard_sample.sv`
+- `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_instance_array_wildcard_sample.sv /tmp/rtl_frontend_instance_array_wildcard_sample_ast.json`
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
 ## 2026-04-09 - Expand rtl_frontend mixed procedural/dataflow proof
 ### Achievement Summary
 Strengthened the generated `rtl_frontend` proof surface with a retained mixed procedural/dataflow member-path sample, then fixed the stale `docs/book` allowlist in the local workflow-parity gate that the replay surfaced.

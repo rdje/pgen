@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - rtl_frontend generated contract widened to instance-array wildcard ports
+### Context
+The previous parser wave strengthened the mixed procedural/dataflow part of the generated `rtl_frontend` contract. Another handwritten-baseline feature still not locked in the generated contract was the combination of module instance arrays and wildcard port connections. The grammar already supported this shape, and the handwritten baseline had explicit coverage for both ideas, so the next bounded step was to retain a compact generated-parser sample for that seam.
+
+### What Was Changed
+- Added `instance_array_with_wildcard_ports` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The new positive sample covers:
+  - child module declaration
+  - top module declaration
+  - instance array syntax:
+    - `lanes[1:0]`
+  - wildcard port connection:
+    - `.*`
+- The contract locks both rule presence and normalized exact text for:
+  - `module_instantiation`
+  - `instance_item`
+  - `unpacked_dimension`
+  - `port_connection`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser repro:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_instance_array_wildcard_sample.sv`
+- Direct AST-dump repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_instance_array_wildcard_sample.sv /tmp/rtl_frontend_instance_array_wildcard_sample_ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This does not close `rtl_frontend`, but it keeps the generated parser proof surface moving toward the handwritten baseline.
+- Instance arrays and wildcard ports matter for real structural RTL, so retaining the combination is more valuable than adding another narrow syntax-only smoke sample.
+
+### Steering
+- Continue expanding generated-contract samples around real handwritten-baseline features until the generated side can support broader parity/proof comparison.
+- Good next candidates remain:
+  - deeper port actual expression forms
+  - module parameter override combinations
+  - additional procedural/dataflow mixtures with range selects
+
 ## 2026-04-09 - rtl_frontend generated contract widened into mixed procedural/dataflow territory
 ### Context
 After closing the current public-docs/doctrine slice, the next parser move needed to be real proof work rather than another abstract status discussion. `rtl_frontend` is still materially open, but it is a good bounded target because the generated contract can be widened toward handwritten-baseline capabilities without claiming family closure. The still-open gap called out in the live tracker is mixed-expression / procedural / dataflow debt, so the best next wave was to add a retained reduced sample that lives near that seam.

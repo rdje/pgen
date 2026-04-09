@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: rtl-frontend-procedural-dataflow-contract)
+Last updated: 2026-04-09 (+0200, task: rtl-frontend-instance-array-wildcard-contract)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,28 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` instance-array/wildcard contract wave:
+  - changed:
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - important continuity detail:
+    - the generated `rtl_frontend` contract now includes:
+      - `instance_array_with_wildcard_ports`
+    - this locks:
+      - `child lanes[1:0] (.*);`
+      - `lanes[1:0] (.*)`
+      - `[1:0]`
+      - `.*`
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - validations were green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - continue expanding generated-contract samples around deeper port actual expressions, parameter override combinations, or procedural/dataflow range-select mixtures
 - Retained `rtl_frontend` mixed procedural/dataflow contract wave:
   - changed:
     - [README.md](README.md)
