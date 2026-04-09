@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-deeper-ordered-actuals)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-named-override-repeat-expr)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` named-override repeat expression wave:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - added retained positive sample:
+      - `named_parameter_override_repeat_expr`
+    - the sample locks named parameter overrides:
+      - `.MASK({2{a[HI:LO], LANES}})`
+      - `.LANES(LANES)`
+    - it also locks named port connections:
+      - `.a(a)`
+      - `.y(y)`
+    - retained rule text includes:
+      - `module_instantiation`
+      - `parameter_override`
+      - `repetition_expr`
+      - `ranged_signal_reference`
+      - `instance_item`
+      - `port_connection`
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - direct generated-parser parse repro
+      - direct AST-dump repro
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - run final diff/status checks and commit if clean
 - Retained `rtl_frontend` deeper ordered-actual expression wave:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

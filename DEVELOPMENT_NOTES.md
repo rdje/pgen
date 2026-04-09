@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend named parameter override expression proof retained
+### Context
+The previous contract expansion retained a deeper ordered port-actual expression. The next sibling surface was named parameter overrides, especially a named override whose expression uses repeat concatenation and a ranged signal reference. This keeps the contract balanced across ordered actuals and named overrides without widening the grammar in this wave.
+
+### What Was Changed
+- Added `named_parameter_override_repeat_expr` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - named parameter override list syntax
+  - `.MASK({2{a[HI:LO], LANES}})`
+  - `.LANES(LANES)`
+  - named port connections `.a(a)` and `.y(y)`
+- The contract locks normalized exact text for:
+  - `module_instantiation`
+  - `parameter_override`
+  - `repetition_expr`
+  - `ranged_signal_reference`
+  - `instance_item`
+  - `port_connection`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser repro:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_named_override_repeat_expr.sv`
+- Direct AST-dump repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_named_override_repeat_expr.sv /tmp/rtl_frontend_named_override_repeat_expr_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves the repeat-concatenation/ranged-reference expression surface is retained not only for ordered port actuals, but also for named parameter overrides.
+- It exercises the homogeneous named-override list path retained by the previous false-positive fix.
+- The live label stays `In Progress` because this is a curated positive-contract expansion, not full handwritten-baseline parity closure.
+
+### Steering
+- Continue balancing positive expression hardening and negative near-miss retention.
+- Good next targets:
+  - named port actuals carrying the same deeper repeat/range expression shapes,
+  - parameter override expressions with nested ternary or binary operators,
+  - invalid near-misses around named override punctuation and repeat braces.
+
 ## 2026-04-10 - rtl_frontend deeper ordered actual expression proof retained
 ### Context
 After tightening mixed named/ordered override and port lists, the next useful bounded `rtl_frontend` step was to lock a more realistic positive expression sample rather than only retaining rejects. The previous repeat-concatenation wave proved `{2{a}}`; this wave keeps a deeper ordered-port actual case with a comma-bearing repeat body plus indexed member ranges.
