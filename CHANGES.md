@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-10 - Retain deeper rtl_frontend ordered actuals
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with a deeper positive ordered-port actual sample. The new sample locks comma-bearing repeat-concatenation bodies plus member/range actuals without changing the live family label.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `ordered_actuals_repeat_concat_member_ranges`
+  - locks an ordered instantiation with:
+    - repeat-concatenation actual `{2{cfgs[IDX].data[HI:LO], d}}`
+    - ranged member actual `cfgs[0].tag[HI:LO]`
+    - scalar ordered actual `y`
+  - retains exact text for:
+    - `module_instantiation`
+    - `instance_item`
+    - `port_connection`
+    - `ranged_signal_reference`
+    - `repetition_expr`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser repro:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_repeat_concat_member_range_actuals.sv`
+- Direct AST-dump repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_repeat_concat_member_range_actuals.sv /tmp/rtl_frontend_repeat_concat_member_range_actuals_ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Reject mixed rtl_frontend connection list forms
 ### Achievement Summary
 Closed a generated `rtl_frontend` grammar false positive: mixed named/ordered parameter overrides and mixed named/ordered port connections now reject instead of parsing through the generated syntax path.

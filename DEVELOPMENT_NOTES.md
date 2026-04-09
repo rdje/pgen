@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend deeper ordered actual expression proof retained
+### Context
+After tightening mixed named/ordered override and port lists, the next useful bounded `rtl_frontend` step was to lock a more realistic positive expression sample rather than only retaining rejects. The previous repeat-concatenation wave proved `{2{a}}`; this wave keeps a deeper ordered-port actual case with a comma-bearing repeat body plus indexed member ranges.
+
+### What Was Changed
+- Added `ordered_actuals_repeat_concat_member_ranges` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - ordered port actual list syntax
+  - repeat-concatenation actual with a comma-bearing body:
+    - `{2{cfgs[IDX].data[HI:LO], d}}`
+  - ranged member actual:
+    - `cfgs[0].tag[HI:LO]`
+  - scalar ordered actual:
+    - `y`
+- The contract locks normalized exact text for:
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `ranged_signal_reference`
+  - `repetition_expr`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser repro:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_repeat_concat_member_range_actuals.sv`
+- Direct AST-dump repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_repeat_concat_member_range_actuals.sv /tmp/rtl_frontend_repeat_concat_member_range_actuals_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves the repeat-concatenation repair is useful beyond the minimal `{2{a}}` case.
+- It also locks interaction between ordered actuals, nested member/index paths, ranged references, and repeat-concatenation bodies.
+- The live label stays `In Progress` because this is a curated positive-contract expansion, not full handwritten-baseline parity closure.
+
+### Steering
+- Continue alternating positive expression hardening with negative near-miss retention.
+- Good next targets:
+  - procedural/dataflow samples that use the same deeper member/range actual shapes,
+  - parameter override expressions with deeper ranges/repeats,
+  - invalid near-misses around repeat braces and ranged member references.
+
 ## 2026-04-10 - rtl_frontend mixed named/ordered list false positives closed
 ### Context
 The previous `rtl_frontend` wave fixed a real repeat-concatenation false negative while expanding ordered override/ordered actual coverage. The next bounded parity slice was to probe nearby invalid forms: mixed named and ordered parameter override lists, plus mixed named and ordered port connection lists. The generated parser accepted both before this change, which was a grammar false positive.

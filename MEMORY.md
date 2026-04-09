@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-homogeneous-connection-lists)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-deeper-ordered-actuals)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` deeper ordered-actual expression wave:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - added retained positive sample:
+      - `ordered_actuals_repeat_concat_member_ranges`
+    - the sample locks ordered actuals combining:
+      - `{2{cfgs[IDX].data[HI:LO], d}}`
+      - `cfgs[0].tag[HI:LO]`
+      - `y`
+    - retained rule text now includes:
+      - `module_instantiation`
+      - `instance_item`
+      - `port_connection`
+      - `ranged_signal_reference`
+      - `repetition_expr`
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - direct generated-parser parse repro
+      - direct AST-dump repro
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - run final diff/status checks and commit if clean
 - Retained `rtl_frontend` homogeneous connection-list wave:
   - changed:
     - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)

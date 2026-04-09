@@ -281,6 +281,43 @@
       "sample": "module child #(\n    parameter WIDTH = 1,\n    parameter LANES = 2\n) (\n    input logic [WIDTH-1:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nlogic [7:0] bus;\nchild #(8, 2) u_child (bus[3], {2{a}});\nendmodule\n"
     },
     {
+      "label": "ordered_actuals_repeat_concat_member_ranges",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "module_instantiation",
+        "port_connection",
+        "repetition_expr",
+        "ranged_signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "parameter_override",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child u_child (\n    {2{cfgs[IDX].data[HI:LO], d}},\n    cfgs[0].tag[HI:LO],\n    y\n);"
+        ],
+        "instance_item": [
+          "u_child (\n    {2{cfgs[IDX].data[HI:LO], d}},\n    cfgs[0].tag[HI:LO],\n    y\n)"
+        ],
+        "port_connection": [
+          "{2{cfgs[IDX].data[HI:LO], d}}",
+          "cfgs[0].tag[HI:LO]",
+          "y"
+        ],
+        "ranged_signal_reference": [
+          "cfgs[IDX].data[HI:LO]",
+          "cfgs[0].tag[HI:LO]"
+        ],
+        "repetition_expr": [
+          "{2{cfgs[IDX].data[HI:LO], d}}"
+        ]
+      },
+      "sample": "module child (\n    input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0\n) (\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nstruct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];\nchild u_child (\n    {2{cfgs[IDX].data[HI:LO], d}},\n    cfgs[0].tag[HI:LO],\n    y\n);\nendmodule\n"
+    },
+    {
       "label": "mixed_named_ordered_port_connections",
       "expected_parse_ok": false,
       "require_ast_json": false,
