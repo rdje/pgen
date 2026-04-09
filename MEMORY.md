@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: docs-mdbook-content-expansion)
+Last updated: 2026-04-09 (+0200, task: docs-mdbook-roadmap-status)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,21 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained mdBook roadmap/status wave:
+  - changed:
+    - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+    - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+    - [docs/book/src/index.md](docs/book/src/index.md)
+    - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+    - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+  - important continuity detail:
+    - the live book now has a dedicated chapter explaining:
+      - roadmap steering vs live tracked truth
+      - phase progress vs parser-family maturity
+    - maintained proof lane remains:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - keep deepening the book where important project-navigation concepts are still only implicit
 - Retained mdBook content-expansion wave:
   - changed:
     - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)

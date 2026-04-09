@@ -42,6 +42,12 @@ This chapter maps the current authoritative docs into the book structure so futu
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 
+### Roadmap and live status
+
+- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `README.md`
+
 ### Parser families and contracts
 
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`

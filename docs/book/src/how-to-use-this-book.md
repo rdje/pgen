@@ -11,10 +11,11 @@ This book is ordered from broad orientation to deeper implementation detail.
 5. `Annotation System`
 6. `Embedding and Downstream Integration`
 7. `Parser Families`
-8. `Stimuli and Quality`
-9. `Contracts and Support`
-10. `Developer Architecture`
-11. `Operations and Governance`
+8. `Roadmap and Live Status`
+9. `Stimuli and Quality`
+10. `Contracts and Support`
+11. `Developer Architecture`
+12. `Operations and Governance`
 
 ## Reader Modes
 

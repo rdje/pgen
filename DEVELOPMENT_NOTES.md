@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - mdBook roadmap/status coverage added
+### Context
+After adding the CLI/workflows, annotations, and embedding chapters, one of the biggest remaining comprehension gaps was status interpretation. PGEN’s roadmap and live tracker are both important, but they serve different purposes and can be confusing if a reader encounters them only as raw files.
+
+### What Was Changed
+- Added [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md):
+  - explains the difference between:
+    - roadmap steering
+    - live tracked current state
+  - explains why both surfaces exist
+  - explains the key distinction between:
+    - major roadmap phases
+    - parser-family maturity
+- Updated:
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+
+### Why It Matters
+- This chapter gives readers a better mental model for understanding the rest of the documentation surface.
+- It also makes the live book more honest about how PGEN is actually steered:
+  - roadmap for direction
+  - live tracker for present-tense truth
+
+### Steering
+- Treat this as another “teach the project’s operating model directly” wave.
+- The next strong candidates remain:
+  - richer parser-family comparison and closure-bar discussion
+  - deeper stimuli chapter expansion once shrinkers and later backlog items land
+
 ## 2026-04-09 - mdBook core-surface coverage expanded
 ### Context
 After the scaffold, gate, and doctrine waves, the next obvious gap was content depth. The book already explained what it was for, but several central PGEN surfaces were still only indirectly covered inside broader chapters. The highest-value next step was to add dedicated chapters for the most important missing conceptual seams.

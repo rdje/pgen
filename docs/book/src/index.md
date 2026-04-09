@@ -18,6 +18,7 @@ This book is intentionally a live document. As PGEN evolves, its chapters, secti
 - the annotation system and why it is core to the platform,
 - the embedding and downstream integration model,
 - the currently relevant parser families,
+- the roadmap and live-status model used to steer and evaluate the project,
 - the stimuli-generation and proof doctrine,
 - downstream contracts and support expectations,
 - architecture and implementation guidance for contributors,

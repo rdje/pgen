@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-09 - Add mdBook roadmap and status chapter
+### Achievement Summary
+Expanded the live `mdBook` with a dedicated roadmap/status chapter so readers can understand how PGEN’s living roadmap and live tracker fit together instead of inferring that relationship indirectly.
+
+### Scope of Changes
+- Added new chapter:
+  - [docs/book/src/roadmap-and-live-status.md](docs/book/src/roadmap-and-live-status.md)
+- Updated book navigation and framing:
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+- New chapter now explains:
+  - the difference between roadmap steering and live current-state truth
+  - why both surfaces exist
+  - how phase progress differs from parser-family maturity
+  - how book readers should use the roadmap and live tracker together
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is documentation-content strengthening, not a parser-family closure promotion
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+- retained proof facts:
+  - the added roadmap/status chapter builds cleanly under the maintained book gate
+  - the book now explains one of the most important project-navigation distinctions directly instead of leaving it implicit
+
 ## 2026-04-09 - Expand mdBook coverage for core platform surfaces
 ### Achievement Summary
 Deepened the live `mdBook` from a scaffold into a more complete mastery surface by adding dedicated chapters for CLI/workflows, the annotation system, and embedding/downstream integration.
