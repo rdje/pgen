@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend named-override near-miss rejects
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with two negative near-miss samples around named parameter overrides carrying repeat-concatenation expressions. The generated parser already rejected these malformed forms; this wave preserves that behavior so future override-expression widening cannot accidentally accept trailing repeat-body commas or missing separators between named overrides.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `named_parameter_override_repeat_trailing_comma`
+  - added `named_parameter_override_missing_comma_after_repeat`
+  - locks rejection for malformed named parameter overrides like:
+    - `.MASK({2{a[HI:LO], LANES,}})`
+    - `.MASK({2{a[HI:LO], LANES}})` immediately followed by `.LANES(...)` without a comma
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract negative-proof hardening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser negative repros:
+  - `missing_override_comma.sv: rejected-as-expected`
+  - `missing_override_repeat_brace.sv: rejected-as-expected`
+  - `trailing_override_repeat_comma.sv: rejected-as-expected`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend named-port near-miss rejects
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with two negative near-miss samples around the latest named-port repeat-expression surface. The generated parser already rejected these malformed forms; this wave preserves that behavior so future expression/list widening cannot accidentally accept trailing repeat-body commas or missing separators between named port connections.

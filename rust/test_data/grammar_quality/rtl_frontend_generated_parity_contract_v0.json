@@ -358,6 +358,18 @@
       "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK({2{a[HI:LO], LANES}}),\n    .LANES(LANES)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
     },
     {
+      "label": "named_parameter_override_repeat_trailing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK({2{a[HI:LO], LANES,}}),\n    .LANES(LANES)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
+      "label": "named_parameter_override_missing_comma_after_repeat",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK({2{a[HI:LO], LANES}})\n    .LANES(LANES)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
       "label": "named_port_actuals_repeat_member_ranges",
       "expected_parse_ok": true,
       "require_ast_json": true,
