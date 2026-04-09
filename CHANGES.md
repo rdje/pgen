@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-10 - Retain named rtl_frontend port actual expressions
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with a named port-actual expression sample. The new sample locks a repeat-concatenation expression inside a named `.a(...)` port connection, plus a ranged member `.b(...)` connection and scalar `.y(...)` connection.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `named_port_actuals_repeat_member_ranges`
+  - locks named port connections:
+    - `.a({2{cfgs[IDX].data[HI:LO], d}})`
+    - `.b(cfgs[0].tag[HI:LO])`
+    - `.y(y)`
+  - retains exact text for:
+    - `module_instantiation`
+    - `instance_item`
+    - `port_connection`
+    - `repetition_expr`
+    - `ranged_signal_reference`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser repro:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_named_port_repeat_range_actuals.sv`
+- Direct AST-dump repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_named_port_repeat_range_actuals.sv /tmp/rtl_frontend_named_port_repeat_range_actuals_ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain named rtl_frontend override expressions
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with a named parameter-override expression sample. The new sample locks a repeat-concatenation expression inside a named `.MASK(...)` override, plus a sibling named override and named port connections.
