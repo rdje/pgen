@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: rtl-frontend-instance-array-wildcard-contract)
+Last updated: 2026-04-09 (+0200, task: rtl-frontend-repeat-concat-actuals)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,41 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` repeat-concatenation actuals wave:
+  - changed:
+    - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
+    - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+    - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [rust/Cargo.toml](rust/Cargo.toml)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - the generated grammar previously rejected repeat-concatenation actuals like `{2{a}}`
+    - root cause:
+      - `repetition_expr` required an inner `concatenation_expr`
+      - `concatenation_expr` required a comma
+      - so `{a}` as the repeat body failed
+    - grammar now parses the nested body directly:
+      - `lbrace rtl_expr lbrace rtl_expr ( comma rtl_expr )* rbrace rbrace`
+    - retained contract sample added:
+      - `ordered_parameter_and_port_actual_repetition`
+    - `rtl_frontend_generated_contract_probe` is now explicitly `generated_parsers`-gated in Cargo metadata so default all-targets clippy skips that generated-parser-only probe without the feature
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - regenerated `generated/rtl_frontend.json` and `generated/rtl_frontend_parser.rs`
+      - rebuilt `parseability_probe`
+      - direct minimal repeat and full ordered-actual repros
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+        - completed successfully with `clippy_source_all_targets` passing
+        - generated-parser clippy remains a non-strict wrapper stage and reported existing generated-feature lint failures
+  - next best follow-up:
+    - continue with deeper `rtl_frontend` expression/actual parity samples, especially comma-bearing repeat bodies or member/range actual combinations
 - Retained `rtl_frontend` instance-array/wildcard contract wave:
   - changed:
     - [README.md](README.md)

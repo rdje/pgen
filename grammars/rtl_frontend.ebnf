@@ -181,7 +181,7 @@ primary_expr := repetition_expr
              | literal
              | lparen rtl_expr rparen
 
-repetition_expr := lbrace rtl_expr concatenation_expr rbrace
+repetition_expr := lbrace rtl_expr lbrace rtl_expr ( comma rtl_expr )* rbrace rbrace
 
 concatenation_expr := lbrace rtl_expr ( comma rtl_expr )+ rbrace
 

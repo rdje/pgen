@@ -45,6 +45,11 @@ path = "src/bin/regex_corpus_probe.rs"
 required-features = ["generated_parsers"]
 
 [[bin]]
+name = "rtl_frontend_generated_contract_probe"
+path = "src/bin/rtl_frontend_generated_contract_probe.rs"
+required-features = ["generated_parsers"]
+
+[[bin]]
 name = "coverage_gap_triage"
 path = "src/bin/coverage_gap_triage.rs"
 

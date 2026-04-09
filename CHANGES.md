@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-04-09 - Fix rtl_frontend repeat-concatenation actuals
+### Achievement Summary
+Closed a generated `rtl_frontend` grammar false negative for repeat-concatenation value expressions such as `{2{a}}`. The retained generated contract now locks ordered parameter overrides plus ordered port actuals with a repeat-concatenation value.
+
+### Scope of Changes
+- Updated [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - changed `repetition_expr` so repeat-concatenation bodies no longer depend on the comma-requiring `concatenation_expr`
+  - this allows focused forms such as `{2{a}}` while preserving comma-bearing repetition bodies
+- Regenerated tracked artifacts:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `ordered_parameter_and_port_actual_repetition`
+  - locks ordered parameter overrides `8`, `2`
+  - locks ordered port actuals `bus[3]`, `{2{a}}`
+  - locks `repetition_expr` text `{2{a}}`
+- Updated [rust/Cargo.toml](rust/Cargo.toml):
+  - declared `rtl_frontend_generated_contract_probe` as a `generated_parsers`-gated bin so default all-targets clippy does not compile the generated-parser-only probe without its feature
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is a concrete generated-grammar false-negative fix and retained contract expansion, not broad Phase S closure
+
+### Validation
+- `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+- `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_top_named_repeat.sv`
+- `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_ordered_override_actuals_sample.sv`
+- `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_ordered_override_actuals_sample.sv /tmp/rtl_frontend_ordered_override_actuals_sample_ast.json`
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - completed successfully with `clippy_source_all_targets` passing
+  - generated-parser clippy remains non-strict and reported existing generated-feature lint failures, which the wrapper preserves as non-blocking
+- `git diff --check`
+
 ## 2026-04-09 - Expand rtl_frontend instance-array proof
 ### Achievement Summary
 Strengthened the generated `rtl_frontend` contract again by adding a retained instance-array plus wildcard-port sample. This keeps marching the generated contract toward handwritten-baseline parity without changing the live family label.

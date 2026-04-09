@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - rtl_frontend repeat-concatenation grammar false negative closed
+### Context
+While looking for the next bounded `rtl_frontend` generated-contract sample, the ordered-parameter / ordered-port candidate exposed a real generated-parser false negative. Ordered parameter overrides and ordered port actuals parsed individually, but the sample failed when an ordered actual used a repeat-concatenation expression like `{2{a}}`. The handwritten baseline already preserves repeat actuals, so this was a generated grammar gap rather than a feature to avoid.
+
+### Root Cause
+- [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf) defined:
+  - `repetition_expr := lbrace rtl_expr concatenation_expr rbrace`
+- But `concatenation_expr` requires at least one comma:
+  - `concatenation_expr := lbrace rtl_expr ( comma rtl_expr )+ rbrace`
+- Therefore `{2{a}}` failed because the repeated body `{a}` was not accepted as a comma-bearing concatenation.
+
+### What Was Changed
+- Updated `repetition_expr` to parse the nested brace body directly:
+  - `lbrace rtl_expr lbrace rtl_expr ( comma rtl_expr )* rbrace rbrace`
+- Regenerated:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Added retained generated-contract sample:
+  - `ordered_parameter_and_port_actual_repetition`
+  - in [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+- Declared the retained contract probe explicitly in [rust/Cargo.toml](rust/Cargo.toml) with `required-features = ["generated_parsers"]`:
+  - this keeps default `cargo clippy --all-targets` from compiling a generated-parser-only probe without the generated parser registry feature
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Regenerated the tracked parser artifacts through the Rust EBNF frontend:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+- Rebuilt the generated-parser probe:
+  - `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- Confirmed the minimal repeat actual now passes:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_top_named_repeat.sv`
+- Confirmed the full ordered-override / ordered-actual sample now passes and dumps AST:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_ordered_override_actuals_sample.sv`
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_ordered_override_actuals_sample.sv /tmp/rtl_frontend_ordered_override_actuals_sample_ast.json`
+- Retained gates:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Ran the Rust-change clippy wrapper:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `clippy_source_all_targets` passed after the probe feature-gate fix
+  - `clippy_generated_all_targets` still reports non-strict generated-feature lint failures; the wrapper treats that stage as non-blocking unless `PGEN_CLIPPY_GENERATED_STRICT=1`
+
+### Why It Matters
+- This closes a concrete generated parser false negative near the remaining `rtl_frontend` parity frontier.
+- It keeps the generated contract aligned with handwritten-baseline expression coverage instead of avoiding repeat actuals.
+- The live label stays `In Progress` because broader generated/handwritten parity is still open.
+
+### Steering
+- Continue using reduced generated-contract samples to expose and close concrete false negatives.
+- Good next targets:
+  - additional repeat-concatenation bodies with comma-bearing inner expressions,
+  - mixed named/ordered rejection samples where the generated syntax should reject or the handwritten elaborator should reject,
+  - deeper range-select and member-path actual combinations.
+
 ## 2026-04-09 - rtl_frontend generated contract widened to instance-array wildcard ports
 ### Context
 The previous parser wave strengthened the mixed procedural/dataflow part of the generated `rtl_frontend` contract. Another handwritten-baseline feature still not locked in the generated contract was the combination of module instance arrays and wildcard port connections. The grammar already supported this shape, and the handwritten baseline had explicit coverage for both ideas, so the next bounded step was to retain a compact generated-parser sample for that seam.
