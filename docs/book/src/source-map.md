@@ -4,6 +4,14 @@ This chapter maps the current authoritative docs into the book structure so futu
 
 ## Book Chapter To Source-Doc Map
 
+### Documentation model
+
+- `README.md`
+- `COMMIT.md`
+- `SESSION_BOOTSTRAP.md`
+- `docs/book/src/how-to-use-this-book.md`
+- `docs/book/src/operations-and-governance.md`
+
 ### Platform overview
 
 - `README.md`
@@ -101,3 +109,5 @@ This chapter maps the current authoritative docs into the book structure so futu
 This map is the live bridge between the current markdown surface and the public book surface.
 
 As the project evolves, the book should absorb more of the real project surface directly, while staying readable and structured. The goal is not to dump the whole repository into a navigation tree; the goal is to make the book comprehensive enough that external readers can understand PGEN there without having to mine internal continuity docs.
+
+That also means the source map is not only a migration checklist. It is a coverage checklist for the public documentation system: if an important subsystem or doctrine still has no clear chapter home, the book is still missing part of the platform.

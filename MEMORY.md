@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: docs-mdbook-public-split-and-closure)
+Last updated: 2026-04-09 (+0200, task: docs-mdbook-documentation-model)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained documentation-model wave:
+  - changed:
+    - [README.md](README.md)
+    - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+    - [docs/book/src/index.md](docs/book/src/index.md)
+    - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+    - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+    - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+    - [docs/book/src/documentation-model.md](docs/book/src/documentation-model.md)
+  - important continuity detail:
+    - the public book now has a dedicated chapter that explains the documentation split directly:
+      - book = public-facing comprehensive surface
+      - contracts/reference docs = deep authoritative detail
+      - continuity docs = internal operational continuity
+    - the book also now states explicitly that every important project aspect should eventually have first-class representation there
+    - maintained proof lane remains:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - return to parser work while continuing to expand the book where parser-family and architecture surfaces still need deeper dedicated chapters
 - Retained public-book split + closure-model wave:
   - changed:
     - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)

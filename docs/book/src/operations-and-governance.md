@@ -35,6 +35,8 @@ The intended split is:
 
 That split keeps the repository teachable without losing high-signal live state.
 
+See `Documentation Model` for the fuller public explanation of that split.
+
 ## Book Maintenance Doctrine
 
 The book is not a one-time scaffold. It is part of the maintained repo surface.

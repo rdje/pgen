@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-09 - Add public documentation model chapter
+### Achievement Summary
+Finished the current public-docs/doctrine wave by adding an explicit documentation-model chapter to the live `mdBook`. The book now explains the public-book vs deep-reference/contracts vs internal-continuity split directly instead of leaving that structure scattered across repo doctrine files.
+
+### Scope of Changes
+- Added new book chapter:
+  - [docs/book/src/documentation-model.md](docs/book/src/documentation-model.md)
+- Updated book navigation and framing:
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+- Updated [README.md](README.md):
+  - the `Documentation Book` section now says more explicitly that the book itself should explain the split between:
+    - public chapters
+    - deep reference/contracts
+    - internal continuity docs
+- The new doctrine/content wave now makes these book-level rules explicit:
+  - every important PGEN aspect should eventually have first-class representation in the book
+  - reference/contracts docs provide deep authoritative detail behind the book
+  - continuity docs remain internal operational state, not the main outward-facing documentation surface
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status row changed
+  - this is documentation-doctrine/content strengthening, not a parser-family closure promotion
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
 ## 2026-04-09 - Clarify public book doctrine and add closure chapter
 ### Achievement Summary
 Clarified the documentation split so the `mdBook` is now explicitly treated as the primary public-facing documentation surface while the continuity docs remain internal-only session/recovery artifacts. In the same wave, added a dedicated book chapter explaining PGEN’s quality and closure model.

@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - Documentation model chapter added to the public book
+### Context
+The repo doctrine already said that the book is the public-facing surface and the continuity docs are internal, but that split still lived mostly in repo policy files and framing prose. The book itself still lacked a first-class chapter explaining how the documentation system is supposed to work. Since the user wants the book to become the thing the world reads, that gap needed to be closed directly inside the book.
+
+### What Was Changed
+- Added [docs/book/src/documentation-model.md](docs/book/src/documentation-model.md):
+  - explains the three-layer documentation model:
+    - public book
+    - deep contracts/reference docs
+    - internal continuity docs
+  - explains what belongs in the book
+  - explains what does not belong in the book
+  - makes the “every important aspect should eventually have book coverage” rule explicit
+- Updated:
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - [README.md](README.md)
+
+### Why It Matters
+- The book now teaches its own role in the project instead of assuming readers will infer it from workflow docs.
+- The public-book doctrine is now stronger and easier to preserve:
+  - the book is not only a curated tour
+  - it is the target comprehensive outward-facing documentation system
+- The source map is also now more clearly a coverage checklist, not only a migration helper.
+
+### Steering
+- Treat missing chapter homes for important subsystems as real public-doc debt.
+- Good next public-book candidates after this doctrine-closure wave:
+  - dedicated parser-family deep dives
+  - generated-artifact and regeneration philosophy
+  - deeper RTL / Phase S explanation once parser work moves again
+
 ## 2026-04-09 - Public book split clarified and closure chapter added
 ### Context
 The documentation split needed to be sharper. The book had been described as a live mastery surface, but the user clarified the stronger intended doctrine: the book is what the world should read, while the continuity docs exist for internal session continuity and crash recovery. Once that was clear, the next best content wave was to add a chapter that explains one of PGEN’s central public-facing ideas directly: its proof-first quality and closure model.

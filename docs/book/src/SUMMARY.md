@@ -2,6 +2,7 @@
 
 - [Welcome](index.md)
 - [How To Use This Book](how-to-use-this-book.md)
+- [Documentation Model](documentation-model.md)
 - [Platform Overview](platform-overview.md)
 - [Getting Started](getting-started.md)
 - [User-Facing Surfaces](user-facing-surfaces.md)

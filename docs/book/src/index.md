@@ -13,6 +13,7 @@ This book is intentionally a live document. As PGEN evolves, its chapters, secti
 
 ## What This Book Covers
 
+- the documentation model that explains how the public book, deep reference docs, and continuity docs fit together,
 - the mental model of the platform,
 - the main CLI and workflow surfaces,
 - the annotation system and why it is core to the platform,
@@ -35,3 +36,5 @@ Some documents are still best treated as internal continuity sources rather than
 - `MEMORY.md`
 
 Those files remain authoritative for live progress, continuity, and recent implementation waves inside the repository workflow. They are not the primary outward-facing documentation surface; the book is.
+
+The next chapter, `Documentation Model`, explains that split directly.

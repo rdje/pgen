@@ -7,18 +7,19 @@ It is also intended to become the main documentation surface that the outside wo
 ## Suggested Reading Path
 
 1. `Platform Overview`
-2. `Getting Started`
-3. `User-Facing Surfaces`
-4. `CLI and Workflows`
-5. `Annotation System`
-6. `Embedding and Downstream Integration`
-7. `Parser Families`
-8. `Roadmap and Live Status`
-9. `Quality and Closure Model`
-10. `Stimuli and Quality`
-11. `Contracts and Support`
-12. `Developer Architecture`
-13. `Operations and Governance`
+2. `Documentation Model`
+3. `Getting Started`
+4. `User-Facing Surfaces`
+5. `CLI and Workflows`
+6. `Annotation System`
+7. `Embedding and Downstream Integration`
+8. `Parser Families`
+9. `Roadmap and Live Status`
+10. `Quality and Closure Model`
+11. `Stimuli and Quality`
+12. `Contracts and Support`
+13. `Developer Architecture`
+14. `Operations and Governance`
 
 ## Reader Modes
 
@@ -58,6 +59,7 @@ The goal is:
 - no stale "book says X but repo does Y" drift,
 - no treating the book as optional polish,
 - no hiding important behavior or rationale in internal continuity docs when it belongs in the public book,
+- no leaving important project domains permanently outside the book just because deeper reference docs also exist,
 - no replacing curated chapters with unstructured note dumps.
 
 In repository workflow terms, the maintained proof surface for this book is:
