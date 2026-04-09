@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend named port actual ternary expression proof retained
+### Context
+After retaining ternary/binary expression shapes for ordered and named parameter overrides, the next sibling surface was named port actuals. This checks that the same `rtl_expr` ladder is available in `.port(...)` actuals, not only parameter override lists.
+
+### What Was Changed
+- Added `named_port_actuals_ternary_binary_expr` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - named port connection list syntax
+  - ternary port actual:
+    - `.a(SEL ? (a[HI:LO] + d) : (d << 1))`
+  - sibling arithmetic port actual:
+    - `.b((a[HI:LO] + d) * 2)`
+  - scalar named port actual:
+    - `.y(y)`
+- The contract requires AST rule presence for:
+  - `conditional_expr`
+  - `additive_expr`
+  - `shift_expr`
+- The contract locks normalized exact text for:
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `ranged_signal_reference`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_named_port_ternary_binary_expr.sv /tmp/rtl_frontend_named_port_ternary_binary_expr_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves named port actuals are not limited to signal, range, concat, or repeat-concat expression shapes.
+- It exercises the homogeneous named-port list path retained by the earlier mixed-list false-positive fix.
+- The live label stays `In Progress` because this is a curated positive-contract expansion, not full handwritten-baseline parity closure.
+
+### Steering
+- Continue balancing positive expression-shape retention and nearby malformed-input rejects.
+- Good next targets:
+  - ordered port actuals with nested ternary/binary expressions,
+  - near-miss rejects around ternary `? :` punctuation inside named ports,
+  - a broader generated-vs-handwritten parity probe for these retained expression/list slices.
+
 ## 2026-04-10 - rtl_frontend ordered parameter override ternary expression proof retained
 ### Context
 The named-override ternary/binary expression sample proved the rich `rtl_expr` ladder on dot-prefixed overrides. The ordered override list needed the same positive evidence so the generated contract covers both parameter-override list modes.

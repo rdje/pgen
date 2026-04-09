@@ -479,6 +479,43 @@
       "sample": "module child (\n    input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0\n) (\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nstruct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];\nchild u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d}}),\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n);\nendmodule\n"
     },
     {
+      "label": "named_port_actuals_ternary_binary_expr",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "conditional_expr",
+        "additive_expr",
+        "shift_expr",
+        "ranged_signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "parameter_override",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n);"
+        ],
+        "instance_item": [
+          "u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n)"
+        ],
+        "port_connection": [
+          ".a(SEL ? (a[HI:LO] + d) : (d << 1))",
+          ".b((a[HI:LO] + d) * 2)",
+          ".y(y)"
+        ],
+        "ranged_signal_reference": [
+          "a[HI:LO]",
+          "a[HI:LO]"
+        ]
+      },
+      "sample": "module child (\n    input logic [15:0] a,\n    input logic [15:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nchild u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
       "label": "named_port_actual_repeat_trailing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,
