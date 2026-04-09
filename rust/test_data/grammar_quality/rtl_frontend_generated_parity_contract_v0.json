@@ -182,6 +182,38 @@
       "sample": "module leaf (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top (\n    input logic [7:0] a,\n    output logic [7:0] y0,\n    output logic [7:0] y1\n);\ngenvar i;\nlogic [7:0] ys [0:1];\ngenerate\n    for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end\nendgenerate\nassign y0 = ys[0];\nassign y1 = ys[1];\nendmodule\n"
     },
     {
+      "label": "procedural_and_dataflow_concat_member_paths",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "struct_type",
+        "unpacked_dimension",
+        "procedural_block",
+        "kw_always_comb",
+        "assignment_target",
+        "assignment_operator",
+        "continuous_assign",
+        "concatenation_expr"
+      ],
+      "expected_rule_texts": {
+        "kw_always_comb": [
+          "always_comb"
+        ],
+        "assignment_operator": [
+          "="
+        ],
+        "continuous_assign": [
+          "assign cfgs[0].valid = {cfgs[IDX].data[BIT], d};"
+        ],
+        "concatenation_expr": [
+          "{cfgs[0].data[0], d}",
+          "{cfgs[IDX].data[BIT], d}"
+        ]
+      },
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = {cfgs[0].data[0], d};\nend\nassign cfgs[0].valid = {cfgs[IDX].data[BIT], d};\nendmodule\n"
+    },
+    {
       "label": "truncated_module_header",
       "expected_parse_ok": false,
       "require_ast_json": false,

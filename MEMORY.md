@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: docs-mdbook-documentation-model)
+Last updated: 2026-04-09 (+0200, task: rtl-frontend-procedural-dataflow-contract)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` mixed procedural/dataflow contract wave:
+  - changed:
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+  - important continuity detail:
+    - the generated `rtl_frontend` contract now includes:
+      - a mixed procedural/dataflow member-path sample with concatenated procedural targets and structured assignment values
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - the filtered local workflow replay initially exposed stale `docs/book` allowlist policy in:
+      - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - that allowlist is now refreshed to the real live book surface, and both retained validations are green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up:
+    - continue expanding `rtl_frontend` proof toward the remaining mixed-expression/procedural/dataflow gaps, or pivot back to the broader main-SystemVerilog exhaustive-closure lane
 - Retained documentation-model wave:
   - changed:
     - [README.md](README.md)

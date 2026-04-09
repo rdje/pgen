@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-09 - Expand rtl_frontend mixed procedural/dataflow proof
+### Achievement Summary
+Strengthened the generated `rtl_frontend` proof surface with a retained mixed procedural/dataflow member-path sample, then fixed the stale `docs/book` allowlist in the local workflow-parity gate that the replay surfaced.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `procedural_and_dataflow_concat_member_paths`
+  - this retained positive sample covers:
+    - `always_comb`
+    - concatenated procedural assignment targets
+    - structured assignment values
+    - member-path and indexed member-path expressions
+    - adjacent continuous-dataflow assignment in the same module
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
+  - `rtl_frontend` stays `In Progress`
+  - evidence now records the widened curated contract sample set more honestly
+- Updated public docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - both now reflect that the `rtl_frontend` generated contract has moved beyond only narrow syntax samples
+- Fixed workflow-parity enforcement drift:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - the tracked `docs/book` allowlist now includes the newer live book chapters, which is required for filtered local CI replay to remain truthful
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this wave strengthens proof depth on a still-open family rather than promoting closure
+
+### Validation
+- `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_proc_dataflow_contract_sample.sv`
+- `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_proc_dataflow_contract_sample.sv /tmp/rtl_frontend_proc_dataflow_contract_sample_ast.json`
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-09 - Add public documentation model chapter
 ### Achievement Summary
 Finished the current public-docs/doctrine wave by adding an explicit documentation-model chapter to the live `mdBook`. The book now explains the public-book vs deep-reference/contracts vs internal-continuity split directly instead of leaving that structure scattered across repo doctrine files.

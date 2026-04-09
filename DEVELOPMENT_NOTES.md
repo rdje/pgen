@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - rtl_frontend generated contract widened into mixed procedural/dataflow territory
+### Context
+After closing the current public-docs/doctrine slice, the next parser move needed to be real proof work rather than another abstract status discussion. `rtl_frontend` is still materially open, but it is a good bounded target because the generated contract can be widened toward handwritten-baseline capabilities without claiming family closure. The still-open gap called out in the live tracker is mixed-expression / procedural / dataflow debt, so the best next wave was to add a retained reduced sample that lives near that seam.
+
+### What Was Changed
+- Added new curated generated-contract sample to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `procedural_and_dataflow_concat_member_paths`
+- The new sample locks generated-parser acceptance plus AST evidence for:
+  - `always_comb`
+  - procedural assignment through a concatenated target
+  - structured concatenation values
+  - member-path / indexed member-path expressions inside both procedural and continuous assignment forms
+- Updated [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md):
+  - kept `rtl_frontend` at `In Progress`
+  - refreshed the evidence text to mention the new mixed procedural/dataflow sample
+- Updated reader-facing docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser repro:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_proc_dataflow_contract_sample.sv`
+- Direct AST-dump repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_proc_dataflow_contract_sample.sv /tmp/rtl_frontend_proc_dataflow_contract_sample_ast.json`
+- Retained contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
+### Important Follow-On Discovered During Validation
+- The filtered local workflow-parity replay initially failed for an unrelated but real governance reason:
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - its `docs/book` allowlist still reflected the older scaffold-era chapter set
+- Fixed that allowlist in the same wave so the repo’s enforcement surface is now aligned with the actual maintained live book.
+- Then reran:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - and it passed cleanly
+
+### Why It Matters
+- This is honest progress on the real open `rtl_frontend` seam:
+  - stronger proof depth
+  - still no overclaim of closure
+- The generated contract now covers a more representative procedural/dataflow combination instead of staying confined to narrower syntax-only islands.
+- The workflow-parity allowlist fix also closes a documentation-governance hole that would otherwise keep future filtered CI replays from being trustworthy.
+
+### Steering
+- Keep using curated `rtl_frontend` samples to march toward the remaining mixed-expression/procedural/dataflow frontier.
+- Good next parser candidates after this wave:
+  - wildcard/instance-array generated-contract coverage
+  - additional procedural/dataflow samples with deeper member/part-select composition
+  - broader parity comparison against the handwritten baseline once enough representative reduced cases are locked
+
 ## 2026-04-09 - Documentation model chapter added to the public book
 ### Context
 The repo doctrine already said that the book is the public-facing surface and the continuity docs are internal, but that split still lived mostly in repo policy files and framing prose. The book itself still lacked a first-class chapter explaining how the documentation system is supposed to work. Since the user wants the book to become the thing the world reads, that gap needed to be closed directly inside the book.
