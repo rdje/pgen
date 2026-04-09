@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - mdBook core-surface coverage expanded
+### Context
+After the scaffold, gate, and doctrine waves, the next obvious gap was content depth. The book already explained what it was for, but several central PGEN surfaces were still only indirectly covered inside broader chapters. The highest-value next step was to add dedicated chapters for the most important missing conceptual seams.
+
+### What Was Changed
+- Added [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md):
+  - distinguishes:
+    - direct `ast_pipeline` work
+    - Make-based operational entrypoints
+    - tracked workflow-parity proof
+- Added [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md):
+  - explains why return and semantic annotations are core platform surfaces
+  - captures the bootstrap/steady-state distinction at a curated level
+- Added [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md):
+  - connects embedding API, parser registry, contracts, and downstream support
+- Updated:
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+
+### Why It Matters
+- The book now covers more of the project’s real mastery path instead of only pointing outward.
+- These three surfaces are especially important because they connect:
+  - how users run PGEN,
+  - how contributors reason about annotations,
+  - how downstream consumers actually depend on released parser surfaces.
+
+### Steering
+- Treat this as the start of substantive chapter expansion, not the end of book filling.
+- The next good book-expansion candidates are likely:
+  - a dedicated roadmap/status chapter,
+  - a deeper parser-family comparison chapter,
+  - a richer stimuli chapter once shrinkers and later upgrades land.
+
 ## 2026-04-09 - mdBook upkeep folded into operating doctrine
 ### Context
 After scaffolding the live book and adding its build gate, the last obvious gap was process drift: a future session could still treat `docs/book/` as optional unless the repo’s own bootstrap and commit workflow explicitly said otherwise. The best next step was to encode that expectation where future work already looks for rules.

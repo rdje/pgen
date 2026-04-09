@@ -15,6 +15,8 @@ This book is intentionally a live document. As PGEN evolves, its chapters, secti
 
 - the mental model of the platform,
 - the main CLI and workflow surfaces,
+- the annotation system and why it is core to the platform,
+- the embedding and downstream integration model,
 - the currently relevant parser families,
 - the stimuli-generation and proof doctrine,
 - downstream contracts and support expectations,

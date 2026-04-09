@@ -20,6 +20,28 @@ This chapter maps the current authoritative docs into the book structure so futu
 - `PGEN_USER_GUIDE.md`
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
 
+### CLI and workflows
+
+- `PGEN_USER_GUIDE.md`
+- `README.md`
+- `rust/docs/CLI_REFERENCE.md`
+- `rust/scripts/ci_workflow_local_gate.sh`
+
+### Annotation system
+
+- `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+- `docs/RETURN_ANNOTATIONS_REFERENCE.md`
+- `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+
+### Embedding and downstream integration
+
+- `rust/docs/EMBEDDING_API_CONTRACT.md`
+- `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+- `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+- `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+
 ### Parser families and contracts
 
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`

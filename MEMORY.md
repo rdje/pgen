@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: docs-mdbook-doctrine)
+Last updated: 2026-04-09 (+0200, task: docs-mdbook-content-expansion)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,25 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained mdBook content-expansion wave:
+  - changed:
+    - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+    - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+    - [docs/book/src/index.md](docs/book/src/index.md)
+    - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+    - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - important continuity detail:
+    - the live book now has dedicated chapters for:
+      - CLI/workflows
+      - annotation system
+      - embedding/downstream integration
+    - the book is therefore moving from a navigation scaffold toward a real mastery surface
+    - maintained proof lane remains:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - keep expanding high-value chapters where the book still points outward more than it teaches inward
 - Retained mdBook doctrine wave:
   - changed:
     - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)

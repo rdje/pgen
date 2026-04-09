@@ -7,11 +7,14 @@ This book is ordered from broad orientation to deeper implementation detail.
 1. `Platform Overview`
 2. `Getting Started`
 3. `User-Facing Surfaces`
-4. `Parser Families`
-5. `Stimuli and Quality`
-6. `Contracts and Support`
-7. `Developer Architecture`
-8. `Operations and Governance`
+4. `CLI and Workflows`
+5. `Annotation System`
+6. `Embedding and Downstream Integration`
+7. `Parser Families`
+8. `Stimuli and Quality`
+9. `Contracts and Support`
+10. `Developer Architecture`
+11. `Operations and Governance`
 
 ## Reader Modes
 

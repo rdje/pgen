@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-09 - Expand mdBook coverage for core platform surfaces
+### Achievement Summary
+Deepened the live `mdBook` from a scaffold into a more complete mastery surface by adding dedicated chapters for CLI/workflows, the annotation system, and embedding/downstream integration.
+
+### Scope of Changes
+- Added new book chapters:
+  - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+  - [docs/book/src/annotation-system.md](docs/book/src/annotation-system.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+- Updated book navigation and framing:
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+- New chapter coverage now makes the book more explicit about:
+  - the difference between direct CLI work, Make-based workflows, and workflow-parity proof
+  - why return annotations and semantic annotations are core platform surfaces
+  - how embedding API, parser registry, contracts, and downstream support fit together
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is documentation-content strengthening, not a parser-family closure promotion
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+- retained proof facts:
+  - the expanded chapter set still builds cleanly under the maintained book gate
+  - the book now covers several previously implied but underrepresented core surfaces directly
+
 ## 2026-04-09 - Fold mdBook upkeep into repo doctrine
 ### Achievement Summary
 Integrated the live `mdBook` surface into the repository’s normal operating rules. Future sessions and commit waves are now explicitly expected to keep relevant book chapters in sync when user-facing or developer-facing surfaces change.
