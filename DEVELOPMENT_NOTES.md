@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend mixed named/ordered list false positives closed
+### Context
+The previous `rtl_frontend` wave fixed a real repeat-concatenation false negative while expanding ordered override/ordered actual coverage. The next bounded parity slice was to probe nearby invalid forms: mixed named and ordered parameter override lists, plus mixed named and ordered port connection lists. The generated parser accepted both before this change, which was a grammar false positive.
+
+### Root Cause
+- [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf) previously defined both lists as homogeneous-looking repetitions over a generic element:
+  - `parameter_override_list := parameter_override ( comma parameter_override )*`
+  - `port_connection_list := port_connection ( comma port_connection )*`
+- Because `parameter_override` could parse either `.NAME(expr)` or `expr`, and `port_connection` could parse `.NAME(...)`, `.*`, or `expr`, the generated grammar could mix named and ordered forms in one list.
+
+### What Was Changed
+- Tightened both list rules with explicit dot-prefixed and non-dot-prefixed branches:
+  - `parameter_override_list := &dot parameter_override ( comma &dot parameter_override )* | !dot parameter_override ( comma !dot parameter_override )*`
+  - `port_connection_list := &dot port_connection ( comma &dot port_connection )* | !dot port_connection ( comma !dot port_connection )*`
+- Preserved the existing `parameter_override` and `port_connection` element rules so retained AST-rule expectations for positive samples remain stable.
+- Regenerated:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Added retained negative samples:
+  - `mixed_named_ordered_port_connections`
+  - `mixed_ordered_named_parameter_overrides`
+  - in [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Before the grammar change, both reduced repros parsed successfully through the generated parser:
+  - mixed named/ordered port connections
+  - mixed ordered/named parameter overrides
+- After the grammar change and regeneration, both reduced repros reject through:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_mixed_named_ordered_ports.sv`
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_mixed_named_ordered_params.sv`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Rust-change clippy wrapper:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `clippy_source_all_targets` passed
+  - `clippy_generated_all_targets` still reports non-strict generated-feature lint failures; the wrapper treats that stage as non-blocking unless `PGEN_CLIPPY_GENERATED_STRICT=1`
+
+### Why It Matters
+- This removes a concrete generated syntax false positive rather than only adding another positive sample.
+- It aligns the generated grammar more closely with the intended SystemVerilog list shape while preserving stable AST evidence for existing positive samples.
+- The live label stays `In Progress` because broader generated/handwritten parity remains open.
+
+### Steering
+- Continue using small negative samples around list-shape, expression-shape, and declaration-shape seams.
+- Good next targets:
+  - ordered/named homogeneity for any remaining override/connection-like lists,
+  - deeper member/range actual combinations that should parse,
+  - invalid near-misses that should stay rejected after grammar widening.
+
 ## 2026-04-09 - rtl_frontend repeat-concatenation grammar false negative closed
 ### Context
 While looking for the next bounded `rtl_frontend` generated-contract sample, the ordered-parameter / ordered-port candidate exposed a real generated-parser false negative. Ordered parameter overrides and ordered port actuals parsed individually, but the sample failed when an ordered actual used a repeat-concatenation expression like `{2{a}}`. The handwritten baseline already preserves repeat actuals, so this was a generated grammar gap rather than a feature to avoid.

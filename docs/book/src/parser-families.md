@@ -60,7 +60,7 @@ Ongoing Phase S work currently centers around:
 
 These matter because they push PGEN from parsing into more elaboration-oriented RTL front-end territory while staying inside the same proof-first doctrine.
 
-The `rtl_frontend` generated-parser proof surface is still not fully closed, but it is no longer just a toy syntax lane. Its curated generated contract now covers representative generate/dataflow cases, a mixed procedural/dataflow member-path case, an instance-array/wildcard-port case, and ordered parameter/port actuals with repeat-concatenation values in addition to earlier reduced syntax samples.
+The `rtl_frontend` generated-parser proof surface is still not fully closed, but it is no longer just a toy syntax lane. Its curated generated contract now covers representative generate/dataflow cases, a mixed procedural/dataflow member-path case, an instance-array/wildcard-port case, ordered parameter/port actuals with repeat-concatenation values, and homogeneous named/ordered override and port-list rejects in addition to earlier reduced syntax samples.
 
 For exact current status, always check:
 

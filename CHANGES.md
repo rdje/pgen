@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-04-10 - Reject mixed rtl_frontend connection list forms
+### Achievement Summary
+Closed a generated `rtl_frontend` grammar false positive: mixed named/ordered parameter overrides and mixed named/ordered port connections now reject instead of parsing through the generated syntax path.
+
+### Scope of Changes
+- Updated [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - tightened `parameter_override_list` into homogeneous named-vs-ordered branches using leading `dot` lookahead
+  - tightened `port_connection_list` the same way, keeping wildcard and named port connections together on the dot-prefixed branch
+  - preserved the existing `parameter_override` and `port_connection` AST rule names by keeping the concrete element rules unchanged
+- Regenerated tracked artifacts:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `mixed_named_ordered_port_connections`
+  - added `mixed_ordered_named_parameter_overrides`
+  - both are retained negative samples
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is a focused false-positive fix and retained contract expansion, not broad Phase S closure
+
+### Validation
+- Pre-fix repros accepted both mixed-list samples through `parseability_probe`.
+- Regenerated tracked parser artifacts:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+- Rebuilt the generated-parser probe:
+  - `cargo build --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe`
+- Post-fix repros rejected both mixed-list samples:
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_mixed_named_ordered_ports.sv`
+  - `./rust/target/debug/parseability_probe --parse rtl_frontend /tmp/rtl_frontend_mixed_named_ordered_params.sv`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Rust-change clippy wrapper:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - completed successfully with `clippy_source_all_targets` passing
+  - generated-parser clippy remains non-strict and reported existing generated-feature lint failures, which the wrapper preserves as non-blocking
+
 ## 2026-04-09 - Fix rtl_frontend repeat-concatenation actuals
 ### Achievement Summary
 Closed a generated `rtl_frontend` grammar false negative for repeat-concatenation value expressions such as `{2{a}}`. The retained generated contract now locks ordered parameter overrides plus ordered port actuals with a repeat-concatenation value.

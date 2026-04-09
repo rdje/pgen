@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-09T21:41:18.956419+00:00",
+    "generated_at": "2026-04-09T22:30:22.646244+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "grammars/rtl_frontend.ebnf",
@@ -1398,6 +1398,14 @@
         "parameter_override_list"
       ],
       [
+        "operator",
+        "&"
+      ],
+      [
+        "rule_reference",
+        "dot"
+      ],
+      [
         "rule_reference",
         "parameter_override"
       ],
@@ -1408,6 +1416,58 @@
       [
         "rule_reference",
         "comma"
+      ],
+      [
+        "operator",
+        "&"
+      ],
+      [
+        "rule_reference",
+        "dot"
+      ],
+      [
+        "rule_reference",
+        "parameter_override"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "*"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "operator",
+        "!"
+      ],
+      [
+        "rule_reference",
+        "dot"
+      ],
+      [
+        "rule_reference",
+        "parameter_override"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "comma"
+      ],
+      [
+        "operator",
+        "!"
+      ],
+      [
+        "rule_reference",
+        "dot"
       ],
       [
         "rule_reference",
@@ -1469,6 +1529,14 @@
         "port_connection_list"
       ],
       [
+        "operator",
+        "&"
+      ],
+      [
+        "rule_reference",
+        "dot"
+      ],
+      [
         "rule_reference",
         "port_connection"
       ],
@@ -1479,6 +1547,58 @@
       [
         "rule_reference",
         "comma"
+      ],
+      [
+        "operator",
+        "&"
+      ],
+      [
+        "rule_reference",
+        "dot"
+      ],
+      [
+        "rule_reference",
+        "port_connection"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "*"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "operator",
+        "!"
+      ],
+      [
+        "rule_reference",
+        "dot"
+      ],
+      [
+        "rule_reference",
+        "port_connection"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "comma"
+      ],
+      [
+        "operator",
+        "!"
+      ],
+      [
+        "rule_reference",
+        "dot"
       ],
       [
         "rule_reference",

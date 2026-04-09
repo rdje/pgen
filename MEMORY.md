@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: rtl-frontend-repeat-concat-actuals)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-homogeneous-connection-lists)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` homogeneous connection-list wave:
+  - changed:
+    - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
+    - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+    - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - the generated parser previously accepted mixed named/ordered forms:
+      - `child u_child (.a(a), b, .y(y));`
+      - `child #(8, .LANES(2)) u_child (a, y);`
+    - `parameter_override_list` and `port_connection_list` now split on dot lookahead:
+      - dot-prefixed branch for named/wildcard forms
+      - non-dot branch for ordered forms
+    - the existing `parameter_override` and `port_connection` element rules were preserved so positive AST rule-name expectations remain stable
+    - retained negative contract samples added:
+      - `mixed_named_ordered_port_connections`
+      - `mixed_ordered_named_parameter_overrides`
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - regenerated `generated/rtl_frontend.json` and `generated/rtl_frontend_parser.rs`
+      - rebuilt `parseability_probe`
+      - post-fix repros reject both mixed-list samples
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+        - completed successfully with `clippy_source_all_targets` passing
+        - generated-parser clippy remains a non-strict wrapper stage and reported existing generated-feature lint failures
+  - next best follow-up:
+    - run final diff/status checks and commit this focused false-positive fix
 - Retained `rtl_frontend` repeat-concatenation actuals wave:
   - changed:
     - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)

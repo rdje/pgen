@@ -103,13 +103,15 @@ module_instantiation := identifier ( hash lparen ( parameter_override_list )? rp
 
 instance_item := identifier unpacked_dimension? lparen ( port_connection_list )? rparen
 
-parameter_override_list := parameter_override ( comma parameter_override )*
+parameter_override_list := &dot parameter_override ( comma &dot parameter_override )*
+                         | !dot parameter_override ( comma !dot parameter_override )*
 
 @branch_policy: priority_first
 parameter_override := dot identifier lparen rtl_expr rparen
                     | rtl_expr
 
-port_connection_list := port_connection ( comma port_connection )*
+port_connection_list := &dot port_connection ( comma &dot port_connection )*
+                      | !dot port_connection ( comma !dot port_connection )*
 
 @branch_policy: priority_first
 port_connection := dot star
