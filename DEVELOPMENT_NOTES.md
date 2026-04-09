@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend ordered parameter override ternary expression proof retained
+### Context
+The named-override ternary/binary expression sample proved the rich `rtl_expr` ladder on dot-prefixed overrides. The ordered override list needed the same positive evidence so the generated contract covers both parameter-override list modes.
+
+### What Was Changed
+- Added `ordered_parameter_override_ternary_binary_expr` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - ordered parameter override list syntax
+  - ternary override expression:
+    - `SEL ? (a[HI:LO] + LANES) : (LANES << 1)`
+  - sibling arithmetic override:
+    - `(LANES + 1) * 2`
+  - named port connections `.a(a)` and `.y(y)`
+- The contract requires AST rule presence for:
+  - `conditional_expr`
+  - `additive_expr`
+  - `shift_expr`
+- The contract locks normalized exact text for:
+  - `module_instantiation`
+  - `parameter_override`
+  - `ranged_signal_reference`
+  - `port_connection`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_ordered_override_ternary_binary_expr.sv /tmp/rtl_frontend_ordered_override_ternary_binary_expr_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves the rich ternary/binary override surface is retained for ordered overrides, not only named overrides.
+- It exercises the homogeneous ordered-override list path retained by the earlier mixed-list false-positive fix.
+- The live label stays `In Progress` because this is a curated positive-contract expansion, not full handwritten-baseline parity closure.
+
+### Steering
+- Continue balancing positive expression-shape retention and nearby malformed-input rejects.
+- Good next targets:
+  - named port actuals with nested ternary/binary expressions,
+  - ordered port actuals with nested ternary/binary expressions,
+  - a broader generated-vs-handwritten parity probe for these retained expression/list slices.
+
 ## 2026-04-10 - rtl_frontend named parameter override ternary expression proof retained
 ### Context
 The previous named-override work retained repeat-concatenation forms and nearby malformed-input rejects. The next positive expression surface was a richer constant-expression-shaped override: ternary selection with ranged references and arithmetic/shift operators inside named parameter overrides.

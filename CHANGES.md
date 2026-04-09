@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend ordered-override ternary expressions
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with a positive ordered-parameter-override expression sample that carries the same ternary/ranged-reference/additive/shift shape retained for named overrides.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `ordered_parameter_override_ternary_binary_expr`
+  - locks ordered overrides:
+    - `SEL ? (a[HI:LO] + LANES) : (LANES << 1)`
+    - `(LANES + 1) * 2`
+  - requires AST rule presence for:
+    - `conditional_expr`
+    - `additive_expr`
+    - `shift_expr`
+  - retains exact text for:
+    - `module_instantiation`
+    - `parameter_override`
+    - `ranged_signal_reference`
+    - `port_connection`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_ordered_override_ternary_binary_expr.sv /tmp/rtl_frontend_ordered_override_ternary_binary_expr_ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend named-override ternary expressions
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with a positive named-parameter-override expression sample that carries a ternary expression with nested ranged-reference, additive, shift, and multiplicative expression structure.
