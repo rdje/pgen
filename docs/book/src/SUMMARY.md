@@ -10,6 +10,7 @@
 - [Embedding and Downstream Integration](embedding-and-downstream-integration.md)
 - [Parser Families](parser-families.md)
 - [Roadmap and Live Status](roadmap-and-live-status.md)
+- [Quality and Closure Model](quality-and-closure-model.md)
 - [Stimuli and Quality](stimuli-and-quality.md)
 - [Contracts and Support](contracts-and-support.md)
 - [Developer Architecture](developer-architecture.md)

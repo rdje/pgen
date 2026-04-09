@@ -2,6 +2,8 @@
 
 This book is ordered from broad orientation to deeper implementation detail.
 
+It is also intended to become the main documentation surface that the outside world reads to understand PGEN.
+
 ## Suggested Reading Path
 
 1. `Platform Overview`
@@ -12,10 +14,11 @@ This book is ordered from broad orientation to deeper implementation detail.
 6. `Embedding and Downstream Integration`
 7. `Parser Families`
 8. `Roadmap and Live Status`
-9. `Stimuli and Quality`
-10. `Contracts and Support`
-11. `Developer Architecture`
-12. `Operations and Governance`
+9. `Quality and Closure Model`
+10. `Stimuli and Quality`
+11. `Contracts and Support`
+12. `Developer Architecture`
+13. `Operations and Governance`
 
 ## Reader Modes
 
@@ -44,7 +47,7 @@ Use this book as the high-level entrypoint before diving into the deeper referen
 
 This book should evolve with the project. When a major user-facing surface, contract, roadmap, or architecture seam changes, the relevant chapter should be updated so the curated learning path remains truthful.
 
-The target state is not static documentation. The target state is an always-current mastery surface.
+The target state is not static documentation. The target state is an always-current, outward-facing, comprehensive documentation system.
 
 ## Maintenance Rule
 
@@ -54,6 +57,7 @@ The goal is:
 
 - no stale "book says X but repo does Y" drift,
 - no treating the book as optional polish,
+- no hiding important behavior or rationale in internal continuity docs when it belongs in the public book,
 - no replacing curated chapters with unstructured note dumps.
 
 In repository workflow terms, the maintained proof surface for this book is:

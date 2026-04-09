@@ -48,6 +48,13 @@ This chapter maps the current authoritative docs into the book structure so futu
 - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
 - `README.md`
 
+### Quality and closure model
+
+- `README.md`
+- `LIVE_ACHIEVEMENT_STATUS.md`
+- `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+- `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
+
 ### Parser families and contracts
 
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
@@ -91,6 +98,6 @@ This chapter maps the current authoritative docs into the book structure so futu
 
 ## Migration Intention
 
-This map is the first live bridge between the current markdown surface and a curated book surface.
+This map is the live bridge between the current markdown surface and the public book surface.
 
-As the project evolves, the book can absorb more material directly, but it should stay curated and readable. The goal is not to dump the whole repository into a navigation tree; the goal is to give users and developers a layered path to mastery.
+As the project evolves, the book should absorb more of the real project surface directly, while staying readable and structured. The goal is not to dump the whole repository into a navigation tree; the goal is to make the book comprehensive enough that external readers can understand PGEN there without having to mine internal continuity docs.

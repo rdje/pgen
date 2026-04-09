@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: docs-mdbook-roadmap-status)
+Last updated: 2026-04-09 (+0200, task: docs-mdbook-public-split-and-closure)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,27 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained public-book split + closure-model wave:
+  - changed:
+    - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)
+    - [COMMIT.md](COMMIT.md)
+    - [README.md](README.md)
+    - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+    - [docs/book/src/index.md](docs/book/src/index.md)
+    - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+    - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+    - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+    - [docs/book/src/quality-and-closure-model.md](docs/book/src/quality-and-closure-model.md)
+  - important continuity detail:
+    - the sharper documentation split is now explicit:
+      - `docs/book/` = public-facing documentation
+      - continuity docs = internal session continuity only
+    - the live book now has a dedicated chapter for:
+      - proof-first quality and closure doctrine
+    - maintained proof lane remains:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - keep expanding public-facing chapters until the book covers the whole platform with rationale, not just feature lists
 - Retained mdBook roadmap/status wave:
   - changed:
     - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)

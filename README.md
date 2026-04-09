@@ -158,8 +158,9 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Gate it with the repo-standard wrapper:
   - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
 - Intent:
-  - the book is the layered mastery surface for users and developers,
-  - continuity docs remain the live operational truth,
+  - the book is the primary public documentation surface for users and developers,
+  - the book should grow until every important aspect of PGEN is documented there with rationale and transparency,
+  - continuity docs are internal session/continuity surfaces,
   - contracts/reference docs remain the deep authoritative detail behind the book.
 
 ## Documentation Status

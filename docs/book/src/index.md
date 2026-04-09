@@ -1,6 +1,6 @@
 # Welcome
 
-This book is the live, curated mastery surface for PGEN.
+This book is the live, public documentation surface for PGEN.
 
 PGEN is a production-focused parser and stimuli generation platform built around EBNF-driven parser generation, AST shaping through return annotations, semantic steering, deterministic quality gates, and cross-family proof surfaces. The goal of this book is to make that platform learnable in layers:
 
@@ -9,7 +9,7 @@ PGEN is a production-focused parser and stimuli generation platform built around
 3. dive into the stimuli, coverage, and quality model,
 4. move into the Rust architecture and operational rules used to evolve the system.
 
-This book is intentionally a live document. As PGEN evolves, its chapters, sections, and learning path are expected to evolve too. The book is not meant to freeze the project; it is meant to keep the project understandable while it changes.
+This book is intentionally a live document. As PGEN evolves, its chapters, sections, and learning path are expected to evolve too. The book is not meant to freeze the project; it is meant to make the project understandable, transparent, and externally legible while it changes.
 
 ## What This Book Covers
 
@@ -19,6 +19,7 @@ This book is intentionally a live document. As PGEN evolves, its chapters, secti
 - the embedding and downstream integration model,
 - the currently relevant parser families,
 - the roadmap and live-status model used to steer and evaluate the project,
+- the quality and closure doctrine that explains how PGEN decides what is really done,
 - the stimuli-generation and proof doctrine,
 - downstream contracts and support expectations,
 - architecture and implementation guidance for contributors,
@@ -26,11 +27,11 @@ This book is intentionally a live document. As PGEN evolves, its chapters, secti
 
 ## What Remains Outside The Book
 
-Some documents are still best treated as operational continuity sources rather than book chapters:
+Some documents are still best treated as internal continuity sources rather than public book chapters:
 
 - `CHANGES.md`
 - `DEVELOPMENT_NOTES.md`
 - `LIVE_ACHIEVEMENT_STATUS.md`
 - `MEMORY.md`
 
-Those files remain authoritative for live progress, continuity, and recent implementation waves. The book complements them; it does not replace them.
+Those files remain authoritative for live progress, continuity, and recent implementation waves inside the repository workflow. They are not the primary outward-facing documentation surface; the book is.

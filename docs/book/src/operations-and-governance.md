@@ -29,8 +29,8 @@ They capture:
 
 The intended split is:
 
-- the book is the curated mastery surface,
-- the continuity docs are the live operational truth,
+- the book is the primary public documentation surface,
+- the continuity docs are internal continuity and crash-recovery surfaces,
 - the contracts and reference docs are the deep authoritative details behind the book.
 
 That split keeps the repository teachable without losing high-signal live state.
@@ -43,7 +43,8 @@ That means:
 
 - if a change affects a user-facing or developer-facing surface already covered by the book, update the relevant chapter in the same wave,
 - if a new important surface appears often enough to matter, add a new section or chapter,
-- use the book to curate and teach, not to mirror every raw implementation note.
+- use the book to curate and teach, not to mirror every raw implementation note,
+- but treat the book as the place where the world should be able to understand what PGEN does, how it works, and why it is designed that way.
 
 The maintained proof lane for this doctrine is:
 

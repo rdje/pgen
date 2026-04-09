@@ -24,10 +24,13 @@ Run this workflow after each completed task/activity.
   - Must be cleared to 0 bytes after commit.
 - `CHANGES.md` (tracked)
   - Changelog-style summary of completed work and validation.
+  - Internal continuity / implementation-history surface, not primary public documentation.
 - `DEVELOPMENT_NOTES.md` (tracked)
   - Detailed technical notes: root cause, implementation, validation.
+  - Internal engineering continuity surface, not primary public documentation.
 - `MEMORY.md` (tracked)
   - Live continuity file for resume/handoff.
+  - Internal continuity only.
 - `docs/reference/RUST_CODEBASE_ANALYSIS.md` (tracked)
   - Live Rust architecture/state assessment.
   - Must be reviewed and updated whenever a task materially changes Rust architecture, major subsystem boundaries, public integration seams, or the current high-level risk/steering picture.
@@ -38,8 +41,9 @@ Run this workflow after each completed task/activity.
   - Downstream parser support/bug-tracking workflow.
   - Must be reviewed and updated whenever the required bug-report bundle, release-support process, or released-parser bug state changes.
 - `docs/book/` (`mdBook` source, tracked)
-  - Curated live mastery surface for users and developers.
-  - Must be reviewed and updated whenever a task changes a user-facing command, workflow, contract, parser-family support boundary, developer architecture seam, or documentation map that is covered by an existing chapter.
+  - Primary public-facing documentation surface for users and developers.
+  - Intended to become the comprehensive outward documentation system for the project.
+  - Must be reviewed and updated whenever a task changes a user-facing command, workflow, contract, parser-family support boundary, developer architecture seam, rationale, or documentation map that is covered by an existing chapter.
   - `make -C rust SHELL=/bin/bash mdbook_docs_gate` is the maintained proof lane for this surface.
 - `questions_keep_untracked.txt` (must remain untracked)
   - User backlog/questions for future UG work.
@@ -97,10 +101,12 @@ Run this workflow after each completed task/activity.
    - `docs/book/` sync is required when:
      - a user-facing or developer-facing surface already represented by the book changes,
      - a new important surface deserves a new chapter or section,
-     - the curated learning path or source-map bridge changes.
+     - the curated learning path or source-map bridge changes,
+     - rationale or transparency around "what PGEN does and why" changed materially.
    - When `docs/book/` changes or when a task materially changes the curated book surface:
      - run `make -C rust SHELL=/bin/bash mdbook_docs_gate`
-     - keep the book readable and curated rather than dumping raw repository notes into it.
+     - keep the book readable and curated rather than dumping raw repository notes into it,
+     - but do not under-document important project behavior in the name of curation; the book is meant to become the comprehensive public surface.
    - While reviewing/updating markdown docs:
      - convert any repo-internal absolute checkout path to a relative path before commit,
      - do not leave checkout-specific absolute repo paths in tracked `.md` files.

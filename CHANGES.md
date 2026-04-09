@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-09 - Clarify public book doctrine and add closure chapter
+### Achievement Summary
+Clarified the documentation split so the `mdBook` is now explicitly treated as the primary public-facing documentation surface while the continuity docs remain internal-only session/recovery artifacts. In the same wave, added a dedicated book chapter explaining PGEN’s quality and closure model.
+
+### Scope of Changes
+- Updated repo doctrine docs:
+  - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)
+  - [COMMIT.md](COMMIT.md)
+  - [README.md](README.md)
+- The clarified split now states:
+  - `docs/book/` is the primary public documentation surface
+  - continuity docs are internal continuity/crash-recovery surfaces
+  - contracts/reference docs are deep authoritative detail behind the book
+- Updated live book framing:
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+- Added new book chapter:
+  - [docs/book/src/quality-and-closure-model.md](docs/book/src/quality-and-closure-model.md)
+  - explains:
+    - proof-first closure
+    - why gates/contracts matter
+    - why status labels stay conservative
+    - why closure is normalized across parser families
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is documentation-doctrine/content strengthening, not a parser-family closure promotion
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+- retained proof facts:
+  - the stronger documentation split is now encoded in repo doctrine
+  - the public book now explains one of PGEN’s central product ideas directly: the quality and closure model
+
 ## 2026-04-09 - Add mdBook roadmap and status chapter
 ### Achievement Summary
 Expanded the live `mdBook` with a dedicated roadmap/status chapter so readers can understand how PGEN’s living roadmap and live tracker fit together instead of inferring that relationship indirectly.

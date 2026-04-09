@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - Public book split clarified and closure chapter added
+### Context
+The documentation split needed to be sharper. The book had been described as a live mastery surface, but the user clarified the stronger intended doctrine: the book is what the world should read, while the continuity docs exist for internal session continuity and crash recovery. Once that was clear, the next best content wave was to add a chapter that explains one of PGEN’s central public-facing ideas directly: its proof-first quality and closure model.
+
+### What Was Changed
+- Updated doctrine-bearing repo docs:
+  - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)
+  - [COMMIT.md](COMMIT.md)
+  - [README.md](README.md)
+- The new wording now explicitly separates:
+  - public documentation surface:
+    - `docs/book/`
+  - internal continuity surfaces:
+    - `CHANGES.md`
+    - `DEVELOPMENT_NOTES.md`
+    - `LIVE_ACHIEVEMENT_STATUS.md`
+    - `MEMORY.md`
+- Updated book framing chapters:
+  - [docs/book/src/index.md](docs/book/src/index.md)
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+  - [docs/book/src/source-map.md](docs/book/src/source-map.md)
+  - [docs/book/src/SUMMARY.md](docs/book/src/SUMMARY.md)
+- Added [docs/book/src/quality-and-closure-model.md](docs/book/src/quality-and-closure-model.md):
+  - explains why PGEN is proof-first
+  - explains why generated parser existence is not enough for closure
+  - explains why status labels remain conservative
+  - explains why closure doctrine is normalized across families
+
+### Why It Matters
+- This gets the documentation model aligned with the actual intent:
+  - book for the outside world
+  - continuity docs for internal continuity
+- It also adds a chapter that communicates a core part of PGEN’s identity, rather than leaving it spread across README, roadmap, and status tracker language.
+
+### Steering
+- Treat the book as the place where project rationale belongs unless it is specifically session-internal continuity.
+- Good next public-book candidates after this wave:
+  - deeper parser-family comparison
+  - deeper stimuli/coverage/gap chapter expansion
+  - dedicated chapter on generated artifacts and regeneration philosophy
+
 ## 2026-04-09 - mdBook roadmap/status coverage added
 ### Context
 After adding the CLI/workflows, annotations, and embedding chapters, one of the biggest remaining comprehension gaps was status interpretation. PGEN’s roadmap and live tracker are both important, but they serve different purposes and can be confusing if a reader encounters them only as raw files.
