@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend named port near-miss rejects retained
+### Context
+After retaining named port actuals with repeat-concatenation/ranged-reference expressions, the adjacent risk was accidental over-acceptance: the grammar should not start accepting malformed repeat bodies or missing separators just because the valid expression surface widened.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `named_port_actual_repeat_trailing_comma`
+  - `named_port_connection_missing_comma_after_repeat_actual`
+- The retained rejects cover:
+  - a trailing comma inside a repeat-concatenation body:
+    - `.a({2{cfgs[IDX].data[HI:LO], d,}})`
+  - a missing comma between named port connections after a repeat actual:
+    - `.a({2{cfgs[IDX].data[HI:LO], d}})` followed immediately by `.b(...)`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros confirmed:
+  - `missing_repeat_brace.sv: rejected-as-expected`
+  - `trailing_repeat_comma.sv: rejected-as-expected`
+  - `missing_named_port_comma.sv: rejected-as-expected`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This balances the preceding positive named-port expression proof with nearby negative proof.
+- It locks the intended list discipline after the homogeneous named/ordered list fix: named port connections still require commas, and repeat-concatenation bodies still require real expressions after commas.
+- The live label stays `In Progress` because this is focused generated-contract hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Continue alternating positive expression-shape retention with nearby malformed-input rejects.
+- Good next targets:
+  - named parameter override near-misses around trailing commas and missing separators,
+  - parameter override expressions with nested ternary or binary operators,
+  - procedural/dataflow samples that reuse deeper named actual shapes.
+
 ## 2026-04-10 - rtl_frontend named port actual expression proof retained
 ### Context
 The previous contract expansion retained a named parameter override carrying a repeat-concatenation/ranged-reference expression. The next sibling surface was named port actuals with the same deeper expression shape. This keeps the contract balanced across ordered port actuals, named parameter overrides, and named port connections.

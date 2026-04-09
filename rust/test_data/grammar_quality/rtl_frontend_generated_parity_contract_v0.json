@@ -395,6 +395,18 @@
       "sample": "module child (\n    input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0\n) (\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nstruct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];\nchild u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d}}),\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n);\nendmodule\n"
     },
     {
+      "label": "named_port_actual_repeat_trailing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module child (\n    input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0\n) (\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nstruct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];\nchild u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d,}}),\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
+      "label": "named_port_connection_missing_comma_after_repeat_actual",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module child (\n    input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0\n) (\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nstruct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];\nchild u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d}})\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
       "label": "mixed_named_ordered_port_connections",
       "expected_parse_ok": false,
       "require_ast_json": false,
