@@ -358,6 +358,42 @@
       "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK({2{a[HI:LO], LANES}}),\n    .LANES(LANES)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
     },
     {
+      "label": "named_parameter_override_ternary_binary_expr",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "module_instantiation",
+        "parameter_override",
+        "conditional_expr",
+        "additive_expr",
+        "shift_expr",
+        "ranged_signal_reference",
+        "port_connection"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child #(\n    .MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1)),\n    .LANES((LANES + 1) * 2)\n) u_child (\n    .a(a),\n    .y(y)\n);"
+        ],
+        "parameter_override": [
+          ".MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1))",
+          ".LANES((LANES + 1) * 2)"
+        ],
+        "ranged_signal_reference": [
+          "a[HI:LO]"
+        ],
+        "port_connection": [
+          ".a(a)",
+          ".y(y)"
+        ]
+      },
+      "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1)),\n    .LANES((LANES + 1) * 2)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
       "label": "named_parameter_override_repeat_trailing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,
