@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-04-09 - Fold mdBook upkeep into repo doctrine
+### Achievement Summary
+Integrated the live `mdBook` surface into the repository’s normal operating rules. Future sessions and commit waves are now explicitly expected to keep relevant book chapters in sync when user-facing or developer-facing surfaces change.
+
+### Scope of Changes
+- Updated [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md):
+  - now tells fresh sessions to read:
+    - `README.md`
+    - `docs/book/`
+    - then the active referenced docs needed for the current task
+  - now states the intended split between:
+    - book as curated mastery surface
+    - continuity docs as live operational truth
+    - contracts/reference docs as deep authority
+- Updated [COMMIT.md](COMMIT.md):
+  - added `docs/book/` as a first-class tracked docs surface
+  - made book sync mandatory when covered user/developer surfaces change
+  - added `make -C rust SHELL=/bin/bash mdbook_docs_gate` as the maintained proof lane for book changes
+- Updated live book chapters:
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+  - both now state the maintenance doctrine explicitly
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is documentation-governance hardening, not a parser-family closure promotion
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+- retained proof facts:
+  - the book-maintenance doctrine now exists in both session bootstrap and commit workflow policy
+  - the live book still builds after adding the governance text
+
 ## 2026-04-09 - Add mdBook docs gate
 ### Achievement Summary
 Turned the new live `mdBook` surface into a maintained proof lane instead of a one-off scaffold. PGEN now has a dedicated `mdbook_docs_gate` with matching Make, workflow, and local workflow-parity wiring so the curated book stays buildable as the project evolves.

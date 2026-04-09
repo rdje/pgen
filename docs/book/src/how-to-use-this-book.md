@@ -41,3 +41,19 @@ Use this book as the high-level entrypoint before diving into the deeper referen
 This book should evolve with the project. When a major user-facing surface, contract, roadmap, or architecture seam changes, the relevant chapter should be updated so the curated learning path remains truthful.
 
 The target state is not static documentation. The target state is an always-current mastery surface.
+
+## Maintenance Rule
+
+When a change affects a surface already represented by the book, the book should be updated in the same implementation wave.
+
+The goal is:
+
+- no stale "book says X but repo does Y" drift,
+- no treating the book as optional polish,
+- no replacing curated chapters with unstructured note dumps.
+
+In repository workflow terms, the maintained proof surface for this book is:
+
+```bash
+make -C rust SHELL=/bin/bash mdbook_docs_gate
+```

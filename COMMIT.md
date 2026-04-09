@@ -37,6 +37,10 @@ Run this workflow after each completed task/activity.
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (tracked)
   - Downstream parser support/bug-tracking workflow.
   - Must be reviewed and updated whenever the required bug-report bundle, release-support process, or released-parser bug state changes.
+- `docs/book/` (`mdBook` source, tracked)
+  - Curated live mastery surface for users and developers.
+  - Must be reviewed and updated whenever a task changes a user-facing command, workflow, contract, parser-family support boundary, developer architecture seam, or documentation map that is covered by an existing chapter.
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate` is the maintained proof lane for this surface.
 - `questions_keep_untracked.txt` (must remain untracked)
   - User backlog/questions for future UG work.
 - `generated/` artifacts
@@ -90,6 +94,13 @@ Run this workflow after each completed task/activity.
      - canonical generation flow changes,
      - key project paths or standard commands change,
      - markdown documentation map/ramp-up order changes.
+   - `docs/book/` sync is required when:
+     - a user-facing or developer-facing surface already represented by the book changes,
+     - a new important surface deserves a new chapter or section,
+     - the curated learning path or source-map bridge changes.
+   - When `docs/book/` changes or when a task materially changes the curated book surface:
+     - run `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+     - keep the book readable and curated rather than dumping raw repository notes into it.
    - While reviewing/updating markdown docs:
      - convert any repo-internal absolute checkout path to a relative path before commit,
      - do not leave checkout-specific absolute repo paths in tracked `.md` files.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: docs-mdbook-gate)
+Last updated: 2026-04-09 (+0200, task: docs-mdbook-doctrine)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,20 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained mdBook doctrine wave:
+  - changed:
+    - [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md)
+    - [COMMIT.md](COMMIT.md)
+    - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+    - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+  - important continuity detail:
+    - the live book is now part of repo operating doctrine, not only content plus a build gate
+    - future sessions are now explicitly told to read `docs/book/` during ramp-up
+    - future commit waves are now explicitly expected to update relevant book chapters when covered user-facing or developer-facing surfaces move
+    - maintained proof lane remains:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - continue deepening specific book chapters as parser families, stimuli capabilities, and user-facing workflows evolve
 - Retained mdBook docs-gate wave:
   - changed:
     - [.github/workflows/mdbook-docs-gate.yml](.github/workflows/mdbook-docs-gate.yml)

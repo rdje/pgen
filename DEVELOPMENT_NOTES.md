@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - mdBook upkeep folded into operating doctrine
+### Context
+After scaffolding the live book and adding its build gate, the last obvious gap was process drift: a future session could still treat `docs/book/` as optional unless the repo’s own bootstrap and commit workflow explicitly said otherwise. The best next step was to encode that expectation where future work already looks for rules.
+
+### What Was Changed
+- Updated [SESSION_BOOTSTRAP.md](SESSION_BOOTSTRAP.md):
+  - now names `docs/book/` as part of the initial reading path
+  - now explicitly explains the split between:
+    - curated book
+    - continuity docs
+    - contracts/reference docs
+  - now tells future sessions to keep relevant book chapters in sync when covered surfaces change
+- Updated [COMMIT.md](COMMIT.md):
+  - added `docs/book/` to the tracked docs surfaces
+  - made book review/update mandatory when covered user-facing or developer-facing surfaces move
+  - added `make -C rust SHELL=/bin/bash mdbook_docs_gate` as the explicit proof lane for book changes
+- Updated live book chapters:
+  - [docs/book/src/how-to-use-this-book.md](docs/book/src/how-to-use-this-book.md)
+  - [docs/book/src/operations-and-governance.md](docs/book/src/operations-and-governance.md)
+  - both now state the maintenance doctrine in reader-facing language
+
+### Why It Matters
+- The book is now protected at three levels:
+  - content scaffold
+  - executable build gate
+  - workflow doctrine
+- That reduces the chance of “good idea, stale surface” failure.
+- It also makes future AI sessions much less likely to skip the book when changing surfaces that users and contributors actually rely on.
+
+### Steering
+- Treat the book as part of the normal docs sync rule from now on.
+- Current deliberate boundary:
+  - the doctrine says “update relevant chapters when covered surfaces move”
+  - it does not require a giant book rewrite on every task
+- The right pace is incremental, truthful chapter upkeep.
+
 ## 2026-04-09 - mdBook docs gate landed
 ### Context
 Scaffolding the live book was only the first half of the job. Without a maintained proof lane, `docs/book/` would quickly become a stale sidecar. The right next step was to wire the book into the same house pattern used by other active surfaces: one gate script, one Make target, one tracked workflow, and one local workflow-parity replay path.
