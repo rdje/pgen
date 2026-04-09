@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-ordered-port-ternary-binary-expr)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-ternary-near-miss-rejects)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,30 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` ternary near-miss reject wave:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - added retained negative samples:
+      - `named_parameter_override_ternary_missing_colon`
+      - `ordered_port_actual_ternary_missing_false_branch`
+    - direct malformed probes before retention all rejected as expected:
+      - named override missing ternary colon
+      - named override missing ternary false branch
+      - named port actual missing ternary colon
+      - ordered port actual missing ternary false branch
+    - this balances the ternary/binary positive symmetry pass with nearby malformed-input coverage
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - commit this contract-only wave if final status is still clean except pre-existing untracked docs
 - Retained `rtl_frontend` ordered-port ternary/binary expression wave:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

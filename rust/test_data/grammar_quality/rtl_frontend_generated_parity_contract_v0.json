@@ -391,6 +391,12 @@
       "sample": "module child (\n    input logic [15:0] a,\n    input logic [15:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nchild u_child (\n    SEL ? (a[HI:LO] + d) : (d << 1),\n    (a[HI:LO] + d) * 2,\n    y\n);\nendmodule\n"
     },
     {
+      "label": "ordered_port_actual_ternary_missing_false_branch",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module child (\n    input logic [15:0] a,\n    input logic [15:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nchild u_child (\n    SEL ? (a[HI:LO] + d) :,\n    (a[HI:LO] + d) * 2,\n    y\n);\nendmodule\n"
+    },
+    {
       "label": "named_parameter_override_repeat_expr",
       "expected_parse_ok": true,
       "require_ast_json": true,
@@ -465,6 +471,12 @@
         ]
       },
       "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1)),\n    .LANES((LANES + 1) * 2)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
+    },
+    {
+      "label": "named_parameter_override_ternary_missing_colon",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module child #(\n    parameter MASK = 0,\n    parameter LANES = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nchild #(\n    .MASK(SEL ? (a[HI:LO] + LANES) (LANES << 1)),\n    .LANES((LANES + 1) * 2)\n) u_child (\n    .a(a),\n    .y(y)\n);\nendmodule\n"
     },
     {
       "label": "named_parameter_override_repeat_trailing_comma",

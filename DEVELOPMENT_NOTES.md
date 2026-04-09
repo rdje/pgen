@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend ternary near-miss rejects retained
+### Context
+After retaining ternary/binary expression shapes across ordered/named parameter overrides and ordered/named port actuals, the adjacent risk was accidental over-acceptance of malformed `? :` punctuation. The grammar should keep requiring the colon and the false branch in every ternary expression shape.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `named_parameter_override_ternary_missing_colon`
+  - `ordered_port_actual_ternary_missing_false_branch`
+- The retained rejects cover:
+  - a missing ternary colon inside a named parameter override:
+    - `.MASK(SEL ? (a[HI:LO] + LANES) (LANES << 1))`
+  - a missing ternary false branch inside an ordered port actual:
+    - `SEL ? (a[HI:LO] + d) :`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros confirmed:
+  - `named_override_missing_colon.sv: rejected-as-expected`
+  - `named_override_missing_false_branch.sv: rejected-as-expected`
+  - `named_port_missing_colon.sv: rejected-as-expected`
+  - `ordered_port_missing_false_branch.sv: rejected-as-expected`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This balances the ternary/binary positive symmetry pass with malformed-input proof.
+- It keeps ternary punctuation discipline explicit in both override and port-actual contexts.
+- The live label stays `In Progress` because this is focused generated-contract hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- The ternary/binary expression ladder is now positively covered across ordered/named parameter overrides and ordered/named port actuals, with nearby punctuation rejects retained.
+- Good next targets:
+  - a broader generated-vs-handwritten parity probe for these retained expression/list slices,
+  - procedural/dataflow samples that reuse the same expression shapes outside instantiations,
+  - malformed ternary coverage in named port actuals if future parser widening touches that exact list mode.
+
 ## 2026-04-10 - rtl_frontend ordered port actual ternary expression proof retained
 ### Context
 The named-port ternary/binary expression sample proved the rich `rtl_expr` ladder on dot-prefixed port actuals. The ordered port-actual list needed the same positive evidence so the generated contract covers both port-connection list modes.

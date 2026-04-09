@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend ternary near-miss rejects
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with two negative ternary-punctuation near-miss samples around the newly retained ternary/binary override and port-actual expression surface.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `named_parameter_override_ternary_missing_colon`
+  - added `ordered_port_actual_ternary_missing_false_branch`
+  - locks rejection for malformed ternary expressions like:
+    - `.MASK(SEL ? (a[HI:LO] + LANES) (LANES << 1))`
+    - `SEL ? (a[HI:LO] + d) :`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract negative-proof hardening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser negative repros:
+  - `named_override_missing_colon.sv: rejected-as-expected`
+  - `named_override_missing_false_branch.sv: rejected-as-expected`
+  - `named_port_missing_colon.sv: rejected-as-expected`
+  - `ordered_port_missing_false_branch.sv: rejected-as-expected`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend ordered-port ternary expressions
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with a positive ordered port-actual expression sample carrying ternary, ranged-reference, additive, shift, and multiplicative expression structure.
