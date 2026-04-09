@@ -233,6 +233,7 @@ help:
 	@echo "  fixed_point_gate - Verify deterministic bootstrap artifacts across cycles"
 	@echo "  branch_protection_contract_gate - Validate tracked branch-protection required-check contract vs workflows"
 	@echo "  ci_workflow_local_gate - Run tracked GitHub workflow gate commands from a tracked-only local export"
+	@echo "  mdbook_docs_gate - Build the live mdBook documentation surface"
 	@echo "  clippy_on_rust_change - Run cargo clippy flow automatically when Rust/generated Rust files changed"
 	@echo "  sota_exit_gate - Run release-grade aggregate gate (fixed-point, annotation, differential, performance, embedding, EBNF readiness report)"
 	@echo "  sota_release_policy - Show active SOTA release policy file"
@@ -493,6 +494,12 @@ ci_workflow_local_gate:
 	@echo "🧪 Running local GitHub workflow parity gate..."
 	cd $(RUST_DIR) && ./scripts/ci_workflow_local_gate.sh
 	@echo "✅ Local GitHub workflow parity gate passed."
+
+.PHONY: mdbook_docs_gate
+mdbook_docs_gate:
+	@echo "📚 Running mdBook docs gate..."
+	cd $(RUST_DIR) && ./scripts/mdbook_docs_gate.sh
+	@echo "✅ mdBook docs gate passed."
 
 .PHONY: clippy_on_rust_change
 clippy_on_rust_change:

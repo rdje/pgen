@@ -8,6 +8,7 @@ Last updated: 2026-04-09
 - Use `docs/reference/RUST_CODEBASE_ANALYSIS.md` for the live Rust architecture/state assessment.
 - Use `LIVE_ACHIEVEMENT_STATUS.md` for the current closure/status snapshot.
 - Use `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md` for the active roadmap contract.
+- Use `make -C rust SHELL=/bin/bash mdbook_docs_gate` when you want to verify the curated book still builds cleanly.
 
 ## 1) What PGEN Is
 PGEN is a parser/stimuli platform built around this flow:

@@ -110,6 +110,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - focused replay example:
     - `PGEN_CI_WORKFLOW_LOCAL_FILTER=annotation-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- mdBook docs gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
 - `rtl_frontend` generated contract gate:
   - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
   - focused workflow-parity replay example:
@@ -153,6 +155,8 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `mdbook build docs/book`
 - Serve it locally with live reload:
   - `mdbook serve docs/book --open`
+- Gate it with the repo-standard wrapper:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
 - Intent:
   - the book is the layered mastery surface for users and developers,
   - continuity docs remain the live operational truth,
@@ -241,6 +245,7 @@ The list below is the current high-signal markdown surface for active work. A 20
 The top-level `docs/*.md` surface has now been pruned down to the maintained active reference set. The full audit trail and removal rationale remain recorded in `DEVELOPMENT_NOTES.md`.
 - `make -C rust SHELL=/bin/bash ci_workflow_local_gate` now audits the tracked top-level `docs/*.md` allowlist so this surface does not silently drift back upward.
 - `make -C rust SHELL=/bin/bash ci_workflow_local_gate` now also audits the tracked `docs/contracts/*.md` and `docs/reference/*.md` allowlists so the curated contract/reference buckets do not silently drift.
+- `make -C rust SHELL=/bin/bash ci_workflow_local_gate` now also audits the curated `docs/book/` surface and replays the tracked `mdbook-docs-gate` workflow command so the live book stays buildable.
 - `make -C rust SHELL=/bin/bash ci_workflow_local_gate` now also audits active operator/reference docs for stale pre-rehome path mentions, so live docs keep pointing at the canonical `docs/contracts/...` and `docs/reference/...` locations.
 
 Root markdown policy note:

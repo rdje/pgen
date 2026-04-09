@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-09 (+0200, task: docs-mdbook-surface)
+Last updated: 2026-04-09 (+0200, task: docs-mdbook-gate)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained mdBook docs-gate wave:
+  - changed:
+    - [.github/workflows/mdbook-docs-gate.yml](.github/workflows/mdbook-docs-gate.yml)
+    - [README.md](README.md)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [rust/Makefile](rust/Makefile)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [rust/scripts/mdbook_docs_gate.sh](rust/scripts/mdbook_docs_gate.sh)
+  - important continuity detail:
+    - the live book is now a maintained proof surface, not only a scaffold
+    - new command:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - new workflow:
+      - `mdbook-docs-gate`
+    - new local parity replay:
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=mdbook-docs-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - current gate behavior:
+      - verify required book-entry files exist
+      - build `docs/book/`
+      - emit logs under `rust/target/mdbook_docs_gate/`
+    - implementation nuance retained:
+      - `rust/scripts/mdbook_docs_gate.sh` must carry the executable bit because the Make target invokes it directly
+      - local workflow parity exports tracked files only, so new workflow additions are invisible to the filtered replay until staged or committed
+  - next best follow-up:
+    - keep deepening book chapters alongside future user-facing and developer-facing changes instead of letting the book become a stale wrapper
 - Retained initial live `mdBook` documentation wave:
   - changed:
     - [`.gitignore`](.gitignore)

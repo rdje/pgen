@@ -1,0 +1,35 @@
+name: mdbook-docs-gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  mdbook-docs-gate:
+    name: mdbook-docs-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install mdBook
+        run: cargo install mdbook --version 0.5.2 --locked
+
+      - name: Run mdBook docs gate
+        run: make -C rust SHELL=/bin/bash mdbook_docs_gate
+
+      - name: Upload mdBook docs gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: mdbook-docs-gate-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/mdbook_docs_gate
+          if-no-files-found: warn
+          retention-days: 14

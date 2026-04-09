@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-04-09 - Add mdBook docs gate
+### Achievement Summary
+Turned the new live `mdBook` surface into a maintained proof lane instead of a one-off scaffold. PGEN now has a dedicated `mdbook_docs_gate` with matching Make, workflow, and local workflow-parity wiring so the curated book stays buildable as the project evolves.
+
+### Scope of Changes
+- Added gate script:
+  - [rust/scripts/mdbook_docs_gate.sh](rust/scripts/mdbook_docs_gate.sh)
+  - verifies required book-entry docs exist
+  - builds `docs/book/`
+  - emits report artifacts under `rust/target/mdbook_docs_gate/`
+- Added GitHub workflow:
+  - [.github/workflows/mdbook-docs-gate.yml](.github/workflows/mdbook-docs-gate.yml)
+  - installs `mdbook 0.5.2`
+  - runs `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - uploads the gate artifacts
+- Updated [rust/Makefile](rust/Makefile):
+  - added help text and target:
+    - `mdbook_docs_gate`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - added `docs/book/` allowlist audit
+  - added the tracked `mdbook-docs-gate` workflow to the audited workflow surface
+  - added filtered local replay for the new workflow command
+  - now requires `mdbook` in the local parity environment
+- Updated active docs:
+  - [README.md](README.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+- Synced continuity / live tracker docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live-status row changed
+  - this is documentation-platform hardening, not a parser-family closure promotion
+
+### Validation
+- `bash -n rust/scripts/mdbook_docs_gate.sh`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+- retained proof facts:
+  - the dedicated gate builds `docs/book/` successfully
+  - the first local replay failure was mechanical (`Permission denied`) and was fixed by marking `rust/scripts/mdbook_docs_gate.sh` executable
+  - the second local replay failure was expected tracked-export behavior while the new workflow file was not yet staged; the staged-surface filtered replay is the final intended parity proof for this wave
+
 ## 2026-04-09 - Scaffold live mdBook documentation surface
 ### Achievement Summary
 Introduced a buildable `mdBook` documentation surface under `docs/book/` so PGEN now has a curated, book-like mastery path for both users and developers. This is intentionally a live documentation product: the chapter map is expected to evolve with the project rather than freeze it.

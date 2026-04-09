@@ -253,6 +253,47 @@ audit_reference_docs_surface() {
   fi
 }
 
+audit_docs_book_surface() {
+  local -a expected_book_files=(
+    "docs/book/book.toml"
+    "docs/book/src/SUMMARY.md"
+    "docs/book/src/contracts-and-support.md"
+    "docs/book/src/developer-architecture.md"
+    "docs/book/src/getting-started.md"
+    "docs/book/src/how-to-use-this-book.md"
+    "docs/book/src/index.md"
+    "docs/book/src/operations-and-governance.md"
+    "docs/book/src/parser-families.md"
+    "docs/book/src/platform-overview.md"
+    "docs/book/src/source-map.md"
+    "docs/book/src/stimuli-and-quality.md"
+    "docs/book/src/user-facing-surfaces.md"
+  )
+  local -a actual_book_files=()
+  local expected_snapshot
+  local actual_snapshot
+  local line
+
+  note "auditing docs/book allowlist"
+  while IFS= read -r line; do
+    actual_book_files+=("$line")
+  done < <(
+    cd "$ROOT_DIR" &&
+      git ls-files -z |
+      perl -0ne 'for (split /\0/) { print "$_\n" if /\Adocs\/book\/(?:book\.toml|src\/[^\/]+\.md)\z/ }' |
+      sort
+  )
+
+  expected_snapshot="$(printf '%s\n' "${expected_book_files[@]}" | sort)"
+  actual_snapshot="$(printf '%s\n' "${actual_book_files[@]}")"
+
+  if [[ "$actual_snapshot" != "$expected_snapshot" ]]; then
+    printf 'expected docs/book surface:\n%s\n' "$expected_snapshot" >&2
+    printf 'actual docs/book surface:\n%s\n' "$actual_snapshot" >&2
+    fail "docs/book allowlist drift detected; curate the live book surface deliberately"
+  fi
+}
+
 audit_active_docs_rehome_paths() {
   note "auditing active docs rehome paths"
   if (
@@ -293,6 +334,7 @@ audit_workflow_surface() {
     .github/workflows/differential-regression-gate.yml \
     .github/workflows/ebnf-frontend-dual-run-diff.yml \
     .github/workflows/fixed-point-gate.yml \
+    .github/workflows/mdbook-docs-gate.yml \
     .github/workflows/performance-gate.yml \
     .github/workflows/stimuli-cross-family-platform-gate.yml \
     .github/workflows/sota-exit-gate.yml; do
@@ -321,6 +363,7 @@ audit_workflow_surface() {
     .github/workflows/branch-protection-contract-gate.yml \
     .github/workflows/differential-regression-gate.yml \
     .github/workflows/fixed-point-gate.yml \
+    .github/workflows/mdbook-docs-gate.yml \
     .github/workflows/performance-gate.yml \
     .github/workflows/stimuli-cross-family-platform-gate.yml; do
     assert_workflow_not_contains "$workflow_file" "Verify Perl runtime"
@@ -2603,6 +2646,7 @@ main() {
   require_tool git
   require_tool cargo
   require_tool make
+  require_tool mdbook
   require_tool perl
   require_tool jq
 
@@ -2613,6 +2657,7 @@ main() {
   audit_top_level_docs_surface
   audit_contract_docs_surface
   audit_reference_docs_surface
+  audit_docs_book_surface
   audit_active_docs_rehome_paths
   audit_workflow_surface
   audit_ebnf_frontend_conversion_surface
@@ -2672,6 +2717,11 @@ main() {
     ".github/workflows/stimuli-cross-family-platform-gate.yml" \
     "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate" \
     "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate"
+  run_workflow \
+    "mdbook-docs-gate" \
+    ".github/workflows/mdbook-docs-gate.yml" \
+    "make -C rust SHELL=/bin/bash mdbook_docs_gate" \
+    "make -C rust SHELL=/bin/bash mdbook_docs_gate"
   run_workflow \
     "fixed-point-gate" \
     ".github/workflows/fixed-point-gate.yml" \

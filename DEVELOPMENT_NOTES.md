@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-09 - mdBook docs gate landed
+### Context
+Scaffolding the live book was only the first half of the job. Without a maintained proof lane, `docs/book/` would quickly become a stale sidecar. The right next step was to wire the book into the same house pattern used by other active surfaces: one gate script, one Make target, one tracked workflow, and one local workflow-parity replay path.
+
+### What Was Changed
+- Added [rust/scripts/mdbook_docs_gate.sh](rust/scripts/mdbook_docs_gate.sh):
+  - checks that the key live-book files exist
+  - runs `mdbook build docs/book`
+  - writes `summary.txt` and `mdbook_build.log` under `rust/target/mdbook_docs_gate/`
+- Added [.github/workflows/mdbook-docs-gate.yml](.github/workflows/mdbook-docs-gate.yml):
+  - installs `mdbook 0.5.2`
+  - runs the new Make target
+  - uploads the gate artifacts
+- Updated [rust/Makefile](rust/Makefile):
+  - added `mdbook_docs_gate`
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - new `docs/book/` allowlist audit
+  - tracked workflow surface now includes `mdbook-docs-gate.yml`
+  - local filtered replay now includes:
+    - `PGEN_CI_WORKFLOW_LOCAL_FILTER=mdbook-docs-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - requires `mdbook` locally so the tracked export can replay the new gate honestly
+- Updated active docs:
+  - [README.md](README.md)
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+
+### Why It Matters
+- The live book is now part of the maintained repository surface rather than an optional extra.
+- Future documentation changes can be judged against a simple invariant:
+  - the book still builds
+  - the curated `docs/book/` source surface has not drifted unexpectedly
+- This keeps the book aligned with the repo’s broader proof-first culture.
+
+### Steering
+- Treat this as documentation-platform hardening, not as the end of book migration.
+- Current deliberate boundary:
+  - the gate proves the book builds and the curated source set is stable
+  - it does not yet prove deeper content freshness or chapter completeness
+- Important implementation nuances retained:
+  - `rust/scripts/mdbook_docs_gate.sh` must be executable because the Make target invokes it directly
+  - the local workflow parity gate exports only tracked files, so new workflow additions must be staged or committed before the filtered replay can see them
+
 ## 2026-04-09 - Live mdBook surface scaffolded
 ### Context
 The repository has accumulated enough user-facing, contract, reference, and operational documentation that a flat markdown map is no longer the best learning surface. The goal of this wave was not to replace the continuity docs or instantly migrate every deep doc into rendered chapters; it was to establish a real curated book product that can evolve in place and become the stable mastery path for future users and contributors.
