@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend rich assignment-target near-miss rejects retained
+### Context
+The previous `rtl_frontend` generated-contract wave retained a positive sample with a ranged member assignment target and a concatenated continuous-assignment target. The natural counterweight was strict malformed-input coverage for the concatenated target list itself.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `concatenated_assignment_target_missing_comma`
+  - `concatenated_assignment_target_trailing_comma`
+- The retained rejects cover:
+  - a missing comma between concatenated assignment-target elements:
+    - `assign {cfgs[IDX].valid cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+  - a trailing comma inside the concatenated assignment target:
+    - `assign {cfgs[IDX].valid, cfgs[0].valid,} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros confirmed:
+  - `concat_target_missing_comma.sv: rejected-as-expected`
+  - `concat_target_missing_rbrace.sv: rejected-as-expected`
+  - `concat_target_trailing_comma.sv: rejected-as-expected`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This balances the richer assignment-target positive proof with explicit over-acceptance guards.
+- It keeps the concatenated assignment-target list structure strict while RHS expression support continues to widen.
+- The live label stays `In Progress` because this is focused generated-contract hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - generated-vs-handwritten parity probes for the retained assignment-target slices,
+  - malformed ranged-member assignment target near misses,
+  - richer combinations of concatenated targets with procedural assignment contexts if future widening touches the assignment surface again.
+
 ## 2026-04-10 - rtl_frontend rich assignment-target proof retained
 ### Context
 The assignment ternary work first used simple targets like `tmp` and `y`. The next useful proof slice was richer assignment targets: ranged member targets and concatenated targets paired with ternary/concat RHS expressions.
