@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend package constant generated-contract retention
+### Context
+The generated `rtl_frontend` contract now retains file-scope and package-backed typedef visibility. The next adjacent handwritten-baseline surface was package-backed constants: package-qualified constants in parameter/range expressions, header wildcard imports that make constants visible in parameter/range expressions, and module-body named imports used by localparams and child instance actuals.
+
+### Decision
+- Retain this as generated-parser syntax proof, not as generated elaboration proof.
+- Keep the slice focused on three package-constant visibility lanes:
+  - package-qualified references such as `cfg_pkg::WIDTH`, `cfg_pkg::DEPTH`, and `data[cfg_pkg::DEPTH-1:0]`
+  - header wildcard import `module top import cfg_pkg::*; #( ... )` followed by unqualified `WIDTH` / `DEPTH` usage
+  - module-body named import `import cfg_pkg::WIDTH;` followed by unqualified `WIDTH` usage
+- Require AST evidence for:
+  - package declarations
+  - parameter/localparam declaration statements and heads
+  - import declarations on import-based lanes
+  - module instantiation, named parameter override, port connection, ranged signal reference, and scoped identifier paths
+  - additive/multiplicative expression shapes where the constants participate in expressions
+- Keep `rtl_frontend` at `In Progress`; this is generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with three retained positive samples:
+  - `package_qualified_constant_parameter_flow`
+  - `header_wildcard_imported_package_constant_flow`
+  - `module_named_imported_package_constant_flow`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Direct generated-parser probes accepted all three forms.
+- AST dumps showed the expected package declaration, parameter/localparam, import, instantiation, parameter override, port connection, ranged-reference, and scoped-identifier evidence.
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-10 - rtl_frontend file/package typedef struct contract retention
 ### Context
 After retaining local struct/enum/union typedef-backed declarations in the curated `rtl_frontend` generated contract, the next useful generated-parser parity slice was the older handwritten baseline's file-scope and package-backed named-type flow. Those surfaces matter because downstream RTL modules often define a struct typedef outside the consuming module, then use it through file-scope visibility, package qualification, wildcard imports, or explicit named imports.

@@ -496,6 +496,158 @@
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::cfg_t;\ncfg_t cfg;\nendmodule\n"
     },
     {
+      "label": "package_qualified_constant_parameter_flow",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "parameter_declaration_statement",
+        "parameter_declaration_sequence",
+        "parameter_declaration_head",
+        "kw_localparam",
+        "kw_parameter",
+        "module_declaration",
+        "port_list",
+        "module_instantiation",
+        "parameter_override",
+        "ranged_signal_reference",
+        "port_connection",
+        "scoped_identifier",
+        "multiplicative_expr",
+        "additive_expr"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "struct_type",
+        "enum_type",
+        "union_type",
+        "import_declaration"
+      ],
+      "expected_rule_texts": {
+        "parameter_declaration_head": [
+          "localparam WIDTH = 8",
+          "parameter DEPTH = WIDTH + 2",
+          "parameter W = 1",
+          "parameter LANES = cfg_pkg::WIDTH / 4",
+          "localparam TOTAL = cfg_pkg::DEPTH + LANES"
+        ],
+        "parameter_override": [
+          ".W(TOTAL)"
+        ],
+        "port_connection": [
+          ".a(data[cfg_pkg::DEPTH-1:0])",
+          ".y(y)"
+        ],
+        "ranged_signal_reference": [
+          "data[cfg_pkg::DEPTH-1:0]"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\n    parameter DEPTH = WIDTH + 2;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter LANES = cfg_pkg::WIDTH / 4\n) (\n    input logic [cfg_pkg::DEPTH-1:0] data,\n    output logic y\n);\nlocalparam TOTAL = cfg_pkg::DEPTH + LANES;\nchild #(.W(TOTAL)) u_child (.a(data[cfg_pkg::DEPTH-1:0]), .y(y));\nendmodule\n"
+    },
+    {
+      "label": "header_wildcard_imported_package_constant_flow",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "import_declaration",
+        "parameter_declaration_statement",
+        "parameter_declaration_sequence",
+        "parameter_declaration_head",
+        "kw_localparam",
+        "kw_parameter",
+        "module_declaration",
+        "port_list",
+        "module_instantiation",
+        "parameter_override",
+        "ranged_signal_reference",
+        "port_connection",
+        "scoped_identifier",
+        "multiplicative_expr",
+        "additive_expr"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "struct_type",
+        "enum_type",
+        "union_type",
+        "package_qualified_type"
+      ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import cfg_pkg::*;"
+        ],
+        "parameter_declaration_head": [
+          "localparam WIDTH = 8",
+          "localparam DEPTH = WIDTH + 1",
+          "parameter W = 1",
+          "parameter LANES = WIDTH / 4",
+          "localparam TOTAL = DEPTH + LANES"
+        ],
+        "parameter_override": [
+          ".W(TOTAL)"
+        ],
+        "port_connection": [
+          ".a(data[WIDTH-1:0])",
+          ".y(y)"
+        ],
+        "ranged_signal_reference": [
+          "data[WIDTH-1:0]"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\n    localparam DEPTH = WIDTH + 1;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top import cfg_pkg::*; #(\n    parameter LANES = WIDTH / 4\n) (\n    input logic [DEPTH-1:0] data,\n    output logic y\n);\nlocalparam TOTAL = DEPTH + LANES;\nchild #(.W(TOTAL)) u_child (.a(data[WIDTH-1:0]), .y(y));\nendmodule\n"
+    },
+    {
+      "label": "module_named_imported_package_constant_flow",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "import_declaration",
+        "parameter_declaration_statement",
+        "parameter_declaration_sequence",
+        "parameter_declaration_head",
+        "kw_localparam",
+        "kw_parameter",
+        "module_declaration",
+        "port_list",
+        "module_instantiation",
+        "parameter_override",
+        "ranged_signal_reference",
+        "port_connection",
+        "scoped_identifier",
+        "additive_expr"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "struct_type",
+        "enum_type",
+        "union_type",
+        "package_qualified_type"
+      ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import cfg_pkg::WIDTH;"
+        ],
+        "parameter_declaration_head": [
+          "localparam WIDTH = 8",
+          "parameter W = 1",
+          "localparam TOTAL = WIDTH + 1"
+        ],
+        "parameter_override": [
+          ".W(TOTAL)"
+        ],
+        "port_connection": [
+          ".a(data[WIDTH:0])",
+          ".y(y)"
+        ],
+        "ranged_signal_reference": [
+          "data[WIDTH:0]"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    localparam WIDTH = 8;\nendpackage\n\nmodule child #(\n    parameter W = 1\n) (\n    input logic [W-1:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic [8:0] data,\n    output logic y\n);\nimport cfg_pkg::WIDTH;\nlocalparam TOTAL = WIDTH + 1;\nchild #(.W(TOTAL)) u_child (.a(data[WIDTH:0]), .y(y));\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_struct_member_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,

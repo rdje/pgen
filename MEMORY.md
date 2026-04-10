@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-file-package-typedef-struct)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-package-constant-flow)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` package constant flows:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract labels added:
+    - `package_qualified_constant_parameter_flow`
+    - `header_wildcard_imported_package_constant_flow`
+    - `module_named_imported_package_constant_flow`
+  - focused generated-parser probes:
+    - `package_qualified_constants`: accepted
+    - `header_imported_package_constants`: accepted
+    - `named_imported_package_constants`: accepted
+  - AST evidence observed before retention:
+    - all three lanes carried `package_declaration`, parameter/localparam declaration rules, `module_instantiation`, `parameter_override`, `port_connection`, `ranged_signal_reference`, and `scoped_identifier`
+    - import lanes carried `import_declaration` for `import cfg_pkg::*;` and `import cfg_pkg::WIDTH;`
+    - expression paths carried additive/multiplicative evidence as appropriate for constant expressions
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is generated-parser syntax retention, not generated elaboration proof or broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation already green before this note:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - next best follow-up:
+    - run docs/diff/workflow gates and commit if clean except the pre-existing untracked `docs/tcl/`
 - Retained `rtl_frontend` file-scope and package-backed struct typedef surfaces:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
