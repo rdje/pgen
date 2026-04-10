@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: pnr-owns-eda-db)
+Last updated: 2026-04-10 (+0200, task: eda-db-outside-pgen-scope)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,7 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Clarified `eda-db` is outside PGEN scope:
+  - decision:
+    - `eda-db` is not a PGEN integration surface
+    - PGEN should not plan work around `eda-db`
+    - any `eda-db` coordination belongs outside PGEN, between downstream projects such as RTLSyn and PNR
+    - PGEN remains responsible for parser crates, concrete AST types, diagnostics, emitters, fixtures, and release contracts
+  - changed:
+    - [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - this supersedes the PGEN-side emphasis on recording `eda-db` ownership
+    - no live parser-family label changes because this is scope clarification, not implementation or proof closure
+    - validation already green:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - commit this scope clarification if clean except pre-existing untracked docs
 - Recorded PNR ownership of `eda-db`:
+  - superseded PGEN-side framing:
+    - see the current note above
+    - PGEN does not need to care about `eda-db`
+    - any `eda-db` coordination belongs outside PGEN
   - decision:
     - PNR owns `eda-db`
     - PGEN does not host `eda-db`
@@ -28,7 +53,7 @@ Use this file to resume work without replaying full chat history.
       - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
       - `git diff --check`
   - next best follow-up:
-    - commit this contract clarification if clean except pre-existing untracked docs
+    - committed as `75d0a4f Docs: record PNR eda-db ownership`
 - Captured PNR downstream parser integration contract:
   - trigger:
     - PNR created repo-local `PGEN_INTEGRATION.md`

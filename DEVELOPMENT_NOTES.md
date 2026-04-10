@@ -1,7 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - eda-db is outside PGEN scope
+### Context
+After recording an `eda-db` ownership clarification in the PNR integration notes, the user clarified the more important PGEN-side framing: PGEN does not need to care about `eda-db`; only RTLSyn needs to care about it.
+
+### Decision
+- `eda-db` is not a PGEN integration surface.
+- PGEN should not plan work around `eda-db`.
+- Any `eda-db` coordination belongs outside PGEN, between downstream projects such as RTLSyn and PNR.
+- PGEN remains responsible for parser crates, concrete AST types, diagnostics, emitters, fixtures, and release contracts.
+
+### What Was Changed
+- Updated [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md).
+- Updated:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
 ## 2026-04-10 - PNR owns eda-db
 ### Context
 After capturing PNR's inbound integration contract, the remaining cross-project ownership question for `eda-db` was resolved.
+
+Superseded PGEN-side framing: see the `eda-db is outside PGEN scope` entry above. PGEN does not need to care about `eda-db`; any `eda-db` coordination belongs outside PGEN.
 
 ### Decision
 - PNR owns `eda-db`.

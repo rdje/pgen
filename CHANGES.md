@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-04-10 - Clarify eda-db is outside PGEN scope
+### Achievement Summary
+Corrected the PGEN-side PNR integration contract so `eda-db` is treated as outside PGEN's concern, not as a PGEN-tracked ownership surface.
+
+### Scope of Changes
+- Updated [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md):
+  - `eda-db` is not a PGEN integration surface
+  - any `eda-db` coordination belongs outside PGEN, between downstream projects such as RTLSyn and PNR
+  - PGEN remains responsible for parser crates, ASTs, diagnostics, emitters, fixtures, and release contracts
+- Updated steering/continuity surfaces:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is scope clarification, not parser implementation or proof closure
+
+### Validation
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-10 - Record PNR eda-db ownership decision
 ### Achievement Summary
 Recorded the resolved cross-project ownership decision that PNR owns `eda-db`, keeping PGEN's PNR-facing contract aligned with the latest integration direction.
