@@ -216,6 +216,96 @@
       "sample": "module top #(\n    parameter DEPTH = 4\n) (\n    input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y\n);\nlogic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];\nendmodule\n"
     },
     {
+      "label": "builtin_integral_atom_typed_net_declarations",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "port_list",
+        "builtin_data_type",
+        "net_declaration",
+        "kw_byte",
+        "kw_shortint",
+        "kw_longint"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "struct_type",
+        "union_type",
+        "named_data_type",
+        "typedef_declaration"
+      ],
+      "expected_rule_texts": {
+        "net_declaration": [
+          "byte lane;",
+          "shortint offset;",
+          "longint cycles;"
+        ]
+      },
+      "sample": "module top (\n    output logic y\n);\nbyte lane;\nshortint offset;\nlongint cycles;\nendmodule\n"
+    },
+    {
+      "label": "inline_enum_logic_typed_net_declaration",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "port_list",
+        "enum_type",
+        "enum_base_type",
+        "enum_item",
+        "builtin_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "struct_type",
+        "union_type",
+        "typedef_declaration",
+        "named_data_type"
+      ],
+      "expected_rule_texts": {
+        "enum_base_type": [
+          "logic"
+        ],
+        "enum_item": [
+          "IDLE = 0",
+          "BUSY = 1"
+        ]
+      },
+      "sample": "module top (\n    output logic y\n);\nenum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state;\nendmodule\n"
+    },
+    {
+      "label": "inline_enum_byte_base_typed_net_declaration",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "port_list",
+        "enum_type",
+        "enum_base_type",
+        "enum_item",
+        "builtin_data_type",
+        "net_declaration",
+        "kw_byte"
+      ],
+      "forbidden_rule_names": [
+        "struct_type",
+        "union_type",
+        "typedef_declaration",
+        "named_data_type"
+      ],
+      "expected_rule_texts": {
+        "enum_base_type": [
+          "byte"
+        ],
+        "enum_item": [
+          "IDLE = 0",
+          "BUSY = 1"
+        ]
+      },
+      "sample": "module top (\n    output logic y\n);\nenum byte {\n    IDLE = 0,\n    BUSY = 1\n} state;\nendmodule\n"
+    },
+    {
       "label": "header_imported_enum_typedef_port",
       "expected_parse_ok": true,
       "require_ast_json": true,

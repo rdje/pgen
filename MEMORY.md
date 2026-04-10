@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-multimodule-typedef-flows)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-builtin-inline-enum-types)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` builtin and inline enum type lanes:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract labels added:
+    - `builtin_integral_atom_typed_net_declarations`
+    - `inline_enum_logic_typed_net_declaration`
+    - `inline_enum_byte_base_typed_net_declaration`
+  - focused generated-parser probes:
+    - `builtin_integral_typed_nets`: accepted
+    - `inline_enum_logic_typed_net`: accepted
+    - `inline_enum_byte_base_typed_net`: accepted
+  - AST evidence observed before retention:
+    - builtin lane carried `builtin_data_type`, `net_declaration`, `kw_byte`, `kw_shortint`, and `kw_longint` evidence
+    - inline enum lanes carried `enum_type=1`, `enum_base_type=1`, `enum_item=2`, `builtin_data_type`, and `net_declaration=1`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this retains generated syntax for reserved builtin atom keywords and inline enum base forms, not semantic width validation
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation already green before this note:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - next best follow-up:
+    - run docs/diff/workflow gates and commit if clean except the pre-existing untracked `docs/tcl/`
 - Retained `rtl_frontend` multi-module typedef flows:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -34,7 +63,7 @@ Use this file to resume work without replaying full chat history.
     - validation already green before this note:
       - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
   - next best follow-up:
-    - run docs/diff/workflow gates and commit if clean except the pre-existing untracked `docs/tcl/`
+    - committed as `da0be35 Retain rtl_frontend multimodule typedef flows`
 - Retained `rtl_frontend` header-imported struct typedef port:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

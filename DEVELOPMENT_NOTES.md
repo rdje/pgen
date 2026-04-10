@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend builtin and inline enum type retention
+### Context
+The generated `rtl_frontend` contract retained many aggregate and typedef surfaces, but it did not explicitly retain the handwritten frontend's builtin integral atom declarations or inline enum base-type forms. Those are small but important because `byte`, `shortint`, and `longint` are reserved generated-grammar keywords and enum base handling is a separate syntax lane from typedef enum reuse.
+
+### Decision
+- Retain the builtin and inline enum type lanes explicitly in the generated contract.
+- Keep the slice syntax-focused:
+  - typed nets declared as `byte lane;`, `shortint offset;`, and `longint cycles;`
+  - inline enum net with `logic [1:0]` base
+  - inline enum net with `byte` base
+- Require AST evidence for:
+  - `builtin_data_type`
+  - `kw_byte`, `kw_shortint`, and `kw_longint` where applicable
+  - `enum_type`, `enum_base_type`, and `enum_item`
+  - `net_declaration`
+- Keep `rtl_frontend` at `In Progress`; this is generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `builtin_integral_atom_typed_net_declarations`
+  - `inline_enum_logic_typed_net_declaration`
+  - `inline_enum_byte_base_typed_net_declaration`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Direct generated-parser probes accepted all three builtin/inline-enum samples.
+- AST dumps showed the expected builtin data type, enum type/base/item, net declaration, and builtin keyword evidence.
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-11 - rtl_frontend multi-module typedef flow retention
 ### Context
 The generated `rtl_frontend` contract already retained file-scope, local, package-qualified, wildcard-imported, named-imported, and header-imported struct typedef surfaces as individual slices. The handwritten baseline also proves combined multi-module flows: a file-scope typedef used by a later child module port and a later top module net, and a package typedef used through package qualification in one module plus wildcard import in another.

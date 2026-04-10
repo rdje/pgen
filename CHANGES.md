@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend builtin enum type lanes
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so builtin integral atom typed nets and inline enum base-type declarations are retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `builtin_integral_atom_typed_net_declarations`
+  - added `inline_enum_logic_typed_net_declaration`
+  - added `inline_enum_byte_base_typed_net_declaration`
+  - retained builtin `byte`, `shortint`, and `longint` net declarations
+  - retained inline enum typed nets with `logic [1:0]` and `byte` base forms
+  - required AST evidence for builtin data types, enum base types, enum items, net declarations, and the relevant builtin keyword rules
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Focused direct probes:
+  - `rust/target/debug/parseability_probe --parse rtl_frontend <builtin/inline-enum sample>`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend <builtin/inline-enum sample> <ast-json>`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend multi-module typedef flows
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so file-scope and package-backed struct typedefs are retained across multi-module flows, not only as isolated single-lane samples.
