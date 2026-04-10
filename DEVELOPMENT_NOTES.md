@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend ranged assignment-target near-miss rejects retained
+### Context
+After retaining malformed concatenated assignment-target lists, the next adjacent rich-target surface was ranged/member assignment targets such as `cfgs[IDX].data[HI:LO]`. The useful question was whether the generated path still rejects malformed select/index shapes while RHS expression support keeps widening.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `ranged_member_assignment_target_missing_range_colon`
+  - `indexed_member_assignment_target_empty_index`
+- The retained rejects cover:
+  - a missing colon inside a ranged member assignment target:
+    - `cfgs[IDX].data[HI LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+  - an empty unpacked-array index before a member/range target:
+    - `cfgs[].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros confirmed:
+  - `range_target_missing_range_colon: rejected-as-expected`
+  - `range_target_missing_select_rbracket: rejected-as-expected`
+  - `range_target_missing_member_dot: rejected-as-expected`
+  - `range_target_empty_unpacked_index: rejected-as-expected`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This keeps ranged/member assignment-target syntax strict while preserving the richer target/RHS proof slice.
+- It adds a non-list near-miss counterweight to the previous concatenated-target list rejects.
+- The live label stays `In Progress` because this is focused generated-contract hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - generated-vs-handwritten parity probes for the retained assignment-target slices,
+  - procedural assignment variants that use concatenated assignment targets if the grammar intends to support them,
+  - broader retained statement-level mixes that combine rich targets with declarations/generate contexts.
+
 ## 2026-04-10 - rtl_frontend rich assignment-target near-miss rejects retained
 ### Context
 The previous `rtl_frontend` generated-contract wave retained a positive sample with a ranged member assignment target and a concatenated continuous-assignment target. The natural counterweight was strict malformed-input coverage for the concatenated target list itself.

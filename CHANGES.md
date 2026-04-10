@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend ranged assignment-target near misses
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with two negative ranged/member assignment-target near-miss samples, balancing the retained rich target proof beyond concatenated-list punctuation alone.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `ranged_member_assignment_target_missing_range_colon`
+  - added `indexed_member_assignment_target_empty_index`
+  - locks rejection for malformed ranged/member assignment targets like:
+    - `cfgs[IDX].data[HI LO] = ...;`
+    - `cfgs[].data[HI:LO] = ...;`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract negative-proof hardening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser negative repros:
+  - `range_target_missing_range_colon: rejected-as-expected`
+  - `range_target_missing_select_rbracket: rejected-as-expected`
+  - `range_target_missing_member_dot: rejected-as-expected`
+  - `range_target_empty_unpacked_index: rejected-as-expected`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend rich assignment-target near misses
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with two negative rich assignment-target near-miss samples, balancing the retained rich assignment-target positive proof with malformed concatenated-target coverage.

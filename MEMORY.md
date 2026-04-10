@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-rich-assignment-target-near-misses)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-ranged-assignment-target-near-misses)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,30 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` ranged assignment-target near-miss reject wave:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - added retained negative samples:
+      - `ranged_member_assignment_target_missing_range_colon`
+      - `indexed_member_assignment_target_empty_index`
+    - direct malformed probes before retention all rejected as expected:
+      - ranged member assignment target missing range colon
+      - ranged member assignment target missing select right bracket
+      - indexed member assignment target missing member dot
+      - indexed member assignment target empty unpacked index
+    - this balances the retained richer assignment-target positive proof and concatenated-list rejects with member/range/index malformed-input coverage
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - commit this contract-only wave if final status is still clean except pre-existing untracked docs
 - Retained `rtl_frontend` rich assignment-target near-miss reject wave:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
