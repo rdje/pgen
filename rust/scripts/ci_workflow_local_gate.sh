@@ -182,6 +182,7 @@ audit_contract_docs_surface() {
   local -a expected_contract_docs=(
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md"
     "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md"
+    "docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md"
     "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md"
     "docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md"
@@ -431,6 +432,7 @@ audit_embedding_api_surface() {
   assert_tracked "rust/docs/EMBEDDING_API_CONTRACT.md"
   assert_tracked "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md"
   assert_tracked "docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md"
+  assert_tracked "docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md"
   assert_tracked "docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md"
   assert_tracked "docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md"
   assert_tracked "docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md"

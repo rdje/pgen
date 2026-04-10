@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend file and package typedef imports
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so file-scope and package-backed struct typedef surfaces are retained explicitly, rather than relying on the older local typedef proof alone.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `file_scope_typedef_struct_named_net`
+  - added `package_qualified_typedef_struct_port`
+  - added `package_wildcard_import_typedef_struct_named_net`
+  - added `package_named_import_typedef_struct_named_net`
+  - required AST evidence for `typedef_declaration`, `struct_type`, `struct_union_field`, `module_declaration`, `named_data_type`, `net_declaration`, `package_declaration`, `package_qualified_type`, and `import_declaration` as appropriate for each sample
+  - forbids unrelated enum/union/import/qualified-type surfaces where they would mask the intended proof lane
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - added the already-tracked PNR parser integration contract to the contract-docs allowlist and tracked-contract audit so the filtered local workflow gate does not keep reporting stale docs-governance drift
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Initial filtered workflow replay found stale contract-docs allowlist drift for [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md), which this slice now repairs.
+- Focused direct probes:
+  - `rust/target/debug/parseability_probe --parse rtl_frontend <file-scope/package typedef sample>`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend <file-scope/package typedef sample> <ast-json>`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-10 - Add PNR parser source-authority matrix
 ### Achievement Summary
 Captured the source-authority rule for future PNR parser EBNF work so PGEN does not accidentally build LEF/DEF/Liberty/SDC/SPEF grammars from tutorials, mirrored PDFs, or open-source parser behavior alone. Verilog/SystemVerilog is explicitly called out as already covered by PGEN's existing IEEE-derived local EBNF/workspace surface.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: pnr-parser-source-authority)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-file-package-typedef-struct)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` file-scope and package-backed struct typedef surfaces:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+  - generated-contract labels added:
+    - `file_scope_typedef_struct_named_net`
+    - `package_qualified_typedef_struct_port`
+    - `package_wildcard_import_typedef_struct_named_net`
+    - `package_named_import_typedef_struct_named_net`
+  - focused generated-parser probes:
+    - `file_scope_typedef_named_net`: accepted
+    - `package_named_typedef_named_net`: accepted
+    - `package_qualified_typedef_port`: accepted
+    - `package_wildcard_typedef_named_net`: accepted
+  - AST evidence observed before retention:
+    - file-scope lane carried `struct_union_field`, `struct_type`, `typedef_declaration`, `port_list`, `named_data_type`, `net_declaration`, and `module_declaration`
+    - package named-import lane carried `struct_union_field`, `struct_type`, `typedef_declaration`, `package_declaration`, `port_list`, `import_declaration`, `named_data_type`, `net_declaration`, and `module_declaration`
+    - package-qualified port lane carried `struct_union_field`, `struct_type`, `typedef_declaration`, `package_declaration`, `port_list`, `package_qualified_type`, and `module_declaration`
+    - package wildcard-import lane carried `struct_union_field`, `struct_type`, `typedef_declaration`, `package_declaration`, `port_list`, `import_declaration`, `named_data_type`, `net_declaration`, and `module_declaration`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - the first filtered workflow replay failed on stale contract-docs allowlist drift for the already-tracked PNR parser integration contract; `rust/scripts/ci_workflow_local_gate.sh` now includes that path in the expected contract-docs surface and tracked-contract audit
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation already green before this note:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - next best follow-up:
+    - run docs/diff/workflow gates and commit if clean except the pre-existing untracked `docs/tcl/`
 - Captured PNR parser EBNF source-authority rule:
   - decision:
     - do not craft PNR parser EBNF from tutorials, blog posts, random mirrored PDFs, or open-source parser behavior alone
@@ -43,7 +77,7 @@ Use this file to resume work without replaying full chat history.
       - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
       - `git diff --check`
   - next best follow-up:
-    - commit this source-authority capture if clean except pre-existing untracked docs
+    - committed as `b488769 Docs: add PNR parser source authority matrix`
 - Clarified `eda-db` is outside PGEN scope:
   - decision:
     - `eda-db` is not a PGEN integration surface

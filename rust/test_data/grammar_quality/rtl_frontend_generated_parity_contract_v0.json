@@ -372,6 +372,130 @@
       "sample": "module top (\n    output logic y\n);\ntypedef enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state_t;\nstate_t state;\nendmodule\n"
     },
     {
+      "label": "file_scope_typedef_struct_named_net",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "module_declaration",
+        "named_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "union_type",
+        "import_declaration"
+      ],
+      "expected_rule_texts": {
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\n\nmodule top (\n    output logic y\n);\ncfg_t cfg;\nendmodule\n"
+    },
+    {
+      "label": "package_qualified_typedef_struct_port",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "package_qualified_type",
+        "module_declaration",
+        "port_list"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "union_type",
+        "import_declaration",
+        "net_declaration"
+      ],
+      "expected_rule_texts": {
+        "package_qualified_type": [
+          "cfg_pkg::cfg_t"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    input cfg_pkg::cfg_t cfg,\n    output logic y\n);\nendmodule\n"
+    },
+    {
+      "label": "package_wildcard_import_typedef_struct_named_net",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "import_declaration",
+        "module_declaration",
+        "named_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "union_type",
+        "package_qualified_type"
+      ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import cfg_pkg::*;"
+        ],
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nendmodule\n"
+    },
+    {
+      "label": "package_named_import_typedef_struct_named_net",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "import_declaration",
+        "module_declaration",
+        "named_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "union_type",
+        "package_qualified_type"
+      ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import cfg_pkg::cfg_t;"
+        ],
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::cfg_t;\ncfg_t cfg;\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_struct_member_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,

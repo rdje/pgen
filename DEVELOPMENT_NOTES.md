@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend file/package typedef struct contract retention
+### Context
+After retaining local struct/enum/union typedef-backed declarations in the curated `rtl_frontend` generated contract, the next useful generated-parser parity slice was the older handwritten baseline's file-scope and package-backed named-type flow. Those surfaces matter because downstream RTL modules often define a struct typedef outside the consuming module, then use it through file-scope visibility, package qualification, wildcard imports, or explicit named imports.
+
+### Decision
+- Retain this as generated-parser contract proof, not just handwritten-crate behavior.
+- Keep the slice intentionally narrow:
+  - file-scope `typedef struct packed { ... } cfg_t;` followed by `cfg_t cfg;`
+  - package-qualified ANSI port type `cfg_pkg::cfg_t`
+  - module-body wildcard import `import cfg_pkg::*;` followed by `cfg_t cfg;`
+  - module-body named import `import cfg_pkg::cfg_t;` followed by `cfg_t cfg;`
+- Require concrete AST rule evidence for the intended path:
+  - `typedef_declaration`
+  - `struct_type`
+  - `struct_union_field`
+  - `package_declaration` where package scope is involved
+  - `package_qualified_type` for the qualified port path
+  - `import_declaration` for wildcard/named import paths
+  - `named_data_type` and `net_declaration` for declaration reuse paths
+- Keep `rtl_frontend` at `In Progress`; this proves a retained generated-contract slice, not broad handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with four retained positive samples:
+  - `file_scope_typedef_struct_named_net`
+  - `package_qualified_typedef_struct_port`
+  - `package_wildcard_import_typedef_struct_named_net`
+  - `package_named_import_typedef_struct_named_net`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh) after the filtered workflow replay surfaced stale contract-docs allowlist drift for the already-tracked PNR parser integration contract.
+
+### Validation
+- Direct generated-parser probes accepted all four forms.
+- AST dumps showed the expected typedef, struct, package/import, qualified-type, named-type, and net-declaration rule evidence.
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-10 - PNR parser EBNF source authority
 ### Context
 The PNR parser backlog is captured, but the user correctly called out the real blocker: before creating EBNF files for LEF, DEF, Liberty, SDC, or SPEF, PGEN needs authoritative grammar sources. Verilog/SystemVerilog is different because PGEN already has the IEEE-derived EBNF/workspace surface.
