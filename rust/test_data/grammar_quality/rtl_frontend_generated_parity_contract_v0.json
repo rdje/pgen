@@ -241,6 +241,33 @@
       "sample": "package state_pkg;\n    typedef enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    } state_t;\nendpackage\n\nmodule top import state_pkg::state_t; (\n    input state_t state,\n    output logic y\n);\nendmodule\n"
     },
     {
+      "label": "header_imported_union_typedef_port",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "union_type",
+        "struct_union_field",
+        "import_declaration",
+        "module_declaration"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "struct_type"
+      ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import payload_pkg::payload_t;"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic [7:0] tag;"
+        ]
+      },
+      "sample": "package payload_pkg;\n    typedef union packed {\n        logic [7:0] data;\n        logic [7:0] tag;\n    } payload_t;\nendpackage\n\nmodule top import payload_pkg::payload_t; (\n    input payload_t payload,\n    output logic y\n);\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_struct_member_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,

@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend header union import
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with a legal header-imported union typedef port sample, matching an important handwritten-baseline type/import surface without carrying over the handwritten test's looser reserved-keyword field spelling.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `header_imported_union_typedef_port`
+  - locks:
+    - package-local `typedef union packed`
+    - two `struct_union_field` entries inside the union
+    - module-header `import payload_pkg::payload_t;`
+    - ANSI port using imported `payload_t`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser probes:
+  - `header_imported_union_payload_t: ACCEPTED`
+  - `header_imported_union_payload_t_keyword_field: REJECTED`
+- Direct AST dump:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-union-import.T980vu/header_imported_union_payload_t.sv /tmp/pgen-rtl-header-union.ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-10 - Retain rtl_frontend always star and latch range near misses
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with lane-local malformed ranged/member assignment-target rejects for the plain `always @(*)` and `always_latch` proof lanes.

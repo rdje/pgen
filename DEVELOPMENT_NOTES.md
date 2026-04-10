@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend header-imported union typedef proof retained
+### Context
+After saturating the non-`always_ff` procedural target near-miss lane, the next better `rtl_frontend` gap was type/import parity. The handwritten baseline has a header-imported union typedef port-list test, while the generated contract only retained the analogous header-imported enum typedef port.
+
+### What Was Changed
+- Added `header_imported_union_typedef_port` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - `package payload_pkg;`
+  - `typedef union packed { ... } payload_t;`
+  - `import payload_pkg::payload_t;` in the module header
+  - `input payload_t payload`
+- The retained sample uses legal non-keyword union field names:
+  - `data`
+  - `tag`
+- The handwritten baseline's older `byte` field spelling was intentionally not retained because `byte` is a reserved generated-grammar keyword.
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser probes:
+  - `header_imported_union_payload_t: ACCEPTED`
+  - `header_imported_union_payload_t_keyword_field: REJECTED`
+- Direct AST dump:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-union-import.T980vu/header_imported_union_payload_t.sv /tmp/pgen-rtl-header-union.ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
+### Why It Matters
+- This closes an obvious generated-contract hole next to the already-retained header-imported enum typedef sample.
+- It makes `union_type` explicit in the curated generated proof surface rather than relying on prose in README/book coverage.
+- The live label stays `In Progress` because this is focused generated-contract proof widening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - local module typedef union named-use samples if generated syntax coverage is not already explicit enough,
+  - package wildcard/named import samples for union-backed declarations,
+  - broader closure accounting once the type/import slices are represented.
+
 ## 2026-04-10 - rtl_frontend always-star and always-latch ranged near-miss rejects retained
 ### Context
 After retaining lane-local concatenated-target rejects for plain `always @(*)` and `always_latch`, the symmetric malformed-target slice was ranged/member syntax under those same block forms. The generated contract already had generic procedural and continuous ranged/member rejects, but not exact proof for the newly retained non-`always_ff` procedural lanes.

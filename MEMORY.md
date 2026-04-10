@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-always-star-latch-range-near-misses)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-header-union-import)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained generated `rtl_frontend` header-imported union typedef port proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - direct generated-parser probes:
+      - `header_imported_union_payload_t: ACCEPTED`
+      - `header_imported_union_payload_t_keyword_field: REJECTED`
+    - added retained positive sample:
+      - `header_imported_union_typedef_port`
+    - retained sample locks:
+      - `package payload_pkg;`
+      - `typedef union packed { ... } payload_t;`
+      - module-header `import payload_pkg::payload_t;`
+      - ANSI port using imported `payload_t`
+    - intentionally used legal non-keyword union field names `data` and `tag`; did not retain the handwritten test's `byte` field spelling because `byte` is a reserved generated-grammar keyword
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validation already green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - next best follow-up:
+    - run filtered local workflow / mdBook / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
 - Retained generated `rtl_frontend` plain-`always @(*)` and `always_latch` ranged/member near-miss rejects:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -31,8 +58,8 @@ Use this file to resume work without replaying full chat history.
     - this complements the lane-local concatenated-target rejects for the newly retained non-`always_ff` procedural lanes
     - `rtl_frontend` live label remains:
       - `In Progress`
-  - next best follow-up:
-    - run retained contract / workflow / book / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
+  - committed as:
+    - `aeb2e48 Retain rtl_frontend always star and latch range near misses`
 - Retained generated `rtl_frontend` plain-`always @(*)` and `always_latch` concatenated-target near-miss rejects:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
