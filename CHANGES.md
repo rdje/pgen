@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend local union declarations
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with local union declaration coverage: an inline `union packed` net declaration and a module-local `typedef union packed` followed by a named-type net declaration.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `inline_union_typed_net_declaration`
+  - added `typedef_union_named_net_declaration`
+  - locks `union_type` and `struct_union_field` coverage for:
+    - inline typed net declaration
+    - typedef-backed named net declaration
+  - locks `named_data_type` coverage for `payload_t`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser probes:
+  - `inline_union_net: ACCEPTED`
+  - `typedef_union_named_net: ACCEPTED`
+- Direct AST dumps:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-union.Ff2A8b/inline_union_net.sv /tmp/pgen-rtl-inline-union.ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-union.Ff2A8b/typedef_union_named_net.sv /tmp/pgen-rtl-typedef-union.ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-10 - Retain rtl_frontend header union import
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with a legal header-imported union typedef port sample, matching an important handwritten-baseline type/import surface without carrying over the handwritten test's looser reserved-keyword field spelling.

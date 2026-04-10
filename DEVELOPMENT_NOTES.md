@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend local union declarations retained
+### Context
+After retaining the header-imported union typedef port-list sample, the next nearby type/import gap was local union syntax. The handwritten baseline covers both inline union typed nets and module-local typedef-union named uses; the generated contract did not yet make those surfaces explicit.
+
+### What Was Changed
+- Added generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `inline_union_typed_net_declaration`
+  - `typedef_union_named_net_declaration`
+- The retained samples cover:
+  - inline `union packed { ... } payload;`
+  - module-local `typedef union packed { ... } payload_t;`
+  - named net declaration `payload_t payload;`
+- The retained samples use legal non-keyword union field names:
+  - `data`
+  - `tag`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser probes:
+  - `inline_union_net: ACCEPTED`
+  - `typedef_union_named_net: ACCEPTED`
+- Direct AST dumps:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-union.Ff2A8b/inline_union_net.sv /tmp/pgen-rtl-inline-union.ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-union.Ff2A8b/typedef_union_named_net.sv /tmp/pgen-rtl-typedef-union.ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
+### Why It Matters
+- This turns union coverage from “only header-imported union typedefs are retained” into local union declaration proof too.
+- It covers both inline aggregate data type syntax and named-data-type reuse after a typedef.
+- The live label stays `In Progress` because this is focused generated-contract proof widening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - package wildcard/named import union-backed declarations,
+  - local typedef enum/struct named-use gaps if they are not already explicit in the generated contract,
+  - broader generated-vs-handwritten parity accounting to reduce reliance on hand-picked samples.
+
 ## 2026-04-10 - rtl_frontend header-imported union typedef proof retained
 ### Context
 After saturating the non-`always_ff` procedural target near-miss lane, the next better `rtl_frontend` gap was type/import parity. The handwritten baseline has a header-imported union typedef port-list test, while the generated contract only retained the analogous header-imported enum typedef port.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-header-union-import)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-local-union-decls)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained generated `rtl_frontend` local union declaration proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - direct generated-parser probes:
+      - `inline_union_net: ACCEPTED`
+      - `typedef_union_named_net: ACCEPTED`
+    - added retained positive samples:
+      - `inline_union_typed_net_declaration`
+      - `typedef_union_named_net_declaration`
+    - retained samples lock:
+      - inline `union packed { ... } payload;`
+      - module-local `typedef union packed { ... } payload_t;`
+      - named net declaration `payload_t payload;`
+    - the retained samples use legal non-keyword union field names `data` and `tag`
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validation already green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - next best follow-up:
+    - run filtered local workflow / mdBook / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
 - Retained generated `rtl_frontend` header-imported union typedef port proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -33,8 +60,8 @@ Use this file to resume work without replaying full chat history.
       - `In Progress`
     - retained validation already green:
       - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
-  - next best follow-up:
-    - run filtered local workflow / mdBook / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
+  - committed as:
+    - `44d063d Retain rtl_frontend header union import`
 - Retained generated `rtl_frontend` plain-`always @(*)` and `always_latch` ranged/member near-miss rejects:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
