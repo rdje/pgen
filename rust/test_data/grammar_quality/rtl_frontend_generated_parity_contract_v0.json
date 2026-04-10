@@ -145,6 +145,30 @@
       "sample": "module top (\n    input logic clk,\n    input logic d,\n    output logic q\n);\nalways_latch @(posedge clk) begin\n    q <= d;\nend\nendmodule\n"
     },
     {
+      "label": "always_star_concatenated_assignment_target_missing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic a,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways @(*) begin\n    if (SEL)\n        {cfgs[IDX].valid cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\n    else\n        cfgs[IDX].valid = a;\nend\nassign y = cfgs[IDX].valid;\nendmodule\n"
+    },
+    {
+      "label": "always_star_concatenated_assignment_target_trailing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic a,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways @(*) begin\n    if (SEL)\n        {cfgs[IDX].valid, cfgs[0].valid,} = {cfgs[IDX].data[BIT], d[0]};\n    else\n        cfgs[IDX].valid = a;\nend\nassign y = cfgs[IDX].valid;\nendmodule\n"
+    },
+    {
+      "label": "always_latch_concatenated_assignment_target_missing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic en,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_latch begin\n    if (en)\n        {cfgs[IDX].valid cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\nend\nassign y = cfgs[0].valid;\nendmodule\n"
+    },
+    {
+      "label": "always_latch_concatenated_assignment_target_trailing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic en,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_latch begin\n    if (en)\n        {cfgs[IDX].valid, cfgs[0].valid,} = {cfgs[IDX].data[BIT], d[0]};\nend\nassign y = cfgs[0].valid;\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_ports_and_nets",
       "expected_parse_ok": true,
       "require_ast_json": true,

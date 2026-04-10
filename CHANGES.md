@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend always star and latch near misses
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with lane-local malformed concatenated assignment-target rejects for the plain `always @(*)` and `always_latch` proof lanes.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_star_concatenated_assignment_target_missing_comma`
+  - added `always_star_concatenated_assignment_target_trailing_comma`
+  - added `always_latch_concatenated_assignment_target_missing_comma`
+  - added `always_latch_concatenated_assignment_target_trailing_comma`
+  - locks rejection for malformed concatenated assignment targets inside:
+    - `always @(*)`
+    - `always_latch`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract negative-proof hardening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser negative repros:
+  - `always_star_missing_comma: rejected-as-expected`
+  - `always_star_trailing_comma: rejected-as-expected`
+  - `always_latch_missing_comma: rejected-as-expected`
+  - `always_latch_trailing_comma: rejected-as-expected`
+
 ## 2026-04-10 - Retain rtl_frontend always star and latch lanes
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with retained rich procedural samples for the plain `always @(*)` and `always_latch` lanes, plus a nearby reject proving `always_latch` does not silently accept an event control.

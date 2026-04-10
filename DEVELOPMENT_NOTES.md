@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend always-star and always-latch near-miss rejects retained
+### Context
+The generated contract now has rich positive samples for both plain `always @(*)` and `always_latch`, plus an `always_latch` event-control reject. The next useful small proof step was to add lane-local malformed concatenated assignment-target rejects instead of relying on the older `always_comb` malformed-target samples to imply coverage.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `always_star_concatenated_assignment_target_missing_comma`
+  - `always_star_concatenated_assignment_target_trailing_comma`
+  - `always_latch_concatenated_assignment_target_missing_comma`
+  - `always_latch_concatenated_assignment_target_trailing_comma`
+- The retained rejects cover:
+  - `{cfgs[IDX].valid cfgs[0].valid} = ...` inside `always @(*)`
+  - `{cfgs[IDX].valid, cfgs[0].valid,} = ...` inside `always @(*)`
+  - `{cfgs[IDX].valid cfgs[0].valid} = ...` inside `always_latch`
+  - `{cfgs[IDX].valid, cfgs[0].valid,} = ...` inside `always_latch`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros:
+  - `always_star_missing_comma: rejected-as-expected`
+  - `always_star_trailing_comma: rejected-as-expected`
+  - `always_latch_missing_comma: rejected-as-expected`
+  - `always_latch_trailing_comma: rejected-as-expected`
+
+### Why It Matters
+- This gives the newly retained non-`always_ff` procedural lanes their own malformed-target proof instead of leaving them covered only by a related `always_comb` lane.
+- It keeps strict concatenated assignment-target punctuation visible under the exact procedural block forms now tracked for the generated parser.
+- The live label stays `In Progress` because this is focused generated-contract negative-proof hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - richer `always_latch` ranged/member malformed-target rejects if exact lane-local range coverage is needed,
+  - plain `always @(*)` ranged/member malformed-target rejects for symmetry,
+  - generated-vs-handwritten parity probes for remaining module/package/type surfaces.
+
 ## 2026-04-10 - rtl_frontend always-star and always-latch generated contract lanes retained
 ### Context
 After repairing the `always_ff` blocking-assignment policy, the next nearby procedural-lane gap was not another grammar rewrite. The generated grammar already supports the handwritten baseline's plain `always @(*)` and `always_latch` lanes, but the curated generated contract did not explicitly retain rich assignment-target coverage for them.
