@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-local-typedef-struct-enum)
+Last updated: 2026-04-10 (+0200, task: pnr-integration-contract-capture)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,38 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Captured PNR downstream parser integration contract:
+  - trigger:
+    - PNR created repo-local `PGEN_INTEGRATION.md`
+    - PNR also created repo-local `RTLSYN_INTEGRATION.md`, which names PGEN as shared parser source of truth across NexSim, RTLSyn, and PNR
+  - changed:
+    - [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/book/src/contracts-and-support.md](docs/book/src/contracts-and-support.md)
+    - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+    - [README.md](README.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - PNR's requested PGEN parser-family backlog:
+      - LEF
+      - Liberty
+      - DEF
+      - Verilog structural netlist
+      - SDC
+      - SPEF
+    - PNR's preferred first milestone:
+      - LEF with deterministic concrete ASTs, structured errors, sky130 acceptance fixtures, and a tagged submodule-consumable release
+    - the PNR-side `PGEN_INTEGRATION.md` remains the downstream source of truth; the PGEN doc is a mirror/steering addendum
+    - no live parser-family label changes because this is downstream-demand capture, not implementation or proof closure
+    - validation already green:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - commit this docs-contract capture if clean except pre-existing untracked docs
 - Retained generated `rtl_frontend` local typedef-backed struct and enum named-use proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -38,7 +70,7 @@ Use this file to resume work without replaying full chat history.
       - `git diff --check`
       - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - next best follow-up:
-    - commit this contract-doc wave if still clean except pre-existing untracked docs
+    - committed as `80e5094 Retain rtl_frontend local typedef declarations`
 - Retained generated `rtl_frontend` local union declaration proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

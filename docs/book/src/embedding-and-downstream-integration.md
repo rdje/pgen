@@ -47,6 +47,8 @@ PGEN treats downstream parser support as a maintained surface:
 
 That model is especially visible in the regex parser track because RGX actively consumes it.
 
+PNR now also has a PGEN-side downstream contract addendum. It captures PNR's inbound request for future LEF, DEF, Liberty, SDC, structural Verilog netlist, and SPEF parser crates, while explicitly marking those parser-family releases as pending rather than shipped.
+
 ## Primary Source Docs
 
 - `rust/docs/EMBEDDING_API_CONTRACT.md`
@@ -54,3 +56,4 @@ That model is especially visible in the regex parser track because RGX actively 
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+- `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`

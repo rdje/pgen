@@ -27,6 +27,10 @@ They define:
 - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 
+### Downstream-specific contract addenda
+
+- `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
+
 ### Support and issue workflow
 
 - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`

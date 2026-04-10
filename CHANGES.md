@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-10 - Capture PNR downstream parser integration contract
+### Achievement Summary
+Captured PNR's 2026-04-10 inbound PGEN integration request as a PGEN-side downstream contract addendum, without claiming any new parser-family release readiness.
+
+### Scope of Changes
+- Added [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md):
+  - records PNR's requested parser-family backlog:
+    - LEF
+    - Liberty
+    - DEF
+    - Verilog structural netlist
+    - SDC
+    - SPEF
+  - records PNR's first preferred milestone:
+    - LEF with deterministic concrete ASTs, structured errors, sky130 acceptance fixtures, and tagged submodule-consumable release shape
+  - records the RTLSYN coordination note that PGEN is the shared parser source of truth across NexSim, RTLSyn, and PNR
+- Updated downstream-doc indexes:
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/book/src/contracts-and-support.md](docs/book/src/contracts-and-support.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+- Updated project steering surfaces:
+  - [README.md](README.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is downstream-demand capture, not parser implementation or proof closure
+
+### Validation
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-10 - Retain rtl_frontend local typedef named declarations
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with local typedef-backed struct and enum named net declarations, completing the immediate sibling set around the previously retained local union samples.

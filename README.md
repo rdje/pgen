@@ -29,6 +29,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Primary near-term integration targets:
   - **Nexsim** (SystemVerilog + VHDL parsing)
   - **RGX** (regex parsing)
+  - **PNR** (staged LEF / Liberty / DEF / Verilog structural netlist / SDC / SPEF parser-family demand captured as a downstream contract)
 
 ## Canonical Flow
 - `grammars/foolang.ebnf -> raw_ast/json -> generated/foolang_parser.rs`
@@ -174,6 +175,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
   - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
   - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
   - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
   - `LIVE_ACHIEVEMENT_STATUS.md`
   - `docs/reference/RUST_CODEBASE_ANALYSIS.md`
@@ -199,7 +201,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 - Core contracts and roadmaps:
   - `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md`, `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md`, `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`, `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
 - Downstream parser integration contracts:
-  - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
+  - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`, `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`, `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`
 - Regex corpus acquisition and hardening:
   - `regex_corpus_bundle/README.md`, `regex_corpus_bundle/docs/regex_corpus_plan.md`, `regex_corpus_bundle/corpus/pcre2/invalid/README.md`, `regex_corpus_bundle/corpus/pcre2/quarantine/README.md`, `regex_corpus_bundle/oracle/pcre2/README.md`
 - Operational continuity:

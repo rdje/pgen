@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-09
+Last updated: 2026-04-10
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -708,6 +708,23 @@ Externally validated near-term delivery order:
 Interpretation:
 - this ordering is not RTLSyn-specific roadmap capture; it is the current best validated demand signal for downstream synthesis-facing consumers in general,
 - it should inform prioritization once current parser-family closure work for `systemverilog` and `vhdl` permits, while preserving the newly closed `regex` family proof baseline.
+
+PNR downstream parser-demand addendum (2026-04-10):
+- PNR authored a dedicated inbound `PGEN_INTEGRATION.md` contract and a sibling `RTLSYN_INTEGRATION.md` note.
+- The PGEN-side mirror is now `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md`.
+- PNR's requested parser-family backlog is:
+  - LEF,
+  - Liberty,
+  - DEF,
+  - Verilog structural netlist,
+  - SDC,
+  - SPEF.
+- The first minimum viable PNR-facing milestone should be LEF with structured errors, deterministic concrete AST types, sky130 acceptance fixtures, and a tagged submodule-consumable release.
+- This extends the existing RTLSyn-oriented Phase S signal rather than replacing it:
+  - Liberty is now jointly demanded by RTLSyn and PNR,
+  - SDC remains a shared timing-constraint need,
+  - DEF and SPEF are explicit PNR-driven signoff/file-format families,
+  - Verilog structural netlist parsing must be tracked separately from the richer `rtl_frontend` elaboration boundary.
 
 - the harness should be shared across EBNF-backed families, with per-family adapters only for:
   - input preparation,

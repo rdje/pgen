@@ -1,4 +1,46 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - PNR downstream parser integration contract captured
+### Context
+PNR produced two integration notes:
+- `PGEN_INTEGRATION.md`
+- `RTLSYN_INTEGRATION.md`
+
+The first is directly addressed to PGEN. The second is addressed to RTLSyn but names PGEN as the shared parser source of truth across NexSim, RTLSyn, and PNR.
+
+### What Was Changed
+- Added [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md).
+- Updated:
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/book/src/contracts-and-support.md](docs/book/src/contracts-and-support.md)
+  - [docs/book/src/embedding-and-downstream-integration.md](docs/book/src/embedding-and-downstream-integration.md)
+  - [README.md](README.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Why It Matters
+- PNR now has a PGEN-visible downstream contract surface instead of relying on chat context or a sibling-repo-only document.
+- The captured PNR demand queue is:
+  - LEF
+  - Liberty
+  - DEF
+  - Verilog structural netlist
+  - SDC
+  - SPEF
+- This extends the existing RTLSyn parser-stack signal:
+  - Liberty and SDC are shared RTLSyn/PNR demands,
+  - DEF and SPEF are explicit PNR signoff/file-format demands,
+  - Verilog structural netlist parsing is distinct from `rtl_frontend` elaboration work.
+- The status tracker intentionally does not promote any parser-family label because no new parser implementation or proof gate landed.
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
+### Steering
+- Treat LEF as the first PNR-specific parser-family candidate once current closure sequencing permits.
+- Do not advertise PNR readiness until the relevant family has a concrete API, fixtures, and gates.
+- Re-read PNR's repo-local `PGEN_INTEGRATION.md` before implementing a PNR-facing parser release because that file is the downstream source of truth.
+
 ## 2026-04-10 - rtl_frontend local typedef-backed struct and enum declarations retained
 ### Context
 After retaining local union declarations, the generated contract still lacked the two neighboring handwritten-baseline local typedef named-use surfaces: `typedef struct ... cfg_t; cfg_t cfg;` and `typedef enum ... state_t; state_t state;`.

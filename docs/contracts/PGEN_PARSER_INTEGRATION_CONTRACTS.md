@@ -33,6 +33,12 @@ Issue-reporting protocol for any integrated parser:
 | `return_annotation` | `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` annotation parse API | Family-specific contract layered on top of the aggregate annotation proof spine. |
 | `semantic_annotation` | `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` | `pgen::embedding_api` annotation parse API | Family-specific contract layered on top of the aggregate annotation proof spine. |
 
+## Downstream Project Contract Documents
+
+| Downstream | Contract | Status | Notes |
+|---|---|---|---|
+| `PNR` | `docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md` | Demand captured; parser-family releases pending | Captures PNR's 2026-04-10 inbound request for LEF, DEF, Liberty, SDC, Verilog structural netlist, and SPEF parser crates plus API/release expectations. |
+
 ## Required Shape For Each Family Document
 - `Purpose`
 - `Contract Identity`
