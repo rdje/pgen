@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - PNR owns eda-db
+### Context
+After capturing PNR's inbound integration contract, the remaining cross-project ownership question for `eda-db` was resolved.
+
+### Decision
+- PNR owns `eda-db`.
+- PGEN does not host `eda-db`.
+- PGEN must not depend on PNR's `pnr-db` or `eda-db` crates.
+- PGEN remains responsible for parser crates, concrete AST types, diagnostics, emitters, fixtures, and release contracts.
+- PNR remains responsible for bridging PGEN ASTs into PNR's canonical IR.
+
+### What Was Changed
+- Updated [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md).
+- Updated:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
 ## 2026-04-10 - PNR downstream parser integration contract captured
 ### Context
 PNR produced two integration notes:

@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-04-10 - Record PNR eda-db ownership decision
+### Achievement Summary
+Recorded the resolved cross-project ownership decision that PNR owns `eda-db`, keeping PGEN's PNR-facing contract aligned with the latest integration direction.
+
+### Scope of Changes
+- Updated [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md):
+  - PNR owns `eda-db`
+  - PGEN owns parser crates and AST types
+  - PNR owns the bridge from PGEN ASTs into PNR's canonical IR
+  - PGEN must not host or depend on PNR's `pnr-db` or `eda-db` crates
+- Updated steering/continuity surfaces:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is cross-project ownership clarification, not parser implementation or proof closure
+
+### Validation
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-10 - Capture PNR downstream parser integration contract
 ### Achievement Summary
 Captured PNR's 2026-04-10 inbound PGEN integration request as a PGEN-side downstream contract addendum, without claiming any new parser-family release readiness.

@@ -725,6 +725,9 @@ PNR downstream parser-demand addendum (2026-04-10):
   - SDC remains a shared timing-constraint need,
   - DEF and SPEF are explicit PNR-driven signoff/file-format families,
   - Verilog structural netlist parsing must be tracked separately from the richer `rtl_frontend` elaboration boundary.
+- Cross-project ownership update (2026-04-10):
+  - PNR owns `eda-db`.
+  - PGEN should not host or depend on `eda-db`; PGEN's responsibility stays on parser crates, ASTs, diagnostics, emitters, fixtures, and release contracts.
 
 - the harness should be shared across EBNF-backed families, with per-family adapters only for:
   - input preparation,

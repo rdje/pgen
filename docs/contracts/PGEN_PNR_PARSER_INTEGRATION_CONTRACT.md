@@ -89,6 +89,7 @@ PNR consumes PGEN through a pinned git submodule, not by copying parser code int
 - PNR does not pin to a mutable branch.
 - PGEN owns parser crates and AST types.
 - PNR owns the bridge from PGEN ASTs into PNR's canonical IR.
+- PNR owns `eda-db`.
 - PGEN must not depend on PNR's `pnr-db` or `eda-db` crates.
 
 PNR strongly prefers committed generated Rust parser source over requiring PNR to run PGEN at build time.
@@ -116,7 +117,7 @@ The RTLSYN-facing document adds these PGEN-relevant constraints:
 - RTLSyn and PNR should consume the same PGEN-generated parser crates.
 - PGEN's Verilog/SystemVerilog parser must accept the long-term PGEN-era structural netlist target documented by PNR.
 - Before PGEN cutover, RTLSyn may target PNR's strict hand-written scaffold subset, but that scaffold is not PGEN's final bar.
-- RTLSyn has an open coordination question about whether a future shared `eda-db` should live in PGEN or elsewhere. PGEN has not accepted an ownership decision in this document.
+- The `eda-db` ownership question is now resolved: PNR owns `eda-db`. PGEN should not host or depend on it.
 
 ## Scope / Non-Goals
 PGEN does not own:
@@ -133,4 +134,5 @@ PGEN's job is to deliver faithful, deterministic parser and emitter surfaces wit
 - Keep Liberty high in the synthesis/signoff parser backlog because both PNR and RTLSyn need it.
 - Add DEF and SPEF as explicit PNR-driven future parser families, not vague "EDA someday" work.
 - Treat Verilog structural netlist parsing as a downstream PNR/RTLSyn handoff concern, distinct from the richer `rtl_frontend` elaboration boundary.
+- Keep `eda-db` out of PGEN's crate ownership model; PGEN remains responsible for parsers, ASTs, diagnostics, emitters, fixtures, and release contracts.
 - Before advertising any PNR-ready release, create family-specific contract documents and gates in the same style as the existing parser-family integration contracts.

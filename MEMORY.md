@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: pnr-integration-contract-capture)
+Last updated: 2026-04-10 (+0200, task: pnr-owns-eda-db)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,27 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Recorded PNR ownership of `eda-db`:
+  - decision:
+    - PNR owns `eda-db`
+    - PGEN does not host `eda-db`
+    - PGEN must not depend on PNR's `pnr-db` or `eda-db` crates
+    - PGEN remains responsible for parser crates, ASTs, diagnostics, emitters, fixtures, and release contracts
+    - PNR remains responsible for bridging PGEN ASTs into PNR's canonical IR
+  - changed:
+    - [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - no live parser-family label changes because this is cross-project ownership clarification, not implementation or proof closure
+    - validation already green:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - commit this contract clarification if clean except pre-existing untracked docs
 - Captured PNR downstream parser integration contract:
   - trigger:
     - PNR created repo-local `PGEN_INTEGRATION.md`
@@ -39,7 +60,7 @@ Use this file to resume work without replaying full chat history.
       - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
       - `git diff --check`
   - next best follow-up:
-    - commit this docs-contract capture if clean except pre-existing untracked docs
+    - committed as `fc4034b Docs: capture PNR parser integration contract`
 - Retained generated `rtl_frontend` local typedef-backed struct and enum named-use proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
