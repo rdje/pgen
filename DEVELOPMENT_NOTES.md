@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend multi-module typedef flow retention
+### Context
+The generated `rtl_frontend` contract already retained file-scope, local, package-qualified, wildcard-imported, named-imported, and header-imported struct typedef surfaces as individual slices. The handwritten baseline also proves combined multi-module flows: a file-scope typedef used by a later child module port and a later top module net, and a package typedef used through package qualification in one module plus wildcard import in another.
+
+### Decision
+- Retain those combined flows as generated-parser contract samples.
+- Keep the proof syntax-focused:
+  - file-scope `cfg_t` typedef feeding both a child module ANSI port and a later top module net declaration
+  - package-local `cfg_t` typedef feeding a child module `cfg_pkg::cfg_t` ANSI port and a later top module `import cfg_pkg::*; cfg_t cfg;`
+- Require AST evidence for:
+  - `typedef_declaration`, `struct_type`, and `struct_union_field`
+  - multiple `module_declaration` / `port_list` surfaces
+  - `named_data_type` and `net_declaration`
+  - `package_declaration`, `import_declaration`, and `package_qualified_type` on the package-backed lane
+- Keep `rtl_frontend` at `In Progress`; this is a combined-flow retention slice, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `file_scope_typedef_struct_port_and_net_multimodule`
+  - `package_typedef_struct_port_and_wildcard_net_multimodule`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Direct generated-parser probes accepted both multi-module samples.
+- AST dumps showed the expected typedef, struct, module/port-list, named-type, net-declaration, package/import, and qualified-type evidence.
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-11 - rtl_frontend header-imported struct typedef port retention
 ### Context
 The generated `rtl_frontend` contract already retained header-imported enum and union typedef ports, plus struct typedef visibility through local, file-scope, package-qualified, wildcard-imported, and module-body named-imported lanes. The remaining obvious aggregate mismatch was header-imported struct typedef ports.

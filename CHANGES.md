@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend multi-module typedef flows
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so file-scope and package-backed struct typedefs are retained across multi-module flows, not only as isolated single-lane samples.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `file_scope_typedef_struct_port_and_net_multimodule`
+  - added `package_typedef_struct_port_and_wildcard_net_multimodule`
+  - retained the handwritten-baseline shape where a file-scope typedef feeds a later child module port and a later top module net declaration
+  - retained the package-backed shape where a package-qualified typedef feeds a child module port while a wildcard import feeds a later top module net declaration
+  - required AST evidence for typedefs, struct fields, multiple module declarations, port lists, named data types, net declarations, and package/import/qualified-type rules as appropriate per lane
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Focused direct probes:
+  - `rust/target/debug/parseability_probe --parse rtl_frontend <multi-module typedef sample>`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend <multi-module typedef sample> <ast-json>`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend header struct typedef port
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so header-imported struct typedef ports are retained explicitly alongside the already-retained header-imported enum and union typedef ports.

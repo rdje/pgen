@@ -530,6 +530,81 @@
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::cfg_t;\ncfg_t cfg;\nendmodule\n"
     },
     {
+      "label": "file_scope_typedef_struct_port_and_net_multimodule",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "module_declaration",
+        "port_list",
+        "named_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "package_declaration",
+        "enum_type",
+        "union_type",
+        "import_declaration",
+        "package_qualified_type"
+      ],
+      "expected_rule_texts": {
+        "named_data_type": [
+          "cfg_t",
+          "cfg_t"
+        ],
+        "net_declaration": [
+          "cfg_t cfg;"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\n\nmodule child (\n    input cfg_t cfg,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\ncfg_t cfg;\nendmodule\n"
+    },
+    {
+      "label": "package_typedef_struct_port_and_wildcard_net_multimodule",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "package_qualified_type",
+        "import_declaration",
+        "module_declaration",
+        "port_list",
+        "named_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "union_type"
+      ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import cfg_pkg::*;"
+        ],
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "net_declaration": [
+          "cfg_t cfg;"
+        ],
+        "package_qualified_type": [
+          "cfg_pkg::cfg_t"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input cfg_pkg::cfg_t cfg,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nendmodule\n"
+    },
+    {
       "label": "package_qualified_constant_parameter_flow",
       "expected_parse_ok": true,
       "require_ast_json": true,

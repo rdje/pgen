@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-header-struct-typedef-port)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-multimodule-typedef-flows)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` multi-module typedef flows:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract labels added:
+    - `file_scope_typedef_struct_port_and_net_multimodule`
+    - `package_typedef_struct_port_and_wildcard_net_multimodule`
+  - focused generated-parser probes:
+    - `file_scope_typedef_struct_port_and_net`: accepted
+    - `package_typedef_struct_port_and_wildcard_net`: accepted
+  - AST evidence observed before retention:
+    - file-scope lane carried `typedef_declaration=1`, `struct_type=1`, `struct_union_field=2`, `module_declaration=2`, `port_list=2`, `named_data_type=2`, and `net_declaration=1`
+    - package lane carried `package_declaration=1`, `typedef_declaration=1`, `struct_type=1`, `struct_union_field=2`, `import_declaration=1`, `package_qualified_type=1`, `module_declaration=2`, `port_list=2`, `named_data_type=1`, and `net_declaration=1`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this combines previously retained typedef/import pieces into the multi-module shapes from the handwritten baseline
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation already green before this note:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - next best follow-up:
+    - run docs/diff/workflow gates and commit if clean except the pre-existing untracked `docs/tcl/`
 - Retained `rtl_frontend` header-imported struct typedef port:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -38,7 +65,7 @@ Use this file to resume work without replaying full chat history.
     - validation already green before this note:
       - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
   - next best follow-up:
-    - run docs/diff/workflow gates and commit if clean except the pre-existing untracked `docs/tcl/`
+    - committed as `edb0b28 Retain rtl_frontend header struct typedef port`
 - Retained `rtl_frontend` package constant flows:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
