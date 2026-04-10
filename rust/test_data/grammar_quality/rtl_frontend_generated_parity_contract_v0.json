@@ -378,6 +378,18 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].valid = d[0];\nend\nassign cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nendmodule\n"
     },
     {
+      "label": "continuous_ranged_member_assignment_target_missing_range_colon",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].valid = d[0];\nend\nassign cfgs[IDX].data[HI LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nendmodule\n"
+    },
+    {
+      "label": "continuous_indexed_member_assignment_target_empty_index",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].valid = d[0];\nend\nassign cfgs[].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nendmodule\n"
+    },
+    {
       "label": "concatenated_assignment_target_missing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,

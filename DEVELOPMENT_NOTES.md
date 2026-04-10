@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend continuous ranged target near-miss rejects retained
+### Context
+After retaining a positive continuous ranged/member assignment target, the adjacent negative surface was malformed range/index structure on the same `assign` target path. This mirrors the earlier procedural ranged-target rejects without assuming procedural coverage automatically protects continuous dataflow assignments.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `continuous_ranged_member_assignment_target_missing_range_colon`
+  - `continuous_indexed_member_assignment_target_empty_index`
+- The retained rejects cover:
+  - a missing colon inside a continuous ranged/member assignment target:
+    - `assign cfgs[IDX].data[HI LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+  - an empty unpacked-array index before a member/range target:
+    - `assign cfgs[].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros confirmed:
+  - `continuous_range_target_missing_range_colon: rejected-as-expected`
+  - `continuous_range_target_missing_select_rbracket: rejected-as-expected`
+  - `continuous_range_target_missing_member_dot: rejected-as-expected`
+  - `continuous_range_target_empty_unpacked_index: rejected-as-expected`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This balances the continuous ranged/member target positive proof with local malformed-input coverage.
+- It proves range/index target strictness in continuous dataflow assignments rather than only in procedural assignments.
+- The live label stays `In Progress` because this is focused generated-contract hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - generated-vs-handwritten parity probes for the retained assignment-target cross-product,
+  - richer module contexts around these assignment target/RHS shapes,
+  - broader statement-list mixtures that combine these target forms with generate/dataflow surfaces.
+
 ## 2026-04-10 - rtl_frontend continuous ranged assignment-target proof retained
 ### Context
 The generated `rtl_frontend` contract had already retained procedural ranged/member targets, continuous concatenated targets, and procedural concatenated targets. The remaining obvious cross-product was a continuous assignment whose target itself is a ranged member path.

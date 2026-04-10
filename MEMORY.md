@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-continuous-ranged-assignment-targets)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-continuous-ranged-assignment-target-near-misses)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,30 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` continuous ranged/member assignment-target near-miss reject wave:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - added retained negative samples:
+      - `continuous_ranged_member_assignment_target_missing_range_colon`
+      - `continuous_indexed_member_assignment_target_empty_index`
+    - direct malformed probes before retention all rejected as expected:
+      - continuous ranged member assignment target missing range colon
+      - continuous ranged member assignment target missing select right bracket
+      - continuous indexed member assignment target missing member dot
+      - continuous indexed member assignment target empty unpacked index
+    - this balances the retained continuous ranged/member assignment-target positive proof with local malformed-input coverage
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - commit this contract-only wave if final status is still clean except pre-existing untracked docs
 - Retained `rtl_frontend` continuous ranged/member assignment-target wave:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
