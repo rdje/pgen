@@ -287,6 +287,46 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend\nassign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nendmodule\n"
     },
     {
+      "label": "procedural_concatenated_assignment_target_ternary_exprs",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "struct_type",
+        "unpacked_dimension",
+        "procedural_block",
+        "kw_always_comb",
+        "assignment_target",
+        "assignment_operator",
+        "continuous_assign",
+        "conditional_expr",
+        "concatenation_expr"
+      ],
+      "expected_rule_texts": {
+        "assignment_target": [
+          "{cfgs[IDX].valid, cfgs[0].valid}",
+          "cfgs[IDX].valid",
+          "cfgs[0].valid",
+          "y"
+        ],
+        "assignment_operator": [
+          "="
+        ],
+        "concatenation_expr": [
+          "{cfgs[IDX].data[BIT], d[0]}",
+          "{d[0], cfgs[0].valid}",
+          "{cfgs[IDX].valid, cfgs[0].valid}"
+        ],
+        "continuous_assign": [
+          "assign y = {cfgs[IDX].valid, cfgs[0].valid};"
+        ],
+        "procedural_block": [
+          "always_comb begin\n    {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nend"
+        ]
+      },
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d,\n    output logic [1:0] y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nend\nassign y = {cfgs[IDX].valid, cfgs[0].valid};\nendmodule\n"
+    },
+    {
       "label": "concatenated_assignment_target_missing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,

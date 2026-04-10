@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend procedural concatenated assignment-target proof retained
+### Context
+The generated `rtl_frontend` contract already retained a continuous assignment with a concatenated LHS target and a procedural assignment with a ranged member target. The next useful positive proof was the cross-product: a concatenated assignment target inside an `always_comb` procedural block.
+
+### What Was Changed
+- Added `procedural_concatenated_assignment_target_ternary_exprs` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - procedural concatenated assignment target:
+    - `{cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+  - a matching continuous assignment using the same concatenated value shape:
+    - `assign y = {cfgs[IDX].valid, cfgs[0].valid};`
+- The contract requires AST rule presence for:
+  - `struct_type`
+  - `unpacked_dimension`
+  - `procedural_block`
+  - `kw_always_comb`
+  - `assignment_target`
+  - `assignment_operator`
+  - `continuous_assign`
+  - `conditional_expr`
+  - `concatenation_expr`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-proc-concat-target.qCCx0H/procedural_concat_target.sv /tmp/pgen-rtl-proc-concat-target.qCCx0H/procedural_concat_target_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves concatenated assignment targets are not limited to continuous `assign` statements in the generated path.
+- It connects the richer target surface to procedural statements and ternary/concatenation RHS values.
+- The live label stays `In Progress` because this is focused generated-contract proof widening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - procedural concatenated-target near-miss rejects if we want the same malformed-list protection inside procedural statements,
+  - generated-vs-handwritten parity probes for the retained assignment-target cross-product,
+  - richer declaration/generate contexts around the same procedural assignment surface.
+
 ## 2026-04-10 - rtl_frontend ranged assignment-target near-miss rejects retained
 ### Context
 After retaining malformed concatenated assignment-target lists, the next adjacent rich-target surface was ranged/member assignment targets such as `cfgs[IDX].data[HI:LO]`. The useful question was whether the generated path still rejects malformed select/index shapes while RHS expression support keeps widening.

@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend procedural concatenated targets
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with a positive procedural concatenated-assignment-target sample, closing the gap between the existing continuous concatenated target proof and procedural assignment contexts.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `procedural_concatenated_assignment_target_ternary_exprs`
+  - locks a procedural concatenated assignment target:
+    - `{cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+  - locks a matching continuous concatenation RHS:
+    - `assign y = {cfgs[IDX].valid, cfgs[0].valid};`
+  - requires AST rule presence for:
+    - `assignment_target`
+    - `procedural_block`
+    - `continuous_assign`
+    - `conditional_expr`
+    - `concatenation_expr`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-proc-concat-target.qCCx0H/procedural_concat_target.sv /tmp/pgen-rtl-proc-concat-target.qCCx0H/procedural_concat_target_ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend ranged assignment-target near misses
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with two negative ranged/member assignment-target near-miss samples, balancing the retained rich target proof beyond concatenated-list punctuation alone.
