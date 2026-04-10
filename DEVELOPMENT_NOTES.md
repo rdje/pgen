@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend assignment ternary near-miss rejects retained
+### Context
+After retaining procedural/dataflow ternary assignment RHS values, the adjacent negative surface was malformed `? :` punctuation inside the same assignment contexts. This keeps assignment RHS widening balanced with over-acceptance protection.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `procedural_assignment_ternary_missing_colon`
+  - `continuous_assignment_ternary_missing_false_branch`
+- The retained rejects cover:
+  - a missing ternary colon inside a procedural assignment:
+    - `tmp = SEL ? (a[HI:LO] + d) (d << 1);`
+  - a missing ternary false branch inside a continuous assignment:
+    - `assign y = SEL ? (a[HI:LO] + d) :;`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros confirmed:
+  - `continuous_assign_missing_colon.sv: rejected-as-expected`
+  - `continuous_assign_missing_false_branch.sv: rejected-as-expected`
+  - `procedural_assign_missing_colon.sv: rejected-as-expected`
+  - `procedural_assign_missing_false_branch.sv: rejected-as-expected`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This balances the assignment-context positive expression proof with malformed-input proof.
+- It keeps ternary punctuation discipline explicit in both procedural and continuous assignment RHS values.
+- The live label stays `In Progress` because this is focused generated-contract hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - a broader generated-vs-handwritten parity probe for these retained expression/list slices,
+  - richer assignment targets paired with these expression RHS shapes,
+  - malformed ternary coverage in additional contexts if future parser widening touches the expression ladder again.
+
 ## 2026-04-10 - rtl_frontend procedural/dataflow ternary assignment proof retained
 ### Context
 The ternary/binary expression ladder was retained across ordered/named parameter overrides and ordered/named port actuals. The next useful surface was outside instantiations: procedural `always_comb` assignments and continuous `assign` statements should reuse the same `rtl_expr` ladder.

@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend assignment ternary near-miss rejects
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with two negative assignment-context ternary near-miss samples, balancing the retained procedural/dataflow assignment ternary expression proof with malformed-input coverage.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `procedural_assignment_ternary_missing_colon`
+  - added `continuous_assignment_ternary_missing_false_branch`
+  - locks rejection for malformed assignment RHS ternaries like:
+    - `tmp = SEL ? (a[HI:LO] + d) (d << 1);`
+    - `assign y = SEL ? (a[HI:LO] + d) :;`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract negative-proof hardening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser negative repros:
+  - `continuous_assign_missing_colon.sv: rejected-as-expected`
+  - `continuous_assign_missing_false_branch.sv: rejected-as-expected`
+  - `procedural_assign_missing_colon.sv: rejected-as-expected`
+  - `procedural_assign_missing_false_branch.sv: rejected-as-expected`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend assignment ternary expressions
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with a positive procedural/dataflow assignment sample carrying the same ternary, ranged-reference, additive, shift, and multiplicative expression structure already retained for instantiation contexts.

@@ -247,6 +247,18 @@
       "sample": "module top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [15:0] y\n);\nlogic [15:0] tmp;\nalways_comb begin\n    tmp = SEL ? (a[HI:LO] + d) : (d << 1);\nend\nassign y = (a[HI:LO] + d) * 2;\nendmodule\n"
     },
     {
+      "label": "procedural_assignment_ternary_missing_colon",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [15:0] y\n);\nlogic [15:0] tmp;\nalways_comb begin\n    tmp = SEL ? (a[HI:LO] + d) (d << 1);\nend\nassign y = (a[HI:LO] + d) * 2;\nendmodule\n"
+    },
+    {
+      "label": "continuous_assignment_ternary_missing_false_branch",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [15:0] y\n);\nlogic [15:0] tmp;\nalways_comb begin\n    tmp = (a[HI:LO] + d) * 2;\nend\nassign y = SEL ? (a[HI:LO] + d) :;\nendmodule\n"
+    },
+    {
       "label": "instance_array_with_wildcard_ports",
       "expected_parse_ok": true,
       "require_ast_json": true,
