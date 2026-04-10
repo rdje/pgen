@@ -327,6 +327,18 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d,\n    output logic [1:0] y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nend\nassign y = {cfgs[IDX].valid, cfgs[0].valid};\nendmodule\n"
     },
     {
+      "label": "procedural_concatenated_assignment_target_missing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d,\n    output logic [1:0] y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].valid cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nend\nassign y = {cfgs[IDX].valid, cfgs[0].valid};\nendmodule\n"
+    },
+    {
+      "label": "procedural_concatenated_assignment_target_trailing_comma",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d,\n    output logic [1:0] y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].valid, cfgs[0].valid,} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nend\nassign y = {cfgs[IDX].valid, cfgs[0].valid};\nendmodule\n"
+    },
+    {
       "label": "concatenated_assignment_target_missing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,

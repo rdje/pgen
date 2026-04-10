@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend procedural concatenated target near-miss rejects retained
+### Context
+After retaining a positive procedural concatenated assignment target inside `always_comb`, the adjacent negative surface was the same target-list punctuation in the same procedural statement context. This keeps the generated contract from relying only on continuous `assign` malformed-list rejects for concatenated targets.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `procedural_concatenated_assignment_target_missing_comma`
+  - `procedural_concatenated_assignment_target_trailing_comma`
+- The retained rejects cover:
+  - a missing comma between procedural concatenated-target elements:
+    - `{cfgs[IDX].valid cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+  - a trailing comma inside the procedural concatenated target:
+    - `{cfgs[IDX].valid, cfgs[0].valid,} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros confirmed:
+  - `procedural_concat_target_missing_comma: rejected-as-expected`
+  - `procedural_concat_target_trailing_comma: rejected-as-expected`
+  - `procedural_concat_target_missing_rbrace: rejected-as-expected`
+  - `procedural_concat_target_empty_element: rejected-as-expected`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This balances the procedural concatenated-target positive proof with local malformed-input coverage.
+- It proves target-list strictness in procedural assignment statements rather than only in continuous `assign` statements.
+- The live label stays `In Progress` because this is focused generated-contract hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - generated-vs-handwritten parity probes for the retained assignment-target cross-product,
+  - richer procedural statement sequences around the same target/RHS shapes,
+  - declaration/generate wrappers that exercise these assignment targets in more realistic module bodies.
+
 ## 2026-04-10 - rtl_frontend procedural concatenated assignment-target proof retained
 ### Context
 The generated `rtl_frontend` contract already retained a continuous assignment with a concatenated LHS target and a procedural assignment with a ranged member target. The next useful positive proof was the cross-product: a concatenated assignment target inside an `always_comb` procedural block.
