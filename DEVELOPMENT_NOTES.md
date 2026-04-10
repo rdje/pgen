@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend continuous ranged assignment-target proof retained
+### Context
+The generated `rtl_frontend` contract had already retained procedural ranged/member targets, continuous concatenated targets, and procedural concatenated targets. The remaining obvious cross-product was a continuous assignment whose target itself is a ranged member path.
+
+### What Was Changed
+- Added `continuous_ranged_member_assignment_target_ternary_exprs` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - procedural member assignment:
+    - `cfgs[IDX].valid = d[0];`
+  - continuous ranged/member assignment target:
+    - `assign cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+- The contract requires AST rule presence for:
+  - `struct_type`
+  - `unpacked_dimension`
+  - `procedural_block`
+  - `kw_always_comb`
+  - `assignment_target`
+  - `assignment_operator`
+  - `continuous_assign`
+  - `conditional_expr`
+  - `additive_expr`
+  - `shift_expr`
+  - `ranged_signal_reference`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-cont-range-target.Az2hKC/continuous_ranged_member_target.sv /tmp/pgen-rtl-cont-range-target.Az2hKC/continuous_ranged_member_target_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves ranged/member assignment targets are retained on the continuous dataflow path, not only inside procedural assignments.
+- It fills another useful procedural/dataflow cross-product for rich assignment targets while preserving the ternary/binary RHS proof shape.
+- The live label stays `In Progress` because this is focused generated-contract proof widening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - continuous ranged/member assignment-target near-miss rejects,
+  - generated-vs-handwritten parity probes for the retained assignment-target cross-product,
+  - richer module contexts around these assignment target/RHS shapes.
+
 ## 2026-04-10 - rtl_frontend procedural concatenated target near-miss rejects retained
 ### Context
 After retaining a positive procedural concatenated assignment target inside `always_comb`, the adjacent negative surface was the same target-list punctuation in the same procedural statement context. This keeps the generated contract from relying only on continuous `assign` malformed-list rejects for concatenated targets.
