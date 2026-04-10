@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend always-star and always-latch generated contract lanes retained
+### Context
+After repairing the `always_ff` blocking-assignment policy, the next nearby procedural-lane gap was not another grammar rewrite. The generated grammar already supports the handwritten baseline's plain `always @(*)` and `always_latch` lanes, but the curated generated contract did not explicitly retain rich assignment-target coverage for them.
+
+### What Was Changed
+- Added generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `always_star_rich_assignment_targets`
+  - `always_latch_rich_assignment_targets`
+  - `always_latch_event_control_rejected`
+- The retained positive samples cover:
+  - `always @(*)` with an `if` statement, concatenated member assignment target, scalar member assignment target, and a continuous assignment sibling
+  - `always_latch` with an `if` statement, concatenated member assignment target, and a continuous assignment sibling
+- The retained negative sample covers:
+  - `always_latch @(posedge clk) begin ... end`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser probes:
+  - `always_star_rich: ACCEPTED`
+  - `always_latch_rich: ACCEPTED`
+  - `always_latch_event_control: rejected-as-expected`
+- Direct AST dumps:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-always-lanes.4mkw0M/always_star_rich.sv /tmp/pgen-rtl-always-star-rich.ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-always-lanes.4mkw0M/always_latch_rich.sv /tmp/pgen-rtl-always-latch-rich.ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
+### Why It Matters
+- This makes the non-`always_ff` procedural lanes explicit in the generated proof surface instead of leaving them implied by grammar support.
+- It covers both permissive procedural assignment targets and a nearby policy reject for `always_latch` event controls.
+- The live label stays `In Progress` because this is focused generated-contract proof widening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - richer `always_latch` near-miss rejects for malformed concatenated targets if they are not already covered through generic statement rules,
+  - plain `always @(*)` malformed-target near misses if we want exact lane-local reject coverage,
+  - generated-vs-handwritten parity probes for remaining module/package/type surfaces.
+
 ## 2026-04-10 - rtl_frontend always_ff blocking assignment policy repaired in generated grammar
 ### Context
 The richer `always_ff` nonblocking target proof exposed an important policy gap during follow-up near-miss probing. Malformed rich targets rejected correctly, but `always_ff` with a blocking `=` assignment still parsed because `kw_always_ff event_control_list` reused the generic `statement` rule, whose assignment arm accepts both `=` and `<=`.
@@ -63,7 +104,7 @@ The generated `rtl_frontend` contract had grown strong procedural/dataflow assig
   - `kw_always_ff`
   - `procedural_block`
   - `assignment_target`
-  - `assignment_operator`
+  - `always_ff_assignment_operator`
   - `conditional_expr`
   - `additive_expr`
   - `shift_expr`

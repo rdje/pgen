@@ -80,6 +80,71 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic clk,\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend\nendmodule\n"
     },
     {
+      "label": "always_star_rich_assignment_targets",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "struct_type",
+        "unpacked_dimension",
+        "kw_always",
+        "always_star_event",
+        "procedural_block",
+        "kw_if",
+        "assignment_target",
+        "assignment_operator",
+        "continuous_assign",
+        "concatenation_expr"
+      ],
+      "expected_rule_texts": {
+        "always_star_event": [
+          "@(*)"
+        ],
+        "kw_always": [
+          "always"
+        ],
+        "assignment_operator": [
+          "=",
+          "="
+        ]
+      },
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic a,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways @(*) begin\n    if (SEL)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\n    else\n        cfgs[IDX].valid = a;\nend\nassign y = cfgs[IDX].valid;\nendmodule\n"
+    },
+    {
+      "label": "always_latch_rich_assignment_targets",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "struct_type",
+        "unpacked_dimension",
+        "kw_always_latch",
+        "procedural_block",
+        "kw_if",
+        "assignment_target",
+        "assignment_operator",
+        "continuous_assign",
+        "concatenation_expr"
+      ],
+      "expected_rule_texts": {
+        "kw_always_latch": [
+          "always_latch"
+        ],
+        "assignment_operator": [
+          "="
+        ]
+      },
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic en,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_latch begin\n    if (en)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\nend\nassign y = cfgs[0].valid;\nendmodule\n"
+    },
+    {
+      "label": "always_latch_event_control_rejected",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top (\n    input logic clk,\n    input logic d,\n    output logic q\n);\nalways_latch @(posedge clk) begin\n    q <= d;\nend\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_ports_and_nets",
       "expected_parse_ok": true,
       "require_ast_json": true,

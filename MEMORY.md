@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-always-ff-blocking-target-reject)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-always-star-latch-contract)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained generated `rtl_frontend` plain-`always @(*)` and `always_latch` procedural lanes:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - direct generated-parser probes:
+      - `always_star_rich: ACCEPTED`
+      - `always_latch_rich: ACCEPTED`
+      - `always_latch_event_control: rejected-as-expected`
+    - added retained contract samples:
+      - `always_star_rich_assignment_targets`
+      - `always_latch_rich_assignment_targets`
+      - `always_latch_event_control_rejected`
+    - the positive samples lock rich procedural `if` statements with concatenated member assignment targets plus continuous-assignment siblings under:
+      - `always @(*)`
+      - `always_latch`
+    - the negative sample locks rejection for:
+      - `always_latch @(posedge clk) begin ... end`
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validation already green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - next best follow-up:
+    - run filtered local workflow / mdBook / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
 - Repaired generated `rtl_frontend` `always_ff` blocking-assignment policy:
   - changed:
     - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
@@ -40,8 +69,8 @@ Use this file to resume work without replaying full chat history.
       - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
       - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
       - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
-  - next best follow-up:
-    - commit this grammar/artifact/contract wave if final status is still clean except pre-existing untracked docs
+  - committed as:
+    - `39aadc7 Reject rtl_frontend always_ff blocking targets`
 - Retained `rtl_frontend` `always_ff` rich nonblocking assignment-target wave:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -60,7 +89,7 @@ Use this file to resume work without replaying full chat history.
       - `kw_always_ff`
       - `procedural_block`
       - `assignment_target`
-      - `assignment_operator`
+      - `always_ff_assignment_operator`
       - `conditional_expr`
       - `additive_expr`
       - `shift_expr`

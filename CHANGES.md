@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend always star and latch lanes
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with retained rich procedural samples for the plain `always @(*)` and `always_latch` lanes, plus a nearby reject proving `always_latch` does not silently accept an event control.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_star_rich_assignment_targets`
+  - added `always_latch_rich_assignment_targets`
+  - added `always_latch_event_control_rejected`
+  - locks rich member/concatenated assignment-target shapes under:
+    - `always @(*)`
+    - `always_latch`
+  - locks rejection for:
+    - `always_latch @(posedge clk) begin ... end`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser probes:
+  - `always_star_rich: ACCEPTED`
+  - `always_latch_rich: ACCEPTED`
+  - `always_latch_event_control: rejected-as-expected`
+- Direct AST dumps:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-always-lanes.4mkw0M/always_star_rich.sv /tmp/pgen-rtl-always-star-rich.ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-always-lanes.4mkw0M/always_latch_rich.sv /tmp/pgen-rtl-always-latch-rich.ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+
 ## 2026-04-10 - Reject rtl_frontend always_ff blocking targets
 ### Achievement Summary
 Closed a generated `rtl_frontend` grammar gap where `always_ff` reused the generic procedural statement rule and therefore accepted blocking `=` assignments. The tracked grammar now routes `always_ff` through a dedicated recursive statement rule that permits nonblocking `<=` assignments only, and the generated contract retains the rich ranged-target blocking reject.
@@ -58,7 +96,7 @@ Expanded the curated generated `rtl_frontend` contract with a positive `always_f
     - `kw_always_ff`
     - `procedural_block`
     - `assignment_target`
-    - `assignment_operator`
+    - `always_ff_assignment_operator`
     - `conditional_expr`
     - `additive_expr`
     - `shift_expr`
