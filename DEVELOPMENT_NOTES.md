@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend rich assignment-target proof retained
+### Context
+The assignment ternary work first used simple targets like `tmp` and `y`. The next useful proof slice was richer assignment targets: ranged member targets and concatenated targets paired with ternary/concat RHS expressions.
+
+### What Was Changed
+- Added `rich_assignment_targets_ternary_exprs` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - ranged member assignment target:
+    - `cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+  - concatenated continuous-assignment target:
+    - `assign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+- The contract requires AST rule presence for:
+  - `struct_type`
+  - `unpacked_dimension`
+  - `assignment_target`
+  - `continuous_assign`
+  - `conditional_expr`
+  - `concatenation_expr`
+  - `ranged_signal_reference`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_rich_assignment_targets_ternary_expr.sv /tmp/rtl_frontend_rich_assignment_targets_ternary_expr_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves the richer assignment-target grammar can coexist with the richer RHS expression ladder.
+- It ties the ternary/binary work back to member/range/concatenation assignment surfaces that matter for synthesizable RTL.
+- The live label stays `In Progress` because this is a curated positive-contract expansion, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - malformed near-misses around concatenated assignment targets,
+  - a broader generated-vs-handwritten parity probe for these retained expression/list slices,
+  - richer procedural/dataflow statement combinations using these same target/RHS shapes.
+
 ## 2026-04-10 - rtl_frontend assignment ternary near-miss rejects retained
 ### Context
 After retaining procedural/dataflow ternary assignment RHS values, the adjacent negative surface was malformed `? :` punctuation inside the same assignment contexts. This keeps assignment RHS widening balanced with over-acceptance protection.

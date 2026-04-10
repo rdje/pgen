@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend rich assignment targets
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with a positive procedural/dataflow sample that pairs richer assignment targets with ternary and concatenation RHS expressions.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `rich_assignment_targets_ternary_exprs`
+  - locks a ranged member assignment target:
+    - `cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+  - locks a concatenated continuous-assignment target:
+    - `assign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};`
+  - requires AST rule presence for:
+    - `assignment_target`
+    - `continuous_assign`
+    - `conditional_expr`
+    - `concatenation_expr`
+    - `ranged_signal_reference`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_rich_assignment_targets_ternary_expr.sv /tmp/rtl_frontend_rich_assignment_targets_ternary_expr_ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend assignment ternary near-miss rejects
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with two negative assignment-context ternary near-miss samples, balancing the retained procedural/dataflow assignment ternary expression proof with malformed-input coverage.

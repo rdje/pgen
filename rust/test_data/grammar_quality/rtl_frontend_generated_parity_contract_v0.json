@@ -247,6 +247,46 @@
       "sample": "module top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [15:0] y\n);\nlogic [15:0] tmp;\nalways_comb begin\n    tmp = SEL ? (a[HI:LO] + d) : (d << 1);\nend\nassign y = (a[HI:LO] + d) * 2;\nendmodule\n"
     },
     {
+      "label": "rich_assignment_targets_ternary_exprs",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "struct_type",
+        "unpacked_dimension",
+        "procedural_block",
+        "kw_always_comb",
+        "assignment_target",
+        "assignment_operator",
+        "continuous_assign",
+        "conditional_expr",
+        "additive_expr",
+        "shift_expr",
+        "concatenation_expr",
+        "ranged_signal_reference"
+      ],
+      "expected_rule_texts": {
+        "kw_always_comb": [
+          "always_comb"
+        ],
+        "assignment_operator": [
+          "="
+        ],
+        "continuous_assign": [
+          "assign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};"
+        ],
+        "concatenation_expr": [
+          "{cfgs[IDX].data[BIT], d[0]}",
+          "{d[0], cfgs[0].valid}"
+        ],
+        "ranged_signal_reference": [
+          "cfgs[IDX].data[HI:LO]",
+          "cfgs[0].data[HI:LO]"
+        ]
+      },
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend\nassign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nendmodule\n"
+    },
+    {
       "label": "procedural_assignment_ternary_missing_colon",
       "expected_parse_ok": false,
       "require_ast_json": false,
