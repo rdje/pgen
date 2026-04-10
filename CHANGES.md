@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-04-10 - Reject rtl_frontend always_ff blocking targets
+### Achievement Summary
+Closed a generated `rtl_frontend` grammar gap where `always_ff` reused the generic procedural statement rule and therefore accepted blocking `=` assignments. The tracked grammar now routes `always_ff` through a dedicated recursive statement rule that permits nonblocking `<=` assignments only, and the generated contract retains the rich ranged-target blocking reject.
+
+### Scope of Changes
+- Updated [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - changed `kw_always_ff event_control_list statement` to `kw_always_ff event_control_list always_ff_statement`
+  - added recursive `always_ff_statement`
+  - added `always_ff_assignment_operator := less_equal`
+  - preserved `begin` / `if` nesting while requiring `assignment_target always_ff_assignment_operator value_expr semi` for assignments inside `always_ff`
+- Regenerated tracked parser artifacts:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_ff_blocking_ranged_assignment_target`
+  - locks rejection for:
+    - `cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is a focused generated-grammar policy repair and contract hardening, not broad Phase S closure
+
+### Validation
+- Direct reconnaissance before the fix:
+  - `always_ff_blocking_ranged_target: ACCEPTED`
+  - `always_ff_concat_target_missing_comma: rejected-as-expected`
+  - `always_ff_concat_target_trailing_comma: rejected-as-expected`
+  - `always_ff_ranged_target_missing_range_colon: rejected-as-expected`
+- Regeneration:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Filtered local workflow parity:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Book gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
 ## 2026-04-10 - Retain rtl_frontend always_ff rich targets
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with a positive `always_ff` nonblocking-assignment sample that carries both ranged/member and concatenated assignment targets.

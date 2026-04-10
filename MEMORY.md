@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-always-ff-rich-assignment-targets)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-always-ff-blocking-target-reject)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Repaired generated `rtl_frontend` `always_ff` blocking-assignment policy:
+  - changed:
+    - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
+    - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+    - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - important continuity detail:
+    - follow-up probing found a real generated-parser false positive:
+      - `always_ff_blocking_ranged_target: ACCEPTED`
+    - malformed rich targets already rejected:
+      - `always_ff_concat_target_missing_comma`
+      - `always_ff_concat_target_trailing_comma`
+      - `always_ff_ranged_target_missing_range_colon`
+    - grammar fix:
+      - `kw_always_ff event_control_list` now uses recursive `always_ff_statement`
+      - `always_ff_statement` preserves `begin` / `if` nesting but assignment statements require `always_ff_assignment_operator`
+      - `always_ff_assignment_operator := less_equal` preserves a named operator AST surface for sequential assignments
+    - added retained negative sample:
+      - `always_ff_blocking_ranged_assignment_target`
+    - regenerated:
+      - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+      - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validations were green:
+      - regeneration command
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - next best follow-up:
+    - commit this grammar/artifact/contract wave if final status is still clean except pre-existing untracked docs
 - Retained `rtl_frontend` `always_ff` rich nonblocking assignment-target wave:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

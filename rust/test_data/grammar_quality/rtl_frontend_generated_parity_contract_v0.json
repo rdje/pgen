@@ -14,13 +14,13 @@
         "kw_always_ff",
         "procedural_block",
         "assignment_target",
-        "assignment_operator"
+        "always_ff_assignment_operator"
       ],
       "expected_rule_texts": {
         "kw_always_ff": [
           "always_ff"
         ],
-        "assignment_operator": [
+        "always_ff_assignment_operator": [
           "<=",
           "<="
         ]
@@ -39,7 +39,7 @@
         "kw_always_ff",
         "procedural_block",
         "assignment_target",
-        "assignment_operator",
+        "always_ff_assignment_operator",
         "conditional_expr",
         "additive_expr",
         "shift_expr",
@@ -50,7 +50,7 @@
         "kw_always_ff": [
           "always_ff"
         ],
-        "assignment_operator": [
+        "always_ff_assignment_operator": [
           "<=",
           "<="
         ],
@@ -72,6 +72,12 @@
         ]
       },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic clk,\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] <= SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\n    {cfgs[IDX].valid, cfgs[0].valid} <= {d[0], cfgs[IDX].data[BIT]};\nend\nendmodule\n"
+    },
+    {
+      "label": "always_ff_blocking_ranged_assignment_target",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic clk,\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend\nendmodule\n"
     },
     {
       "label": "unpacked_array_ports_and_nets",

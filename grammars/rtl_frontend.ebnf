@@ -127,7 +127,7 @@ continuous_assign := kw_assign assignment_target equals value_expr semi
 @branch_policy: priority_first
 procedural_block := kw_always_comb statement
                   | kw_always_latch statement
-                  | kw_always_ff event_control_list statement
+                  | kw_always_ff event_control_list always_ff_statement
                   | kw_always always_star_event statement
 
 always_star_event := at lparen star rparen | star
@@ -143,6 +143,14 @@ statement := semi
           | kw_begin ( colon identifier )? statement* kw_end
           | kw_if lparen rtl_expr rparen statement ( kw_else statement )?
           | assignment_target assignment_operator value_expr semi
+
+@branch_policy: priority_first
+always_ff_statement := semi
+                    | kw_begin ( colon identifier )? always_ff_statement* kw_end
+                    | kw_if lparen rtl_expr rparen always_ff_statement ( kw_else always_ff_statement )?
+                    | assignment_target always_ff_assignment_operator value_expr semi
+
+always_ff_assignment_operator := less_equal
 
 assignment_operator := equals | less_equal
 

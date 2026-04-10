@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-09T22:30:22.646244+00:00",
+    "generated_at": "2026-04-10T13:48:41.889493+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "grammars/rtl_frontend.ebnf",
@@ -1814,7 +1814,7 @@
       ],
       [
         "rule_reference",
-        "statement"
+        "always_ff_statement"
       ],
       [
         "operator",
@@ -2076,6 +2076,137 @@
       [
         "rule_reference",
         "semi"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "always_ff_statement"
+      ],
+      [
+        "semantic_annotation",
+        [
+          "branch_policy",
+          "priority_first"
+        ]
+      ],
+      [
+        "rule_reference",
+        "semi"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "kw_begin"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "colon"
+      ],
+      [
+        "rule_reference",
+        "identifier"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "rule_reference",
+        "always_ff_statement"
+      ],
+      [
+        "operator",
+        "*"
+      ],
+      [
+        "rule_reference",
+        "kw_end"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "kw_if"
+      ],
+      [
+        "rule_reference",
+        "lparen"
+      ],
+      [
+        "rule_reference",
+        "rtl_expr"
+      ],
+      [
+        "rule_reference",
+        "rparen"
+      ],
+      [
+        "rule_reference",
+        "always_ff_statement"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "rule_reference",
+        "kw_else"
+      ],
+      [
+        "rule_reference",
+        "always_ff_statement"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "assignment_target"
+      ],
+      [
+        "rule_reference",
+        "always_ff_assignment_operator"
+      ],
+      [
+        "rule_reference",
+        "value_expr"
+      ],
+      [
+        "rule_reference",
+        "semi"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "always_ff_assignment_operator"
+      ],
+      [
+        "rule_reference",
+        "less_equal"
       ]
     ],
     [
