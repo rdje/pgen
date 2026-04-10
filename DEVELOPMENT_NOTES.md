@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - PNR parser EBNF source authority
+### Context
+The PNR parser backlog is captured, but the user correctly called out the real blocker: before creating EBNF files for LEF, DEF, Liberty, SDC, or SPEF, PGEN needs authoritative grammar sources. Verilog/SystemVerilog is different because PGEN already has the IEEE-derived EBNF/workspace surface.
+
+### Decision
+- Do not craft PNR parser EBNF from tutorials, blog posts, random mirrored PDFs, or open-source parser behavior alone.
+- Primary source acquisition should precede implementation:
+  - LEF / DEF:
+    - Si2/Cadence LEF/DEF reference documentation
+  - Liberty:
+    - Synopsys TAP-in Liberty documentation
+  - SDC:
+    - Synopsys TAP-in SDC documentation
+    - official Tcl syntax docs for tokenization/quoting/substitution behavior
+  - SPEF:
+    - IEEE 1481 / OLA lineage
+    - exact PNR target revision to be pinned before implementation
+- Verilog / SystemVerilog:
+  - no new standards-source acquisition is needed because PGEN already has the IEEE-derived SystemVerilog grammar/workspaces and Verilog 2005 extracted workspace/snapshot
+  - remaining PNR work is profile/subset selection plus fixtures/gates, with Verilog 2005 terminal-normalization debt only if that snapshot is promoted directly
+- PNR-specific LEF / DEF / Liberty / SDC / SPEF EBNF files are not present in this repo yet.
+- OpenROAD/OpenDB parsers, sky130/OpenROAD-flow fixtures, PicoRV32, Ibex, and OpenTitan are conformance and acceptance aids, not grammar authority.
+
+### What Was Changed
+- Updated [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md).
+- Updated:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+
+### Validation
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `git diff --check`
+
 ## 2026-04-10 - eda-db is outside PGEN scope
 ### Context
 After recording an `eda-db` ownership clarification in the PNR integration notes, the user clarified the more important PGEN-side framing: PGEN does not need to care about `eda-db`; only RTLSyn needs to care about it.

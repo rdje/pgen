@@ -57,6 +57,30 @@ The first minimum viable PNR-facing milestone is LEF:
 - acceptance fixture proving `sky130_fd_sc_hd.tlef` parses without diagnostics
 - tagged PGEN release consumable by PNR as a git submodule
 
+## Authoritative Source Requirements
+Do not start a new PNR-facing EBNF family from tutorials, blog posts, random mirrored PDFs, or open-source parser behavior alone. Those are useful for examples and conformance checks, but not for grammar authority.
+
+Repository inventory note (2026-04-10):
+- Verilog/SystemVerilog already has tracked IEEE-derived EBNF in `grammars/`.
+- The currently tracked root-level EBNF inventory does not include LEF, DEF, Liberty, SDC, or SPEF EBNF files yet.
+
+The current source-of-authority matrix is:
+
+| Format | Primary authority to acquire before EBNF work | Notes |
+|---|---|---|
+| LEF / DEF | Si2 LEF/DEF downloads: `https://si2.org/lef-def-downloads/` | Si2 states LEF/DEF are developed by Cadence and distributed by Si2. Acquire the exact API Format Specification Reference Documentation matching the PNR target, initially LEF/DEF 5.8 unless PNR revises the target. |
+| Liberty | Synopsys TAP-in Liberty download: `https://www.synopsys.com/community/interoperability-programs/tap-in.html` | TAP-in is the official Synopsys access path for Liberty under the relevant open-source license. Do not use random web copies as the normative grammar source. |
+| SDC | Synopsys TAP-in SDC download: `https://www.synopsys.com/community/interoperability-programs/tap-in.html` plus official Tcl syntax docs | SDC is Tcl-shaped. Use Synopsys SDC for command semantics and Tcl language docs for tokenization/quoting/substitution behavior. |
+| Verilog / SystemVerilog | Already available locally from IEEE-derived workspaces: `grammars/systemverilog.ebnf`, `grammars/systemverilog_2017_lrm_extracted.ebnf`, `grammars/systemverilog_2023_lrm_extracted.ebnf`, `grammars/verilog_2005_lrm_extracted.ebnf`, `docs/systemverilog/2017`, `docs/systemverilog/2023`, and `docs/verilog/2005` | No new standards-source acquisition is needed for this family. PNR netlist work should be a constrained profile/subset and fixture/gate task over the existing standard-derived surface. If the Verilog 2005 snapshot is promoted directly, its known terminal-normalization debt still needs closure. |
+| SPEF | IEEE 1481 / OLA standard lineage: `https://standards.ieee.org/ieee/1481/7651/` | PNR names IEEE 1481-2009. IEEE now lists 1481-2019 as active and superseding 1481-2009, so pin the exact SPEF/OLA revision with PNR before writing EBNF. |
+
+Useful non-authoritative aids:
+- OpenROAD / OpenDB parsers for conformance comparison and edge-case discovery,
+- sky130, OpenROAD-flow, PicoRV32, Ibex, and OpenTitan fixtures for acceptance and regression,
+- vendor application notes for examples.
+
+Rule: if a source cannot be redistributed or checked into PGEN, record its acquisition path and version, then derive only the PGEN-owned EBNF and tests from it. Do not copy proprietary standard text into repository docs.
+
 ## Stable Integration Surface Target
 PNR prefers one Rust crate per format, with stable crate paths suitable for submodule consumption:
 - `crates/pgen-lef`

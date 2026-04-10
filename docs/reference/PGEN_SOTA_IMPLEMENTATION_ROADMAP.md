@@ -729,6 +729,23 @@ PNR downstream parser-demand addendum (2026-04-10):
   - `eda-db` is not a PGEN integration surface.
   - If RTLSyn needs to care about `eda-db`, that coordination happens outside PGEN.
   - PGEN's responsibility stays on parser crates, ASTs, diagnostics, emitters, fixtures, and release contracts.
+- Source-authority rule (2026-04-10):
+  - do not begin PNR parser EBNF work from tutorials, random mirrored PDFs, or open-source parser behavior alone,
+  - acquire and pin the official source first:
+    - Si2/Cadence LEF/DEF reference documentation for LEF and DEF,
+    - Synopsys TAP-in Liberty and SDC downloads for Liberty and SDC,
+    - IEEE 1481 / OLA lineage for SPEF, with exact revision confirmed against PNR before implementation,
+    - Tcl language docs for SDC tokenization and quoting/substitution behavior.
+  - Verilog/SystemVerilog is already covered by tracked IEEE-derived local artifacts:
+    - `grammars/systemverilog.ebnf`,
+    - `grammars/systemverilog_2017_lrm_extracted.ebnf`,
+    - `grammars/systemverilog_2023_lrm_extracted.ebnf`,
+    - `grammars/verilog_2005_lrm_extracted.ebnf`,
+    - `docs/systemverilog/2017`,
+    - `docs/systemverilog/2023`,
+    - `docs/verilog/2005`.
+  - The currently tracked root-level EBNF inventory does not include LEF, DEF, Liberty, SDC, or SPEF EBNF files yet.
+  - Remaining Verilog/SystemVerilog PNR work is profile/subset selection plus fixtures/gates, with Verilog 2005 terminal-normalization debt only if that snapshot is promoted directly.
 
 - the harness should be shared across EBNF-backed families, with per-family adapters only for:
   - input preparation,

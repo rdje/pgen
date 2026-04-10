@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: eda-db-outside-pgen-scope)
+Last updated: 2026-04-10 (+0200, task: pnr-parser-source-authority)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,42 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Captured PNR parser EBNF source-authority rule:
+  - decision:
+    - do not craft PNR parser EBNF from tutorials, blog posts, random mirrored PDFs, or open-source parser behavior alone
+    - acquire and pin authoritative sources before implementation
+    - Verilog/SystemVerilog is the exception because PGEN already has the IEEE-derived local EBNF/workspace surface
+  - source authority matrix:
+    - LEF / DEF:
+      - Si2/Cadence LEF/DEF reference documentation
+    - Liberty:
+      - Synopsys TAP-in Liberty documentation
+    - SDC:
+      - Synopsys TAP-in SDC documentation
+      - official Tcl syntax docs for tokenization/quoting/substitution behavior
+    - SPEF:
+      - IEEE 1481 / OLA lineage
+      - exact PNR target revision to be pinned before implementation
+    - Verilog / SystemVerilog:
+      - no new source acquisition needed
+      - remaining PNR work is profile/subset selection plus fixtures/gates
+      - Verilog 2005 terminal-normalization debt matters only if that snapshot is promoted directly
+    - PNR-specific LEF / DEF / Liberty / SDC / SPEF EBNF files are not present in this repo yet
+  - changed:
+    - [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - open-source parsers and fixtures are useful conformance/acceptance aids, not grammar authority
+    - no live parser-family label changes because this is source-authority planning, not implementation or proof closure
+    - validation already green:
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - commit this source-authority capture if clean except pre-existing untracked docs
 - Clarified `eda-db` is outside PGEN scope:
   - decision:
     - `eda-db` is not a PGEN integration surface
@@ -28,7 +64,7 @@ Use this file to resume work without replaying full chat history.
       - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
       - `git diff --check`
   - next best follow-up:
-    - commit this scope clarification if clean except pre-existing untracked docs
+    - committed as `bc278e0 Docs: clarify eda-db is outside PGEN scope`
 - Recorded PNR ownership of `eda-db`:
   - superseded PGEN-side framing:
     - see the current note above

@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-10 - Add PNR parser source-authority matrix
+### Achievement Summary
+Captured the source-authority rule for future PNR parser EBNF work so PGEN does not accidentally build LEF/DEF/Liberty/SDC/SPEF grammars from tutorials, mirrored PDFs, or open-source parser behavior alone. Verilog/SystemVerilog is explicitly called out as already covered by PGEN's existing IEEE-derived local EBNF/workspace surface.
+
+### Scope of Changes
+- Updated [docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_PNR_PARSER_INTEGRATION_CONTRACT.md):
+  - LEF / DEF: acquire Si2/Cadence LEF/DEF reference documentation
+  - Liberty: acquire Synopsys TAP-in Liberty documentation
+  - SDC: acquire Synopsys TAP-in SDC documentation and use official Tcl syntax docs for tokenization/quoting/substitution behavior
+  - Verilog / SystemVerilog: no new source acquisition needed because PGEN already has the IEEE-derived local EBNF/workspace surface
+  - PNR-specific LEF / DEF / Liberty / SDC / SPEF EBNF files are not present in this repo yet
+  - SPEF: use IEEE 1481 / OLA lineage and pin the exact PNR target revision before implementation
+  - open-source parsers and fixtures are useful conformance aids, not grammar authority
+- Updated steering/continuity surfaces:
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is source-authority planning, not parser implementation or proof closure
+
+### Validation
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-10 - Clarify eda-db is outside PGEN scope
 ### Achievement Summary
 Corrected the PGEN-side PNR integration contract so `eda-db` is treated as outside PGEN's concern, not as a PGEN-tracked ownership surface.
