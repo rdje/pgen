@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend always_ff rich nonblocking assignment-target proof retained
+### Context
+The generated `rtl_frontend` contract had grown strong procedural/dataflow assignment-target coverage, but the sequential lane still mostly relied on the older reduced `always_ff_well_formed` sample. The next useful proof was a richer `always_ff` block using nonblocking assignments with the same ranged/member and concatenated target surfaces.
+
+### What Was Changed
+- Added `always_ff_rich_nonblocking_assignment_targets` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - ranged/member nonblocking target:
+    - `cfgs[IDX].data[HI:LO] <= SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);`
+  - concatenated nonblocking target:
+    - `{cfgs[IDX].valid, cfgs[0].valid} <= {d[0], cfgs[IDX].data[BIT]};`
+- The contract requires AST rule presence for:
+  - `struct_type`
+  - `unpacked_dimension`
+  - `kw_always_ff`
+  - `procedural_block`
+  - `assignment_target`
+  - `assignment_operator`
+  - `conditional_expr`
+  - `additive_expr`
+  - `shift_expr`
+  - `concatenation_expr`
+  - `ranged_signal_reference`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-ff-rich-target.dQOMbb/always_ff_rich_nonblocking_targets.sv /tmp/pgen-rtl-ff-rich-target.dQOMbb/always_ff_rich_nonblocking_targets_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This extends the rich assignment-target proof from combinational/dataflow contexts into the sequential `always_ff` path.
+- It keeps the nonblocking `<=` policy surface tied to realistic member/range/concatenation target shapes instead of only reduced scalar examples.
+- The live label stays `In Progress` because this is focused generated-contract proof widening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - `always_ff` rich-target near-miss rejects, especially blocking `=` policy and malformed target lists,
+  - richer `always_latch` assignment-target coverage if the generated subset intends to retain that lane too,
+  - generated-vs-handwritten parity probes for the retained assignment-target cross-product.
+
 ## 2026-04-10 - rtl_frontend continuous ranged target near-miss rejects retained
 ### Context
 After retaining a positive continuous ranged/member assignment target, the adjacent negative surface was malformed range/index structure on the same `assign` target path. This mirrors the earlier procedural ranged-target rejects without assuming procedural coverage automatically protects continuous dataflow assignments.

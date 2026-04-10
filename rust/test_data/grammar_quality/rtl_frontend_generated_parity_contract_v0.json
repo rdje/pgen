@@ -28,6 +28,52 @@
       "sample": "module top (\n    input logic clk,\n    input logic rst_n,\n    input logic d,\n    output logic q\n);\nalways_ff @(posedge clk or negedge rst_n) begin\n    if (!rst_n)\n        q <= 0;\n    else\n        q <= d;\nend\nendmodule\n"
     },
     {
+      "label": "always_ff_rich_nonblocking_assignment_targets",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "struct_type",
+        "unpacked_dimension",
+        "kw_always_ff",
+        "procedural_block",
+        "assignment_target",
+        "assignment_operator",
+        "conditional_expr",
+        "additive_expr",
+        "shift_expr",
+        "concatenation_expr",
+        "ranged_signal_reference"
+      ],
+      "expected_rule_texts": {
+        "kw_always_ff": [
+          "always_ff"
+        ],
+        "assignment_operator": [
+          "<=",
+          "<="
+        ],
+        "assignment_target": [
+          "cfgs[IDX].data[HI:LO]",
+          "{cfgs[IDX].valid, cfgs[0].valid}",
+          "cfgs[IDX].valid",
+          "cfgs[0].valid"
+        ],
+        "concatenation_expr": [
+          "{d[0], cfgs[IDX].data[BIT]}"
+        ],
+        "procedural_block": [
+          "always_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] <= SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\n    {cfgs[IDX].valid, cfgs[0].valid} <= {d[0], cfgs[IDX].data[BIT]};\nend"
+        ],
+        "ranged_signal_reference": [
+          "cfgs[IDX].data[HI:LO]",
+          "cfgs[0].data[HI:LO]"
+        ]
+      },
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic clk,\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] <= SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\n    {cfgs[IDX].valid, cfgs[0].valid} <= {d[0], cfgs[IDX].data[BIT]};\nend\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_ports_and_nets",
       "expected_parse_ok": true,
       "require_ast_json": true,
