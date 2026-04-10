@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend always-star and always-latch ranged near-miss rejects retained
+### Context
+After retaining lane-local concatenated-target rejects for plain `always @(*)` and `always_latch`, the symmetric malformed-target slice was ranged/member syntax under those same block forms. The generated contract already had generic procedural and continuous ranged/member rejects, but not exact proof for the newly retained non-`always_ff` procedural lanes.
+
+### What Was Changed
+- Added negative generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `always_star_ranged_member_assignment_target_missing_range_colon`
+  - `always_star_indexed_member_assignment_target_empty_index`
+  - `always_latch_ranged_member_assignment_target_missing_range_colon`
+  - `always_latch_indexed_member_assignment_target_empty_index`
+- The retained rejects cover:
+  - `cfgs[IDX].data[HI LO] = ...` inside `always @(*)`
+  - `cfgs[].data[HI:LO] = ...` inside `always @(*)`
+  - `cfgs[IDX].data[HI LO] = ...` inside `always_latch`
+  - `cfgs[].data[HI:LO] = ...` inside `always_latch`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser negative repros:
+  - `always_star_missing_range_colon: rejected-as-expected`
+  - `always_star_empty_index: rejected-as-expected`
+  - `always_latch_missing_range_colon: rejected-as-expected`
+  - `always_latch_empty_index: rejected-as-expected`
+
+### Why It Matters
+- This balances the newly retained non-`always_ff` procedural lanes with exact malformed ranged/member target proof.
+- It avoids treating generic procedural or continuous ranged/member rejects as sufficient evidence for the specific `always @(*)` and `always_latch` lanes.
+- The live label stays `In Progress` because this is focused generated-contract negative-proof hardening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - richer `always @(*)` / `always_latch` positive samples with ranged/member RHS ternaries if needed,
+  - generated-vs-handwritten parity probes for remaining module/package/type surfaces,
+  - broader closure accounting rather than more hand-picked near misses once the local lane matrix feels saturated.
+
 ## 2026-04-10 - rtl_frontend always-star and always-latch near-miss rejects retained
 ### Context
 The generated contract now has rich positive samples for both plain `always @(*)` and `always_latch`, plus an `always_latch` event-control reject. The next useful small proof step was to add lane-local malformed concatenated assignment-target rejects instead of relying on the older `always_comb` malformed-target samples to imply coverage.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-always-star-latch-near-misses)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-always-star-latch-range-near-misses)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained generated `rtl_frontend` plain-`always @(*)` and `always_latch` ranged/member near-miss rejects:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - direct generated-parser probes:
+      - `always_star_missing_range_colon: rejected-as-expected`
+      - `always_star_empty_index: rejected-as-expected`
+      - `always_latch_missing_range_colon: rejected-as-expected`
+      - `always_latch_empty_index: rejected-as-expected`
+    - added retained negative samples:
+      - `always_star_ranged_member_assignment_target_missing_range_colon`
+      - `always_star_indexed_member_assignment_target_empty_index`
+      - `always_latch_ranged_member_assignment_target_missing_range_colon`
+      - `always_latch_indexed_member_assignment_target_empty_index`
+    - this complements the lane-local concatenated-target rejects for the newly retained non-`always_ff` procedural lanes
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+  - next best follow-up:
+    - run retained contract / workflow / book / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
 - Retained generated `rtl_frontend` plain-`always @(*)` and `always_latch` concatenated-target near-miss rejects:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -31,8 +56,8 @@ Use this file to resume work without replaying full chat history.
     - this gives the newly retained non-`always_ff` procedural lanes lane-local malformed concatenated-target proof
     - `rtl_frontend` live label remains:
       - `In Progress`
-  - next best follow-up:
-    - run retained contract / workflow / book / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
+  - committed as:
+    - `74e6dc6 Retain rtl_frontend always star and latch near misses`
 - Retained generated `rtl_frontend` plain-`always @(*)` and `always_latch` procedural lanes:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
