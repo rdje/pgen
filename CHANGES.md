@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend header struct typedef port
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so header-imported struct typedef ports are retained explicitly alongside the already-retained header-imported enum and union typedef ports.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `header_imported_struct_typedef_port`
+  - required AST evidence for `package_declaration`, `typedef_declaration`, `struct_type`, `struct_union_field`, `import_declaration`, `module_declaration`, `port_list`, and `named_data_type`
+  - retained rule-text checks for `import cfg_pkg::cfg_t;`, the `cfg_t` named port type, and the struct fields `logic [7:0] data;` / `logic valid;`
+  - forbids enum/union/qualified-type/net-declaration surfaces so this sample stays focused on the header-imported struct typedef port lane
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Focused direct probes:
+  - `rust/target/debug/parseability_probe --parse rtl_frontend <header-imported struct typedef sample>`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend <header-imported struct typedef sample> <ast-json>`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-10 - Retain rtl_frontend package constant flows
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so package-backed constants are retained across package-qualified expressions, header wildcard imports, and module-body named imports. This locks the generated syntax path for the older handwritten package-constant flow without claiming generated elaboration semantics.

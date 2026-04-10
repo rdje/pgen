@@ -268,6 +268,40 @@
       "sample": "package payload_pkg;\n    typedef union packed {\n        logic [7:0] data;\n        logic [7:0] tag;\n    } payload_t;\nendpackage\n\nmodule top import payload_pkg::payload_t; (\n    input payload_t payload,\n    output logic y\n);\nendmodule\n"
     },
     {
+      "label": "header_imported_struct_typedef_port",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "package_declaration",
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "import_declaration",
+        "module_declaration",
+        "port_list",
+        "named_data_type"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "union_type",
+        "package_qualified_type",
+        "net_declaration"
+      ],
+      "expected_rule_texts": {
+        "import_declaration": [
+          "import cfg_pkg::cfg_t;"
+        ],
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top import cfg_pkg::cfg_t; (\n    input cfg_t cfg,\n    output logic y\n);\nendmodule\n"
+    },
+    {
       "label": "inline_union_typed_net_declaration",
       "expected_parse_ok": true,
       "require_ast_json": true,

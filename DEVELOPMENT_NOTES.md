@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend header-imported struct typedef port retention
+### Context
+The generated `rtl_frontend` contract already retained header-imported enum and union typedef ports, plus struct typedef visibility through local, file-scope, package-qualified, wildcard-imported, and module-body named-imported lanes. The remaining obvious aggregate mismatch was header-imported struct typedef ports.
+
+### Decision
+- Retain the header-imported struct typedef port lane explicitly.
+- Keep it syntax-focused:
+  - package-local `typedef struct packed { ... } cfg_t;`
+  - module header import `module top import cfg_pkg::cfg_t; (...)`
+  - ANSI port using imported `cfg_t`
+- Require AST evidence for:
+  - package declaration and typedef declaration
+  - `struct_type` and `struct_union_field`
+  - header `import_declaration`
+  - module/port-list shape and `named_data_type`
+- Keep `rtl_frontend` at `In Progress`; this is a focused generated-contract retention slice, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `header_imported_struct_typedef_port`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Direct generated-parser probe accepted the sample.
+- AST dump showed `package_declaration`, `typedef_declaration`, `struct_type`, two `struct_union_field` nodes, one `import_declaration`, one `module_declaration`, one `port_list`, and one `named_data_type`.
+- `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- `git diff --check`
+
 ## 2026-04-10 - rtl_frontend package constant generated-contract retention
 ### Context
 The generated `rtl_frontend` contract now retains file-scope and package-backed typedef visibility. The next adjacent handwritten-baseline surface was package-backed constants: package-qualified constants in parameter/range expressions, header wildcard imports that make constants visible in parameter/range expressions, and module-body named imports used by localparams and child instance actuals.

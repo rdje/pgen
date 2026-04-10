@@ -1,6 +1,6 @@
 # Live Achievement Status
 
-Last updated: 2026-04-10
+Last updated: 2026-04-11
 
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
@@ -29,6 +29,7 @@ This file is the authoritative live tracking view for "where we are now".
 
 ## Live Snapshot
 
+Tracker note (2026-04-11): the curated `rtl_frontend` generated contract now also retains a header-imported struct typedef port without changing any live parser-family label. The retained positive sample locks `header_imported_struct_typedef_port`, complementing the existing header-imported enum/union typedef port samples with required package declaration, typedef declaration, struct type, struct field, header import, module/port-list, and named data type evidence. Status stays `In Progress` because this is focused generated-contract proof widening, not broad handwritten-baseline parity closure.
 Tracker note (2026-04-10): the curated `rtl_frontend` generated contract now also retains package-backed constant flows without changing any live parser-family label. The retained positive samples lock `package_qualified_constant_parameter_flow`, `header_wildcard_imported_package_constant_flow`, and `module_named_imported_package_constant_flow`, with required package declaration, parameter/localparam declaration, import, module instantiation, parameter override, port connection, ranged signal reference, scoped identifier, and expression-shape evidence as appropriate per lane. Status stays `In Progress` because this is generated-parser syntax retention, not generated elaboration proof or broad handwritten-baseline parity closure.
 Tracker note (2026-04-10): the curated `rtl_frontend` generated contract now also retains file-scope and package-backed struct typedef surfaces without changing any live parser-family label. The retained positive samples lock `file_scope_typedef_struct_named_net`, `package_qualified_typedef_struct_port`, `package_wildcard_import_typedef_struct_named_net`, and `package_named_import_typedef_struct_named_net`, with required `typedef_declaration`, `struct_type`, `struct_union_field`, `package_qualified_type`, `import_declaration`, `named_data_type`, and `net_declaration` evidence as appropriate per lane. Status stays `In Progress` because this is focused generated-contract proof widening, not broad handwritten-baseline parity closure.
 Tracker note (2026-04-10): the PNR/PGEN integration contract now also records the source-authority rule for future PNR parser EBNF work without changing any live parser-family label. LEF/DEF should be based on Si2/Cadence reference documentation, Liberty and SDC on Synopsys TAP-in downloads, SPEF on the IEEE 1481/OLA lineage with exact revision pinned before implementation, and SDC tokenization on official Tcl syntax docs. Verilog/SystemVerilog is already covered by tracked IEEE-derived local EBNF/workspaces under `grammars/`, `docs/systemverilog`, and `docs/verilog`, so PNR netlist work there is profile/subset and fixture/gate work rather than fresh source acquisition. Tutorials, mirrored PDFs, and open-source parser behavior are useful aids, not grammar authority.
