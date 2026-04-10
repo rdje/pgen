@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend local typedef-backed struct and enum declarations retained
+### Context
+After retaining local union declarations, the generated contract still lacked the two neighboring handwritten-baseline local typedef named-use surfaces: `typedef struct ... cfg_t; cfg_t cfg;` and `typedef enum ... state_t; state_t state;`.
+
+### What Was Changed
+- Added generated-contract samples to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `typedef_struct_named_net_declaration`
+  - `typedef_enum_named_net_declaration`
+- The retained samples cover:
+  - module-local `typedef struct packed { ... } cfg_t;`
+  - named net declaration `cfg_t cfg;`
+  - module-local `typedef enum logic [1:0] { ... } state_t;`
+  - named net declaration `state_t state;`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser probes:
+  - `typedef_struct_named_net: ACCEPTED`
+  - `typedef_enum_named_net: ACCEPTED`
+- Direct AST dumps:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-typedefs.vCliU9/typedef_struct_named_net.sv /tmp/pgen-rtl-typedef-struct.ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-typedefs.vCliU9/typedef_enum_named_net.sv /tmp/pgen-rtl-typedef-enum.ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation and workflow gates:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
+### Why It Matters
+- This completes the immediate local typedef aggregate trio in the generated contract:
+  - struct
+  - enum
+  - union
+- It makes named-data-type reuse explicit for local typedef-backed declarations, not only imported or union cases.
+- The live label stays `In Progress` because this is focused generated-contract proof widening, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - package wildcard/named import typedef-backed declarations,
+  - file-scope typedefs used by later modules,
+  - broader generated-vs-handwritten parity accounting to reduce reliance on hand-picked samples.
+
 ## 2026-04-10 - rtl_frontend local union declarations retained
 ### Context
 After retaining the header-imported union typedef port-list sample, the next nearby type/import gap was local union syntax. The handwritten baseline covers both inline union typed nets and module-local typedef-union named uses; the generated contract did not yet make those surfaces explicit.

@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-04-10 - Retain rtl_frontend local typedef named declarations
+### Achievement Summary
+Expanded the curated generated `rtl_frontend` contract with local typedef-backed struct and enum named net declarations, completing the immediate sibling set around the previously retained local union samples.
+
+### Scope of Changes
+- Expanded [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `typedef_struct_named_net_declaration`
+  - added `typedef_enum_named_net_declaration`
+  - locks `struct_type`, `struct_union_field`, `enum_type`, `enum_item`, `named_data_type`, and `net_declaration` coverage for:
+    - `typedef struct packed { ... } cfg_t; cfg_t cfg;`
+    - `typedef enum logic [1:0] { ... } state_t; state_t state;`
+- Updated status/docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Synced continuity docs:
+  - [CHANGES.md](CHANGES.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live-status label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is retained generated-contract proof widening, not broad Phase S closure
+
+### Validation
+- Direct generated-parser probes:
+  - `typedef_struct_named_net: ACCEPTED`
+  - `typedef_enum_named_net: ACCEPTED`
+- Direct AST dumps:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-typedefs.vCliU9/typedef_struct_named_net.sv /tmp/pgen-rtl-typedef-struct.ast.json`
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/pgen-rtl-local-typedefs.vCliU9/typedef_enum_named_net.sv /tmp/pgen-rtl-typedef-enum.ast.json`
+- Retained generated-contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation and workflow gates:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `git diff --check`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+
 ## 2026-04-10 - Retain rtl_frontend local union declarations
 ### Achievement Summary
 Expanded the curated generated `rtl_frontend` contract with local union declaration coverage: an inline `union packed` net declaration and a module-local `typedef union packed` followed by a named-type net declaration.

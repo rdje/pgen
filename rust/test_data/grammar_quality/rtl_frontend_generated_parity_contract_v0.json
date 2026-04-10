@@ -318,6 +318,60 @@
       "sample": "module top (\n    output logic y\n);\ntypedef union packed {\n    logic [7:0] data;\n    logic [7:0] tag;\n} payload_t;\npayload_t payload;\nendmodule\n"
     },
     {
+      "label": "typedef_struct_named_net_declaration",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "typedef_declaration",
+        "struct_type",
+        "struct_union_field",
+        "named_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "enum_type",
+        "union_type"
+      ],
+      "expected_rule_texts": {
+        "named_data_type": [
+          "cfg_t"
+        ],
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ]
+      },
+      "sample": "module top (\n    output logic y\n);\ntypedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\ncfg_t cfg;\nendmodule\n"
+    },
+    {
+      "label": "typedef_enum_named_net_declaration",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "typedef_declaration",
+        "enum_type",
+        "enum_item",
+        "named_data_type",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "struct_type",
+        "union_type"
+      ],
+      "expected_rule_texts": {
+        "enum_item": [
+          "IDLE = 0",
+          "BUSY = 1"
+        ],
+        "named_data_type": [
+          "state_t"
+        ]
+      },
+      "sample": "module top (\n    output logic y\n);\ntypedef enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state_t;\nstate_t state;\nendmodule\n"
+    },
+    {
       "label": "unpacked_array_struct_member_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,

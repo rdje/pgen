@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-10 (+0200, task: rtl-frontend-local-union-decls)
+Last updated: 2026-04-10 (+0200, task: rtl-frontend-local-typedef-struct-enum)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,37 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained generated `rtl_frontend` local typedef-backed struct and enum named-use proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - important continuity detail:
+    - direct generated-parser probes:
+      - `typedef_struct_named_net: ACCEPTED`
+      - `typedef_enum_named_net: ACCEPTED`
+    - added retained positive samples:
+      - `typedef_struct_named_net_declaration`
+      - `typedef_enum_named_net_declaration`
+    - retained samples lock:
+      - module-local `typedef struct packed { ... } cfg_t;`
+      - named net declaration `cfg_t cfg;`
+      - module-local `typedef enum logic [1:0] { IDLE = 0, BUSY = 1 } state_t;`
+      - named net declaration `state_t state;`
+    - direct AST dumps confirmed `struct_type`, `struct_union_field`, `enum_type`, `enum_item`, `named_data_type`, `net_declaration`, and `module_declaration` evidence
+    - `rtl_frontend` live label remains:
+      - `In Progress`
+    - retained validation already green:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `git diff --check`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - next best follow-up:
+    - commit this contract-doc wave if still clean except pre-existing untracked docs
 - Retained generated `rtl_frontend` local union declaration proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
@@ -33,8 +64,8 @@ Use this file to resume work without replaying full chat history.
       - `In Progress`
     - retained validation already green:
       - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
-  - next best follow-up:
-    - run filtered local workflow / mdBook / diff checks, then commit this contract-doc wave if still clean except pre-existing untracked docs
+  - committed as:
+    - `9fc804a Retain rtl_frontend local union declarations`
 - Retained generated `rtl_frontend` header-imported union typedef port proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
