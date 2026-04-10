@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-10 - rtl_frontend procedural/dataflow ternary assignment proof retained
+### Context
+The ternary/binary expression ladder was retained across ordered/named parameter overrides and ordered/named port actuals. The next useful surface was outside instantiations: procedural `always_comb` assignments and continuous `assign` statements should reuse the same `rtl_expr` ladder.
+
+### What Was Changed
+- Added `procedural_and_dataflow_ternary_binary_exprs` to [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json).
+- The retained sample covers:
+  - procedural assignment inside `always_comb`:
+    - `tmp = SEL ? (a[HI:LO] + d) : (d << 1);`
+  - continuous assignment:
+    - `assign y = (a[HI:LO] + d) * 2;`
+- The contract requires AST rule presence for:
+  - `procedural_block`
+  - `kw_always_comb`
+  - `assignment_operator`
+  - `continuous_assign`
+  - `conditional_expr`
+  - `additive_expr`
+  - `shift_expr`
+  - `ranged_signal_reference`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+
+### Validation
+- Direct generated-parser/AST repro:
+  - `./rust/target/debug/parseability_probe --parse-dump-ast-pretty rtl_frontend /tmp/rtl_frontend_dataflow_procedural_ternary_expr.sv /tmp/rtl_frontend_dataflow_procedural_ternary_expr_ast.json`
+- Retained gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Workflow/docs gates:
+  - `PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+
+### Why It Matters
+- This proves the rich expression ladder is retained outside instantiation argument lists.
+- It links the recent ternary/binary work to the procedural/dataflow subset that RTLSyn-facing parsing must keep exercising.
+- The live label stays `In Progress` because this is a curated positive-contract expansion, not full handwritten-baseline parity closure.
+
+### Steering
+- Good next targets:
+  - malformed ternary rejects in procedural/dataflow assignment RHS values,
+  - a broader generated-vs-handwritten parity probe for these retained expression/list slices,
+  - richer assignment targets paired with these expression RHS shapes.
+
 ## 2026-04-10 - rtl_frontend ternary near-miss rejects retained
 ### Context
 After retaining ternary/binary expression shapes across ordered/named parameter overrides and ordered/named port actuals, the adjacent risk was accidental over-acceptance of malformed `? :` punctuation. The grammar should keep requiring the colon and the false branch in every ternary expression shape.
