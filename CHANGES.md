@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend named-port instance arrays
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so module instance arrays with explicit named port connections are retained alongside the existing wildcard-port instance-array lane.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `instance_array_with_named_ports`
+  - retained `child lanes[1:0] (.a(a), .y(y));`
+  - required AST evidence for `module_instantiation`, `instance_item`, `unpacked_dimension`, `port_connection`, and `module_declaration`
+  - forbids `parameter_override`, `procedural_block`, and `generate_region` so this lane stays focused on plain instance-array syntax with named ports
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend generate if/else dataflow
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a positive `generate if ... else ...` dataflow lane is retained explicitly, including AST evidence for the `kw_else` branch separator.

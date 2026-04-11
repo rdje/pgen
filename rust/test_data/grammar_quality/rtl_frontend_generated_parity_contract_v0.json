@@ -1257,6 +1257,39 @@
       "sample": "module child (\n    input logic a,\n    input logic b,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    input logic b,\n    output logic y\n);\nchild lanes[1:0] (.*);\nendmodule\n"
     },
     {
+      "label": "instance_array_with_named_ports",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "module_instantiation",
+        "instance_item",
+        "unpacked_dimension",
+        "port_connection"
+      ],
+      "forbidden_rule_names": [
+        "parameter_override",
+        "procedural_block",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child lanes[1:0] (.a(a), .y(y));"
+        ],
+        "instance_item": [
+          "lanes[1:0] (.a(a), .y(y))"
+        ],
+        "unpacked_dimension": [
+          "[1:0]"
+        ],
+        "port_connection": [
+          ".a(a)",
+          ".y(y)"
+        ]
+      },
+      "sample": "module child (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    output logic y\n);\nchild lanes[1:0] (.a(a), .y(y));\nendmodule\n"
+    },
+    {
       "label": "ordered_parameter_and_port_actual_repetition",
       "expected_parse_ok": true,
       "require_ast_json": true,

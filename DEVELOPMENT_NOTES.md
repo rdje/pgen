@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend named-port instance-array retention
+### Context
+The generated `rtl_frontend` contract retained instance-array syntax through `instance_array_with_wildcard_ports`, and it retained many named-port / named-override instantiation shapes elsewhere. The handwritten baseline also has a compact plain instance-array lane with explicit named port connections: `child lanes[1:0] (.a(a), .y(y));`.
+
+### Decision
+- Retain that named-port instance-array shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - child module with `input logic a` and `output logic y`
+  - top module with matching `a` and `y`
+  - one module instantiation array `lanes[1:0]`
+  - explicit named port connections `.a(a)` and `.y(y)`
+- Require AST evidence for:
+  - `module_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `unpacked_dimension`
+  - `port_connection`
+- Forbid `parameter_override`, `procedural_block`, and `generate_region` in this sample so the lane proves plain instance-array syntax with named ports rather than nearby constructs.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `instance_array_with_named_ports`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend generate if/else dataflow retention
 ### Context
 The generated `rtl_frontend` contract already retained a positive `generate if` lane and a positive `generate for` lane, but it did not explicitly retain the `generate if ... else ...` shape. The grammar supports `generate_if := kw_if lparen rtl_expr rparen generate_body ( kw_else generate_body )?`, so the optional else branch deserved a direct generated-contract sample rather than relying on procedural `if/else` or single-branch generate coverage.
