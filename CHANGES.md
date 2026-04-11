@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend named-port bit-select/concat actuals
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a named-port instance carrying both a bit-select actual and a concatenation actual is retained directly from the handwritten elaboration baseline.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `named_port_bitselect_and_concat_actuals`
+  - retained `child u_child (.a(bus[IDX]), .y({a, b}));`
+  - required AST evidence for `module_instantiation`, `instance_item`, `port_connection`, `signal_reference`, `concatenation_expr`, and `module_declaration`
+  - forbids `parameter_override`, `procedural_block`, and `generate_region` so this lane stays focused on named-port actual expression syntax
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend parameterized instance arrays
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a parameterized module instance array with explicit named ports is retained directly from the handwritten elaboration baseline.
