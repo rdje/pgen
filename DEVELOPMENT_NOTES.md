@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-12 - rtl_frontend scalar wildcard instance retention
+### Context
+The handwritten `wildcard_port_connections_expand_against_child_ports` baseline keeps a compact scalar wildcard-port module instantiation shape: `child u_child (.*);`. The generated contract already retained wildcard ports through an instance-array sample, but this reduced scalar wildcard lane should also stay explicit so parity does not depend only on the larger array sample.
+
+### Decision
+- Retain a focused scalar wildcard-port module-instantiation parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `child` module with three scalar ports
+  - one `top` module with matching scalar ports
+  - one scalar instance: `child u_child (.*);`
+- Require AST evidence for:
+  - `module_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+- Retain exact rule texts for `module_instantiation`, `instance_item`, and `port_connection`.
+- Forbid parameter-override, unpacked-dimension, procedural, generate, and continuous-assign evidence so this remains a focused scalar wildcard instantiation proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `scalar_wildcard_port_connection`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - rtl_frontend scalar named override instance retention
 ### Context
 The handwritten `parses_module_instantiations_with_named_overrides` baseline keeps a compact scalar module instantiation shape: `child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));`. The generated contract already retained richer parameterized instance-array and expression-heavy override samples, but this reduced scalar named-override/named-port lane should also stay explicit so parity does not depend only on larger nearby samples.
