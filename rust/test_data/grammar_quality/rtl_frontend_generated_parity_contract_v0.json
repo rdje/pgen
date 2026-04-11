@@ -1493,6 +1493,44 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].valid = d[0];\nend\nassign cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nendmodule\n"
     },
     {
+      "label": "continuous_struct_member_bitselect_assignment_target",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "continuous_assign",
+        "assignment_target",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block",
+        "generate_region",
+        "module_instantiation",
+        "concatenation_expr",
+        "ranged_signal_reference",
+        "unpacked_dimension"
+      ],
+      "expected_rule_texts": {
+        "assignment_target": [
+          "cfg.data[BIT]"
+        ],
+        "continuous_assign": [
+          "assign cfg.data[BIT] = d;"
+        ],
+        "signal_reference": [
+          "cfg.data[BIT]",
+          "BIT",
+          "d"
+        ]
+      },
+      "sample": "module top #(\n    parameter BIT = 1\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.data[BIT] = d;\nendmodule\n"
+    },
+    {
       "label": "continuous_ranged_member_assignment_target_missing_range_colon",
       "expected_parse_ok": false,
       "require_ast_json": false,

@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend continuous struct bitselect target retention
+### Context
+The generated `rtl_frontend` contract already retained richer continuous assignment lanes for ranged member targets, concatenated targets, ternary values, and procedural/dataflow combinations, but the handwritten `parses_typed_continuous_assign_targets` baseline uses a narrower continuous assignment target: `assign cfg.data[BIT] = d;`.
+
+### Decision
+- Retain a focused continuous struct-member bit-select target shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with a `BIT` parameter and scalar input
+  - one inline packed struct declaration for `cfg`
+  - one continuous assignment: `assign cfg.data[BIT] = d;`
+- Require AST evidence for:
+  - `module_declaration`
+  - `parameter_declaration_sequence`
+  - `port_list`
+  - `struct_type`
+  - `struct_union_field`
+  - `net_declaration`
+  - `continuous_assign`
+  - `assignment_target`
+  - `signal_reference`
+- Retain exact rule texts for `assignment_target`, `continuous_assign`, and the generated `signal_reference` nodes. The generated AST preserves `BIT` as a nested `signal_reference` inside the index expression, so the contract records that explicitly.
+- Forbid procedural/generate/instantiation/concatenation/ranged-signal/unpacked-dimension evidence so this stays focused on the isolated continuous struct-member bit-select target rather than nearby richer lanes.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `continuous_struct_member_bitselect_assignment_target`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend scalar always-star ifelse retention
 ### Context
 The generated `rtl_frontend` contract already retained a rich `always @(*)` assignment-target lane with structs, concatenations, and a continuous assign, but the handwritten `parses_always_star_blocks` baseline uses a narrower scalar `always @(*)` if/else block: `always @(*) begin if (a) y = 1; else y = 0; end`.

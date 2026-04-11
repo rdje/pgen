@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend continuous struct bitselect target
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's typed continuous assignment target `cfg.data[BIT]` is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `continuous_struct_member_bitselect_assignment_target`
+  - retained `assign cfg.data[BIT] = d;`
+  - required AST evidence for `module_declaration`, `parameter_declaration_sequence`, `port_list`, `struct_type`, `struct_union_field`, `net_declaration`, `continuous_assign`, `assignment_target`, and `signal_reference`
+  - retains exact `assignment_target` text for `cfg.data[BIT]`
+  - retains generated `signal_reference` evidence for `cfg.data[BIT]`, the index expression `BIT`, and source value `d`
+  - forbids `procedural_block`, `generate_region`, `module_instantiation`, `concatenation_expr`, `ranged_signal_reference`, and `unpacked_dimension` so this lane stays focused on the isolated continuous struct-member bit-select target
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend scalar always-star ifelse
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's scalar `always @(*)` if/else block is retained explicitly.

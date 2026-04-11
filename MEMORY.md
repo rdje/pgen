@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-scalar-always-star-ifelse)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-continuous-struct-bitselect-target)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,47 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` continuous struct-member bit-select assignment-target lane:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `continuous_struct_member_bitselect_assignment_target`
+  - retained syntax lane:
+    - `struct packed { logic [7:0] data; logic valid; } cfg;`
+    - `assign cfg.data[BIT] = d;`
+  - AST evidence required:
+    - `module_declaration`
+    - `parameter_declaration_sequence`
+    - `port_list`
+    - `struct_type`
+    - `struct_union_field`
+    - `net_declaration`
+    - `continuous_assign`
+    - `assignment_target`
+    - `signal_reference`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this complements the richer continuous ranged-member/concatenated-target lanes by proving the handwritten baseline's isolated struct-member bit-select target
+    - the generated AST preserves `BIT` as a nested `signal_reference` inside `cfg.data[BIT]`, and the retained contract records that evidence directly
+    - the lane intentionally forbids `procedural_block`, `generate_region`, `module_instantiation`, `concatenation_expr`, `ranged_signal_reference`, and `unpacked_dimension` evidence so it stays focused
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+    - implementation note:
+      - the first direct contract run failed only because the expected `signal_reference` list omitted the nested `BIT` index-expression reference; the retained contract now records that generated AST evidence explicitly
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` scalar `always @(*)` if/else lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
