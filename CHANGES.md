@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend always_ff bitselect target
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's `always_ff` struct-member bit-select nonblocking assignment target `cfgs[IDX].data[BIT]` is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_ff_struct_member_bitselect_nonblocking_target`
+  - retained `cfgs[IDX].data[BIT] <= d;` inside `always_ff @(posedge clk) begin ... end`
+  - required AST evidence for `rtl_frontend_file`, `module_declaration`, `parameter_declaration_sequence`, `port_list`, `struct_type`, `struct_union_field`, `net_declaration`, `unpacked_dimension`, `kw_always_ff`, `event_control_list`, `event_control_item`, `event_edge`, `procedural_block`, `assignment_target`, `always_ff_assignment_operator`, and `signal_reference`
+  - retained exact `assignment_target`, `always_ff_assignment_operator`, `event_control_list`, `kw_always_ff`, and `procedural_block` texts
+  - forbids plain/latch always, continuous-assign, generate, instantiation, concatenation, and ranged-signal evidence so this lane stays focused on the isolated `always_ff` struct-member bit-select nonblocking target
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend continuous struct concat target
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's structured continuous assignment target `{cfg.data[BIT], cfg.valid}` is retained explicitly.

@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-continuous-struct-concat-target)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-always-ff-bitselect-target)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,53 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` `always_ff` struct-member bit-select nonblocking target lane:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `always_ff_struct_member_bitselect_nonblocking_target`
+  - retained syntax lane:
+    - `struct packed { logic [7:0] data; logic valid; } cfgs [0:1];`
+    - `always_ff @(posedge clk) begin`
+    - `cfgs[IDX].data[BIT] <= d;`
+  - AST evidence required:
+    - `rtl_frontend_file`
+    - `module_declaration`
+    - `parameter_declaration_sequence`
+    - `port_list`
+    - `struct_type`
+    - `struct_union_field`
+    - `net_declaration`
+    - `unpacked_dimension`
+    - `kw_always_ff`
+    - `event_control_list`
+    - `event_control_item`
+    - `event_edge`
+    - `procedural_block`
+    - `assignment_target`
+    - `always_ff_assignment_operator`
+    - `signal_reference`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this complements the richer `always_ff` ranged/concatenated target lane by proving the handwritten baseline's isolated typed procedural bit-select target
+    - exact rule text is retained for `assignment_target`, `always_ff_assignment_operator`, `event_control_list`, `kw_always_ff`, and `procedural_block`
+    - the lane intentionally forbids plain/latch always, continuous-assign, generate, instantiation, concatenation, and ranged-signal evidence so it stays focused
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` continuous struct-member concatenated assignment-target lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
