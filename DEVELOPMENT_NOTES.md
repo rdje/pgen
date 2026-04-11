@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-12 - rtl_frontend scalar named override instance retention
+### Context
+The handwritten `parses_module_instantiations_with_named_overrides` baseline keeps a compact scalar module instantiation shape: `child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));`. The generated contract already retained richer parameterized instance-array and expression-heavy override samples, but this reduced scalar named-override/named-port lane should also stay explicit so parity does not depend only on larger nearby samples.
+
+### Decision
+- Retain a focused scalar named-parameter-override plus named-port module-instantiation parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `child` module with a single `WIDTH` parameter
+  - one `top` module with a single `TOP_W` parameter
+  - one scalar instance: `child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));`
+- Require AST evidence for:
+  - `module_declaration`
+  - `parameter_declaration_sequence`
+  - `parameter_declaration_head`
+  - `module_instantiation`
+  - `parameter_override`
+  - `instance_item`
+  - `port_connection`
+  - `packed_range`
+- Retain exact rule texts for `module_instantiation`, `parameter_declaration_head`, `parameter_override`, `instance_item`, and `port_connection`.
+- Forbid unpacked-dimension, procedural, generate, and continuous-assign evidence so this remains a focused scalar instantiation proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `scalar_named_parameter_override_and_named_ports`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend always_latch unknown identifier syntax retention
 ### Context
 The handwritten `elaboration_rejects_unknown_identifiers_in_always_latch_blocks` baseline separates syntax from semantic elaboration: `always_latch begin if (en) q <= missing; end` parses as a latch procedural block, then elaboration rejects `missing` because it is not a known parent-scope identifier. The generated parser contract should preserve the syntax side of that boundary without implying semantic acceptance.

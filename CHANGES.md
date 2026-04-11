@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-12 - Retain rtl_frontend scalar named override instance syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's reduced scalar module instantiation with a named parameter override and named port connections is retained directly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `scalar_named_parameter_override_and_named_ports`
+  - retained `child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));` as an expected parse success
+  - required AST evidence for `module_declaration`, `parameter_declaration_sequence`, `parameter_declaration_head`, `module_instantiation`, `parameter_override`, `instance_item`, `port_connection`, and `packed_range`
+  - retained exact `module_instantiation`, `parameter_declaration_head`, `parameter_override`, `instance_item`, and `port_connection` texts
+  - forbids unpacked-dimension, procedural, generate, and continuous-assign evidence so this lane stays focused on scalar instantiation syntax
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend always_latch unknown identifier syntax
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so an unknown identifier in an `always_latch` body is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.
