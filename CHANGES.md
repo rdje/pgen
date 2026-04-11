@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend scalar always-star ifelse
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's scalar `always @(*)` if/else block is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_star_scalar_if_else_block`
+  - retained `always @(*) begin ... end` with `if (a)`, `y = 1;`, `else`, and `y = 0;`
+  - required AST evidence for `rtl_frontend_file`, `module_declaration`, `port_list`, `kw_always`, `always_star_event`, `procedural_block`, `kw_begin`, `kw_if`, `kw_else`, `assignment_target`, and `assignment_operator`
+  - retains exact `always_star_event` text for `@(*)` and exact `assignment_operator` texts for both `=` assignments
+  - forbids `struct_type`, `unpacked_dimension`, `continuous_assign`, `generate_region`, and `module_instantiation` so this lane stays focused on the scalar always-star procedural block
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend scalar always_latch nonblocking
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's scalar `always_latch` block with a nonblocking assignment is retained explicitly.
