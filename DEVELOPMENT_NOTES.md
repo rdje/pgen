@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend continuous struct concat value retention
+### Context
+The generated `rtl_frontend` contract already retained richer continuous/dataflow concatenation lanes and the isolated `cfg.data[BIT]` continuous assignment target. The handwritten `parses_structured_continuous_assign_values` baseline also uses a narrower value-side shape: `assign cfg.valid = {cfg.data[BIT], cfg.data[0]};`.
+
+### Decision
+- Retain a focused continuous struct-member concatenation-value shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with a `BIT` parameter and scalar input
+  - one inline packed struct declaration for `cfg`
+  - one continuous assignment: `assign cfg.valid = {cfg.data[BIT], cfg.data[0]};`
+- Require AST evidence for:
+  - `module_declaration`
+  - `parameter_declaration_sequence`
+  - `port_list`
+  - `struct_type`
+  - `struct_union_field`
+  - `net_declaration`
+  - `continuous_assign`
+  - `assignment_target`
+  - `concatenation_expr`
+  - `signal_reference`
+- Retain exact rule texts for `assignment_target`, `continuous_assign`, `concatenation_expr`, and the generated `signal_reference` nodes.
+- Forbid procedural/generate/instantiation/ranged-signal/unpacked-dimension evidence so this stays focused on the isolated continuous struct-member concatenation value rather than nearby richer lanes.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `continuous_struct_member_concatenation_value`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend continuous struct bitselect target retention
 ### Context
 The generated `rtl_frontend` contract already retained richer continuous assignment lanes for ranged member targets, concatenated targets, ternary values, and procedural/dataflow combinations, but the handwritten `parses_typed_continuous_assign_targets` baseline uses a narrower continuous assignment target: `assign cfg.data[BIT] = d;`.
