@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend scalar always_ff blocking reject retention
+### Context
+The generated `rtl_frontend` contract already retained a richer `always_ff` blocking-assignment negative with ranged/member targets and expression-heavy RHS content. The handwritten `elaboration_rejects_blocking_assignments_in_always_ff_blocks` baseline also uses the narrower core policy shape: `q = 1;` inside `always_ff @(posedge clk)`.
+
+### Decision
+- Retain a focused scalar `always_ff` blocking-assignment rejection directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with a scalar clock input and scalar output
+  - one `always_ff @(posedge clk) begin ... end` block
+  - one blocking assignment: `q = 1;`
+- Mark it `expected_parse_ok: false` because the generated grammar's `always_ff` lane routes assignments through the nonblocking-only `always_ff_assignment_operator`.
+- Keep the richer ranged/member blocking-assignment negative too; the scalar negative locks the policy, while the richer negative keeps the structured target/expression policy covered.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract negative retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `always_ff_scalar_blocking_assignment_rejected`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend always_comb concat target retention
 ### Context
 The generated `rtl_frontend` contract already retained aggregate procedural/dataflow concatenated target samples, plus isolated `always_ff` and continuous structured lanes. The handwritten `elaboration_accepts_concatenated_procedural_assignment_targets` baseline also uses a narrower target-side shape: `{cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;` inside `always_comb begin ... end`.

@@ -224,6 +224,12 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;\nend\nendmodule\n"
     },
     {
+      "label": "always_ff_scalar_blocking_assignment_rejected",
+      "expected_parse_ok": false,
+      "require_ast_json": false,
+      "sample": "module top (\n    input logic clk,\n    output logic q\n);\nalways_ff @(posedge clk) begin\n    q = 1;\nend\nendmodule\n"
+    },
+    {
       "label": "always_ff_blocking_ranged_assignment_target",
       "expected_parse_ok": false,
       "require_ast_json": false,

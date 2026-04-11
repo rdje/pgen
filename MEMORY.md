@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-always-comb-concat-target)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-scalar-always-ff-blocking-reject)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,34 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` scalar `always_ff` blocking-assignment reject:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `always_ff_scalar_blocking_assignment_rejected`
+  - retained negative syntax lane:
+    - `always_ff @(posedge clk) begin`
+    - `q = 1;`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this complements the richer `always_ff_blocking_ranged_assignment_target` negative so the generated grammar's nonblocking-only `always_ff` policy is locked by a scalar reduced negative and by the richer ranged/member negative
+    - the sample is intentionally parse-negative, not AST-shape-positive
+    - this is focused generated-contract negative-proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` `always_comb` struct-member concatenated assignment-target lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend scalar always_ff blocking reject
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's scalar `always_ff` blocking-assignment rejection `q = 1;` is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_ff_scalar_blocking_assignment_rejected`
+  - retained `q = 1;` inside `always_ff @(posedge clk) begin ... end` as an expected parse rejection
+  - complements `always_ff_blocking_ranged_assignment_target` so the generated grammar's nonblocking-only `always_ff` policy is locked by both a scalar reduced negative and a richer ranged/member negative
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract negative-proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend always_comb concat target
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's `always_comb` structured procedural assignment target `{cfgs[IDX].data[BIT], cfgs[IDX].valid}` is retained explicitly.
