@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-unknown-member-concat-target-syntax)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-always-latch-unknown-identifier-syntax)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,47 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` `always_latch` unknown body identifier syntax lane:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `always_latch_unknown_body_identifier_parse_surface`
+  - retained syntax lane:
+    - `always_latch begin`
+    - `if (en)`
+    - `q <= missing;`
+  - AST evidence required:
+    - `rtl_frontend_file`
+    - `module_declaration`
+    - `port_list`
+    - `kw_always_latch`
+    - `procedural_block`
+    - `kw_begin`
+    - `kw_if`
+    - `assignment_target`
+    - `assignment_operator`
+    - `signal_reference`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this intentionally proves parser syntax acceptance only; unknown identifier rejection remains an elaboration concern
+    - exact rule text is retained for `assignment_operator`, `assignment_target`, `kw_always_latch`, `procedural_block`, and `signal_reference`
+    - the lane intentionally forbids unrelated struct, unpacked-dimension, continuous-assign, generate, and instantiation evidence so it stays focused
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` unknown struct-member continuous concatenated assignment-target syntax lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

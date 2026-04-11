@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend always_latch unknown identifier syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so an unknown identifier in an `always_latch` body is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_latch_unknown_body_identifier_parse_surface`
+  - retained `always_latch begin if (en) q <= missing; end` as an expected parse success
+  - required AST evidence for `rtl_frontend_file`, `module_declaration`, `port_list`, `kw_always_latch`, `procedural_block`, `kw_begin`, `kw_if`, `assignment_target`, `assignment_operator`, and `signal_reference`
+  - retained exact `assignment_operator`, `assignment_target`, `kw_always_latch`, `procedural_block`, and `signal_reference` texts
+  - forbids unrelated struct, unpacked-dimension, continuous-assign, generate, and instantiation evidence so this lane stays focused on parser syntax acceptance
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - unknown identifier rejection remains an elaboration concern, not a generated-parser syntax concern
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend unknown member concat target syntax
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so unknown struct-member continuous concatenated assignment targets are retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.

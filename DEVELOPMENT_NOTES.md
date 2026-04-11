@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend always_latch unknown identifier syntax retention
+### Context
+The handwritten `elaboration_rejects_unknown_identifiers_in_always_latch_blocks` baseline separates syntax from semantic elaboration: `always_latch begin if (en) q <= missing; end` parses as a latch procedural block, then elaboration rejects `missing` because it is not a known parent-scope identifier. The generated parser contract should preserve the syntax side of that boundary without implying semantic acceptance.
+
+### Decision
+- Retain a focused unknown-body-identifier `always_latch` parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with a scalar enable input and scalar output
+  - one `always_latch begin ... end` block
+  - one nonblocking assignment: `q <= missing;`
+- Mark it `expected_parse_ok: true` because identifier binding is not a generated-parser syntax error.
+- Require AST evidence for:
+  - `rtl_frontend_file`
+  - `module_declaration`
+  - `port_list`
+  - `kw_always_latch`
+  - `procedural_block`
+  - `kw_begin`
+  - `kw_if`
+  - `assignment_target`
+  - `assignment_operator`
+  - `signal_reference`
+- Retain exact rule texts for `assignment_operator`, `assignment_target`, `kw_always_latch`, `procedural_block`, and `signal_reference`.
+- Forbid unrelated struct, unpacked-dimension, continuous-assign, generate, and instantiation evidence so this remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `always_latch_unknown_body_identifier_parse_surface`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend unknown member concat target syntax retention
 ### Context
 The handwritten unknown-member concatenated assignment-target baseline also separates syntax from semantic elaboration: `assign {cfg.data, cfg.missing} = d;` parses as a continuous assignment with a concatenated target, then elaboration rejects `missing` because it is not a field of the packed struct. The generated parser contract should preserve the syntax side of that boundary without implying semantic acceptance.
