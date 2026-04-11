@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend always_comb parameter expressions
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a labeled `always_comb` block with parameter-expression assignments and a packed multi-net declaration from the handwritten arithmetic baseline is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `labeled_always_comb_parameter_exprs_and_packed_multi_nets`
+  - retained `logic [WIDTH-1:0] data, scratch;` with separate `net_item` evidence for `data` and `scratch`
+  - retained `always_comb begin : comb_blk` with `data = WIDTH + TOTAL;`, `if (EXTRA > 0)`, and the `scratch` branch assignments
+  - required AST evidence for `module_declaration`, `parameter_declaration_sequence`, `port_list`, `net_declaration`, `packed_range`, `net_item`, `procedural_block`, `kw_always_comb`, `kw_begin`, `kw_if`, `kw_else`, `assignment_target`, `assignment_operator`, `additive_expr`, and `relational_expr`
+  - forbids `generate_region`, `module_instantiation`, and `continuous_assign` so this lane stays focused on the procedural parameter-expression body and packed multi-net declaration
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend generate-if local nets
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a generate-if/else body containing local net declarations from the handwritten arithmetic baseline is retained explicitly.

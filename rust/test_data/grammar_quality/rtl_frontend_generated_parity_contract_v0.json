@@ -1210,6 +1210,49 @@
       "sample": "module top #(\n    parameter SEL = 1\n) (\n    input logic a,\n    output logic y\n);\nlogic data, scratch;\nalways_comb begin : comb_blk\n    data = a;\n    if (SEL)\n        scratch = data;\n    else\n        scratch = 0;\nend\nassign y = scratch;\nendmodule\n"
     },
     {
+      "label": "labeled_always_comb_parameter_exprs_and_packed_multi_nets",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "net_declaration",
+        "packed_range",
+        "net_item",
+        "procedural_block",
+        "kw_always_comb",
+        "kw_begin",
+        "kw_if",
+        "kw_else",
+        "assignment_target",
+        "assignment_operator",
+        "additive_expr",
+        "relational_expr"
+      ],
+      "forbidden_rule_names": [
+        "generate_region",
+        "module_instantiation",
+        "continuous_assign"
+      ],
+      "expected_rule_texts": {
+        "kw_always_comb": [
+          "always_comb"
+        ],
+        "net_declaration": [
+          "logic [WIDTH-1:0] data, scratch;"
+        ],
+        "net_item": [
+          "data",
+          "scratch"
+        ],
+        "procedural_block": [
+          "always_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend"
+        ]
+      },
+      "sample": "module top #(\n    parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2,\n    parameter EXTRA = TOTAL + 1\n) (\n    output logic y\n);\nlogic [WIDTH-1:0] data, scratch;\nalways_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend\nendmodule\n"
+    },
+    {
       "label": "procedural_and_dataflow_ternary_binary_exprs",
       "expected_parse_ok": true,
       "require_ast_json": true,

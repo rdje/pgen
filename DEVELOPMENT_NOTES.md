@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend always_comb parameter-expression retention
+### Context
+The generated `rtl_frontend` contract already retained a labeled `always_comb` block and richer procedural/dataflow expression lanes, but the handwritten arithmetic baseline also combines a packed multi-net declaration with a labeled `always_comb` body driven by parameter expressions: `logic [WIDTH-1:0] data, scratch;`, `data = WIDTH + TOTAL;`, and `if (EXTRA > 0)`.
+
+### Decision
+- Retain a focused labeled `always_comb` parameter-expression shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with a parameterized header and simple port list
+  - one packed multi-net declaration: `logic [WIDTH-1:0] data, scratch;`
+  - one labeled `always_comb begin : comb_blk ... end`
+  - one additive assignment expression: `data = WIDTH + TOTAL;`
+  - one relational `if (EXTRA > 0)` condition
+  - one true/false `scratch` assignment pair
+- Require AST evidence for:
+  - `module_declaration`
+  - `parameter_declaration_sequence`
+  - `port_list`
+  - `net_declaration`
+  - `packed_range`
+  - `net_item`
+  - `procedural_block`
+  - `kw_always_comb`
+  - `kw_begin`
+  - `kw_if`
+  - `kw_else`
+  - `assignment_target`
+  - `assignment_operator`
+  - `additive_expr`
+  - `relational_expr`
+- Retain exact rule texts for the full net declaration, the `data` and `scratch` net items, and the labeled procedural block.
+- Forbid generate/instantiation/continuous-assign evidence so this stays focused on the procedural body and packed multi-net declaration rather than nearby dataflow or generate proof lanes.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `labeled_always_comb_parameter_exprs_and_packed_multi_nets`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend generate-if local net retention
 ### Context
 The generated `rtl_frontend` contract already retained generate-if/else with dataflow and generate-for with a local net declaration, but the handwritten arithmetic baseline also has a generate-if/else body where each branch declares local nets: `logic [TOTAL-1:0] extra;` and `logic dummy;`.
