@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend generate if/else dataflow retention
+### Context
+The generated `rtl_frontend` contract already retained a positive `generate if` lane and a positive `generate for` lane, but it did not explicitly retain the `generate if ... else ...` shape. The grammar supports `generate_if := kw_if lparen rtl_expr rparen generate_body ( kw_else generate_body )?`, so the optional else branch deserved a direct generated-contract sample rather than relying on procedural `if/else` or single-branch generate coverage.
+
+### Decision
+- Retain a pure dataflow `generate if ... else ...` sample in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module-local `logic mid;`
+  - a `generate` region with true and false labeled `begin` bodies
+  - one `assign mid = a;` in the true branch and one `assign mid = 0;` in the false branch
+  - one outer `assign y = mid;`
+- Require AST evidence for:
+  - `generate_region`
+  - `generate_if`
+  - `generate_body`
+  - `kw_else`
+  - `continuous_assign`
+  - `net_declaration`
+  - `module_declaration`
+- Forbid `module_instantiation` and `procedural_block` in this sample so the lane proves generate/dataflow branch handling specifically.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `generate_if_else_with_dataflow`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Baseline gate before editing:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Post-change focused gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend builtin and inline enum type retention
 ### Context
 The generated `rtl_frontend` contract retained many aggregate and typedef surfaces, but it did not explicitly retain the handwritten frontend's builtin integral atom declarations or inline enum base-type forms. Those are small but important because `byte`, `shortint`, and `longint` are reserved generated-grammar keywords and enum base handling is a separate syntax lane from typedef enum reuse.

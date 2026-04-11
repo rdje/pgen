@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend generate if/else dataflow
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a positive `generate if ... else ...` dataflow lane is retained explicitly, including AST evidence for the `kw_else` branch separator.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `generate_if_else_with_dataflow`
+  - retained a syntax-focused generate region with true/false labeled `begin` bodies
+  - required AST evidence for `generate_region`, `generate_if`, `generate_body`, `kw_else`, `continuous_assign`, `net_declaration`, and `module_declaration`
+  - forbids `module_instantiation` and `procedural_block` so this lane stays focused on pure generate/dataflow syntax
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Baseline generated contract gate before the change:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Generated contract gate after the change:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend builtin enum type lanes
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so builtin integral atom typed nets and inline enum base-type declarations are retained explicitly.
