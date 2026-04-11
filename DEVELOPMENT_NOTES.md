@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend generate-if local net retention
+### Context
+The generated `rtl_frontend` contract already retained generate-if/else with dataflow and generate-for with a local net declaration, but the handwritten arithmetic baseline also has a generate-if/else body where each branch declares local nets: `logic [TOTAL-1:0] extra;` and `logic dummy;`.
+
+### Decision
+- Retain a focused generate-if/else local-net shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with a parameterized header and simple port list
+  - one `generate` / `endgenerate` region
+  - one `if (WIDTH > 4) begin : has_extra ... end else begin : no_extra ... end` body
+  - one ranged generate-branch-local `logic [TOTAL-1:0] extra;` declaration
+  - one scalar else-branch-local `logic dummy;` declaration
+- Require AST evidence for:
+  - `module_declaration`
+  - `port_list`
+  - `parameter_declaration_sequence`
+  - `generate_region`
+  - `generate_if`
+  - `generate_body`
+  - `kw_else`
+  - `packed_range`
+  - `net_declaration`
+- Retain exact rule texts for `kw_else` and both branch-local `net_declaration` nodes.
+- Forbid instantiation/procedural/continuous-assign/generate-for evidence so this stays focused on local declarations inside generate-if/else bodies rather than nearby generate/dataflow or generate-loop proof lanes.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `generate_if_else_with_local_net_declarations`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend generate-for local net retention
 ### Context
 The generated `rtl_frontend` contract already retained a generate-for lane with named instantiation plus downstream dataflow, but the handwritten arithmetic baseline also has a narrower generate-for body that declares only a local net: `logic tap;`.

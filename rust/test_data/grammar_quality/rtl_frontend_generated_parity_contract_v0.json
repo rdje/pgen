@@ -1040,6 +1040,38 @@
       "sample": "module top #(\n    parameter SEL = 1\n) (\n    input logic a,\n    output logic y\n);\nlogic mid;\ngenerate\n    if (SEL) begin : gen_true\n        assign mid = a;\n    end else begin : gen_false\n        assign mid = 0;\n    end\nendgenerate\nassign y = mid;\nendmodule\n"
     },
     {
+      "label": "generate_if_else_with_local_net_declarations",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "generate_region",
+        "generate_if",
+        "generate_body",
+        "kw_else",
+        "packed_range",
+        "net_declaration"
+      ],
+      "forbidden_rule_names": [
+        "module_instantiation",
+        "procedural_block",
+        "continuous_assign",
+        "generate_for"
+      ],
+      "expected_rule_texts": {
+        "kw_else": [
+          "else"
+        ],
+        "net_declaration": [
+          "logic [TOTAL-1:0] extra;",
+          "logic dummy;"
+        ]
+      },
+      "sample": "module top #(\n    parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2\n) (\n    output logic y\n);\ngenerate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\nendgenerate\nendmodule\n"
+    },
+    {
       "label": "generate_if_named_port_trailing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,

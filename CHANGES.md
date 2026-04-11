@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend generate-if local nets
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a generate-if/else body containing local net declarations from the handwritten arithmetic baseline is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `generate_if_else_with_local_net_declarations`
+  - retained `if (WIDTH > 4) begin : has_extra ... end else begin : no_extra ... end` inside a `generate` region
+  - retained the generate-branch-local `logic [TOTAL-1:0] extra;` and `logic dummy;` declarations
+  - required AST evidence for `module_declaration`, `port_list`, `parameter_declaration_sequence`, `generate_region`, `generate_if`, `generate_body`, `kw_else`, `packed_range`, and `net_declaration`
+  - forbids `module_instantiation`, `procedural_block`, `continuous_assign`, and `generate_for` so this lane stays focused on generate-if/else local declarations rather than nearby generate/dataflow or generate-for cases
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend generate-for local nets
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a generate-for body containing only a local net declaration from the handwritten arithmetic baseline is retained explicitly.
