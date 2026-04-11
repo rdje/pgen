@@ -1531,6 +1531,46 @@
       "sample": "module top #(\n    parameter BIT = 1\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.data[BIT] = d;\nendmodule\n"
     },
     {
+      "label": "continuous_struct_member_concatenation_assignment_target",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "continuous_assign",
+        "assignment_target",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block",
+        "generate_region",
+        "module_instantiation",
+        "ranged_signal_reference",
+        "unpacked_dimension"
+      ],
+      "expected_rule_texts": {
+        "assignment_target": [
+          "{cfg.data[BIT], cfg.valid}",
+          "cfg.data[BIT]",
+          "cfg.valid"
+        ],
+        "continuous_assign": [
+          "assign {cfg.data[BIT], cfg.valid} = d;"
+        ],
+        "signal_reference": [
+          "cfg.data[BIT]",
+          "BIT",
+          "cfg.valid",
+          "d"
+        ]
+      },
+      "sample": "module top #(\n    parameter BIT = 1\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign {cfg.data[BIT], cfg.valid} = d;\nendmodule\n"
+    },
+    {
       "label": "continuous_struct_member_concatenation_value",
       "expected_parse_ok": true,
       "require_ast_json": true,

@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend continuous struct concat target
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's structured continuous assignment target `{cfg.data[BIT], cfg.valid}` is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `continuous_struct_member_concatenation_assignment_target`
+  - retained `assign {cfg.data[BIT], cfg.valid} = d;`
+  - required AST evidence for `module_declaration`, `parameter_declaration_sequence`, `port_list`, `struct_type`, `struct_union_field`, `net_declaration`, `continuous_assign`, `assignment_target`, and `signal_reference`
+  - retained exact `assignment_target` text for the full target list plus nested `cfg.data[BIT]` and `cfg.valid` targets
+  - retained generated `signal_reference` evidence for `cfg.data[BIT]`, the nested `BIT` index expression, `cfg.valid`, and source value `d`
+  - intentionally did not require `concatenation_expr` because the generated AST classifies this lvalue list as assignment-target structure, not a value-side concatenation expression
+  - forbids `procedural_block`, `generate_region`, `module_instantiation`, `ranged_signal_reference`, and `unpacked_dimension` so this lane stays focused on the isolated continuous struct-member concatenated assignment target
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend continuous struct concat value
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's structured continuous assignment value `{cfg.data[BIT], cfg.data[0]}` is retained explicitly.
