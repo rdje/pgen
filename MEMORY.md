@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-member-bitselect-repeat-actuals)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-inline-struct-typed-net)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,40 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` inline struct typed-net lane:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `inline_struct_typed_net_declaration`
+  - retained syntax lane:
+    - `struct packed { logic [7:0] data; logic valid; } cfg;`
+    - standalone inline struct typed-net declaration, not typedef-backed named type reuse
+  - AST evidence required:
+    - `module_declaration`
+    - `port_list`
+    - `struct_type`
+    - `struct_union_field`
+    - `net_declaration`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - the generated contract retains exact `struct_type`, `struct_union_field`, and `net_declaration` text evidence for this standalone inline struct declaration
+    - this complements existing standalone inline enum/union typed-net lanes plus the broader struct typedef/import lanes
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` named-port member bit-select/repeat actual lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

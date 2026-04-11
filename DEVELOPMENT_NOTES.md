@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend inline struct typed-net retention
+### Context
+The generated `rtl_frontend` contract already retained standalone inline enum and inline union typed-net declarations, plus several struct typedef/import surfaces. The handwritten parser baseline also has a simple standalone inline struct net declaration: `struct packed { logic [7:0] data; logic valid; } cfg;`.
+
+### Decision
+- Retain that inline struct typed-net shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with a simple `output logic y` port
+  - one inline `struct packed` typed net
+  - two struct fields, `data` and `valid`
+  - no typedef or named type reuse
+- Require AST evidence for:
+  - `module_declaration`
+  - `port_list`
+  - `struct_type`
+  - `struct_union_field`
+  - `net_declaration`
+- Retain exact rule texts for the `struct_type`, both `struct_union_field` entries, and the full `net_declaration` so the generated parser proves the standalone inline struct declaration rather than relying on related typedef/import surfaces.
+- Forbid `enum_type`, `union_type`, `typedef_declaration`, and `named_data_type` in this sample so it stays focused on inline struct typed-net syntax.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `inline_struct_typed_net_declaration`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend member bit-select/repeat actual retention
 ### Context
 The generated `rtl_frontend` contract already retained named-port bit-select/concatenation actuals and broader repeat/member-range actuals. The handwritten elaboration baseline also keeps a compact named-port instance where one actual is a member-path bit-select and another actual is a repetition: `child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));`.

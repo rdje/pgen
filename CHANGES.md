@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend inline struct typed nets
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a standalone inline `struct packed { ... } cfg;` typed net declaration from the handwritten baseline is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `inline_struct_typed_net_declaration`
+  - retained `struct packed { logic [7:0] data; logic valid; } cfg;`
+  - required AST evidence for `module_declaration`, `port_list`, `struct_type`, `struct_union_field`, and `net_declaration`
+  - forbids `enum_type`, `union_type`, `typedef_declaration`, and `named_data_type` so this lane stays focused on inline struct typed-net syntax
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend member bit-select/repeat actuals
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a named-port instance carrying a member-path bit-select actual and a repetition actual is retained directly from the handwritten elaboration baseline.
