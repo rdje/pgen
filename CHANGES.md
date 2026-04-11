@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend no-port modules
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so multiple empty `module ...; endmodule` declarations without port lists are retained directly from the handwritten baseline.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `multiple_empty_modules_without_port_lists`
+  - retained `module first; endmodule` and `module second; endmodule`
+  - required AST evidence for `rtl_frontend_file` and `module_declaration`
+  - forbids `port_list`, `parameter_declaration_sequence`, `net_declaration`, `module_instantiation`, `procedural_block`, and `generate_region` so this lane stays focused on empty no-port module syntax
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend inline struct typed nets
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a standalone inline `struct packed { ... } cfg;` typed net declaration from the handwritten baseline is retained explicitly.

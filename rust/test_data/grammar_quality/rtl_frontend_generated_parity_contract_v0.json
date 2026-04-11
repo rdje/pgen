@@ -216,6 +216,30 @@
       "sample": "module top #(\n    parameter DEPTH = 4\n) (\n    input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y\n);\nlogic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];\nendmodule\n"
     },
     {
+      "label": "multiple_empty_modules_without_port_lists",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration"
+      ],
+      "forbidden_rule_names": [
+        "port_list",
+        "parameter_declaration_sequence",
+        "net_declaration",
+        "module_instantiation",
+        "procedural_block",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "module_declaration": [
+          "module first;\nendmodule",
+          "module second;\nendmodule"
+        ]
+      },
+      "sample": "module first;\nendmodule\n\nmodule second;\nendmodule\n"
+    },
+    {
       "label": "builtin_integral_atom_typed_net_declarations",
       "expected_parse_ok": true,
       "require_ast_json": true,

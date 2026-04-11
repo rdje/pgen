@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend no-port multi-module retention
+### Context
+The generated `rtl_frontend` contract already retained many multi-module shapes, but those samples mostly use ANSI port lists and additional module contents. The handwritten baseline also keeps the simplest legal multi-module design shape: `module first; endmodule` followed by `module second; endmodule`.
+
+### Decision
+- Retain that no-port multi-module shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - two module declarations
+  - no parameter lists
+  - no port lists
+  - no module items
+- Require AST evidence for:
+  - `rtl_frontend_file`
+  - `module_declaration`
+- Retain exact `module_declaration` texts for both modules so the generated parser proves two separate declarations rather than only generic file parseability.
+- Forbid `port_list`, `parameter_declaration_sequence`, `net_declaration`, `module_instantiation`, `procedural_block`, and `generate_region` in this sample so it stays focused on the optional-header/no-item path.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `multiple_empty_modules_without_port_lists`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend inline struct typed-net retention
 ### Context
 The generated `rtl_frontend` contract already retained standalone inline enum and inline union typed-net declarations, plus several struct typedef/import surfaces. The handwritten parser baseline also has a simple standalone inline struct net declaration: `struct packed { logic [7:0] data; logic valid; } cfg;`.
