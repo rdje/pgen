@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend local parameter item retention
+### Context
+The generated `rtl_frontend` contract already retained package-backed constants and header parameter lists, but the handwritten `module arithmetic` baseline also has plain module-body constant items: `parameter EXTRA = DEPTH + 1;` and `localparam TOTAL = WIDTH * 2;`.
+
+### Decision
+- Retain a focused module-local parameter/localparam item shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module header parameter list with `WIDTH` and `DEPTH`
+  - one body `parameter EXTRA = DEPTH + 1;`
+  - one body `localparam TOTAL = WIDTH * 2;`
+  - one typed net using `TOTAL`
+  - one continuous assignment using a ternary expression
+- Require AST evidence for:
+  - `module_declaration`
+  - `port_list`
+  - `parameter_declaration_sequence`
+  - `parameter_declaration_statement`
+  - `parameter_declaration_head`
+  - `parameter_declaration_tail`
+  - `kw_parameter`
+  - `kw_localparam`
+  - `net_declaration`
+  - `continuous_assign`
+  - `conditional_expr`
+  - `additive_expr`
+  - `multiplicative_expr`
+- Retain exact rule texts for `parameter_declaration_head` and `parameter_declaration_tail`. The generated AST correctly treats the second header parameter as `parameter_declaration_tail`, while the body `parameter` and `localparam` declarations are separate heads.
+- Forbid package/import/instantiation/procedural/generate evidence so this stays focused on module-local constant item syntax.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `module_local_parameter_and_localparam_items`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend no-port multi-module retention
 ### Context
 The generated `rtl_frontend` contract already retained many multi-module shapes, but those samples mostly use ANSI port lists and additional module contents. The handwritten baseline also keeps the simplest legal multi-module design shape: `module first; endmodule` followed by `module second; endmodule`.

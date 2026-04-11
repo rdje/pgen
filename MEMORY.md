@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-no-port-multi-modules)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-local-parameter-items)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,50 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` module-local parameter/localparam item lane:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `module_local_parameter_and_localparam_items`
+  - retained syntax lane:
+    - header `parameter WIDTH = 8` plus tail `parameter DEPTH = WIDTH + 4`
+    - body `parameter EXTRA = DEPTH + 1;`
+    - body `localparam TOTAL = WIDTH * 2;`
+    - sibling typed net and continuous ternary assignment to keep expression/range use anchored
+  - AST evidence required:
+    - `module_declaration`
+    - `port_list`
+    - `parameter_declaration_sequence`
+    - `parameter_declaration_statement`
+    - `parameter_declaration_head`
+    - `parameter_declaration_tail`
+    - `kw_parameter`
+    - `kw_localparam`
+    - `net_declaration`
+    - `continuous_assign`
+    - `conditional_expr`
+    - `additive_expr`
+    - `multiplicative_expr`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - first attempted contract expected both header parameters as `parameter_declaration_head`; the generated AST correctly preserved `parameter DEPTH = WIDTH + 4` as `parameter_declaration_tail`, so the retained contract now requires and checks that split directly
+    - this complements package-backed constant flows with a package-free module-local parameter/localparam item lane from the handwritten arithmetic baseline
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` no-port multi-module declaration lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
