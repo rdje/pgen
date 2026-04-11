@@ -1734,6 +1734,43 @@
       "sample": "module top #(\n    parameter BIT = 1\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.data[BIT] = d;\nendmodule\n"
     },
     {
+      "label": "continuous_unknown_struct_member_target_parse_surface",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "continuous_assign",
+        "assignment_target",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "procedural_block",
+        "generate_region",
+        "module_instantiation",
+        "concatenation_expr",
+        "ranged_signal_reference",
+        "unpacked_dimension"
+      ],
+      "expected_rule_texts": {
+        "assignment_target": [
+          "cfg.missing"
+        ],
+        "continuous_assign": [
+          "assign cfg.missing = d;"
+        ],
+        "signal_reference": [
+          "cfg.missing",
+          "d"
+        ]
+      },
+      "sample": "module top (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.missing = d;\nendmodule\n"
+    },
+    {
       "label": "continuous_struct_member_concatenation_assignment_target",
       "expected_parse_ok": true,
       "require_ast_json": true,
