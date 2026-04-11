@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-11 (+0200, task: rtl-frontend-named-port-bitselect-concat-actuals)
+Last updated: 2026-04-11 (+0200, task: rtl-frontend-member-bitselect-repeat-actuals)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,41 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` named-port member bit-select/repeat actual lane:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `named_port_member_bitselect_and_repeat_actuals`
+  - retained syntax lane:
+    - `child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));`
+    - named port actual containing a member-path bit-select plus sibling named port actual containing a repetition expression
+  - AST evidence required:
+    - `module_declaration`
+    - `module_instantiation`
+    - `instance_item`
+    - `port_connection`
+    - `signal_reference`
+    - `repetition_expr`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - the generated contract retains exact `module_instantiation`, `instance_item`, `port_connection`, and `repetition_expr` text evidence for this combined named-port actual shape
+    - this complements existing named-port bit-select/concat, ternary/member-path, repeat/member-range, and instance-array lanes with the handwritten-baseline member bit-select/repeat actual form
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` named-port bit-select/concat actual lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

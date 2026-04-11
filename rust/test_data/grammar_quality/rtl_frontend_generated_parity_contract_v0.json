@@ -1645,6 +1645,40 @@
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 3\n) (\n    input logic [7:0] a,\n    input logic [7:0] b,\n    output logic [7:0] y\n);\nlogic [7:0] bus;\nchild u_child (.a(bus[IDX]), .y({a, b}));\nendmodule\n"
     },
     {
+      "label": "named_port_member_bitselect_and_repeat_actuals",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference",
+        "repetition_expr"
+      ],
+      "forbidden_rule_names": [
+        "parameter_override",
+        "procedural_block",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));"
+        ],
+        "instance_item": [
+          "u_child (.a(cfg.data[IDX]), .y({LANES{a}}))"
+        ],
+        "port_connection": [
+          ".a(cfg.data[IDX])",
+          ".y({LANES{a}})"
+        ],
+        "repetition_expr": [
+          "{LANES{a}}"
+        ]
+      },
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter LANES = 2\n) (\n    input logic [7:0] a,\n    output logic [15:0] y\n);\nlogic cfg;\nchild u_child (.a(cfg.data[IDX]), .y({LANES{a}}));\nendmodule\n"
+    },
+    {
       "label": "named_port_actuals_repeat_member_ranges",
       "expected_parse_ok": true,
       "require_ast_json": true,

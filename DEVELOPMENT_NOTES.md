@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend member bit-select/repeat actual retention
+### Context
+The generated `rtl_frontend` contract already retained named-port bit-select/concatenation actuals and broader repeat/member-range actuals. The handwritten elaboration baseline also keeps a compact named-port instance where one actual is a member-path bit-select and another actual is a repetition: `child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));`.
+
+### Decision
+- Retain that member-path bit-select plus repetition actual shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - child module with an `a` input and `y` output
+  - top module with `IDX` and `LANES` parameters
+  - one local `cfg` signal used syntactically as a member-path base
+  - one named port actual `.a(cfg.data[IDX])`
+  - one named port actual `.y({LANES{a}})`
+- Require AST evidence for:
+  - `module_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `signal_reference`
+  - `repetition_expr`
+- Retain exact rule texts for the module instantiation, instance item, both named port connections, and the repetition expression so the combined shape is proven as one construct rather than by unrelated samples.
+- Forbid `parameter_override`, `procedural_block`, and `generate_region` in this sample so it proves named-port actual expression parsing without nearby override, procedural, or generate constructs.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `named_port_member_bitselect_and_repeat_actuals`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend named-port bit-select/concat actual retention
 ### Context
 The generated `rtl_frontend` contract already retained named-port instance-array lanes, named-port ternary/member-path lanes, and repeat/member-range actual lanes. The handwritten elaboration baseline also keeps a compact named-port instance where one actual is a bit-select and another actual is a concatenation: `child u_child (.a(bus[IDX]), .y({a, b}));`.
