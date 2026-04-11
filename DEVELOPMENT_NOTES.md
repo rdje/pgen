@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend always_comb concat target retention
+### Context
+The generated `rtl_frontend` contract already retained aggregate procedural/dataflow concatenated target samples, plus isolated `always_ff` and continuous structured lanes. The handwritten `elaboration_accepts_concatenated_procedural_assignment_targets` baseline also uses a narrower target-side shape: `{cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;` inside `always_comb begin ... end`.
+
+### Decision
+- Retain a focused `always_comb` struct-member concatenated assignment-target shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with `IDX` and `BIT` parameters
+  - one scalar data input
+  - one inline packed struct declaration for `cfgs [0:1]`
+  - one `always_comb begin ... end` block
+  - one blocking assignment: `{cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;`
+- Require AST evidence for:
+  - `rtl_frontend_file`
+  - `module_declaration`
+  - `parameter_declaration_sequence`
+  - `port_list`
+  - `struct_type`
+  - `struct_union_field`
+  - `net_declaration`
+  - `unpacked_dimension`
+  - `kw_always_comb`
+  - `procedural_block`
+  - `assignment_target`
+  - `assignment_operator`
+  - `signal_reference`
+- Retain exact rule texts for `assignment_target`, `assignment_operator`, `kw_always_comb`, and `procedural_block`.
+- Forbid plain/sequential/latch always, continuous-assign, generate, instantiation, value-side concatenation, and ranged-signal evidence so this stays focused on the isolated `always_comb` target list rather than the richer retained aggregate lanes.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `always_comb_struct_member_concatenation_target`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend always_ff concat value retention
 ### Context
 The generated `rtl_frontend` contract already retained a rich `always_ff` nonblocking sample plus an isolated `always_ff` struct-member bit-select target. The handwritten `elaboration_accepts_structured_assignment_values` baseline also uses a narrower value-side shape: `cfgs[IDX].valid <= {cfgs[IDX].data[BIT], d};` inside `always_ff @(posedge clk)`.

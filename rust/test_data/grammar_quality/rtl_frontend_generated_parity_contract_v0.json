@@ -177,6 +177,53 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic clk,\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_ff @(posedge clk) begin\n    cfgs[IDX].valid <= {cfgs[IDX].data[BIT], d};\nend\nendmodule\n"
     },
     {
+      "label": "always_comb_struct_member_concatenation_target",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "port_list",
+        "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "unpacked_dimension",
+        "kw_always_comb",
+        "procedural_block",
+        "assignment_target",
+        "assignment_operator",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "kw_always",
+        "kw_always_ff",
+        "kw_always_latch",
+        "continuous_assign",
+        "generate_region",
+        "module_instantiation",
+        "concatenation_expr",
+        "ranged_signal_reference"
+      ],
+      "expected_rule_texts": {
+        "assignment_operator": [
+          "="
+        ],
+        "assignment_target": [
+          "{cfgs[IDX].data[BIT], cfgs[IDX].valid}",
+          "cfgs[IDX].data[BIT]",
+          "cfgs[IDX].valid"
+        ],
+        "kw_always_comb": [
+          "always_comb"
+        ],
+        "procedural_block": [
+          "always_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;\nend"
+        ]
+      },
+      "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;\nend\nendmodule\n"
+    },
+    {
       "label": "always_ff_blocking_ranged_assignment_target",
       "expected_parse_ok": false,
       "require_ast_json": false,
