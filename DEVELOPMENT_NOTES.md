@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-12 - rtl_frontend union member actual syntax retention
+### Context
+The handwritten `elaboration_accepts_union_members` baseline keeps a compact union-member actual shape:
+- inline packed union net declaration
+- `logic [7:0] data;`
+- `logic [7:0] byte;`
+- `child u_child (.a(payload.data), .y(y));`
+
+The generated contract already retained union declarations and several struct/member actual forms, but it did not explicitly prove that an inline union member can appear as a named-port actual.
+
+### Decision
+- Retain a focused named-port union-member actual parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `child` module with scalar named ports
+  - one `top` module
+  - one inline packed union net named `payload`
+  - one scalar instance: `child u_child (.a(payload.data), .y(y));`
+- Require AST evidence for:
+  - `union_type`
+  - `struct_union_field`
+  - `net_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `signal_reference`
+- Retain exact rule texts for `struct_union_field`, `module_instantiation`, `instance_item`, and `port_connection`.
+- Forbid typedef, struct, enum, parameter-override, unpacked-dimension, procedural, generate, and continuous-assign evidence so this remains a focused union-member actual proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `named_port_union_member_actual`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - rtl_frontend byte union field syntax retention
 ### Context
 The handwritten `rtl_frontend` baseline uses `logic [7:0] byte;` in multiple union-focused tests:

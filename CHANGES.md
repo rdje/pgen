@@ -1,4 +1,38 @@
 # CHANGES.md
+## 2026-04-12 - Retain rtl_frontend union member actual syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's named-port union-member actual surface is retained directly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `named_port_union_member_actual`
+  - retained `child u_child (.a(payload.data), .y(y));` after an inline packed union with the already-retained `logic [7:0] byte;` field
+  - required AST evidence for `union_type`, `struct_union_field`, `net_declaration`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`
+  - retained exact `struct_union_field`, `module_instantiation`, `instance_item`, and `port_connection` texts
+  - forbids typedef, struct, enum, parameter-override, unpacked-dimension, procedural, generate, and continuous-assign evidence so this lane stays focused on named-port union-member actual syntax
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - Retain rtl_frontend byte union field syntax
 ### Achievement Summary
 Expanded the `rtl_frontend` generated grammar and curated generated-parser contract so the handwritten baseline's `logic [7:0] byte;` union field-name surface is retained directly.
