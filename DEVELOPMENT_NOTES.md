@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend parameterized instance-array retention
+### Context
+The generated `rtl_frontend` contract retained plain instance arrays with named ports and instance arrays with wildcard ports, and it retained parameter overrides in other instantiation lanes. The handwritten elaboration baseline also has a compact combined shape: `child #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));`.
+
+### Decision
+- Retain that combined parameterized instance-array shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - child module with one `WIDTH` parameter
+  - top module with one `LANES` parameter
+  - one named parameter override `.WIDTH(LANES)`
+  - one instance-array range `[0:LANES-1]`
+  - two explicit named port connections `.a(a)` and `.y(y)`
+- Require AST evidence for:
+  - `module_declaration`
+  - `module_instantiation`
+  - `parameter_override`
+  - `instance_item`
+  - `unpacked_dimension`
+  - `port_connection`
+- Retain exact rule texts for the module instantiation, parameter override, instance item, unpacked dimension, and named port connections so the combination is proven as one construct rather than by unrelated samples.
+- Forbid `procedural_block` and `generate_region` in this sample so it proves parameterized instance-array syntax without nearby procedural or generate constructs.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `parameterized_instance_array_with_named_ports`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend labeled always_comb block retention
 ### Context
 The handwritten `rtl_frontend` baseline retains a labeled procedural block in its first arithmetic/module-shape test: `always_comb begin : comb_blk ... end`. The generated contract already retained unlabeled `always_comb` procedural/dataflow lanes and labeled `generate` blocks, but it did not directly prove the optional statement-label form on a procedural `begin` block.
