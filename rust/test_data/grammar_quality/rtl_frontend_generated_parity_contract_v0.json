@@ -139,6 +139,41 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic en,\n    input logic [7:0] d,\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_latch begin\n    if (en)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\nend\nassign y = cfgs[0].valid;\nendmodule\n"
     },
     {
+      "label": "always_latch_scalar_nonblocking_block",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "kw_always_latch",
+        "procedural_block",
+        "kw_begin",
+        "kw_if",
+        "assignment_target",
+        "assignment_operator"
+      ],
+      "forbidden_rule_names": [
+        "struct_type",
+        "unpacked_dimension",
+        "continuous_assign",
+        "generate_region",
+        "module_instantiation"
+      ],
+      "expected_rule_texts": {
+        "kw_always_latch": [
+          "always_latch"
+        ],
+        "assignment_operator": [
+          "<="
+        ],
+        "procedural_block": [
+          "always_latch begin\n    if (en)\n        q <= d;\nend"
+        ]
+      },
+      "sample": "module latchy (\n    input logic en,\n    input logic d,\n    output logic q\n);\nalways_latch begin\n    if (en)\n        q <= d;\nend\nendmodule\n"
+    },
+    {
       "label": "always_latch_event_control_rejected",
       "expected_parse_ok": false,
       "require_ast_json": false,

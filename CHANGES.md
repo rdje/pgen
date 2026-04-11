@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend scalar always_latch nonblocking
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's scalar `always_latch` block with a nonblocking assignment is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_latch_scalar_nonblocking_block`
+  - retained `always_latch begin ... end` with `if (en)` and `q <= d;`
+  - required AST evidence for `rtl_frontend_file`, `module_declaration`, `port_list`, `kw_always_latch`, `procedural_block`, `kw_begin`, `kw_if`, `assignment_target`, and `assignment_operator`
+  - retains exact `assignment_operator` text for `<=`
+  - forbids `struct_type`, `unpacked_dimension`, `continuous_assign`, `generate_region`, and `module_instantiation` so this lane stays focused on the scalar latch procedural block
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend always_comb parameter expressions
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a labeled `always_comb` block with parameter-expression assignments and a packed multi-net declaration from the handwritten arithmetic baseline is retained explicitly.

@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend scalar always_latch nonblocking retention
+### Context
+The generated `rtl_frontend` contract already retained a rich `always_latch` assignment-target lane and an event-control reject, but the handwritten `parses_always_latch_blocks` baseline uses a narrower scalar latch block with a nonblocking assignment: `always_latch begin if (en) q <= d; end`.
+
+### Decision
+- Retain a focused scalar `always_latch` nonblocking shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with simple scalar ports
+  - one `always_latch begin ... end` block
+  - one `if (en)` statement
+  - one scalar `q <= d;` assignment
+- Require AST evidence for:
+  - `rtl_frontend_file`
+  - `module_declaration`
+  - `port_list`
+  - `kw_always_latch`
+  - `procedural_block`
+  - `kw_begin`
+  - `kw_if`
+  - `assignment_target`
+  - `assignment_operator`
+- Retain exact rule texts for `kw_always_latch`, `assignment_operator` as `<=`, and the full procedural block.
+- Forbid struct/unpacked-dimension/continuous-assign/generate/instantiation evidence so this stays focused on the scalar latch procedural shape rather than the richer retained latch lane.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `always_latch_scalar_nonblocking_block`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend always_comb parameter-expression retention
 ### Context
 The generated `rtl_frontend` contract already retained a labeled `always_comb` block and richer procedural/dataflow expression lanes, but the handwritten arithmetic baseline also combines a packed multi-net declaration with a labeled `always_comb` body driven by parameter expressions: `logic [WIDTH-1:0] data, scratch;`, `data = WIDTH + TOTAL;`, and `if (EXTRA > 0)`.
