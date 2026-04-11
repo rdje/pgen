@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-12 (+0200, task: rtl-frontend-scalar-wildcard-instance-syntax)
+Last updated: 2026-04-12 (+0200, task: rtl-frontend-byte-union-field-syntax)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,46 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` handwritten-baseline `byte` union field-name syntax:
+  - changed:
+    - [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf)
+    - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+    - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract lanes tightened:
+    - `header_imported_union_typedef_port`
+    - `inline_union_typed_net_declaration`
+    - `typedef_union_named_net_declaration`
+  - retained syntax surface:
+    - `logic [7:0] byte;`
+  - grammar detail:
+    - added local `struct_union_field_name`
+    - changed `struct_union_field` to consume `struct_union_field_name`
+    - `struct_union_field_name := identifier | kw_byte`
+    - this intentionally does not loosen the global identifier rule
+  - generated artifacts:
+    - regenerated [generated/rtl_frontend.json](generated/rtl_frontend.json)
+    - regenerated [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+  - important continuity detail:
+    - initial contract-only tightening failed the generated gate, proving this was a real generated-grammar mismatch rather than a docs-only change
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract/grammar proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+    - validation green for this slice:
+      - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+      - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - `git diff --check`
+  - next best follow-up:
+    - continue `rtl_frontend` generated parity/proof widening against remaining handwritten-baseline syntax lanes, while leaving the pre-existing untracked `docs/tcl/` work untouched unless the user asks otherwise
 - Retained `rtl_frontend` scalar wildcard module-instantiation syntax lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

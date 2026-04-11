@@ -234,7 +234,9 @@ union_type := kw_union ( kw_packed )? lbrace struct_union_field* rbrace
 
 struct_type := kw_struct ( kw_packed )? lbrace struct_union_field* rbrace
 
-struct_union_field := data_type packed_range? identifier ( comma identifier )* semi
+struct_union_field := data_type packed_range? struct_union_field_name ( comma struct_union_field_name )* semi
+
+struct_union_field_name := identifier | kw_byte
 
 packed_range := lbrack rtl_expr colon rtl_expr rbrack
 unpacked_dimension := packed_range

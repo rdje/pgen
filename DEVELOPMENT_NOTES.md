@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-12 - rtl_frontend byte union field syntax retention
+### Context
+The handwritten `rtl_frontend` baseline uses `logic [7:0] byte;` in multiple union-focused tests:
+- inline union typed nets
+- typedef-backed union typed nets
+- header-imported union typedef ports
+
+The generated contract previously used the safer field name `tag` in the matching lanes. Tightening the contract to the handwritten `byte` surface exposed a real generated-grammar mismatch: the generated path treated `byte` as a normal data-type keyword and rejected it in the struct/union field-name position.
+
+### Decision
+- Retain the handwritten-baseline field-name surface in the generated contract instead of leaving the generated proof on the safer `tag` placeholder.
+- Keep the grammar accommodation narrowly scoped:
+  - add `struct_union_field_name`
+  - use it only inside `struct_union_field`
+  - allow `identifier | kw_byte` there
+- Do not loosen the global `identifier` / `non_keyword_identifier` rule.
+- Regenerate the canonical checked-in artifacts so the compile-time generated parser and JSON raw AST match `grammars/rtl_frontend.ebnf`.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract/grammar retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - `struct_union_field := data_type packed_range? struct_union_field_name ( comma struct_union_field_name )* semi`
+  - `struct_union_field_name := identifier | kw_byte`
+- Regenerated:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - `header_imported_union_typedef_port`
+  - `inline_union_typed_net_declaration`
+  - `typedef_union_named_net_declaration`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Regenerated generated parser artifacts:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - rtl_frontend scalar wildcard instance retention
 ### Context
 The handwritten `wildcard_port_connections_expand_against_child_ports` baseline keeps a compact scalar wildcard-port module instantiation shape: `child u_child (.*);`. The generated contract already retained wildcard ports through an instance-array sample, but this reduced scalar wildcard lane should also stay explicit so parity does not depend only on the larger array sample.

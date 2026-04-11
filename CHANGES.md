@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-12 - Retain rtl_frontend byte union field syntax
+### Achievement Summary
+Expanded the `rtl_frontend` generated grammar and curated generated-parser contract so the handwritten baseline's `logic [7:0] byte;` union field-name surface is retained directly.
+
+### Scope of Changes
+- Updated [grammars/rtl_frontend.ebnf](grammars/rtl_frontend.ebnf):
+  - added a local `struct_union_field_name` rule
+  - kept the `byte` accommodation scoped to struct/union field names rather than loosening the global identifier rule
+- Regenerated canonical generated artifacts:
+  - [generated/rtl_frontend.json](generated/rtl_frontend.json)
+  - [generated/rtl_frontend_parser.rs](generated/rtl_frontend_parser.rs)
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - aligned `header_imported_union_typedef_port`, `inline_union_typed_net_declaration`, and `typedef_union_named_net_declaration` with the handwritten `logic [7:0] byte;` field-name shape
+  - retained existing union/type/import/module evidence requirements for those lanes
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract/grammar proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Regeneration:
+  - `cargo run --manifest-path rust/Cargo.toml --features ebnf_dual_run --bin ast_pipeline -- grammars/rtl_frontend.ebnf --generate-parser --emit-raw-ast-json generated/rtl_frontend.json --output generated/rtl_frontend_parser.rs`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - Retain rtl_frontend scalar wildcard instance syntax
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's reduced scalar wildcard-port module instantiation is retained directly.
