@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend labeled always_comb block
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a labeled `always_comb begin : ... end` procedural block from the handwritten baseline is retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `labeled_always_comb_block`
+  - retained `always_comb begin : comb_blk ... end`
+  - required AST evidence for `kw_always_comb`, `kw_begin`, `kw_if`, `kw_else`, `assignment_target`, `assignment_operator`, `continuous_assign`, `net_declaration`, and `module_declaration`
+  - forbids `generate_region` and `module_instantiation` so this lane stays focused on procedural-block label parsing
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend ternary member-path port actuals
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so named port actuals carrying ternary expressions over member paths are retained explicitly.

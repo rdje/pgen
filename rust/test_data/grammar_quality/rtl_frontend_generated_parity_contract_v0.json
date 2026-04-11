@@ -1014,6 +1014,45 @@
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = {cfgs[0].data[0], d};\nend\nassign cfgs[0].valid = {cfgs[IDX].data[BIT], d};\nendmodule\n"
     },
     {
+      "label": "labeled_always_comb_block",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "parameter_declaration_sequence",
+        "net_declaration",
+        "procedural_block",
+        "kw_always_comb",
+        "kw_begin",
+        "kw_if",
+        "kw_else",
+        "assignment_target",
+        "assignment_operator",
+        "continuous_assign"
+      ],
+      "forbidden_rule_names": [
+        "generate_region",
+        "module_instantiation"
+      ],
+      "expected_rule_texts": {
+        "kw_always_comb": [
+          "always_comb"
+        ],
+        "assignment_operator": [
+          "=",
+          "=",
+          "="
+        ],
+        "procedural_block": [
+          "always_comb begin : comb_blk\n    data = a;\n    if (SEL)\n        scratch = data;\n    else\n        scratch = 0;\nend"
+        ],
+        "continuous_assign": [
+          "assign y = scratch;"
+        ]
+      },
+      "sample": "module top #(\n    parameter SEL = 1\n) (\n    input logic a,\n    output logic y\n);\nlogic data, scratch;\nalways_comb begin : comb_blk\n    data = a;\n    if (SEL)\n        scratch = data;\n    else\n        scratch = 0;\nend\nassign y = scratch;\nendmodule\n"
+    },
+    {
       "label": "procedural_and_dataflow_ternary_binary_exprs",
       "expected_parse_ok": true,
       "require_ast_json": true,

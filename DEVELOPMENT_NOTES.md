@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend labeled always_comb block retention
+### Context
+The handwritten `rtl_frontend` baseline retains a labeled procedural block in its first arithmetic/module-shape test: `always_comb begin : comb_blk ... end`. The generated contract already retained unlabeled `always_comb` procedural/dataflow lanes and labeled `generate` blocks, but it did not directly prove the optional statement-label form on a procedural `begin` block.
+
+### Decision
+- Retain that labeled `always_comb` block shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one parameter `SEL`
+  - simple `logic data, scratch;` declarations
+  - one `always_comb begin : comb_blk ... end` block
+  - a tiny procedural `if/else`
+  - one sibling continuous assignment `assign y = scratch;`
+- Require AST evidence for:
+  - `module_declaration`
+  - `parameter_declaration_sequence`
+  - `net_declaration`
+  - `procedural_block`
+  - `kw_always_comb`
+  - `kw_begin`
+  - `kw_if`
+  - `kw_else`
+  - `assignment_target`
+  - `assignment_operator`
+  - `continuous_assign`
+- Retain the full `procedural_block` text so the label is proven as `always_comb begin : comb_blk ... end`, not only by generic rule presence.
+- Forbid `generate_region` and `module_instantiation` in this sample so it proves procedural-block label parsing rather than nearby generate or instantiation syntax.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `labeled_always_comb_block`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend ternary member-path port actual retention
 ### Context
 The generated `rtl_frontend` contract already retained named port actuals carrying ternary/binary expressions over ranged signals, and repeat/member-range forms. The handwritten baseline also preserves a compact named-port actual where the value is a ternary expression over member paths: `.a(SEL ? cfg.data : backup.data)`.
