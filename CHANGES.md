@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend ternary member-path port actuals
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so named port actuals carrying ternary expressions over member paths are retained explicitly.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `named_port_actual_ternary_member_paths`
+  - retained `.a(SEL ? cfg.data : backup.data)` on a named child port connection
+  - required AST evidence for `conditional_expr`, `signal_reference`, `port_connection`, `instance_item`, `module_instantiation`, and `module_declaration`
+  - forbids `parameter_override`, `generate_region`, and `procedural_block` so this lane stays focused on named-port actual expression parsing
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend named-port instance arrays
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so module instance arrays with explicit named port connections are retained alongside the existing wildcard-port instance-array lane.

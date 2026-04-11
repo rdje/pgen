@@ -1610,6 +1610,43 @@
       "sample": "module child (\n    input logic [15:0] a,\n    input logic [15:0] b,\n    output logic [31:0] y\n);\nendmodule\n\nmodule top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [31:0] y\n);\nchild u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n);\nendmodule\n"
     },
     {
+      "label": "named_port_actual_ternary_member_paths",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "conditional_expr",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "parameter_override",
+        "generate_region",
+        "procedural_block"
+      ],
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child u_child (.a(SEL ? cfg.data : backup.data), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(SEL ? cfg.data : backup.data), .y(y))"
+        ],
+        "port_connection": [
+          ".a(SEL ? cfg.data : backup.data)",
+          ".y(y)"
+        ],
+        "signal_reference": [
+          "SEL",
+          "cfg.data",
+          "backup.data",
+          "y"
+        ]
+      },
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    output logic [7:0] y\n);\nlogic cfg, backup;\nchild u_child (.a(SEL ? cfg.data : backup.data), .y(y));\nendmodule\n"
+    },
+    {
       "label": "named_port_actual_repeat_trailing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,
