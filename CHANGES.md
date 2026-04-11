@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-11 - Retain rtl_frontend always_ff event id syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so `always_ff` event-control identifiers are retained as a syntax-only parse surface even when elaboration will later reject an undeclared symbol.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `always_ff_unknown_event_identifier_parse_surface`
+  - retained `always_ff @(posedge clk_missing) begin q <= 1; end` as an expected parse success
+  - required AST evidence for `rtl_frontend_file`, `module_declaration`, `port_list`, `kw_always_ff`, `event_control_list`, `event_control_item`, `event_edge`, `procedural_block`, `assignment_target`, `always_ff_assignment_operator`, and `signal_reference`
+  - retained exact `event_control_list`, `assignment_target`, `always_ff_assignment_operator`, `kw_always_ff`, and `procedural_block` texts
+  - forbids unrelated plain/latch always, continuous-assign, generate, instantiation, concatenation, ranged-signal, struct, and unpacked-dimension evidence so this lane stays focused on parser syntax acceptance
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - undeclared event-control identifier rejection remains an elaboration concern, not a generated-parser syntax concern
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - Retain rtl_frontend scalar always_ff blocking reject
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so the handwritten baseline's scalar `always_ff` blocking-assignment rejection `q = 1;` is retained explicitly.

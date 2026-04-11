@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend always_ff event id syntax retention
+### Context
+The handwritten `elaboration_rejects_unknown_identifiers_in_always_ff_event_controls` baseline deliberately separates syntax from semantic elaboration: `always_ff @(posedge clk_missing) begin q <= 1; end` parses, then elaboration rejects the undeclared event-control identifier. The generated parser contract should preserve the syntax side of that boundary without implying semantic acceptance.
+
+### Decision
+- Retain a focused `always_ff` event-control identifier parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one module with only a scalar output port
+  - one `always_ff @(posedge clk_missing) begin ... end` block
+  - one nonblocking assignment: `q <= 1;`
+- Mark it `expected_parse_ok: true` because undeclared identifiers are not a generated-parser syntax error.
+- Require AST evidence for:
+  - `rtl_frontend_file`
+  - `module_declaration`
+  - `port_list`
+  - `kw_always_ff`
+  - `event_control_list`
+  - `event_control_item`
+  - `event_edge`
+  - `procedural_block`
+  - `assignment_target`
+  - `always_ff_assignment_operator`
+  - `signal_reference`
+- Retain exact rule texts for `event_control_list`, `assignment_target`, `always_ff_assignment_operator`, `kw_always_ff`, and `procedural_block`.
+- Forbid unrelated plain/latch always, continuous-assign, generate, instantiation, value-side concatenation, ranged-signal, struct, and unpacked-dimension evidence so the lane remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `always_ff_unknown_event_identifier_parse_surface`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend scalar always_ff blocking reject retention
 ### Context
 The generated `rtl_frontend` contract already retained a richer `always_ff` blocking-assignment negative with ranged/member targets and expression-heavy RHS content. The handwritten `elaboration_rejects_blocking_assignments_in_always_ff_blocks` baseline also uses the narrower core policy shape: `q = 1;` inside `always_ff @(posedge clk)`.

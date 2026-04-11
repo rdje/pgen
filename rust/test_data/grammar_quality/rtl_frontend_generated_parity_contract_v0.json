@@ -230,6 +230,53 @@
       "sample": "module top (\n    input logic clk,\n    output logic q\n);\nalways_ff @(posedge clk) begin\n    q = 1;\nend\nendmodule\n"
     },
     {
+      "label": "always_ff_unknown_event_identifier_parse_surface",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "kw_always_ff",
+        "event_control_list",
+        "event_control_item",
+        "event_edge",
+        "procedural_block",
+        "assignment_target",
+        "always_ff_assignment_operator",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "kw_always",
+        "kw_always_latch",
+        "continuous_assign",
+        "generate_region",
+        "module_instantiation",
+        "concatenation_expr",
+        "ranged_signal_reference",
+        "struct_type",
+        "unpacked_dimension"
+      ],
+      "expected_rule_texts": {
+        "always_ff_assignment_operator": [
+          "<="
+        ],
+        "assignment_target": [
+          "q"
+        ],
+        "event_control_list": [
+          "@(posedge clk_missing)"
+        ],
+        "kw_always_ff": [
+          "always_ff"
+        ],
+        "procedural_block": [
+          "always_ff @(posedge clk_missing) begin\n    q <= 1;\nend"
+        ]
+      },
+      "sample": "module top (\n    output logic q\n);\nalways_ff @(posedge clk_missing) begin\n    q <= 1;\nend\nendmodule\n"
+    },
+    {
       "label": "always_ff_blocking_ranged_assignment_target",
       "expected_parse_ok": false,
       "require_ast_json": false,
