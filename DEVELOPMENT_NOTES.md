@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-11 - rtl_frontend generate-for local net retention
+### Context
+The generated `rtl_frontend` contract already retained a generate-for lane with named instantiation plus downstream dataflow, but the handwritten arithmetic baseline also has a narrower generate-for body that declares only a local net: `logic tap;`.
+
+### Decision
+- Retain a focused generate-for local-net shape directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one no-port `module top;`
+  - one `generate` / `endgenerate` region
+  - one `for (genvar i = 0; i < 3; i = i + 1) begin : lanes ... end` body
+  - one generate-body-local `logic tap;` net declaration
+- Require AST evidence for:
+  - `module_declaration`
+  - `generate_region`
+  - `generate_for`
+  - `generate_body`
+  - `net_declaration`
+- Retain exact rule texts for `generate_for` and `net_declaration`.
+- Forbid instantiation/procedural/continuous-assign evidence so this stays focused on local declarations inside generate-for bodies rather than nearby generate/dataflow or generate/instantiation proof lanes.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `generate_for_with_local_net_declaration`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-11 - rtl_frontend local parameter item retention
 ### Context
 The generated `rtl_frontend` contract already retained package-backed constants and header parameter lists, but the handwritten `module arithmetic` baseline also has plain module-body constant items: `parameter EXTRA = DEPTH + 1;` and `localparam TOTAL = WIDTH * 2;`.
