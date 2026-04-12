@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-13 - Retain rtl_frontend typedef-backed packed-union width-mismatch syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a typedef-backed packed union with mismatched field widths is retained as a syntax-only parse surface while elaboration remains responsible for semantic width-coherence rejection.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `typedef_backed_packed_union_width_mismatch_parse_surface`
+  - retained `typedef union packed { logic [7:0] data; logic [15:0] word; } payload_t; payload_t payload;`
+  - required AST evidence for `module_declaration`, `typedef_declaration`, `union_type`, `struct_union_field`, `named_data_type`, `net_declaration`, and `packed_range`
+  - retained exact `named_data_type`, `struct_union_field`, and `net_declaration` texts
+  - forbids enum, struct, instantiation, procedural, continuous-assign, and generate evidence so this lane stays focused on parser syntax acceptance
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - typedef-backed packed-union field-width mismatch rejection remains an elaboration concern, not a generated-parser syntax concern
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-13 - Retain rtl_frontend packed-union width-mismatch syntax
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a packed union with mismatched field widths is retained as a syntax-only parse surface while elaboration remains responsible for semantic width-coherence rejection.
