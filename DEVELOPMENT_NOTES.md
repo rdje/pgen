@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend builtin packed-union width-mismatch syntax retention
+### Context
+The handwritten `elaboration_rejects_builtin_integral_packed_union_width_mismatches` baseline separates syntax from semantic elaboration: `union packed { byte data; shortint word; } payload;` parses as an inline packed-union net declaration with builtin integral field types, then elaboration rejects it because packed-union fields do not share a common width.
+
+### Decision
+- Retain a focused builtin-integral packed-union width-mismatch parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `top` module
+  - one inline `union packed` net declaration
+  - one builtin `byte data;` field beside one builtin `shortint word;` field
+- Mark it `expected_parse_ok: true` because packed-union width coherence is not a generated-parser syntax error.
+- Require AST evidence for:
+  - `module_declaration`
+  - `union_type`
+  - `struct_union_field`
+  - `builtin_data_type`
+  - `net_declaration`
+  - `kw_byte`
+  - `kw_shortint`
+- Retain exact rule texts for `struct_union_field` and `net_declaration`.
+- Forbid typedef, enum, struct, named-data-type, instantiation, procedural, continuous-assign, and generate evidence so this remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `builtin_integral_packed_union_width_mismatch_parse_surface`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend typedef-backed packed-union width-mismatch syntax retention
 ### Context
 The handwritten `elaboration_rejects_typedef_backed_packed_union_width_mismatches` baseline separates syntax from semantic elaboration: `typedef union packed { logic [7:0] data; logic [15:0] word; } payload_t; payload_t payload;` parses as a module-local typedef plus named net declaration, then elaboration rejects it because packed-union fields do not share a common width.
