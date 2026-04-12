@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-13 - Retain rtl_frontend unknown typedef-backed struct-member actual syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so an unknown typedef-backed struct-member in a named-port actual is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `unknown_typedef_backed_struct_member_actual_parse_surface`
+  - retained `child u_child (.a(cfg.missing), .y(y));` after a module-local `typedef struct packed` declaration and `cfg_t cfg;` net
+  - required AST evidence for `typedef_declaration`, `struct_type`, `struct_union_field`, `named_data_type`, `net_declaration`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`
+  - retained exact `named_data_type`, `struct_union_field`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference` texts
+  - forbids union, enum, parameter-override, unpacked-dimension, procedural, continuous-assign, and generate evidence so this lane stays focused on parser syntax acceptance
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - unknown typedef-backed struct-member rejection remains an elaboration concern, not a generated-parser syntax concern
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - Add delimiter-aware shrinker pass
 ### Achievement Summary
 Landed the first bounded smarter-shrinker slice for the shared stimuli/counterexample platform. The failing-input minimizer now tries delimiter-aware structural reductions around its existing chunk minimizer so balanced `()`, `[]`, and `{}` payloads can shrink before falling back to generic character-range deletion.

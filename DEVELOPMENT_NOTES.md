@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend unknown typedef-backed struct-member actual syntax retention
+### Context
+The handwritten `elaboration_rejects_unknown_typedef_backed_struct_members` baseline separates syntax from semantic elaboration: `child u_child (.a(cfg.missing), .y(y));` parses as a named-port actual over a module-local `typedef struct packed` declaration and `cfg_t cfg;` net, then elaboration rejects `missing` because it is not a known member of `cfg_t`.
+
+### Decision
+- Retain a focused unknown typedef-backed struct-member named-port actual parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `child` module with scalar named ports
+  - one `top` module
+  - one module-local `typedef struct packed` named `cfg_t`
+  - one `cfg_t cfg;` net declaration
+  - one scalar instance: `child u_child (.a(cfg.missing), .y(y));`
+- Mark it `expected_parse_ok: true` because typedef-backed member binding is not a generated-parser syntax error.
+- Require AST evidence for:
+  - `typedef_declaration`
+  - `struct_type`
+  - `struct_union_field`
+  - `named_data_type`
+  - `net_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `signal_reference`
+- Retain exact rule texts for `named_data_type`, `struct_union_field`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`.
+- Forbid union, enum, parameter-override, unpacked-dimension, procedural, continuous-assign, and generate evidence so this remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `unknown_typedef_backed_struct_member_actual_parse_surface`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - First bounded smarter-shrinker slice
 ### Context
 The preserved stimuli-generation roadmap had already landed grammar-aware mutation, constrained-random steering, stronger near-valid negative generation, and corpus export/promotion groundwork. The remaining named stimuli upgrade was smarter shrinkers. The existing failure minimizer in [rust/src/main.rs](rust/src/main.rs) was a generic chunk/character minimizer, so the first useful low-risk slice was to add a structural pass there rather than create a parallel shrinker system.
