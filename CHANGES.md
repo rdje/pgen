@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-13 - Retain rtl_frontend file-scope typedef member actual
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so a file-scope typedef-backed struct-member named-port actual is retained alongside the module-local typedef-backed member actual.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `file_scope_typedef_backed_struct_member_actual`
+  - retained `child u_child (.a(cfg.data), .y(y));` after a file-scope `typedef struct packed` declaration and a later `cfg_t cfg;` top-module net
+  - required AST evidence for `typedef_declaration`, `struct_type`, `struct_union_field`, `module_declaration`, `named_data_type`, `net_declaration`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`
+  - retained exact `named_data_type`, `struct_union_field`, `net_declaration`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference` texts
+  - forbids union, enum, import, parameter-override, unpacked-dimension, procedural, continuous-assign, and generate evidence so this lane stays focused on parser syntax acceptance
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - file-scope typedef visibility plus known-member semantics remain elaboration concerns, not generated-parser syntax concerns
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-13 - Retain rtl_frontend typedef-backed struct member actual
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so a known typedef-backed struct-member named-port actual is retained alongside the existing unknown-member parse surface, leaving known-vs-unknown member semantics to elaboration.

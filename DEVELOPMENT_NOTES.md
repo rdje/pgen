@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend file-scope typedef-backed struct-member actual retention
+### Context
+The handwritten `elaboration_accepts_file_scope_typedef_backed_struct_members` baseline separates syntax from elaboration: a file-scope `typedef struct packed` declaration defines `cfg_t`, a later `top` module declares `cfg_t cfg;`, and `child u_child (.a(cfg.data), .y(y));` parses before elaboration accepts the visible known member. The generated contract already retained module-local typedef-backed member syntax; it now also needs the file-scope visibility counterpart.
+
+### Decision
+- Retain a focused file-scope typedef-backed struct-member named-port actual directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one file-scope `typedef struct packed` declaration
+  - one `child` module with scalar named ports
+  - one `top` module
+  - one `cfg_t cfg;` named-data-type net declaration
+  - one scalar instance: `child u_child (.a(cfg.data), .y(y));`
+- Mark it `expected_parse_ok: true` because file-scope typedef visibility and member existence are not generated-parser syntax decisions.
+- Require AST evidence for:
+  - `typedef_declaration`
+  - `struct_type`
+  - `struct_union_field`
+  - `module_declaration`
+  - `named_data_type`
+  - `net_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `signal_reference`
+- Retain exact rule texts for `named_data_type`, `struct_union_field`, `net_declaration`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`.
+- Forbid union, enum, import, parameter-override, unpacked-dimension, procedural, continuous-assign, and generate evidence so this remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `file_scope_typedef_backed_struct_member_actual`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend typedef-backed struct-member actual retention
 ### Context
 The handwritten `elaboration_accepts_typedef_backed_struct_members` baseline separates syntax from elaboration: `child u_child (.a(cfg.data), .y(y));` parses after a module-local `typedef struct packed` declaration and `cfg_t cfg;` net, then elaboration accepts `cfg.data` because the member exists. The generated contract already retained the corresponding unknown-member parse surface; it now also needs the known-member counterpart so the pair documents that syntax acceptance is common and semantics decide known versus unknown.
