@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.9",
-  "parser_release_version": "1.1.9",
+  "integration_contract_version": "1.1.10",
+  "parser_release_version": "1.1.10",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -122,6 +122,28 @@
         "recursion_condition": ["R&word"],
         "name": ["word"]
       }
+    },
+    {
+      "name": "version_conditional",
+      "input": "(?(VERSION>=10.0)cat|dog)",
+      "required_rule_names": ["version_condition", "version_operator", "version_number"],
+      "expected_rule_texts": {
+        "version_condition": ["VERSION>=10.0"],
+        "version_operator": [">="],
+        "version_number": ["10.0"]
+      },
+      "forbidden_rule_names": ["name"]
+    },
+    {
+      "name": "version_conditional_whitespace_and_missing_minor",
+      "input": "(?(VERSION >= 10)cat|dog)",
+      "required_rule_names": ["version_condition", "version_operator", "version_number"],
+      "expected_rule_texts": {
+        "version_condition": ["VERSION >= 10"],
+        "version_operator": [">="],
+        "version_number": ["10"]
+      },
+      "forbidden_rule_names": ["name"]
     },
     {
       "name": "whole_pattern_recursion",

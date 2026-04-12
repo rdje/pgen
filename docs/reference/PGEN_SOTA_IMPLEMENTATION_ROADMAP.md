@@ -1,6 +1,6 @@
 # PGEN SOTA Implementation Roadmap (Living)
 
-Last updated: 2026-04-10
+Last updated: 2026-04-12
 
 ## Mission
 Build PGEN into a state-of-the-art parser and stimuli generation platform with production-grade return/semantic annotation support, suitable for embedding in high-rigor systems (SystemVerilog/VHDL tooling, regex engines, and similar domains).
@@ -43,7 +43,8 @@ Execution preference for this roadmap:
     - `(?P>name(grouplist))`
   - additional conditional forms:
     - `(?(VERSION[...])...)`
-  - these are intentionally deferred until the remaining live `systemverilog` closure work and the other still-open parser families are materially complete
+  - update (2026-04-12): the concrete RGX-reported VERSION comparison subset is now published in regex release `1.1.10` as a targeted downstream maintenance fix for `PGEN-RGX-0016`
+  - broader conditional semantics remain contract-widening work, but this specific VERSION parseability gap is no longer deferred
   - do not reopen the closed `regex` family row for these syntax-widening targets until the project deliberately chooses to widen the published regex contract
 - closed parser families should stay closed in steering too:
   - `vhdl`, `systemverilog_preprocessor`, and `regex` are current no-regression proof baselines

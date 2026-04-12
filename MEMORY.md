@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-12 (+0200, task: rtl-frontend-unknown-union-member-actual-syntax)
+Last updated: 2026-04-12 (+0200, task: regex-1.1.10-version-conditionals)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,58 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex release `1.1.10` for RGX bug report `PGEN-RGX-0016`:
+  - changed:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - issue:
+    - RGX reported that regex release `1.1.9` rejected `(?(VERSION>=10.0)cat|dog)` at byte `0`
+    - RGX already owns parse-time short-circuit handling for VERSION conditionals, so PGEN only needed to recognize and transport the condition syntax
+  - grammar detail:
+    - `condition` now includes `version_condition`
+    - `version_condition := "VERSION" ws? version_operator ws? version_number`
+    - `version_operator := "!=" | ">=" | "<=" | "=" | ">" | "<"`
+    - `version_number := digits ("." digits)?`
+    - the `version_condition` branch is before bare-name fallback so `VERSION...` does not degrade into `name`
+  - contract detail:
+    - regex parser release version is now `1.1.10`
+    - regex integration contract version is now `1.1.10`
+    - AST-dump schema version stays `1`
+    - added manifest samples `version_conditional` and `version_conditional_whitespace_and_missing_minor`
+    - added generated-backend AST proof `regex_parser_integration_contract_accepts_version_conditionals`
+    - updated metadata sample count from `28` to `30`
+  - validation green for this slice:
+    - `make -C rust ../generated/regex_parser.rs`
+    - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+    - `jq empty generated/regex.json`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt --profile regex_default`
+    - `rust/target/debug/parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt --profile regex_default`
+    - `rust/target/debug/parseability_probe --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt /tmp/pgen_rgx_0016_ast.json --profile regex_default`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_accepts_version_conditionals`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples`
+  - validation caveat:
+    - after updating the metadata count, direct metadata reruns and `make -C rust regex_parser_integration_contract_gate` were attempted but stopped because newly launched no-feature test binaries stalled before Rust test execution at macOS `_dyld_start`
+    - sampled stalled test processes showed only `_dyld_start`, with no PGEN stack frames
+    - do not record the full regex gate as passed for this slice unless it is rerun successfully later
+  - important continuity detail:
+    - no live parser-family label changes; `regex` remains `Done`
+    - this is a targeted downstream maintenance release, not broad regex reopening
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+  - next best follow-up:
+    - after committing this RGX fix, return to the prior parser work queue, especially `rtl_frontend` generated parity/proof widening, unless the user supplies another RGX issue
 - Retained `rtl_frontend` syntax-only unknown union-member actual lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

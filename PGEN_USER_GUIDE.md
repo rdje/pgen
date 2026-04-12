@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.9`
+  - `1.1.10`
 - integration contract version:
-  - `1.1.9`
+  - `1.1.10`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3912,7 +3912,8 @@ Accepted syntax families in the current published flavor:
 - inline modifier forms
 - scoped inline modifier forms
 - conditional forms:
-  - condition may be a lookaround, a bare name, an explicit name reference, digits, signed digits, or a recursion condition
+  - condition may be a lookaround, a PCRE2 VERSION comparison, a bare name, an explicit name reference, digits, signed digits, or a recursion condition
+  - VERSION comparisons include compact forms like `VERSION>=10.0` and whitespace-bearing forms like `VERSION >= 10`
   - recursion conditions currently include plain `R`, numeric forms like `R1`, and named forms like `R&word`
   - explicit false branches are preserved separately, so `(?(1)a|b)` transports `a` and `b` as distinct yes/no branches
 - embedded code-block forms:
@@ -3943,6 +3944,8 @@ Representative accepted examples:
 - `(?1(1))`
 - `(?&callee(+1,<cap>,'alt'))`
 - `(?(1)a|b)`
+- `(?(VERSION>=10.0)cat|dog)`
+- `(?(VERSION >= 10)cat|dog)`
 - `(?(R)a|b)`
 - `(a)(?(R1)b|c)`
 - `(?(R&word)a|b)`
@@ -3992,7 +3995,9 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.9` specifically adds returned-capture subroutine syntax while carrying forward Unicode literal support and deeper nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.10` specifically adds PCRE2 VERSION conditionals while carrying forward returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping that JSON schema version stable:
+  - `(?(VERSION>=10.0)cat|dog)` now emits `version_condition` / `version_operator` / `version_number`
+  - `(?(VERSION >= 10)cat|dog)` now preserves whitespace around the comparison operator and accepts a missing minor component
   - `(?1(1))` now appears as `subroutine_call` plus `returned_capture_subroutine`, preserving both the target and the returned-capture grouplist
   - `(?&callee(+1,<cap>,'alt'))` now preserves mixed numeric/named returned-capture grouplist entries without degrading into `inline_modifiers`
   - `🎉` now emits a single `literal` node spanning the full UTF-8 codepoint
@@ -4081,8 +4086,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.9`
-  - integration contract version `1.1.9`
+  - parser release version `1.1.10`
+  - integration contract version `1.1.10`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

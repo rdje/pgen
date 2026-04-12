@@ -3,10 +3,10 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-08T21:29:22.516014+00:00",
+    "generated_at": "2026-04-12T00:27:45.705471+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
-    "source_file": "grammars/regex.ebnf",
+    "source_file": "../grammars/regex.ebnf",
     "source_format": "ebnf_rust_frontend"
   },
   "raw_ast": [
@@ -3984,6 +3984,14 @@
       ],
       [
         "rule_reference",
+        "version_condition"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "condition_assertion"
       ],
       [
@@ -4035,6 +4043,120 @@
       [
         "quoted_string",
         "DEFINE"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "version_condition"
+      ],
+      [
+        "quoted_string",
+        "VERSION"
+      ],
+      [
+        "rule_reference",
+        "ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "rule_reference",
+        "version_operator"
+      ],
+      [
+        "rule_reference",
+        "ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "rule_reference",
+        "version_number"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "version_operator"
+      ],
+      [
+        "quoted_string",
+        "!="
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        ">="
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "<="
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "="
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        ">"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "<"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "version_number"
+      ],
+      [
+        "rule_reference",
+        "digits"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "quoted_string",
+        "."
+      ],
+      [
+        "rule_reference",
+        "digits"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "?"
       ]
     ],
     [

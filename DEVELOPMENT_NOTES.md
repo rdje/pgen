@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-12 - Regex `1.1.10`: PCRE2 VERSION conditional transport for RGX
+### Context
+RGX bug report `PGEN-RGX-0016` showed that regex release `1.1.9` rejected PCRE2 VERSION conditionals such as `(?(VERSION>=10.0)cat|dog)` at byte `0`. RGX already owns the downstream parse-time short-circuit logic; the missing PGEN piece was syntax recognition of `VERSION op MAJOR[.MINOR]` inside a conditional condition body.
+
+### Decision
+- Publish a targeted regex maintenance release `1.1.10`.
+- Keep the live `regex` parser-family status at `Done`; this is a narrow syntax-widening handoff fix, not a reopening of regex closure doctrine.
+- Add a structured `version_condition` branch under `condition` rather than relying on a bare-name fallback.
+- Preserve:
+  - full condition body text through `condition`
+  - comparison operator text through `version_operator`
+  - target version text through `version_number`
+- Accept compact and whitespace-bearing forms:
+  - `VERSION>=10.0`
+  - `VERSION >= 10`
+- Keep regex AST-dump schema version at `1`; this is a rule-shape widening within the existing JSON schema.
+
+### What Was Changed
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - `condition` now includes `version_condition`
+  - added `version_condition`, `version_operator`, and `version_number`
+- Regenerated:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - bumped regex contract/release metadata to `1.1.10`
+  - added `version_conditional`
+  - added `version_conditional_whitespace_and_missing_minor`
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs):
+  - bumped regex release/contract constants to `1.1.10`
+  - added generated-backend AST-shape proof for VERSION conditionals
+  - updated manifest metadata count and explicit sample-name assertions
+- Updated public/status/contracts docs:
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+
+### Validation
+- Regenerated regex parser artifacts:
+  - `make -C rust ../generated/regex_parser.rs`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `jq empty generated/regex.json`
+- RGX reproducer:
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt --profile regex_default`
+  - `rust/target/debug/parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt --profile regex_default`
+- AST evidence:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt /tmp/pgen_rgx_0016_ast.json --profile regex_default`
+  - `rg -n "version_condition|version_operator|version_number|condition|VERSION|10\\.0" /tmp/pgen_rgx_0016_ast.json`
+- Generated-backend contract tests:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_accepts_version_conditionals`
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples`
+- Validation note:
+  - `make -C rust regex_parser_integration_contract_gate` was attempted, but the no-feature Rust test binary stalled before Rust test execution at macOS `_dyld_start`; it was terminated rather than left as another open process. The passing validation above covers the generated-backend parseability and AST-shape behavior needed by RGX.
+
 ## 2026-04-12 - rtl_frontend unknown union member actual syntax retention
 ### Context
 The handwritten `elaboration_rejects_unknown_union_members` baseline separates syntax from semantic elaboration: `child u_child (.a(payload.missing), .y(y));` parses as a named-port actual over an inline packed union, then elaboration rejects `missing` because it is not a known member of `payload`.

@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-04-12 - Release regex 1.1.10 VERSION conditionals
+### Achievement Summary
+Published regex maintenance release `1.1.10` for RGX bug report `PGEN-RGX-0016`. The regex grammar and generated backend now accept PCRE2 VERSION conditionals such as `(?(VERSION>=10.0)cat|dog)` and `(?(VERSION >= 10)cat|dog)`, preserving structured `version_condition`, `version_operator`, and `version_number` evidence for downstream short-circuit handling.
+
+### Scope of Changes
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - added `version_condition`, `version_operator`, and `version_number`
+  - placed `version_condition` before bare-name condition fallback
+- Regenerated canonical regex artifacts:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated the published regex manifest and host metadata to `1.1.10`:
+  - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+  - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+  - [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh)
+- Updated public/status/contract docs:
+  - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+  - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+  - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `regex` remains `Done`
+  - this is a targeted downstream syntax-widening maintenance release, not a broad regex reopening
+
+### Validation
+- Regeneration:
+  - `make -C rust ../generated/regex_parser.rs`
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  - `jq empty generated/regex.json`
+- RGX reproducer parseability:
+  - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt --profile regex_default`
+  - `rust/target/debug/parseability_probe --parse regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt --profile regex_default`
+- AST evidence:
+  - `rust/target/debug/parseability_probe --parse-dump-ast-pretty regex /Users/richarddje/Documents/github/rgx/pgen-issues/artifacts/PGEN-RGX-0016/repro_input.txt /tmp/pgen_rgx_0016_ast.json --profile regex_default`
+- Generated-backend contract tests:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_accepts_version_conditionals`
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract_enforces_declared_ast_shape_for_success_samples`
+- Environment note:
+  - `make -C rust regex_parser_integration_contract_gate` was attempted but stopped because the no-feature test binary stalled at macOS `_dyld_start` before Rust test execution.
+
 ## 2026-04-12 - Retain rtl_frontend unknown union member actual syntax
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so an unknown union member in a named-port actual is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.

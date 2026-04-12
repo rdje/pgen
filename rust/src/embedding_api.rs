@@ -20,10 +20,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.9";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.10";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.9";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.10";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2121,7 +2121,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 28);
+        assert_eq!(manifest.success_samples.len(), 30);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2141,6 +2141,18 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "numeric_recursion_conditional")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "version_conditional")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "version_conditional_whitespace_and_missing_minor")
         );
         assert!(
             manifest
@@ -2907,6 +2919,57 @@ mod tests {
             regex_rule_spans(&parsed, "name").is_empty(),
             "numeric recursion conditionals must not fall back to name"
         );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_integration_contract_accepts_version_conditionals() {
+        for (input, condition_text, operator, version) in [
+            (
+                "(?(VERSION>=10.0)cat|dog)",
+                "VERSION>=10.0",
+                ">=",
+                "10.0",
+            ),
+            (
+                "(?(VERSION >= 10)cat|dog)",
+                "VERSION >= 10",
+                ">=",
+                "10",
+            ),
+        ] {
+            let parsed = regex_ast_dump_json(input);
+
+            assert_eq!(
+                regex_rule_spans(&parsed, "conditional"),
+                vec![(0, input.len() as u64)],
+                "VERSION conditional must classify as a conditional for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "version_condition"),
+                vec![condition_text],
+                "VERSION conditional must preserve the full condition body for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "version_operator"),
+                vec![operator],
+                "VERSION conditional must preserve the comparison operator for '{}'",
+                input
+            );
+            assert_eq!(
+                regex_rule_texts(input, &parsed, "version_number"),
+                vec![version],
+                "VERSION conditional must preserve the target version for '{}'",
+                input
+            );
+            assert!(
+                regex_rule_spans(&parsed, "name").is_empty(),
+                "VERSION conditionals must not fall back to bare name parsing for '{}'",
+                input
+            );
+        }
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
