@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-13 - Retain rtl_frontend unknown parent actual syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so an unknown parent identifier in a named-port actual is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `unknown_parent_actual_identifier_parse_surface`
+  - retained `child u_child (.a(missing_signal), .y(y));`
+  - required AST evidence for `module_declaration`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`
+  - retained exact `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference` texts
+  - forbids parameter-override, typedef, aggregate types, unpacked dimensions, procedural, continuous-assign, and generate evidence so this lane stays focused on parser syntax acceptance
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - unknown parent-scope actual rejection remains an elaboration concern, not a generated-parser syntax concern
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-13 - Retain rtl_frontend unknown typedef-backed struct-member actual syntax
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so an unknown typedef-backed struct-member in a named-port actual is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.

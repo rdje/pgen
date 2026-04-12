@@ -2800,6 +2800,46 @@
       "sample": "module child (\n    input logic [7:0] a,\n    output logic [7:0] y\n);\nendmodule\n\nmodule top #(\n    parameter SEL = 1\n) (\n    output logic [7:0] y\n);\nlogic cfg, backup;\nchild u_child (.a(SEL ? cfg.data : backup.data), .y(y));\nendmodule\n"
     },
     {
+      "label": "unknown_parent_actual_identifier_parse_surface",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "parameter_override",
+        "typedef_declaration",
+        "struct_type",
+        "union_type",
+        "enum_type",
+        "unpacked_dimension",
+        "procedural_block",
+        "continuous_assign",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "module_instantiation": [
+          "child u_child (.a(missing_signal), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(missing_signal), .y(y))"
+        ],
+        "port_connection": [
+          ".a(missing_signal)",
+          ".y(y)"
+        ],
+        "signal_reference": [
+          "missing_signal",
+          "y"
+        ]
+      },
+      "sample": "module child (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    input logic a,\n    output logic y\n);\nchild u_child (.a(missing_signal), .y(y));\nendmodule\n"
+    },
+    {
       "label": "named_port_actual_repeat_trailing_comma",
       "expected_parse_ok": false,
       "require_ast_json": false,

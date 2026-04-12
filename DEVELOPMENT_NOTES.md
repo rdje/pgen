@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend unknown parent actual syntax retention
+### Context
+The handwritten `elaboration_rejects_unknown_parent_actual_identifiers` baseline separates syntax from semantic elaboration: `child u_child (.a(missing_signal), .y(y));` parses as a named-port actual, then elaboration rejects `missing_signal` because it is not a known parent-scope identifier.
+
+### Decision
+- Retain a focused unknown parent-identifier named-port actual parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `child` module with scalar named ports
+  - one `top` module with declared `a` and `y`
+  - one scalar instance: `child u_child (.a(missing_signal), .y(y));`
+- Mark it `expected_parse_ok: true` because parent-scope binding is not a generated-parser syntax error.
+- Require AST evidence for:
+  - `module_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `signal_reference`
+- Retain exact rule texts for `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`.
+- Forbid parameter-override, typedef, aggregate types, unpacked dimensions, procedural, continuous-assign, and generate evidence so this remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `unknown_parent_actual_identifier_parse_surface`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend unknown typedef-backed struct-member actual syntax retention
 ### Context
 The handwritten `elaboration_rejects_unknown_typedef_backed_struct_members` baseline separates syntax from semantic elaboration: `child u_child (.a(cfg.missing), .y(y));` parses as a named-port actual over a module-local `typedef struct packed` declaration and `cfg_t cfg;` net, then elaboration rejects `missing` because it is not a known member of `cfg_t`.
