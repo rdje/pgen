@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-12 (+0200, task: regex-1.1.10-version-conditionals)
+Last updated: 2026-04-12 (+0200, task: rtl-frontend-unindexed-unpacked-array-member-actual-syntax)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Retained `rtl_frontend` syntax-only unindexed unpacked-array struct-member actual lane:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `unindexed_unpacked_array_struct_member_actual_parse_surface`
+  - retained syntax lane:
+    - `child u_child (.a(cfgs.data), .y(y));`
+  - semantics split:
+    - generated parser accepts the syntax
+    - elaboration remains responsible for rejecting unindexed unpacked-array member access
+  - validation green so far:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
 - Published regex release `1.1.10` for RGX bug report `PGEN-RGX-0016`:
   - changed:
     - [grammars/regex.ebnf](grammars/regex.ebnf)

@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-04-12 - Retain rtl_frontend unindexed unpacked-array member actual syntax
+### Achievement Summary
+Expanded the curated `rtl_frontend` generated-parser contract so an unindexed unpacked-array struct-member named-port actual is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `unindexed_unpacked_array_struct_member_actual_parse_surface`
+  - retained `child u_child (.a(cfgs.data), .y(y));` after an unpacked array of packed structs
+  - required AST evidence for `struct_type`, `struct_union_field`, `unpacked_dimension`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`
+  - retained exact `struct_union_field`, `module_instantiation`, `instance_item`, and `port_connection` texts
+  - forbids typedef, union, enum, parameter-override, procedural, continuous-assign, and generate evidence so this lane stays focused on parser syntax acceptance
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - unindexed unpacked-array member rejection remains an elaboration concern, not a generated-parser syntax concern
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - Release regex 1.1.10 VERSION conditionals
 ### Achievement Summary
 Published regex maintenance release `1.1.10` for RGX bug report `PGEN-RGX-0016`. The regex grammar and generated backend now accept PCRE2 VERSION conditionals such as `(?(VERSION>=10.0)cat|dog)` and `(?(VERSION >= 10)cat|dog)`, preserving structured `version_condition`, `version_operator`, and `version_number` evidence for downstream short-circuit handling.

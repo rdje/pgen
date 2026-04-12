@@ -1,4 +1,50 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-12 - rtl_frontend unindexed unpacked-array member actual syntax retention
+### Context
+The handwritten `elaboration_rejects_unindexed_unpacked_array_members` baseline separates syntax from semantic elaboration: `child u_child (.a(cfgs.data), .y(y));` parses as a named-port actual over an unpacked array of packed structs, then elaboration rejects `cfgs.data` because `cfgs` is an unpacked array and the member access is missing an index.
+
+### Decision
+- Retain a focused unindexed unpacked-array struct-member named-port actual parse surface directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `child` module with scalar named ports
+  - one `top` module
+  - one inline packed struct array named `cfgs`
+  - one scalar instance: `child u_child (.a(cfgs.data), .y(y));`
+- Mark it `expected_parse_ok: true` because unpacked-array member binding is not a generated-parser syntax error.
+- Require AST evidence for:
+  - `struct_type`
+  - `struct_union_field`
+  - `unpacked_dimension`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `signal_reference`
+- Retain exact rule texts for `struct_union_field`, `module_instantiation`, `instance_item`, and `port_connection`.
+- Forbid typedef, union, enum, parameter-override, procedural, continuous-assign, and generate evidence so this remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `unindexed_unpacked_array_struct_member_actual_parse_surface`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - Regex `1.1.10`: PCRE2 VERSION conditional transport for RGX
 ### Context
 RGX bug report `PGEN-RGX-0016` showed that regex release `1.1.9` rejected PCRE2 VERSION conditionals such as `(?(VERSION>=10.0)cat|dog)` at byte `0`. RGX already owns the downstream parse-time short-circuit logic; the missing PGEN piece was syntax recognition of `VERSION op MAJOR[.MINOR]` inside a conditional condition body.

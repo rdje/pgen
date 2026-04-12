@@ -1297,6 +1297,47 @@
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
     },
     {
+      "label": "unindexed_unpacked_array_struct_member_actual_parse_surface",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "struct_type",
+        "struct_union_field",
+        "unpacked_dimension",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "union_type",
+        "enum_type",
+        "parameter_override",
+        "procedural_block",
+        "continuous_assign",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "module_instantiation": [
+          "child u_child (.a(cfgs.data), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(cfgs.data), .y(y))"
+        ],
+        "port_connection": [
+          ".a(cfgs.data)",
+          ".y(y)"
+        ]
+      },
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs.data), .y(y));\nendmodule\n"
+    },
+    {
       "label": "named_port_union_member_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,
