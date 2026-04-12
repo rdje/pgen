@@ -1339,6 +1339,52 @@
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;\nchild u_child (.a(payload.data), .y(y));\nendmodule\n"
     },
     {
+      "label": "named_port_unknown_union_member_actual_parse_surface",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "union_type",
+        "struct_union_field",
+        "net_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "struct_type",
+        "enum_type",
+        "parameter_override",
+        "unpacked_dimension",
+        "procedural_block",
+        "generate_region",
+        "continuous_assign"
+      ],
+      "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic [7:0] byte;"
+        ],
+        "module_instantiation": [
+          "child u_child (.a(payload.missing), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(payload.missing), .y(y))"
+        ],
+        "port_connection": [
+          ".a(payload.missing)",
+          ".y(y)"
+        ],
+        "signal_reference": [
+          "payload.missing",
+          "y"
+        ]
+      },
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;\nchild u_child (.a(payload.missing), .y(y));\nendmodule\n"
+    },
+    {
       "label": "generate_if_with_dataflow_and_named_instantiation",
       "expected_parse_ok": true,
       "require_ast_json": true,
