@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend typedef-backed struct-member actual retention
+### Context
+The handwritten `elaboration_accepts_typedef_backed_struct_members` baseline separates syntax from elaboration: `child u_child (.a(cfg.data), .y(y));` parses after a module-local `typedef struct packed` declaration and `cfg_t cfg;` net, then elaboration accepts `cfg.data` because the member exists. The generated contract already retained the corresponding unknown-member parse surface; it now also needs the known-member counterpart so the pair documents that syntax acceptance is common and semantics decide known versus unknown.
+
+### Decision
+- Retain a focused known typedef-backed struct-member named-port actual directly in the generated contract.
+- Keep the sample intentionally narrow:
+  - one `child` module with scalar named ports
+  - one `top` module
+  - one module-local `typedef struct packed` declaration
+  - one `cfg_t cfg;` named-data-type net declaration
+  - one scalar instance: `child u_child (.a(cfg.data), .y(y));`
+- Mark it `expected_parse_ok: true` because typedef-backed member existence is not a generated-parser syntax decision.
+- Require AST evidence for:
+  - `module_declaration`
+  - `typedef_declaration`
+  - `struct_type`
+  - `struct_union_field`
+  - `named_data_type`
+  - `net_declaration`
+  - `module_instantiation`
+  - `instance_item`
+  - `port_connection`
+  - `signal_reference`
+- Retain exact rule texts for `named_data_type`, `struct_union_field`, `net_declaration`, `module_instantiation`, `instance_item`, `port_connection`, and `signal_reference`.
+- Forbid union, enum, parameter-override, unpacked-dimension, procedural, continuous-assign, and generate evidence so this remains a focused parser-syntax proof.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract retention, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json) with:
+  - `typedef_backed_struct_member_actual`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- JSON syntax:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+- Generated contract gate:
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Workflow parity:
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend builtin packed-union width-mismatch syntax retention
 ### Context
 The handwritten `elaboration_rejects_builtin_integral_packed_union_width_mismatches` baseline separates syntax from semantic elaboration: `union packed { byte data; shortint word; } payload;` parses as an inline packed-union net declaration with builtin integral field types, then elaboration rejects it because packed-union fields do not share a common width.
