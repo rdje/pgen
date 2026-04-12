@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-12 (+0200, task: rtl-frontend-unindexed-unpacked-array-member-actual-syntax)
+Last updated: 2026-04-12 (+0200, task: stimuli-delimiter-aware-shrinker-pass)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Landed the first bounded smarter-shrinker slice for the shared stimuli/counterexample platform:
+  - changed:
+    - [rust/src/main.rs](rust/src/main.rs)
+    - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+    - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - implementation detail:
+    - `minimize_failing_input` now runs a delimiter-aware structural shrink pass before generic chunk minimization and after each accepted chunk reduction
+    - structural candidates cover balanced `()`, `[]`, and `{}`
+    - candidate shapes collapse delimited payloads, strip delimiters while keeping payload, or drop the whole balanced span when the failing predicate still holds
+  - important continuity detail:
+    - this is the first bounded smarter-shrinker slice, not full grammar-tree shrinker completion
+    - future shrinker work should still target optional-node dropping, alternation collapse, repetition-count reduction, and subtree pruning
+    - no live parser-family label changes
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
+  - validation green so far:
+    - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline failing_input_minimizer`
+    - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline structural_shrink_candidates_collapse_balanced_delimiters`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
 - Retained `rtl_frontend` syntax-only unindexed unpacked-array struct-member actual lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

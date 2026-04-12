@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-12 - First bounded smarter-shrinker slice
+### Context
+The preserved stimuli-generation roadmap had already landed grammar-aware mutation, constrained-random steering, stronger near-valid negative generation, and corpus export/promotion groundwork. The remaining named stimuli upgrade was smarter shrinkers. The existing failure minimizer in [rust/src/main.rs](rust/src/main.rs) was a generic chunk/character minimizer, so the first useful low-risk slice was to add a structural pass there rather than create a parallel shrinker system.
+
+### Decision
+- Add delimiter-aware structural shrinking around the existing failing-input minimizer.
+- Keep the first slice deliberately bounded:
+  - balanced `()`, `[]`, and `{}`
+  - local shorter candidates only
+  - preserve the existing failing-predicate contract
+  - no new CLI surface
+  - no claim of full grammar-tree shrinking yet
+- Try structural candidates before generic chunk minimization and again after every accepted chunk reduction.
+- Generate three local candidate shapes when possible:
+  - keep delimiters and drop the interior
+  - drop delimiters and keep the interior
+  - drop the whole balanced span
+- Treat this as the fifth stimuli-platform roadmap item in initial form, with deeper grammar-aware shrinkers still future work.
+
+### What Was Changed
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added `try_structural_shrink_pass`
+  - added `structural_shrink_candidates`
+  - added delimiter matching and candidate deduplication helpers
+  - added focused unit coverage for balanced-delimiter candidates and failing-input minimization
+- Updated:
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Focused tests:
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline failing_input_minimizer`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline structural_shrink_candidates_collapse_balanced_delimiters`
+- Rust-change lint wrapper:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - source-target clippy passed; generated-parser clippy remained non-strict and emitted existing generated warnings/errors before the wrapper completed successfully
+- Shared platform proof:
+  - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - rtl_frontend unindexed unpacked-array member actual syntax retention
 ### Context
 The handwritten `elaboration_rejects_unindexed_unpacked_array_members` baseline separates syntax from semantic elaboration: `child u_child (.a(cfgs.data), .y(y));` parses as a named-port actual over an unpacked array of packed structs, then elaboration rejects `cfgs.data` because `cfgs` is an unpacked array and the member access is missing an index.

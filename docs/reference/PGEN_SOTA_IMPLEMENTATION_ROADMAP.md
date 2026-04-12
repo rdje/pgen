@@ -116,15 +116,28 @@ The current bounded corpus-export slice:
   - `vhdl`
   - `regex`
 
-The remaining planned execution order is now:
-- `5.` smarter shrinkers
+The fifth preserved stimuli backlog item now has its first bounded slice:
+- smarter shrinkers
+
+The current shrinker slice:
+- adds a delimiter-aware structural pass to the shared failing-input minimizer
+- tries balanced `()`, `[]`, and `{}` reductions before byte/character chunk minimization and after each accepted chunk reduction
+- can collapse delimited payloads, strip delimiters while keeping payload, or drop the whole balanced span when the failing predicate still holds
+- preserves the same bounded cross-family proof doctrine on:
+  - `systemverilog`
+  - `vhdl`
+  - `regex`
+
+The remaining planned shrinker widening is now:
+- grammar-tree-aware shrinkers that can drop optional nodes, collapse alternations, reduce repetition counts, and prune subtrees while preserving the failing property
 
 Execution rule:
-- treat the landed mutation, steering, negative, and corpus-export slices as shared platform infrastructure, not as grammar-local experiments
+- treat the landed mutation, steering, negative, corpus-export, and first shrinker slices as shared platform infrastructure, not as grammar-local experiments
 - do not treat the current local mutation slice as “finished mutation support”; it is deliberately bounded and should widen only with retained deterministic replay and shared proof
 - do not treat the current steering profiles as “finished constrained-random support”; they are deliberately bounded profile-level controls, not yet a full rule-specific constraint system
 - do not treat the current near-valid profile as “finished negative generation support”; it is deliberately bounded profile-level shaping, not yet a full invalid-sample DSL
 - do not treat the current corpus bundle as “finished promotion support”; it is deliberately the first export/provenance slice, not yet an automatic checked-in contract promotion workflow
+- do not treat the current delimiter-aware structural minimizer as “finished shrinker support”; it is deliberately a first local reduction pass around the existing minimizer, not yet full grammar-tree shrinking
 - the current mutation slice is intentionally baseline-recovery-only; non-baseline recovery modes keep their existing semantics until a later deliberate widening says otherwise
 - the current near-valid slice can compose with semantic `@invalid_case` and still falls back to deterministic negative-marker suffix behavior when no stronger local corruption candidate exists
 - the current corpus bundle should be preferred over ad hoc sample/text-only captures whenever later work needs to preserve both emitted stimuli and the replay-relevant invocation shape

@@ -2344,6 +2344,7 @@ where
     }
 
     let mut candidate = input.to_string();
+    while try_structural_shrink_pass(&mut candidate, &mut still_fails)? {}
     let mut granularity = 2usize;
 
     loop {
@@ -2361,6 +2362,7 @@ where
             let trial = remove_chars_range(&candidate, start, end);
             if still_fails(&trial)? {
                 candidate = trial;
+                while try_structural_shrink_pass(&mut candidate, &mut still_fails)? {}
                 granularity = granularity.saturating_sub(1).max(2);
                 reduced = true;
                 break;
@@ -2379,6 +2381,101 @@ where
     }
 
     Ok(candidate)
+}
+
+fn try_structural_shrink_pass<F>(candidate: &mut String, still_fails: &mut F) -> Result<bool>
+where
+    F: FnMut(&str) -> Result<bool>,
+{
+    for trial in structural_shrink_candidates(candidate) {
+        if trial.chars().count() < candidate.chars().count() && still_fails(&trial)? {
+            *candidate = trial;
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn structural_shrink_candidates(input: &str) -> Vec<String> {
+    let mut stack = Vec::<(char, usize)>::new();
+    let mut spans = Vec::<(usize, usize, usize)>::new();
+
+    for (byte_idx, ch) in input.char_indices() {
+        match ch {
+            '(' | '[' | '{' => stack.push((ch, byte_idx)),
+            ')' | ']' | '}' => {
+                if let Some(stack_idx) = stack
+                    .iter()
+                    .rposition(|(open, _)| delimiters_match(*open, ch))
+                {
+                    let (_, open_byte) = stack.remove(stack_idx);
+                    spans.push((open_byte, byte_idx, ch.len_utf8()));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    spans.sort_by_key(|(open_byte, close_byte, close_width)| close_byte + close_width - open_byte);
+
+    let mut candidates = Vec::new();
+    let mut seen = HashSet::new();
+    for (open_byte, close_byte, close_width) in spans {
+        let open_width = input[open_byte..]
+            .chars()
+            .next()
+            .map(char::len_utf8)
+            .unwrap_or(0);
+        if open_width == 0 {
+            continue;
+        }
+
+        let open_end = open_byte + open_width;
+        let close_end = close_byte + close_width;
+        let prefix = &input[..open_byte];
+        let open = &input[open_byte..open_end];
+        let close = &input[close_byte..close_end];
+        let interior = &input[open_end..close_byte];
+        let suffix = &input[close_end..];
+
+        if !interior.is_empty() {
+            push_unique_structural_candidate(
+                input,
+                &mut candidates,
+                &mut seen,
+                format!("{}{}{}{}", prefix, open, close, suffix),
+            );
+            push_unique_structural_candidate(
+                input,
+                &mut candidates,
+                &mut seen,
+                format!("{}{}{}", prefix, interior, suffix),
+            );
+        }
+        push_unique_structural_candidate(
+            input,
+            &mut candidates,
+            &mut seen,
+            format!("{}{}", prefix, suffix),
+        );
+    }
+
+    candidates
+}
+
+fn delimiters_match(open: char, close: char) -> bool {
+    matches!((open, close), ('(', ')') | ('[', ']') | ('{', '}'))
+}
+
+fn push_unique_structural_candidate(
+    original: &str,
+    candidates: &mut Vec<String>,
+    seen: &mut HashSet<String>,
+    candidate: String,
+) {
+    if candidate.len() < original.len() && seen.insert(candidate.clone()) {
+        candidates.push(candidate);
+    }
 }
 
 fn remove_chars_range(input: &str, start_char: usize, end_char: usize) -> String {
@@ -3013,8 +3110,8 @@ mod tests {
         parse_stimuli_constraint_profile, parse_stimuli_mutation_mode,
         parse_stimuli_negative_profile, resolve_parseability_max_attempts,
         resolve_stimuli_module_seed, supported_generated_parseability_grammars,
-        supports_generated_parseability, write_parseability_report, FuzzCorpusCandidate,
-        LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
+        structural_shrink_candidates, supports_generated_parseability, write_parseability_report,
+        FuzzCorpusCandidate, LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
         StimuliCorpusBundleSample, StimuliCoverageMetrics, TargetDriveParseabilityTelemetry,
     };
     use pgen::ast_pipeline::stimuli_generator::{
@@ -3547,6 +3644,23 @@ mod tests {
         let minimized = minimize_failing_input("zzabyy", |candidate| Ok(candidate.contains("ab")))
             .expect("minimizer should succeed");
         assert_eq!(minimized, "ab");
+    }
+
+    #[test]
+    fn structural_shrink_candidates_collapse_balanced_delimiters() {
+        let candidates = structural_shrink_candidates("call(alpha, beta)");
+        assert!(candidates.contains(&"call()".to_string()));
+        assert!(candidates.contains(&"callalpha, beta".to_string()));
+        assert!(candidates.contains(&"call".to_string()));
+    }
+
+    #[test]
+    fn failing_input_minimizer_collapses_delimited_payloads() {
+        let minimized = minimize_failing_input("call(alpha, beta)", |candidate| {
+            Ok(candidate.starts_with("call(") && candidate.ends_with(')'))
+        })
+        .expect("minimizer should succeed");
+        assert_eq!(minimized, "call()");
     }
 
     #[test]

@@ -15,14 +15,15 @@ PGEN is not satisfied with "the parser compiles." It aims for:
 
 ## Current Stimuli Doctrine
 
-The live direction for stimuli work now includes the first four planned upgrades:
+The live direction for stimuli work now includes the first five planned upgrades in bounded initial form:
 
 1. grammar-aware mutation
 2. constrained-random steering
 3. stronger near-valid negative generation
 4. corpus export / promotion groundwork
+5. smarter shrinkers, starting with delimiter-aware structural minimization
 
-The next deferred step is smarter shrinkers.
+The shrinker work is deliberately not complete yet. The first landed slice teaches the existing counterexample minimizer to try balanced `()`, `[]`, and `{}` reductions before and after generic chunk minimization. Future work should push deeper into grammar-tree-aware shrinkers that can drop optional nodes, collapse alternations, reduce repetitions, and prune subtrees while preserving the failing property.
 
 ## Cross-Family Rule
 

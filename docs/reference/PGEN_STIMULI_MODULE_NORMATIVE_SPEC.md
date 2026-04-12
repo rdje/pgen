@@ -1,6 +1,6 @@
 # PGEN Stimuli Module Normative Specification (Living)
 
-Last updated: 2026-04-09
+Last updated: 2026-04-12
 
 ## Purpose
 This document defines the normative contract for generated Rust stimuli-module artifacts (`generated/<grammar>_stimuli.rs`) and their compatibility with in-memory stimuli generation.
@@ -173,6 +173,31 @@ Implications:
   - coverage-guided minimized corpus export on:
     - `regex`
 - This should be treated as the fourth executed item from the preserved stimuli-strengthening backlog, not as the finished end-state of corpus promotion support.
+
+## Current Shrinker Contract (2026-04-12)
+- The first bounded smarter-shrinker slice is landed in the shared counterexample minimizer.
+- The minimizer now tries delimiter-aware structural reductions before the generic chunk-based minimizer and again after each accepted chunk reduction.
+- The currently landed structural candidates are intentionally small and local:
+  - keep matched delimiters while dropping their interior, for example `call(alpha)` to `call()`
+  - drop matched delimiters while keeping their interior, for example `call(alpha)` to `callalpha`
+  - drop a whole balanced delimiter span, for example `call(alpha)` to `call`
+  - deduplicate shorter candidates before testing the failing predicate
+- The structural pass covers balanced:
+  - `()`
+  - `[]`
+  - `{}`
+- This bounded slice is validated through:
+  - focused minimizer unit coverage
+  - the shared cross-family stimuli platform gate on:
+    - `regex`
+    - `vhdl`
+    - `systemverilog`
+- This should be treated as the fifth executed item from the preserved stimuli-strengthening backlog in initial form, not as the finished end-state of grammar-aware shrinkers.
+- Future shrinker work should still pursue grammar-tree-aware reductions:
+  - dropping optional nodes
+  - collapsing alternations
+  - reducing repetition counts
+  - pruning whole subtrees while preserving the failing property
 
 ## In-Memory vs Module Parity Contract
 When in-memory and module modes run with matched replay identity tuple:

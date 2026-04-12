@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-04-12 - Add delimiter-aware shrinker pass
+### Achievement Summary
+Landed the first bounded smarter-shrinker slice for the shared stimuli/counterexample platform. The failing-input minimizer now tries delimiter-aware structural reductions around its existing chunk minimizer so balanced `()`, `[]`, and `{}` payloads can shrink before falling back to generic character-range deletion.
+
+### Scope of Changes
+- Updated [rust/src/main.rs](rust/src/main.rs):
+  - added a structural shrink pass before the generic minimizer loop
+  - reruns the structural pass after each accepted chunk reduction
+  - generates shorter balanced-delimiter candidates by:
+    - keeping delimiters while dropping interior payload
+    - dropping delimiters while keeping interior payload
+    - dropping the whole balanced delimiter span
+  - deduplicates structural candidates before testing the failing predicate
+- Updated stimuli roadmap/public/status docs:
+  - [docs/book/src/stimuli-and-quality.md](docs/book/src/stimuli-and-quality.md)
+  - [docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md](docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md)
+  - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - this is the first bounded smarter-shrinker slice, not full grammar-tree shrinker completion
+  - future shrinker work should still target optional-node dropping, alternation collapse, repetition-count reduction, and subtree pruning
+
+### Validation
+- Focused minimizer tests:
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline failing_input_minimizer`
+  - `cargo test --manifest-path rust/Cargo.toml --bin ast_pipeline structural_shrink_candidates_collapse_balanced_delimiters`
+- Rust-change lint wrapper:
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - source-target clippy passed; generated-parser clippy remained non-strict and emitted existing generated warnings/errors before the wrapper completed successfully
+- Shared stimuli-platform proof:
+  - `make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`
+- Documentation gate:
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+- Diff hygiene:
+  - `git diff --check`
+
 ## 2026-04-12 - Retain rtl_frontend unindexed unpacked-array member actual syntax
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so an unindexed unpacked-array struct-member named-port actual is retained as a syntax-only parse surface while elaboration remains responsible for semantic rejection.
