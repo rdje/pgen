@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend rich target proof tightening
+### Context
+The rich plain `always @(*)` and `always_latch` generated-contract samples already locked their procedural-block text, but still only required `assignment_target` presence. The richer `always_ff` sample had already established the generated AST ordering for full concatenated targets followed by member target elements, so the adjacent rich procedural lanes could safely inherit that text-lock pattern.
+
+### Decision
+- Tighten the rich procedural target samples in place.
+- Retain exact `assignment_target` text for:
+  - `always_star_rich_assignment_targets`
+  - `always_latch_rich_assignment_targets`
+- Include the full concatenated target, nested member target elements, the scalar fallback target where present, and the downstream continuous `assign y` target.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened rich procedural assignment-target text locks
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend scalar target proof tightening
 ### Context
 Several scalar procedural generated-contract samples already locked procedural-block text and assignment operators, but still only required `assignment_target` presence. Because the scalar targets are simple and deterministic, this is a safe next proof-tightening step before moving into richer member/concatenated target spans.
