@@ -906,6 +906,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "X{,9"), Some(true));
         assert_eq!(parse_sample("regex", "X{,9]"), Some(true));
         assert_eq!(parse_sample("regex", "a{(?#XYZ),2}"), Some(true));
+        assert_eq!(parse_sample("regex", r"^\ca\cA\c[;\c:"), Some(true));
         assert_eq!(parse_sample("regex", "^\\p{sc=Latin}"), Some(true));
         assert_eq!(parse_sample("regex", "^\\p{L&}X"), Some(true));
         assert_eq!(parse_sample("regex", "^[[:^alnum:]]"), Some(true));

@@ -49,6 +49,10 @@ fn skip_regex_escape(bytes: &[u8], start: usize) -> usize {
         }
     }
 
+    if next == b'c' && bytes.get(start + 2).is_some() {
+        return start.saturating_add(3).min(bytes.len());
+    }
+
     start.saturating_add(2).min(bytes.len())
 }
 
@@ -585,5 +589,11 @@ mod tests {
                 panic!("{input:?} should validate as literal braces: {err:?}")
             });
         }
+    }
+
+    #[test]
+    fn allows_pcre2_control_escape_targets_that_look_like_syntax() {
+        validate_regex_compile_contract(r"^\ca\cA\c[;\c:")
+            .expect("PCRE2 control escapes should consume their target byte");
     }
 }

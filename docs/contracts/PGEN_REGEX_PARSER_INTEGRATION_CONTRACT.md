@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.11`
+  - `1.1.12`
 - Parser release version:
-  - `1.1.11`
+  - `1.1.12`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,16 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.12 Highlights
+- `1.1.12` is a PCRE2-conformance validator patch over the `1.1.11` downstream handoff.
+- The headline change in `1.1.12` is accepting PCRE2 control escapes whose target byte looks like regex syntax, such as `^\ca\cA\c[;\c:`.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0017`.
+- The fix is deliberately narrow:
+  - the regex grammar already transports `\cX` forms through `control_escape`
+  - the compile-style validator now skips the complete `\cX` escape instead of leaving the target byte behind for later class/quantifier scans
+  - regex AST schema version stays `1`
+- `1.1.12` carries forward the `1.1.11` malformed counted-quantifier compatibility and all prior regex parser contract guarantees.
 
 ## Release 1.1.11 Highlights
 - `1.1.11` is a PCRE2-conformance syntax-compatibility patch over the `1.1.10` downstream handoff.
@@ -257,7 +267,8 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
-- Parser release `1.1.11` specifically adds PCRE2-compatible fallback for malformed counted-quantifier literal spellings while carrying forward VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Parser release `1.1.12` specifically adds PCRE2-compatible handling for control escapes whose target byte looks like syntax, while carrying forward malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `^\ca\cA\c[;\c:` now treats `\c[` as a complete control escape instead of re-reading `[` as an unterminated character class opener
   - `a{1,2,3}b` now transports the malformed counted-quantifier body as literal text instead of rejecting after `a`
   - `X{`, `X{A`, `X{1234`, and `X{1,` now preserve the unterminated brace spellings as literals
   - `X{12ABC}`, `X{,9`, and `X{,9]` now preserve malformed alphanumeric/left-open brace forms as literals

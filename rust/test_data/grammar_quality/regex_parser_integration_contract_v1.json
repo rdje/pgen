@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.11",
-  "parser_release_version": "1.1.11",
+  "integration_contract_version": "1.1.12",
+  "parser_release_version": "1.1.12",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -82,6 +82,11 @@
       "input": "\\o{101}",
       "required_rule_names": ["escape", "octal_escape", "octal_digits"],
       "forbidden_rule_names": ["simple_escape", "quantifier"]
+    },
+    {
+      "name": "control_escape_targets_that_look_like_syntax",
+      "input": "^\\ca\\cA\\c[;\\c:",
+      "required_rule_names": ["control_escape"]
     },
     {
       "name": "named_conditional",
