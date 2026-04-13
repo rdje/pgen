@@ -912,6 +912,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "([[.]+)"), Some(true));
         assert_eq!(parse_sample("regex", "[[,abc,]+]"), Some(true));
         assert_eq!(parse_sample("regex", "[[:abcd:xyz]]"), Some(true));
+        assert_eq!(parse_sample("regex", r"[abc[:x\]pqr]"), Some(true));
         assert_eq!(parse_sample("regex", "[[:space:]]+"), Some(true));
         assert_eq!(parse_sample("regex", "[[:blank:]]+"), Some(true));
         assert_eq!(parse_sample("regex", r"abc\Q(*+|\Eabc"), Some(true));

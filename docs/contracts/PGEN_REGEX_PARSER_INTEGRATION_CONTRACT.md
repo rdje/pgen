@@ -45,7 +45,7 @@ This is the document downstream projects such as RGX should read first when deci
 - `1.1.13` is a PCRE2-conformance character-class recovery patch over the `1.1.12` downstream handoff.
 - The headline change in `1.1.13` is accepting malformed POSIX-class opener text inside a character class when PCRE2 treats the second `[` as a literal fallback, such as `([[:]+)`.
 - This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0018`.
-- The same bracket-literal fallback also covers the related malformed equivalence-opener spelling from `PGEN-RGX-0019`, `([[=]+)`, malformed collating-opener spelling from `PGEN-RGX-0020`, `([[.]+)`, nested literal-bracket class spelling from `PGEN-RGX-0024`, `[[,abc,]+]`, and malformed POSIX-class body spelling from `PGEN-RGX-0025`, `[[:abcd:xyz]]`.
+- The same bracket-literal fallback also covers the related malformed equivalence-opener spelling from `PGEN-RGX-0019`, `([[=]+)`, malformed collating-opener spelling from `PGEN-RGX-0020`, `([[.]+)`, nested literal-bracket class spelling from `PGEN-RGX-0024`, `[[,abc,]+]`, malformed POSIX-class body spelling from `PGEN-RGX-0025`, `[[:abcd:xyz]]`, and malformed POSIX-looking class text with an escaped `]` from `PGEN-RGX-0026`, `[abc[:x\]pqr]`.
 - The fix is deliberately narrow:
   - `posix_class` now wins before literal fallback inside `class_item`
   - `[` is allowed as a `class_literal` fallback only after the stricter POSIX-class path fails
