@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-13 (+0200, task: rtl-frontend-inline-unknown-struct-member-actual-syntax)
+Last updated: 2026-04-13 (+0200, task: rtl-frontend-always-ff-dual-edge-event-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,32 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` `always_ff_well_formed` event-control proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label strengthened:
+    - `always_ff_well_formed`
+  - retained syntax lane:
+    - `always_ff @(posedge clk or negedge rst_n) begin ... end`
+  - proof tightening:
+    - now requires `event_control_list`, `event_control_item`, and `event_edge`
+    - now retains exact `event_control_list` text `@(posedge clk or negedge rst_n)`
+  - validation:
+    - passed `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - passed `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - passed `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - passed `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - passed `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
 - Retained `rtl_frontend` inline unknown struct-member named-port actual lane:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

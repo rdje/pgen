@@ -12,6 +12,9 @@
         "rtl_frontend_file",
         "module_declaration",
         "kw_always_ff",
+        "event_control_list",
+        "event_control_item",
+        "event_edge",
         "procedural_block",
         "assignment_target",
         "always_ff_assignment_operator"
@@ -19,6 +22,9 @@
       "expected_rule_texts": {
         "kw_always_ff": [
           "always_ff"
+        ],
+        "event_control_list": [
+          "@(posedge clk or negedge rst_n)"
         ],
         "always_ff_assignment_operator": [
           "<=",

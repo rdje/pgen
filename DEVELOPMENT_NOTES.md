@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend always_ff dual-edge event-control proof tightening
+### Context
+The existing `always_ff_well_formed` contract sample already used the handwritten baseline's `always_ff @(posedge clk or negedge rst_n)` shape, but the sample only required `kw_always_ff`, `procedural_block`, assignment-target, and nonblocking-operator evidence. The nearby reduced syntax-only event-control sample covered a single unknown `posedge` identifier, but the main well-formed dual-edge sample should also explicitly prove the generated parser retains the event-control structure.
+
+### Decision
+- Strengthen `always_ff_well_formed` in place instead of adding another near-duplicate fixture.
+- Require AST evidence for:
+  - `event_control_list`
+  - `event_control_item`
+  - `event_edge`
+- Retain exact `event_control_list` text for:
+  - `@(posedge clk or negedge rst_n)`
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_well_formed`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`.
+- Passed `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`.
+- Passed `make -C rust SHELL=/bin/bash mdbook_docs_gate`.
+- Passed `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`.
+- Passed `git diff --check`.
+
 ## 2026-04-13 - rtl_frontend inline unknown struct-member actual retention
 ### Context
 The handwritten `elaboration_rejects_unknown_struct_members` baseline separates syntax from elaboration: an inline `struct packed` declaration creates `cfg`, and `child u_child (.a(cfg.missing), .y(y));` parses before elaboration rejects the unknown member. The generated contract already retained typedef-backed unknown-member and unindexed unpacked-array member parse surfaces; it now also needs the plain inline-struct counterpart.

@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-04-13 - Tighten rtl_frontend always_ff event proof
+### Achievement Summary
+Strengthened the existing `always_ff_well_formed` generated-parser contract so it now explicitly retains dual-edge event-control AST evidence for `@(posedge clk or negedge rst_n)`.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_well_formed`
+  - now requires `event_control_list`, `event_control_item`, and `event_edge`
+  - now retains exact `event_control_list` text `@(posedge clk or negedge rst_n)`
+  - keeps the existing `kw_always_ff` and nonblocking assignment operator checks
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this tightens existing generated-contract proof rather than adding a new syntax sample
+
+### Validation
+- Passed `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`.
+- Passed `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`.
+- Passed `make -C rust SHELL=/bin/bash mdbook_docs_gate`.
+- Passed `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`.
+- Passed `git diff --check`.
+
 ## 2026-04-13 - Retain rtl_frontend inline unknown member actual
 ### Achievement Summary
 Expanded the curated `rtl_frontend` generated-parser contract so an unknown inline-struct member named-port actual is retained alongside the existing typedef-backed unknown-member and unindexed unpacked-array member parse surfaces.
