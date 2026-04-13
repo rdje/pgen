@@ -2287,6 +2287,7 @@
         "unpacked_dimension",
         "procedural_block",
         "kw_always_comb",
+        "kw_begin",
         "assignment_target",
         "assignment_operator",
         "continuous_assign",
@@ -2313,6 +2314,9 @@
         "ranged_signal_reference": [
           "cfgs[IDX].data[HI:LO]",
           "cfgs[0].data[HI:LO]"
+        ],
+        "procedural_block": [
+          "always_comb begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend"
         ]
       },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend\nassign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nendmodule\n"

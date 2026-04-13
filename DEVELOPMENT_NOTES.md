@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend rich assignment ternary block proof tightening
+### Context
+The `rich_assignment_targets_ternary_exprs` sample already locked the continuous dataflow assignment, concatenation expressions, and ranged/member references, but its procedural side only required `procedural_block` presence. This left one rich procedural/dataflow ternary sample less tightly pinned than the neighboring procedural/dataflow block samples.
+
+### Decision
+- Tighten `rich_assignment_targets_ternary_exprs` in place.
+- Require `kw_begin` evidence for the `always_comb` block.
+- Retain exact `procedural_block` text for the ranged/member ternary assignment.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `rich_assignment_targets_ternary_exprs`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend procedural ternary block proof tightening
 ### Context
 The `procedural_and_dataflow_ternary_binary_exprs` sample already locked the continuous-assign text and ranged-reference spans, but the procedural side only required `procedural_block` presence. After locking the neighboring concat-member procedural/dataflow block, the ternary/binary procedural block should carry the same exact-text proof.
