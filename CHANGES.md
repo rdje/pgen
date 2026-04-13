@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-04-13 - Tighten rtl_frontend always_ff block proof
+### Achievement Summary
+Strengthened the dual-edge `always_ff_well_formed` generated-parser contract sample so it now locks exact procedural-block text in addition to its already-pinned event-control text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_well_formed`
+  - now requires `kw_begin`, `kw_if`, and `kw_else` evidence
+  - now retains exact `procedural_block` text for `always_ff @(posedge clk or negedge rst_n) begin ... end`
+  - keeps the existing `kw_always_ff`, `event_control_list`, item-level dual-edge event-control, and nonblocking assignment-operator text locks
+- Updated status/continuity docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this tightens existing generated-contract proof rather than adding a new syntax sample
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - Tighten rtl_frontend rich assignment ternary block proof
 ### Achievement Summary
 Strengthened the rich assignment-target ternary/dataflow generated-parser contract sample so it now locks exact procedural-block text.

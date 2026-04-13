@@ -16,6 +16,9 @@
         "event_control_item",
         "event_edge",
         "procedural_block",
+        "kw_begin",
+        "kw_if",
+        "kw_else",
         "assignment_target",
         "always_ff_assignment_operator"
       ],
@@ -33,6 +36,9 @@
         "event_edge": [
           "posedge",
           "negedge"
+        ],
+        "procedural_block": [
+          "always_ff @(posedge clk or negedge rst_n) begin\n    if (!rst_n)\n        q <= 0;\n    else\n        q <= d;\nend"
         ],
         "always_ff_assignment_operator": [
           "<=",
