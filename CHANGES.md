@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-13 - Tighten rtl_frontend rich procedural block proof
+### Achievement Summary
+Strengthened the rich plain `always @(*)` and `always_latch` generated-parser contract samples so they now lock exact procedural-block text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_star_rich_assignment_targets`
+  - strengthened `always_latch_rich_assignment_targets`
+  - now requires `kw_begin` evidence for both rich block samples
+  - now retains exact `procedural_block` text for both rich block samples
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this tightens existing generated-contract proof rather than adding a new syntax sample
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - Tighten rtl_frontend unknown always_ff event proof
 ### Achievement Summary
 Strengthened the syntax-only unknown-event `always_ff` generated-parser contract sample so it now locks item-level event-control text.

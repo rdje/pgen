@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend rich procedural block proof tightening
+### Context
+The rich plain `always @(*)` and `always_latch` generated-contract samples already required the broad procedural/assignment/concatenation rules, but their full procedural block text was not locked the way the nearby scalar procedural samples were. Because each rich sample contains exactly one procedural block, this is a safe proof-tightening step without needing to guess nested assignment-target span ordering.
+
+### Decision
+- Tighten `always_star_rich_assignment_targets` and `always_latch_rich_assignment_targets` in place.
+- Require `kw_begin` evidence in both rich block samples.
+- Retain exact `procedural_block` text for both rich block samples.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_star_rich_assignment_targets`
+  - strengthened `always_latch_rich_assignment_targets`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend unknown always_ff event item proof tightening
 ### Context
 The single-edge valid `always_ff @(posedge clk)` samples now lock exact item-level event-control text. The nearby syntax-only unknown-event sample already required `event_control_item` and `event_edge`, but did not lock the actual retained text for `clk_missing`.
