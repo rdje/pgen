@@ -298,6 +298,9 @@ directive_body    = directive_named | directive_mark_shorthand
 directive_named   = directive_name directive_payload_suffix?
 directive_mark_shorthand = ":" directive_payload_simple?
 directive_payload_suffix = ":" directive_payload_simple? | "=" directive_payload_simple?
+# PCRE2 default verb-name payloads run until the verb-closing ")".
+# Per-verb argument requirements such as MARK requiring a non-empty name are
+# downstream validation concerns for the stable regex_default parser profile.
 directive_payload_simple = directive_payload_char*
 directive_payload_char = /([^)])/
 directive_name    = directive_name_start directive_name_continue*

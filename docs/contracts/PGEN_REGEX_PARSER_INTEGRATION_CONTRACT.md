@@ -38,7 +38,7 @@ This is the document downstream projects such as RGX should read first when deci
 ## Release 1.1.16 / Contract 1.1.17 Highlights
 - `1.1.16` is a PCRE2-conformance directive-payload generalization over the `1.1.15` parser release.
 - This specifically covers RGX PCRE2 conformance reports `PGEN-RGX-0031` and `PGEN-RGX-0032` and broadens the contract for the backtracking-control verb payload family instead of pinning only the concrete failing payload string.
-- PCRE2's default verb-name rule is that `(*VERB:NAME)` payload text is a sequence of characters up to the verb-closing `)`: `MARK` requires a non-empty payload/name, while `PRUNE`, `SKIP`, and `THEN` accept optional payload/name text. PGEN now models that parser-side payload shape conceptually as `directive_payload_char = /([^)])/`: any character except `)` is payload text in default `regex_default` directive parsing.
+- PCRE2's default verb-name rule is that `(*VERB:NAME)` payload text is a sequence of characters up to the verb-closing `)`: `MARK` requires a non-empty payload/name, while `PRUNE`, `SKIP`, and `THEN` accept optional payload/name text. PGEN now models that parser-side payload shape conceptually as `directive_payload_char = /([^)])/`: any character except `)` is payload text in default `regex_default` directive parsing. This is a family-level grammar rule derived from PCRE2's default backtracking-control verb-name semantics, not a special case for `m(m` or any one RGX repro payload.
 - MARK shorthand still transports through `directive_verb` -> `directive_mark_shorthand` -> `directive_payload_simple`; named backtracking-control verb payloads transport through `directive_verb` -> `directive_named` -> `directive_payload_suffix` -> `directive_payload_simple`. Regex AST schema version stays `1`.
 - PGEN does not yet model PCRE2 `PCRE2_ALT_VERBNAMES` escape-processing semantics for verb names; under the stable `regex_default` profile, an unescaped `)` terminates the directive payload.
 
@@ -322,6 +322,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `(*THEN:m(m)(?&y)(?(DEFINE)(?<y>b))` transports the leading directive as `directive_name = "THEN"` and `directive_payload_simple = "m(m"`
   - MARK shorthand still uses `(*:NAME)`; named backtracking-control verbs use `(*VERB:NAME)` and transport the name through `directive_payload_suffix`
   - `PCRE2_ALT_VERBNAMES` escape-processing semantics are not modeled by `regex_default`
+  - this contract slice is intentionally shape-based: the listed payload samples are witnesses for the non-`)` rule, not the complete accepted payload set
 - Integration contract `1.1.16` explicitly guarantees PCRE2 MARK shorthand directive payloads with literal `(`:
   - `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` transports the leading directive as `directive_verb` with `directive_mark_shorthand` payload `m(m`
   - `(*PRUNE:m(m)(?&y)(?(DEFINE)(?<y>b))` transports the leading directive as `directive_verb` with `directive_name = "PRUNE"` and `directive_payload_simple = "m(m"`
