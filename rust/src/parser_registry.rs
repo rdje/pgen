@@ -915,6 +915,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", r"[abc[:x\]pqr]"), Some(true));
         assert_eq!(parse_sample("regex", "[[:space:]]+"), Some(true));
         assert_eq!(parse_sample("regex", "[[:blank:]]+"), Some(true));
+        assert_eq!(parse_sample("regex", "^[:a[:digit:]]+"), Some(true));
         assert_eq!(parse_sample("regex", r"abc\Q(*+|\Eabc"), Some(true));
         assert_eq!(parse_sample("regex", "^\\p{sc=Latin}"), Some(true));
         assert_eq!(parse_sample("regex", "^\\p{L&}X"), Some(true));

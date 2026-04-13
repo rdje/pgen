@@ -58,6 +58,16 @@
       "forbidden_rule_names": ["class_literal"]
     },
     {
+      "name": "mixed_literal_and_posix_digit_class_item_ast",
+      "input": "^[:a[:digit:]]+",
+      "required_rule_names": ["char_class", "class_item", "class_literal", "posix_class", "posix_name"],
+      "expected_rule_texts": {
+        "class_literal": [":", "a"],
+        "posix_class": ["[:digit:]"],
+        "posix_name": ["digit"]
+      }
+    },
+    {
       "name": "quoted_literal_metacharacters",
       "input": "abc\\Q(*+|\\Eabc",
       "required_rule_names": ["quoted_literal"],
