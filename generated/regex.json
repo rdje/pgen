@@ -1347,15 +1347,11 @@
       ],
       [
         "quoted_string",
-        "\\k{"
+        "\\k"
       ],
       [
         "rule_reference",
-        "name"
-      ],
-      [
-        "quoted_string",
-        "}"
+        "braced_name_ref"
       ],
       [
         "operator",
@@ -1420,6 +1416,40 @@
       [
         "quoted_string",
         "'"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "braced_name_ref"
+      ],
+      [
+        "quoted_string",
+        "{"
+      ],
+      [
+        "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "rule_reference",
+        "name"
+      ],
+      [
+        "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "quoted_string",
+        "}"
       ]
     ],
     [

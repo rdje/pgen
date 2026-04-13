@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.19",
-  "parser_release_version": "1.1.18",
+  "integration_contract_version": "1.1.20",
+  "parser_release_version": "1.1.19",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -201,6 +201,21 @@
     {
       "name": "braced_named_backreference",
       "input": "(?<A>foo)-\\k{A}"
+    },
+    {
+      "name": "braced_named_backreference_with_whitespace",
+      "input": "(?'name'ab)\\k{ name }(?P=name)",
+      "required_rule_names": [
+        "named_group",
+        "backreference",
+        "braced_name_ref",
+        "python_named_backreference"
+      ],
+      "expected_rule_texts": {
+        "backreference": ["\\k{ name }"],
+        "braced_name_ref": ["{ name }"]
+      },
+      "forbidden_rule_names": ["simple_escape"]
     },
     {
       "name": "numeric_backreference",

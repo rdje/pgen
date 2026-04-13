@@ -70,10 +70,11 @@ anchor         = "^" | "$" | "\\A" | "\\Z" | "\\z" | "\\b" | "\\B" | "\\G"
 # Backreferences
 backreference  = "\\" backreference_digits
                | "\\k" name_ref
-               | "\\k{" name "}"
+               | "\\k" braced_name_ref
                | "\\g" subroutine_ref
 backreference_digits = nonzero_digit digit*
 name_ref       = "<" name ">" | "'" name "'"
+braced_name_ref = "{" brace_ws? name brace_ws? "}"
 subroutine_ref = braced_subroutine_ref
               | "<" signed_digits_or_name ">"
               | "'" signed_digits_or_name "'"

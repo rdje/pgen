@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.19`
+  - `1.1.20`
 - Parser release version:
-  - `1.1.18`
+  - `1.1.19`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,12 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.19 / Contract 1.1.20 Highlights
+- `1.1.19` is a PCRE2-conformance braced `\k{...}` named backreference transport patch over the `1.1.18` parser release.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0051` and models the general PCRE2 brace-delimited name-reference shape rather than only the concrete `\k{ name }` spelling.
+- PCRE2's brace-delimited subpattern-name reader permits spaces or tabs after `{` and before `}`. PGEN now models that parser-side shape as `braced_name_ref`, with the named payload preserved under `name`.
+- Patterns such as `(?'name'ab)\k{ name }(?P=name)` now transport `\k{ name }` through `backreference` -> `braced_name_ref`, instead of degrading `\k` to `simple_escape` and treating `{ name }` as literals. Regex AST schema version stays `1`.
 
 ## Release 1.1.18 / Contract 1.1.19 Highlights
 - `1.1.18` is a PCRE2-conformance braced `\g{...}` backreference transport patch over the `1.1.17` parser release.
@@ -318,6 +324,10 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
+- Integration contract `1.1.20` explicitly guarantees PCRE2 braced `\k{...}` named backreferences with optional space/tab padding:
+  - `(?'name'ab)\k{ name }(?P=name)` transports the padded named backreference as `backreference` -> `braced_name_ref`
+  - the named payload transports under `name = "name"` while the enclosing `braced_name_ref` rule text remains `{ name }`
+  - the contract slice is shape-based for the PCRE2 brace-delimited name-reference family, not a literal special case for `name`
 - Integration contract `1.1.19` explicitly guarantees PCRE2 braced `\g{...}` numeric backreferences with optional space/tab padding:
   - `(A)(\g{ -2 }B)` transports the reference as `backreference` -> `subroutine_ref` -> `braced_subroutine_ref` -> `signed_digits`
   - the signed numeric payload transports as `signed_digits = "-2"` while the enclosing `subroutine_ref` rule text remains `{ -2 }`
@@ -348,7 +358,8 @@ This is the document downstream projects such as RGX should read first when deci
   - `^[:a[:digit:]:b]+` transports the surrounding `:`, `a`, `:`, and `b` as `class_literal` items while preserving the embedded `digit` POSIX class through `posix_class`
   - `[[:digit:]-]+` transports `[:digit:]` through `posix_class` with `posix_name = "digit"` and the trailing `-` as a separate `class_literal`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Parser release `1.1.18` specifically adds PCRE2-compatible braced `\g{...}` numeric backreference whitespace handling while carrying forward parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Parser release `1.1.19` specifically adds PCRE2-compatible braced `\k{...}` named backreference whitespace handling while carrying forward parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `(?'name'ab)\k{ name }(?P=name)` now transports the padded named backreference as `backreference` -> `braced_name_ref`, not `simple_escape("k")` plus literal `{ name }`
   - `(A)(\g{ -2 }B)` now transports the padded relative reference as `backreference` -> `subroutine_ref` -> `braced_subroutine_ref` -> `signed_digits`, not `simple_escape("g")` plus literal `{ -2 }`
   - `(?(*pla:foo).{6}|a..)` now parses the leading conditional alpha-lookahead assertion condition instead of rejecting at byte `0`
   - `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` now parses the leading `(*:m(m)` directive before the following subroutine call and `DEFINE` conditional instead of rejecting at byte `0`
