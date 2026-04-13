@@ -32,7 +32,7 @@ This is the document downstream projects such as RGX should read first when deci
 - `1.1.13` is a PCRE2-conformance character-class recovery patch over the `1.1.12` downstream handoff.
 - The headline change in `1.1.13` is accepting malformed POSIX-class opener text inside a character class when PCRE2 treats the second `[` as a literal fallback, such as `([[:]+)`.
 - This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0018`.
-- The same bracket-literal fallback also covers the related malformed equivalence-opener spelling from `PGEN-RGX-0019`, `([[=]+)`.
+- The same bracket-literal fallback also covers the related malformed equivalence-opener spelling from `PGEN-RGX-0019`, `([[=]+)`, and malformed collating-opener spelling from `PGEN-RGX-0020`, `([[.]+)`.
 - The fix is deliberately narrow:
   - `posix_class` now wins before literal fallback inside `class_item`
   - `[` is allowed as a `class_literal` fallback only after the stricter POSIX-class path fails
@@ -282,6 +282,7 @@ This is the document downstream projects such as RGX should read first when deci
 - Parser release `1.1.13` specifically adds PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, while carrying forward control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
   - `([[:]+)` now treats the inner `[` and `:` as ordinary character-class literals once the stricter POSIX-class form fails
   - `([[=]+)` now likewise treats the inner `[` and `=` as ordinary character-class literals
+  - `([[.]+)` now likewise treats the inner `[` and `.` as ordinary character-class literals
   - `^\ca\cA\c[;\c:` now treats `\c[` as a complete control escape instead of re-reading `[` as an unterminated character class opener
   - `a{1,2,3}b` now transports the malformed counted-quantifier body as literal text instead of rejecting after `a`
   - `X{`, `X{A`, `X{1234`, and `X{1,` now preserve the unterminated brace spellings as literals
