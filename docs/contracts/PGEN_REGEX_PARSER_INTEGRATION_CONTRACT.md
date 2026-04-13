@@ -51,7 +51,7 @@ This is the document downstream projects such as RGX should read first when deci
 ## Contract 1.1.14 Highlights
 - `1.1.14` is a downstream AST-contract clarification over parser release `1.1.13`; it does not change the regex grammar, parser release version, or AST dump schema version.
 - This specifically covers RGX PCRE2 conformance reports `PGEN-RGX-0021`, `PGEN-RGX-0022`, and the mixed literal/POSIX-class reports `PGEN-RGX-0027` and `PGEN-RGX-0028`.
-- `[[:space:]]+`, `[[:blank:]]+`, `^[:a[:digit:]]+`, and `^[:a[:digit:]:b]+` emit a `class_item` containing the first-class `posix_class` variant, with `posix_name = "space"`, `posix_name = "blank"`, or `posix_name = "digit"` respectively.
+- `[[:space:]]+`, `[[:blank:]]+`, `^[:a[:digit:]]+`, `^[:a[:digit:]:b]+`, and `[[:digit:]-]+` emit a `class_item` containing the first-class `posix_class` variant, with `posix_name = "space"`, `posix_name = "blank"`, or `posix_name = "digit"` respectively.
 - Downstream AST adapters that walk character classes must handle `posix_class` alongside `class_range`, `class_literal`, and `class_escape` instead of treating it as an unknown `class_item` shape.
 
 ## Release 1.1.13 Highlights
@@ -323,6 +323,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `[[:blank:]]+` transports the POSIX class through `posix_class` with `posix_name = "blank"`
   - `^[:a[:digit:]]+` transports the leading `:` and `a` as `class_literal` items and the embedded POSIX class through `posix_class` with `posix_name = "digit"`
   - `^[:a[:digit:]:b]+` transports the surrounding `:`, `a`, `:`, and `b` as `class_literal` items while preserving the embedded `digit` POSIX class through `posix_class`
+  - `[[:digit:]-]+` transports `[:digit:]` through `posix_class` with `posix_name = "digit"` and the trailing `-` as a separate `class_literal`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
 - Parser release `1.1.16` specifically generalizes PCRE2-compatible directive payload transport to the default non-`)` verb-name shape while carrying forward parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
   - `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` now parses the leading `(*:m(m)` directive before the following subroutine call and `DEFINE` conditional instead of rejecting at byte `0`
