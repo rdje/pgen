@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.16`
+  - `1.1.17`
 - Parser release version:
-  - `1.1.15`
+  - `1.1.16`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,13 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.16 / Contract 1.1.17 Highlights
+- `1.1.16` is a PCRE2-conformance directive-payload generalization over the `1.1.15` parser release.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0031` and broadens the contract for the MARK/PRUNE/SKIP payload family instead of pinning only the concrete failing payload string.
+- PCRE2's default verb-name rule is that `(*VERB:NAME)` payload text is a sequence of characters up to the verb-closing `)`: `MARK` requires a non-empty payload/name, while `PRUNE` and `SKIP` accept optional payload/name text. PGEN now models that parser-side payload shape conceptually as `directive_payload_char = /([^)])/`: any character except `)` is payload text in default `regex_default` directive parsing.
+- MARK shorthand still transports through `directive_verb` -> `directive_mark_shorthand` -> `directive_payload_simple`; named MARK/PRUNE/SKIP payloads transport through `directive_verb` -> `directive_named` -> `directive_payload_suffix` -> `directive_payload_simple`. Regex AST schema version stays `1`.
+- PGEN does not yet model PCRE2 `PCRE2_ALT_VERBNAMES` escape-processing semantics for verb names; under the stable `regex_default` profile, an unescaped `)` terminates the directive payload.
 
 ## Release 1.1.15 / Contract 1.1.16 Highlights
 - `1.1.15` is a PCRE2-conformance directive-payload patch over the `1.1.14` parser release.
@@ -298,6 +305,11 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
+- Integration contract `1.1.17` explicitly guarantees the default PCRE2 MARK/PRUNE/SKIP directive payload shape:
+  - directive payload characters are any characters except the verb-closing `)` under the stable `regex_default` profile
+  - `(*MARK:m'm)(*PRUNE:p"p)(*SKIP:s(s)` transports the three payloads as `directive_payload_simple` values `m'm`, `p"p`, and `s(s`
+  - MARK shorthand still uses `(*:NAME)`; named MARK/PRUNE/SKIP use `(*VERB:NAME)` and transport the name through `directive_payload_suffix`
+  - `PCRE2_ALT_VERBNAMES` escape-processing semantics are not modeled by `regex_default`
 - Integration contract `1.1.16` explicitly guarantees PCRE2 MARK shorthand directive payloads with literal `(`:
   - `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` transports the leading directive as `directive_verb` with `directive_mark_shorthand` payload `m(m`
   - `(*PRUNE:m(m)(?&y)(?(DEFINE)(?<y>b))` transports the leading directive as `directive_verb` with `directive_name = "PRUNE"` and `directive_payload_simple = "m(m"`
@@ -311,7 +323,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `^[:a[:digit:]]+` transports the leading `:` and `a` as `class_literal` items and the embedded POSIX class through `posix_class` with `posix_name = "digit"`
   - `^[:a[:digit:]:b]+` transports the surrounding `:`, `a`, `:`, and `b` as `class_literal` items while preserving the embedded `digit` POSIX class through `posix_class`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Parser release `1.1.15` specifically adds PCRE2-compatible directive payload transport for literal `(` inside verb payloads while carrying forward parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Parser release `1.1.16` specifically generalizes PCRE2-compatible directive payload transport to the default non-`)` verb-name shape while carrying forward parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
   - `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` now parses the leading `(*:m(m)` directive before the following subroutine call and `DEFINE` conditional instead of rejecting at byte `0`
   - `(*PRUNE:m(m)(?&y)(?(DEFINE)(?<y>b))` now parses the leading `(*PRUNE:m(m)` directive through the same payload-character widening
   - `abc\Q(*+|\Eabc` now transports the quoted metacharacter segment through `quoted_literal` instead of treating `(` as active group syntax

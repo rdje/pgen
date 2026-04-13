@@ -288,7 +288,7 @@ directive_named   = directive_name directive_payload_suffix?
 directive_mark_shorthand = ":" directive_payload_simple?
 directive_payload_suffix = ":" directive_payload_simple? | "=" directive_payload_simple?
 directive_payload_simple = directive_payload_char*
-directive_payload_char = letter | digit | whitespace | directive_special | unicode_char
+directive_payload_char = /([^)])/
 directive_name    = directive_name_start directive_name_continue*
 directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'

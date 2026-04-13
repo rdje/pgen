@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.16",
-  "parser_release_version": "1.1.15",
+  "integration_contract_version": "1.1.17",
+  "parser_release_version": "1.1.16",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -126,6 +126,24 @@
         "directive_payload_suffix": [":m(m"],
         "directive_payload_simple": ["m(m"],
         "define_condition": ["DEFINE"]
+      }
+    },
+    {
+      "name": "directive_payload_general_mark_prune_skip",
+      "input": "(*MARK:m'm)(*PRUNE:p\"p)(*SKIP:s(s)",
+      "required_rule_names": [
+        "directive_verb",
+        "directive_named",
+        "directive_name",
+        "directive_payload_suffix",
+        "directive_payload_simple"
+      ],
+      "expected_rule_texts": {
+        "directive_verb": ["(*MARK:m'm)", "(*PRUNE:p\"p)", "(*SKIP:s(s)"],
+        "directive_named": ["MARK:m'm", "PRUNE:p\"p", "SKIP:s(s"],
+        "directive_name": ["MARK", "PRUNE", "SKIP"],
+        "directive_payload_suffix": [":m'm", ":p\"p", ":s(s"],
+        "directive_payload_simple": ["m'm", "p\"p", "s(s"]
       }
     },
     {

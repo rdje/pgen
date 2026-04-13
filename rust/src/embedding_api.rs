@@ -20,10 +20,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.16";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.17";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.15";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.16";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2121,7 +2121,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 46);
+        assert_eq!(manifest.success_samples.len(), 47);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2231,6 +2231,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "prune_directive_payload_with_open_paren")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "directive_payload_general_mark_prune_skip")
         );
         assert!(
             manifest
