@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.15`
+  - `1.1.16`
 - Parser release version:
-  - `1.1.14`
+  - `1.1.15`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,12 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.15 / Contract 1.1.16 Highlights
+- `1.1.15` is a PCRE2-conformance directive-payload patch over the `1.1.14` parser release.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0029`.
+- MARK shorthand directives such as `(*:m(m)` now accept literal `(` inside the directive payload, so a full pattern like `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` parses as a directive atom followed by the named subroutine call and the `DEFINE` conditional.
+- The directive payload transports through `directive_verb` -> `directive_mark_shorthand` -> `directive_payload_simple`; regex AST schema version stays `1`.
 
 ## Release 1.1.14 / Contract 1.1.15 Highlights
 - `1.1.14` is a PCRE2-conformance quoted-literal patch over the `1.1.13` parser release; integration contract `1.1.15` pins the downstream AST shape.
@@ -292,6 +298,9 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
+- Integration contract `1.1.16` explicitly guarantees PCRE2 MARK shorthand directive payloads with literal `(`:
+  - `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` transports the leading directive as `directive_verb` with `directive_mark_shorthand` payload `m(m`
+  - downstream consumers should treat literal `(` as payload text inside directive verbs until the verb-closing `)` is reached
 - Integration contract `1.1.15` explicitly guarantees PCRE2 quoted literals as first-class `quoted_literal` atoms:
   - `abc\Q(*+|\Eabc` transports the quoted section through `quoted_literal` with rule text `\Q(*+|\E`
   - downstream consumers should treat `quoted_literal` as an atom-level payload sibling of `literal` and `escape`
@@ -301,7 +310,8 @@ This is the document downstream projects such as RGX should read first when deci
   - `^[:a[:digit:]]+` transports the leading `:` and `a` as `class_literal` items and the embedded POSIX class through `posix_class` with `posix_name = "digit"`
   - `^[:a[:digit:]:b]+` transports the surrounding `:`, `a`, `:`, and `b` as `class_literal` items while preserving the embedded `digit` POSIX class through `posix_class`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Parser release `1.1.14` specifically adds PCRE2-compatible `\Q...\E` quoted literal transport while carrying forward parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Parser release `1.1.15` specifically adds PCRE2-compatible directive payload transport for literal `(` inside verb payloads while carrying forward parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `(*:m(m)(?&y)(?(DEFINE)(?<y>b))` now parses the leading `(*:m(m)` directive before the following subroutine call and `DEFINE` conditional instead of rejecting at byte `0`
   - `abc\Q(*+|\Eabc` now transports the quoted metacharacter segment through `quoted_literal` instead of treating `(` as active group syntax
   - `([[:]+)` now treats the inner `[` and `:` as ordinary character-class literals once the stricter POSIX-class form fails
   - `([[=]+)` now likewise treats the inner `[` and `=` as ordinary character-class literals

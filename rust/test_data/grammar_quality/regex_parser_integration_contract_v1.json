@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.15",
-  "parser_release_version": "1.1.14",
+  "integration_contract_version": "1.1.16",
+  "parser_release_version": "1.1.15",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -85,6 +85,25 @@
         "quoted_literal": ["\\Q(*+|\\E"]
       },
       "forbidden_rule_names": ["escape"]
+    },
+    {
+      "name": "mark_shorthand_payload_with_open_paren",
+      "input": "(*:m(m)(?&y)(?(DEFINE)(?<y>b))",
+      "required_rule_names": [
+        "directive_verb",
+        "directive_mark_shorthand",
+        "directive_payload_simple",
+        "subroutine_call",
+        "conditional",
+        "define_condition",
+        "named_group"
+      ],
+      "expected_rule_texts": {
+        "directive_verb": ["(*:m(m)"],
+        "directive_mark_shorthand": [":m(m"],
+        "directive_payload_simple": ["m(m"],
+        "define_condition": ["DEFINE"]
+      }
     },
     {
       "name": "braced_named_backreference",

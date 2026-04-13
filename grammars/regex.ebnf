@@ -292,7 +292,7 @@ directive_payload_char = letter | digit | whitespace | directive_special | unico
 directive_name    = directive_name_start directive_name_continue*
 directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'
-directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '^' | '_' | '{' | '|' | '}' | '~'
+directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '^' | '_' | '{' | '|' | '}' | '~'
 
 # PCRE2 extended character class syntax (?[ ... ])
 extended_class = "(?[" extended_class_content "])"

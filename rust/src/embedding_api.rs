@@ -20,10 +20,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.15";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.16";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.14";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.15";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2121,7 +2121,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 44);
+        assert_eq!(manifest.success_samples.len(), 45);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2219,6 +2219,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "quoted_literal_metacharacters")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "mark_shorthand_payload_with_open_paren")
         );
         assert!(
             manifest
