@@ -48,6 +48,16 @@
       "forbidden_rule_names": ["class_literal"]
     },
     {
+      "name": "posix_blank_class_item_ast",
+      "input": "[[:blank:]]+",
+      "required_rule_names": ["char_class", "class_item", "posix_class", "posix_name"],
+      "expected_rule_texts": {
+        "posix_class": ["[:blank:]"],
+        "posix_name": ["blank"]
+      },
+      "forbidden_rule_names": ["class_literal"]
+    },
+    {
       "name": "braced_named_backreference",
       "input": "(?<A>foo)-\\k{A}"
     },
