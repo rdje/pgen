@@ -40,6 +40,10 @@
         "procedural_block": [
           "always_ff @(posedge clk or negedge rst_n) begin\n    if (!rst_n)\n        q <= 0;\n    else\n        q <= d;\nend"
         ],
+        "assignment_target": [
+          "q",
+          "q"
+        ],
         "always_ff_assignment_operator": [
           "<=",
           "<="
@@ -403,6 +407,10 @@
           "=",
           "="
         ],
+        "assignment_target": [
+          "y",
+          "y"
+        ],
         "procedural_block": [
           "always @(*) begin\n    if (a)\n        y = 1;\n    else\n        y = 0;\nend"
         ]
@@ -468,6 +476,9 @@
         ],
         "assignment_operator": [
           "<="
+        ],
+        "assignment_target": [
+          "q"
         ],
         "procedural_block": [
           "always_latch begin\n    if (en)\n        q <= d;\nend"
