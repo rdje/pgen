@@ -376,6 +376,9 @@
         "continuous_assign": [
           "assign y = cfgs[IDX].valid;"
         ],
+        "concatenation_expr": [
+          "{cfgs[IDX].data[BIT], d[0]}"
+        ],
         "procedural_block": [
           "always @(*) begin\n    if (SEL)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\n    else\n        cfgs[IDX].valid = a;\nend"
         ]
@@ -460,6 +463,9 @@
         ],
         "continuous_assign": [
           "assign y = cfgs[0].valid;"
+        ],
+        "concatenation_expr": [
+          "{cfgs[IDX].data[BIT], d[0]}"
         ],
         "procedural_block": [
           "always_latch begin\n    if (en)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\nend"

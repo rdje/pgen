@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend rich concatenation proof tightening
+### Context
+After the rich continuous proof slice, only the rich plain `always @(*)` and rich `always_latch` samples still required `concatenation_expr` evidence without expected text. Both samples share the same procedural RHS concatenation and already lock their procedural block, assignment targets, assignment operators, and downstream continuous assignment text.
+
+### Decision
+- Tighten the rich procedural samples in place using the clean `concatenation_expr` seam.
+- Retain exact `concatenation_expr` text for:
+  - `always_star_rich_assignment_targets`
+  - `always_latch_rich_assignment_targets`
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened rich procedural concatenation-expression text locks
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend rich continuous proof tightening
 ### Context
 The rich plain `always @(*)` and `always_latch` generated-contract samples already locked their procedural blocks, assignment targets, and assignment operators, but their downstream `assign y = ...;` statements were only represented by `continuous_assign` presence. A broader expression-text attempt was intentionally dropped because `conditional_expr` / `additive_expr` currently preserve many nested atom spans in this grammar profile, making them noisy for this small proof slice.

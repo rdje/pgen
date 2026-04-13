@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-04-13 - Tighten rtl_frontend rich concatenation proof
+### Achievement Summary
+Strengthened the rich plain `always @(*)` and `always_latch` generated-parser contract samples so their procedural RHS concatenations are now text-locked.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_star_rich_assignment_targets`
+  - strengthened `always_latch_rich_assignment_targets`
+  - now retains exact `concatenation_expr` text for `{cfgs[IDX].data[BIT], d[0]}`
+  - keeps the existing rich procedural block, assignment-target, assignment-operator, and continuous-assign text locks
+  - closes the current set of positive samples that required `concatenation_expr` evidence without expected `concatenation_expr` text
+- Updated status/continuity docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this tightens existing generated-contract proof rather than adding a new syntax sample
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - Tighten rtl_frontend rich continuous proof
 ### Achievement Summary
 Strengthened the rich plain `always @(*)` and `always_latch` generated-parser contract samples so their downstream continuous assignments are now text-locked.
