@@ -1428,16 +1428,8 @@
         "subroutine_ref"
       ],
       [
-        "quoted_string",
-        "{"
-      ],
-      [
         "rule_reference",
-        "signed_digits_or_name"
-      ],
-      [
-        "quoted_string",
-        "}"
+        "braced_subroutine_ref"
       ],
       [
         "operator",
@@ -1478,6 +1470,40 @@
       [
         "rule_reference",
         "signed_digits"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "braced_subroutine_ref"
+      ],
+      [
+        "quoted_string",
+        "{"
+      ],
+      [
+        "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "rule_reference",
+        "signed_digits_or_name"
+      ],
+      [
+        "rule_reference",
+        "brace_ws"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "quoted_string",
+        "}"
       ]
     ],
     [
@@ -1586,6 +1612,36 @@
       [
         "rule_reference",
         "digit"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "brace_ws"
+      ],
+      [
+        "group_open",
+        "("
+      ],
+      [
+        "quoted_string",
+        " "
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "\t"
+      ],
+      [
+        "group_close",
+        ")"
+      ],
+      [
+        "operator",
+        "+"
       ]
     ],
     [

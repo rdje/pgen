@@ -940,6 +940,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "(?&name)"), Some(true));
         assert_eq!(parse_sample("regex", "(?R)"), Some(true));
         assert_eq!(parse_sample("regex", "\\g{1}"), Some(true));
+        assert_eq!(parse_sample("regex", "(A)(\\g{ -2 }B)"), Some(true));
         assert_eq!(parse_sample("regex", "(?C1)"), Some(true));
         assert_eq!(parse_sample("regex", "(*UTF)abc"), Some(true));
         assert_eq!(parse_sample("regex", "(*MARK:A)(*SKIP:B)(C|X)"), Some(true));

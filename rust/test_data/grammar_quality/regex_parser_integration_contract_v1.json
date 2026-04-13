@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.18",
-  "parser_release_version": "1.1.17",
+  "integration_contract_version": "1.1.19",
+  "parser_release_version": "1.1.18",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -213,6 +213,23 @@
       "input": "\\g<1>",
       "required_rule_names": ["backreference", "subroutine_ref", "signed_digits"],
       "forbidden_rule_names": ["escape", "literal"]
+    },
+    {
+      "name": "braced_relative_backreference_with_whitespace",
+      "input": "(A)(\\g{ -2 }B)",
+      "required_rule_names": [
+        "backreference",
+        "subroutine_ref",
+        "braced_subroutine_ref",
+        "signed_digits"
+      ],
+      "expected_rule_texts": {
+        "backreference": ["\\g{ -2 }"],
+        "subroutine_ref": ["{ -2 }"],
+        "braced_subroutine_ref": ["{ -2 }"],
+        "signed_digits": ["-2"]
+      },
+      "forbidden_rule_names": ["simple_escape"]
     },
     {
       "name": "unicode_emoji_literal",

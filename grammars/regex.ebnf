@@ -74,16 +74,18 @@ backreference  = "\\" backreference_digits
                | "\\g" subroutine_ref
 backreference_digits = nonzero_digit digit*
 name_ref       = "<" name ">" | "'" name "'"
-subroutine_ref = "{" signed_digits_or_name "}"
+subroutine_ref = braced_subroutine_ref
               | "<" signed_digits_or_name ">"
               | "'" signed_digits_or_name "'"
               | signed_digits
+braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}"
 signed_digits_or_name = signed_digits | name
 signed_digits = sign? digits
 sign           = "+" | "-"
 name           = name_start name_continue*
 name_start     = letter | '_'
 name_continue  = name_start | digit
+brace_ws       = (' ' | '\t')+
 
 # Character classes with actionable code generation
 @generate: generate_char_class_matcher(has_negation($2), collect_class_items($2))
