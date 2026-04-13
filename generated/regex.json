@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-13T21:20:39.487483+00:00",
+    "generated_at": "2026-04-13T21:59:43.261071+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -423,6 +423,14 @@
       ],
       [
         "rule_reference",
+        "lookaround"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "directive_verb"
       ],
       [
@@ -456,14 +464,6 @@
       [
         "rule_reference",
         "comment_group"
-      ],
-      [
-        "operator",
-        "|"
-      ],
-      [
-        "rule_reference",
-        "lookaround"
       ],
       [
         "operator",
@@ -3439,6 +3439,14 @@
       [
         "rule_reference",
         "lookbehind_neg"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "alpha_lookaround"
       ]
     ],
     [
@@ -3511,6 +3519,102 @@
       [
         "quoted_string",
         ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "alpha_lookaround"
+      ],
+      [
+        "quoted_string",
+        "(*"
+      ],
+      [
+        "rule_reference",
+        "alpha_lookaround_name"
+      ],
+      [
+        "quoted_string",
+        ":"
+      ],
+      [
+        "rule_reference",
+        "pattern"
+      ],
+      [
+        "operator",
+        "?"
+      ],
+      [
+        "quoted_string",
+        ")"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "alpha_lookaround_name"
+      ],
+      [
+        "quoted_string",
+        "pla"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "positive_lookahead"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "nla"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "negative_lookahead"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "plb"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "positive_lookbehind"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "nlb"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "negative_lookbehind"
       ]
     ],
     [
@@ -4303,6 +4407,40 @@
       [
         "rule_reference",
         "pattern"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "alpha_condition_assertion"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "alpha_condition_assertion"
+      ],
+      [
+        "quoted_string",
+        "*"
+      ],
+      [
+        "rule_reference",
+        "alpha_lookaround_name"
+      ],
+      [
+        "quoted_string",
+        ":"
+      ],
+      [
+        "rule_reference",
+        "pattern"
+      ],
+      [
+        "operator",
+        "?"
       ]
     ],
     [

@@ -41,12 +41,12 @@ atom           = literal
                | branch_reset_group
                | callout
                | conditional
+               | lookaround
                | directive_verb
                | extended_class
                | code_block
                | atomic_group
                | comment_group
-               | lookaround
                | python_named_backreference
                | group
 
@@ -236,11 +236,20 @@ comment_text         = comment_char*
 comment_char         = letter | digit | whitespace | comment_special | unicode_char
 comment_special      = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
-lookaround           = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg
+lookaround           = lookahead_pos | lookahead_neg | lookbehind_pos | lookbehind_neg | alpha_lookaround
 lookahead_pos        = "(?=" pattern ")"
 lookahead_neg        = "(?!" pattern ")"
 lookbehind_pos       = "(?<=" pattern ")"
 lookbehind_neg       = "(?<!" pattern ")"
+alpha_lookaround     = "(*" alpha_lookaround_name ":" pattern? ")"
+alpha_lookaround_name = "pla"
+                    | "positive_lookahead"
+                    | "nla"
+                    | "negative_lookahead"
+                    | "plb"
+                    | "positive_lookbehind"
+                    | "nlb"
+                    | "negative_lookbehind"
 subroutine_call      = "(?" returned_capture_subroutine ")"
                     | "(?" subroutine_target ")"
 returned_capture_subroutine = subroutine_target returned_capture_group_list
@@ -278,6 +287,8 @@ condition_assertion = "?=" pattern
                     | "?!" pattern
                     | "?<=" pattern
                     | "?<!" pattern
+                    | alpha_condition_assertion
+alpha_condition_assertion = "*" alpha_lookaround_name ":" pattern?
 recursion_condition = "R" digits?
                     | "R&" name
 

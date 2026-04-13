@@ -951,6 +951,18 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             parse_sample("regex", "(*THEN:m(m)(?&y)(?(DEFINE)(?<y>b))"),
             Some(true)
         );
+        for sample in [
+            "(?(*pla:foo).{6}|a..)",
+            "(?(*positive_lookahead:foo).{6}|a..)",
+            "(?(*nla:foo)bar|baz)",
+            "(?(*negative_lookahead:foo)bar|baz)",
+            "(?(*plb:foo)bar|baz)",
+            "(?(*positive_lookbehind:foo)bar|baz)",
+            "(?(*nlb:foo)bar|baz)",
+            "(?(*negative_lookbehind:foo)bar|baz)",
+        ] {
+            assert_eq!(parse_sample("regex", sample), Some(true));
+        }
         assert_eq!(parse_sample("regex", "(?[\\p{L} - \\p{Lu}])"), Some(true));
         assert_eq!(parse_sample("regex", "^[]cde]"), Some(true));
         assert_eq!(parse_sample("regex", "^[^]cde]"), Some(true));

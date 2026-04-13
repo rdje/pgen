@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.17",
-  "parser_release_version": "1.1.16",
+  "integration_contract_version": "1.1.18",
+  "parser_release_version": "1.1.17",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -177,6 +177,25 @@
         "directive_payload_suffix": [":m(m"],
         "directive_payload_simple": ["m(m"],
         "define_condition": ["DEFINE"]
+      }
+    },
+    {
+      "name": "alpha_lookahead_condition_short",
+      "input": "(?(*pla:foo).{6}|a..)",
+      "required_rule_names": [
+        "conditional",
+        "condition_assertion",
+        "alpha_condition_assertion",
+        "alpha_lookaround_name",
+        "yes_branch",
+        "no_branch",
+        "counted_quantifier"
+      ],
+      "expected_rule_texts": {
+        "condition_assertion": ["*pla:foo"],
+        "alpha_condition_assertion": ["*pla:foo"],
+        "alpha_lookaround_name": ["pla"],
+        "counted_quantifier": ["{6}"]
       }
     },
     {
