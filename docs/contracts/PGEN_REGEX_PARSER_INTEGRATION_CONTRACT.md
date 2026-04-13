@@ -45,7 +45,7 @@ This is the document downstream projects such as RGX should read first when deci
 - `1.1.13` is a PCRE2-conformance character-class recovery patch over the `1.1.12` downstream handoff.
 - The headline change in `1.1.13` is accepting malformed POSIX-class opener text inside a character class when PCRE2 treats the second `[` as a literal fallback, such as `([[:]+)`.
 - This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0018`.
-- The same bracket-literal fallback also covers the related malformed equivalence-opener spelling from `PGEN-RGX-0019`, `([[=]+)`, malformed collating-opener spelling from `PGEN-RGX-0020`, `([[.]+)`, and nested literal-bracket class spelling from `PGEN-RGX-0024`, `[[,abc,]+]`.
+- The same bracket-literal fallback also covers the related malformed equivalence-opener spelling from `PGEN-RGX-0019`, `([[=]+)`, malformed collating-opener spelling from `PGEN-RGX-0020`, `([[.]+)`, nested literal-bracket class spelling from `PGEN-RGX-0024`, `[[,abc,]+]`, and malformed POSIX-class body spelling from `PGEN-RGX-0025`, `[[:abcd:xyz]]`.
 - The fix is deliberately narrow:
   - `posix_class` now wins before literal fallback inside `class_item`
   - `[` is allowed as a `class_literal` fallback only after the stricter POSIX-class path fails
@@ -305,6 +305,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `([[=]+)` now likewise treats the inner `[` and `=` as ordinary character-class literals
   - `([[.]+)` now likewise treats the inner `[` and `.` as ordinary character-class literals
   - `[[,abc,]+]` now treats the inner `[` and comma-separated payload as ordinary character-class literals, then parses the trailing `]` as a literal atom after the class quantifier
+  - `[[:abcd:xyz]]` now treats the malformed POSIX-class body as ordinary class literals, then parses the trailing `]` as a literal atom after the class
   - `^\ca\cA\c[;\c:` now treats `\c[` as a complete control escape instead of re-reading `[` as an unterminated character class opener
   - `a{1,2,3}b` now transports the malformed counted-quantifier body as literal text instead of rejecting after `a`
   - `X{`, `X{A`, `X{1234`, and `X{1,` now preserve the unterminated brace spellings as literals
