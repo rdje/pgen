@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-04-13 - Tighten rtl_frontend labeled operator proof
+### Achievement Summary
+Strengthened the labeled parameter-expression `always_comb` generated-parser contract sample so it now locks exact assignment-operator text and closes the current regular `assignment_operator` text sweep.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `labeled_always_comb_parameter_exprs_and_packed_multi_nets`
+  - now retains exact `assignment_operator` text for its three `=` procedural assignments
+  - closes the current set of positive samples that required regular `assignment_operator` evidence without expected `assignment_operator` text
+- Updated status/continuity docs:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this tightens existing generated-contract proof rather than adding a new syntax sample
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - Tighten rtl_frontend labeled target proof
 ### Achievement Summary
 Strengthened the labeled `always_comb` generated-parser contract samples so they now lock exact assignment-target text and close the current positive-sample `assignment_target` text sweep.

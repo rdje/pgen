@@ -2281,6 +2281,11 @@
           "scratch",
           "scratch"
         ],
+        "assignment_operator": [
+          "=",
+          "=",
+          "="
+        ],
         "procedural_block": [
           "always_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend"
         ]
