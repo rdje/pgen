@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend rich continuous proof tightening
+### Context
+The rich plain `always @(*)` and `always_latch` generated-contract samples already locked their procedural blocks, assignment targets, and assignment operators, but their downstream `assign y = ...;` statements were only represented by `continuous_assign` presence. A broader expression-text attempt was intentionally dropped because `conditional_expr` / `additive_expr` currently preserve many nested atom spans in this grammar profile, making them noisy for this small proof slice.
+
+### Decision
+- Tighten the rich procedural/dataflow samples in place using the clean `continuous_assign` seam.
+- Retain exact `continuous_assign` text for:
+  - `always_star_rich_assignment_targets`
+  - `always_latch_rich_assignment_targets`
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened rich procedural/dataflow continuous-assign text locks
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend labeled operator proof tightening
 ### Context
 After the labeled target proof slice, only `labeled_always_comb_parameter_exprs_and_packed_multi_nets` still required regular `assignment_operator` evidence without expected text. Other procedural samples with regular assignment operators were already text-locked, and the dedicated `always_ff_assignment_operator` surface had no remaining missing text gaps.
