@@ -7,7 +7,7 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.13`
+  - `1.1.14`
 - Parser release version:
   - `1.1.13`
 - Embedding API contract baseline:
@@ -27,6 +27,12 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Contract 1.1.14 Highlights
+- `1.1.14` is a downstream AST-contract clarification over parser release `1.1.13`; it does not change the regex grammar, parser release version, or AST dump schema version.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0021`.
+- `[[:space:]]+` emits a `class_item` containing the first-class `posix_class` variant, with `posix_name = "space"`.
+- Downstream AST adapters that walk character classes must handle `posix_class` alongside `class_range`, `class_literal`, and `class_escape` instead of treating it as an unknown `class_item` shape.
 
 ## Release 1.1.13 Highlights
 - `1.1.13` is a PCRE2-conformance character-class recovery patch over the `1.1.12` downstream handoff.
@@ -279,6 +285,9 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
+- Integration contract `1.1.14` explicitly guarantees that valid POSIX character classes inside character classes remain transported as `class_item` -> `posix_class` rather than being degraded to literal text:
+  - `[[:space:]]+` transports the POSIX class through `posix_class` with `posix_name = "space"`
+  - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
 - Parser release `1.1.13` specifically adds PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, while carrying forward control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
   - `([[:]+)` now treats the inner `[` and `:` as ordinary character-class literals once the stricter POSIX-class form fails
   - `([[=]+)` now likewise treats the inner `[` and `=` as ordinary character-class literals
@@ -372,6 +381,10 @@ This is the document downstream projects such as RGX should read first when deci
     - descending character-class ranges such as `[z-a]`
     - quantified anchors such as `^+`
     - variable-length lookbehind such as `(?<=a+)b`
+- Character-class AST adapter contract:
+  - `class_item` variants currently include `class_range`, `class_literal`, `class_escape`, and `posix_class`
+  - `posix_class` carries the POSIX class spelling through `posix_name`, including names such as `space`, `blank`, `digit`, `alnum`, and `xdigit`
+  - valid POSIX classes are intentionally not flattened into literal text, because downstream engines need to preserve their range semantics
 - The current detailed flavor description and measured operational baseline live in `PGEN_USER_GUIDE.md`.
 - Representative accepted examples for the current published flavor include:
   - `ab+`
