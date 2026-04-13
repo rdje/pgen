@@ -1438,6 +1438,52 @@
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs.data), .y(y));\nendmodule\n"
     },
     {
+      "label": "unknown_inline_struct_member_actual_parse_surface",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "module_declaration",
+        "struct_type",
+        "struct_union_field",
+        "net_declaration",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "union_type",
+        "enum_type",
+        "parameter_override",
+        "unpacked_dimension",
+        "procedural_block",
+        "continuous_assign",
+        "generate_region"
+      ],
+      "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "module_instantiation": [
+          "child u_child (.a(cfg.missing), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(cfg.missing), .y(y))"
+        ],
+        "port_connection": [
+          ".a(cfg.missing)",
+          ".y(y)"
+        ],
+        "signal_reference": [
+          "cfg.missing",
+          "y"
+        ]
+      },
+      "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nchild u_child (.a(cfg.missing), .y(y));\nendmodule\n"
+    },
+    {
       "label": "typedef_backed_struct_member_actual",
       "expected_parse_ok": true,
       "require_ast_json": true,
