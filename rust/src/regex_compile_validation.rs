@@ -231,10 +231,10 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
         }
 
         if bytes[index] == b'[' && bytes.get(index + 1) == Some(&b':') {
-            index = skip_posix_class(bytes, index).ok_or_else(|| {
-                RegexCompileValidationError::new(start, "unterminated POSIX character class")
-            })?;
-            continue;
+            if let Some(after_posix_class) = skip_posix_class(bytes, index) {
+                index = after_posix_class;
+                continue;
+            }
         }
 
         let (left_atom, after_left) = read_class_atom(bytes, index)?;
@@ -595,5 +595,11 @@ mod tests {
     fn allows_pcre2_control_escape_targets_that_look_like_syntax() {
         validate_regex_compile_contract(r"^\ca\cA\c[;\c:")
             .expect("PCRE2 control escapes should consume their target byte");
+    }
+
+    #[test]
+    fn allows_malformed_posix_opener_as_class_literals() {
+        validate_regex_compile_contract("([[:]+)")
+            .expect("malformed POSIX opener should fall back to class literals");
     }
 }

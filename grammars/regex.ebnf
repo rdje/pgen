@@ -104,10 +104,10 @@ class_body     = class_item*
     "escape": generate_escape_check($1.pattern),
     "posix": generate_posix_check($1.name)
 }
-class_item     = class_range
+class_item     = posix_class
+               | class_range
                | class_literal
                | class_escape
-               | posix_class
 
 @generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($3) + "'"
 @semantic_value: {type: "range", start: $1, end: $3}
@@ -119,7 +119,7 @@ class_range    = class_atom "-" class_atom
 @optimize: group_literals_for_switch($1)
 class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
 
-class_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
+class_safe_special = '[' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
 @generate: resolve_escape_pattern($1)
 @semantic_value: {type: "escape", pattern: $1}

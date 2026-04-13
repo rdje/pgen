@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.12",
-  "parser_release_version": "1.1.12",
+  "integration_contract_version": "1.1.13",
+  "parser_release_version": "1.1.13",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -87,6 +87,12 @@
       "name": "control_escape_targets_that_look_like_syntax",
       "input": "^\\ca\\cA\\c[;\\c:",
       "required_rule_names": ["control_escape"]
+    },
+    {
+      "name": "malformed_posix_open_bracket_literal_fallback",
+      "input": "([[:]+)",
+      "required_rule_names": ["char_class", "class_literal"],
+      "forbidden_rule_names": ["posix_class"]
     },
     {
       "name": "named_conditional",

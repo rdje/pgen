@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.12`
+  - `1.1.13`
 - Parser release version:
-  - `1.1.12`
+  - `1.1.13`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,17 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.13 Highlights
+- `1.1.13` is a PCRE2-conformance character-class recovery patch over the `1.1.12` downstream handoff.
+- The headline change in `1.1.13` is accepting malformed POSIX-class opener text inside a character class when PCRE2 treats the second `[` as a literal fallback, such as `([[:]+)`.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0018`.
+- The fix is deliberately narrow:
+  - `posix_class` now wins before literal fallback inside `class_item`
+  - `[` is allowed as a `class_literal` fallback only after the stricter POSIX-class path fails
+  - the compile-style validator now mirrors that fallback instead of reporting an unterminated POSIX class for the same malformed opener text
+  - regex AST schema version stays `1`
+- `1.1.13` carries forward the `1.1.12` control-escape validator hardening and all prior regex parser contract guarantees.
 
 ## Release 1.1.12 Highlights
 - `1.1.12` is a PCRE2-conformance validator patch over the `1.1.11` downstream handoff.
@@ -267,7 +278,8 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
-- Parser release `1.1.12` specifically adds PCRE2-compatible handling for control escapes whose target byte looks like syntax, while carrying forward malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Parser release `1.1.13` specifically adds PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, while carrying forward control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `([[:]+)` now treats the inner `[` and `:` as ordinary character-class literals once the stricter POSIX-class form fails
   - `^\ca\cA\c[;\c:` now treats `\c[` as a complete control escape instead of re-reading `[` as an unterminated character class opener
   - `a{1,2,3}b` now transports the malformed counted-quantifier body as literal text instead of rejecting after `a`
   - `X{`, `X{A`, `X{1234`, and `X{1,` now preserve the unterminated brace spellings as literals
