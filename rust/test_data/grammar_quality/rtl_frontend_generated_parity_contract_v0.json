@@ -51,6 +51,9 @@
         "struct_type",
         "unpacked_dimension",
         "kw_always_ff",
+        "event_control_list",
+        "event_control_item",
+        "event_edge",
         "procedural_block",
         "assignment_target",
         "always_ff_assignment_operator",
@@ -63,6 +66,15 @@
       "expected_rule_texts": {
         "kw_always_ff": [
           "always_ff"
+        ],
+        "event_control_list": [
+          "@(posedge clk)"
+        ],
+        "event_control_item": [
+          "posedge clk"
+        ],
+        "event_edge": [
+          "posedge"
         ],
         "always_ff_assignment_operator": [
           "<=",
@@ -128,6 +140,12 @@
         "event_control_list": [
           "@(posedge clk)"
         ],
+        "event_control_item": [
+          "posedge clk"
+        ],
+        "event_edge": [
+          "posedge"
+        ],
         "kw_always_ff": [
           "always_ff"
         ],
@@ -180,6 +198,12 @@
         ],
         "event_control_list": [
           "@(posedge clk)"
+        ],
+        "event_control_item": [
+          "posedge clk"
+        ],
+        "event_edge": [
+          "posedge"
         ],
         "kw_always_ff": [
           "always_ff"

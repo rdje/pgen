@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-04-13 - Tighten rtl_frontend single-edge always_ff proof
+### Achievement Summary
+Strengthened the existing single-edge `always_ff` generated-parser contract samples so they now lock item-level event-control evidence instead of relying only on outer event-control or procedural-block text.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_rich_nonblocking_assignment_targets`
+  - strengthened `always_ff_struct_member_bitselect_nonblocking_target`
+  - strengthened `always_ff_struct_member_concatenation_value`
+  - now retains exact `event_control_item` text `posedge clk`
+  - now retains exact `event_edge` text `posedge`
+  - now requires `event_control_list`, `event_control_item`, and `event_edge` evidence in the rich nonblocking assignment-target sample
+- Updated public/status/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this tightens existing generated-contract proof rather than adding a new syntax sample
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - Tighten rtl_frontend always_ff edge text
 ### Achievement Summary
 Strengthened the existing `always_ff_well_formed` generated-parser contract again so it now locks the individual dual-edge event-control item and edge texts.

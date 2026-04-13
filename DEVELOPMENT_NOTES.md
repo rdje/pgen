@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend single-edge always_ff event item proof tightening
+### Context
+The previous slice locked item-level dual-edge evidence for `always_ff_well_formed`. Several single-edge `always_ff @(posedge clk)` samples still only retained the outer list or procedural-block text, even though they are the richer target/value proof lanes most likely to catch future `always_ff` regressions.
+
+### Decision
+- Tighten existing single-edge `always_ff` samples in place instead of adding another fixture.
+- Retain exact `event_control_item` text:
+  - `posedge clk`
+- Retain exact `event_edge` text:
+  - `posedge`
+- Require `event_control_list`, `event_control_item`, and `event_edge` in `always_ff_rich_nonblocking_assignment_targets` so that sample proves event-control AST retention directly.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_rich_nonblocking_assignment_targets`
+  - strengthened `always_ff_struct_member_bitselect_nonblocking_target`
+  - strengthened `always_ff_struct_member_concatenation_value`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend always_ff dual-edge event item proof tightening
 ### Context
 The previous `always_ff_well_formed` tightening required event-control AST evidence and exact `event_control_list` text for `@(posedge clk or negedge rst_n)`. The next useful small proof step is to lock the normalized item-level and edge-level texts so future grammar changes cannot preserve the outer list while losing `posedge clk` / `negedge rst_n` as distinct retained event items.
