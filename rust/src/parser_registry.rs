@@ -922,6 +922,10 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             parse_sample("regex", "(*:m(m)(?&y)(?(DEFINE)(?<y>b))"),
             Some(true)
         );
+        assert_eq!(
+            parse_sample("regex", "(*PRUNE:m(m)(?&y)(?(DEFINE)(?<y>b))"),
+            Some(true)
+        );
         assert_eq!(parse_sample("regex", "^\\p{sc=Latin}"), Some(true));
         assert_eq!(parse_sample("regex", "^\\p{L&}X"), Some(true));
         assert_eq!(parse_sample("regex", "^[[:^alnum:]]"), Some(true));

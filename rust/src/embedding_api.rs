@@ -2121,7 +2121,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 45);
+        assert_eq!(manifest.success_samples.len(), 46);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2225,6 +2225,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "mark_shorthand_payload_with_open_paren")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "prune_directive_payload_with_open_paren")
         );
         assert!(
             manifest
