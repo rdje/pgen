@@ -565,4 +565,25 @@ mod tests {
         validate_regex_compile_contract(r"\o{65536}")
             .expect("braced octal escape must not be misclassified as a counted quantifier");
     }
+
+    #[test]
+    fn allows_pcre2_literal_malformed_counted_quantifier_forms() {
+        for input in [
+            "a{1,2,3}b",
+            "a{65536",
+            "X{",
+            "X{A",
+            "X{}",
+            "X{1234",
+            "X{12ABC}",
+            "X{1,",
+            "X{,9",
+            "X{,9]",
+            "a{(?#XYZ),2}",
+        ] {
+            validate_regex_compile_contract(input).unwrap_or_else(|err| {
+                panic!("{input:?} should validate as literal braces: {err:?}")
+            });
+        }
+    }
 }

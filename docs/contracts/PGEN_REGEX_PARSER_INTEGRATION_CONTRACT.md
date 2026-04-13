@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.10`
+  - `1.1.11`
 - Parser release version:
-  - `1.1.10`
+  - `1.1.11`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-04-12`
+  - `2026-04-13`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -27,6 +27,27 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.11 Highlights
+- `1.1.11` is a PCRE2-conformance syntax-compatibility patch over the `1.1.10` downstream handoff.
+- The headline change in `1.1.11` is accepting malformed counted-quantifier spellings as ordinary literal text when PCRE2 treats them that way, rather than rejecting the pattern during PGEN parseability.
+- This specifically covers the RGX PCRE2 conformance cluster `PGEN-RGX-0040` through `PGEN-RGX-0049`, plus `PGEN-RGX-0052`, including forms such as:
+  - `a{1,2,3}b`
+  - `a{65536`
+  - `X{`
+  - `X{}`
+  - `X{12ABC}`
+  - `X{,9]`
+  - `a{(?#XYZ),2}`
+- The grammar change is deliberately narrow:
+  - valid counted quantifiers still bind through `quantifier` before literal fallback
+  - malformed brace forms now fall back through `literal_char`, so downstream RGX receives the literal pattern surface PCRE2 accepts
+  - the compile-style validator still rejects truly invalid closed counted quantifiers such as inverted ranges and closed bounds above `65535`
+- `1.1.11` strengthens the upstream regression surface for that widening:
+  - `regex_parser_integration_contract_v1.json` now declares representative malformed counted-quantifier literal samples
+  - the generated-backend parseability adapter now covers the full fixed RGX cluster
+  - the compile validator now has an explicit PCRE2 literal-malformed-counted-quantifier regression test
+- `1.1.11` carries forward the `1.1.10` PCRE2 VERSION conditional support and all prior regex parser contract guarantees.
 
 ## Release 1.1.10 Highlights
 - `1.1.10` is a syntax-widening patch over the `1.1.9` downstream handoff.
@@ -236,7 +257,11 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
-- Parser release `1.1.10` specifically adds PCRE2 VERSION conditionals while carrying forward returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Parser release `1.1.11` specifically adds PCRE2-compatible fallback for malformed counted-quantifier literal spellings while carrying forward VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `a{1,2,3}b` now transports the malformed counted-quantifier body as literal text instead of rejecting after `a`
+  - `X{`, `X{A`, `X{1234`, and `X{1,` now preserve the unterminated brace spellings as literals
+  - `X{12ABC}`, `X{,9`, and `X{,9]` now preserve malformed alphanumeric/left-open brace forms as literals
+  - `a{(?#XYZ),2}` now preserves the surrounding brace/comma/digit text while still transporting `(?#XYZ)` through `comment_group`
   - `(?(VERSION>=10.0)cat|dog)` now transports the condition as `version_condition` with `version_operator = ">="` and `version_number = "10.0"`
   - `(?(VERSION >= 10)cat|dog)` now preserves whitespace around the comparison operator and accepts a missing minor component
   - `(?1(1))` now transports as `subroutine_call` containing `returned_capture_subroutine`, `subroutine_target`, `returned_capture_group_list`, and `returned_capture_group`
@@ -412,7 +437,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.10");
+assert_eq!(contract.regex_parser_release_version, "1.1.11");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.10",
-  "parser_release_version": "1.1.10",
+  "integration_contract_version": "1.1.11",
+  "parser_release_version": "1.1.11",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -197,6 +197,63 @@
     {
       "name": "left_open_counted_quantifier",
       "input": "a{,4}"
+    },
+    {
+      "name": "malformed_counted_quantifier_extra_comma_as_literals",
+      "input": "a{1,2,3}b",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["a", "{", "1", ",", "2", ",", "3", "}", "b"]
+      }
+    },
+    {
+      "name": "unterminated_counted_quantifier_as_literals",
+      "input": "a{65536",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["a", "{", "6", "5", "5", "3", "6"]
+      }
+    },
+    {
+      "name": "bare_open_brace_as_literal",
+      "input": "X{",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["X", "{"]
+      }
+    },
+    {
+      "name": "empty_braces_as_literals",
+      "input": "X{}",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["X", "{", "}"]
+      }
+    },
+    {
+      "name": "malformed_alnum_counted_quantifier_as_literals",
+      "input": "X{12ABC}",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["X", "{", "1", "2", "A", "B", "C", "}"]
+      }
+    },
+    {
+      "name": "left_open_unterminated_counted_quantifier_as_literals",
+      "input": "X{,9",
+      "required_rule_names": ["literal"],
+      "expected_rule_texts": {
+        "literal": ["X", "{", ",", "9"]
+      }
+    },
+    {
+      "name": "comment_body_counted_quantifier_as_literals",
+      "input": "a{(?#XYZ),2}",
+      "required_rule_names": ["literal", "comment_group"],
+      "expected_rule_texts": {
+        "literal": ["a", "{", ",", "2", "}"],
+        "comment_group": ["(?#XYZ)"]
+      }
     },
     {
       "name": "literal_quantifier_binding",
