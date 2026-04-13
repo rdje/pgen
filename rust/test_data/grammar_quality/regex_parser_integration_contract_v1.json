@@ -147,6 +147,29 @@
       }
     },
     {
+      "name": "then_directive_payload_with_open_paren",
+      "input": "(*THEN:m(m)(?&y)(?(DEFINE)(?<y>b))",
+      "required_rule_names": [
+        "directive_verb",
+        "directive_named",
+        "directive_name",
+        "directive_payload_suffix",
+        "directive_payload_simple",
+        "subroutine_call",
+        "conditional",
+        "define_condition",
+        "named_group"
+      ],
+      "expected_rule_texts": {
+        "directive_verb": ["(*THEN:m(m)"],
+        "directive_named": ["THEN:m(m"],
+        "directive_name": ["THEN"],
+        "directive_payload_suffix": [":m(m"],
+        "directive_payload_simple": ["m(m"],
+        "define_condition": ["DEFINE"]
+      }
+    },
+    {
       "name": "braced_named_backreference",
       "input": "(?<A>foo)-\\k{A}"
     },

@@ -946,6 +946,10 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             parse_sample("regex", "(*SKIP:m(m)(?&y)(?(DEFINE)(?<y>b))"),
             Some(true)
         );
+        assert_eq!(
+            parse_sample("regex", "(*THEN:m(m)(?&y)(?(DEFINE)(?<y>b))"),
+            Some(true)
+        );
         assert_eq!(parse_sample("regex", "(?[\\p{L} - \\p{Lu}])"), Some(true));
         assert_eq!(parse_sample("regex", "^[]cde]"), Some(true));
         assert_eq!(parse_sample("regex", "^[^]cde]"), Some(true));
