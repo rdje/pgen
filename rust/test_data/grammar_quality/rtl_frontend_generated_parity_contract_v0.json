@@ -2132,6 +2132,7 @@
         "unpacked_dimension",
         "procedural_block",
         "kw_always_comb",
+        "kw_begin",
         "assignment_target",
         "assignment_operator",
         "continuous_assign",
@@ -2150,6 +2151,9 @@
         "concatenation_expr": [
           "{cfgs[0].data[0], d}",
           "{cfgs[IDX].data[BIT], d}"
+        ],
+        "procedural_block": [
+          "always_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = {cfgs[0].data[0], d};\nend"
         ]
       },
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = {cfgs[0].data[0], d};\nend\nassign cfgs[0].valid = {cfgs[IDX].data[BIT], d};\nendmodule\n"
