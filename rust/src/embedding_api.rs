@@ -2121,7 +2121,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 43);
+        assert_eq!(manifest.success_samples.len(), 44);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2207,6 +2207,12 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "mixed_literal_and_posix_digit_class_item_ast")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "mixed_literal_posix_digit_literal_class_item_ast")
         );
         assert!(
             manifest

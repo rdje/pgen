@@ -37,8 +37,8 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract 1.1.14 Highlights
 - `1.1.14` is a downstream AST-contract clarification over parser release `1.1.13`; it does not change the regex grammar, parser release version, or AST dump schema version.
-- This specifically covers RGX PCRE2 conformance reports `PGEN-RGX-0021`, `PGEN-RGX-0022`, and the mixed literal/POSIX-class report `PGEN-RGX-0027`.
-- `[[:space:]]+`, `[[:blank:]]+`, and `^[:a[:digit:]]+` emit a `class_item` containing the first-class `posix_class` variant, with `posix_name = "space"`, `posix_name = "blank"`, or `posix_name = "digit"` respectively.
+- This specifically covers RGX PCRE2 conformance reports `PGEN-RGX-0021`, `PGEN-RGX-0022`, and the mixed literal/POSIX-class reports `PGEN-RGX-0027` and `PGEN-RGX-0028`.
+- `[[:space:]]+`, `[[:blank:]]+`, `^[:a[:digit:]]+`, and `^[:a[:digit:]:b]+` emit a `class_item` containing the first-class `posix_class` variant, with `posix_name = "space"`, `posix_name = "blank"`, or `posix_name = "digit"` respectively.
 - Downstream AST adapters that walk character classes must handle `posix_class` alongside `class_range`, `class_literal`, and `class_escape` instead of treating it as an unknown `class_item` shape.
 
 ## Release 1.1.13 Highlights
@@ -299,6 +299,7 @@ This is the document downstream projects such as RGX should read first when deci
   - `[[:space:]]+` transports the POSIX class through `posix_class` with `posix_name = "space"`
   - `[[:blank:]]+` transports the POSIX class through `posix_class` with `posix_name = "blank"`
   - `^[:a[:digit:]]+` transports the leading `:` and `a` as `class_literal` items and the embedded POSIX class through `posix_class` with `posix_name = "digit"`
+  - `^[:a[:digit:]:b]+` transports the surrounding `:`, `a`, `:`, and `b` as `class_literal` items while preserving the embedded `digit` POSIX class through `posix_class`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
 - Parser release `1.1.14` specifically adds PCRE2-compatible `\Q...\E` quoted literal transport while carrying forward parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
   - `abc\Q(*+|\Eabc` now transports the quoted metacharacter segment through `quoted_literal` instead of treating `(` as active group syntax
