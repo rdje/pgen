@@ -26,6 +26,14 @@
         "event_control_list": [
           "@(posedge clk or negedge rst_n)"
         ],
+        "event_control_item": [
+          "posedge clk",
+          "negedge rst_n"
+        ],
+        "event_edge": [
+          "posedge",
+          "negedge"
+        ],
         "always_ff_assignment_operator": [
           "<=",
           "<="
