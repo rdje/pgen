@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend unknown always_ff event item proof tightening
+### Context
+The single-edge valid `always_ff @(posedge clk)` samples now lock exact item-level event-control text. The nearby syntax-only unknown-event sample already required `event_control_item` and `event_edge`, but did not lock the actual retained text for `clk_missing`.
+
+### Decision
+- Tighten `always_ff_unknown_event_identifier_parse_surface` in place instead of adding a new fixture.
+- Retain exact `event_control_item` text:
+  - `posedge clk_missing`
+- Retain exact `event_edge` text:
+  - `posedge`
+- Keep the parser/elaboration split explicit: the generated parser retains the syntax, and unknown-event identifier rejection remains an elaboration concern.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `always_ff_unknown_event_identifier_parse_surface`
+- Updated:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend single-edge always_ff event item proof tightening
 ### Context
 The previous slice locked item-level dual-edge evidence for `always_ff_well_formed`. Several single-edge `always_ff @(posedge clk)` samples still only retained the outer list or procedural-block text, even though they are the richer target/value proof lanes most likely to catch future `always_ff` regressions.

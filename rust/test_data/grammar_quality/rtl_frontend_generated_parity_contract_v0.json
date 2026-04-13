@@ -305,6 +305,12 @@
         "event_control_list": [
           "@(posedge clk_missing)"
         ],
+        "event_control_item": [
+          "posedge clk_missing"
+        ],
+        "event_edge": [
+          "posedge"
+        ],
         "kw_always_ff": [
           "always_ff"
         ],
