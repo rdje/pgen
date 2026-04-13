@@ -32,6 +32,7 @@ atom           = literal
                | dot
                | anchor
                | backreference
+               | quoted_literal
                | escape
                | char_class
                | subroutine_call
@@ -52,6 +53,8 @@ atom           = literal
 # Literals and escapes
 literal        = literal_char
 whitespace_literal = whitespace
+quoted_literal = "\\Q" quoted_literal_char* "\\E"
+quoted_literal_char = letter | digit | whitespace | class_safe_special | ']'
 literal_char   = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
                | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
                | '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'

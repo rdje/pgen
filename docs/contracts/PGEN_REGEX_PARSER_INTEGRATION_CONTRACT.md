@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.14`
+  - `1.1.15`
 - Parser release version:
-  - `1.1.13`
+  - `1.1.14`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,13 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.14 / Contract 1.1.15 Highlights
+- `1.1.14` is a PCRE2-conformance quoted-literal patch over the `1.1.13` parser release; integration contract `1.1.15` pins the downstream AST shape.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0023`.
+- `abc\Q(*+|\Eabc` now treats the metacharacters inside `\Q...\E` as quoted literal payload instead of re-reading `(`, `*`, `+`, and `|` as active regex syntax.
+- The quoted segment transports as a first-class `quoted_literal` atom whose rule text includes the delimiters, for example `\Q(*+|\E`.
+- Downstream AST adapters should handle `quoted_literal` alongside `literal` and `escape`; regex AST schema version stays `1`.
 
 ## Contract 1.1.14 Highlights
 - `1.1.14` is a downstream AST-contract clarification over parser release `1.1.13`; it does not change the regex grammar, parser release version, or AST dump schema version.
@@ -285,11 +292,15 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
+- Integration contract `1.1.15` explicitly guarantees PCRE2 quoted literals as first-class `quoted_literal` atoms:
+  - `abc\Q(*+|\Eabc` transports the quoted section through `quoted_literal` with rule text `\Q(*+|\E`
+  - downstream consumers should treat `quoted_literal` as an atom-level payload sibling of `literal` and `escape`
 - Integration contract `1.1.14` explicitly guarantees that valid POSIX character classes inside character classes remain transported as `class_item` -> `posix_class` rather than being degraded to literal text:
   - `[[:space:]]+` transports the POSIX class through `posix_class` with `posix_name = "space"`
   - `[[:blank:]]+` transports the POSIX class through `posix_class` with `posix_name = "blank"`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Parser release `1.1.13` specifically adds PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, while carrying forward control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Parser release `1.1.14` specifically adds PCRE2-compatible `\Q...\E` quoted literal transport while carrying forward parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - `abc\Q(*+|\Eabc` now transports the quoted metacharacter segment through `quoted_literal` instead of treating `(` as active group syntax
   - `([[:]+)` now treats the inner `[` and `:` as ordinary character-class literals once the stricter POSIX-class form fails
   - `([[=]+)` now likewise treats the inner `[` and `=` as ordinary character-class literals
   - `([[.]+)` now likewise treats the inner `[` and `.` as ordinary character-class literals

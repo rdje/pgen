@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.14",
-  "parser_release_version": "1.1.13",
+  "integration_contract_version": "1.1.15",
+  "parser_release_version": "1.1.14",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -56,6 +56,15 @@
         "posix_name": ["blank"]
       },
       "forbidden_rule_names": ["class_literal"]
+    },
+    {
+      "name": "quoted_literal_metacharacters",
+      "input": "abc\\Q(*+|\\Eabc",
+      "required_rule_names": ["quoted_literal"],
+      "expected_rule_texts": {
+        "quoted_literal": ["\\Q(*+|\\E"]
+      },
+      "forbidden_rule_names": ["escape"]
     },
     {
       "name": "braced_named_backreference",
