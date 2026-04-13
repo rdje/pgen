@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend procedural ternary block proof tightening
+### Context
+The `procedural_and_dataflow_ternary_binary_exprs` sample already locked the continuous-assign text and ranged-reference spans, but the procedural side only required `procedural_block` presence. After locking the neighboring concat-member procedural/dataflow block, the ternary/binary procedural block should carry the same exact-text proof.
+
+### Decision
+- Tighten `procedural_and_dataflow_ternary_binary_exprs` in place.
+- Require `kw_begin` evidence for the `always_comb` block.
+- Retain exact `procedural_block` text for the ternary/binary assignment to `tmp`.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `procedural_and_dataflow_ternary_binary_exprs`
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend procedural/dataflow block proof tightening
 ### Context
 The `procedural_and_dataflow_concat_member_paths` sample already locked the continuous-assign and concatenation-expression text, but the procedural side only required `procedural_block` presence. After tightening the richer plain `always @(*)` and `always_latch` blocks, the adjacent mixed procedural/dataflow sample should also lock the exact `always_comb` block text.
