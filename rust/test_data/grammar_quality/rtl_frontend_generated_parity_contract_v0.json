@@ -2182,6 +2182,12 @@
           "{cfgs[0].data[0], d}",
           "{cfgs[IDX].data[BIT], d}"
         ],
+        "assignment_target": [
+          "{cfgs[IDX].data[BIT], cfgs[IDX].valid}",
+          "cfgs[IDX].data[BIT]",
+          "cfgs[IDX].valid",
+          "cfgs[0].valid"
+        ],
         "procedural_block": [
           "always_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = {cfgs[0].data[0], d};\nend"
         ]
@@ -2301,6 +2307,10 @@
           "a[HI:LO]",
           "a[HI:LO]"
         ],
+        "assignment_target": [
+          "tmp",
+          "y"
+        ],
         "procedural_block": [
           "always_comb begin\n    tmp = SEL ? (a[HI:LO] + d) : (d << 1);\nend"
         ]
@@ -2344,6 +2354,12 @@
         "ranged_signal_reference": [
           "cfgs[IDX].data[HI:LO]",
           "cfgs[0].data[HI:LO]"
+        ],
+        "assignment_target": [
+          "cfgs[IDX].data[HI:LO]",
+          "{cfgs[IDX].valid, cfgs[0].valid}",
+          "cfgs[IDX].valid",
+          "cfgs[0].valid"
         ],
         "procedural_block": [
           "always_comb begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend"

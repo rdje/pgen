@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-13 (+0200, task: rtl-frontend-rich-target-proof)
+Last updated: 2026-04-13 (+0200, task: rtl-frontend-mixed-target-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,33 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` mixed procedural/dataflow target proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract labels strengthened:
+    - `procedural_and_dataflow_concat_member_paths`
+    - `procedural_and_dataflow_ternary_binary_exprs`
+    - `rich_assignment_targets_ternary_exprs`
+  - retained syntax lane:
+    - non-labeled mixed `always_comb` procedural assignments plus downstream continuous dataflow targets
+  - proof tightening:
+    - now retains exact `assignment_target` text for procedural targets and downstream continuous targets
+    - now retains nested concatenated member target element text where present
+    - keeps existing procedural-block, continuous-assign, expression, and range-reference text locks
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `docs/tcl/` remains pre-existing untracked work and should not be staged for this slice
 - Tightened `rtl_frontend` rich procedural target proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

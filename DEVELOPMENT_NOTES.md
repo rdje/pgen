@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend mixed target proof tightening
+### Context
+After scalar and rich procedural target text locks, the remaining non-labeled mixed procedural/dataflow samples still required `assignment_target` presence without pinning exact target spans. These samples already lock procedural-block, continuous-assign, expression, and range-reference text, so target text is the natural next proof seam.
+
+### Decision
+- Tighten the non-labeled mixed procedural/dataflow samples in place.
+- Retain exact `assignment_target` text for:
+  - `procedural_and_dataflow_concat_member_paths`
+  - `procedural_and_dataflow_ternary_binary_exprs`
+  - `rich_assignment_targets_ternary_exprs`
+- Include procedural targets, downstream continuous targets, and nested concatenated member target elements where present.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened mixed procedural/dataflow assignment-target text locks
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend rich target proof tightening
 ### Context
 The rich plain `always @(*)` and `always_latch` generated-contract samples already locked their procedural-block text, but still only required `assignment_target` presence. The richer `always_ff` sample had already established the generated AST ordering for full concatenated targets followed by member target elements, so the adjacent rich procedural lanes could safely inherit that text-lock pattern.
