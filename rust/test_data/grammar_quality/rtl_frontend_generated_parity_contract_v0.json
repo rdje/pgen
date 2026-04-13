@@ -2227,6 +2227,12 @@
         "procedural_block": [
           "always_comb begin : comb_blk\n    data = a;\n    if (SEL)\n        scratch = data;\n    else\n        scratch = 0;\nend"
         ],
+        "assignment_target": [
+          "data",
+          "scratch",
+          "scratch",
+          "y"
+        ],
         "continuous_assign": [
           "assign y = scratch;"
         ]
@@ -2268,6 +2274,11 @@
         ],
         "net_item": [
           "data",
+          "scratch"
+        ],
+        "assignment_target": [
+          "data",
+          "scratch",
           "scratch"
         ],
         "procedural_block": [

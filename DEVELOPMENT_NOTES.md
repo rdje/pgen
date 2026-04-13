@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-13 - rtl_frontend labeled target proof tightening
+### Context
+After the mixed procedural/dataflow target proof slice, only the two labeled `always_comb` samples still required `assignment_target` evidence without expected target text. These samples already locked labeled procedural-block text, assignment operators, and related declaration text, so adding exact target spans completes the current positive-sample `assignment_target` text sweep.
+
+### Decision
+- Tighten the labeled `always_comb` samples in place.
+- Retain exact `assignment_target` text for:
+  - `labeled_always_comb_block`
+  - `labeled_always_comb_parameter_exprs_and_packed_multi_nets`
+- Include `data` and `scratch` procedural targets, plus the downstream continuous `assign y` target where present.
+- Keep `rtl_frontend` at `In Progress`; this is focused generated-contract tightening, not full handwritten-baseline parity closure.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened labeled `always_comb` assignment-target text locks
+- Updated:
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+
 ## 2026-04-13 - rtl_frontend mixed target proof tightening
 ### Context
 After scalar and rich procedural target text locks, the remaining non-labeled mixed procedural/dataflow samples still required `assignment_target` presence without pinning exact target spans. These samples already lock procedural-block, continuous-assign, expression, and range-reference text, so target text is the natural next proof seam.
