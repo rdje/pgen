@@ -72,13 +72,18 @@ perl -MJSON::PP -e '
     unless defined($data->{version}) && !ref($data->{version}) && $data->{version} =~ /^\d+$/ && $data->{version} >= 1;
   die "default_branch must be a non-empty string\n"
     unless defined($data->{default_branch}) && !ref($data->{default_branch}) && $data->{default_branch} ne q{};
+  my $hosted_actions_mode = exists $data->{hosted_actions_mode} ? $data->{hosted_actions_mode} : "auto_required_checks";
+  die "hosted_actions_mode must be auto_required_checks or manual_only\n"
+    unless defined($hosted_actions_mode) && !ref($hosted_actions_mode) && ($hosted_actions_mode eq "auto_required_checks" || $hosted_actions_mode eq "manual_only");
 
   my $up_to_date = $data->{require_up_to_date_before_merge};
   my $is_bool = ref($up_to_date) eq "JSON::PP::Boolean" || (!ref($up_to_date) && ($up_to_date eq "0" || $up_to_date eq "1"));
   die "require_up_to_date_before_merge must be a JSON boolean\n" unless $is_bool;
 
   my $checks = $data->{required_status_checks};
-  die "required_status_checks must be a non-empty array\n" unless ref($checks) eq "ARRAY" && @$checks > 0;
+  die "required_status_checks must be an array\n" unless ref($checks) eq "ARRAY";
+  die "required_status_checks must be non-empty when hosted_actions_mode is auto_required_checks\n"
+    if $hosted_actions_mode eq "auto_required_checks" && @$checks == 0;
 
   my %seen;
   open my $checks_fh, ">", $required_checks_path or die "open $required_checks_path: $!";
@@ -93,6 +98,7 @@ perl -MJSON::PP -e '
   open my $meta_fh, ">", $metadata_env_path or die "open $metadata_env_path: $!";
   print {$meta_fh} "policy_version=$data->{version}\n";
   print {$meta_fh} "default_branch=$data->{default_branch}\n";
+  print {$meta_fh} "hosted_actions_mode=$hosted_actions_mode\n";
   print {$meta_fh} "require_up_to_date_before_merge=", ($up_to_date ? "true" : "false"), "\n";
   print {$meta_fh} "required_status_checks_count=", scalar(@$checks), "\n";
   close $meta_fh;
@@ -101,7 +107,9 @@ perl -MJSON::PP -e '
 source "${POLICY_METADATA_ENV}"
 
 mapfile -t REQUIRED_CHECKS < "${REQUIRED_CHECKS_FILE}"
-[[ "${#REQUIRED_CHECKS[@]}" -gt 0 ]] || fail "branch protection policy declares zero required checks"
+if [[ "${#REQUIRED_CHECKS[@]}" -eq 0 && "${hosted_actions_mode}" == "auto_required_checks" ]]; then
+  fail "branch protection policy declares zero required checks"
+fi
 
 AVAILABLE_CHECKS_RAW="${WORK_DIR}/available_status_checks.raw"
 AVAILABLE_CHECKS_FILE="${WORK_DIR}/available_status_checks.txt"
@@ -137,11 +145,13 @@ done
 sort -u "${AVAILABLE_CHECKS_RAW}" > "${AVAILABLE_CHECKS_FILE}"
 
 MISSING_MINIMUM_CHECKS=()
-for check in "${EXPECTED_MINIMUM_CHECKS[@]}"; do
-  if ! grep -Fxq "${check}" "${REQUIRED_CHECKS_FILE}"; then
-    MISSING_MINIMUM_CHECKS+=("${check}")
-  fi
-done
+if [[ "${hosted_actions_mode}" == "auto_required_checks" ]]; then
+  for check in "${EXPECTED_MINIMUM_CHECKS[@]}"; do
+    if ! grep -Fxq "${check}" "${REQUIRED_CHECKS_FILE}"; then
+      MISSING_MINIMUM_CHECKS+=("${check}")
+    fi
+  done
+fi
 
 POLICY_CHECKS_MISSING_WORKFLOW=()
 POLICY_CHECKS_MISSING_PR_TRIGGER=()
@@ -157,7 +167,7 @@ for check in "${REQUIRED_CHECKS[@]}"; do
   )"
   [[ -n "${workflow_file}" ]] || fail "failed to resolve workflow source for check '${check}'"
 
-  if ! workflow_declares_pull_request_trigger "${workflow_file}"; then
+  if [[ "${hosted_actions_mode}" == "auto_required_checks" ]] && ! workflow_declares_pull_request_trigger "${workflow_file}"; then
     POLICY_CHECKS_MISSING_PR_TRIGGER+=("${check}")
   fi
 done
@@ -209,6 +219,8 @@ perl -MJSON::PP -e '
     policy_file => $policy_path,
     policy_version => 0 + $meta{policy_version},
     default_branch => $meta{default_branch},
+    hosted_actions_mode => $meta{hosted_actions_mode},
+    pull_request_trigger_enforcement => ($meta{hosted_actions_mode} eq "auto_required_checks" ? JSON::PP::true : JSON::PP::false),
     require_up_to_date_before_merge => ($meta{require_up_to_date_before_merge} eq "true" ? JSON::PP::true : JSON::PP::false),
     required_status_checks => $policy->{required_status_checks},
     available_workflow_checks => read_lines($available_checks_path),
@@ -234,6 +246,7 @@ perl -MJSON::PP -e '
   echo "Policy file: ${POLICY_JSON}"
   echo "Policy version: ${policy_version}"
   echo "Default branch: ${default_branch}"
+  echo "Hosted Actions mode: ${hosted_actions_mode}"
   echo "Require up-to-date before merge: ${require_up_to_date_before_merge}"
   echo "Required status checks (${#REQUIRED_CHECKS[@]}):"
   for check in "${REQUIRED_CHECKS[@]}"; do
@@ -245,7 +258,7 @@ perl -MJSON::PP -e '
   echo "Policy checks missing pull_request trigger: ${#POLICY_CHECKS_MISSING_PR_TRIGGER[@]}"
 } > "${SUMMARY_TXT}"
 
-if [[ "${#MISSING_MINIMUM_CHECKS[@]}" -gt 0 ]]; then
+if [[ "${hosted_actions_mode}" == "auto_required_checks" && "${#MISSING_MINIMUM_CHECKS[@]}" -gt 0 ]]; then
   fail "policy is missing roadmap/release minimum checks: ${MISSING_MINIMUM_CHECKS[*]}"
 fi
 
@@ -253,7 +266,7 @@ if [[ "${#POLICY_CHECKS_MISSING_WORKFLOW[@]}" -gt 0 ]]; then
   fail "policy checks are not backed by workflow/job names: ${POLICY_CHECKS_MISSING_WORKFLOW[*]}"
 fi
 
-if [[ "${#POLICY_CHECKS_MISSING_PR_TRIGGER[@]}" -gt 0 ]]; then
+if [[ "${hosted_actions_mode}" == "auto_required_checks" && "${#POLICY_CHECKS_MISSING_PR_TRIGGER[@]}" -gt 0 ]]; then
   fail "policy checks do not run on pull_request: ${POLICY_CHECKS_MISSING_PR_TRIGGER[*]}"
 fi
 

@@ -1,10 +1,7 @@
 name: ebnf-frontend-dual-run-diff
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   ebnf-frontend-dual-run-diff:

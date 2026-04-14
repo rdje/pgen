@@ -55,6 +55,8 @@ make -C rust SHELL=/bin/bash ci_workflow_local_gate
 
 This exists to approximate the tracked GitHub workflow surface from a tracked-only local export. That reduces the risk of local-only files, stale paths, or documentation drift hiding CI failures until after a push.
 
+As of 2026-04-14, the hosted GitHub Actions workflows are intentionally manual-only (`workflow_dispatch`) to conserve account Actions minutes. The workflows still exist and can be started manually from GitHub when needed, but routine validation should use the local Make gates and `ci_workflow_local_gate` until hosted auto-runs are explicitly restored.
+
 ## Working Style That Fits PGEN Best
 
 The most reliable pattern is:

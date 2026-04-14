@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - Hosted GitHub Actions manual-only pause
+### Context
+The repository owner received a GitHub Actions usage alert showing 90% of the monthly included Actions minutes consumed for the account. Continuing to run all PGEN workflow gates automatically on every push or pull request would risk paid usage before the billing reset.
+
+The repo already has strong local proof lanes (`make -C rust ...`) and a tracked local workflow-parity gate, so the safest temporary cost-control step is to stop hosted auto-runs while keeping the workflow definitions intact for explicit manual use.
+
+### Decision
+- Change every tracked GitHub workflow from automatic `pull_request` + `push` triggers to `workflow_dispatch` only.
+- Keep workflow jobs, steps, artifact uploads, and names unchanged so the hosted workflows remain manually runnable.
+- Add `hosted_actions_mode: manual_only` to the tracked branch-protection policy.
+- Clear tracked required status checks during the pause window, because required PR checks backed only by manual workflows would be dead checks.
+- Teach `branch_protection_contract_gate` that `manual_only` mode intentionally skips minimum-check and `pull_request` trigger enforcement.
+- Keep parser-family live statuses unchanged; this is an operational/billing pause, not a capability change.
+
+### What Was Changed
+- Updated all files under [.github/workflows](.github/workflows) to use only `workflow_dispatch`.
+- Updated [rust/config/branch_protection_policy.json](rust/config/branch_protection_policy.json).
+- Updated [rust/scripts/branch_protection_contract_gate.sh](rust/scripts/branch_protection_contract_gate.sh).
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/reference/PGEN_RELEASE_POLICY.md](docs/reference/PGEN_RELEASE_POLICY.md)
+
+### Validation
+- Passed:
+  - `rg -n "pull_request|push:" .github/workflows` produced no matches
+  - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+- Clippy note:
+  - not run for this slice because no Rust source or generated Rust artifacts changed.
+
 ## 2026-04-14 - rtl_frontend hierarchy retained-text proof tightening
 ### Context
 The `rtl_frontend` generated contract already required hierarchy-related rule evidence for package-backed constant flows and generate-contained instantiations. Several samples locked child constructs such as `parameter_override`, `port_connection`, and ranged signal references, but did not explicitly assert retained text for the parent `module_instantiation` or `instance_item` nodes.

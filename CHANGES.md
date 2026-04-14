@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-04-14 - Pause hosted GitHub Actions auto-runs
+### Achievement Summary
+Temporarily disabled automatic hosted GitHub Actions runs for PGEN to conserve account Actions minutes. The tracked workflow surface is now manual-only until further notice.
+
+### Scope of Changes
+- Updated all tracked workflow files under [.github/workflows](.github/workflows):
+  - replaced automatic `pull_request` and `push` triggers with `workflow_dispatch`
+  - preserved the workflow jobs themselves so they can still be run manually from GitHub if needed
+- Updated [rust/config/branch_protection_policy.json](rust/config/branch_protection_policy.json):
+  - set `hosted_actions_mode` to `manual_only`
+  - cleared tracked required status checks for the pause window
+  - disabled the up-to-date-before-merge expectation while hosted auto-runs are paused
+- Updated [rust/scripts/branch_protection_contract_gate.sh](rust/scripts/branch_protection_contract_gate.sh):
+  - recognizes `manual_only` mode
+  - skips minimum-check and `pull_request` trigger enforcement in that mode
+  - keeps workflow/job-name validation available for any checks listed in the policy
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+  - [docs/reference/PGEN_RELEASE_POLICY.md](docs/reference/PGEN_RELEASE_POLICY.md)
+- Status impact:
+  - no parser-family status changed
+  - this is billing/operations hygiene, not parser capability or proof closure movement
+
+### Validation
+- Passed:
+  - `rg -n "pull_request|push:" .github/workflows` produced no matches
+  - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - `git diff --check`
+- Note:
+  - `clippy_on_rust_change` was not run because this slice changes workflow YAML, shell policy, JSON policy, and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-14 - Tighten rtl_frontend hierarchy retained-text proof
 ### Achievement Summary
 Strengthened the `rtl_frontend` generated contract so hierarchy-bearing samples now explicitly retain selected `module_instantiation` and `instance_item` spans instead of relying only on child `parameter_override` and `port_connection` evidence.

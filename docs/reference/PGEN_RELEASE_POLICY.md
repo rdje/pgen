@@ -1,6 +1,6 @@
 # PGEN Release Policy (Living)
 
-Last updated: 2026-03-07
+Last updated: 2026-04-14
 
 ## Purpose
 Define objective, machine-enforced pass criteria for release-grade validation of PGEN.
@@ -82,7 +82,16 @@ Validated by:
 - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
 - `.github/workflows/branch-protection-contract-gate.yml`
 
-Current minimum required checks enforced by the contract gate:
+Current hosted Actions mode:
+- `manual_only`
+
+Temporary billing-control policy:
+- Hosted GitHub Actions auto-runs are paused to conserve account Actions minutes.
+- Tracked workflows remain available through `workflow_dispatch`.
+- `required_status_checks` is intentionally empty while hosted auto-runs are paused.
+- `require_up_to_date_before_merge` is intentionally disabled while the required hosted checks are paused.
+
+When hosted auto-runs are restored, the minimum required checks expected by the contract gate should again include:
 1. `sota-exit-gate`
 2. `annotation-contract-gate`
 3. `differential-regression-gate`
@@ -91,7 +100,7 @@ Current minimum required checks enforced by the contract gate:
 
 `sota-exit-gate` is the aggregate policy check; the individual checks above remain useful for targeted visibility and faster failure triage.
 
-The branch-protection contract gate also enforces that every required check maps to a tracked workflow/job name and that the corresponding workflow runs on `pull_request`.
+The branch-protection contract gate enforces that every configured required check maps to a tracked workflow/job name. In `auto_required_checks` mode it also enforces the minimum check set and verifies that required checks run on `pull_request`; in `manual_only` mode those automatic hosted-check requirements are intentionally suspended.
 
 ## Promotion Criteria for Strict EBNF
 Set:

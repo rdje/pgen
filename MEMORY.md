@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-14 (+0200, task: rtl-frontend-hierarchy-retained-text-proof)
+Last updated: 2026-04-14 (+0200, task: hosted-actions-manual-only-pause)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,36 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Temporarily paused hosted GitHub Actions auto-runs to conserve account Actions minutes:
+  - changed:
+    - all tracked files under [.github/workflows](.github/workflows)
+    - [rust/config/branch_protection_policy.json](rust/config/branch_protection_policy.json)
+    - [rust/scripts/branch_protection_contract_gate.sh](rust/scripts/branch_protection_contract_gate.sh)
+    - [README.md](README.md)
+    - [docs/book/src/cli-and-workflows.md](docs/book/src/cli-and-workflows.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+    - [docs/reference/PGEN_RELEASE_POLICY.md](docs/reference/PGEN_RELEASE_POLICY.md)
+  - workflow trigger policy:
+    - every tracked GitHub workflow now uses `workflow_dispatch` only
+    - automatic `pull_request` and `push` hosted runs are disabled until further notice
+    - workflow jobs remain present and manually runnable from GitHub if explicitly needed
+  - branch-protection contract policy:
+    - `hosted_actions_mode` is now `manual_only`
+    - tracked `required_status_checks` is empty during the pause window
+    - `branch_protection_contract_gate` skips minimum-check and `pull_request` trigger enforcement when in manual-only mode
+  - validation:
+    - `rg -n "pull_request|push:" .github/workflows` produced no matches
+    - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+    - `git diff --check`
+  - important continuity detail:
+    - no parser-family status changed
+    - this is billing/operations hygiene, not parser capability or proof closure movement
+    - re-enabling hosted CI later should restore automatic `pull_request`/`push` triggers and the required status-check policy together
 - Tightened `rtl_frontend` generated-contract hierarchy retained-text proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

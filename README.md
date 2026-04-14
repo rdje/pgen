@@ -109,6 +109,9 @@ PGEN is a production-focused parser and stimuli generator platform.
   - `make -C rust SHELL=/bin/bash sota_exit_gate`
 - Branch-protection contract gate:
   - `make -C rust SHELL=/bin/bash branch_protection_contract_gate`
+- Hosted GitHub Actions pause:
+  - hosted workflows are temporarily manual-only (`workflow_dispatch`) to conserve account Actions minutes
+  - routine proof should use the local `make -C rust ...` gates until hosted auto-runs are re-enabled
 - Local workflow parity gate:
   - `make -C rust SHELL=/bin/bash ci_workflow_local_gate`
   - focused replay example:
