@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.20`
+  - `1.1.22`
 - Parser release version:
-  - `1.1.19`
+  - `1.1.20`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -27,6 +27,20 @@ This is the document downstream projects such as RGX should read first when deci
 - PGEN currently treats the published regex flavor, when consumed through the stable `pgen::embedding_api` host surface, as closure-grade and fit for downstream parser consumption.
 - That statement applies to the published regex parser contract documented here and in the regex-flavor section of `PGEN_USER_GUIDE.md`.
 - It does not automatically cover every regex dialect or every future contract widening.
+
+## Release 1.1.20 / Contract 1.1.22 Highlights
+- `1.1.20` is a generated-regex resource-depth hardening release over parser release `1.1.19`; regex AST dump schema version stays `1`.
+- This specifically covers RGX PCRE2 conformance reports `PGEN-RGX-0054` and `PGEN-RGX-0055`.
+- `PGEN-RGX-0054` is a legal PCRE2 pattern with `80` nested capturing groups followed by `\80`. The earlier generated-host path aborted on the worker stack or stopped at byte `0` after the runtime recursion guard was exceeded. The published regex host now uses a larger bounded generated-regex worker stack (`64 MiB`) and a widened generated parser recursion guard (`4096`), so the pattern parses successfully instead of aborting.
+- `PGEN-RGX-0055` is a legal PCRE2 pattern modeled after a Python variable-interpolation grammar, with mutually recursive named groups and nested `\g<...>` references. The same resource-depth fix keeps that grammar-like regex parseable through the stable `regex_default` profile.
+- The code-generation guard remains bounded: this is not an unbounded recursion allowance. It is a deliberately larger generated parser headroom target for real PCRE2 conformance inputs that are legal but syntactically deep.
+- Integration contract `1.1.22` adds representative manifest samples for both shapes so downstream consumers can detect a regression through the normal regex integration contract gate.
+
+## Contract 1.1.21 Highlights
+- `1.1.21` is a downstream AST-contract clarification over parser release `1.1.19`; it does not change the regex grammar, parser release version, or AST dump schema version.
+- This specifically covers RGX PCRE2 conformance report `PGEN-RGX-0053`, `[[:digit:]-   ]`.
+- PCRE2 treats `[:digit:]` as a complete POSIX character-class item. A following `-` after a POSIX class is not a range opener; in the reported spelling it transports as a literal `-`, followed by three literal spaces, before the class closes.
+- PGEN already emits this shape as `class_item` -> `posix_class` with `posix_name = "digit"`, followed by separate `class_item` -> `class_literal` nodes for `-`, ` `, ` `, and ` `. The contract now pins that exact mixed class shape so downstream adapters can handle it explicitly.
 
 ## Release 1.1.19 / Contract 1.1.20 Highlights
 - `1.1.19` is a PCRE2-conformance braced `\k{...}` named backreference transport patch over the `1.1.18` parser release.
@@ -324,6 +338,14 @@ This is the document downstream projects such as RGX should read first when deci
 ```
 
 - This schema contract is about JSON shape, field names, and variant encoding.
+- Integration contract `1.1.21` explicitly guarantees the POSIX-class-plus-literals character-class shape:
+  - `[[:digit:]-   ]` transports `[:digit:]` through `posix_class` with `posix_name = "digit"`
+  - the following `-` and ordinary spaces transport as separate `class_literal` items, not as a `class_range`
+  - this is a contract clarification over the existing PCRE2 character-class grammar shape; parser release remains `1.1.19` and regex AST schema version stays `1`
+- Integration contract `1.1.22` explicitly guarantees resource-depth resilience for two legal PCRE2 conformance shapes:
+  - a deeply nested `80`-capture pattern followed by `\80`
+  - a grammar-like recursive named-group interpolation pattern using nested `\g<...>` references
+  - this is a host/code-generation resilience guarantee over parser release `1.1.20`; it does not introduce a new AST schema version
 - Integration contract `1.1.20` explicitly guarantees PCRE2 braced `\k{...}` named backreferences with optional space/tab padding:
   - `(?'name'ab)\k{ name }(?P=name)` transports the padded named backreference as `backreference` -> `braced_name_ref`
   - the named payload transports under `name = "name"` while the enclosing `braced_name_ref` rule text remains `{ name }`
@@ -357,8 +379,11 @@ This is the document downstream projects such as RGX should read first when deci
   - `^[:a[:digit:]]+` transports the leading `:` and `a` as `class_literal` items and the embedded POSIX class through `posix_class` with `posix_name = "digit"`
   - `^[:a[:digit:]:b]+` transports the surrounding `:`, `a`, `:`, and `b` as `class_literal` items while preserving the embedded `digit` POSIX class through `posix_class`
   - `[[:digit:]-]+` transports `[:digit:]` through `posix_class` with `posix_name = "digit"` and the trailing `-` as a separate `class_literal`
+  - `[[:digit:]-   ]` extends the same guarantee to the PCRE2 class item shape where the trailing `-` and ordinary spaces are separate `class_literal` items rather than a `class_range`
   - downstream consumers should treat `posix_class` as a first-class `class_item` variant alongside `class_range`, `class_literal`, and `class_escape`
-- Parser release `1.1.19` specifically adds PCRE2-compatible braced `\k{...}` named backreference whitespace handling while carrying forward parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+- Contract `1.1.22` publishes parser release `1.1.20` resource-depth resilience for legal deep PCRE2 conformance inputs and carries forward contract `1.1.21` for the `[[:digit:]-   ]` POSIX-class-plus-literals AST shape, parser release `1.1.19` PCRE2-compatible braced `\k{...}` named backreference whitespace handling, parser release `1.1.18` braced `\g{...}` numeric backreference whitespace handling, parser release `1.1.17` atomic alpha-lookaround assertion aliases, parser release `1.1.16` generalized directive payload transport to the default non-`)` verb-name shape, parser release `1.1.15` literal-`(` directive payload support, parser release `1.1.14` PCRE2-compatible `\Q...\E` quoted literal transport, parser release `1.1.13` PCRE2-compatible fallback for malformed POSIX-class opener text inside character classes, control-escape validator hardening, malformed counted-quantifier literal spellings, VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping this JSON schema version stable:
+  - the `PGEN-RGX-0054` pattern with `80` nested capturing groups plus `\80` now parses without host stack abort or generated recursion-guard rejection
+  - the `PGEN-RGX-0055` recursive named-group interpolation pattern now parses without host stack abort
   - `(?'name'ab)\k{ name }(?P=name)` now transports the padded named backreference as `backreference` -> `braced_name_ref`, not `simple_escape("k")` plus literal `{ name }`
   - `(A)(\g{ -2 }B)` now transports the padded relative reference as `backreference` -> `subroutine_ref` -> `braced_subroutine_ref` -> `signed_digits`, not `simple_escape("g")` plus literal `{ -2 }`
   - `(?(*pla:foo).{6}|a..)` now parses the leading conditional alpha-lookahead assertion condition instead of rejecting at byte `0`
@@ -554,7 +579,7 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.11");
+assert_eq!(contract.regex_parser_release_version, "1.1.20");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```

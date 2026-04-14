@@ -65,6 +65,8 @@ This chapter maps the current authoritative docs into the book structure so futu
 
 ### Parser families and contracts
 
+- `PGEN_USER_GUIDE.md`
+- `docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md`
 - `docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`

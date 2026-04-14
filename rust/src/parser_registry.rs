@@ -25,7 +25,9 @@ use crate::generated_parsers::{
 use crate::regex_compile_validation::validate_regex_compile_contract;
 use serde_json::Value as JsonValue;
 #[cfg(has_generated_regex_parser)]
-const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
+// PCRE2 conformance includes deeply nested and grammar-like recursive regexes.
+// Keep the generated parser on a larger bounded stack than Rust's default.
+const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 
 type ParseSampleFn = fn(&str) -> bool;
 
@@ -685,7 +687,9 @@ mod tests {
             .map(|(start, end)| {
                 sample
                     .get(start..end)
-                    .unwrap_or_else(|| panic!("invalid span {}..{} for rule '{}'", start, end, rule_name))
+                    .unwrap_or_else(|| {
+                        panic!("invalid span {}..{} for rule '{}'", start, end, rule_name)
+                    })
                     .trim()
                     .to_string()
             })
@@ -849,7 +853,8 @@ direction := "input" | "output"
 item := identifier
 identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("ebnf", sample), Some(true));
-        let ast_json = parse_sample_ast_json("ebnf", sample).expect("ebnf ast adapter should exist");
+        let ast_json =
+            parse_sample_ast_json("ebnf", sample).expect("ebnf ast adapter should exist");
         assert!(
             ast_json.is_ok(),
             "ebnf AST JSON adapter should serialize inline lookahead sample"
@@ -941,7 +946,10 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", "(?R)"), Some(true));
         assert_eq!(parse_sample("regex", "\\g{1}"), Some(true));
         assert_eq!(parse_sample("regex", "(A)(\\g{ -2 }B)"), Some(true));
-        assert_eq!(parse_sample("regex", "(?'name'ab)\\k{ name }(?P=name)"), Some(true));
+        assert_eq!(
+            parse_sample("regex", "(?'name'ab)\\k{ name }(?P=name)"),
+            Some(true)
+        );
         assert_eq!(parse_sample("regex", "(?C1)"), Some(true));
         assert_eq!(parse_sample("regex", "(*UTF)abc"), Some(true));
         assert_eq!(parse_sample("regex", "(*MARK:A)(*SKIP:B)(C|X)"), Some(true));
@@ -1027,7 +1035,10 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         let deep_nested = format!("{}a{}", "(".repeat(50), ")".repeat(50));
 
         let unicode_ast = parse_sample_ast_json("regex", "🎉").expect("regex ast adapter");
-        assert!(unicode_ast.is_ok(), "regex AST JSON adapter should serialize emoji literal");
+        assert!(
+            unicode_ast.is_ok(),
+            "regex AST JSON adapter should serialize emoji literal"
+        );
 
         let mixed_ast = parse_sample_ast_json("regex", "café").expect("regex ast adapter");
         assert!(
@@ -1126,11 +1137,9 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             Some(true)
         );
         assert_eq!(parse_sample("rtl_frontend", "module m("), Some(false));
-        let ast_json = parse_sample_ast_json(
-            "rtl_frontend",
-            "module m(input logic clk); endmodule",
-        )
-        .expect("rtl_frontend adapter should exist");
+        let ast_json =
+            parse_sample_ast_json("rtl_frontend", "module m(input logic clk); endmodule")
+                .expect("rtl_frontend adapter should exist");
         assert!(ast_json.is_ok());
     }
 
@@ -1176,7 +1185,8 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
             if sample.require_ast_json {
                 let ast_json = parse_sample_ast_json("rtl_frontend", &sample.sample)
                     .expect("rtl_frontend ast adapter should exist");
-                let ast_json = ast_json.expect("rtl_frontend AST JSON adapter should serialize curated sample");
+                let ast_json = ast_json
+                    .expect("rtl_frontend AST JSON adapter should serialize curated sample");
                 for rule_name in &sample.required_rule_names {
                     assert!(
                         rtl_frontend_ast_contains_rule(&ast_json, rule_name),

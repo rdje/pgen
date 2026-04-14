@@ -47,6 +47,10 @@ PGEN treats downstream parser support as a maintained surface:
 
 That model is especially visible in the regex parser track because RGX actively consumes it.
 
+For the regex track, PGEN is intentionally transparent about how PCRE2 compatibility evidence is derived. PCRE2 does not provide a formal EBNF/PEG for the whole flavor, so PGEN treats `pcre2syntax(3)` and `pcre2pattern(3)` as the prose intent layer, `src/pcre2_compile.c` as the hand-written parser edge-case authority, and PCRE2 upstream `testdata/testinput*` plus expected outputs as the executable regression oracle. RGX conformance reports are then folded back into the regex integration contract and released-parser bug ledger, rather than fixed as one-off examples.
+
+The current regex maintenance release also documents a resource-depth distinction that downstream embedders should understand: legal PCRE2 patterns can be syntactically deep enough to stress a generated parser even when they are small in bytes. PGEN therefore runs generated regex entrypoints on a larger bounded worker stack (`64 MiB`) and keeps the generated recursion guard bounded (`4096`) but high enough for the retained PCRE2 conformance samples.
+
 PNR now also has a PGEN-side downstream contract addendum. It captures PNR's inbound request for future LEF, DEF, Liberty, SDC, structural Verilog netlist, and SPEF parser crates, while explicitly marking those parser-family releases as pending rather than shipped.
 
 ## Primary Source Docs

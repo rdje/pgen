@@ -9,11 +9,15 @@ PGEN applies one quality doctrine across all EBNF-based parser families. The liv
 - active downstream consumer: RGX
 - strong published contract surface
 - repeated maintenance releases and bug-response workflow
+- PCRE2-conformance work is source-of-truth driven: prose docs explain intent, `pcre2_compile.c` resolves edge cases, and upstream `testdata/testinput*` provides the executable regression oracle
+- the current maintenance track includes generated-host depth resilience for legal PCRE2 inputs with deep capture nesting, backreference depth, and grammar-like recursive named-group patterns
 
 Primary sources:
 
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+- `PGEN_USER_GUIDE.md`
+- `docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md`
 - `regex_corpus_bundle/README.md`
 
 ### VHDL

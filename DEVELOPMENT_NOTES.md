@@ -35692,3 +35692,34 @@ Architectural north star:
       - a nearby malformed named-port reject
       - `generate for`
     - this is still focused generated-contract widening, not broader handwritten-baseline parity closure
+- 2026-04-13: RGX PCRE2 conformance depth-resilience and documentation doctrine.
+  - RGX reports:
+    - `PGEN-RGX-0054`
+      - legal PCRE2 pattern with `80` nested captures followed by `\80`
+      - earlier failure mode was generated-host stack abort or generated recursion-guard rejection
+    - `PGEN-RGX-0055`
+      - legal grammar-like regex with mutually recursive named groups and nested `\g<...>` references
+      - earlier failure mode was generated-host stack abort
+  - implementation:
+    - `rust/src/embedding_api.rs` and `rust/src/parser_registry.rs` keep the generated regex backend on a larger bounded worker stack (`64 MiB`)
+    - `rust/src/ast_pipeline/ast_based_generator.rs` now emits a wider but still bounded generated recursion guard (`4096`)
+    - `generated/regex_parser.rs` was regenerated so the checked-in parser uses the new guard value
+  - contract/documentation:
+    - regex parser release is now `1.1.20`
+    - regex integration contract is now `1.1.22`
+    - regex AST dump schema remains `1`
+    - `PGEN_USER_GUIDE.md`, the mdBook parser/integration chapters, the regex integration contract, the bug ledger, and `docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md` now document the rationale and PCRE2 source-of-truth workflow
+  - source-of-truth rule:
+    - read `pcre2syntax(3)` and `pcre2pattern(3)` for intent
+    - inspect `src/pcre2_compile.c` for exact behavior
+    - validate against PCRE2 `testdata/testinput*` plus expected outputs
+    - extract general EBNF/parser shapes rather than matching one concrete failing payload
+  - proof:
+    - `parseability_probe --parse regex .../PGEN-RGX-0054/repro_input.txt --profile regex_default` passed
+    - `parseability_probe --parse regex .../PGEN-RGX-0055/repro_input.txt --profile regex_default` passed
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract` passed
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage` passed
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate` passed
+    - `git diff --check` passed
+  - status truth:
+    - regex remains `Done`; this is a downstream maintenance hardening release, not a live-status promotion

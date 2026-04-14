@@ -7,7 +7,9 @@ use serde_json::Value as JsonValue;
 use std::fmt;
 use std::str::FromStr;
 #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 8 * 1024 * 1024;
+// PCRE2 conformance includes deeply nested and grammar-like recursive regexes.
+// Keep the generated parser on a larger bounded stack than Rust's default.
+const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 
 /// Stable embedding API contract version.
 ///
@@ -20,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.20";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.22";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.19";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.20";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -1542,10 +1544,7 @@ fn parse_generated_regex_ast_json(input: &str) -> Result<JsonValue, ParseDiagnos
 }
 
 #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-fn run_generated_regex_on_dedicated_stack<T, F>(
-    input: &str,
-    f: F,
-) -> Result<T, ParseDiagnostic>
+fn run_generated_regex_on_dedicated_stack<T, F>(input: &str, f: F) -> Result<T, ParseDiagnostic>
 where
     T: Send + 'static,
     F: FnOnce(String) -> Result<T, ParseDiagnostic> + Send + 'static,
@@ -1654,11 +1653,7 @@ mod tests {
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-    fn collect_rule_spans(
-        node: &serde_json::Value,
-        rule_name: &str,
-        spans: &mut Vec<(u64, u64)>,
-    ) {
+    fn collect_rule_spans(node: &serde_json::Value, rule_name: &str, spans: &mut Vec<(u64, u64)>) {
         match node {
             serde_json::Value::Array(values) => {
                 for value in values {
@@ -1666,11 +1661,7 @@ mod tests {
                 }
             }
             serde_json::Value::Object(object) => {
-                if object
-                    .get("rule_name")
-                    .and_then(serde_json::Value::as_str)
-                    == Some(rule_name)
-                {
+                if object.get("rule_name").and_then(serde_json::Value::as_str) == Some(rule_name) {
                     let span = object
                         .get("span")
                         .and_then(serde_json::Value::as_object)
@@ -1686,9 +1677,7 @@ mod tests {
                     spans.push((start, end));
                 }
 
-                if let Some(content) = object
-                    .get("content")
-                    .and_then(serde_json::Value::as_object)
+                if let Some(content) = object.get("content").and_then(serde_json::Value::as_object)
                 {
                     for payload in content.values() {
                         collect_rule_spans(payload, rule_name, spans);
@@ -1711,7 +1700,8 @@ mod tests {
         regex_rule_spans(node, rule_name)
             .into_iter()
             .map(|(start, end)| {
-                input.get(start as usize..end as usize)
+                input
+                    .get(start as usize..end as usize)
                     .expect("regex AST dump span must map back to original input")
                     .to_string()
             })
@@ -2121,7 +2111,7 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 52);
+        assert_eq!(manifest.success_samples.len(), 55);
         assert_eq!(manifest.failure_samples.len(), 8);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
@@ -2224,6 +2214,13 @@ mod tests {
             manifest
                 .success_samples
                 .iter()
+                .any(|sample| sample.name
+                    == "posix_digit_then_literal_dash_and_spaces_class_item_ast")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
                 .any(|sample| sample.name == "quoted_literal_metacharacters")
         );
         assert!(
@@ -2291,6 +2288,18 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "wasm_embedded_code_block")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "deep_nested_backreference_80")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "recursive_named_group_interpolation")
         );
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
         assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));
@@ -2955,8 +2964,14 @@ mod tests {
         let parsed = regex_ast_dump_json(input);
 
         assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(0, 14)]);
-        assert_eq!(regex_rule_spans(&parsed, "recursion_condition"), vec![(3, 9)]);
-        assert_eq!(regex_rule_texts(input, &parsed, "recursion_condition"), vec!["R&word"]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "recursion_condition"),
+            vec![(3, 9)]
+        );
+        assert_eq!(
+            regex_rule_texts(input, &parsed, "recursion_condition"),
+            vec!["R&word"]
+        );
         assert_eq!(regex_rule_texts(input, &parsed, "name"), vec!["word"]);
         assert_eq!(regex_rule_spans(&parsed, "yes_branch"), vec![(10, 11)]);
         assert_eq!(regex_rule_spans(&parsed, "no_branch"), vec![(12, 13)]);
@@ -2969,8 +2984,14 @@ mod tests {
         let parsed = regex_ast_dump_json(input);
 
         assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(0, 9)]);
-        assert_eq!(regex_rule_spans(&parsed, "recursion_condition"), vec![(3, 4)]);
-        assert_eq!(regex_rule_texts(input, &parsed, "recursion_condition"), vec!["R"]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "recursion_condition"),
+            vec![(3, 4)]
+        );
+        assert_eq!(
+            regex_rule_texts(input, &parsed, "recursion_condition"),
+            vec!["R"]
+        );
         assert!(
             regex_rule_spans(&parsed, "name").is_empty(),
             "bare recursion conditionals must not fall back to name"
@@ -2984,8 +3005,14 @@ mod tests {
         let parsed = regex_ast_dump_json(input);
 
         assert_eq!(regex_rule_spans(&parsed, "conditional"), vec![(3, 13)]);
-        assert_eq!(regex_rule_spans(&parsed, "recursion_condition"), vec![(6, 8)]);
-        assert_eq!(regex_rule_texts(input, &parsed, "recursion_condition"), vec!["R1"]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "recursion_condition"),
+            vec![(6, 8)]
+        );
+        assert_eq!(
+            regex_rule_texts(input, &parsed, "recursion_condition"),
+            vec!["R1"]
+        );
         assert_eq!(regex_rule_texts(input, &parsed, "digits"), vec!["1"]);
         assert!(
             regex_rule_spans(&parsed, "name").is_empty(),
@@ -2997,18 +3024,8 @@ mod tests {
     #[test]
     fn regex_parser_integration_contract_accepts_version_conditionals() {
         for (input, condition_text, operator, version) in [
-            (
-                "(?(VERSION>=10.0)cat|dog)",
-                "VERSION>=10.0",
-                ">=",
-                "10.0",
-            ),
-            (
-                "(?(VERSION >= 10)cat|dog)",
-                "VERSION >= 10",
-                ">=",
-                "10",
-            ),
+            ("(?(VERSION>=10.0)cat|dog)", "VERSION>=10.0", ">=", "10.0"),
+            ("(?(VERSION >= 10)cat|dog)", "VERSION >= 10", ">=", "10"),
         ] {
             let parsed = regex_ast_dump_json(input);
 
@@ -3063,7 +3080,10 @@ mod tests {
         let input = "🎉";
         let parsed = regex_ast_dump_json(input);
 
-        assert_eq!(regex_rule_spans(&parsed, "literal"), vec![(0, input.len() as u64)]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "literal"),
+            vec![(0, input.len() as u64)]
+        );
         assert_eq!(regex_rule_texts(input, &parsed, "literal"), vec!["🎉"]);
     }
 
@@ -3073,8 +3093,14 @@ mod tests {
         let input = "café";
         let parsed = regex_ast_dump_json(input);
 
-        assert_eq!(regex_rule_spans(&parsed, "literal"), vec![(0, 1), (1, 2), (2, 3), (3, 5)]);
-        assert_eq!(regex_rule_texts(input, &parsed, "literal"), vec!["c", "a", "f", "é"]);
+        assert_eq!(
+            regex_rule_spans(&parsed, "literal"),
+            vec![(0, 1), (1, 2), (2, 3), (3, 5)]
+        );
+        assert_eq!(
+            regex_rule_texts(input, &parsed, "literal"),
+            vec!["c", "a", "f", "é"]
+        );
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]

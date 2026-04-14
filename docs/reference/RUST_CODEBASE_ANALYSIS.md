@@ -1,6 +1,6 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-04-02
+Last updated: 2026-04-13
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.
@@ -23,12 +23,13 @@ This is a live document, not an archival write-up. It should be amended whenever
 - It should be read alongside the roadmap priority rule:
   - active parser-family closure work is now centered on the remaining main-`systemverilog` debt and still outranks deferred maintainability refactors.
   - `vhdl`, `systemverilog_preprocessor`, and `regex` have reached their current published closure bars and should be treated as no-regression proof baselines unless their contracts are intentionally widened.
-  - downstream regex hardening on embedded code blocks should now be treated as parser-layer contract precision work backed by compact synthetic corpora/gates, not as a reason to reopen the `regex` family row by default.
-  - RGX's downstream review now treats regex handoff `1.1.2` as integration-ready for starting adoption; the regex maintenance line now covers the `1.1.1` accepted-tree transport fixes plus the `1.1.2` named recursion-condition unblock for `(?(R&name)...)`, and the remaining regex caveats are now scope-widening questions around stronger AST semantic stability, stronger JS/Lua shielding, optional published `rhai` / `native` / `wasm` tags, and host-language wrapper parsing.
-  - a fresh current-PCRE2 syntax check also identified future regex widening targets that are real but not urgent:
-    - returned-capture subroutine forms such as `(?R(grouplist))`, `(?n(grouplist))`, `(?+n(grouplist))`, `(?-n(grouplist))`, `(?&name(grouplist))`, and `(?P>name(grouplist))`
-    - additional conditionals such as `(?(VERSION[...])...)`
-  - those regex syntax additions are intentionally deferred until the remaining live `systemverilog` closure work and the other still-open parser families are materially complete; they should be treated as deliberate future contract widening, not as current closure blockers
+  - downstream regex hardening should now be treated as maintained PCRE2-compatibility contract precision work, not as a reason to reopen the `regex` family row by default.
+  - RGX's downstream review now treats regex handoff `1.1.20` / integration contract `1.1.22` as the current public handoff. That line carries the accepted-tree transport fixes, named recursion-condition support, returned-capture subroutine forms, PCRE2 VERSION conditionals, quoted literal handling, POSIX-class fallback/adapter clarifications, MARK/PRUNE/SKIP/THEN payload generalization, braced padded `\g{...}` / `\k{...}` references, and generated-host depth resilience for legal deep PCRE2 inputs.
+  - PCRE2 compatibility work has a clear source-of-truth workflow:
+    - read `pcre2syntax(3)` and `pcre2pattern(3)` for documented intent
+    - cross-reference `src/pcre2_compile.c` for exact edge cases
+    - validate against upstream `testdata/testinput*` plus expected outputs as the executable oracle
+  - remaining regex caveats are now deliberate scope-widening questions around full PCRE2 parity, stronger JS/Lua shielding, host-language wrapper parsing, and any future AST-semantic stability promises beyond the current JSON schema contract.
   - downstream regex hardening under `regex_corpus_bundle/` now also has two distinct external-corpus roles:
     - `regex_pcre2_textsafe_corpus_gate` for accepted-syntax widening
     - `regex_pcre2_compile_oracle_gate` for compile-truth comparison against pinned PCRE2 source truth
@@ -152,7 +153,7 @@ Operational rule:
 - The generated parser path, stimuli/coverage closure path, semantic-steering path, and proof/gate path are deeply integrated rather than loosely bolted together.
 - The strongest quality of the Rust codebase is coherence around determinism, observability, and machine-checkable proof.
 - The main architectural risk is concentration of complexity in a few very large modules and a few repeated adapter seams.
-- The newest downstream-trust expansion for `regex` is no longer just synthetic or narrative: `regex_corpus_bundle/` now feeds a maintained compile-oracle lane through `normalize_pcre2_compile_oracle.py`, `regex_corpus_probe`, `regex_pcre2_compile_oracle_gate.sh`, and a dedicated post-parse compile-contract layer in `rust/src/regex_compile_validation.rs`.
+- The newest downstream-trust expansion for `regex` is no longer just synthetic or narrative: `regex_corpus_bundle/` now feeds a maintained compile-oracle lane through `normalize_pcre2_compile_oracle.py`, `regex_corpus_probe`, `regex_pcre2_compile_oracle_gate.sh`, and a dedicated post-parse compile-contract layer in `rust/src/regex_compile_validation.rs`; the generated regex host path also retains a larger bounded worker stack plus widened generated recursion guard for legal deep PCRE2 conformance inputs.
 
 ## Snapshot Metrics
 - Rust maintained source surface inspected in this pass: about `44k` lines.
@@ -1386,6 +1387,8 @@ Operational rule:
   - It now also has a checked-in broader-corpus proof gate over the regex stress corpus (`44` executed, `44` pass, `0` fail in the current measured slice), and the formal-exhaustive-closure gate is now green because that broader-corpus proof surface exists
   - It now also has a maintained external-corpus acquisition starter under `regex_corpus_bundle/`; that bundle is deliberately separate from the closed regex family-status math and should be treated as the canonical future widening lane for PCRE2-first external hardening rather than as a replacement for the current checked-in `stress_tests.json` proof slice
   - The downstream regex host contract is now materially stronger than the first release slice: `embedding_api.rs` now publishes a regex parser release version, a regex integration-contract version, explicit generated-backend requirement metadata, a regex AST-dump schema version, and machine-localizable parse-failure locations through `ParseDiagnostic.location`
+  - The current RGX handoff is parser release `1.1.20` / integration contract `1.1.22`; legal deep PCRE2 repros such as `80` nested captures plus `\80` and recursive named-group interpolation patterns now parse through the generated host path without stack abort, while the AST schema remains `1`
+  - PCRE2-conformance fixes should follow the source-of-truth workflow captured in `docs/reference/REGEX_BOOTSTRAP_ARCHITECTURE.md`: prose docs first, `pcre2_compile.c` for edge cases, and PCRE2 `testdata/testinput*` for executable regression truth
   - Recent real-world regex follow-ups showed why this family is so frontend-coupled: fixing quoted-terminal escape decoding in `ebnf_frontend.rs`, widening `literal_char` just enough for `:` and `/`, deliberately allowing an empty top-level regex, and then disabling implicit layout skipping in generated regex parsers were enough to turn the checked-in `url_pattern`, `empty_regex`, and leading-whitespace quantifier false negatives green without changing the higher-level proof architecture
   - The final regex blocker turned out to be in the stimuli engine rather than the parser itself: alternate-entry helper probes inside `generate_until_targets_with_filter` now retain helper-rule coverage progress even when those helper outputs fail the primary-entry parseability filter, so regex target driving no longer spins by rolling back legitimate helper coverage
   - It now also has a public embedding seam in `embedding_api.rs`, but that public surface should not be mistaken for complete parser-family closure by itself

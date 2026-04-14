@@ -3805,9 +3805,9 @@ Public contract identity:
 - stable profile:
   - `regex_default`
 - parser release version:
-  - `1.1.10`
+  - `1.1.20`
 - integration contract version:
-  - `1.1.10`
+  - `1.1.22`
 - embedding API baseline:
   - `1.2.0`
 - AST-dump schema version:
@@ -3960,6 +3960,8 @@ Representative accepted examples:
 - `(?{native:callback_name})`
 - `(?{wasm:module:function})`
 - `(?{javascript:return x + 1;})`
+- deeply nested PCRE2 captures such as an `80`-level capturing-group pattern followed by `\80`
+- grammar-like recursive named-group patterns using nested `\g<...>` references
 
 Regex code-block handling:
 - embedded code blocks are parsed structurally
@@ -3995,7 +3997,12 @@ Diagnostics and AST behavior:
   - `span.start`
   - `span.end`
   - `content`
-- parser release `1.1.10` specifically adds PCRE2 VERSION conditionals while carrying forward returned-capture subroutine syntax, Unicode literal support, and deeper nested-group headroom, all while keeping that JSON schema version stable:
+- parser release `1.1.20` specifically adds deeper generated-host resilience for legal PCRE2 conformance inputs while carrying forward braced padded `\k{...}` and `\g{...}` references, PCRE2 VERSION conditionals, returned-capture subroutine syntax, Unicode literal support, and earlier nested-group headroom, all while keeping that JSON schema version stable:
+  - an `80`-level nested capturing-group pattern followed by `\80` now parses without generated-host stack abort or generated recursion-guard rejection
+  - a grammar-like recursive named-group interpolation pattern with nested `\g<...>` references now parses without generated-host stack abort
+  - `(?'name'ab)\k{ name }(?P=name)` now transports the padded named backreference as `backreference` -> `braced_name_ref`
+  - `(A)(\g{ -2 }B)` now transports the padded relative numeric reference as `backreference` -> `subroutine_ref` -> `braced_subroutine_ref` -> `signed_digits`
+  - `[[:digit:]-   ]` transports `[:digit:]` as a `posix_class`, followed by literal `-` and literal spaces rather than a `class_range`
   - `(?(VERSION>=10.0)cat|dog)` now emits `version_condition` / `version_operator` / `version_number`
   - `(?(VERSION >= 10)cat|dog)` now preserves whitespace around the comparison operator and accepts a missing minor component
   - `(?1(1))` now appears as `subroutine_call` plus `returned_capture_subroutine`, preserving both the target and the returned-capture grouplist
@@ -4003,7 +4010,7 @@ Diagnostics and AST behavior:
   - `🎉` now emits a single `literal` node spanning the full UTF-8 codepoint
   - `café` now emits four `literal` nodes, preserving `é` as the final multibyte atom
   - nested capturing groups remain accepted at least through `50` levels
-  - regex host entrypoints now run the generated backend on a dedicated larger-stack worker thread while keeping recursion guard depth bounded
+  - regex host entrypoints now run the generated backend on a dedicated larger-stack worker thread (`64 MiB`) while keeping recursion guard depth bounded (`4096`)
   - `(?(R)a|b)` now emits `recursion_condition` inside the `conditional`
   - `(a)(?(R1)b|c)` now emits `recursion_condition` instead of fallback `name`
   - `(?{native:validate_word})` now preserves `code_content = "validate_word"` instead of starting one byte late
@@ -4073,6 +4080,7 @@ Operational entrypoints:
 
 Important interpretation:
 - PCRE2 upstream is raw syntax truth for this lane
+- PCRE2 does not publish a formal EBNF or PEG for the full regex flavor. For PCRE2-conformance work, PGEN uses the prose docs `pcre2syntax(3)` and `pcre2pattern(3)` for intent, cross-checks `src/pcre2_compile.c` for exact edge cases, and treats upstream `testdata/testinput*` plus expected outputs as the executable regression oracle.
 - PHP corpus is useful because it is PCRE2-backed, but it must be wrapper-normalized before it counts as raw parser truth
 - the text-safe gate is useful for widening accepted-syntax evidence, but it is not a correctness oracle because PCRE2 testdata contains both valid and intentionally invalid patterns
 - the compile-oracle gate is the first external-corpus lane that actually measures expected compile outcomes against PCRE2 source truth
@@ -4086,8 +4094,8 @@ Important interpretation:
   - `false_accept_total=325`
   - `false_reject_total=202`
 - the current downstream regex release aligned with that hardening slice is:
-  - parser release version `1.1.10`
-  - integration contract version `1.1.10`
+  - parser release version `1.1.20`
+  - integration contract version `1.1.22`
 - the current improvement came from two complementary changes:
   - the grammar now accepts more real PCRE2 surface such as negated POSIX classes, bare-name / signed conditional references, named recursion conditions like `R&name`, `\k{name}`, and `{,}` counted-quantifier forms
   - the host path now rejects obvious compile-invalid forms such as `\i`, bad counted quantifier bounds, forbidden class escapes like `[\B]`, descending class ranges, quantified anchors, and variable-length lookbehind

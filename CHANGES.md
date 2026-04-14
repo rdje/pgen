@@ -33142,3 +33142,25 @@ Close Phase R gate-level validation item by adding a deterministic, executable g
     - removed it from `README.md`'s documentation-structure summary
   - honest current read:
     - this is a small root-surface hygiene fix, not a parser or proof-surface change
+- 2026-04-13: documented the RGX PCRE2 conformance maintenance slice for `PGEN-RGX-0054` and `PGEN-RGX-0055`.
+  - landed:
+    - regex parser release/version docs now describe `1.1.20` / integration contract `1.1.22`
+    - the public user guide and mdBook surfaces now explain the PCRE2 source-of-truth workflow:
+      - `pcre2syntax(3)` / `pcre2pattern(3)` for prose intent
+      - `src/pcre2_compile.c` for edge-case truth
+      - PCRE2 `testdata/testinput*` plus expected outputs as the executable oracle
+    - the regex bootstrap/reference doc now records that PGEN should extract general PCRE2 parser shapes rather than special-case individual RGX repro payloads
+  - implementation shape:
+    - generated regex host stack headroom is larger but still bounded (`64 MiB`)
+    - generated parser recursion guard headroom is widened but still bounded (`4096`)
+    - representative contract samples now retain the deep nested backreference and recursive named-group interpolation repro shapes
+  - verification:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parser_integration_contract`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_parseability_adapter_accepts_valid_regex_and_rejects_garbage`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex .../PGEN-RGX-0054/repro_input.txt --profile regex_default`
+    - `cargo run --manifest-path rust/Cargo.toml --features generated_parsers --bin parseability_probe -- --parse regex .../PGEN-RGX-0055/repro_input.txt --profile regex_default`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `git diff --check`
+  - honest current read:
+    - this is a regex maintenance release on top of the already-closed regex family row
+    - the regex live-status label remains `Done`; this does not reopen the family

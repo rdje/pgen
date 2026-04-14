@@ -40,6 +40,8 @@ They define:
 
 PGEN uses maintenance releases, issue ledgers, and contract updates to keep parser-family promises explicit rather than implied.
 
+The regex/RGX track is the most active example of that model: PCRE2 conformance reports are recorded in the released-parser ledger, fixed or rejected with rationale, and then reflected in the regex integration contract and user-facing docs when the public handoff changes.
+
 The release policy reference lives in:
 
 - `docs/reference/PGEN_RELEASE_POLICY.md`

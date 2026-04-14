@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.20",
-  "parser_release_version": "1.1.19",
+  "integration_contract_version": "1.1.22",
+  "parser_release_version": "1.1.20",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -86,6 +86,17 @@
         "posix_class": ["[:digit:]"],
         "posix_name": ["digit"]
       }
+    },
+    {
+      "name": "posix_digit_then_literal_dash_and_spaces_class_item_ast",
+      "input": "[[:digit:]-   ]",
+      "required_rule_names": ["char_class", "class_item", "class_literal", "posix_class", "posix_name"],
+      "expected_rule_texts": {
+        "class_literal": ["-", " ", " ", " "],
+        "posix_class": ["[:digit:]"],
+        "posix_name": ["digit"]
+      },
+      "forbidden_rule_names": ["class_range"]
     },
     {
       "name": "quoted_literal_metacharacters",
@@ -458,6 +469,15 @@
         "literal": ["a", "{", ",", "2", "}"],
         "comment_group": ["(?#XYZ)"]
       }
+    },
+    {
+      "name": "deep_nested_backreference_80",
+      "input": "((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((x))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\\80",
+      "required_rule_names": ["capturing_group", "backreference"]
+    },
+    {
+      "name": "recursive_named_group_interpolation",
+      "input": "(?=(?<regex>(?#simplesyntax)\\$(?<name>[a-zA-Z_\\x{7f}-\\x{ff}][a-zA-Z0-9_\\x{7f}-\\x{ff}]*)(?:\\[(?<index>[a-zA-Z0-9_\\x{7f}-\\x{ff}]+|\\$\\g<name>)\\]|->\\g<name>(\\(.*?\\))?)?|(?#simple syntax withbraces)\\$\\{(?:\\g<name>(?<indices>\\[(?:\\g<index>|'(?:\\\\.|[^'\\\\])*'|\"(?:\\g<regex>|\\\\.|[^\"\\\\])*\")\\])?|\\g<complex>|\\$\\{\\g<complex>\\})\\}|(?#complexsyntax)\\{(?<complex>\\$(?<segment>\\g<name>(\\g<indices>*|\\(.*?\\))?)(?:->\\g<segment>)*|\\$\\g<complex>|\\$\\{\\g<complex>\\})\\}))\\{"
     },
     {
       "name": "literal_quantifier_binding",

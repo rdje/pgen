@@ -23,7 +23,9 @@ use quote::{ToTokens, format_ident, quote};
 use std::collections::{HashMap, HashSet};
 use syn::Ident;
 
-const GENERATED_RECURSION_GUARD_MAX_DEPTH: usize = 512;
+// PCRE2 conformance includes legal regexes whose syntax is shallow in bytes but
+// deep in generated parser calls. Keep this bounded, but above real corpus depth.
+const GENERATED_RECURSION_GUARD_MAX_DEPTH: usize = 4096;
 
 macro_rules! eprintln {
     ($($arg:tt)*) => {
@@ -3870,22 +3872,24 @@ impl AstBasedGenerator {
                 directives_by_rule.insert(#rule_name.to_string(), vec![#(#directive_tokens),*]);
             }
         });
-        let branch_rule_entries = compiled.branch_iter().map(|(rule_name, branch_directives)| {
-            let branch_directive_tokens = branch_directives.iter().map(|directives| {
-                let directive_tokens = directives
-                    .iter()
-                    .map(Self::generate_semantic_runtime_directive_tokens);
+        let branch_rule_entries = compiled
+            .branch_iter()
+            .map(|(rule_name, branch_directives)| {
+                let branch_directive_tokens = branch_directives.iter().map(|directives| {
+                    let directive_tokens = directives
+                        .iter()
+                        .map(Self::generate_semantic_runtime_directive_tokens);
+                    quote! {
+                        vec![#(#directive_tokens),*]
+                    }
+                });
                 quote! {
-                    vec![#(#directive_tokens),*]
+                    branch_directives_by_rule.insert(
+                        #rule_name.to_string(),
+                        vec![#(#branch_directive_tokens),*],
+                    );
                 }
             });
-            quote! {
-                branch_directives_by_rule.insert(
-                    #rule_name.to_string(),
-                    vec![#(#branch_directive_tokens),*],
-                );
-            }
-        });
 
         Ok(quote! {
             {
@@ -4939,9 +4943,9 @@ mod semantic_usage_tests {
                     },
                     UnifiedSemanticProperty {
                         key: "args".to_string(),
-                        value: UnifiedSemanticValue::Array(vec![
-                            UnifiedSemanticValue::Identifier("global".to_string()),
-                        ]),
+                        value: UnifiedSemanticValue::Array(vec![UnifiedSemanticValue::Identifier(
+                            "global".to_string(),
+                        )]),
                     },
                 ]),
             )],
@@ -5528,10 +5532,7 @@ mod semantic_usage_tests {
             rendered
         );
         assert!(
-            rendered
-                .matches("std::mem::take(")
-                .count()
-                >= 2,
+            rendered.matches("std::mem::take(").count() >= 2,
             "generated parser should refresh semantic runtime state from child-rule commits before applying parent effects, got: {}",
             rendered
         );
@@ -5609,10 +5610,7 @@ mod semantic_usage_tests {
     fn semantic_usage_codegen_extracts_rule_profiles_from_named_directive() {
         let generator = profile_guard_generator();
         let profiles = generator.rule_profiles("package_declaration");
-        assert_eq!(
-            profiles,
-            vec!["sv_2017".to_string(), "sv_2023".to_string()]
-        );
+        assert_eq!(profiles, vec!["sv_2017".to_string(), "sv_2023".to_string()]);
     }
 
     #[test]
