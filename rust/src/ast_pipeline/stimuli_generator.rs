@@ -1,16 +1,16 @@
 use super::{
-    extract_semantic_directive, global_trace_verbosity, normalize_semantic_scalar,
-    parse_canonical_transform_expression, parse_semantic_bool, parse_semantic_branch_priorities,
-    parse_semantic_charset, parse_semantic_constraint_expression,
-    parse_semantic_coverage_target_weight, parse_semantic_deterministic_group,
-    parse_semantic_group_label, parse_semantic_implication, parse_semantic_len_bounds,
-    parse_semantic_numeric_bounds, parse_semantic_pattern, parse_semantic_reference_list,
-    parse_semantic_string_list, parse_semantic_token_class, stimuli_hint_for_target_type, ASTNode,
-    ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity, SemanticBranchPolicy,
-    SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel, TraceVerbosity,
-    UnifiedSemanticAST, UnifiedSemanticValue,
+    ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
+    SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
+    TraceVerbosity, UnifiedSemanticAST, UnifiedSemanticValue, extract_semantic_directive,
+    global_trace_verbosity, normalize_semantic_scalar, parse_canonical_transform_expression,
+    parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
+    parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
+    parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
+    parse_semantic_len_bounds, parse_semantic_numeric_bounds, parse_semantic_pattern,
+    parse_semantic_reference_list, parse_semantic_string_list, parse_semantic_token_class,
+    stimuli_hint_for_target_type,
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -797,12 +797,8 @@ struct StimuliTokenSteeringPolicy {
 
 #[derive(Debug, Clone)]
 enum GrammarMutationCandidateKind {
-    Or {
-        alternative_branches: Vec<usize>,
-    },
-    Quantifier {
-        alternative_repeats: Vec<usize>,
-    },
+    Or { alternative_branches: Vec<usize> },
+    Quantifier { alternative_repeats: Vec<usize> },
 }
 
 #[derive(Debug, Clone)]
@@ -2281,12 +2277,13 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
-    fn forced_quantifier_repeats_for_site(
-        &self,
-        site_key: &str,
-    ) -> Option<(usize, Option<usize>)> {
+    fn forced_quantifier_repeats_for_site(&self, site_key: &str) -> Option<(usize, Option<usize>)> {
         let replay = self.mutation_replay.as_ref()?;
-        let baseline = replay.baseline_trace.quantifier_repeats.get(site_key).copied();
+        let baseline = replay
+            .baseline_trace
+            .quantifier_repeats
+            .get(site_key)
+            .copied();
         match &replay.selection {
             GrammarMutationSelection::Quantifier {
                 site_key: selected_site_key,
@@ -2305,7 +2302,9 @@ impl<'a> StimuliGenerator<'a> {
         let Some(trace) = self.mutation_trace.as_mut() else {
             return;
         };
-        trace.or_choices.insert(site_key.to_string(), selected_branch);
+        trace
+            .or_choices
+            .insert(site_key.to_string(), selected_branch);
         let alternative_branches: Vec<usize> = candidate_indices
             .iter()
             .copied()
@@ -2620,110 +2619,114 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
             ordered
-        } else { match branch_policy {
-            SemanticBranchPolicy::Ordered => (0..candidate_indices.len()).collect(),
-            SemanticBranchPolicy::PriorityFirst => {
-                let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
-                ordered.sort_by(|left, right| {
-                    let left_global = candidate_indices[*left];
-                    let right_global = candidate_indices[*right];
-                    let left_target_probe =
-                        self.target_priority_probe_bias(&group_key, left_global);
-                    let right_target_probe =
-                        self.target_priority_probe_bias(&group_key, right_global);
-                    let left_priority = branch_priorities.get(left_global).copied().unwrap_or(0);
-                    let right_priority = branch_priorities.get(right_global).copied().unwrap_or(0);
-                    right_target_probe
-                        .cmp(&left_target_probe)
-                        .then_with(|| {
-                            if left_target_probe || right_target_probe {
-                                let left_deficit =
-                                    self.branch_target_deficit(&group_key, left_global);
-                                let right_deficit =
-                                    self.branch_target_deficit(&group_key, right_global);
-                                let left_success =
-                                    self.branch_success_hits(&group_key, left_global);
-                                let right_success =
-                                    self.branch_success_hits(&group_key, right_global);
-                                let left_selected =
-                                    self.branch_selected_hits(&group_key, left_global);
-                                let right_selected =
-                                    self.branch_selected_hits(&group_key, right_global);
+        } else {
+            match branch_policy {
+                SemanticBranchPolicy::Ordered => (0..candidate_indices.len()).collect(),
+                SemanticBranchPolicy::PriorityFirst => {
+                    let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
+                    ordered.sort_by(|left, right| {
+                        let left_global = candidate_indices[*left];
+                        let right_global = candidate_indices[*right];
+                        let left_target_probe =
+                            self.target_priority_probe_bias(&group_key, left_global);
+                        let right_target_probe =
+                            self.target_priority_probe_bias(&group_key, right_global);
+                        let left_priority =
+                            branch_priorities.get(left_global).copied().unwrap_or(0);
+                        let right_priority =
+                            branch_priorities.get(right_global).copied().unwrap_or(0);
+                        right_target_probe
+                            .cmp(&left_target_probe)
+                            .then_with(|| {
+                                if left_target_probe || right_target_probe {
+                                    let left_deficit =
+                                        self.branch_target_deficit(&group_key, left_global);
+                                    let right_deficit =
+                                        self.branch_target_deficit(&group_key, right_global);
+                                    let left_success =
+                                        self.branch_success_hits(&group_key, left_global);
+                                    let right_success =
+                                        self.branch_success_hits(&group_key, right_global);
+                                    let left_selected =
+                                        self.branch_selected_hits(&group_key, left_global);
+                                    let right_selected =
+                                        self.branch_selected_hits(&group_key, right_global);
 
-                                right_deficit
-                                    .cmp(&left_deficit)
-                                    .then_with(|| left_selected.cmp(&right_selected))
-                                    .then_with(|| left_success.cmp(&right_success))
-                            } else {
-                                std::cmp::Ordering::Equal
-                            }
-                        })
-                        .then_with(|| right_priority.cmp(&left_priority))
-                        .then_with(|| match associativity {
-                            SemanticAssociativity::Right => right_global.cmp(&left_global),
-                            _ => left_global.cmp(&right_global),
-                        })
-                });
-                ordered
-            }
-            SemanticBranchPolicy::LongestMatch => {
-                let probabilities: Vec<Option<u32>> = candidate_indices
-                    .iter()
-                    .map(|idx| prepared[*idx].0)
-                    .collect();
-                let base_weights = self.build_weights(&probabilities)?;
-                let guided_weights: Vec<u64> = candidate_indices
-                    .iter()
-                    .enumerate()
-                    .map(|(local_idx, global_idx)| {
-                        let multiplier = self.coverage_guidance_multiplier(
-                            current_rule,
-                            node_path,
-                            *global_idx,
-                            &prepared[*global_idx].1,
-                        );
-                        let recursion_penalty = self.recursion_pressure_penalty(
-                            &prepared[*global_idx].1,
-                            call_stack,
-                            depth,
-                        );
-                        let adjusted_multiplier = (multiplier / recursion_penalty).max(1);
-                        let semantic_multiplier = self.semantic_branch_multiplier(
-                            associativity,
-                            &branch_priorities,
-                            *global_idx,
-                            prepared.len(),
-                        );
-                        let constraint_multiplier = self.constraint_profile_branch_multiplier(
-                            current_rule,
-                            node_path,
-                            *global_idx,
-                            &prepared[*global_idx].1,
-                            depth,
-                            call_stack,
-                        );
-                        u64::from(base_weights[local_idx])
-                            .saturating_mul(adjusted_multiplier)
-                            .saturating_mul(semantic_multiplier)
-                            .saturating_mul(constraint_multiplier)
-                    })
-                    .collect();
-
-                let dist = WeightedIndex::new(&guided_weights).with_context(|| {
-                    format!(
-                        "Invalid branch weights for rule '{}': {:?}",
-                        current_rule, guided_weights
-                    )
-                })?;
-                let selected_local = dist.sample(&mut self.rng);
-                let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
-                ordered.swap(0, selected_local);
-                if ordered.len() > 2 {
-                    ordered[1..].shuffle(&mut self.rng);
+                                    right_deficit
+                                        .cmp(&left_deficit)
+                                        .then_with(|| left_selected.cmp(&right_selected))
+                                        .then_with(|| left_success.cmp(&right_success))
+                                } else {
+                                    std::cmp::Ordering::Equal
+                                }
+                            })
+                            .then_with(|| right_priority.cmp(&left_priority))
+                            .then_with(|| match associativity {
+                                SemanticAssociativity::Right => right_global.cmp(&left_global),
+                                _ => left_global.cmp(&right_global),
+                            })
+                    });
+                    ordered
                 }
-                ordered
+                SemanticBranchPolicy::LongestMatch => {
+                    let probabilities: Vec<Option<u32>> = candidate_indices
+                        .iter()
+                        .map(|idx| prepared[*idx].0)
+                        .collect();
+                    let base_weights = self.build_weights(&probabilities)?;
+                    let guided_weights: Vec<u64> = candidate_indices
+                        .iter()
+                        .enumerate()
+                        .map(|(local_idx, global_idx)| {
+                            let multiplier = self.coverage_guidance_multiplier(
+                                current_rule,
+                                node_path,
+                                *global_idx,
+                                &prepared[*global_idx].1,
+                            );
+                            let recursion_penalty = self.recursion_pressure_penalty(
+                                &prepared[*global_idx].1,
+                                call_stack,
+                                depth,
+                            );
+                            let adjusted_multiplier = (multiplier / recursion_penalty).max(1);
+                            let semantic_multiplier = self.semantic_branch_multiplier(
+                                associativity,
+                                &branch_priorities,
+                                *global_idx,
+                                prepared.len(),
+                            );
+                            let constraint_multiplier = self.constraint_profile_branch_multiplier(
+                                current_rule,
+                                node_path,
+                                *global_idx,
+                                &prepared[*global_idx].1,
+                                depth,
+                                call_stack,
+                            );
+                            u64::from(base_weights[local_idx])
+                                .saturating_mul(adjusted_multiplier)
+                                .saturating_mul(semantic_multiplier)
+                                .saturating_mul(constraint_multiplier)
+                        })
+                        .collect();
+
+                    let dist = WeightedIndex::new(&guided_weights).with_context(|| {
+                        format!(
+                            "Invalid branch weights for rule '{}': {:?}",
+                            current_rule, guided_weights
+                        )
+                    })?;
+                    let selected_local = dist.sample(&mut self.rng);
+                    let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
+                    ordered.swap(0, selected_local);
+                    if ordered.len() > 2 {
+                        ordered[1..].shuffle(&mut self.rng);
+                    }
+                    ordered
+                }
             }
-        }};
+        };
         self.trace(
             TraceLevel::Debug,
             format_args!(
@@ -3064,35 +3067,33 @@ impl<'a> StimuliGenerator<'a> {
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
         let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "quantifier");
-        let repeat_candidates: Vec<usize> =
-            if let Some((preferred_repeats, baseline_repeats)) =
-                self.forced_quantifier_repeats_for_site(&mutation_site_key)
-            {
-                let mut candidates = Vec::new();
-                if preferred_repeats >= min_repeat && preferred_repeats <= bounded_max {
-                    candidates.push(preferred_repeats);
+        let repeat_candidates: Vec<usize> = if let Some((preferred_repeats, baseline_repeats)) =
+            self.forced_quantifier_repeats_for_site(&mutation_site_key)
+        {
+            let mut candidates = Vec::new();
+            if preferred_repeats >= min_repeat && preferred_repeats <= bounded_max {
+                candidates.push(preferred_repeats);
+            }
+            if let Some(baseline_repeats) = baseline_repeats {
+                if baseline_repeats >= min_repeat
+                    && baseline_repeats <= bounded_max
+                    && !candidates.contains(&baseline_repeats)
+                {
+                    candidates.push(baseline_repeats);
                 }
-                if let Some(baseline_repeats) = baseline_repeats {
-                    if baseline_repeats >= min_repeat
-                        && baseline_repeats <= bounded_max
-                        && !candidates.contains(&baseline_repeats)
-                    {
-                        candidates.push(baseline_repeats);
-                    }
+            }
+            for repeat in min_repeat..=bounded_max {
+                if !candidates.contains(&repeat) {
+                    candidates.push(repeat);
                 }
-                for repeat in min_repeat..=bounded_max {
-                    if !candidates.contains(&repeat) {
-                        candidates.push(repeat);
-                    }
-                }
-                candidates
-            } else if min_repeat == bounded_max {
+            }
+            candidates
+        } else if min_repeat == bounded_max {
             vec![min_repeat]
         } else if depth >= self.config.max_depth.saturating_sub(1) {
             vec![min_repeat]
         } else {
-            let preferred =
-                self.select_preferred_quantifier_repeat(min_repeat, bounded_max)?;
+            let preferred = self.select_preferred_quantifier_repeat(min_repeat, bounded_max)?;
             let mut candidates = Vec::with_capacity(bounded_max.saturating_sub(min_repeat) + 1);
             candidates.push(preferred);
             let remainder_order = self.quantifier_remainder_order(min_repeat, bounded_max);
@@ -3401,11 +3402,7 @@ impl<'a> StimuliGenerator<'a> {
                     return 0;
                 };
                 if token_type == "rule_reference" {
-                    if token_value == current_rule {
-                        2
-                    } else {
-                        1
-                    }
+                    if token_value == current_rule { 2 } else { 1 }
                 } else {
                     0
                 }
@@ -3619,9 +3616,8 @@ impl<'a> StimuliGenerator<'a> {
                 }
 
                 if uncovered_rule_refs > 0 {
-                    multiplier = multiplier.saturating_mul(
-                        1 + u64::try_from(uncovered_rule_refs.min(4)).unwrap_or(1),
-                    );
+                    multiplier = multiplier
+                        .saturating_mul(1 + u64::try_from(uncovered_rule_refs.min(4)).unwrap_or(1));
                 }
 
                 multiplier.max(1)
@@ -3953,7 +3949,10 @@ impl<'a> StimuliGenerator<'a> {
 
         matches!(
             current_rule,
-            "systemverilog_preprocessor_file" | "pp_if_branch" | "pp_elsif_branch" | "pp_else_branch"
+            "systemverilog_preprocessor_file"
+                | "pp_if_branch"
+                | "pp_elsif_branch"
+                | "pp_else_branch"
         ) && Self::node_is_rule_reference(element, "pp_item")
     }
 
@@ -4525,8 +4524,8 @@ impl<'a> StimuliGenerator<'a> {
         }
         candidates.sort();
         candidates.dedup();
-        let selected = self
-            .deterministic_negative_candidate_index(rule_name, sample, candidates.len());
+        let selected =
+            self.deterministic_negative_candidate_index(rule_name, sample, candidates.len());
         candidates.swap_remove(selected)
     }
 
@@ -4640,7 +4639,10 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn is_delimiter_candidate(ch: char) -> bool {
-        matches!(ch, '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | ',' | ';' | ':')
+        matches!(
+            ch,
+            '(' | ')' | '[' | ']' | '{' | '}' | '<' | '>' | ',' | ';' | ':'
+        )
     }
 
     fn mismatched_closing_delimiter(ch: char) -> Option<char> {
@@ -4720,11 +4722,7 @@ impl<'a> StimuliGenerator<'a> {
         state ^= state >> 33;
         state = state.wrapping_mul(0xC4CE_B9FE_1A85_EC53);
         state ^= state >> 33;
-        if state == 0 {
-            1
-        } else {
-            state
-        }
+        if state == 0 { 1 } else { state }
     }
 
     fn relational_attempt_budget(&self) -> usize {
@@ -6078,7 +6076,10 @@ mod tests {
         grammar_tree.insert(
             "start".to_string(),
             ASTNode::Or {
-                alternatives: vec![token("quoted_string", "common"), token("quoted_string", "rare")],
+                alternatives: vec![
+                    token("quoted_string", "common"),
+                    token("quoted_string", "rare"),
+                ],
             },
         );
         let rule_order = vec!["start".to_string()];
@@ -6975,18 +6976,24 @@ mod tests {
             .generate_gap_report(Some("start"), 1)
             .expect("gap report generation should succeed");
 
-        assert!(report
-            .unreachable_rule_debt
-            .iter()
-            .any(|debt| debt.rule_name == "unreachable"));
-        assert!(report
-            .unreachable_branch_debt
-            .iter()
-            .any(|debt| debt.rule_name == "unreachable"));
-        assert!(report
-            .targets
-            .iter()
-            .all(|target| target.rule_name != "unreachable"));
+        assert!(
+            report
+                .unreachable_rule_debt
+                .iter()
+                .any(|debt| debt.rule_name == "unreachable")
+        );
+        assert!(
+            report
+                .unreachable_branch_debt
+                .iter()
+                .any(|debt| debt.rule_name == "unreachable")
+        );
+        assert!(
+            report
+                .targets
+                .iter()
+                .all(|target| target.rule_name != "unreachable")
+        );
     }
 
     #[test]
@@ -7210,18 +7217,23 @@ mod tests {
         let mut saw_primary_entry = false;
         let mut saw_alternate_entry = false;
         let (samples, summary, validation) = generator
-            .generate_until_targets_with_filter(Some("start"), &helper_targets, 400, |sample, context| {
-                if context.is_primary_entry {
-                    saw_primary_entry = true;
-                    assert_eq!(context.primary_entry_rule, "start");
-                    assert_eq!(context.generation_entry_rule, "start");
-                } else {
-                    saw_alternate_entry = true;
-                    assert_eq!(context.primary_entry_rule, "start");
-                    assert_eq!(context.generation_entry_rule, "helper");
-                }
-                Ok(sample == "S")
-            })
+            .generate_until_targets_with_filter(
+                Some("start"),
+                &helper_targets,
+                400,
+                |sample, context| {
+                    if context.is_primary_entry {
+                        saw_primary_entry = true;
+                        assert_eq!(context.primary_entry_rule, "start");
+                        assert_eq!(context.generation_entry_rule, "start");
+                    } else {
+                        saw_alternate_entry = true;
+                        assert_eq!(context.primary_entry_rule, "start");
+                        assert_eq!(context.generation_entry_rule, "helper");
+                    }
+                    Ok(sample == "S")
+                },
+            )
             .expect("target-driven generation with helper-only filter should succeed");
 
         assert!(
@@ -8017,10 +8029,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<i64>().unwrap_or(0)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9090);
@@ -8046,17 +8060,21 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "float_rule".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<f64>().unwrap_or(0.0)".to_string(),
+                }
+                .into(),
+            ],
         );
         annotations.semantic_annotations.insert(
             "bool_rule".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<bool>().unwrap_or(false)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut float_generator =
@@ -8083,10 +8101,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<std::primitive::u32>().unwrap_or(0)".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9094);
@@ -8105,10 +8125,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::TransformExpr {
-                expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<i64>().unwrap_or_default()".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9095);
@@ -8134,10 +8156,12 @@ mod tests {
         let mut annotations = Annotations::default();
         annotations.semantic_annotations.insert(
             "start".to_string(),
-            vec![UnifiedSemanticAST::Raw {
-                content: "\"literal-token\"".to_string(),
-            }
-            .into()],
+            vec![
+                UnifiedSemanticAST::Raw {
+                    content: "\"literal-token\"".to_string(),
+                }
+                .into(),
+            ],
         );
 
         let mut generator = annotated_generator(&grammar_tree, &rule_order, &annotations, 9093);

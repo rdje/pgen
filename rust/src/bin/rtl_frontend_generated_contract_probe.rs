@@ -88,12 +88,15 @@ fn collect_rule_spans(node: &Value, rule_name: &str, spans: &mut Vec<(usize, usi
 fn ast_rule_texts(sample: &str, ast_json: &Value, rule_name: &str) -> Result<Vec<String>> {
     let mut spans = Vec::new();
     collect_rule_spans(ast_json, rule_name, &mut spans);
-    spans.into_iter()
+    spans
+        .into_iter()
         .map(|(start, end)| {
             sample
                 .get(start..end)
                 .map(|text| text.trim().to_string())
-                .ok_or_else(|| anyhow::anyhow!("invalid span {}..{} for rule '{}'", start, end, rule_name))
+                .ok_or_else(|| {
+                    anyhow::anyhow!("invalid span {}..{} for rule '{}'", start, end, rule_name)
+                })
         })
         .collect()
 }
@@ -130,8 +133,12 @@ fn run() -> Result<()> {
     }
 
     for sample in contract.samples {
-        let generated_ok = parse_sample("rtl_frontend", &sample.sample)
-            .with_context(|| format!("generated rtl_frontend adapter missing for '{}'", sample.label))?;
+        let generated_ok = parse_sample("rtl_frontend", &sample.sample).with_context(|| {
+            format!(
+                "generated rtl_frontend adapter missing for '{}'",
+                sample.label
+            )
+        })?;
         if generated_ok != sample.expected_parse_ok {
             bail!(
                 "generated rtl_frontend parseability drifted for sample '{}': expected {}, got {}",
@@ -142,8 +149,13 @@ fn run() -> Result<()> {
         }
 
         if sample.require_ast_json {
-            let ast_json = parse_sample_ast_json("rtl_frontend", &sample.sample)
-                .with_context(|| format!("generated rtl_frontend AST adapter missing for '{}'", sample.label))?;
+            let ast_json =
+                parse_sample_ast_json("rtl_frontend", &sample.sample).with_context(|| {
+                    format!(
+                        "generated rtl_frontend AST adapter missing for '{}'",
+                        sample.label
+                    )
+                })?;
             let ast_json = ast_json.map_err(|_| {
                 anyhow::anyhow!(
                     "generated rtl_frontend AST JSON adapter rejected curated sample '{}'",

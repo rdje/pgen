@@ -10,18 +10,18 @@ use pgen::ast_pipeline::stimuli_generator::{
     TargetDriveFilterContext, TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
+    ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
     ast_generator_direct::generate_parser_ast_based, configure_trace_output,
     extract_semantic_directive, parse_semantic_string_list, resolve_trace_verbosity,
-    set_global_trace_verbosity, ASTNode, Annotations, PipelineConfig, RustASTPipeline,
-    TraceVerbosity, TransformedASTJson,
+    set_global_trace_verbosity,
 };
 #[cfg(feature = "ebnf_dual_run")]
 use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
 use pgen::sv_preprocessor::{
-    parse_strict_warning_codes, preprocess_systemverilog_file, ConditionalExprPolicy,
-    ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy, SvPreprocessorConfig,
+    ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
+    SvPreprocessorConfig, parse_strict_warning_codes, preprocess_systemverilog_file,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -881,8 +881,7 @@ fn main() -> Result<()> {
             );
         }
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
-        let negative_profile =
-            parse_stimuli_negative_profile(&args.stimuli_negative_profile)?;
+        let negative_profile = parse_stimuli_negative_profile(&args.stimuli_negative_profile)?;
         let constraint_profile =
             parse_stimuli_constraint_profile(&args.stimuli_constraint_profile)?;
         let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
@@ -1052,8 +1051,7 @@ fn main() -> Result<()> {
             dump_gen_ast_max_bytes,
         )?;
         let recovery_mode = parse_recovery_stimuli_mode(&args.recovery_stimuli_mode)?;
-        let negative_profile =
-            parse_stimuli_negative_profile(&args.stimuli_negative_profile)?;
+        let negative_profile = parse_stimuli_negative_profile(&args.stimuli_negative_profile)?;
         let constraint_profile =
             parse_stimuli_constraint_profile(&args.stimuli_constraint_profile)?;
         let mutation_mode = parse_stimuli_mutation_mode(&args.stimuli_mutation_mode)?;
@@ -1383,7 +1381,9 @@ fn main() -> Result<()> {
 
         if let Some(corpus_output_path) = args.stimuli_corpus_json.as_deref() {
             let effective_seed = if args.coverage_guided_fuzz_rounds > 0 {
-                args.coverage_guided_fuzz_seed_start.or(args.seed).or(Some(1))
+                args.coverage_guided_fuzz_seed_start
+                    .or(args.seed)
+                    .or(Some(1))
             } else {
                 args.seed
             };
@@ -2146,7 +2146,8 @@ fn build_parseability_counterexample(
         shrunk_sample_chars: shrunk_sample.chars().count(),
         shrunk_sample,
         primary_entry_rule: entry_context.map(|context| context.primary_entry_rule.to_string()),
-        generation_entry_rule: entry_context.map(|context| context.generation_entry_rule.to_string()),
+        generation_entry_rule: entry_context
+            .map(|context| context.generation_entry_rule.to_string()),
         entry_mode: entry_context.map(|context| {
             if context.is_primary_entry {
                 "primary".to_string()
@@ -2654,7 +2655,11 @@ fn run_coverage_guided_fuzz_loop(
         .enumerate()
         .map(|(ordinal, idx)| {
             let candidate = &corpus_candidates[idx];
-            let mut coverage_tokens = candidate.coverage_tokens.iter().cloned().collect::<Vec<_>>();
+            let mut coverage_tokens = candidate
+                .coverage_tokens
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
             coverage_tokens.sort();
             StimuliCorpusBundleSample {
                 ordinal: ordinal + 1,
@@ -3101,6 +3106,8 @@ fn ensure_parseability_support(grammar_name: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
+        FuzzCorpusCandidate, LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
+        StimuliCorpusBundleSample, StimuliCoverageMetrics, TargetDriveParseabilityTelemetry,
         build_stimuli_corpus_bundle, canonicalize_json_value, coverage_branch_hit_delta,
         default_parser_output_path, default_stimuli_module_output_path, direct_bundle_samples,
         ensure_generated_parseability_entry_rule_supported, extract_parse_error_position,
@@ -3109,10 +3116,9 @@ mod tests {
         parse_error_line_column, parse_error_line_excerpt, parse_recovery_stimuli_mode,
         parse_stimuli_constraint_profile, parse_stimuli_mutation_mode,
         parse_stimuli_negative_profile, resolve_parseability_max_attempts,
-        resolve_stimuli_module_seed, supported_generated_parseability_grammars,
-        structural_shrink_candidates, supports_generated_parseability, write_parseability_report,
-        FuzzCorpusCandidate, LoadedGrammar, ParseabilityCounterexample, ParseabilitySummary,
-        StimuliCorpusBundleSample, StimuliCoverageMetrics, TargetDriveParseabilityTelemetry,
+        resolve_stimuli_module_seed, structural_shrink_candidates,
+        supported_generated_parseability_grammars, supports_generated_parseability,
+        write_parseability_report,
     };
     use pgen::ast_pipeline::stimuli_generator::{
         BranchCoverageGroup, RecoveryStimuliMode, StimuliConfig, StimuliConstraintProfile,
@@ -3184,9 +3190,10 @@ mod tests {
         let rule_order = vec!["vhdl_file".to_string(), "actual_part".to_string()];
         let err = ensure_generated_parseability_entry_rule_supported(&rule_order, "actual_part")
             .expect_err("subrule parseability validation should be rejected");
-        assert!(err
-            .to_string()
-            .contains("supports only the grammar's full entry rule"));
+        assert!(
+            err.to_string()
+                .contains("supports only the grammar's full entry rule")
+        );
     }
 
     #[test]
@@ -3270,10 +3277,10 @@ mod tests {
             report_value["target_drive_validation"]["alternate_entry_rejected_outputs"].as_u64(),
             Some(6)
         );
-        let alternate_rate = report_value["target_drive_validation"]
-            ["alternate_entry_acceptance_rate_percent"]
-            .as_f64()
-            .expect("alternate entry rate should be present");
+        let alternate_rate =
+            report_value["target_drive_validation"]["alternate_entry_acceptance_rate_percent"]
+                .as_f64()
+                .expect("alternate entry rate should be present");
         assert!((alternate_rate - (100.0 / 7.0)).abs() < 1e-9);
 
         std::fs::remove_file(&path).expect("temporary parseability report should be removable");

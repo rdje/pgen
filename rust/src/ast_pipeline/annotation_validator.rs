@@ -4139,9 +4139,7 @@ mod tests {
                     value: UnifiedSemanticValue::Object(vec![
                         UnifiedSemanticProperty {
                             key: "name".to_string(),
-                            value: UnifiedSemanticValue::Identifier(
-                                "current_scope_is".to_string(),
-                            ),
+                            value: UnifiedSemanticValue::Identifier("current_scope_is".to_string()),
                         },
                         UnifiedSemanticProperty {
                             key: "args".to_string(),

@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
     BranchCoverageDebt, BranchCoverageGroup, BranchFailureReasonCount, StimuliCoverageGapReport,

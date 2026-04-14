@@ -35,8 +35,9 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     let mut has_inline_semantic_annotations = false;
     for rule in &scanned_rules {
         let converted = convert_scanned_rule(rule)?;
-        has_inline_semantic_annotations |= contains_token_type(&converted, "semantic_annotation_inline")
-            || contains_token_type(&converted, "semantic_annotation_mid_sequence");
+        has_inline_semantic_annotations |=
+            contains_token_type(&converted, "semantic_annotation_inline")
+                || contains_token_type(&converted, "semantic_annotation_mid_sequence");
         raw_ast.push(converted);
     }
 
@@ -77,17 +78,13 @@ fn generated_verify_required() -> bool {
 }
 
 fn contains_token_type(rule_tokens: &Value, expected_type: &str) -> bool {
-    rule_tokens
-        .as_array()
-        .into_iter()
-        .flatten()
-        .any(|token| {
-            token
-                .as_array()
-                .and_then(|parts| parts.first())
-                .and_then(Value::as_str)
-                == Some(expected_type)
-        })
+    rule_tokens.as_array().into_iter().flatten().any(|token| {
+        token
+            .as_array()
+            .and_then(|parts| parts.first())
+            .and_then(Value::as_str)
+            == Some(expected_type)
+    })
 }
 
 #[derive(Debug)]
@@ -1219,8 +1216,12 @@ entry = alpha
                 .expect("tracked ebnf grammar should still export through the hybrid frontend");
         let rule_names = collect_rule_names(&envelope);
 
-        for expected in ["grammar_file", "rule_definition", "sequence", "inline_semantic_annotation"]
-        {
+        for expected in [
+            "grammar_file",
+            "rule_definition",
+            "sequence",
+            "inline_semantic_annotation",
+        ] {
             assert!(
                 rule_names.contains(expected),
                 "expected ebnf rule '{}' to remain present in Rust raw_ast export",

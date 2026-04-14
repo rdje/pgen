@@ -1902,7 +1902,11 @@ mod tests {
             1
         );
         assert!(compiled.directives_for_rule("missing_rule").is_empty());
-        assert!(compiled.branch_directives_for_rule("missing_rule").is_empty());
+        assert!(
+            compiled
+                .branch_directives_for_rule("missing_rule")
+                .is_empty()
+        );
     }
 
     #[test]
@@ -1973,7 +1977,9 @@ mod tests {
         assert_eq!(compiled.len(), 1);
         assert!(compiled.has_rule("statement_or_decl"));
         assert_eq!(
-            compiled.branch_directives_for_rule("statement_or_decl").len(),
+            compiled
+                .branch_directives_for_rule("statement_or_decl")
+                .len(),
             3
         );
         assert_eq!(

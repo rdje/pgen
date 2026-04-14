@@ -995,7 +995,9 @@ impl RustASTPipeline {
         let annotations = if self.config.preserve_annotations
             && (!annotations.branch_return_annotations.is_empty()
                 || !annotations.branch_semantic_annotations.is_empty()
-                || !annotations.branch_mid_sequence_semantic_annotations.is_empty()
+                || !annotations
+                    .branch_mid_sequence_semantic_annotations
+                    .is_empty()
                 || !annotations.semantic_annotations.is_empty())
         {
             Some(annotations)
@@ -2690,7 +2692,10 @@ mod tests {
         let annotations = annotations.expect("annotations should be preserved");
 
         assert!(
-            annotations.branch_semantic_annotations.get("expr").is_none(),
+            annotations
+                .branch_semantic_annotations
+                .get("expr")
+                .is_none(),
             "mid-sequence-only annotations should not create a separate branch-local annotation entry"
         );
 
