@@ -3,7 +3,7 @@
   "metadata": {
     "description": "Raw AST envelope produced in-memory from Rust EBNF parser output",
     "format": "raw_ast",
-    "generated_at": "2026-04-14T01:01:07.286652+00:00",
+    "generated_at": "2026-04-14T21:58:57.758850+00:00",
     "generator": "ebnf.rs + rust_raw_ast_adapter",
     "next_step": "Apply Rust AST pipeline transform_from_raw_ast",
     "source_file": "../grammars/regex.ebnf",
@@ -1836,6 +1836,14 @@
       ],
       [
         "rule_reference",
+        "quoted_class_literal"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
         "class_range"
       ],
       [
@@ -1853,6 +1861,78 @@
       [
         "rule_reference",
         "class_escape"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "quoted_class_literal"
+      ],
+      [
+        "quoted_string",
+        "\\Q"
+      ],
+      [
+        "rule_reference",
+        "quoted_class_literal_char"
+      ],
+      [
+        "operator",
+        "*"
+      ],
+      [
+        "quoted_string",
+        "\\E"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "quoted_class_literal_char"
+      ],
+      [
+        "rule_reference",
+        "letter"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "digit"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "whitespace"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "class_safe_special"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "]"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "rule_reference",
+        "unicode_char"
       ]
     ],
     [
@@ -2925,6 +3005,144 @@
       [
         "quoted_string",
         "}"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "p"
+      ],
+      [
+        "rule_reference",
+        "short_prop_letter"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "P"
+      ],
+      [
+        "rule_reference",
+        "short_prop_letter"
+      ]
+    ],
+    [
+      [
+        "rule",
+        "short_prop_letter"
+      ],
+      [
+        "quoted_string",
+        "C"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "L"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "M"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "N"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "P"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "S"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "Z"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "c"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "l"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "m"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "n"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "p"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "s"
+      ],
+      [
+        "operator",
+        "|"
+      ],
+      [
+        "quoted_string",
+        "z"
       ]
     ],
     [

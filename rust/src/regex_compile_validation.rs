@@ -17,6 +17,9 @@ pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileVa
     if let Some(error) = find_invalid_escape_i(input) {
         return Err(error);
     }
+    if let Some(error) = find_invalid_property_escape(input) {
+        return Err(error);
+    }
     if let Some(error) = find_invalid_counted_quantifier(input) {
         return Err(error);
     }
@@ -53,6 +56,10 @@ fn skip_regex_escape(bytes: &[u8], start: usize) -> usize {
         return bytes.len();
     };
 
+    if next == b'Q' {
+        return skip_quoted_literal_escape(bytes, start);
+    }
+
     if matches!(next, b'x' | b'u' | b'o' | b'p' | b'P' | b'k' | b'g')
         && bytes.get(start + 2) == Some(&b'{')
         && let Some(close) = bytes[start + 3..].iter().position(|byte| *byte == b'}')
@@ -65,6 +72,17 @@ fn skip_regex_escape(bytes: &[u8], start: usize) -> usize {
     }
 
     start.saturating_add(2).min(bytes.len())
+}
+
+fn skip_quoted_literal_escape(bytes: &[u8], start: usize) -> usize {
+    let mut index = start.saturating_add(2).min(bytes.len());
+    while index + 1 < bytes.len() {
+        if bytes[index] == b'\\' && bytes[index + 1] == b'E' {
+            return index + 2;
+        }
+        index += 1;
+    }
+    bytes.len()
 }
 
 fn find_invalid_escape_i(input: &str) -> Option<RegexCompileValidationError> {
@@ -94,6 +112,75 @@ fn find_invalid_escape_i(input: &str) -> Option<RegexCompileValidationError> {
         }
     }
     None
+}
+
+fn find_invalid_property_escape(input: &str) -> Option<RegexCompileValidationError> {
+    let bytes = input.as_bytes();
+    let mut index = 0usize;
+
+    while index < bytes.len() {
+        if bytes[index] != b'\\' {
+            index += 1;
+            continue;
+        }
+
+        match bytes.get(index + 1).copied() {
+            Some(b'Q') => {
+                index = skip_quoted_literal_escape(bytes, index);
+            }
+            Some(prefix @ (b'p' | b'P')) => {
+                let property_start = index + 2;
+                let Some(first) = bytes.get(property_start).copied() else {
+                    return Some(RegexCompileValidationError::new(
+                        index,
+                        "malformed Unicode property escape",
+                    ));
+                };
+
+                if first == b'{' {
+                    index = skip_regex_escape(bytes, index);
+                    continue;
+                }
+
+                if is_short_unicode_property_letter(first) {
+                    index = property_start + 1;
+                    continue;
+                }
+
+                let escape = if prefix == b'p' { "\\p" } else { "\\P" };
+                return Some(RegexCompileValidationError::new(
+                    index,
+                    format!(
+                        "{escape} without braces must use a one-letter Unicode general category"
+                    ),
+                ));
+            }
+            _ => {
+                index = skip_regex_escape(bytes, index);
+            }
+        }
+    }
+
+    None
+}
+
+fn is_short_unicode_property_letter(byte: u8) -> bool {
+    matches!(
+        byte,
+        b'C' | b'L'
+            | b'M'
+            | b'N'
+            | b'P'
+            | b'S'
+            | b'Z'
+            | b'c'
+            | b'l'
+            | b'm'
+            | b'n'
+            | b'p'
+            | b's'
+            | b'z'
+    )
 }
 
 fn find_invalid_counted_quantifier(input: &str) -> Option<RegexCompileValidationError> {
@@ -510,19 +597,75 @@ fn find_invalid_char_class_construct(input: &str) -> Option<RegexCompileValidati
     None
 }
 
+#[derive(Clone, Copy)]
+enum ClassAtomKind {
+    Literal(u8),
+    NonLiteral,
+    ZeroWidth,
+}
+
+impl ClassAtomKind {
+    fn is_substantive(self) -> bool {
+        !matches!(self, Self::ZeroWidth)
+    }
+}
+
 fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileValidationError> {
     let mut index = start + 1;
+    let mut has_substantive_item = false;
+    let mut previous_atom: Option<ClassAtomKind> = None;
 
     if index < bytes.len() && bytes[index] == b'^' {
         index += 1;
     }
     if index < bytes.len() && bytes[index] == b']' {
+        has_substantive_item = true;
+        previous_atom = Some(ClassAtomKind::Literal(b']'));
         index += 1;
     }
 
     while index < bytes.len() {
         if bytes[index] == b']' {
-            return Ok(index);
+            if has_substantive_item {
+                return Ok(index);
+            }
+            return Err(RegexCompileValidationError::new(
+                start,
+                "unterminated character class",
+            ));
+        }
+
+        if bytes[index] == b'^' && !has_substantive_item {
+            index += 1;
+            continue;
+        }
+
+        if bytes[index] == b'-'
+            && bytes.get(index + 1) != Some(&b']')
+            && !dash_is_trailing_literal(bytes, index)
+            && let Some(left) = previous_atom
+        {
+            let (right, after_right) = read_class_atom(bytes, index + 1)?;
+            if matches!(left, ClassAtomKind::NonLiteral)
+                || matches!(right, ClassAtomKind::ZeroWidth)
+            {
+                return Err(RegexCompileValidationError::new(
+                    index,
+                    "invalid character class range is not accepted by the regex compile contract",
+                ));
+            }
+            if let (ClassAtomKind::Literal(left), ClassAtomKind::Literal(right)) = (left, right)
+                && left > right
+            {
+                return Err(RegexCompileValidationError::new(
+                    index,
+                    "descending character class range is not accepted by the regex compile contract",
+                ));
+            }
+            index = after_right;
+            previous_atom = None;
+            has_substantive_item = true;
+            continue;
         }
 
         if bytes[index] == b'['
@@ -530,16 +673,30 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
             && let Some(after_posix_class) = scan_posix_class(bytes, index)?
         {
             index = after_posix_class;
+            has_substantive_item = true;
+            previous_atom = Some(ClassAtomKind::NonLiteral);
             continue;
         }
 
         let (left_atom, after_left) = read_class_atom(bytes, index)?;
+        if !left_atom.is_substantive() {
+            index = after_left;
+            continue;
+        }
         if after_left < bytes.len()
             && bytes[after_left] == b'-'
             && bytes.get(after_left + 1) != Some(&b']')
+            && !dash_is_trailing_literal(bytes, after_left)
         {
             let (right_atom, after_right) = read_class_atom(bytes, after_left + 1)?;
-            if let (Some(left), Some(right)) = (left_atom, right_atom)
+            if matches!(right_atom, ClassAtomKind::ZeroWidth) {
+                return Err(RegexCompileValidationError::new(
+                    after_left,
+                    "invalid character class range is not accepted by the regex compile contract",
+                ));
+            }
+            if let (ClassAtomKind::Literal(left), ClassAtomKind::Literal(right)) =
+                (left_atom, right_atom)
                 && left > right
             {
                 return Err(RegexCompileValidationError::new(
@@ -548,10 +705,14 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
                 ));
             }
             index = after_right;
+            previous_atom = None;
+            has_substantive_item = true;
             continue;
         }
 
         index = after_left;
+        previous_atom = Some(left_atom);
+        has_substantive_item = true;
     }
 
     Err(RegexCompileValidationError::new(
@@ -563,7 +724,7 @@ fn scan_char_class(bytes: &[u8], start: usize) -> Result<usize, RegexCompileVali
 fn read_class_atom(
     bytes: &[u8],
     index: usize,
-) -> Result<(Option<u8>, usize), RegexCompileValidationError> {
+) -> Result<(ClassAtomKind, usize), RegexCompileValidationError> {
     if index >= bytes.len() {
         return Err(RegexCompileValidationError::new(
             index,
@@ -574,6 +735,9 @@ fn read_class_atom(
         let next = *bytes.get(index + 1).ok_or_else(|| {
             RegexCompileValidationError::new(index, "unterminated escape in character class")
         })?;
+        if next == b'Q' {
+            return Ok(read_quoted_class_atom(bytes, index));
+        }
         if matches!(
             next,
             b'A' | b'B' | b'C' | b'E' | b'G' | b'K' | b'Q' | b'R' | b'X' | b'Z' | b'z'
@@ -585,11 +749,48 @@ fn read_class_atom(
         }
         let after_escape = skip_regex_escape(bytes, index);
         if after_escape > index + 2 {
-            return Ok((None, after_escape));
+            return Ok((ClassAtomKind::NonLiteral, after_escape));
         }
-        return Ok((Some(next), after_escape));
+        return Ok((ClassAtomKind::Literal(next), after_escape));
     }
-    Ok((Some(bytes[index]), index + 1))
+    Ok((ClassAtomKind::Literal(bytes[index]), index + 1))
+}
+
+fn read_quoted_class_atom(bytes: &[u8], start: usize) -> (ClassAtomKind, usize) {
+    let mut index = start.saturating_add(2).min(bytes.len());
+    let mut first_literal = None;
+    while index + 1 < bytes.len() {
+        if bytes[index] == b'\\' && bytes[index + 1] == b'E' {
+            let atom = first_literal
+                .map(ClassAtomKind::Literal)
+                .unwrap_or(ClassAtomKind::ZeroWidth);
+            return (atom, index + 2);
+        }
+        first_literal.get_or_insert(bytes[index]);
+        index += 1;
+    }
+    let atom = first_literal
+        .map(ClassAtomKind::Literal)
+        .unwrap_or(ClassAtomKind::ZeroWidth);
+    (atom, bytes.len())
+}
+
+fn dash_is_trailing_literal(bytes: &[u8], dash_index: usize) -> bool {
+    let mut index = dash_index + 1;
+    loop {
+        while matches!(bytes.get(index), Some(b' ' | b'\t')) {
+            index += 1;
+        }
+        if bytes.get(index) == Some(&b'\\') && bytes.get(index + 1) == Some(&b'Q') {
+            let (quoted_atom, after_quote) = read_quoted_class_atom(bytes, index);
+            if matches!(quoted_atom, ClassAtomKind::ZeroWidth) {
+                index = after_quote;
+                continue;
+            }
+        }
+        break;
+    }
+    bytes.get(index) == Some(&b']')
 }
 
 fn scan_posix_class(
@@ -1154,6 +1355,26 @@ mod tests {
     }
 
     #[test]
+    fn allows_short_unicode_property_escapes() {
+        for input in [r"\pL", r"\PN", r"[\pL\PN]", r"\pl", r"\Pn"] {
+            validate_regex_compile_contract(input)
+                .expect("PCRE2 accepts short-form one-letter Unicode property escapes");
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_short_unicode_property_escapes() {
+        for input in [r"\pA", r"\P_", r"\p"] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("must reject malformed short Unicode property escape");
+            assert!(
+                error.message.contains("Unicode property")
+                    || error.message.contains("Unicode general category")
+            );
+        }
+    }
+
+    #[test]
     fn rejects_invalid_counted_quantifier_order() {
         let error = validate_regex_compile_contract("x{5,4}").expect_err("must reject {5,4}");
         assert!(error.message.contains("minimum"));
@@ -1178,12 +1399,32 @@ mod tests {
     }
 
     #[test]
-    fn rejects_quote_escapes_in_character_class() {
-        for input in [r"[\E]AAA", r"[\Q\E]AAA"] {
-            let error = validate_regex_compile_contract(input)
-                .expect_err("must reject quote escape in class");
-            assert!(error.message.contains("class"));
+    fn allows_quote_escapes_in_character_class() {
+        for input in [r"[a\Q\E]AAA", r"[z\Qa-d]\E]", r"[ab\Q^$.|?*+(){}\E]+"] {
+            validate_regex_compile_contract(input)
+                .expect("PCRE2 accepts quoted literal regions inside character classes");
         }
+    }
+
+    #[test]
+    fn rejects_empty_quote_regions_that_leave_no_class_atom() {
+        for input in [
+            r"[\Q\E]AAA",
+            r"[^\Q\E]AAA",
+            r"[\Q\E^]AAA",
+            r"[[:digit:]\Q\E-H]+",
+        ] {
+            let error = validate_regex_compile_contract(input)
+                .expect_err("empty class quote regions do not contribute a range/class atom");
+            assert!(error.message.contains("class") || error.message.contains("range"));
+        }
+    }
+
+    #[test]
+    fn rejects_orphan_quote_end_in_character_class() {
+        let error = validate_regex_compile_contract(r"[\E]AAA")
+            .expect_err("orphan quote-end escape remains invalid in this contract");
+        assert!(error.message.contains("class"));
     }
 
     #[test]

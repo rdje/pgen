@@ -22,10 +22,10 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.23";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.24";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.21";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.22";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -2102,8 +2102,8 @@ mod tests {
                 "column".to_string(),
             ]
         );
-        assert_eq!(manifest.success_samples.len(), 70);
-        assert_eq!(manifest.failure_samples.len(), 11);
+        assert_eq!(manifest.success_samples.len(), 75);
+        assert_eq!(manifest.failure_samples.len(), 16);
         assert_eq!(manifest.success_samples[0].name, "empty_regex");
         assert!(
             manifest
@@ -2272,6 +2272,36 @@ mod tests {
             manifest
                 .success_samples
                 .iter()
+                .any(|sample| sample.name == "short_form_unicode_property_escape")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "short_form_unicode_property_escape_in_class")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "quoted_class_literal_embedded_close_bracket")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "quoted_class_literal_metacharacters")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
+                .any(|sample| sample.name == "zero_width_quoted_class_literal_after_class_atom")
+        );
+        assert!(
+            manifest
+                .success_samples
+                .iter()
                 .any(|sample| sample.name == "mark_shorthand_payload_with_open_paren")
         );
         assert!(
@@ -2387,6 +2417,32 @@ mod tests {
                 .success_samples
                 .iter()
                 .any(|sample| sample.name == "recursive_named_group_interpolation")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "invalid_short_unicode_property_escape")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name == "empty_quoted_class_literal_is_not_a_class_atom")
+        );
+        assert!(
+            manifest
+                .failure_samples
+                .iter()
+                .any(|sample| sample.name
+                    == "empty_quoted_negated_class_literal_is_not_a_class_atom")
+        );
+        assert!(manifest.failure_samples.iter().any(
+            |sample| sample.name == "empty_quoted_class_literal_then_caret_is_not_a_class_atom"
+        ));
+        assert!(
+            manifest.failure_samples.iter().any(|sample| sample.name
+                == "empty_quoted_class_literal_does_not_form_posix_range")
         );
         assert_eq!(manifest.failure_samples[0].name, "unbalanced_group");
         assert!(contract.supported_grammars.contains(&GrammarFamily::Regex));

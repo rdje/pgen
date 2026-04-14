@@ -1,4 +1,86 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - Regex short Unicode properties and quoted class literals
+### Context
+RGX filed two PCRE2-conformance reports against the published regex parser handoff `1.1.21` / contract `1.1.23`.
+
+- `PGEN-RGX-0056` showed that `\pL` parsed as `simple_escape("p")` plus literal `L` instead of a single Unicode `property_escape`.
+- `PGEN-RGX-0057` showed that `[z\Qa-d]\E]` rejected because the character-class validator still treated `\Q` as a forbidden class escape.
+
+Both reports needed source-derived PCRE2-shaped fixes, not literal one-off sample matching. PCRE2 does not publish a formal grammar, so the retained rule remains: prose docs explain intent, `src/pcre2_compile.c` resolves edge cases, and PCRE2 testdata/oracle gates are the executable regression surface.
+
+### Source-Derived Findings
+- PCRE2's Unicode property reader accepts an unbraced one-letter property after `\p` / `\P` for the major general-category letters `C`, `L`, `M`, `N`, `P`, `S`, and `Z`, with case-insensitive handling.
+- PCRE2's character-class scanner has a quoted-literal mode for `\Q...\E`; bytes inside that mode are class literals, including metacharacters such as `]`, `-`, `^`, `{`, and `}`.
+- Empty `\Q\E` inside a class contributes no substantive class item. That shape is allowed when another atom already exists, but it must not make an otherwise empty class valid and must not act as a range endpoint.
+- PGEN's stable contract still rejects orphan `\E` in a class. That remains a contract boundary rather than being widened opportunistically during this slice.
+
+### Decision
+- Extend [grammars/regex.ebnf](grammars/regex.ebnf) with the general short-property production, not just the `\pL` repro string.
+- Extend [grammars/regex.ebnf](grammars/regex.ebnf) with `quoted_class_literal` as a first-class `class_item` variant.
+- Keep class quote edge cases in [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs), because empty quoted regions and range validity are compile-contract behavior rather than clean context-free syntax.
+- Publish the change as regex parser release `1.1.22` / integration contract `1.1.24`, preserving regex AST schema version `1`.
+- Ratchet the PCRE2 compile-oracle lightweight baseline to the improved measured outcome instead of leaving slack from the prior audit release.
+
+### What Was Changed
+- Updated [grammars/regex.ebnf](grammars/regex.ebnf):
+  - `property_escape` now accepts short `\pX` / `\PX` category letters
+  - `class_item` now accepts `quoted_class_literal`
+- Regenerated:
+  - [generated/regex.json](generated/regex.json)
+  - [generated/regex_parser.rs](generated/regex_parser.rs)
+- Updated [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs):
+  - added invalid short-property validation
+  - added quoted-class scanning
+  - added delimiter-aware dash/range handling so zero-width quote regions do not become range endpoints and trailing dash forms such as `[[:digit:]-   ]` stay accepted
+- Updated [rust/src/embedding_api.rs](rust/src/embedding_api.rs) and [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json):
+  - contract version `1.1.24`
+  - parser release version `1.1.22`
+  - `75` success samples
+  - `16` failure samples
+- Updated [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env):
+  - baseline version `4`
+  - `MIN_MATCH_TOTAL=1814`
+  - `MAX_MISMATCH_TOTAL=381`
+  - `MAX_FALSE_ACCEPT_TOTAL=314`
+  - `MAX_FALSE_REJECT_TOTAL=67`
+
+### Validation
+- Passed:
+  - `cargo fmt --manifest-path rust/Cargo.toml`
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_compile_validation`
+  - `parseability_probe --parse regex .../PGEN-RGX-0056/repro_input.txt --profile regex_default`
+  - `parseability_probe --parse regex .../PGEN-RGX-0057/repro_input.txt --profile regex_default`
+  - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_status_gate`
+  - `make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate`
+  - `make -C rust SHELL=/bin/bash regex_combined_telemetry_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `make -C rust SHELL=/bin/bash clippy_on_rust_change`
+- Latest PCRE2 oracle summary:
+  - `cases_executed=2195`
+  - `parse_expectation_match_total=1814`
+  - `parse_expectation_mismatch_total=381`
+  - `false_accept_total=314`
+  - `false_reject_total=67`
+- Latest regex family contract summary after regeneration:
+  - frontend overall `pass`
+  - dual-run overall `pass`
+  - parser-backed stimuli `4272/3767/505`
+  - diagnostic target-drive parser rejections `505`
+  - closed target debt `661 -> 0`
+- Status-gate policy note:
+  - the legacy `stimuli_parseability_parser_rejections_zero` criterion now means "no blocking parser-rejection debt" for regex family status
+  - target-drive output-filter parser rejections remain visible as raw diagnostics, but they do not demote `regex` from `Done` when `stimuli_status=pass` and `final_targets=0`
+- Aggregate telemetry result:
+  - `sota_exit_required_failures=0`
+  - `sota_exit_informational_failures=0`
+  - `regex_family_status_regex=Done`
+- Clippy note:
+  - source/all-targets clippy passed
+  - generated-parser clippy remains non-strict and still reports unrelated generated `rtl_frontend_parser.rs` lint debt; the required clippy flow completed successfully
+
 ## 2026-04-14 - rtl_frontend unpacked-array element actual proof
 ### Context
 The handwritten `rtl_frontend` baseline already exercises elaboration acceptance for unpacked-array element actuals such as `banks[IDX]` in a named port connection. The generated contract had adjacent proof for unpacked-array declarations, indexed struct-member actuals, and indexed struct-member bit-select actuals, but it did not yet lock the simpler plain unpacked-array element actual surface.

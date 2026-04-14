@@ -11,7 +11,8 @@ PGEN applies one quality doctrine across all EBNF-based parser families. The liv
 - repeated maintenance releases and bug-response workflow
 - PCRE2-conformance work is source-of-truth driven: prose docs explain intent, `pcre2_compile.c` resolves edge cases, and upstream `testdata/testinput*` provides the executable regression oracle
 - the current maintenance track includes generated-host depth resilience for legal PCRE2 inputs with deep capture nesting, backreference depth, and grammar-like recursive named-group patterns
-- the regex surface is intentionally split between `regex.ebnf` syntax and generated-host compile-contract checks, so PCRE2 source-derived compile rules such as invalid verb usage, forbidden class escapes, `\K` in lookarounds, and scan-substring reference existence are documented and gated without forcing them into grammar productions that would overfit the implementation
+- the regex surface is intentionally split between `regex.ebnf` syntax and generated-host compile-contract checks, so PCRE2 source-derived compile rules such as malformed short Unicode property escapes, empty quoted class regions, invalid verb usage, forbidden class escapes, `\K` in lookarounds, and scan-substring reference existence are documented and gated without forcing them into grammar productions that would overfit the implementation
+- the current public handoff includes short PCRE2 Unicode property escapes such as `\pL` / `\PN` and quoted class literals such as `[z\Qa-d]\E]`; both are retained as explicit AST shapes rather than downstream adapters having to recover them from generic escape/literal fallback
 
 Primary sources:
 

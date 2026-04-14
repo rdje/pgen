@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-14 (+0200, task: rtl-frontend-unpacked-array-element-actual-proof)
+Last updated: 2026-04-14 (+0200, task: regex-short-property-and-class-quote-pcre2-fixes)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,76 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Published regex parser release `1.1.22` / integration contract `1.1.24` for RGX PCRE2 reports `PGEN-RGX-0056` and `PGEN-RGX-0057`:
+  - changed:
+    - [grammars/regex.ebnf](grammars/regex.ebnf)
+    - [generated/regex.json](generated/regex.json)
+    - [generated/regex_parser.rs](generated/regex_parser.rs)
+    - [rust/src/embedding_api.rs](rust/src/embedding_api.rs)
+    - [rust/src/regex_compile_validation.rs](rust/src/regex_compile_validation.rs)
+    - [rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json](rust/test_data/grammar_quality/regex_parser_integration_contract_v1.json)
+    - [rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env](rust/test_data/grammar_quality/regex_pcre2_compile_oracle_lightweight_v0.env)
+    - [PGEN_USER_GUIDE.md](PGEN_USER_GUIDE.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md](docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md)
+    - [docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md](docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md)
+    - [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md)
+    - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+    - [docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md](docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - PCRE2 source-derived grammar widening:
+    - short Unicode property escapes `\pX` / `\PX` now transport through `property_escape` for one-letter general-category names `C`, `L`, `M`, `N`, `P`, `S`, and `Z` in either case
+    - `\Q...\E` inside character classes now transports through `quoted_class_literal`, including quoted metacharacters such as `]`, `-`, `^`, `{`, and `}`
+  - compile-contract edge handling:
+    - invalid short forms such as `\pA`, `\P_`, and bare `\p` are rejected
+    - empty `\Q\E` inside a class is treated as zero-width: allowed after another class atom, rejected when it leaves no substantive class item or becomes a range endpoint
+    - orphan `\E` in a class remains rejected by the current PGEN contract
+  - contract/proof updates:
+    - regex parser release `1.1.22`
+    - regex integration contract `1.1.24`
+    - regex integration manifest now has `75` success samples and `16` failure samples
+    - PCRE2 compile-oracle lightweight baseline version `4`
+    - `MIN_MATCH_TOTAL=1814`
+    - `MAX_MISMATCH_TOTAL=381`
+    - `MAX_FALSE_ACCEPT_TOTAL=314`
+    - `MAX_FALSE_REJECT_TOTAL=67`
+    - refreshed regex family contract gate:
+      - frontend overall `pass`
+      - dual-run overall `pass`
+      - parser-backed stimuli `4272/3767/505`
+      - diagnostic target-drive parser rejections `505`
+      - closed target debt `661 -> 0`
+    - regex family status gate now treats target-drive output-filter parser rejections as non-blocking diagnostics when `stimuli_status=pass` and `final_targets=0`; the raw `505` count remains reported for transparency
+  - validation:
+    - `cargo fmt --manifest-path rust/Cargo.toml`
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --lib regex_compile_validation`
+    - `parseability_probe --parse regex .../PGEN-RGX-0056/repro_input.txt --profile regex_default`
+    - `parseability_probe --parse regex .../PGEN-RGX-0057/repro_input.txt --profile regex_default`
+    - `make -C rust SHELL=/bin/bash regex_parser_integration_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_pcre2_compile_oracle_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_family_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_family_status_gate`
+    - `make -C rust SHELL=/bin/bash regex_parser_family_status_contract_gate`
+    - `make -C rust SHELL=/bin/bash regex_combined_telemetry_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `make -C rust SHELL=/bin/bash clippy_on_rust_change`
+  - latest oracle result:
+    - `cases_executed=2195`
+    - `parse_expectation_match_total=1814`
+    - `parse_expectation_mismatch_total=381`
+    - `false_accept_total=314`
+    - `false_reject_total=67`
+  - aggregate telemetry result:
+    - `sota_exit_required_failures=0`
+    - `sota_exit_informational_failures=0`
+    - `regex_family_status_regex=Done`
+  - important continuity detail:
+    - no live parser-family label changes; `regex` remains `Done`
+    - this is PCRE2 compatibility maintenance over the already-published regex contract, not a reopening of the family row
+    - source clippy passed; generated-parser clippy remains non-strict and still reports unrelated generated `rtl_frontend_parser.rs` lint debt
 - Tightened `rtl_frontend` generated-contract proof for plain unpacked-array element actuals:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

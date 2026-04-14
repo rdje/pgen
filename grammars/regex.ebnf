@@ -112,9 +112,13 @@ class_body     = class_item*
     "posix": generate_posix_check($1.name)
 }
 class_item     = posix_class
+               | quoted_class_literal
                | class_range
                | class_literal
                | class_escape
+
+quoted_class_literal = "\\Q" quoted_class_literal_char* "\\E"
+quoted_class_literal_char = letter | digit | whitespace | class_safe_special | ']' | unicode_char
 
 @generate: "ch >= '" + escape_char($1) + "' && ch <= '" + escape_char($3) + "'"
 @semantic_value: {type: "range", start: $1, end: $3}
@@ -218,6 +222,10 @@ control_escape = "c" any_char
 @description: "Unicode property escape \p{Property} or \P{Property}"
 @constraint: "property name must be valid Unicode property"
 property_escape= "p{" prop_name "}" | "P{" prop_name "}"
+               | "p" short_prop_letter
+               | "P" short_prop_letter
+short_prop_letter = 'C' | 'L' | 'M' | 'N' | 'P' | 'S' | 'Z'
+                  | 'c' | 'l' | 'm' | 'n' | 'p' | 's' | 'z'
 
 @type: "property_name"
 @description: "Unicode property name"

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.23",
-  "parser_release_version": "1.1.21",
+  "integration_contract_version": "1.1.24",
+  "parser_release_version": "1.1.22",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",
@@ -106,6 +106,57 @@
         "quoted_literal": ["\\Q(*+|\\E"]
       },
       "forbidden_rule_names": ["escape"]
+    },
+    {
+      "name": "short_form_unicode_property_escape",
+      "input": "\\pL\\PN",
+      "required_rule_names": ["escape", "property_escape", "short_prop_letter"],
+      "expected_rule_texts": {
+        "escape": ["\\pL", "\\PN"],
+        "property_escape": ["pL", "PN"],
+        "short_prop_letter": ["L", "N"]
+      },
+      "forbidden_rule_names": ["simple_escape"]
+    },
+    {
+      "name": "short_form_unicode_property_escape_in_class",
+      "input": "[\\pL\\PN]",
+      "required_rule_names": ["char_class", "class_item", "class_escape", "escape", "property_escape", "short_prop_letter"],
+      "expected_rule_texts": {
+        "property_escape": ["pL", "PN"],
+        "short_prop_letter": ["L", "N"]
+      },
+      "forbidden_rule_names": ["simple_escape"]
+    },
+    {
+      "name": "quoted_class_literal_embedded_close_bracket",
+      "input": "[z\\Qa-d]\\E]",
+      "required_rule_names": ["char_class", "class_item", "class_literal", "quoted_class_literal"],
+      "expected_rule_texts": {
+        "class_literal": ["z"],
+        "quoted_class_literal": ["\\Qa-d]\\E"]
+      },
+      "forbidden_rule_names": ["class_range", "class_escape"]
+    },
+    {
+      "name": "quoted_class_literal_metacharacters",
+      "input": "[ab\\Q^$.|?*+(){}\\E]+",
+      "required_rule_names": ["char_class", "class_item", "class_literal", "quoted_class_literal", "quantifier"],
+      "expected_rule_texts": {
+        "class_literal": ["a", "b"],
+        "quoted_class_literal": ["\\Q^$.|?*+(){}\\E"]
+      },
+      "forbidden_rule_names": ["class_range", "class_escape"]
+    },
+    {
+      "name": "zero_width_quoted_class_literal_after_class_atom",
+      "input": "[a\\Q\\E]",
+      "required_rule_names": ["char_class", "class_item", "class_literal", "quoted_class_literal"],
+      "expected_rule_texts": {
+        "class_literal": ["a"],
+        "quoted_class_literal": ["\\Q\\E"]
+      },
+      "forbidden_rule_names": ["class_range", "class_escape"]
     },
     {
       "name": "mark_shorthand_payload_with_open_paren",
@@ -711,6 +762,26 @@
     {
       "name": "suffixed_whole_pattern_recursion_not_pcre2",
       "input": "(?R1)"
+    },
+    {
+      "name": "invalid_short_unicode_property_escape",
+      "input": "\\pA"
+    },
+    {
+      "name": "empty_quoted_class_literal_is_not_a_class_atom",
+      "input": "[\\Q\\E]AAA"
+    },
+    {
+      "name": "empty_quoted_negated_class_literal_is_not_a_class_atom",
+      "input": "[^\\Q\\E]AAA"
+    },
+    {
+      "name": "empty_quoted_class_literal_then_caret_is_not_a_class_atom",
+      "input": "[\\Q\\E^]AAA"
+    },
+    {
+      "name": "empty_quoted_class_literal_does_not_form_posix_range",
+      "input": "[[:digit:]\\Q\\E-H]+"
     }
   ]
 }
