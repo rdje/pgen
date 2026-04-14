@@ -35813,3 +35813,63 @@ Architectural north star:
   - status truth:
     - no parser-family status changed
     - no release or integration contract version changed
+- 2026-04-14: tightened the `rtl_frontend` generated-contract expression-text proof without over-locking recursive expression internals.
+  - motivation:
+    - the next `rtl_frontend` Phase S lane was a proof-strength gap, not a raw parseability gap
+    - samples such as `procedural_and_dataflow_ternary_binary_exprs` already required `conditional_expr`, `additive_expr`, and `shift_expr` evidence
+    - exact `expected_rule_texts` over those recursive expression rules would have frozen many incidental scalar spans such as parameter/range constants (`0`, `1`, `7`, `15`) in addition to the actual ternary/add/shift expressions we care about
+    - that would make the contract noisy and brittle instead of stronger
+  - implementation:
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+      - added `required_rule_texts: BTreeMap<String, Vec<String>>`
+      - retained `expected_rule_texts` as the exact full-vector assertion
+      - added `missing_required_texts`
+        - checks required retained texts as a subset of actual rule texts
+        - preserves multiplicity, so requiring the same text multiple times still needs multiple matching spans
+      - added focused unit tests for subset success, missing-text diagnostics, and multiplicity
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - strengthened:
+        - `procedural_and_dataflow_ternary_binary_exprs`
+        - `rich_assignment_targets_ternary_exprs`
+        - `procedural_concatenated_assignment_target_ternary_exprs`
+        - `continuous_ranged_member_assignment_target_ternary_exprs`
+      - required high-signal retained texts for:
+        - `conditional_expr`
+        - `additive_expr`
+        - `shift_expr`
+        - `kw_begin`
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - refreshed stale local-audit expectations from regex parser/contract `1.1.10` to parser release `1.1.21` / integration contract `1.1.23`
+      - the stale expectation was exposed by the filtered `rtl_frontend` workflow replay, not by the new contract-probe semantics
+  - retained semantic split:
+    - use `expected_rule_texts` when a rule's complete retained-text vector is meaningful and stable
+    - use `required_rule_texts` when a recursive rule should prove selected spans are present without freezing every incidental subtree
+  - proof replay:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --bin rtl_frontend_generated_contract_probe required_texts`
+      - result:
+        - passed, `3` focused helper tests
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - result:
+        - passed
+    - `git diff --check`
+      - result:
+        - passed
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+      - result:
+        - passed
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+      - result:
+        - completed successfully
+        - strict source clippy was green
+        - generated-parser clippy still reported the known non-strict `rtl_frontend_parser.rs` baseline debt
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+      - result:
+        - passed
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+      - first result:
+        - failed on stale regex audit expectations still pinned to `1.1.10`
+      - final result after updating the audit:
+        - passed
+  - status truth:
+    - `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broader handwritten-baseline parity closure

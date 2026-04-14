@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-04-14 - Tighten rtl_frontend expression text proof
+### Achievement Summary
+Strengthened the `rtl_frontend` generated contract so recursive expression rules can assert selected retained text spans without freezing every incidental scalar subexpression.
+
+### Scope of Changes
+- Updated [rust/src/bin/rtl_frontend_generated_contract_probe.rs](rust/src/bin/rtl_frontend_generated_contract_probe.rs):
+  - added `required_rule_texts` as a subset/multiplicity retained-text assertion
+  - kept existing `expected_rule_texts` as the exact full-vector text lock
+  - added focused helper tests for subset matching, missing-text reporting, and multiplicity
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `procedural_and_dataflow_ternary_binary_exprs`
+  - strengthened `rich_assignment_targets_ternary_exprs`
+  - strengthened `procedural_concatenated_assignment_target_ternary_exprs`
+  - strengthened `continuous_ranged_member_assignment_target_ternary_exprs`
+  - retained high-signal `conditional_expr`, `additive_expr`, `shift_expr`, and `kw_begin` text evidence without locking all recursive scalar expression spans
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [docs/reference/RUST_CODEBASE_ANALYSIS.md](docs/reference/RUST_CODEBASE_ANALYSIS.md)
+- Updated [rust/scripts/ci_workflow_local_gate.sh](rust/scripts/ci_workflow_local_gate.sh):
+  - refreshed stale regex release/contract audit expectations from `1.1.10` to parser release `1.1.21` / integration contract `1.1.23`
+  - this was surfaced by the filtered `rtl_frontend` workflow replay and keeps the local workflow audit aligned with the already-pushed regex contract
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --bin rtl_frontend_generated_contract_probe required_texts`
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `git diff --check`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Note:
+  - `clippy_on_rust_change` completed with strict source clippy green; its generated-parser clippy subphase still reports the known non-strict generated `rtl_frontend_parser.rs` baseline debt.
+
 ## 2026-04-14 - Align regex parser with PCRE2 source audit
 ### Achievement Summary
 Tightened the published regex grammar and generated compile-contract validation against PCRE2's source-of-truth behavior after the RGX PCRE2 conformance reports `PGEN-RGX-0017` through `PGEN-RGX-0055`.

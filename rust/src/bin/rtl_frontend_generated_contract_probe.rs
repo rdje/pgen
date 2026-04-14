@@ -27,6 +27,8 @@ struct RtlFrontendGeneratedSample {
     #[serde(default)]
     forbidden_rule_names: Vec<String>,
     #[serde(default)]
+    required_rule_texts: BTreeMap<String, Vec<String>>,
+    #[serde(default)]
     expected_rule_texts: BTreeMap<String, Vec<String>>,
     sample: String,
 }
@@ -99,6 +101,22 @@ fn ast_rule_texts(sample: &str, ast_json: &Value, rule_name: &str) -> Result<Vec
                 })
         })
         .collect()
+}
+
+fn missing_required_texts(actual_texts: &[String], required_texts: &[String]) -> Vec<String> {
+    let mut remaining_actual = actual_texts.to_vec();
+    let mut missing = Vec::new();
+    for required in required_texts {
+        if let Some(index) = remaining_actual
+            .iter()
+            .position(|actual| actual == required)
+        {
+            remaining_actual.remove(index);
+        } else {
+            missing.push(required.clone());
+        }
+    }
+    missing
 }
 
 fn load_contract() -> Result<RtlFrontendGeneratedContract> {
@@ -192,6 +210,19 @@ fn run() -> Result<()> {
                     );
                 }
             }
+            for (rule_name, required_texts) in &sample.required_rule_texts {
+                let actual_texts = ast_rule_texts(&sample.sample, &ast_json, rule_name)?;
+                let missing_texts = missing_required_texts(&actual_texts, required_texts);
+                if !missing_texts.is_empty() {
+                    bail!(
+                        "generated rtl_frontend AST JSON for sample '{}' is missing required retained texts for rule '{}': missing {:?}, got {:?}",
+                        sample.label,
+                        rule_name,
+                        missing_texts,
+                        actual_texts
+                    );
+                }
+            }
         }
 
         println!(
@@ -201,6 +232,42 @@ fn run() -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::missing_required_texts;
+
+    fn strings(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| (*value).to_string()).collect()
+    }
+
+    #[test]
+    fn required_texts_accept_subset_matches() {
+        let actual = strings(&["a", "b + c", "d << 1"]);
+        let required = strings(&["b + c", "d << 1"]);
+
+        assert!(missing_required_texts(&actual, &required).is_empty());
+    }
+
+    #[test]
+    fn required_texts_report_missing_values() {
+        let actual = strings(&["a", "b + c"]);
+        let required = strings(&["b + c", "d << 1"]);
+
+        assert_eq!(
+            missing_required_texts(&actual, &required),
+            strings(&["d << 1"])
+        );
+    }
+
+    #[test]
+    fn required_texts_preserve_multiplicity() {
+        let actual = strings(&["a", "a"]);
+        let required = strings(&["a", "a", "a"]);
+
+        assert_eq!(missing_required_texts(&actual, &required), strings(&["a"]));
+    }
 }
 
 fn main() -> ExitCode {

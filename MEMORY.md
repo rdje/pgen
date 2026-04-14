@@ -13710,3 +13710,30 @@ Use this file to resume work without replaying full chat history.
     - this is focused proof-surface widening, not a live-status promotion
 - 2026-04-13: regex handoff is now tracked as parser release `1.1.20` / integration contract `1.1.22` for the RGX `PGEN-RGX-0054` and `PGEN-RGX-0055` PCRE2 conformance reports. The implementation keeps the generated regex worker on a larger bounded stack and widens the generated recursion guard while leaving regex AST schema version `1` unchanged. Direct `parseability_probe --parse regex ... --profile regex_default` replays passed for both repro artifacts: the `80` nested-capture plus `\80` pattern and the recursive named-group interpolation pattern with nested `\g<...>` references. Future PCRE2 regex work should follow the now-documented source-of-truth workflow: prose docs first (`pcre2syntax(3)`, `pcre2pattern(3)`), `src/pcre2_compile.c` for edge cases, and PCRE2 `testdata/testinput*` plus expected outputs as the executable oracle. This is a regex maintenance release; the live regex family row remains `Done`.
 - 2026-04-14: after the user called out the leftover dirty files, traced and committed the residual cleanup. The remaining tracked Rust files were rustfmt-only fallout from my earlier `cargo fmt` run and were committed as `56000c3 Rustfmt residual parser tooling files` after `cargo fmt --manifest-path rust/Cargo.toml --check` passed. The lingering untracked `docs/tcl/md/tcl.md` was a Tcl syntax note already referenced by PNR/SDC planning continuity docs, so it was normalized to ASCII/no trailing whitespace and committed as `34fc04b Docs: add Tcl syntax reference note`. This cleanup has no parser-family status impact and no release/contract version impact.
+- 2026-04-14: `rtl_frontend` generated-contract proof now has a subset retained-text assertion lane.
+  - landed:
+    - `rust/src/bin/rtl_frontend_generated_contract_probe.rs`
+      - added `required_rule_texts`
+      - preserves `expected_rule_texts` as exact full-vector locks
+      - checks subset text presence with multiplicity so recursive expression rules can lock salient spans without freezing every scalar subexpression
+    - `rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+      - strengthened:
+        - `procedural_and_dataflow_ternary_binary_exprs`
+        - `rich_assignment_targets_ternary_exprs`
+        - `procedural_concatenated_assignment_target_ternary_exprs`
+        - `continuous_ranged_member_assignment_target_ternary_exprs`
+      - locks high-signal `conditional_expr`, `additive_expr`, `shift_expr`, and `kw_begin` retained spans through `required_rule_texts`
+    - `rust/scripts/ci_workflow_local_gate.sh`
+      - refreshed stale regex audit expectations from parser/contract `1.1.10` to parser release `1.1.21` / integration contract `1.1.23`
+      - the stale expectation was exposed by the filtered `rtl_frontend` workflow replay
+  - verified so far:
+    - `cargo test --manifest-path rust/Cargo.toml --features generated_parsers --bin rtl_frontend_generated_contract_probe required_texts`
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `git diff --check`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - status truth:
+    - `rtl_frontend` remains `In Progress`
+    - this is generated-contract proof tightening, not handwritten-baseline parity closure

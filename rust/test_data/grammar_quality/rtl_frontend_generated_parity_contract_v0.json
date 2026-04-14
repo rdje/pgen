@@ -2321,6 +2321,22 @@
         "shift_expr",
         "ranged_signal_reference"
       ],
+      "required_rule_texts": {
+        "kw_begin": [
+          "begin"
+        ],
+        "conditional_expr": [
+          "SEL ? (a[HI:LO] + d) : (d << 1)",
+          "(a[HI:LO] + d) * 2"
+        ],
+        "additive_expr": [
+          "a[HI:LO] + d",
+          "(a[HI:LO] + d) * 2"
+        ],
+        "shift_expr": [
+          "d << 1"
+        ]
+      },
       "expected_rule_texts": {
         "kw_always_comb": [
           "always_comb"
@@ -2365,6 +2381,21 @@
         "concatenation_expr",
         "ranged_signal_reference"
       ],
+      "required_rule_texts": {
+        "kw_begin": [
+          "begin"
+        ],
+        "conditional_expr": [
+          "SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1)",
+          "SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid}"
+        ],
+        "additive_expr": [
+          "cfgs[0].data[HI:LO] + d"
+        ],
+        "shift_expr": [
+          "d << 1"
+        ]
+      },
       "expected_rule_texts": {
         "kw_always_comb": [
           "always_comb"
@@ -2411,6 +2442,11 @@
         "conditional_expr",
         "concatenation_expr"
       ],
+      "required_rule_texts": {
+        "conditional_expr": [
+          "SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid}"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_target": [
           "{cfgs[IDX].valid, cfgs[0].valid}",
@@ -2465,6 +2501,20 @@
         "shift_expr",
         "ranged_signal_reference"
       ],
+      "required_rule_texts": {
+        "kw_begin": [
+          "begin"
+        ],
+        "conditional_expr": [
+          "SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1)"
+        ],
+        "additive_expr": [
+          "cfgs[0].data[HI:LO] + d"
+        ],
+        "shift_expr": [
+          "d << 1"
+        ]
+      },
       "expected_rule_texts": {
         "assignment_operator": [
           "="
