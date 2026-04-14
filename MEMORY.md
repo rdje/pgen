@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-14 (+0200, task: rtl-frontend-named-port-signal-reference-proof)
+Last updated: 2026-04-14 (+0200, task: rtl-frontend-hierarchy-retained-text-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,35 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Tightened `rtl_frontend` generated-contract hierarchy retained-text proof:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract labels strengthened:
+    - `package_qualified_constant_parameter_flow`
+    - `header_wildcard_imported_package_constant_flow`
+    - `module_named_imported_package_constant_flow`
+    - `unpacked_array_struct_member_actual`
+    - `generate_if_with_dataflow_and_named_instantiation`
+    - `generate_for_named_instantiation_and_dataflow`
+  - proof tightening:
+    - added `required_rule_texts` locks for selected `module_instantiation` and `instance_item` spans
+    - removed the current `module_instantiation` and `instance_item` missing retained-text buckets from the generated-contract gap query
+    - kept the locks as subset checks so the contract proves high-signal hierarchy spans without freezing incidental recursive nodes
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` was not run because no Rust source or generated Rust artifacts changed
 - Tightened `rtl_frontend` generated-contract named-port signal-reference proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)

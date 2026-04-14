@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-04-14 - Tighten rtl_frontend hierarchy retained-text proof
+### Achievement Summary
+Strengthened the `rtl_frontend` generated contract so hierarchy-bearing samples now explicitly retain selected `module_instantiation` and `instance_item` spans instead of relying only on child `parameter_override` and `port_connection` evidence.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `package_qualified_constant_parameter_flow`
+  - strengthened `header_wildcard_imported_package_constant_flow`
+  - strengthened `module_named_imported_package_constant_flow`
+  - strengthened `unpacked_array_struct_member_actual`
+  - strengthened `generate_if_with_dataflow_and_named_instantiation`
+  - strengthened `generate_for_named_instantiation_and_dataflow`
+  - added subset retained-text locks for package-backed constant-flow module instantiations, generate-contained instance items, and the unpacked-array struct-member instance item
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof tightening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Note:
+  - `clippy_on_rust_change` was not run because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-14 - Tighten rtl_frontend named-port signal proof
 ### Achievement Summary
 Strengthened existing `rtl_frontend` generated-contract named-port actual samples so their composite signal-reference spans are now explicitly retained.

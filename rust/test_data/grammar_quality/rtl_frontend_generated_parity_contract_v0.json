@@ -1338,6 +1338,11 @@
         "union_type",
         "import_declaration"
       ],
+      "required_rule_texts": {
+        "module_instantiation": [
+          "child #(.W(TOTAL)) u_child (.a(data[cfg_pkg::DEPTH-1:0]), .y(y));"
+        ]
+      },
       "expected_rule_texts": {
         "parameter_declaration_head": [
           "localparam WIDTH = 8",
@@ -1388,6 +1393,11 @@
         "union_type",
         "package_qualified_type"
       ],
+      "required_rule_texts": {
+        "module_instantiation": [
+          "child #(.W(TOTAL)) u_child (.a(data[WIDTH-1:0]), .y(y));"
+        ]
+      },
       "expected_rule_texts": {
         "import_declaration": [
           "import cfg_pkg::*;"
@@ -1440,6 +1450,11 @@
         "union_type",
         "package_qualified_type"
       ],
+      "required_rule_texts": {
+        "module_instantiation": [
+          "child #(.W(TOTAL)) u_child (.a(data[WIDTH:0]), .y(y));"
+        ]
+      },
       "expected_rule_texts": {
         "import_declaration": [
           "import cfg_pkg::WIDTH;"
@@ -1478,6 +1493,11 @@
       "forbidden_rule_names": [
         "typedef_declaration"
       ],
+      "required_rule_texts": {
+        "instance_item": [
+          "u_child (.a(cfgs[IDX].data), .y(y))"
+        ]
+      },
       "expected_rule_texts": {
         "struct_union_field": [
           "logic [7:0] data;",
@@ -2065,6 +2085,11 @@
       "forbidden_rule_names": [
         "procedural_block"
       ],
+      "required_rule_texts": {
+        "instance_item": [
+          "u_leaf (.a(mid), .y(y))"
+        ]
+      },
       "expected_rule_texts": {
         "continuous_assign": [
           "assign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};"
@@ -2193,6 +2218,14 @@
       "forbidden_rule_names": [
         "procedural_block"
       ],
+      "required_rule_texts": {
+        "module_instantiation": [
+          "leaf u_leaf (.a(a), .y(ys[i]));"
+        ],
+        "instance_item": [
+          "u_leaf (.a(a), .y(ys[i]))"
+        ]
+      },
       "expected_rule_texts": {
         "genvar_declaration": [
           "genvar i;"

@@ -1,4 +1,42 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - rtl_frontend hierarchy retained-text proof tightening
+### Context
+The `rtl_frontend` generated contract already required hierarchy-related rule evidence for package-backed constant flows and generate-contained instantiations. Several samples locked child constructs such as `parameter_override`, `port_connection`, and ranged signal references, but did not explicitly assert retained text for the parent `module_instantiation` or `instance_item` nodes.
+
+The current gap query showed small, crisp missing-text buckets for `module_instantiation` and `instance_item`. These were good candidates for proof tightening because they sit on the RTLSyn-facing hierarchy surface without requiring grammar behavior changes.
+
+### Decision
+- Add narrow `required_rule_texts` locks instead of exact full-vector `expected_rule_texts`, keeping the proof focused on high-signal hierarchy spans.
+- Strengthen package-backed constant-flow samples by requiring the complete parameterized child module-instantiation text.
+- Strengthen generate-contained samples by requiring the retained instance-item text, plus the generate-for module-instantiation text where that rule is required by the sample.
+- Strengthen the older unpacked-array struct-member actual sample by requiring its retained instance-item text.
+- Keep `rtl_frontend` at `In Progress`; this removes a focused contract text-debt bucket, not the full handwritten-baseline parity/proof backlog.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - strengthened `package_qualified_constant_parameter_flow`
+  - strengthened `header_wildcard_imported_package_constant_flow`
+  - strengthened `module_named_imported_package_constant_flow`
+  - strengthened `unpacked_array_struct_member_actual`
+  - strengthened `generate_if_with_dataflow_and_named_instantiation`
+  - strengthened `generate_for_named_instantiation_and_dataflow`
+  - eliminated the current `module_instantiation` and `instance_item` missing retained-text buckets from the generated-contract gap query
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `make -C rust SHELL=/bin/bash mdbook_docs_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-14 - rtl_frontend named-port signal-reference proof tightening
 ### Context
 The generated contract already retained compact named-port actual shapes for a bit-select plus concatenation and a member-path bit-select plus repetition:
