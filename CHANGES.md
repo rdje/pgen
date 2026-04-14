@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-04-14 - Widen rtl_frontend unpacked-array actual proof
+### Achievement Summary
+Extended the `rtl_frontend` generated contract with a combined named-port actual shape that goes through an indexed unpacked-array struct member and then bit-selects the member.
+
+### Scope of Changes
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `unpacked_array_struct_member_bitselect_actual`
+  - retained the combined syntax `child u_child (.a(cfgs[IDX].data[BIT]), .y(y));`
+  - locked high-signal `struct_union_field`, `module_instantiation`, `instance_item`, `port_connection`, and `unpacked_dimension` exact texts
+  - added a subset retained-text assertion for the combined `signal_reference` span `cfgs[IDX].data[BIT]`
+- Updated public/continuity documentation:
+  - [README.md](README.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+  - [MEMORY.md](MEMORY.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+- Status impact:
+  - no live parser-family label changed
+  - `rtl_frontend` remains `In Progress`
+  - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Note:
+  - `clippy_on_rust_change` was not run because this slice only changes contract JSON and documentation, not Rust source or generated Rust artifacts.
+
 ## 2026-04-14 - Tighten rtl_frontend instance expression proof
 ### Achievement Summary
 Extended the `rtl_frontend` generated-contract subset retained-text proof from procedural/dataflow expression lanes into module-instance parameter overrides and port actuals.

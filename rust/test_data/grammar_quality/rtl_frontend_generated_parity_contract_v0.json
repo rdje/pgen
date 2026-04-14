@@ -1491,6 +1491,53 @@
       "sample": "module child (\n    input logic [7:0] a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data), .y(y));\nendmodule\n"
     },
     {
+      "label": "unpacked_array_struct_member_bitselect_actual",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "struct_union_field",
+        "module_instantiation",
+        "instance_item",
+        "port_connection",
+        "signal_reference",
+        "unpacked_dimension"
+      ],
+      "forbidden_rule_names": [
+        "typedef_declaration",
+        "union_type",
+        "enum_type",
+        "parameter_override",
+        "procedural_block",
+        "continuous_assign",
+        "generate_region"
+      ],
+      "required_rule_texts": {
+        "signal_reference": [
+          "cfgs[IDX].data[BIT]"
+        ]
+      },
+      "expected_rule_texts": {
+        "struct_union_field": [
+          "logic [7:0] data;",
+          "logic valid;"
+        ],
+        "module_instantiation": [
+          "child u_child (.a(cfgs[IDX].data[BIT]), .y(y));"
+        ],
+        "instance_item": [
+          "u_child (.a(cfgs[IDX].data[BIT]), .y(y))"
+        ],
+        "port_connection": [
+          ".a(cfgs[IDX].data[BIT])",
+          ".y(y)"
+        ],
+        "unpacked_dimension": [
+          "[0:1]"
+        ]
+      },
+      "sample": "module child (\n    input logic a,\n    output logic y\n);\nendmodule\n\nmodule top #(\n    parameter IDX = 1,\n    parameter BIT = 3\n) (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nchild u_child (.a(cfgs[IDX].data[BIT]), .y(y));\nendmodule\n"
+    },
+    {
       "label": "unindexed_unpacked_array_struct_member_actual_parse_surface",
       "expected_parse_ok": true,
       "require_ast_json": true,

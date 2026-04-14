@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-04-14 - rtl_frontend unpacked-array member bit-select actual
+### Context
+The generated contract already had separate evidence for unpacked-array struct-member actuals (`cfgs[IDX].data`) and member-path bit-select/repetition actuals (`cfg.data[IDX]` / `{LANES{a}}`). The handwritten bootstrap/reference crate also exercises the combined elaboration shape `cfgs[IDX].data[BIT]`, where the port actual first indexes an unpacked array of structs and then bit-selects the selected member.
+
+### Decision
+- Add a focused generated-contract sample for the combined syntax instead of treating the two existing adjacent samples as enough.
+- Keep the sample syntax-only: it proves generated-parser retention of the combined port-actual shape while leaving semantic acceptance and parent/member validation to elaboration.
+- Keep `rtl_frontend` at `In Progress`; this widens a targeted generated-contract seam, not the full handwritten-baseline parity proof.
+
+### What Was Changed
+- Updated [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json):
+  - added `unpacked_array_struct_member_bitselect_actual`
+  - retained `child u_child (.a(cfgs[IDX].data[BIT]), .y(y));`
+  - exact-locked the parent instantiation, instance item, named port connections, struct fields, and unpacked dimension
+  - subset-locked the combined `signal_reference` text `cfgs[IDX].data[BIT]`
+- Updated public/continuity docs:
+  - [README.md](README.md)
+  - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+  - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+  - [CHANGES.md](CHANGES.md)
+  - [MEMORY.md](MEMORY.md)
+
+### Validation
+- Passed:
+  - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+  - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+  - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+- Clippy note:
+  - not run for this slice because the change is contract JSON plus documentation only.
+
 ## 2026-04-14 - rtl_frontend instance expression proof tightening
 ### Context
 The previous `rtl_frontend` generated-contract slice added `required_rule_texts` so recursive expression rules can assert selected retained text spans without freezing every incidental scalar expression node. The next high-signal gap was instance syntax: ordered/named parameter overrides and ordered/named port actuals already required `conditional_expr`, `additive_expr`, and `shift_expr` evidence, but their expression text was still only indirectly covered by parent `module_instantiation` and `port_connection` locks.

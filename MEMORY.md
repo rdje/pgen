@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-04-14 (+0200, task: rtl-frontend-instance-expression-proof)
+Last updated: 2026-04-14 (+0200, task: rtl-frontend-unpacked-array-bitselect-actual-proof)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,31 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- Widened `rtl_frontend` generated-contract proof for combined unpacked-array struct-member bit-select actuals:
+  - changed:
+    - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
+    - [README.md](README.md)
+    - [docs/book/src/parser-families.md](docs/book/src/parser-families.md)
+    - [LIVE_ACHIEVEMENT_STATUS.md](LIVE_ACHIEVEMENT_STATUS.md)
+    - [CHANGES.md](CHANGES.md)
+    - [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
+    - [MEMORY.md](MEMORY.md)
+  - generated-contract label added:
+    - `unpacked_array_struct_member_bitselect_actual`
+  - retained syntax lane:
+    - `child u_child (.a(cfgs[IDX].data[BIT]), .y(y));`
+    - proves the generated parser retains a named-port actual that indexes an unpacked array of structs and then bit-selects the selected member
+  - proof tightening:
+    - exact text locks now cover the parent `module_instantiation`, `instance_item`, `port_connection`, `struct_union_field`, and `unpacked_dimension` spans
+    - `required_rule_texts` subset-locks the combined `signal_reference` span `cfgs[IDX].data[BIT]`
+  - validation:
+    - `jq empty rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`
+    - `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`
+    - `env PGEN_CI_WORKFLOW_LOCAL_FILTER=rtl-frontend-generated-contract-gate make -C rust SHELL=/bin/bash ci_workflow_local_gate`
+  - important continuity detail:
+    - no live parser-family label changes; `rtl_frontend` remains `In Progress`
+    - this is focused generated-contract proof widening, not broad handwritten-baseline parity closure
+    - `clippy_on_rust_change` was not run because no Rust source or generated Rust artifacts changed
 - Tightened `rtl_frontend` generated-contract instance expression proof:
   - changed:
     - [rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json](rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json)
